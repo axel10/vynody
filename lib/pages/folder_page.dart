@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -77,26 +78,27 @@ class _FoldersPageState extends State<FoldersPage> {
             child: ListView(
               children: [
                 // System Media Library Item
-                ListTile(
-                  leading: const Icon(
-                    Icons.library_music,
-                    color: Colors.purple,
+                if (!Platform.isWindows)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.library_music,
+                      color: Colors.purple,
+                    ),
+                    title: const Text('系统媒体库'),
+                    subtitle: scanner.hasPermission
+                        ? null
+                        : const Text(
+                            '需授予权限以扫描本地音乐',
+                            style: TextStyle(color: Colors.red, fontSize: 12),
+                          ),
+                    onTap: () {
+                      // Navigate to a virtual folder or the real system folder
+                      _navigateTo(
+                        scanner.systemMediaFolder ??
+                            MusicFolder(path: 'system', name: '系统媒体库'),
+                      );
+                    },
                   ),
-                  title: const Text('系统媒体库'),
-                  subtitle: scanner.hasPermission
-                      ? null
-                      : const Text(
-                    '需授予权限以扫描本地音乐',
-                    style: TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                  onTap: () {
-                    // Navigate to a virtual folder or the real system folder
-                    _navigateTo(
-                      scanner.systemMediaFolder ??
-                          MusicFolder(path: 'system', name: '系统媒体库'),
-                    );
-                  },
-                ),
 
                 // Add Root Directory Item
                 ListTile(
@@ -110,7 +112,7 @@ class _FoldersPageState extends State<FoldersPage> {
 
                 // User Added Root Folders
                 ...scanner.rootFolders.map(
-                      (folder) => ListTile(
+                  (folder) => ListTile(
                     leading: const Icon(
                       Icons.folder_shared,
                       color: Colors.amber,
@@ -184,14 +186,14 @@ class _FoldersPageState extends State<FoldersPage> {
                   ),
 
                 ..._currentFolder!.subFolders.map(
-                      (folder) => ListTile(
+                  (folder) => ListTile(
                     leading: const Icon(Icons.folder, color: Colors.amber),
                     title: Text(folder.name),
                     onTap: () => _navigateTo(folder),
                   ),
                 ),
                 ..._currentFolder!.files.map(
-                      (file) => ListTile(
+                  (file) => ListTile(
                     leading: const Icon(Icons.music_note, color: Colors.blue),
                     title: Text(file.name),
                     onTap: () {
