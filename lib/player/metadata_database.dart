@@ -1,0 +1,120 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+class SongMetadata {
+  final int? id;
+  final String path;
+  final String title;
+  final String album;
+  final String artist;
+  final int? duration;
+  final String? artworkPath;
+
+  SongMetadata({
+    this.id,
+    required this.path,
+    required this.title,
+    required this.album,
+    required this.artist,
+    this.duration,
+    this.artworkPath,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'path': path,
+      'title': title,
+      'album': album,
+      'artist': artist,
+      'duration': duration,
+      'artworkPath': artworkPath,
+    };
+  }
+
+  factory SongMetadata.fromMap(Map<String, dynamic> map) {
+    return SongMetadata(
+      id: map['id'],
+      path: map['path'],
+      title: map['title'] ?? 'Unknown',
+      album: map['album'] ?? 'Unknown',
+      artist: map['artist'] ?? 'Unknown',
+      duration: map['duration'],
+      artworkPath: map['artworkPath'],
+    );
+  }
+}
+
+class MetadataDatabase {
+  static Database? _database;
+  static final MetadataDatabase _instance = MetadataDatabase._internal();
+
+  factory MetadataDatabase() => _instance;
+
+  MetadataDatabase._internal();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    if (Platform.isWindows || Platform.isLinux) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
+
+    final directory = await getApplicationSupportDirectory();
+    final path = p.join(directory.path, 'metadata.db');
+
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE songs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            path TEXT UNIQUE,
+            title TEXT,
+            album TEXT,
+            artist TEXT,
+            duration INTEGER,
+            artworkPath TEXT
+          )
+        ''');
+      },
+    );
+  }
+
+  Future<void> insertOrUpdateSong(SongMetadata song) async {
+    final db = await database;
+    await db.insert(
+      'songs',
+      song.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<SongMetadata?> getSongMetadata(String path) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'songs',
+      where: 'path = ?',
+      whereArgs: [path],
+    );
+
+    if (maps.isNotEmpty) {
+      return SongMetadata.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<void> clearAll() async {
+    final db = await database;
+    await db.delete('songs');
+  }
+}

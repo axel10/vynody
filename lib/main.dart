@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:metadata_god/metadata_god.dart';
 import 'package:provider/provider.dart';
 import 'player/audio_service.dart';
 import 'player/scanner_service.dart';
@@ -9,6 +11,9 @@ import 'pages/playback_page.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  if (Platform.isWindows || Platform.isLinux) {
+    MetadataGod.initialize();
+  }
   runApp(
     MultiProvider(
       providers: [

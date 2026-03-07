@@ -4,6 +4,10 @@ import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:media_scanner/media_scanner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'metadata_database.dart';
+import 'metadata_helper.dart';
 
 class MusicFile {
   final String path;
@@ -45,6 +49,9 @@ class ScannerService extends ChangeNotifier {
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
   bool get hasPermission => _hasPermission;
   final Map<String, int> _pathIdMap = {};
+  final Map<String, SongMetadata> _metadataMap = {};
+
+  Map<String, SongMetadata> get metadataMap => _metadataMap;
 
   final List<String> _audioExtensions = [
     '.mp3',
@@ -55,7 +62,27 @@ class ScannerService extends ChangeNotifier {
   ];
 
   ScannerService() {
-    checkAndRequestPermissions();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await _loadRootPaths();
+    await checkAndRequestPermissions();
+    // Auto scan on startup
+    await scan();
+  }
+
+  Future<void> _loadRootPaths() async {
+    final prefs = await SharedPreferences.getInstance();
+    final paths = prefs.getStringList('root_paths') ?? [];
+    _rootPaths.clear();
+    _rootPaths.addAll(paths);
+    notifyListeners();
+  }
+
+  Future<void> _saveRootPaths() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('root_paths', _rootPaths);
   }
 
   Future<void> checkAndRequestPermissions() async {
@@ -69,12 +96,23 @@ class ScannerService extends ChangeNotifier {
   Future<void> addRootPath(String path) async {
     if (_rootPaths.contains(path)) return;
     _rootPaths.add(path);
+    await _saveRootPaths();
     notifyListeners();
+
+    if (Platform.isAndroid) {
+      try {
+        await MediaScanner.loadMedia(path: path);
+      } catch (e) {
+        debugPrint('MediaScanner error: $e');
+      }
+    }
+
     await scan();
   }
 
   Future<void> removeRootPath(String path) async {
     _rootPaths.remove(path);
+    await _saveRootPaths();
     _rootFolders.removeWhere((f) => f.path == path);
     notifyListeners();
   }
@@ -183,10 +221,10 @@ class ScannerService extends ChangeNotifier {
   }
 
   MusicFolder _recursiveBuild(
-    String currentPath,
-    Set<String> allPaths,
-    Map<String, List<MusicFile>> folderFiles,
-  ) {
+      String currentPath,
+      Set<String> allPaths,
+      Map<String, List<MusicFile>> folderFiles,
+      ) {
     final subFolderPaths = allPaths
         .where((path) => p.dirname(path) == currentPath)
         .toList();
@@ -222,6 +260,16 @@ class ScannerService extends ChangeNotifier {
       if (await _checkPermissions()) {
         for (final path in _rootPaths) {
           debugPrint('Starting scan at: $path');
+
+          if (Platform.isAndroid) {
+            // Trigger media scanner for each root path on startup
+            try {
+              await MediaScanner.loadMedia(path: path);
+            } catch (e) {
+              debugPrint('MediaScanner startup scan error: $e');
+            }
+          }
+
           final folder = await _scanDirectory(path);
           if (folder != null) {
             _rootFolders.add(folder);
@@ -235,7 +283,7 @@ class ScannerService extends ChangeNotifier {
     } finally {
       _isScanning = false;
       _rootFolders.sort(
-        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
       );
       notifyListeners();
     }
@@ -268,6 +316,16 @@ class ScannerService extends ChangeNotifier {
           final ext = p.extension(entity.path).toLowerCase();
           if (_audioExtensions.contains(ext)) {
             final id = _pathIdMap[entity.path];
+
+            if (Platform.isWindows) {
+              final metadata = await MetadataHelper.processMetadata(
+                entity.path,
+              );
+              if (metadata != null) {
+                _metadataMap[entity.path] = metadata;
+              }
+            }
+
             files.add(
               MusicFile(
                 path: entity.path,

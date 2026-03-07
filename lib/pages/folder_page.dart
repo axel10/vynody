@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'package:on_audio_query/on_audio_query.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../player/scanner_service.dart';
 import '../player/audio_service.dart';
+import '../widgets/song_thumbnail.dart';
 
 class FoldersPage extends StatefulWidget {
   const FoldersPage({super.key});
@@ -195,23 +195,7 @@ class _FoldersPageState extends State<FoldersPage> {
                 ),
                 ..._currentFolder!.files.map(
                   (file) => ListTile(
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: file.id != null
-                            ? QueryArtworkWidget(
-                                id: file.id!,
-                                type: ArtworkType.AUDIO,
-                                nullArtworkWidget: const Icon(
-                                  Icons.music_note,
-                                  color: Colors.blue,
-                                ),
-                              )
-                            : const Icon(Icons.music_note, color: Colors.blue),
-                      ),
-                    ),
+                    leading: SongThumbnail(path: file.path, id: file.id),
                     title: Text(file.name),
                     onTap: () {
                       audio.playFile(file.path, file.name);
