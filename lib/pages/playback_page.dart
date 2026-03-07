@@ -62,38 +62,32 @@ class _PlaybackPageState extends State<PlaybackPage> {
             (audio.artworkWidth ?? 0) >= 640 ||
             (audio.artworkHeight ?? 0) >= 640;
         final screenWidth = MediaQuery.of(context).size.width;
-        final screenHeight = MediaQuery.of(context).size.height;
 
         final double baseSize = isLandscape ? 260 : 300;
-        double displaySize = isLargeCover
+        final double maxDisplaySize = isLargeCover
             ? (isLandscape ? 600 : 500)
             : baseSize;
 
-        // Cap size to screen dimensions
-        final double maxAllowed = isLandscape
-            ? screenHeight * 0.7
-            : screenWidth * 0.85;
-        if (displaySize > maxAllowed) displaySize = maxAllowed;
-
         final albumArt = Hero(
           tag: 'album_art',
-          child: Container(
-            width: displaySize,
-            height: displaySize,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              color: Colors.black87,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                color: Colors.black87,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 30,
+                    spreadRadius: 5,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: _buildCoverImage(audio, isLandscape),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: _buildCoverImage(audio, isLandscape),
           ),
         );
 
@@ -239,22 +233,61 @@ class _PlaybackPageState extends State<PlaybackPage> {
 
         Widget content;
         if (isLandscape) {
-          content = Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Row(
-              children: [
-                Expanded(flex: 2, child: Center(child: albumArt)),
-                const SizedBox(width: 32),
-                Expanded(flex: 3, child: controls),
-              ],
+          content = SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 4,
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: maxDisplaySize,
+                          maxHeight: maxDisplaySize,
+                        ),
+                        child: albumArt,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 32),
+                  Expanded(
+                    flex: 5,
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: SizedBox(width: 450, child: controls),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         } else {
-          content = Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [albumArt, const SizedBox(height: 48), controls],
+          content = SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: maxDisplaySize,
+                          maxHeight: maxDisplaySize,
+                        ),
+                        child: albumArt,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: SizedBox(width: screenWidth - 48, child: controls),
+                  ),
+                ],
+              ),
             ),
           );
         }
