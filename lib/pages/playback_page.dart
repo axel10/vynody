@@ -13,6 +13,7 @@ class PlaybackPage extends StatefulWidget {
 
 class _PlaybackPageState extends State<PlaybackPage> {
   bool _showVolumeHUD = false;
+  bool _showVolumeSlider = false;
   Timer? _hudTimer;
 
   void _triggerHUD() {
@@ -27,6 +28,12 @@ class _PlaybackPageState extends State<PlaybackPage> {
         });
       }
     });
+  }
+
+  IconData _getVolumeIcon(double volume) {
+    if (volume <= 0) return Icons.volume_mute;
+    if (volume < 75) return Icons.volume_down;
+    return Icons.volume_up;
   }
 
   @override
@@ -156,6 +163,15 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       icon: const Icon(Icons.skip_next, size: 40),
                       onPressed: () {},
                     ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(_getVolumeIcon(audio.volume), size: 32),
+                      onPressed: () {
+                        setState(() {
+                          _showVolumeSlider = !_showVolumeSlider;
+                        });
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -188,6 +204,101 @@ class _PlaybackPageState extends State<PlaybackPage> {
         return Stack(
           children: [
             content,
+            if (_showVolumeSlider)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _showVolumeSlider = false),
+                  child: Container(
+                    color: Colors.transparent,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(
+                              bottom: isLandscape ? 100 : 160,
+                            ),
+                            child: GestureDetector(
+                              onTap:
+                                  () {}, // Prevent dismissal when clicking the slider bar itself
+                              child: Container(
+                                width: 300,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black87,
+                                  borderRadius: BorderRadius.circular(30),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _getVolumeIcon(audio.volume),
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Listener(
+                                        onPointerSignal: (pointerSignal) {
+                                          if (pointerSignal
+                                              is PointerScrollEvent) {
+                                            audio.setVolume(
+                                              audio.volume -
+                                                  pointerSignal.scrollDelta.dy *
+                                                      0.1,
+                                            );
+                                          }
+                                        },
+                                        child: SliderTheme(
+                                          data: SliderTheme.of(context)
+                                              .copyWith(
+                                                activeTrackColor: Colors.white,
+                                                inactiveTrackColor:
+                                                    Colors.white24,
+                                                thumbColor: Colors.white,
+                                                overlayColor: Colors.white
+                                                    .withOpacity(0.2),
+                                              ),
+                                          child: Slider(
+                                            value: audio.volume,
+                                            min: 0,
+                                            max: 100,
+                                            onChanged: (val) {
+                                              audio.setVolume(val);
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${audio.volume.round()}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (_showVolumeHUD)
               Positioned(
                 top: 100,
