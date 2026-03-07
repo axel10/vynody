@@ -6,6 +6,7 @@ import '../player/scanner_service.dart';
 import '../player/audio_service.dart';
 import '../widgets/song_thumbnail.dart';
 
+// 目录页
 class FoldersPage extends StatefulWidget {
   const FoldersPage({super.key});
 
