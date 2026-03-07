@@ -8,6 +8,7 @@ class AudioService extends ChangeNotifier {
   String? _currentFileName;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  double _volume = 100.0;
 
   AudioService() {
     _player = Player();
@@ -23,6 +24,10 @@ class AudioService extends ChangeNotifier {
       _duration = duration;
       notifyListeners();
     });
+    _player.stream.volume.listen((volume) {
+      _volume = volume;
+      notifyListeners();
+    });
   }
 
   bool get isPlaying => _isPlaying;
@@ -30,6 +35,7 @@ class AudioService extends ChangeNotifier {
   String? get currentFileName => _currentFileName;
   Duration get position => _position;
   Duration get duration => _duration;
+  double get volume => _volume;
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds
       : 0.0;
@@ -38,6 +44,7 @@ class AudioService extends ChangeNotifier {
     _currentFilePath = path;
     _currentFileName = name;
     await _player.open(Media(path));
+    await _player.setVolume(_volume);
     await _player.play();
     notifyListeners();
   }
@@ -48,6 +55,12 @@ class AudioService extends ChangeNotifier {
 
   Future<void> seek(Duration position) async {
     await _player.seek(position);
+  }
+
+  Future<void> setVolume(double volume) async {
+    _volume = volume.clamp(0.0, 100.0);
+    await _player.setVolume(_volume);
+    notifyListeners();
   }
 
   @override
