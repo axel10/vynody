@@ -199,7 +199,11 @@ class _FoldersPageState extends State<FoldersPage> {
                       title: Text(file.name),
                       onTap: () {
                         audio.playFile(file.path, file.name, id: file.id);
-                        DefaultTabController.of(context).animateTo(1);
+                        context.read<PageController>().animateToPage(
+                          1,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
                       },
                     ),
                   ),

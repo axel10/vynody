@@ -69,26 +69,23 @@ class _PlaybackPageState extends State<PlaybackPage> {
             ? (isLandscape ? 600 : 500)
             : baseSize;
 
-        final albumArt = Hero(
-          tag: 'album_art',
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                color: Colors.black87,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
-                    blurRadius: 30,
-                    spreadRadius: 5,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: _buildCoverImage(audio, isLandscape),
+        final albumArt = AspectRatio(
+          aspectRatio: 1,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              color: Colors.black87,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
+            clipBehavior: Clip.antiAlias,
+            child: _buildCoverImage(audio, isLandscape),
           ),
         );
 
@@ -293,192 +290,193 @@ class _PlaybackPageState extends State<PlaybackPage> {
           );
         }
 
-        return Container(
-          color: Colors.black,
-          child: Stack(
-            children: [
-              // Blurred Background
-              if (audio.currentArtworkBytes != null ||
-                  audio.currentArtworkPath != null)
-                Positioned.fill(
-                  child: Transform.scale(
-                    scale: 1.1, // Slight scale for safety
-                    child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(
-                        sigmaX: 60,
-                        sigmaY: 60,
-                        tileMode: TileMode.mirror,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: audio.currentArtworkBytes != null
-                                ? MemoryImage(audio.currentArtworkBytes!)
-                                : FileImage(File(audio.currentArtworkPath!))
-                                      as ImageProvider,
-                            fit: BoxFit.cover,
-                            colorFilter: ColorFilter.mode(
-                              Colors.black.withValues(alpha: 0.4),
-                              BlendMode.darken,
+        return ClipRect(
+          child: Container(
+            color: Colors.black,
+            child: Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                // Blurred Background
+                if (audio.currentArtworkBytes != null ||
+                    audio.currentArtworkPath != null)
+                  Positioned.fill(
+                    child: Transform.scale(
+                      scale: 1.1, // Slight scale for safety
+                      child: ImageFiltered(
+                        imageFilter: ImageFilter.blur(
+                          sigmaX: 60,
+                          sigmaY: 60,
+                          tileMode: TileMode.mirror,
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: audio.currentArtworkBytes != null
+                                  ? MemoryImage(audio.currentArtworkBytes!)
+                                  : FileImage(File(audio.currentArtworkPath!))
+                                        as ImageProvider,
+                              fit: BoxFit.cover,
+                              colorFilter: ColorFilter.mode(
+                                Colors.black.withValues(alpha: 0.4),
+                                BlendMode.darken,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              content,
-              if (_showVolumeSlider)
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => setState(() => _showVolumeSlider = false),
-                    child: Container(
-                      color: Colors.transparent,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.only(
-                                bottom: isLandscape ? 100 : 160,
-                              ),
-                              child: GestureDetector(
-                                onTap:
-                                    () {}, // Prevent dismissal when clicking the slider bar itself
-                                child: Container(
-                                  width: 300,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black87,
-                                    borderRadius: BorderRadius.circular(30),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        blurRadius: 10,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        _getVolumeIcon(audio.volume),
-                                        color: Colors.white,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Listener(
-                                          onPointerSignal: (pointerSignal) {
-                                            if (pointerSignal
-                                                is PointerScrollEvent) {
-                                              audio.setVolume(
-                                                audio.volume -
-                                                    pointerSignal
-                                                            .scrollDelta
-                                                            .dy *
-                                                        0.1,
-                                              );
-                                            }
-                                          },
-                                          child: SliderTheme(
-                                            data: SliderTheme.of(context)
-                                                .copyWith(
-                                                  activeTrackColor:
-                                                      Colors.white,
-                                                  inactiveTrackColor:
-                                                      Colors.white24,
-                                                  thumbColor: Colors.white,
-                                                  overlayColor: Colors.white
-                                                      .withOpacity(0.2),
-                                                ),
-                                            child: Slider(
-                                              value: audio.volume,
-                                              min: 0,
-                                              max: 100,
-                                              onChanged: (val) {
-                                                audio.setVolume(val);
-                                              },
+                content,
+                if (_showVolumeSlider)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setState(() => _showVolumeSlider = false),
+                      child: Container(
+                        color: Colors.transparent,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: isLandscape ? 100 : 160,
+                                ),
+                                child: GestureDetector(
+                                  onTap: () {}, // Prevent dismissal
+                                  child: Container(
+                                    width: 300,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black87,
+                                      borderRadius: BorderRadius.circular(30),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          blurRadius: 10,
+                                          spreadRadius: 2,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          _getVolumeIcon(audio.volume),
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Listener(
+                                            onPointerSignal: (pointerSignal) {
+                                              if (pointerSignal
+                                                  is PointerScrollEvent) {
+                                                audio.setVolume(
+                                                  audio.volume -
+                                                      pointerSignal
+                                                              .scrollDelta
+                                                              .dy *
+                                                          0.1,
+                                                );
+                                              }
+                                            },
+                                            child: SliderTheme(
+                                              data: SliderTheme.of(context)
+                                                  .copyWith(
+                                                    activeTrackColor:
+                                                        Colors.white,
+                                                    inactiveTrackColor:
+                                                        Colors.white24,
+                                                    thumbColor: Colors.white,
+                                                    overlayColor: Colors.white
+                                                        .withOpacity(0.2),
+                                                  ),
+                                              child: Slider(
+                                                value: audio.volume,
+                                                min: 0,
+                                                max: 100,
+                                                onChanged: (val) =>
+                                                    audio.setVolume(val),
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '${audio.volume.round()}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '${audio.volume.round()}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_showVolumeHUD)
+                  Positioned(
+                    top: 100,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              audio.volume > 0
+                                  ? Icons.volume_up
+                                  : Icons.volume_off,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  '音量',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  '${audio.volume.toInt()}%',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                ),
-              if (_showVolumeHUD)
-                Positioned(
-                  top: 100,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            audio.volume > 0
-                                ? Icons.volume_up
-                                : Icons.volume_off,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                '音量',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              Text(
-                                '${audio.volume.toInt()}%',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -488,7 +486,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
   String _formatDuration(Duration d) {
     final minutes = d.inMinutes;
     final seconds = d.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    return '$minutes:${seconds.toString().padLeft(2, "0")}';
   }
 
   Widget _buildCoverImage(AudioService audio, bool isLandscape) {

@@ -67,92 +67,91 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MainLayout extends StatelessWidget {
+class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const DefaultTabController(length: 2, child: _MainLayoutContent());
-  }
+  State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutContent extends StatefulWidget {
-  const _MainLayoutContent();
+class _MainLayoutState extends State<MainLayout> {
+  late PageController _pageController;
+  int _currentIndex = 0;
 
   @override
-  State<_MainLayoutContent> createState() => _MainLayoutContentState();
-}
-
-class _MainLayoutContentState extends State<_MainLayoutContent> {
-  TabController? _tabController;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final newController = DefaultTabController.of(context);
-    if (_tabController != newController) {
-      _tabController?.removeListener(_handleTabSelection);
-      _tabController = newController;
-      _tabController?.addListener(_handleTabSelection);
-    }
-  }
-
-  void _handleTabSelection() {
-    if (_tabController!.indexIsChanging ||
-        _tabController!.index != _tabController!.previousIndex) {
-      if (mounted) setState(() {});
-    }
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 0);
   }
 
   @override
   void dispose() {
-    _tabController?.removeListener(_handleTabSelection);
+    _pageController.dispose();
     super.dispose();
   }
 
-  final List<Widget> _pages = [const FoldersPage(), const PlaybackPage()];
+  void _onPageChanged(int index) {
+    if (mounted) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
+  }
+
+  void _onDestinationSelected(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final currentIndex = _tabController?.index ?? 0;
+    final List<Widget> pages = [const FoldersPage(), const PlaybackPage()];
 
-    return Scaffold(
-      extendBody: true,
-      body: TabBarView(children: _pages),
-      bottomNavigationBar: NavigationBar(
-        height: 60,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-        selectedIndex: currentIndex,
-        backgroundColor: currentIndex == 1 ? Colors.transparent : null,
-        elevation: 0,
-        indicatorColor: currentIndex == 1 ? Colors.transparent : null,
-        onDestinationSelected: (index) {
-          _tabController?.animateTo(index);
-        },
-        destinations: [
-          NavigationDestination(
-            icon: Icon(
-              Icons.folder_outlined,
-              color: currentIndex == 1 ? Colors.white70 : null,
+    return ListenableProvider<PageController>.value(
+      value: _pageController,
+      child: Scaffold(
+        extendBody: true,
+        body: PageView(
+          controller: _pageController,
+          onPageChanged: _onPageChanged,
+          children: pages,
+        ),
+        bottomNavigationBar: NavigationBar(
+          height: 60,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+          selectedIndex: _currentIndex,
+          backgroundColor: _currentIndex == 1 ? Colors.transparent : null,
+          elevation: 0,
+          indicatorColor: _currentIndex == 1 ? Colors.transparent : null,
+          onDestinationSelected: _onDestinationSelected,
+          destinations: [
+            NavigationDestination(
+              icon: Icon(
+                Icons.folder_outlined,
+                color: _currentIndex == 1 ? Colors.white70 : null,
+              ),
+              selectedIcon: Icon(
+                Icons.folder,
+                color: _currentIndex == 1 ? Colors.white : null,
+              ),
+              label: '文件',
             ),
-            selectedIcon: Icon(
-              Icons.folder,
-              color: currentIndex == 1 ? Colors.white : null,
+            NavigationDestination(
+              icon: Icon(
+                Icons.play_circle_outline,
+                color: _currentIndex == 1 ? Colors.white70 : null,
+              ),
+              selectedIcon: Icon(
+                Icons.play_circle,
+                color: _currentIndex == 1 ? Colors.white : null,
+              ),
+              label: '播放',
             ),
-            label: '文件',
-          ),
-          NavigationDestination(
-            icon: Icon(
-              Icons.play_circle_outline,
-              color: currentIndex == 1 ? Colors.white70 : null,
-            ),
-            selectedIcon: Icon(
-              Icons.play_circle,
-              color: currentIndex == 1 ? Colors.white : null,
-            ),
-            label: '播放',
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
