@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -57,11 +58,28 @@ class _PlaybackPageState extends State<PlaybackPage> {
       builder: (context, orientation) {
         final isLandscape = orientation == Orientation.landscape;
 
+        final isLargeCover =
+            (audio.artworkWidth ?? 0) >= 640 ||
+            (audio.artworkHeight ?? 0) >= 640;
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+
+        final double baseSize = isLandscape ? 260 : 300;
+        double displaySize = isLargeCover
+            ? (isLandscape ? 600 : 500)
+            : baseSize;
+
+        // Cap size to screen dimensions
+        final double maxAllowed = isLandscape
+            ? screenHeight * 0.7
+            : screenWidth * 0.85;
+        if (displaySize > maxAllowed) displaySize = maxAllowed;
+
         final albumArt = Hero(
           tag: 'album_art',
           child: Container(
-            width: isLandscape ? 260 : 300,
-            height: isLandscape ? 260 : 300,
+            width: displaySize,
+            height: displaySize,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               color: Colors.black87,
@@ -75,23 +93,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               ],
             ),
             clipBehavior: Clip.antiAlias,
-            child: audio.currentArtworkBytes != null
-                ? Image.memory(audio.currentArtworkBytes!, fit: BoxFit.cover)
-                : Center(
-                    child: Container(
-                      width: isLandscape ? 60 : 80,
-                      height: isLandscape ? 60 : 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
-                      ),
-                      child: Icon(
-                        Icons.music_note,
-                        size: isLandscape ? 30 : 40,
-                        color: Colors.white54,
-                      ),
-                    ),
-                  ),
+            child: _buildCoverImage(audio, isLandscape),
           ),
         );
 
@@ -262,14 +264,18 @@ class _PlaybackPageState extends State<PlaybackPage> {
           body: Stack(
             children: [
               // Blurred Background
-              if (audio.currentArtworkBytes != null)
+              if (audio.currentArtworkBytes != null ||
+                  audio.currentArtworkPath != null)
                 Positioned.fill(
                   child: ImageFiltered(
                     imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
                     child: Container(
                       decoration: BoxDecoration(
                         image: DecorationImage(
-                          image: MemoryImage(audio.currentArtworkBytes!),
+                          image: audio.currentArtworkBytes != null
+                              ? MemoryImage(audio.currentArtworkBytes!)
+                              : FileImage(File(audio.currentArtworkPath!))
+                                    as ImageProvider,
                           fit: BoxFit.cover,
                           colorFilter: ColorFilter.mode(
                             Colors.black.withOpacity(0.5),
@@ -442,5 +448,32 @@ class _PlaybackPageState extends State<PlaybackPage> {
     final minutes = d.inMinutes;
     final seconds = d.inSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildCoverImage(AudioService audio, bool isLandscape) {
+    if (audio.currentArtworkBytes != null) {
+      return Image.memory(audio.currentArtworkBytes!, fit: BoxFit.cover);
+    } else if (audio.currentArtworkPath != null) {
+      final file = File(audio.currentArtworkPath!);
+      if (file.existsSync()) {
+        return Image.file(file, fit: BoxFit.cover);
+      }
+    }
+
+    return Center(
+      child: Container(
+        width: isLandscape ? 60 : 80,
+        height: isLandscape ? 60 : 80,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.1),
+        ),
+        child: Icon(
+          Icons.music_note,
+          size: isLandscape ? 30 : 40,
+          color: Colors.white54,
+        ),
+      ),
+    );
   }
 }

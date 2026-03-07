@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -13,6 +12,8 @@ class SongMetadata {
   final String artist;
   final int? duration;
   final String? artworkPath;
+  final int? artworkWidth;
+  final int? artworkHeight;
 
   SongMetadata({
     this.id,
@@ -22,6 +23,8 @@ class SongMetadata {
     required this.artist,
     this.duration,
     this.artworkPath,
+    this.artworkWidth,
+    this.artworkHeight,
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +35,8 @@ class SongMetadata {
       'artist': artist,
       'duration': duration,
       'artworkPath': artworkPath,
+      'artworkWidth': artworkWidth,
+      'artworkHeight': artworkHeight,
     };
   }
 
@@ -44,6 +49,8 @@ class SongMetadata {
       artist: map['artist'] ?? 'Unknown',
       duration: map['duration'],
       artworkPath: map['artworkPath'],
+      artworkWidth: map['artworkWidth'],
+      artworkHeight: map['artworkHeight'],
     );
   }
 }
@@ -73,7 +80,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -83,9 +90,19 @@ class MetadataDatabase {
             album TEXT,
             artist TEXT,
             duration INTEGER,
-            artworkPath TEXT
+            artworkPath TEXT,
+            artworkWidth INTEGER,
+            artworkHeight INTEGER
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE songs ADD COLUMN artworkWidth INTEGER');
+          await db.execute(
+            'ALTER TABLE songs ADD COLUMN artworkHeight INTEGER',
+          );
+        }
       },
     );
   }

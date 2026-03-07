@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:image/image.dart' as img;
+import 'metadata_database.dart';
 
 class AudioService extends ChangeNotifier {
   late final Player _player;
@@ -13,10 +15,14 @@ class AudioService extends ChangeNotifier {
   String? _currentFileName;
   int? _currentSongId;
   Uint8List? _currentArtworkBytes;
+  String? _currentArtworkPath;
+  int? _artworkWidth;
+  int? _artworkHeight;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   double _volume = 100.0;
   final OnAudioQuery _audioQuery = OnAudioQuery();
+  final MetadataDatabase _db = MetadataDatabase();
 
   AudioService() {
     _player = Player();
@@ -46,6 +52,9 @@ class AudioService extends ChangeNotifier {
   Duration get position => _position;
   Duration get duration => _duration;
   double get volume => _volume;
+  int? get artworkWidth => _artworkWidth;
+  int? get artworkHeight => _artworkHeight;
+  String? get currentArtworkPath => _currentArtworkPath;
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds
       : 0.0;
@@ -55,11 +64,44 @@ class AudioService extends ChangeNotifier {
     _currentFileName = name;
     _currentSongId = id;
     _currentArtworkBytes = null;
+    _currentArtworkPath = null;
+    _artworkWidth = null;
+    _artworkHeight = null;
 
     if (Platform.isWindows) {
       try {
-        final metadata = await MetadataGod.readMetadata(file: path);
-        _currentArtworkBytes = metadata.picture?.data;
+        final songFromDb = await _db.getSongMetadata(path);
+        _currentArtworkPath = songFromDb?.artworkPath;
+        _artworkWidth = songFromDb?.artworkWidth;
+        _artworkHeight = songFromDb?.artworkHeight;
+
+        // Determine if we need to load high-res bytes
+        final bool needsHighRes =
+            _artworkWidth != null &&
+            (_artworkWidth! >= 640 || _artworkHeight! >= 640);
+        final bool noThumb = _currentArtworkPath == null;
+        final bool unknownDimensions = _artworkWidth == null;
+
+        if (needsHighRes || noThumb || unknownDimensions) {
+          final metadata = await MetadataGod.readMetadata(file: path);
+          final bytes = metadata.picture?.data;
+          if (bytes != null) {
+            if (unknownDimensions) {
+              final image = img.decodeImage(bytes);
+              if (image != null) {
+                _artworkWidth = image.width;
+                _artworkHeight = image.height;
+              }
+            }
+
+            // Show big image if it's large, or if it's the only one we have
+            if ((_artworkWidth ?? 0) >= 640 ||
+                (_artworkHeight ?? 0) >= 640 ||
+                noThumb) {
+              _currentArtworkBytes = bytes;
+            }
+          }
+        }
       } catch (e) {
         debugPrint('Error reading metadata on Windows: $e');
       }

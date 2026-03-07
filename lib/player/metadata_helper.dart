@@ -20,11 +20,16 @@ class MetadataHelper {
       final metadata = await MetadataGod.readMetadata(file: filePath);
 
       String? artworkPath;
+      int? artworkWidth;
+      int? artworkHeight;
       if (metadata.picture != null) {
-        artworkPath = await _saveCompressedArtwork(
+        final artworkInfo = await _saveCompressedArtwork(
           filePath,
           metadata.picture!.data,
         );
+        artworkPath = artworkInfo?['path'] as String?;
+        artworkWidth = artworkInfo?['width'] as int?;
+        artworkHeight = artworkInfo?['height'] as int?;
       }
 
       final song = SongMetadata(
@@ -34,6 +39,8 @@ class MetadataHelper {
         artist: metadata.artist ?? 'Unknown Artist',
         duration: (metadata.durationMs as num?)?.toInt(),
         artworkPath: artworkPath,
+        artworkWidth: artworkWidth,
+        artworkHeight: artworkHeight,
       );
 
       await db.insertOrUpdateSong(song);
@@ -44,7 +51,7 @@ class MetadataHelper {
     }
   }
 
-  static Future<String?> _saveCompressedArtwork(
+  static Future<Map<String, dynamic>?> _saveCompressedArtwork(
     String songPath,
     Uint8List data,
   ) async {
@@ -92,7 +99,14 @@ class MetadataHelper {
 
       final file = File(targetPath);
       await file.writeAsBytes(result);
-      return targetPath;
+
+      // Also get original dimensions to return
+      final originalImage = img.decodeImage(data);
+      return {
+        'path': targetPath,
+        'width': originalImage?.width,
+        'height': originalImage?.height,
+      };
     } catch (e) {
       debugPrint('Error saving artwork: $e');
       return null;
