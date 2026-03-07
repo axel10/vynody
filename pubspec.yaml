@@ -43,6 +43,7 @@ dependencies:
   permission_handler: ^12.0.1
   path_provider: ^2.1.5
   device_info_plus: ^10.1.0
+  photo_manager: ^3.9.0
 
 dev_dependencies:
   flutter_test:

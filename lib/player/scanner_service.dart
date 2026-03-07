@@ -28,12 +28,12 @@ class MusicFolder {
 }
 
 class ScannerService extends ChangeNotifier {
-  String? _rootPath;
-  MusicFolder? _rootFolder;
+  final List<String> _rootPaths = [];
+  final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
 
-  String? get rootPath => _rootPath;
-  MusicFolder? get rootFolder => _rootFolder;
+  List<String> get rootPaths => List.unmodifiable(_rootPaths);
+  List<MusicFolder> get rootFolders => List.unmodifiable(_rootFolders);
   bool get isScanning => _isScanning;
 
   final List<String> _audioExtensions = [
@@ -44,10 +44,17 @@ class ScannerService extends ChangeNotifier {
     '.ogg',
   ];
 
-  Future<void> setRootPath(String path) async {
-    _rootPath = path;
+  Future<void> addRootPath(String path) async {
+    if (_rootPaths.contains(path)) return;
+    _rootPaths.add(path);
     notifyListeners();
     await scan();
+  }
+
+  Future<void> removeRootPath(String path) async {
+    _rootPaths.remove(path);
+    _rootFolders.removeWhere((f) => f.path == path);
+    notifyListeners();
   }
 
   Future<bool> _checkPermissions() async {
@@ -75,22 +82,20 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> scan() async {
-    if (_rootPath == null) return;
+    if (_rootPaths.isEmpty) return;
 
     _isScanning = true;
-    _rootFolder = null; // Clear old data
+    _rootFolders.clear();
     notifyListeners();
 
     try {
       if (await _checkPermissions()) {
-        debugPrint('Starting scan at: $_rootPath');
-        _rootFolder = await _scanDirectory(_rootPath!);
-        if (_rootFolder == null) {
-          debugPrint('Scan finished: No music folders found.');
-        } else {
-          debugPrint(
-            'Scan finished: Found ${_rootFolder!.files.length} files in root.',
-          );
+        for (final path in _rootPaths) {
+          debugPrint('Starting scan at: $path');
+          final folder = await _scanDirectory(path);
+          if (folder != null) {
+            _rootFolders.add(folder);
+          }
         }
       } else {
         debugPrint('Scan aborted: Permission not granted.');
@@ -99,6 +104,9 @@ class ScannerService extends ChangeNotifier {
       debugPrint('Scan error: $e');
     } finally {
       _isScanning = false;
+      _rootFolders.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
       notifyListeners();
     }
   }

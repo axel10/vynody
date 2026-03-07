@@ -29,13 +29,17 @@ class _FoldersPageState extends State<FoldersPage> {
       setState(() {
         _currentFolder = _history.removeLast();
       });
+    } else {
+      setState(() {
+        _currentFolder = null;
+      });
     }
   }
 
   Future<void> _pickFolder(ScannerService scanner) async {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     if (selectedDirectory != null) {
-      await scanner.setRootPath(selectedDirectory);
+      await scanner.addRootPath(selectedDirectory);
     }
   }
 
@@ -44,14 +48,8 @@ class _FoldersPageState extends State<FoldersPage> {
     final scanner = context.watch<ScannerService>();
     final audio = context.read<AudioService>();
 
-    // Reset view if scanner root changes or is empty
-    if (scanner.rootFolder != null &&
-        _currentFolder == null &&
-        _history.isEmpty) {
-      _currentFolder = scanner.rootFolder;
-    }
-
-    if (scanner.rootPath == null) {
+    // No root folders chosen yet
+    if (scanner.rootPaths.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -72,36 +70,62 @@ class _FoldersPageState extends State<FoldersPage> {
       );
     }
 
-    if (scanner.isScanning) {
+    if (scanner.isScanning && scanner.rootFolders.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final displayFolder = _currentFolder ?? scanner.rootFolder;
-
-    if (displayFolder == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.music_off, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text(
-              '未发现音乐文件',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+    // Top level view: List of root folders + Add Folder button
+    if (_currentFolder == null) {
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            alignment: Alignment.centerLeft,
+            child: const Text(
+              '扫描目录',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => _pickFolder(scanner),
-              child: const Text('重选扫描路径'),
+          ),
+          Expanded(
+            child: ListView(
+              children: [
+                ...scanner.rootFolders.map(
+                  (folder) => ListTile(
+                    leading: const Icon(
+                      Icons.folder_shared,
+                      color: Colors.amber,
+                    ),
+                    title: Text(folder.name),
+                    subtitle: Text(
+                      folder.path,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    onTap: () => _navigateTo(folder),
+                    trailing: IconButton(
+                      icon: const Icon(
+                        Icons.remove_circle_outline,
+                        color: Colors.red,
+                      ),
+                      onPressed: () => scanner.removeRootPath(folder.path),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.add, color: Colors.blue),
+                  title: const Text('添加文件夹'),
+                  onTap: () => _pickFolder(scanner),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
+    // Navigating inside a folder
     return WillPopScope(
       onWillPop: () async {
-        if (_history.isNotEmpty) {
+        if (_history.isNotEmpty || _currentFolder != null) {
           _goBack();
           return false;
         }
@@ -109,24 +133,23 @@ class _FoldersPageState extends State<FoldersPage> {
       },
       child: Column(
         children: [
-          _buildBreadcrumbs(displayFolder!),
+          _buildBreadcrumbs(_currentFolder!),
           Expanded(
             child: ListView(
               children: [
-                if (_history.isNotEmpty)
-                  ListTile(
-                    leading: const Icon(Icons.arrow_upward),
-                    title: const Text('...'),
-                    onTap: _goBack,
-                  ),
-                ...displayFolder.subFolders.map(
+                ListTile(
+                  leading: const Icon(Icons.arrow_upward),
+                  title: const Text('...'),
+                  onTap: _goBack,
+                ),
+                ..._currentFolder!.subFolders.map(
                   (folder) => ListTile(
                     leading: const Icon(Icons.folder, color: Colors.amber),
                     title: Text(folder.name),
                     onTap: () => _navigateTo(folder),
                   ),
                 ),
-                ...displayFolder.files.map(
+                ..._currentFolder!.files.map(
                   (file) => ListTile(
                     leading: const Icon(Icons.music_note, color: Colors.blue),
                     title: Text(file.name),
