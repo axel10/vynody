@@ -59,6 +59,7 @@ dependencies:
   image: ^4.5.2
 
   window_manager: ^0.5.1
+  desktop_drop: ^0.7.0
 
 dev_dependencies:
   flutter_test:

@@ -182,7 +182,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                         size: 48,
                         color: Colors.white,
                       ),
-                      onPressed: () {},
+                      onPressed: audio.previous,
                     ),
                     const SizedBox(width: 24),
                     Container(
@@ -210,7 +210,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                         size: 48,
                         color: Colors.white,
                       ),
-                      onPressed: () {},
+                      onPressed: audio.next,
                     ),
                     const SizedBox(width: 16),
                     IconButton(

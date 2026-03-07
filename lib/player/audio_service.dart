@@ -6,6 +6,7 @@ import 'package:metadata_god/metadata_god.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:image/image.dart' as img;
 import 'metadata_database.dart';
+import 'scanner_service.dart';
 
 class AudioService extends ChangeNotifier {
   late final Player _player;
@@ -22,6 +23,9 @@ class AudioService extends ChangeNotifier {
   double _volume = 100.0;
   final OnAudioQuery _audioQuery = OnAudioQuery();
   final MetadataDatabase _db = MetadataDatabase();
+
+  final List<MusicFile> _playlist = [];
+  int _currentIndex = -1;
 
   AudioService() {
     _player = Player();
@@ -41,6 +45,16 @@ class AudioService extends ChangeNotifier {
       _volume = volume;
       notifyListeners();
     });
+    _player.stream.playlist.listen((playlist) {
+      if (playlist.index != _currentIndex) {
+        _currentIndex = playlist.index;
+        if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
+          final song = _playlist[_currentIndex];
+          _updateCurrentMetadata(song.path, song.name, id: song.id);
+        }
+        notifyListeners();
+      }
+    });
   }
 
   bool get isPlaying => _isPlaying;
@@ -54,11 +68,18 @@ class AudioService extends ChangeNotifier {
   int? get artworkWidth => _artworkWidth;
   int? get artworkHeight => _artworkHeight;
   String? get currentArtworkPath => _currentArtworkPath;
+  List<MusicFile> get playlist => List.unmodifiable(_playlist);
+  int get currentIndex => _currentIndex;
+
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds
       : 0.0;
 
-  Future<void> playFile(String path, String name, {int? id}) async {
+  Future<void> _updateCurrentMetadata(
+    String path,
+    String name, {
+    int? id,
+  }) async {
     _currentFilePath = path;
     _currentFileName = name;
     _currentSongId = id;
@@ -109,11 +130,90 @@ class AudioService extends ChangeNotifier {
         debugPrint('Error querying artwork on Android: $e');
       }
     }
+    notifyListeners();
+  }
 
+  Future<void> playFile(String path, String name, {int? id}) async {
+    final song = MusicFile(path: path, name: name, id: id);
+    _playlist.clear();
+    _playlist.add(song);
+    _currentIndex = 0;
+
+    await _updateCurrentMetadata(path, name, id: id);
     await _player.open(Media(path));
     await _player.setVolume(_volume);
     await _player.play();
     notifyListeners();
+  }
+
+  Future<void> playPlaylist(
+    List<MusicFile> songs, {
+    int initialIndex = 0,
+  }) async {
+    if (songs.isEmpty) return;
+
+    _playlist.clear();
+    _playlist.addAll(songs);
+    _currentIndex = initialIndex;
+
+    final mediaList = songs.map((s) => Media(s.path)).toList();
+    await _player.open(Playlist(mediaList, index: initialIndex));
+
+    final current = songs[initialIndex];
+    await _updateCurrentMetadata(current.path, current.name, id: current.id);
+
+    await _player.setVolume(_volume);
+    await _player.play();
+    notifyListeners();
+  }
+
+  Future<void> addToPlaylist(List<MusicFile> songs) async {
+    if (songs.isEmpty) return;
+
+    final bool wasEmpty = _playlist.isEmpty;
+    _playlist.addAll(songs);
+
+    for (var song in songs) {
+      await _player.add(Media(song.path));
+    }
+
+    if (wasEmpty) {
+      _currentIndex = 0;
+      final current = songs[0];
+      await _updateCurrentMetadata(current.path, current.name, id: current.id);
+      await _player.setVolume(_volume);
+      await _player.play();
+    }
+    notifyListeners();
+  }
+
+  Future<void> removeFromPlaylist(int index) async {
+    if (index >= 0 && index < _playlist.length) {
+      _playlist.removeAt(index);
+      await _player.remove(index);
+      notifyListeners();
+    }
+  }
+
+  Future<void> clearPlaylist() async {
+    _playlist.clear();
+    _currentIndex = -1;
+    _currentFilePath = null;
+    _currentFileName = null;
+    _currentSongId = null;
+    _currentArtworkBytes = null;
+    _currentArtworkPath = null;
+    await _player.stop();
+    // Re-open empty playlist or just stop
+    notifyListeners();
+  }
+
+  Future<void> next() async {
+    await _player.next();
+  }
+
+  Future<void> previous() async {
+    await _player.previous();
   }
 
   Future<void> togglePlay() async {

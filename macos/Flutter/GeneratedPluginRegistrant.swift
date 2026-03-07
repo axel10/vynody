@@ -5,6 +5,7 @@
 import FlutterMacOS
 import Foundation
 
+import desktop_drop
 import device_info_plus
 import file_picker
 import flutter_image_compress_macos
@@ -17,6 +18,7 @@ import sqlite3_flutter_libs
 import window_manager
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
+  DesktopDropPlugin.register(with: registry.registrar(forPlugin: "DesktopDropPlugin"))
   DeviceInfoPlusMacosPlugin.register(with: registry.registrar(forPlugin: "DeviceInfoPlusMacosPlugin"))
   FilePickerPlugin.register(with: registry.registrar(forPlugin: "FilePickerPlugin"))
   FlutterImageCompressMacosPlugin.register(with: registry.registrar(forPlugin: "FlutterImageCompressMacosPlugin"))

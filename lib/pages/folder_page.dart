@@ -202,7 +202,15 @@ class _FoldersPageState extends State<FoldersPage> {
                       leading: SongThumbnail(path: file.path, id: file.id),
                       title: Text(file.name),
                       onTap: () {
-                        audio.playFile(file.path, file.name, id: file.id);
+                        if (Platform.isAndroid) {
+                          final index = _currentFolder!.files.indexOf(file);
+                          audio.playPlaylist(
+                            _currentFolder!.files,
+                            initialIndex: index,
+                          );
+                        } else {
+                          audio.playFile(file.path, file.name, id: file.id);
+                        }
                         context.read<PageController>().animateToPage(
                           1,
                           duration: const Duration(milliseconds: 300),

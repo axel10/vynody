@@ -8,8 +8,10 @@ import 'player/audio_service.dart';
 import 'player/scanner_service.dart';
 import 'pages/folder_page.dart';
 import 'pages/playback_page.dart';
+import 'pages/playlist_page.dart';
+import 'package:path/path.dart' as p;
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -39,13 +41,14 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AudioService()),
         ChangeNotifierProvider(create: (_) => ScannerService()),
       ],
-      child: const MyApp(),
+      child: MyApp(args: args),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final List<String> args;
+  const MyApp({super.key, required this.args});
 
   @override
   Widget build(BuildContext context) {
@@ -81,13 +84,14 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamilyFallback: fontFallbacks,
       ),
-      home: const MainLayout(),
+      home: MainLayout(args: args),
     );
   }
 }
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+  final List<String> args;
+  const MainLayout({super.key, required this.args});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -101,6 +105,42 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+
+    // Handle command line arguments on Windows
+    if (Platform.isWindows) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleArgs();
+      });
+    }
+  }
+
+  Future<void> _handleArgs() async {
+    final args = widget.args;
+    // On Windows, the first argument is often the executable itself,
+    // but when opening a file, it might be the second.
+    // However, Flutter's Platform.executableArguments might behave differently.
+    // Actually, WindowManager or another package might be better for "open with",
+    // but let's try reading args directly.
+
+    final audio = context.read<AudioService>();
+    final List<String> audioExtensions = [
+      '.mp3',
+      '.m4a',
+      '.wav',
+      '.flac',
+      '.ogg',
+    ];
+
+    for (var arg in args) {
+      if (File(arg).existsSync()) {
+        final ext = p.extension(arg).toLowerCase();
+        if (audioExtensions.contains(ext)) {
+          audio.playFile(arg, p.basename(arg));
+          _onDestinationSelected(1); // Go to playback page
+          break; // Only play the first one for now as per requirement "playlist only contain that music file"
+        }
+      }
+    }
   }
 
   @override
@@ -127,7 +167,13 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [const FoldersPage(), const PlaybackPage()];
+    final List<Widget> pages = [
+      const FoldersPage(),
+      const PlaybackPage(),
+      const PlaylistPage(),
+    ];
+
+    final bool isPlayback = _currentIndex == 1;
 
     return ListenableProvider<PageController>.value(
       value: _pageController,
@@ -151,7 +197,7 @@ class _MainLayoutState extends State<MainLayout> {
                       child: SizedBox(
                         height: 32,
                         child: WindowCaption(
-                          brightness: _currentIndex == 1
+                          brightness: isPlayback
                               ? Brightness.dark
                               : Theme.of(context).brightness,
                           backgroundColor: Colors.transparent,
@@ -168,32 +214,43 @@ class _MainLayoutState extends State<MainLayout> {
           height: 60,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
           selectedIndex: _currentIndex,
-          backgroundColor: _currentIndex == 1 ? Colors.transparent : null,
+          backgroundColor: isPlayback ? Colors.transparent : null,
           elevation: 0,
-          indicatorColor: _currentIndex == 1 ? Colors.transparent : null,
+          indicatorColor: isPlayback ? Colors.transparent : null,
           onDestinationSelected: _onDestinationSelected,
           destinations: [
             NavigationDestination(
               icon: Icon(
                 Icons.folder_outlined,
-                color: _currentIndex == 1 ? Colors.white70 : null,
+                color: isPlayback ? Colors.white70 : null,
               ),
               selectedIcon: Icon(
                 Icons.folder,
-                color: _currentIndex == 1 ? Colors.white : null,
+                color: isPlayback ? Colors.white : null,
               ),
               label: '文件',
             ),
             NavigationDestination(
               icon: Icon(
                 Icons.play_circle_outline,
-                color: _currentIndex == 1 ? Colors.white70 : null,
+                color: isPlayback ? Colors.white70 : null,
               ),
               selectedIcon: Icon(
                 Icons.play_circle,
-                color: _currentIndex == 1 ? Colors.white : null,
+                color: isPlayback ? Colors.white : null,
               ),
               label: '播放',
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.playlist_play_outlined,
+                color: isPlayback ? Colors.white70 : null,
+              ),
+              selectedIcon: Icon(
+                Icons.playlist_play,
+                color: isPlayback ? Colors.white : null,
+              ),
+              label: '列表',
             ),
           ],
         ),
