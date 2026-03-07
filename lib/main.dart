@@ -25,6 +25,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const fontFallbacks = [
+      'MiSans',
+      'HarmonyOS Sans SC',
+      'OPPOSans',
+      'VivoSans',
+      'OnePlus Sans',
+      'SamsungOne',
+      'PingFang SC',
+      'Heiti SC',
+      'Microsoft YaHei',
+      'sans-serif',
+    ];
+
     return MaterialApp(
       title: 'Pure Player',
       theme: ThemeData(
@@ -33,6 +46,8 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
+        fontFamily: 'MiSans',
+        fontFamilyFallback: fontFallbacks,
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -40,6 +55,7 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        fontFamilyFallback: fontFallbacks,
       ),
       home: const MainLayout(),
     );
