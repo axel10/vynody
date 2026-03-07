@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
+import 'player/audio_service.dart';
+import 'player/scanner_service.dart';
+import 'pages/folder_page.dart';
+import 'pages/playback_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AudioService()),
+        ChangeNotifierProvider(create: (_) => ScannerService()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -16,126 +28,65 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Pure Player',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: const MainLayout(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class MainLayout extends StatefulWidget {
+  const MainLayout({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _HomePageState extends State<HomePage> {
-  late final Player _player;
-  String? _currentFile;
-  double _volume = 50.0;
+class _MainLayoutState extends State<MainLayout> {
+  int _currentIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _player = Player();
-    _player.setVolume(_volume);
-  }
-
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickAndPlayMusic() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.audio,
-        allowMultiple: false,
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final file = result.files.first;
-        if (file.path != null) {
-          setState(() {
-            _currentFile = file.name;
-          });
-          await _player.open(Media(file.path!));
-          await _player.play();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    }
-  }
-
-  void _onVolumeChanged(double value) {
-    setState(() {
-      _volume = value;
-    });
-    _player.setVolume(value);
-  }
+  final List<Widget> _pages = [const FoldersPage(), const PlaybackPage()];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pure Player'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: _pickAndPlayMusic,
-                icon: const Icon(Icons.music_note),
-                label: const Text('选择音乐文件'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                ),
-              ),
-              if (_currentFile != null) ...[
-                const SizedBox(height: 24),
-                Text(
-                  '正在播放: $_currentFile',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-              ],
-              const SizedBox(height: 48),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.volume_down),
-                  Expanded(
-                    child: Slider(
-                      value: _volume,
-                      min: 0,
-                      max: 100,
-                      divisions: 100,
-                      label: _volume.round().toString(),
-                      onChanged: _onVolumeChanged,
-                    ),
-                  ),
-                  const Icon(Icons.volume_up),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '音量: ${_volume.round()}',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_currentIndex == 0 ? '文件' : '正在播放'),
+          centerTitle: true,
+        ),
+        body: IndexedStack(index: _currentIndex, children: _pages),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.folder_outlined),
+              selectedIcon: Icon(Icons.folder),
+              label: '文件',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.play_circle_outline),
+              selectedIcon: Icon(Icons.play_circle),
+              label: '播放',
+            ),
+          ],
         ),
       ),
     );
