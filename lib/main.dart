@@ -67,66 +67,92 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MainLayout extends StatefulWidget {
+class MainLayout extends StatelessWidget {
   const MainLayout({super.key});
 
   @override
-  State<MainLayout> createState() => _MainLayoutState();
+  Widget build(BuildContext context) {
+    return const DefaultTabController(length: 2, child: _MainLayoutContent());
+  }
 }
 
-class _MainLayoutState extends State<MainLayout> {
-  int _currentIndex = 0;
+class _MainLayoutContent extends StatefulWidget {
+  const _MainLayoutContent();
+
+  @override
+  State<_MainLayoutContent> createState() => _MainLayoutContentState();
+}
+
+class _MainLayoutContentState extends State<_MainLayoutContent> {
+  TabController? _tabController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newController = DefaultTabController.of(context);
+    if (_tabController != newController) {
+      _tabController?.removeListener(_handleTabSelection);
+      _tabController = newController;
+      _tabController?.addListener(_handleTabSelection);
+    }
+  }
+
+  void _handleTabSelection() {
+    if (_tabController!.indexIsChanging ||
+        _tabController!.index != _tabController!.previousIndex) {
+      if (mounted) setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController?.removeListener(_handleTabSelection);
+    super.dispose();
+  }
 
   final List<Widget> _pages = [const FoldersPage(), const PlaybackPage()];
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        extendBody: true,
-        // appBar: AppBar(
-        //   title: Text(_currentIndex == 0 ? '文件' : '正在播放'),
-        //   centerTitle: true,
-        // ),
-        body: IndexedStack(index: _currentIndex, children: _pages),
-        bottomNavigationBar: NavigationBar(
-          height: 60,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-          selectedIndex: _currentIndex,
-          backgroundColor: _currentIndex == 1 ? Colors.transparent : null,
-          elevation: 0,
-          indicatorColor: _currentIndex == 1 ? Colors.transparent : null,
-          onDestinationSelected: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          destinations: [
-            NavigationDestination(
-              icon: Icon(
-                Icons.folder_outlined,
-                color: _currentIndex == 1 ? Colors.white70 : null,
-              ),
-              selectedIcon: Icon(
-                Icons.folder,
-                color: _currentIndex == 1 ? Colors.white : null,
-              ),
-              label: '文件',
+    final currentIndex = _tabController?.index ?? 0;
+
+    return Scaffold(
+      extendBody: true,
+      body: TabBarView(children: _pages),
+      bottomNavigationBar: NavigationBar(
+        height: 60,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+        selectedIndex: currentIndex,
+        backgroundColor: currentIndex == 1 ? Colors.transparent : null,
+        elevation: 0,
+        indicatorColor: currentIndex == 1 ? Colors.transparent : null,
+        onDestinationSelected: (index) {
+          _tabController?.animateTo(index);
+        },
+        destinations: [
+          NavigationDestination(
+            icon: Icon(
+              Icons.folder_outlined,
+              color: currentIndex == 1 ? Colors.white70 : null,
             ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.play_circle_outline,
-                color: _currentIndex == 1 ? Colors.white70 : null,
-              ),
-              selectedIcon: Icon(
-                Icons.play_circle,
-                color: _currentIndex == 1 ? Colors.white : null,
-              ),
-              label: '播放',
+            selectedIcon: Icon(
+              Icons.folder,
+              color: currentIndex == 1 ? Colors.white : null,
             ),
-          ],
-        ),
+            label: '文件',
+          ),
+          NavigationDestination(
+            icon: Icon(
+              Icons.play_circle_outline,
+              color: currentIndex == 1 ? Colors.white70 : null,
+            ),
+            selectedIcon: Icon(
+              Icons.play_circle,
+              color: currentIndex == 1 ? Colors.white : null,
+            ),
+            label: '播放',
+          ),
+        ],
       ),
     );
   }
