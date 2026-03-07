@@ -15,95 +15,121 @@ class PlaybackPage extends StatelessWidget {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Vinyl-style disc animation placeholder
-          Hero(
-            tag: 'album_art',
-            child: Container(
-              width: 240,
-              height: 240,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black87,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white24,
-                  ),
-                  child: const Icon(
-                    Icons.music_note,
-                    size: 40,
-                    color: Colors.white,
-                  ),
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        final isLandscape = orientation == Orientation.landscape;
+
+        final albumArt = Hero(
+          tag: 'album_art',
+          child: Container(
+            width: isLandscape ? 200 : 240,
+            height: isLandscape ? 200 : 240,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black87,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Center(
+              child: Container(
+                width: isLandscape ? 50 : 60,
+                height: isLandscape ? 50 : 60,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white24,
+                ),
+                child: Icon(
+                  Icons.music_note,
+                  size: isLandscape ? 30 : 40,
+                  color: Colors.white,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 48),
-          Text(
-            audio.currentFileName ?? '未知',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 32),
-          Slider(
-            value: audio.progress,
-            onChanged: (val) {
-              final position = Duration(
-                milliseconds: (val * audio.duration.inMilliseconds).toInt(),
-              );
-              audio.seek(position);
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        );
+
+        final controls = Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: isLandscape
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.center,
+          children: [
+            Text(
+              audio.currentFileName ?? '未知',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              textAlign: isLandscape ? TextAlign.left : TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: isLandscape ? 16 : 32),
+            Slider(
+              value: audio.progress,
+              onChanged: (val) {
+                final position = Duration(
+                  milliseconds: (val * audio.duration.inMilliseconds).toInt(),
+                );
+                audio.seek(position);
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(audio.position)),
+                  Text(_formatDuration(audio.duration)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(_formatDuration(audio.position)),
-                Text(_formatDuration(audio.duration)),
+                IconButton(
+                  icon: const Icon(Icons.skip_previous, size: 40),
+                  onPressed: () {},
+                ),
+                const SizedBox(width: 8),
+                FloatingActionButton(
+                  onPressed: audio.togglePlay,
+                  child: Icon(audio.isPlaying ? Icons.pause : Icons.play_arrow),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.skip_next, size: 40),
+                  onPressed: () {},
+                ),
               ],
             ),
-          ),
-          const SizedBox(height: 24),
-          Row(
+          ],
+        );
+
+        if (isLandscape) {
+          return Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Row(
+              children: [
+                Expanded(flex: 2, child: Center(child: albumArt)),
+                const SizedBox(width: 32),
+                Expanded(flex: 3, child: controls),
+              ],
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.skip_previous, size: 48),
-                onPressed: () {},
-              ),
-              const SizedBox(width: 16),
-              FloatingActionButton.large(
-                onPressed: audio.togglePlay,
-                child: Icon(audio.isPlaying ? Icons.pause : Icons.play_arrow),
-              ),
-              const SizedBox(width: 16),
-              IconButton(
-                icon: const Icon(Icons.skip_next, size: 48),
-                onPressed: () {},
-              ),
-            ],
+            children: [albumArt, const SizedBox(height: 48), controls],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
