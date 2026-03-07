@@ -373,23 +373,97 @@ class _FoldersPageState extends State<FoldersPage> {
 
   Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner) {
     final theme = Theme.of(context);
+
+    List<Widget> breadcrumbItems = [];
+
+    // 首页/根目录图标
+    breadcrumbItems.add(
+      InkWell(
+        onTap: () {
+          setState(() {
+            _currentFolder = null;
+            _history.clear();
+          });
+        },
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          child: Icon(Icons.home_outlined, size: 24),
+        ),
+      ),
+    );
+
+    // 历史路径段
+    for (int i = 0; i < _history.length; i++) {
+      final folder = _history[i];
+      breadcrumbItems.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Icon(
+            Icons.chevron_right,
+            size: 20,
+            color: theme.colorScheme.onSurface.withOpacity(0.3),
+          ),
+        ),
+      );
+      breadcrumbItems.add(
+        InkWell(
+          onTap: () {
+            setState(() {
+              _currentFolder = folder;
+              _history.removeRange(i, _history.length);
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            child: Text(folder.name, style: const TextStyle(fontSize: 16)),
+          ),
+        ),
+      );
+    }
+
+    // 当前路径段
+    breadcrumbItems.add(
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Icon(
+          Icons.chevron_right,
+          size: 20,
+          color: theme.colorScheme.onSurface.withOpacity(0.3),
+        ),
+      ),
+    );
+    breadcrumbItems.add(
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Text(
+          current.name,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+      ),
+    );
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      color: theme.colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        border: Border(
+          bottom: BorderSide(color: theme.dividerColor.withOpacity(0.05)),
+        ),
+      ),
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              current.path,
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: breadcrumbItems),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.sort, size: 20),
+            icon: const Icon(Icons.sort),
             onPressed: () => _showSortDialog(context, scanner),
             tooltip: '排序',
           ),
