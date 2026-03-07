@@ -221,10 +221,10 @@ class ScannerService extends ChangeNotifier {
   }
 
   MusicFolder _recursiveBuild(
-      String currentPath,
-      Set<String> allPaths,
-      Map<String, List<MusicFile>> folderFiles,
-      ) {
+    String currentPath,
+    Set<String> allPaths,
+    Map<String, List<MusicFile>> folderFiles,
+  ) {
     final subFolderPaths = allPaths
         .where((path) => p.dirname(path) == currentPath)
         .toList();
@@ -283,9 +283,18 @@ class ScannerService extends ChangeNotifier {
     } finally {
       _isScanning = false;
       _rootFolders.sort(
-            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
       );
       notifyListeners();
+    }
+  }
+
+  Future<void> rebuildMetadataDatabase() async {
+    if (Platform.isWindows) {
+      await MetadataDatabase().clearAll();
+      await MetadataHelper.clearThumbnails();
+      _metadataMap.clear();
+      await scan();
     }
   }
 

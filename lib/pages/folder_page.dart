@@ -63,9 +63,9 @@ class _FoldersPageState extends State<FoldersPage> {
       });
     }
 
-    // Top level view: System Media Library + User Root Folders + Add Folder button
+    Widget currentBody;
     if (_currentFolder == null) {
-      return Column(
+      currentBody = Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
@@ -138,73 +138,124 @@ class _FoldersPageState extends State<FoldersPage> {
           ),
         ],
       );
-    }
+    } else {
+      currentBody = WillPopScope(
+        onWillPop: () async {
+          if (_history.isNotEmpty || _currentFolder != null) {
+            _goBack();
+            return false;
+          }
+          return true;
+        },
+        child: Column(
+          children: [
+            _buildBreadcrumbs(_currentFolder!),
+            Expanded(
+              child: ListView(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.arrow_back),
+                    title: const Text('返回上一层'),
+                    onTap: _goBack,
+                  ),
 
-    // Navigating inside a folder
-    return WillPopScope(
-      onWillPop: () async {
-        if (_history.isNotEmpty || _currentFolder != null) {
-          _goBack();
-          return false;
-        }
-        return true;
-      },
-      child: Column(
-        children: [
-          _buildBreadcrumbs(_currentFolder!),
-          Expanded(
-            child: ListView(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.arrow_back),
-                  title: const Text('返回上一层'),
-                  onTap: _goBack,
-                ),
-
-                // Show Permission Button if in system folder and no permission
-                if (_currentFolder!.path == 'system' && !scanner.hasPermission)
-                  Padding(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.lock_outline,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text('未获得媒体库访问权限'),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () =>
-                                scanner.checkAndRequestPermissions(),
-                            child: const Text('给予权限'),
-                          ),
-                        ],
+                  // Show Permission Button if in system folder and no permission
+                  if (_currentFolder!.path == 'system' &&
+                      !scanner.hasPermission)
+                    Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.lock_outline,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(height: 16),
+                            const Text('未获得媒体库访问权限'),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () =>
+                                  scanner.checkAndRequestPermissions(),
+                              child: const Text('给予权限'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
 
-                ..._currentFolder!.subFolders.map(
-                  (folder) => ListTile(
-                    leading: const Icon(Icons.folder, color: Colors.amber),
-                    title: Text(folder.name),
-                    onTap: () => _navigateTo(folder),
+                  ..._currentFolder!.subFolders.map(
+                    (folder) => ListTile(
+                      leading: const Icon(Icons.folder, color: Colors.amber),
+                      title: Text(folder.name),
+                      onTap: () => _navigateTo(folder),
+                    ),
                   ),
-                ),
-                ..._currentFolder!.files.map(
-                  (file) => ListTile(
-                    leading: SongThumbnail(path: file.path, id: file.id),
-                    title: Text(file.name),
-                    onTap: () {
-                      audio.playFile(file.path, file.name, id: file.id);
-                      DefaultTabController.of(context).animateTo(1);
-                    },
+                  ..._currentFolder!.files.map(
+                    (file) => ListTile(
+                      leading: SongThumbnail(path: file.path, id: file.id),
+                      title: Text(file.name),
+                      onTap: () {
+                        audio.playFile(file.path, file.name, id: file.id);
+                        DefaultTabController.of(context).animateTo(1);
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+          ],
+        ),
+      );
+    }
+
+    if (Platform.isWindows) {
+      return Stack(
+        children: [
+          currentBody,
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: FloatingActionButton(
+              tooltip: '重建标签数据库',
+              onPressed: () => _showRebuildDialog(context, scanner),
+              child: scanner.isScanning
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return currentBody;
+  }
+
+  void _showRebuildDialog(BuildContext context, ScannerService scanner) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('重建数据库'),
+        content: const Text('确定要手动刷新所有歌曲的标签信息吗？这可能需要一些时间来重新加载封面和元数据。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              scanner.rebuildMetadataDatabase();
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('正在重建歌曲标签数据库...')));
+            },
+            child: const Text('确定'),
           ),
         ],
       ),

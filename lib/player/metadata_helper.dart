@@ -98,4 +98,17 @@ class MetadataHelper {
       return null;
     }
   }
+
+  static Future<void> clearThumbnails() async {
+    try {
+      final supportDir = await getApplicationSupportDirectory();
+      final thumbnailsDir = Directory(p.join(supportDir.path, 'thumbnails'));
+      if (await thumbnailsDir.exists()) {
+        await thumbnailsDir.delete(recursive: true);
+        await thumbnailsDir.create(recursive: true);
+      }
+    } catch (e) {
+      debugPrint('Error clearing thumbnails: $e');
+    }
+  }
 }
