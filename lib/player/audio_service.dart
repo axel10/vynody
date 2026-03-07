@@ -74,14 +74,12 @@ class AudioService extends ChangeNotifier {
         _artworkWidth = songFromDb?.artworkWidth;
         _artworkHeight = songFromDb?.artworkHeight;
 
-        // Determine if we need to load high-res bytes
-        final bool needsHighRes =
-            _artworkWidth != null &&
-            (_artworkWidth! >= 640 || _artworkHeight! >= 640);
+        // Always try to load original artwork for the playback page to ensure "original" quality
         final bool noThumb = _currentArtworkPath == null;
         final bool unknownDimensions = _artworkWidth == null;
 
-        if (needsHighRes || noThumb || unknownDimensions) {
+        if (noThumb || unknownDimensions || true) {
+          // Force fetch original for best quality
           final metadata = await MetadataGod.readMetadata(file: path);
           final bytes = metadata.picture?.data;
           if (bytes != null) {
@@ -92,13 +90,7 @@ class AudioService extends ChangeNotifier {
                 _artworkHeight = image.height;
               }
             }
-
-            // Show big image if it's large, or if it's the only one we have
-            if ((_artworkWidth ?? 0) >= 640 ||
-                (_artworkHeight ?? 0) >= 640 ||
-                noThumb) {
-              _currentArtworkBytes = bytes;
-            }
+            _currentArtworkBytes = bytes;
           }
         }
       } catch (e) {

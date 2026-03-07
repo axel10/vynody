@@ -59,33 +59,36 @@ class _PlaybackPageState extends State<PlaybackPage> {
       builder: (context, orientation) {
         final isLandscape = orientation == Orientation.landscape;
 
-        final isLargeCover =
-            (audio.artworkWidth ?? 0) >= 640 ||
-            (audio.artworkHeight ?? 0) >= 640;
         final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
 
-        final double baseSize = isLandscape ? 260 : 300;
-        final double maxDisplaySize = isLargeCover
-            ? (isLandscape ? 600 : 500)
-            : baseSize;
+        // Use a generous maximum size based on screen dimensions
+        final double maxDisplaySize = isLandscape
+            ? screenHeight * 0.75
+            : screenWidth * 0.85;
 
-        final albumArt = AspectRatio(
-          aspectRatio: 1,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              color: Colors.black87,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+        final albumArt = Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxDisplaySize,
+              maxHeight: maxDisplaySize,
             ),
-            clipBehavior: Clip.antiAlias,
-            child: _buildCoverImage(audio, isLandscape),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                color: Colors.black87,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 30,
+                    spreadRadius: 5,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: _buildCoverImage(audio, isLandscape),
+            ),
           ),
         );
 
@@ -236,18 +239,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               padding: const EdgeInsets.all(32.0),
               child: Row(
                 children: [
-                  Expanded(
-                    flex: 4,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: maxDisplaySize,
-                          maxHeight: maxDisplaySize,
-                        ),
-                        child: albumArt,
-                      ),
-                    ),
-                  ),
+                  Expanded(flex: 4, child: albumArt),
                   const SizedBox(width: 32),
                   Expanded(
                     flex: 5,
@@ -268,17 +260,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  Expanded(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: maxDisplaySize,
-                          maxHeight: maxDisplaySize,
-                        ),
-                        child: albumArt,
-                      ),
-                    ),
-                  ),
+                  Expanded(child: albumArt),
                   const SizedBox(height: 24),
                   FittedBox(
                     fit: BoxFit.scaleDown,
@@ -491,11 +473,11 @@ class _PlaybackPageState extends State<PlaybackPage> {
 
   Widget _buildCoverImage(AudioService audio, bool isLandscape) {
     if (audio.currentArtworkBytes != null) {
-      return Image.memory(audio.currentArtworkBytes!, fit: BoxFit.cover);
+      return Image.memory(audio.currentArtworkBytes!, fit: BoxFit.scaleDown);
     } else if (audio.currentArtworkPath != null) {
       final file = File(audio.currentArtworkPath!);
       if (file.existsSync()) {
-        return Image.file(file, fit: BoxFit.cover);
+        return Image.file(file, fit: BoxFit.scaleDown);
       }
     }
 
