@@ -48,33 +48,20 @@ class _FoldersPageState extends State<FoldersPage> {
     final scanner = context.watch<ScannerService>();
     final audio = context.read<AudioService>();
 
-    // No root folders chosen yet
-    if (scanner.rootPaths.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.folder_open, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text(
-              '未选择扫描目录',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => _pickFolder(scanner),
-              child: const Text('选择扫描路径'),
-            ),
-          ],
-        ),
-      );
+    // Sync _currentFolder if it's the system root and data has been loaded
+    if (_currentFolder?.path == 'system' &&
+        scanner.systemMediaFolder != null &&
+        _currentFolder != scanner.systemMediaFolder) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _currentFolder = scanner.systemMediaFolder;
+          });
+        }
+      });
     }
 
-    if (scanner.isScanning && scanner.rootFolders.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    // Top level view: List of root folders + Add Folder button
+    // Top level view: System Media Library + User Root Folders + Add Folder button
     if (_currentFolder == null) {
       return Column(
         children: [
@@ -89,8 +76,41 @@ class _FoldersPageState extends State<FoldersPage> {
           Expanded(
             child: ListView(
               children: [
+                // System Media Library Item
+                ListTile(
+                  leading: const Icon(
+                    Icons.library_music,
+                    color: Colors.purple,
+                  ),
+                  title: const Text('系统媒体库'),
+                  subtitle: scanner.hasPermission
+                      ? null
+                      : const Text(
+                    '需授予权限以扫描本地音乐',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                  onTap: () {
+                    // Navigate to a virtual folder or the real system folder
+                    _navigateTo(
+                      scanner.systemMediaFolder ??
+                          MusicFolder(path: 'system', name: '系统媒体库'),
+                    );
+                  },
+                ),
+
+                // Add Root Directory Item
+                ListTile(
+                  leading: const Icon(
+                    Icons.add_circle_outline,
+                    color: Colors.blue,
+                  ),
+                  title: const Text('添加根目录'),
+                  onTap: () => _pickFolder(scanner),
+                ),
+
+                // User Added Root Folders
                 ...scanner.rootFolders.map(
-                  (folder) => ListTile(
+                      (folder) => ListTile(
                     leading: const Icon(
                       Icons.folder_shared,
                       color: Colors.amber,
@@ -109,11 +129,6 @@ class _FoldersPageState extends State<FoldersPage> {
                       onPressed: () => scanner.removeRootPath(folder.path),
                     ),
                   ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.add, color: Colors.blue),
-                  title: const Text('添加文件夹'),
-                  onTap: () => _pickFolder(scanner),
                 ),
               ],
             ),
@@ -138,19 +153,45 @@ class _FoldersPageState extends State<FoldersPage> {
             child: ListView(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.arrow_upward),
-                  title: const Text('...'),
+                  leading: const Icon(Icons.arrow_back),
+                  title: const Text('返回上一层'),
                   onTap: _goBack,
                 ),
+
+                // Show Permission Button if in system folder and no permission
+                if (_currentFolder!.path == 'system' && !scanner.hasPermission)
+                  Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.lock_outline,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('未获得媒体库访问权限'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () =>
+                                scanner.checkAndRequestPermissions(),
+                            child: const Text('给予权限'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                 ..._currentFolder!.subFolders.map(
-                  (folder) => ListTile(
+                      (folder) => ListTile(
                     leading: const Icon(Icons.folder, color: Colors.amber),
                     title: Text(folder.name),
                     onTap: () => _navigateTo(folder),
                   ),
                 ),
                 ..._currentFolder!.files.map(
-                  (file) => ListTile(
+                      (file) => ListTile(
                     leading: const Icon(Icons.music_note, color: Colors.blue),
                     title: Text(file.name),
                     onTap: () {

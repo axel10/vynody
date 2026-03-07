@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 
 class MusicFile {
   final String path;
@@ -32,9 +33,16 @@ class ScannerService extends ChangeNotifier {
   final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
 
+  MusicFolder? _systemMediaFolder;
+  bool _hasPermission = false;
+  final OnAudioQuery _audioQuery = OnAudioQuery();
+
   List<String> get rootPaths => List.unmodifiable(_rootPaths);
   List<MusicFolder> get rootFolders => List.unmodifiable(_rootFolders);
   bool get isScanning => _isScanning;
+
+  MusicFolder? get systemMediaFolder => _systemMediaFolder;
+  bool get hasPermission => _hasPermission;
 
   final List<String> _audioExtensions = [
     '.mp3',
@@ -43,6 +51,18 @@ class ScannerService extends ChangeNotifier {
     '.flac',
     '.ogg',
   ];
+
+  ScannerService() {
+    checkAndRequestPermissions();
+  }
+
+  Future<void> checkAndRequestPermissions() async {
+    _hasPermission = await _checkPermissions();
+    notifyListeners();
+    if (_hasPermission) {
+      await scanSystemMedia();
+    }
+  }
 
   Future<void> addRootPath(String path) async {
     if (_rootPaths.contains(path)) return;
@@ -64,21 +84,120 @@ class ScannerService extends ChangeNotifier {
 
       if (androidInfo.version.sdkInt >= 33) {
         // Android 13+ requires Permission.audio
-        final status = await Permission.audio.request();
+        var status = await Permission.audio.status;
         if (!status.isGranted) {
-          debugPrint('Audio permission denied');
-          return false;
+          status = await Permission.audio.request();
         }
+        return status.isGranted;
       } else {
         // Legacy storage permission
-        final status = await Permission.storage.request();
+        var status = await Permission.storage.status;
         if (!status.isGranted) {
-          debugPrint('Storage permission denied');
-          return false;
+          status = await Permission.storage.request();
         }
+        return status.isGranted;
       }
     }
-    return true;
+    return true; // Assume granted on other platforms for now
+  }
+
+  Future<void> scanSystemMedia() async {
+    if (!_hasPermission) return;
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+
+    try {
+      final List<SongModel> songs = await _audioQuery.querySongs(
+        sortType: null,
+        orderType: OrderType.ASC_OR_SMALLER,
+        uriType: UriType.EXTERNAL,
+        ignoreCase: true,
+      );
+
+      _systemMediaFolder = _organizeSongsIntoFolders(songs);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error scanning system media: $e');
+    }
+  }
+
+  MusicFolder _organizeSongsIntoFolders(List<SongModel> songs) {
+    // Map to keep track of folder paths to MusicFolder objects
+    final Map<String, List<MusicFile>> folderFiles = {};
+    final Set<String> allPaths = {};
+
+    for (var song in songs) {
+      final path = song.data;
+      final file = MusicFile(path: path, name: p.basename(path));
+      final dirPath = p.dirname(path);
+
+      folderFiles.putIfAbsent(dirPath, () => []).add(file);
+
+      // Collect all parent directories
+      String current = dirPath;
+      while (current.isNotEmpty && current != '/' && current != '.') {
+        allPaths.add(current);
+        final parent = p.dirname(current);
+        if (parent == current) break;
+        current = parent;
+      }
+    }
+
+    // Now build the tree. We need a root. For system media, we can use a virtual root.
+    // Or find the common ancestor. Let's just create a virtual root "系统媒体库"
+
+    // Refined tree building:
+    // 1. Identify all directories that contain songs.
+    // 2. Identify all intermediate directories.
+    // 3. Find the entry points (directories whose parents are not in the set).
+
+    final List<String> entryPoints = allPaths.where((path) {
+      final parent = p.dirname(path);
+      return !allPaths.contains(parent);
+    }).toList();
+
+    if (entryPoints.isEmpty && songs.isEmpty) {
+      return MusicFolder(path: 'system', name: '系统媒体库');
+    }
+
+    // If there's only one entry point and no files in higher levels, we could collapse it,
+    // but usually there are multiple entry points (SD card vs Internal).
+
+    final List<MusicFolder> topFolders = entryPoints
+        .map((path) => _recursiveBuild(path, allPaths, folderFiles))
+        .toList();
+
+    return MusicFolder(
+      path: 'system',
+      name: '系统媒体库',
+      subFolders: topFolders
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+      files: [], // Usually songs are in subfolders
+    );
+  }
+
+  MusicFolder _recursiveBuild(
+    String currentPath,
+    Set<String> allPaths,
+    Map<String, List<MusicFile>> folderFiles,
+  ) {
+    final subFolderPaths = allPaths
+        .where((path) => p.dirname(path) == currentPath)
+        .toList();
+    final subFolders = subFolderPaths
+        .map((path) => _recursiveBuild(path, allPaths, folderFiles))
+        .toList();
+    final files = folderFiles[currentPath] ?? [];
+
+    return MusicFolder(
+      path: currentPath,
+      name: p.basename(currentPath).isEmpty
+          ? currentPath
+          : p.basename(currentPath),
+      subFolders: subFolders
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+      files: files
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+    );
   }
 
   Future<void> scan() async {
