@@ -84,27 +84,45 @@ class _MainLayoutState extends State<MainLayout> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        extendBody: true,
         // appBar: AppBar(
         //   title: Text(_currentIndex == 0 ? '文件' : '正在播放'),
         //   centerTitle: true,
         // ),
         body: IndexedStack(index: _currentIndex, children: _pages),
         bottomNavigationBar: NavigationBar(
+          height: 60,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
           selectedIndex: _currentIndex,
+          backgroundColor: _currentIndex == 1 ? Colors.transparent : null,
+          elevation: 0,
+          indicatorColor: _currentIndex == 1 ? Colors.transparent : null,
           onDestinationSelected: (index) {
             setState(() {
               _currentIndex = index;
             });
           },
-          destinations: const [
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.folder_outlined),
-              selectedIcon: Icon(Icons.folder),
+              icon: Icon(
+                Icons.folder_outlined,
+                color: _currentIndex == 1 ? Colors.white70 : null,
+              ),
+              selectedIcon: Icon(
+                Icons.folder,
+                color: _currentIndex == 1 ? Colors.white : null,
+              ),
               label: '文件',
             ),
             NavigationDestination(
-              icon: Icon(Icons.play_circle_outline),
-              selectedIcon: Icon(Icons.play_circle),
+              icon: Icon(
+                Icons.play_circle_outline,
+                color: _currentIndex == 1 ? Colors.white70 : null,
+              ),
+              selectedIcon: Icon(
+                Icons.play_circle,
+                color: _currentIndex == 1 ? Colors.white : null,
+              ),
               label: '播放',
             ),
           ],

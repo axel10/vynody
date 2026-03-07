@@ -292,9 +292,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
           );
         }
 
-        return Scaffold(
-          backgroundColor: Colors.black,
-          body: Stack(
+        return Container(
+          color: Colors.black,
+          child: Stack(
             children: [
               // Blurred Background
               if (audio.currentArtworkBytes != null ||
@@ -317,7 +317,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                       as ImageProvider,
                             fit: BoxFit.cover,
                             colorFilter: ColorFilter.mode(
-                              Colors.black.withValues(alpha: 0.2),
+                              Colors.black.withValues(alpha: 0.4),
                               BlendMode.darken,
                             ),
                           ),

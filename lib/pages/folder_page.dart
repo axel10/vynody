@@ -233,7 +233,7 @@ class _FoldersPageState extends State<FoldersPage> {
       );
     }
 
-    return currentBody;
+    return SafeArea(bottom: true, child: currentBody);
   }
 
   void _showRebuildDialog(BuildContext context, ScannerService scanner) {
