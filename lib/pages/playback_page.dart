@@ -235,23 +235,30 @@ class _PlaybackPageState extends State<PlaybackPage> {
         Widget content;
         if (isLandscape) {
           content = SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: Row(
-                children: [
-                  Expanded(flex: 4, child: albumArt),
-                  const SizedBox(width: 32),
-                  Expanded(
-                    flex: 5,
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: SizedBox(width: 450, child: controls),
-                      ),
+            child: Column(
+              children: [
+                if (Platform.isWindows) const SizedBox(height: 32),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Row(
+                      children: [
+                        Expanded(flex: 4, child: albumArt),
+                        const SizedBox(width: 32),
+                        Expanded(
+                          flex: 5,
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: SizedBox(width: 450, child: controls),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         } else {
@@ -260,6 +267,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
+                  if (Platform.isWindows) const SizedBox(height: 32),
                   Expanded(child: albumArt),
                   const SizedBox(height: 24),
                   FittedBox(

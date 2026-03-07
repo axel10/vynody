@@ -68,6 +68,7 @@ class _FoldersPageState extends State<FoldersPage> {
     if (_currentFolder == null) {
       currentBody = Column(
         children: [
+          if (Platform.isWindows) const SizedBox(height: 32),
           Container(
             padding: const EdgeInsets.all(16),
             alignment: Alignment.centerLeft,
@@ -150,6 +151,7 @@ class _FoldersPageState extends State<FoldersPage> {
         },
         child: Column(
           children: [
+            if (Platform.isWindows) const SizedBox(height: 32),
             _buildBreadcrumbs(_currentFolder!),
             Expanded(
               child: ListView(

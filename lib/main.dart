@@ -3,13 +3,32 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'player/audio_service.dart';
 import 'player/scanner_service.dart';
 import 'pages/folder_page.dart';
 import 'pages/playback_page.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    await windowManager.ensureInitialized();
+    WindowOptions windowOptions = const WindowOptions(
+      size: Size(1280, 720),
+      minimumSize: Size(400, 600),
+      center: true,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.hidden,
+      title: 'Pure Player',
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
+
   MediaKit.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux) {
     MetadataGod.initialize();
@@ -114,10 +133,36 @@ class _MainLayoutState extends State<MainLayout> {
       value: _pageController,
       child: Scaffold(
         extendBody: true,
-        body: PageView(
-          controller: _pageController,
-          onPageChanged: _onPageChanged,
-          children: pages,
+        body: Stack(
+          children: [
+            PageView(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              children: pages,
+            ),
+            if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Column(
+                  children: [
+                    DragToMoveArea(
+                      child: SizedBox(
+                        height: 32,
+                        child: WindowCaption(
+                          brightness: _currentIndex == 1
+                              ? Brightness.dark
+                              : Theme.of(context).brightness,
+                          backgroundColor: Colors.transparent,
+                          title: const SizedBox(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
         bottomNavigationBar: NavigationBar(
           height: 60,
