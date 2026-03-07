@@ -6,15 +6,28 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:collection/collection.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
+
+enum SortCriteria { title, filename, trackNumber }
+
+enum SortOrder { ascending, descending }
 
 class MusicFile {
   final String path;
   final String name;
+  final String? title;
+  final int? trackNumber;
   final int? id; // System Media Library ID
 
-  MusicFile({required this.path, required this.name, this.id});
+  MusicFile({
+    required this.path,
+    required this.name,
+    this.title,
+    this.trackNumber,
+    this.id,
+  });
 }
 
 class MusicFolder {
@@ -26,9 +39,10 @@ class MusicFolder {
   MusicFolder({
     required this.path,
     required this.name,
-    this.subFolders = const [],
-    this.files = const [],
-  });
+    List<MusicFolder> subFolders = const [],
+    List<MusicFile> files = const [],
+  }) : subFolders = List.from(subFolders),
+       files = List.from(files);
 
   bool get isEmpty => subFolders.isEmpty && files.isEmpty;
 }
@@ -41,6 +55,12 @@ class ScannerService extends ChangeNotifier {
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
   final OnAudioQuery _audioQuery = OnAudioQuery();
+
+  SortCriteria _sortCriteria = SortCriteria.filename;
+  SortOrder _sortOrder = SortOrder.ascending;
+
+  SortCriteria get sortCriteria => _sortCriteria;
+  SortOrder get sortOrder => _sortOrder;
 
   List<String> get rootPaths => List.unmodifiable(_rootPaths);
   List<MusicFolder> get rootFolders => List.unmodifiable(_rootFolders);
@@ -63,6 +83,75 @@ class ScannerService extends ChangeNotifier {
 
   ScannerService() {
     _init();
+  }
+
+  void setSortCriteria(SortCriteria criteria) {
+    _sortCriteria = criteria;
+    _sortAndNotify();
+  }
+
+  void setSortOrder(SortOrder order) {
+    _sortOrder = order;
+    _sortAndNotify();
+  }
+
+  void _sortAndNotify() {
+    _sortFolders(_rootFolders);
+    if (_systemMediaFolder != null) {
+      _sortFolderRecursive(_systemMediaFolder!);
+    }
+    notifyListeners();
+  }
+
+  void _sortFolders(List<MusicFolder> folders) {
+    folders.sort(
+      (a, b) => compareNatural(a.name.toLowerCase(), b.name.toLowerCase()),
+    );
+    for (var folder in folders) {
+      _sortFolderRecursive(folder);
+    }
+  }
+
+  void _sortFolderRecursive(MusicFolder folder) {
+    folder.subFolders.sort(
+      (a, b) => compareNatural(a.name.toLowerCase(), b.name.toLowerCase()),
+    );
+
+    int Function(MusicFile, MusicFile) comparator;
+
+    switch (_sortCriteria) {
+      case SortCriteria.title:
+        comparator = (a, b) => compareNatural(
+          (a.title ?? a.name).toLowerCase(),
+          (b.title ?? b.name).toLowerCase(),
+        );
+        break;
+      case SortCriteria.filename:
+        comparator = (a, b) =>
+            compareNatural(a.name.toLowerCase(), b.name.toLowerCase());
+        break;
+      case SortCriteria.trackNumber:
+        comparator = (a, b) {
+          if (a.trackNumber != null && b.trackNumber != null) {
+            return a.trackNumber!.compareTo(b.trackNumber!);
+          }
+          if (a.trackNumber != null) return -1;
+          if (b.trackNumber != null) return 1;
+          return compareNatural(a.name.toLowerCase(), b.name.toLowerCase());
+        };
+        break;
+    }
+
+    if (_sortOrder == SortOrder.descending) {
+      final baseComparator = comparator;
+      comparator = (a, b) => baseComparator(b, a);
+    }
+
+    folder.files.sort(comparator);
+
+    for (var sub in folder.subFolders) {
+      _sortFolderRecursive(sub);
+    }
   }
 
   Future<void> _init() async {
@@ -159,6 +248,7 @@ class ScannerService extends ChangeNotifier {
       }
 
       _systemMediaFolder = _organizeSongsIntoFolders(songs);
+      _sortFolderRecursive(_systemMediaFolder!);
       notifyListeners();
     } catch (e) {
       debugPrint('Error scanning system media: $e');
@@ -172,7 +262,13 @@ class ScannerService extends ChangeNotifier {
 
     for (var song in songs) {
       final path = song.data;
-      final file = MusicFile(path: path, name: p.basename(path), id: song.id);
+      final file = MusicFile(
+        path: path,
+        name: p.basename(path),
+        title: song.title,
+        trackNumber: song.track,
+        id: song.id,
+      );
       final dirPath = p.dirname(path);
 
       folderFiles.putIfAbsent(dirPath, () => []).add(file);
@@ -282,10 +378,7 @@ class ScannerService extends ChangeNotifier {
       debugPrint('Scan error: $e');
     } finally {
       _isScanning = false;
-      _rootFolders.sort(
-        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-      );
-      notifyListeners();
+      _sortAndNotify();
     }
   }
 
@@ -326,12 +419,17 @@ class ScannerService extends ChangeNotifier {
           if (_audioExtensions.contains(ext)) {
             final id = _pathIdMap[entity.path];
 
+            String? title;
+            int? trackNumber;
+
             if (Platform.isWindows) {
               final metadata = await MetadataHelper.processMetadata(
                 entity.path,
               );
               if (metadata != null) {
                 _metadataMap[entity.path] = metadata;
+                title = metadata.title;
+                trackNumber = metadata.trackNumber;
               }
             }
 
@@ -339,6 +437,8 @@ class ScannerService extends ChangeNotifier {
               MusicFile(
                 path: entity.path,
                 name: p.basename(entity.path),
+                title: title,
+                trackNumber: trackNumber,
                 id: id,
               ),
             );

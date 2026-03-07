@@ -71,10 +71,20 @@ class _FoldersPageState extends State<FoldersPage> {
           if (Platform.isWindows) const SizedBox(height: 32),
           Container(
             padding: const EdgeInsets.all(16),
-            alignment: Alignment.centerLeft,
-            child: const Text(
-              '扫描目录',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '扫描目录',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.sort),
+                  onPressed: () => _showSortDialog(context, scanner),
+                  tooltip: '排序',
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -153,7 +163,7 @@ class _FoldersPageState extends State<FoldersPage> {
         child: Column(
           children: [
             if (Platform.isWindows) const SizedBox(height: 32),
-            _buildBreadcrumbs(_currentFolder!),
+            _buildBreadcrumbs(_currentFolder!, scanner),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.only(bottom: Platform.isWindows ? 84 : 0),
@@ -279,19 +289,111 @@ class _FoldersPageState extends State<FoldersPage> {
     );
   }
 
-  Widget _buildBreadcrumbs(MusicFolder current) {
+  void _showSortDialog(BuildContext context, ScannerService scanner) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('排序方式'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RadioListTile<SortCriteria>(
+                    title: const Text('标题'),
+                    value: SortCriteria.title,
+                    groupValue: scanner.sortCriteria,
+                    onChanged: (v) {
+                      if (v != null) {
+                        scanner.setSortCriteria(v);
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  RadioListTile<SortCriteria>(
+                    title: const Text('文件名'),
+                    value: SortCriteria.filename,
+                    groupValue: scanner.sortCriteria,
+                    onChanged: (v) {
+                      if (v != null) {
+                        scanner.setSortCriteria(v);
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  RadioListTile<SortCriteria>(
+                    title: const Text('轨道号 (Track Number)'),
+                    value: SortCriteria.trackNumber,
+                    groupValue: scanner.sortCriteria,
+                    onChanged: (v) {
+                      if (v != null) {
+                        scanner.setSortCriteria(v);
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  const Divider(),
+                  RadioListTile<SortOrder>(
+                    title: const Text('升序'),
+                    value: SortOrder.ascending,
+                    groupValue: scanner.sortOrder,
+                    onChanged: (v) {
+                      if (v != null) {
+                        scanner.setSortOrder(v);
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  RadioListTile<SortOrder>(
+                    title: const Text('降序'),
+                    value: SortOrder.descending,
+                    groupValue: scanner.sortOrder,
+                    onChanged: (v) {
+                      if (v != null) {
+                        scanner.setSortOrder(v);
+                        setState(() {});
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('确定'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       color: theme.colorScheme.surfaceContainerHighest,
-      width: double.infinity,
-      child: Text(
-        current.path,
-        style: TextStyle(
-          fontSize: 12,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-        overflow: TextOverflow.ellipsis,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              current.path,
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.sort, size: 20),
+            onPressed: () => _showSortDialog(context, scanner),
+            tooltip: '排序',
+          ),
+        ],
       ),
     );
   }

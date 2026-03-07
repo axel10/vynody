@@ -60,6 +60,7 @@ dependencies:
 
   window_manager: ^0.5.1
   desktop_drop: ^0.7.0
+  collection: ^1.19.1
 
 dev_dependencies:
   flutter_test:

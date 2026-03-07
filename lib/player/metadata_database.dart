@@ -13,6 +13,7 @@ class SongMetadata {
   final String? artworkPath;
   final int? artworkWidth;
   final int? artworkHeight;
+  final int? trackNumber;
 
   SongMetadata({
     this.id,
@@ -24,6 +25,7 @@ class SongMetadata {
     this.artworkPath,
     this.artworkWidth,
     this.artworkHeight,
+    this.trackNumber,
   });
 
   Map<String, dynamic> toMap() {
@@ -36,6 +38,7 @@ class SongMetadata {
       'artworkPath': artworkPath,
       'artworkWidth': artworkWidth,
       'artworkHeight': artworkHeight,
+      'trackNumber': trackNumber,
     };
   }
 
@@ -50,6 +53,7 @@ class SongMetadata {
       artworkPath: map['artworkPath'],
       artworkWidth: map['artworkWidth'],
       artworkHeight: map['artworkHeight'],
+      trackNumber: map['trackNumber'],
     );
   }
 }
@@ -79,7 +83,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -91,7 +95,8 @@ class MetadataDatabase {
             duration INTEGER,
             artworkPath TEXT,
             artworkWidth INTEGER,
-            artworkHeight INTEGER
+            artworkHeight INTEGER,
+            trackNumber INTEGER
           )
         ''');
       },
@@ -101,6 +106,9 @@ class MetadataDatabase {
           await db.execute(
             'ALTER TABLE songs ADD COLUMN artworkHeight INTEGER',
           );
+        }
+        if (oldVersion < 3) {
+          await db.execute('ALTER TABLE songs ADD COLUMN trackNumber INTEGER');
         }
       },
     );

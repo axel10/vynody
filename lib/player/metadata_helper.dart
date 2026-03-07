@@ -40,6 +40,7 @@ class MetadataHelper {
         artworkPath: artworkPath,
         artworkWidth: artworkWidth,
         artworkHeight: artworkHeight,
+        trackNumber: metadata.trackNumber,
       );
 
       await db.insertOrUpdateSong(song);
