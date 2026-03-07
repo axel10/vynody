@@ -200,6 +200,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "4.1.2"
+  id3:
+    dependency: transitive
+    description:
+      name: id3
+      sha256: "24176a6e08db6297c8450079e94569cd8387f913c817e5e3d862be7dc191e0b8"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.0.2"
   image:
     dependency: transitive
     description:
@@ -352,6 +360,48 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "9.3.0"
+  on_audio_query:
+    dependency: "direct main"
+    description:
+      path: "packages/on_audio_query"
+      ref: main
+      resolved-ref: "83a6c7026e6d95d675d9fc379780e4e59a5cb228"
+      url: "https://github.com/rozpo/on_audio_query"
+    source: git
+    version: "2.9.0"
+  on_audio_query_android:
+    dependency: transitive
+    description:
+      path: "packages/on_audio_query_android"
+      ref: "83a6c7026e6d95d675d9fc379780e4e59a5cb228"
+      resolved-ref: "83a6c7026e6d95d675d9fc379780e4e59a5cb228"
+      url: "https://github.com/rozpo/on_audio_query"
+    source: git
+    version: "1.1.0"
+  on_audio_query_ios:
+    dependency: transitive
+    description:
+      name: on_audio_query_ios
+      sha256: "9b3efa39a656fa3720980e3c6a1f55b7257d0032a45ffeb3f70eaa2c7f10f929"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.1.0"
+  on_audio_query_platform_interface:
+    dependency: transitive
+    description:
+      name: on_audio_query_platform_interface
+      sha256: c23e019a31bd0774828476e428fd33b0dd1d82c9d4791dba80429358fc65dcd3
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.7.0"
+  on_audio_query_web:
+    dependency: transitive
+    description:
+      name: on_audio_query_web
+      sha256: "990efa52d879e6caffa97f24b34acd9caa1ce2c4c4cb873fe5a899a9b1af02c7"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.6.0"
   path:
     dependency: "direct main"
     description:

@@ -31,6 +31,11 @@ dependencies:
   flutter:
     sdk: flutter
 
+  on_audio_query:
+    git:
+      url: https://github.com/rozpo/on_audio_query
+      path: packages/on_audio_query
+      ref: main
   media_kit: ^1.2.6 # Primary package.
   media_kit_libs_audio: ^1.0.7 # Native audio dependencies.
   file_picker: ^8.0.0
