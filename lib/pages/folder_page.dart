@@ -263,13 +263,17 @@ class _FoldersPageState extends State<FoldersPage> {
   }
 
   Widget _buildBreadcrumbs(MusicFolder current) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Colors.grey[100],
+      color: theme.colorScheme.surfaceContainerHighest,
       width: double.infinity,
       child: Text(
         current.path,
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
+        style: TextStyle(
+          fontSize: 12,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
         overflow: TextOverflow.ellipsis,
       ),
     );
