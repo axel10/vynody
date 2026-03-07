@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -15,6 +16,12 @@ class _PlaybackPageState extends State<PlaybackPage> {
   bool _showVolumeHUD = false;
   bool _showVolumeSlider = false;
   Timer? _hudTimer;
+
+  @override
+  void dispose() {
+    _hudTimer?.cancel();
+    super.dispose();
+  }
 
   void _triggerHUD() {
     setState(() {
@@ -37,12 +44,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
   }
 
   @override
-  void dispose() {
-    _hudTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final audio = context.watch<AudioService>();
 
@@ -59,34 +60,38 @@ class _PlaybackPageState extends State<PlaybackPage> {
         final albumArt = Hero(
           tag: 'album_art',
           child: Container(
-            width: isLandscape ? 200 : 240,
-            height: isLandscape ? 200 : 240,
+            width: isLandscape ? 260 : 300,
+            height: isLandscape ? 260 : 300,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(24),
               color: Colors.black87,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 20,
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 30,
                   spreadRadius: 5,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
-            child: Center(
-              child: Container(
-                width: isLandscape ? 50 : 60,
-                height: isLandscape ? 50 : 60,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white24,
-                ),
-                child: Icon(
-                  Icons.music_note,
-                  size: isLandscape ? 30 : 40,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+            clipBehavior: Clip.antiAlias,
+            child: audio.currentArtworkBytes != null
+                ? Image.memory(audio.currentArtworkBytes!, fit: BoxFit.cover)
+                : Center(
+                    child: Container(
+                      width: isLandscape ? 60 : 80,
+                      height: isLandscape ? 60 : 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.1),
+                      ),
+                      child: Icon(
+                        Icons.music_note,
+                        size: isLandscape ? 30 : 40,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ),
           ),
         );
 
@@ -115,31 +120,58 @@ class _PlaybackPageState extends State<PlaybackPage> {
                 Text(
                   audio.currentFileName ?? '未知',
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                   textAlign: isLandscape ? TextAlign.left : TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: isLandscape ? 16 : 32),
-                Slider(
-                  value: audio.progress,
-                  onChanged: (val) {
-                    final position = Duration(
-                      milliseconds: (val * audio.duration.inMilliseconds)
-                          .toInt(),
-                    );
-                    audio.seek(position);
-                  },
+                SizedBox(height: isLandscape ? 24 : 48),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 6,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 14,
+                    ),
+                    activeTrackColor: Colors.white,
+                    inactiveTrackColor: Colors.white24,
+                    thumbColor: Colors.white,
+                  ),
+                  child: Slider(
+                    value: audio.progress,
+                    onChanged: (val) {
+                      final position = Duration(
+                        milliseconds: (val * audio.duration.inMilliseconds)
+                            .toInt(),
+                      );
+                      audio.seek(position);
+                    },
+                  ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(_formatDuration(audio.position)),
-                      Text(_formatDuration(audio.duration)),
+                      Text(
+                        _formatDuration(audio.position),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        _formatDuration(audio.duration),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -148,24 +180,48 @@ class _PlaybackPageState extends State<PlaybackPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.skip_previous, size: 40),
+                      icon: const Icon(
+                        Icons.skip_previous_rounded,
+                        size: 48,
+                        color: Colors.white,
+                      ),
                       onPressed: () {},
                     ),
-                    const SizedBox(width: 8),
-                    FloatingActionButton(
-                      onPressed: audio.togglePlay,
-                      child: Icon(
-                        audio.isPlaying ? Icons.pause : Icons.play_arrow,
+                    const SizedBox(width: 24),
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                      ),
+                      child: IconButton(
+                        onPressed: audio.togglePlay,
+                        icon: Icon(
+                          audio.isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          size: 40,
+                          color: Colors.black,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 24),
                     IconButton(
-                      icon: const Icon(Icons.skip_next, size: 40),
+                      icon: const Icon(
+                        Icons.skip_next_rounded,
+                        size: 48,
+                        color: Colors.white,
+                      ),
                       onPressed: () {},
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 16),
                     IconButton(
-                      icon: Icon(_getVolumeIcon(audio.volume), size: 32),
+                      icon: Icon(
+                        _getVolumeIcon(audio.volume),
+                        size: 28,
+                        color: Colors.white70,
+                      ),
                       onPressed: () {
                         setState(() {
                           _showVolumeSlider = !_showVolumeSlider;
@@ -201,155 +257,182 @@ class _PlaybackPageState extends State<PlaybackPage> {
           );
         }
 
-        return Stack(
-          children: [
-            content,
-            if (_showVolumeSlider)
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => _showVolumeSlider = false),
-                  child: Container(
-                    color: Colors.transparent,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: isLandscape ? 100 : 160,
-                            ),
-                            child: GestureDetector(
-                              onTap:
-                                  () {}, // Prevent dismissal when clicking the slider bar itself
-                              child: Container(
-                                width: 300,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black87,
-                                  borderRadius: BorderRadius.circular(30),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 10,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      _getVolumeIcon(audio.volume),
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Listener(
-                                        onPointerSignal: (pointerSignal) {
-                                          if (pointerSignal
-                                              is PointerScrollEvent) {
-                                            audio.setVolume(
-                                              audio.volume -
-                                                  pointerSignal.scrollDelta.dy *
-                                                      0.1,
-                                            );
-                                          }
-                                        },
-                                        child: SliderTheme(
-                                          data: SliderTheme.of(context)
-                                              .copyWith(
-                                                activeTrackColor: Colors.white,
-                                                inactiveTrackColor:
-                                                    Colors.white24,
-                                                thumbColor: Colors.white,
-                                                overlayColor: Colors.white
-                                                    .withOpacity(0.2),
-                                              ),
-                                          child: Slider(
-                                            value: audio.volume,
-                                            min: 0,
-                                            max: 100,
-                                            onChanged: (val) {
-                                              audio.setVolume(val);
-                                            },
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              // Blurred Background
+              if (audio.currentArtworkBytes != null)
+                Positioned.fill(
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: MemoryImage(audio.currentArtworkBytes!),
+                          fit: BoxFit.cover,
+                          colorFilter: ColorFilter.mode(
+                            Colors.black.withOpacity(0.5),
+                            BlendMode.darken,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              content,
+              if (_showVolumeSlider)
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _showVolumeSlider = false),
+                    child: Container(
+                      color: Colors.transparent,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.only(
+                                bottom: isLandscape ? 100 : 160,
+                              ),
+                              child: GestureDetector(
+                                onTap:
+                                    () {}, // Prevent dismissal when clicking the slider bar itself
+                                child: Container(
+                                  width: 300,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black87,
+                                    borderRadius: BorderRadius.circular(30),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 10,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getVolumeIcon(audio.volume),
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Listener(
+                                          onPointerSignal: (pointerSignal) {
+                                            if (pointerSignal
+                                                is PointerScrollEvent) {
+                                              audio.setVolume(
+                                                audio.volume -
+                                                    pointerSignal
+                                                            .scrollDelta
+                                                            .dy *
+                                                        0.1,
+                                              );
+                                            }
+                                          },
+                                          child: SliderTheme(
+                                            data: SliderTheme.of(context)
+                                                .copyWith(
+                                                  activeTrackColor:
+                                                      Colors.white,
+                                                  inactiveTrackColor:
+                                                      Colors.white24,
+                                                  thumbColor: Colors.white,
+                                                  overlayColor: Colors.white
+                                                      .withOpacity(0.2),
+                                                ),
+                                            child: Slider(
+                                              value: audio.volume,
+                                              min: 0,
+                                              max: 100,
+                                              onChanged: (val) {
+                                                audio.setVolume(val);
+                                              },
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${audio.volume.round()}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${audio.volume.round()}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (_showVolumeHUD)
+                Positioned(
+                  top: 100,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            audio.volume > 0
+                                ? Icons.volume_up
+                                : Icons.volume_off,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '音量',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                '${audio.volume.toInt()}%',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ),
-            if (_showVolumeHUD)
-              Positioned(
-                top: 100,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          audio.volume > 0 ? Icons.volume_up : Icons.volume_off,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '音量',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              '${audio.volume.toInt()}%',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
+            ],
+          ),
         );
       },
     );

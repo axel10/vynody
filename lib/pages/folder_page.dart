@@ -198,7 +198,7 @@ class _FoldersPageState extends State<FoldersPage> {
                     leading: SongThumbnail(path: file.path, id: file.id),
                     title: Text(file.name),
                     onTap: () {
-                      audio.playFile(file.path, file.name);
+                      audio.playFile(file.path, file.name, id: file.id);
                       DefaultTabController.of(context).animateTo(1);
                     },
                   ),
