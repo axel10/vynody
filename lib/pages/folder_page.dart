@@ -79,6 +79,7 @@ class _FoldersPageState extends State<FoldersPage> {
           ),
           Expanded(
             child: ListView(
+              padding: EdgeInsets.only(bottom: Platform.isWindows ? 84 : 0),
               children: [
                 // System Media Library Item
                 if (!Platform.isWindows)
@@ -155,6 +156,7 @@ class _FoldersPageState extends State<FoldersPage> {
             _buildBreadcrumbs(_currentFolder!),
             Expanded(
               child: ListView(
+                padding: EdgeInsets.only(bottom: Platform.isWindows ? 84 : 0),
                 children: [
                   ListTile(
                     leading: const Icon(Icons.arrow_back),
@@ -223,7 +225,7 @@ class _FoldersPageState extends State<FoldersPage> {
           currentBody,
           Positioned(
             right: 24,
-            bottom: 24,
+            bottom: 84, // 24 + 60 (NavigationBar height)
             child: FloatingActionButton(
               tooltip: '重建标签数据库',
               onPressed: () => _showRebuildDialog(context, scanner),
