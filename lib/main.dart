@@ -84,10 +84,10 @@ class _MainLayoutState extends State<MainLayout> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(_currentIndex == 0 ? '文件' : '正在播放'),
-          centerTitle: true,
-        ),
+        // appBar: AppBar(
+        //   title: Text(_currentIndex == 0 ? '文件' : '正在播放'),
+        //   centerTitle: true,
+        // ),
         body: IndexedStack(index: _currentIndex, children: _pages),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _currentIndex,
