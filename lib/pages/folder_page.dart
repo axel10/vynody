@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:on_audio_query/on_audio_query.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -194,7 +195,23 @@ class _FoldersPageState extends State<FoldersPage> {
                 ),
                 ..._currentFolder!.files.map(
                   (file) => ListTile(
-                    leading: const Icon(Icons.music_note, color: Colors.blue),
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: file.id != null
+                            ? QueryArtworkWidget(
+                                id: file.id!,
+                                type: ArtworkType.AUDIO,
+                                nullArtworkWidget: const Icon(
+                                  Icons.music_note,
+                                  color: Colors.blue,
+                                ),
+                              )
+                            : const Icon(Icons.music_note, color: Colors.blue),
+                      ),
+                    ),
                     title: Text(file.name),
                     onTap: () {
                       audio.playFile(file.path, file.name);

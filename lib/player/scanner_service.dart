@@ -8,8 +8,9 @@ import 'package:on_audio_query/on_audio_query.dart';
 class MusicFile {
   final String path;
   final String name;
+  final int? id; // System Media Library ID
 
-  MusicFile({required this.path, required this.name});
+  MusicFile({required this.path, required this.name, this.id});
 }
 
 class MusicFolder {
@@ -43,6 +44,7 @@ class ScannerService extends ChangeNotifier {
 
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
   bool get hasPermission => _hasPermission;
+  final Map<String, int> _pathIdMap = {};
 
   final List<String> _audioExtensions = [
     '.mp3',
@@ -113,6 +115,11 @@ class ScannerService extends ChangeNotifier {
         ignoreCase: true,
       );
 
+      _pathIdMap.clear();
+      for (var song in songs) {
+        _pathIdMap[song.data] = song.id;
+      }
+
       _systemMediaFolder = _organizeSongsIntoFolders(songs);
       notifyListeners();
     } catch (e) {
@@ -127,7 +134,7 @@ class ScannerService extends ChangeNotifier {
 
     for (var song in songs) {
       final path = song.data;
-      final file = MusicFile(path: path, name: p.basename(path));
+      final file = MusicFile(path: path, name: p.basename(path), id: song.id);
       final dirPath = p.dirname(path);
 
       folderFiles.putIfAbsent(dirPath, () => []).add(file);
@@ -203,6 +210,10 @@ class ScannerService extends ChangeNotifier {
   Future<void> scan() async {
     if (_rootPaths.isEmpty) return;
 
+    if (_pathIdMap.isEmpty && _hasPermission) {
+      await scanSystemMedia();
+    }
+
     _isScanning = true;
     _rootFolders.clear();
     notifyListeners();
@@ -256,8 +267,13 @@ class ScannerService extends ChangeNotifier {
         } else if (entity is File) {
           final ext = p.extension(entity.path).toLowerCase();
           if (_audioExtensions.contains(ext)) {
+            final id = _pathIdMap[entity.path];
             files.add(
-              MusicFile(path: entity.path, name: p.basename(entity.path)),
+              MusicFile(
+                path: entity.path,
+                name: p.basename(entity.path),
+                id: id,
+              ),
             );
           }
         }
