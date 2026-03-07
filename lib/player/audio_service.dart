@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
@@ -26,11 +28,41 @@ class AudioService extends ChangeNotifier {
 
   final List<MusicFile> _playlist = [];
   int _currentIndex = -1;
+  bool _showSpectrum = false;
+  late final Stream<List<double>> _fftStream;
+  late final bool _nativeSpectrumSupported;
+  final StreamController<List<double>> _emulatedFftController =
+      StreamController<List<double>>.broadcast();
+  Timer? _emulatedFftTimer;
+  static const int _emulatedBarCount = 56;
+  List<double> _lastEmulatedFft = List<double>.filled(_emulatedBarCount, 0.0);
 
   AudioService() {
     _player = Player();
+    try {
+      final rawStream = (_player.stream as dynamic).fft as Stream<dynamic>;
+      _fftStream = rawStream.map((event) {
+        if (event is List) {
+          return event
+              .map((value) => (value as num).toDouble())
+              .toList(growable: false);
+        }
+        return const <double>[];
+      });
+      _nativeSpectrumSupported = true;
+    } catch (_) {
+      _fftStream = const Stream.empty();
+      _nativeSpectrumSupported = false;
+    }
     _player.stream.playing.listen((playing) {
       _isPlaying = playing;
+      if (!_nativeSpectrumSupported) {
+        if (playing) {
+          _startEmulatedSpectrum();
+        } else {
+          _stopEmulatedSpectrum(reset: false);
+        }
+      }
       notifyListeners();
     });
     _player.stream.position.listen((position) {
@@ -70,6 +102,66 @@ class AudioService extends ChangeNotifier {
   String? get currentArtworkPath => _currentArtworkPath;
   List<MusicFile> get playlist => List.unmodifiable(_playlist);
   int get currentIndex => _currentIndex;
+  bool get showSpectrum => _showSpectrum;
+  bool get spectrumSupported => true;
+  bool get nativeSpectrumSupported => _nativeSpectrumSupported;
+
+  Stream<List<double>> get fftStream => _nativeSpectrumSupported
+      ? _fftStream
+      : _emulatedFftController.stream;
+
+  void toggleSpectrum() {
+    _showSpectrum = !_showSpectrum;
+    if (!_nativeSpectrumSupported) {
+      if (_showSpectrum && _isPlaying) {
+        _startEmulatedSpectrum();
+      }
+      if (!_showSpectrum) {
+        _stopEmulatedSpectrum();
+      }
+    }
+    notifyListeners();
+  }
+
+  void _startEmulatedSpectrum() {
+    if (_emulatedFftTimer != null) return;
+    _emulatedFftTimer = Timer.periodic(const Duration(milliseconds: 45), (_) {
+      if (!_showSpectrum) return;
+
+      if (!_isPlaying || _currentFilePath == null) {
+        _lastEmulatedFft = _lastEmulatedFft
+            .map((v) => (v * 0.86).clamp(0.0, 1.0))
+            .toList(growable: false);
+        _emulatedFftController.add(_lastEmulatedFft);
+        return;
+      }
+
+      final t = _position.inMilliseconds / 1000.0;
+      final v = (_volume / 100.0).clamp(0.08, 1.0);
+      final bars = List<double>.generate(_emulatedBarCount, (i) {
+        final p = i / _emulatedBarCount;
+        final lane = 1.0 - p * 0.6;
+        final a = math.sin(t * 4.2 + i * 0.19);
+        final b = math.sin(t * 7.8 + i * 0.43 + 1.2);
+        final c = math.sin(t * 2.1 + i * 0.11 + 2.4);
+        final mixed = ((a * 0.5 + b * 0.35 + c * 0.15) + 1.0) * 0.5;
+        final shaped = math.pow(mixed, 1.7).toDouble();
+        return (0.03 + shaped * v * lane).clamp(0.0, 1.0);
+      }, growable: false);
+
+      _lastEmulatedFft = bars;
+      _emulatedFftController.add(bars);
+    });
+  }
+
+  void _stopEmulatedSpectrum({bool reset = true}) {
+    _emulatedFftTimer?.cancel();
+    _emulatedFftTimer = null;
+    if (reset) {
+      _lastEmulatedFft = List<double>.filled(_emulatedBarCount, 0.0);
+      _emulatedFftController.add(_lastEmulatedFft);
+    }
+  }
 
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds
@@ -232,6 +324,8 @@ class AudioService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _stopEmulatedSpectrum();
+    _emulatedFftController.close();
     _player.dispose();
     super.dispose();
   }

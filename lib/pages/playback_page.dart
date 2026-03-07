@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../player/audio_service.dart';
+import '../widgets/spectrum_visualizer.dart';
 
 // 播放页
 class PlaybackPage extends StatefulWidget {
@@ -177,6 +178,17 @@ class _PlaybackPageState extends State<PlaybackPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
+                      icon: Icon(
+                        Icons.analytics_outlined,
+                        size: 28,
+                        color: audio.showSpectrum
+                            ? Colors.white
+                            : Colors.white24,
+                      ),
+                      onPressed: audio.toggleSpectrum,
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
                       icon: const Icon(
                         Icons.skip_previous_rounded,
                         size: 48,
@@ -314,6 +326,18 @@ class _PlaybackPageState extends State<PlaybackPage> {
                           ),
                         ),
                       ),
+                    ),
+                  ),
+                if (audio.showSpectrum)
+                  Positioned.fill(
+                    child: StreamBuilder<List<double>>(
+                      stream: audio.fftStream,
+                      builder: (context, snapshot) {
+                        return SpectrumVisualizer(
+                          fft: snapshot.data ?? [],
+                          color: Colors.white70,
+                        );
+                      },
                     ),
                   ),
                 content,
