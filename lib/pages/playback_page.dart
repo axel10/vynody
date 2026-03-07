@@ -267,19 +267,26 @@ class _PlaybackPageState extends State<PlaybackPage> {
               if (audio.currentArtworkBytes != null ||
                   audio.currentArtworkPath != null)
                 Positioned.fill(
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: audio.currentArtworkBytes != null
-                              ? MemoryImage(audio.currentArtworkBytes!)
-                              : FileImage(File(audio.currentArtworkPath!))
-                                    as ImageProvider,
-                          fit: BoxFit.cover,
-                          colorFilter: ColorFilter.mode(
-                            Colors.black.withOpacity(0.5),
-                            BlendMode.darken,
+                  child: Transform.scale(
+                    scale: 1.1, // Slight scale for safety
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(
+                        sigmaX: 60,
+                        sigmaY: 60,
+                        tileMode: TileMode.mirror,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: audio.currentArtworkBytes != null
+                                ? MemoryImage(audio.currentArtworkBytes!)
+                                : FileImage(File(audio.currentArtworkPath!))
+                                      as ImageProvider,
+                            fit: BoxFit.cover,
+                            colorFilter: ColorFilter.mode(
+                              Colors.black.withValues(alpha: 0.2),
+                              BlendMode.darken,
+                            ),
                           ),
                         ),
                       ),
