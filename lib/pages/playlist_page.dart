@@ -481,16 +481,49 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                 }
                               },
                               child: ListTile(
-                                leading: _isSelectionMode
-                                    ? Checkbox(
-                                        value: isSelected,
-                                        onChanged: (_) =>
-                                            _toggleSelection(index),
-                                      )
-                                    : SongThumbnail(
-                                        path: song.path,
-                                        id: song.id,
+                                leading: SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Opacity(
+                                        opacity: _isSelectionMode
+                                            ? (isSelected ? 0.5 : 0.7)
+                                            : 1.0,
+                                        child: SongThumbnail(
+                                          path: song.path,
+                                          id: song.id,
+                                          size: 40.0,
+                                        ),
                                       ),
+                                      if (_isSelectionMode)
+                                        Positioned.fill(
+                                          child: Align(
+                                            alignment: Alignment.center,
+                                            child: SizedBox(
+                                              width: 32,
+                                              height: 32,
+                                              child: Checkbox(
+                                                value: isSelected,
+                                                onChanged: (_) =>
+                                                    _toggleSelection(index),
+                                                fillColor:
+                                                    WidgetStateProperty.all(
+                                                      Colors.white,
+                                                    ),
+                                                checkColor: Colors.black,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
                                 title: Text(
                                   song.title ?? song.name,
                                   style: TextStyle(
