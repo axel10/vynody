@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +24,28 @@ class SongThumbnail extends StatefulWidget {
 class _SongThumbnailState extends State<SongThumbnail> {
   bool _loadTriggered = false;
 
+  // Android/iOS: cache artwork bytes so parent rebuilds don't retrigger fetch.
+  Uint8List? _artworkBytes;
+  bool _artworkQueried = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if ((Platform.isAndroid || Platform.isIOS) && widget.id != null) {
+      _queryArtwork(widget.id!);
+    }
+  }
+
+  Future<void> _queryArtwork(int id) async {
+    final bytes = await OnAudioQuery().queryArtwork(id, ArtworkType.AUDIO);
+    if (mounted) {
+      setState(() {
+        _artworkBytes = bytes;
+        _artworkQueried = true;
+      });
+    }
+  }
+
   void _triggerLoad(ScannerService scanner) {
     if (_loadTriggered) return;
     _loadTriggered = true;
@@ -37,9 +60,14 @@ class _SongThumbnailState extends State<SongThumbnail> {
   @override
   void didUpdateWidget(SongThumbnail oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reset so we retry if the path changes (e.g. list recycling).
-    if (oldWidget.path != widget.path) {
+    // Reset so we retry if the path/id changes (e.g. list recycling).
+    if (oldWidget.path != widget.path || oldWidget.id != widget.id) {
       _loadTriggered = false;
+      if ((Platform.isAndroid || Platform.isIOS) && widget.id != null) {
+        _artworkBytes = null;
+        _artworkQueried = false;
+        _queryArtwork(widget.id!);
+      }
     }
   }
 
@@ -47,14 +75,20 @@ class _SongThumbnailState extends State<SongThumbnail> {
   Widget build(BuildContext context) {
     if (Platform.isAndroid || Platform.isIOS) {
       if (widget.id != null) {
-        return QueryArtworkWidget(
-          id: widget.id!,
-          type: ArtworkType.AUDIO,
-          artworkWidth: widget.size,
-          artworkHeight: widget.size,
-          artworkBorder: BorderRadius.circular(4),
-          nullArtworkWidget: _fallbackIcon(),
-        );
+        if (_artworkQueried && _artworkBytes != null) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Image.memory(
+              _artworkBytes!,
+              width: widget.size,
+              height: widget.size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => _fallbackIcon(),
+            ),
+          );
+        }
+        // Still fetching or no artwork — show fallback without flickering.
+        return _fallbackIcon();
       }
     } else if (Platform.isWindows) {
       final scanner = context.watch<ScannerService>();

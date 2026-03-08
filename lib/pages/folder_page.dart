@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../player/scanner_service.dart';
 import '../player/audio_service.dart';
+import '../player/playlist_service.dart';
 import '../widgets/song_thumbnail.dart';
 
 // 目录页
@@ -210,13 +211,28 @@ class _FoldersPageState extends State<FoldersPage> {
                     (file) => ListTile(
                       leading: SongThumbnail(path: file.path, id: file.id),
                       title: Text(file.name),
-                      onTap: () {
+                      onTap: () async {
                         if (Platform.isAndroid) {
                           final index = _currentFolder!.files.indexOf(file);
                           audio.playPlaylist(
                             _currentFolder!.files,
                             initialIndex: index,
                           );
+
+                          // 在安卓下，自动将当前目录所有歌曲加入默认播放列表
+                          final playlistService = context
+                              .read<PlaylistService>();
+                          final currentPlaylist =
+                              playlistService.currentPlaylist;
+                          if (currentPlaylist != null) {
+                            await playlistService.clearPlaylist(
+                              currentPlaylist.id,
+                            );
+                            await playlistService.addSongsToPlaylist(
+                              currentPlaylist.id,
+                              _currentFolder!.files,
+                            );
+                          }
                         } else {
                           audio.playFile(file.path, file.name, id: file.id);
                         }

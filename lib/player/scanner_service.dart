@@ -243,8 +243,17 @@ class ScannerService extends ChangeNotifier {
       );
 
       _pathIdMap.clear();
+      _metadataMap.clear();
       for (var song in songs) {
         _pathIdMap[song.data] = song.id;
+        _metadataMap[song.data] = SongMetadata(
+          path: song.data,
+          title: song.title ?? p.basename(song.data),
+          album: song.album ?? '',
+          artist: song.artist ?? '',
+          duration: song.duration,
+          trackNumber: song.track,
+        );
       }
 
       _systemMediaFolder = _organizeSongsIntoFolders(songs);
