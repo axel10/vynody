@@ -68,7 +68,6 @@ class _FoldersPageState extends State<FoldersPage> {
     if (_currentFolder == null) {
       currentBody = Column(
         children: [
-          if (Platform.isWindows) const SizedBox(height: 32),
           Container(
             padding: const EdgeInsets.all(16),
             child: Row(

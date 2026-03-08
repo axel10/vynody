@@ -391,6 +391,24 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
+  /// Loads metadata for a single path from the DB (or processes it fresh) and
+  /// caches it in [metadataMap]. Safe to call multiple times — exits early if
+  /// the path is already in the map or if the platform is not Windows.
+  Future<void> loadMetadataForPath(String path) async {
+    if (!Platform.isWindows) return;
+    if (_metadataMap.containsKey(path)) return;
+
+    final db = MetadataDatabase();
+    // Try DB first (cheapest); fall back to full processing if not found.
+    SongMetadata? metadata = await db.getSongMetadata(path);
+    metadata ??= await MetadataHelper.processMetadata(path);
+
+    if (metadata != null) {
+      _metadataMap[path] = metadata;
+      notifyListeners();
+    }
+  }
+
   Future<MusicFolder?> _scanDirectory(String path) async {
     final dir = Directory(path);
     if (!await dir.exists()) {

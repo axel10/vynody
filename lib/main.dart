@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'player/audio_service.dart';
 import 'player/scanner_service.dart';
+import 'player/playlist_service.dart';
 import 'pages/folder_page.dart';
 import 'pages/playback_page.dart';
 import 'pages/playlist_page.dart';
@@ -40,6 +41,7 @@ void main(List<String> args) async {
       providers: [
         ChangeNotifierProvider(create: (_) => AudioService()),
         ChangeNotifierProvider(create: (_) => ScannerService()),
+        ChangeNotifierProvider(create: (_) => PlaylistService()),
       ],
       child: MyApp(args: args),
     ),
@@ -181,10 +183,18 @@ class _MainLayoutState extends State<MainLayout> {
         extendBody: true,
         body: Stack(
           children: [
-            PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              children: pages,
+            Padding(
+              padding: EdgeInsets.only(
+                top:
+                    (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+                    ? 32
+                    : 0,
+              ),
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                children: pages,
+              ),
             ),
             if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
               Positioned(
