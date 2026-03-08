@@ -7,45 +7,14 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
+import '../models/music_file.dart';
+import '../models/music_folder.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 
 enum SortCriteria { title, filename, trackNumber }
 
 enum SortOrder { ascending, descending }
-
-class MusicFile {
-  final String path;
-  final String name;
-  final String? title;
-  final int? trackNumber;
-  final int? id; // System Media Library ID
-
-  MusicFile({
-    required this.path,
-    required this.name,
-    this.title,
-    this.trackNumber,
-    this.id,
-  });
-}
-
-class MusicFolder {
-  final String path;
-  final String name;
-  final List<MusicFolder> subFolders;
-  final List<MusicFile> files;
-
-  MusicFolder({
-    required this.path,
-    required this.name,
-    List<MusicFolder> subFolders = const [],
-    List<MusicFile> files = const [],
-  }) : subFolders = List.from(subFolders),
-       files = List.from(files);
-
-  bool get isEmpty => subFolders.isEmpty && files.isEmpty;
-}
 
 class ScannerService extends ChangeNotifier {
   final List<String> _rootPaths = [];

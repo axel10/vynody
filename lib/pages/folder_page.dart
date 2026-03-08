@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import '../models/music_folder.dart';
 import '../player/scanner_service.dart';
 import '../player/audio_service.dart';
 import '../player/playlist_service.dart';

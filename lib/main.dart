@@ -169,10 +169,18 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final List<Widget> pages = [
-      const FoldersPage(),
+      Padding(
+        padding: EdgeInsets.only(top: isDesktop ? 32 : 0),
+        child: const FoldersPage(),
+      ),
       const PlaybackPage(),
-      const PlaylistPage(),
+      Padding(
+        padding: EdgeInsets.only(top: isDesktop ? 32 : 0),
+        child: const PlaylistPage(),
+      ),
     ];
 
     final bool isPlayback = _currentIndex == 1;
@@ -183,18 +191,10 @@ class _MainLayoutState extends State<MainLayout> {
         extendBody: true,
         body: Stack(
           children: [
-            Padding(
-              padding: EdgeInsets.only(
-                top:
-                    (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
-                    ? 32
-                    : 0,
-              ),
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: _onPageChanged,
-                children: pages,
-              ),
+            PageView(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              children: pages,
             ),
             if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
               Positioned(

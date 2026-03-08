@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
+import '../models/music_file.dart';
 import '../player/audio_service.dart';
 import '../player/scanner_service.dart';
 import '../player/playlist_service.dart';
@@ -74,19 +75,6 @@ class _PlaylistPageState extends State<PlaylistPage> {
         _selectedIndices.remove(index);
       } else {
         _selectedIndices.add(index);
-      }
-    });
-  }
-
-  void _selectAll(List<MusicFile> songs) {
-    setState(() {
-      if (_selectedIndices.length == songs.length) {
-        _selectedIndices.clear();
-      } else {
-        _selectedIndices.clear();
-        for (int i = 0; i < songs.length; i++) {
-          _selectedIndices.add(i);
-        }
       }
     });
   }

@@ -76,9 +76,23 @@ class MetadataHelper {
         final image = img.decodeImage(data);
         if (image == null) return null;
 
+        // Crop center square first to avoid stretching non-square artwork.
+        final cropSize = image.width < image.height
+            ? image.width
+            : image.height;
+        final offsetX = (image.width - cropSize) ~/ 2;
+        final offsetY = (image.height - cropSize) ~/ 2;
+        final square = img.copyCrop(
+          image,
+          x: offsetX,
+          y: offsetY,
+          width: cropSize,
+          height: cropSize,
+        );
+
         // Resize
         final resized = img.copyResize(
-          image,
+          square,
           width: 200,
           height: 200,
           interpolation: img.Interpolation.average,

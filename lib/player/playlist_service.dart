@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'scanner_service.dart';
+import '../models/music_file.dart';
 
 /// 播放列表模型
 class Playlist {

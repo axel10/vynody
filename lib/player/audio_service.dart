@@ -5,8 +5,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:image/image.dart' as img;
+import '../models/music_file.dart';
 import 'metadata_database.dart';
-import 'scanner_service.dart';
 
 class AudioService extends ChangeNotifier {
   late final Player _player;
@@ -95,23 +95,15 @@ class AudioService extends ChangeNotifier {
         _artworkWidth = songFromDb?.artworkWidth;
         _artworkHeight = songFromDb?.artworkHeight;
 
-        // Always try to load original artwork for the playback page to ensure "original" quality
-        final bool noThumb = _currentArtworkPath == null;
-        final bool unknownDimensions = _artworkWidth == null;
-
-        if (noThumb || unknownDimensions || true) {
-          // Force fetch original for best quality
-          final metadata = await MetadataGod.readMetadata(file: path);
-          final bytes = metadata.picture?.data;
-          if (bytes != null) {
-            if (unknownDimensions) {
-              final image = img.decodeImage(bytes);
-              if (image != null) {
-                _artworkWidth = image.width;
-                _artworkHeight = image.height;
-              }
-            }
-            _currentArtworkBytes = bytes;
+        // Playback page should prefer embedded original artwork, not cached thumbnails.
+        final metadata = await MetadataGod.readMetadata(file: path);
+        final bytes = metadata.picture?.data;
+        if (bytes != null) {
+          _currentArtworkBytes = bytes;
+          final image = img.decodeImage(bytes);
+          if (image != null) {
+            _artworkWidth = image.width;
+            _artworkHeight = image.height;
           }
         }
       } catch (e) {
