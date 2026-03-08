@@ -503,7 +503,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  p.dirname(song.path),
+                                  '${scanner.metadataMap[song.path]?.artist ?? '未知艺术家'} - ${scanner.metadataMap[song.path]?.album ?? '未知专辑'}',
                                   style: const TextStyle(fontSize: 10),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
