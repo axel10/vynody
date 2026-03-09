@@ -62,6 +62,11 @@ dependencies:
   desktop_drop: ^0.7.0
   collection: ^1.19.1
 
+  flutter_soloud:
+    git:
+      url: https://github.com/alnitak/flutter_soloud.git
+      ref: desktopDrop
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -72,6 +77,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  rename: ^3.1.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

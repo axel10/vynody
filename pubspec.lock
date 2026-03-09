@@ -238,6 +238,15 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.11.1"
+  flutter_soloud:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: desktopDrop
+      resolved-ref: "2611a7d54d3fe457e83757e929d1687aa0caa266"
+      url: "https://github.com/alnitak/flutter_soloud.git"
+    source: git
+    version: "3.5.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -336,6 +345,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "6.1.0"
+  logger:
+    dependency: transitive
+    description:
+      name: logger
+      sha256: a7967e31b703831a893bbc3c3dd11db08126fe5f369b5c648a36f821979f5be3
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "2.6.2"
   logging:
     dependency: transitive
     description:
@@ -666,6 +683,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.2.0"
+  rename:
+    dependency: "direct dev"
+    description:
+      name: rename
+      sha256: da5f4d67f8c68f066ad04edfd6585495dbe595f2baf3b1999eb6af1805d79539
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "3.1.0"
   safe_local_storage:
     dependency: transitive
     description:
