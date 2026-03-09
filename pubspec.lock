@@ -238,15 +238,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.11.1"
-  flutter_soloud:
-    dependency: "direct main"
-    description:
-      path: "."
-      ref: desktopDrop
-      resolved-ref: "2611a7d54d3fe457e83757e929d1687aa0caa266"
-      url: "https://github.com/alnitak/flutter_soloud.git"
-    source: git
-    version: "3.5.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter

@@ -9,8 +9,6 @@ import '../models/music_file.dart';
 import 'base_player.dart';
 import 'media_kit_player.dart';
 import 'metadata_database.dart';
-import 'soloud_player.dart';
-import 'package:path/path.dart' as p;
 
 class AudioService extends ChangeNotifier {
   late final BasePlayer _player;
@@ -63,12 +61,7 @@ class AudioService extends ChangeNotifier {
   }
 
   BasePlayer _createPlayer(PlayerBackend backend) {
-    switch (backend) {
-      case PlayerBackend.soLoud:
-        return SoLoudPlayer();
-      case PlayerBackend.mediaKit:
-        return MediaKitPlayer();
-    }
+      return MediaKitPlayer();
   }
 
   bool get isPlaying => _isPlaying;

@@ -62,11 +62,6 @@ dependencies:
   desktop_drop: ^0.7.0
   collection: ^1.19.1
 
-  flutter_soloud:
-    git:
-      url: https://github.com/alnitak/flutter_soloud.git
-      ref: desktopDrop
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
