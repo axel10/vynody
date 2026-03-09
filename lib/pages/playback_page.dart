@@ -84,7 +84,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     color: Colors.black87,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.4),
+                        color: Colors.black.withValues(alpha: 0.4),
                         blurRadius: 30,
                         spreadRadius: 5,
                         offset: const Offset(0, 10),
@@ -370,7 +370,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                       borderRadius: BorderRadius.circular(30),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
+                                          color: Colors.black.withValues(alpha: 0.3),
                                           blurRadius: 10,
                                           spreadRadius: 2,
                                         ),
@@ -406,7 +406,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                                         Colors.white24,
                                                     thumbColor: Colors.white,
                                                     overlayColor: Colors.white
-                                                        .withOpacity(0.2),
+                                                        .withValues(alpha: 0.2),
                                                   ),
                                               child: Slider(
                                                 value: audio.volume,
@@ -530,7 +530,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
         height: isLandscape ? 60 : 80,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
         child: Icon(
           Icons.music_note,

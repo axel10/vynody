@@ -153,13 +153,13 @@ class _FoldersPageState extends State<FoldersPage> {
         ],
       );
     } else {
-      currentBody = WillPopScope(
-        onWillPop: () async {
+      currentBody = PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
           if (_history.isNotEmpty || _currentFolder != null) {
             _goBack();
-            return false;
           }
-          return true;
         },
         child: Column(
           children: [
@@ -213,6 +213,9 @@ class _FoldersPageState extends State<FoldersPage> {
                       leading: SongThumbnail(path: file.path, id: file.id),
                       title: Text(file.name),
                       onTap: () async {
+                        final pageController = context.read<PageController>();
+                        final playlistService = context.read<PlaylistService>();
+
                         if (Platform.isAndroid) {
                           final index = _currentFolder!.files.indexOf(file);
                           audio.playPlaylist(
@@ -221,8 +224,6 @@ class _FoldersPageState extends State<FoldersPage> {
                           );
 
                           // 在安卓下，自动将当前目录所有歌曲加入默认播放列表
-                          final playlistService = context
-                              .read<PlaylistService>();
                           final currentPlaylist =
                               playlistService.currentPlaylist;
                           if (currentPlaylist != null) {
@@ -237,11 +238,14 @@ class _FoldersPageState extends State<FoldersPage> {
                         } else {
                           audio.playFile(file.path, file.name, id: file.id);
                         }
-                        context.read<PageController>().animateToPage(
-                          1,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
+                        
+                        if (mounted) {
+                          pageController.animateToPage(
+                            1,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
                       },
                     ),
                   ),
@@ -294,9 +298,11 @@ class _FoldersPageState extends State<FoldersPage> {
             onPressed: () {
               Navigator.pop(context);
               scanner.rebuildMetadataDatabase();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('正在重建歌曲标签数据库...')));
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('正在重建歌曲标签数据库...')));
+              }
             },
             child: const Text('确定'),
           ),
@@ -417,7 +423,7 @@ class _FoldersPageState extends State<FoldersPage> {
           child: Icon(
             Icons.chevron_right,
             size: 20,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
         ),
       );
@@ -444,7 +450,7 @@ class _FoldersPageState extends State<FoldersPage> {
         child: Icon(
           Icons.chevron_right,
           size: 20,
-          color: theme.colorScheme.onSurface.withOpacity(0.3),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -467,7 +473,7 @@ class _FoldersPageState extends State<FoldersPage> {
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
-          bottom: BorderSide(color: theme.dividerColor.withOpacity(0.05)),
+          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.05)),
         ),
       ),
       child: Row(
