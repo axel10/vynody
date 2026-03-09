@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../player/audio_service.dart';
 
 // 播放页
@@ -322,6 +323,24 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       ),
                     ),
                   ),
+
+                // Visualizer layer
+                Positioned.fill(
+                  child: StreamBuilder<FftFrame>(
+                    stream: audio.player.optimizedFftStream,
+                    builder: (context, snapshot) {
+                      final frame = snapshot.data;
+                      if (frame == null) return const SizedBox.shrink();
+                      return CustomPaint(
+                        painter: FftPainter(
+                          values: frame.values,
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
                 content,
                 if (_showVolumeSlider)
                   Positioned.fill(
@@ -521,4 +540,42 @@ class _PlaybackPageState extends State<PlaybackPage> {
       ),
     );
   }
+}
+
+class FftPainter extends CustomPainter {
+  final List<double> values;
+  final Color color;
+
+  FftPainter({required this.values, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty) return;
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final barCount = values.length;
+    final gap = 2.0;
+    final totalGap = gap * (barCount - 1);
+    final barWidth = (size.width - totalGap) / barCount;
+
+    for (var i = 0; i < barCount; i++) {
+      final barHeight = values[i] * size.height * 0.5;
+      final x = i * (barWidth + gap);
+      final y = size.height - barHeight;
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, y, barWidth, barHeight),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(FftPainter oldDelegate) => true;
 }
