@@ -63,7 +63,7 @@ dependencies:
   collection: ^1.19.1
 
   audio_visualizer_player: 
-    path: ../audio_visualizer_player
+    path: audio_visualizer_player
 
 dev_dependencies:
   flutter_test:

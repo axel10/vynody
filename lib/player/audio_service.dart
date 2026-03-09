@@ -5,14 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:image/image.dart' as img;
+import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../models/music_file.dart';
-import 'base_player.dart';
-import 'media_kit_player.dart';
-import 'audio_visualizer_player_impl.dart';
 import 'metadata_database.dart';
 
 class AudioService extends ChangeNotifier {
-  late final BasePlayer _player;
+  late final AudioVisualizerPlayerController _player;
   bool _isPlaying = false;
   String? _currentFilePath;
   String? _currentFileName;
@@ -30,45 +28,32 @@ class AudioService extends ChangeNotifier {
   final List<MusicFile> _playlist = [];
   int _currentIndex = -1;
 
-  AudioService({PlayerBackend backend = PlayerBackend.audioVisualizer}) {
-    _player = _createPlayer(backend);
+  AudioService() {
+    _player = AudioVisualizerPlayerController();
+    _player.addListener(_handlePlayerChanges);
     unawaited(_player.initialize());
-    _player.playingStream.listen((playing) {
-      _isPlaying = playing;
-      notifyListeners();
-    });
-    _player.positionStream.listen((position) {
-      _position = position;
-      notifyListeners();
-    });
-    _player.durationStream.listen((duration) {
-      _duration = duration;
-      notifyListeners();
-    });
-    _player.volumeStream.listen((volume) {
-      _volume = volume;
-      notifyListeners();
-    });
-    _player.indexStream.listen((index) {
-      if (index != _currentIndex) {
-        _currentIndex = index;
-        if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
-          final song = _playlist[_currentIndex];
-          _updateCurrentMetadata(song.path, song.name, id: song.id);
-        }
-        notifyListeners();
-      }
-    });
   }
 
-  BasePlayer _createPlayer(PlayerBackend backend) {
-    switch (backend) {
-      case PlayerBackend.audioVisualizer:
-        return AudioVisualizerPlayer();
-      case PlayerBackend.mediaKit:
-        return MediaKitPlayer();
+  void _handlePlayerChanges() {
+    _isPlaying = _player.isPlaying;
+    _position = _player.position;
+    _duration = _player.duration;
+    _volume = _player.volume * 100.0;
+    
+    final int newIndex = _player.currentIndex ?? -1;
+    if (newIndex != _currentIndex) {
+      _currentIndex = newIndex;
+      if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
+        final song = _playlist[_currentIndex];
+        _updateCurrentMetadata(song.path, song.name, id: song.id);
+      }
+      notifyListeners();
+    } else {
+      notifyListeners();
     }
   }
+
+  AudioVisualizerPlayerController get player => _player;
 
   bool get isPlaying => _isPlaying;
   String? get currentFilePath => _currentFilePath;
@@ -145,8 +130,9 @@ class AudioService extends ChangeNotifier {
     _currentIndex = 0;
 
     await _updateCurrentMetadata(path, name, id: id);
-    await _player.setVolume(_volume);
-    await _player.playFile(path);
+    await _player.setVolume(_volume / 100.0);
+    await _player.loadFromPath(path);
+    await _player.play();
     notifyListeners();
   }
 
@@ -161,13 +147,20 @@ class AudioService extends ChangeNotifier {
     _playlist.addAll(songs);
     _currentIndex = safeIndex;
 
-    final paths = songs.map((s) => s.path).toList();
-    await _player.playPlaylist(paths, initialIndex: safeIndex);
+    final tracks = songs.asMap().entries.map((e) {
+      return AudioTrack(id: e.key.toString(), uri: e.value.path);
+    }).toList();
+
+    await _player.setPlaylist(
+      tracks,
+      startIndex: safeIndex,
+      autoPlay: true,
+    );
 
     final current = songs[safeIndex];
     await _updateCurrentMetadata(current.path, current.name, id: current.id);
 
-    await _player.setVolume(_volume);
+    await _player.setVolume(_volume / 100.0);
     notifyListeners();
   }
 
@@ -177,14 +170,17 @@ class AudioService extends ChangeNotifier {
     final bool wasEmpty = _playlist.isEmpty;
     _playlist.addAll(songs);
 
-    final paths = songs.map((s) => s.path).toList();
-    await _player.addToPlaylist(paths);
+    final startIndex = _player.playlist.length;
+    final tracks = songs.asMap().entries.map((e) {
+      return AudioTrack(id: (startIndex + e.key).toString(), uri: e.value.path);
+    }).toList();
+    await _player.addTracks(tracks);
 
     if (wasEmpty) {
       _currentIndex = 0;
       final current = songs[0];
       await _updateCurrentMetadata(current.path, current.name, id: current.id);
-      await _player.setVolume(_volume);
+      await _player.setVolume(_volume / 100.0);
     }
     notifyListeners();
   }
@@ -192,7 +188,7 @@ class AudioService extends ChangeNotifier {
   Future<void> removeFromPlaylist(int index) async {
     if (index >= 0 && index < _playlist.length) {
       _playlist.removeAt(index);
-      await _player.removeFromPlaylist(index);
+      await _player.removeTrackAt(index);
       notifyListeners();
     }
   }
@@ -213,15 +209,15 @@ class AudioService extends ChangeNotifier {
   }
 
   Future<void> next() async {
-    await _player.next();
+    await _player.playNext();
   }
 
   Future<void> previous() async {
-    await _player.previous();
+    await _player.playPrevious();
   }
 
   Future<void> togglePlay() async {
-    await _player.togglePlay();
+    await _player.togglePlayPause();
   }
 
   Future<void> seek(Duration position) async {
@@ -230,13 +226,14 @@ class AudioService extends ChangeNotifier {
 
   Future<void> setVolume(double volume) async {
     _volume = volume.clamp(0.0, 100.0);
-    await _player.setVolume(_volume);
+    await _player.setVolume(_volume / 100.0);
     notifyListeners();
   }
 
   @override
   void dispose() {
-    unawaited(_player.dispose());
+    _player.removeListener(_handlePlayerChanges);
+    _player.dispose();
     super.dispose();
   }
 }
