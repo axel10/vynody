@@ -62,6 +62,9 @@ dependencies:
   desktop_drop: ^0.7.0
   collection: ^1.19.1
 
+  audio_visualizer_player: 
+    path: ../audio_visualizer_player
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

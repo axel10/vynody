@@ -1,6 +1,6 @@
 import 'dart:async';
 
-enum PlayerBackend { mediaKit, soLoud }
+enum PlayerBackend { mediaKit, audioVisualizer }
 
 abstract class BasePlayer {
   Stream<bool> get playingStream;

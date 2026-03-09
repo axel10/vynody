@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 import '../models/music_file.dart';
 import 'base_player.dart';
 import 'media_kit_player.dart';
+import 'audio_visualizer_player_impl.dart';
 import 'metadata_database.dart';
 
 class AudioService extends ChangeNotifier {
@@ -61,7 +62,12 @@ class AudioService extends ChangeNotifier {
   }
 
   BasePlayer _createPlayer(PlayerBackend backend) {
-      return MediaKitPlayer();
+    switch (backend) {
+      case PlayerBackend.audioVisualizer:
+        return AudioVisualizerPlayer();
+      case PlayerBackend.mediaKit:
+        return MediaKitPlayer();
+    }
   }
 
   bool get isPlaying => _isPlaying;

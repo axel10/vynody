@@ -25,6 +25,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.13.0"
+  audio_visualizer_player:
+    dependency: "direct main"
+    description:
+      path: "../audio_visualizer_player"
+      relative: true
+    source: path
+    version: "0.0.1"
   boolean_selector:
     dependency: transitive
     description:

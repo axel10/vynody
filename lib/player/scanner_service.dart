@@ -217,7 +217,7 @@ class ScannerService extends ChangeNotifier {
         _pathIdMap[song.data] = song.id;
         _metadataMap[song.data] = SongMetadata(
           path: song.data,
-          title: song.title ?? p.basename(song.data),
+          title: song.title,
           album: song.album ?? '',
           artist: song.artist ?? '',
           duration: song.duration,
