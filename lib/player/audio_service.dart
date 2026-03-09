@@ -30,7 +30,7 @@ class AudioService extends ChangeNotifier {
   final List<MusicFile> _playlist = [];
   int _currentIndex = -1;
 
-  AudioService({PlayerBackend backend = PlayerBackend.mediaKit}) {
+  AudioService({PlayerBackend backend = PlayerBackend.audioVisualizer}) {
     _player = _createPlayer(backend);
     unawaited(_player.initialize());
     _player.playingStream.listen((playing) {
