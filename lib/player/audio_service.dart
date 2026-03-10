@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:image/image.dart' as img;
@@ -31,7 +33,52 @@ class AudioService extends ChangeNotifier {
   AudioService() {
     _player = AudioVisualizerPlayerController();
     _player.addListener(_handlePlayerChanges);
-    unawaited(_player.initialize());
+    unawaited(_player.initialize().then((_) => _loadVisualizerOptions()));
+  }
+
+  static const String _visualizerOptionsKey = 'visualizer_optimization_options';
+
+  Future<void> _loadVisualizerOptions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_visualizerOptionsKey);
+      if (jsonStr != null) {
+        final Map<String, dynamic> map = jsonDecode(jsonStr);
+        final options = VisualizerOptimizationOptions(
+          frequencyGroups: map['frequencyGroups'] ?? 64,
+          smoothingCoefficient: map['smoothingCoefficient']?.toDouble() ?? 0.8,
+          gravityCoefficient: map['gravityCoefficient']?.toDouble() ?? 1.5,
+          overallMultiplier: map['overallMultiplier']?.toDouble() ?? 1.0,
+          logarithmicScale: map['logarithmicScale']?.toDouble() ?? 2.0,
+          groupContrastExponent:
+              map['groupContrastExponent']?.toDouble() ?? 1.2,
+          skipHighFrequencyGroups: map['skipHighFrequencyGroups'] ?? 0,
+        );
+        _player.updateVisualOptions(options);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading visualizer options: $e');
+    }
+  }
+
+  Future<void> saveVisualizerOptions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final options = _player.visualOptions;
+      final map = {
+        'frequencyGroups': options.frequencyGroups,
+        'smoothingCoefficient': options.smoothingCoefficient,
+        'gravityCoefficient': options.gravityCoefficient,
+        'overallMultiplier': options.overallMultiplier,
+        'logarithmicScale': options.logarithmicScale,
+        'groupContrastExponent': options.groupContrastExponent,
+        'skipHighFrequencyGroups': options.skipHighFrequencyGroups,
+      };
+      await prefs.setString(_visualizerOptionsKey, jsonEncode(map));
+    } catch (e) {
+      debugPrint('Error saving visualizer options: $e');
+    }
   }
 
   void _handlePlayerChanges() {
@@ -39,7 +86,7 @@ class AudioService extends ChangeNotifier {
     _position = _player.position;
     _duration = _player.duration;
     _volume = _player.volume * 100.0;
-    
+
     final int newIndex = _player.currentIndex ?? -1;
     if (newIndex != _currentIndex) {
       _currentIndex = newIndex;
@@ -151,11 +198,7 @@ class AudioService extends ChangeNotifier {
       return AudioTrack(id: e.key.toString(), uri: e.value.path);
     }).toList();
 
-    await _player.setPlaylist(
-      tracks,
-      startIndex: safeIndex,
-      autoPlay: true,
-    );
+    await _player.setPlaylist(tracks, startIndex: safeIndex, autoPlay: true);
 
     final current = songs[safeIndex];
     await _updateCurrentMetadata(current.path, current.name, id: current.id);

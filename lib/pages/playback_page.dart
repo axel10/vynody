@@ -155,10 +155,10 @@ class _PlaybackPageState extends State<PlaybackPage>
                         color: Colors.black87,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 30,
                             spreadRadius: 5,
-                            offset: const Offset(0, 10),
+                            // offset: const Offset(0, 5),
                           ),
                         ],
                       ),
@@ -694,6 +694,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             );
                             setDialogState(() {});
                           },
+                          onChangeEnd: () => audio.saveVisualizerOptions(),
                         ),
                       ),
                       SizedBox(
@@ -709,6 +710,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             );
                             setDialogState(() {});
                           },
+                          onChangeEnd: () => audio.saveVisualizerOptions(),
                         ),
                       ),
                       SizedBox(
@@ -724,6 +726,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             );
                             setDialogState(() {});
                           },
+                          onChangeEnd: () => audio.saveVisualizerOptions(),
                         ),
                       ),
                       SizedBox(
@@ -739,6 +742,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             );
                             setDialogState(() {});
                           },
+                          onChangeEnd: () => audio.saveVisualizerOptions(),
                         ),
                       ),
                       SizedBox(
@@ -754,6 +758,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             );
                             setDialogState(() {});
                           },
+                          onChangeEnd: () => audio.saveVisualizerOptions(),
                         ),
                       ),
 
@@ -772,6 +777,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             );
                             setDialogState(() {});
                           },
+                          onChangeEnd: () => audio.saveVisualizerOptions(),
                         ),
                       ),
                       SizedBox(
@@ -788,6 +794,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             );
                             setDialogState(() {});
                           },
+                          onChangeEnd: () => audio.saveVisualizerOptions(),
                         ),
                       ),
                       SizedBox(
@@ -871,6 +878,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     required double max,
     int? divisions,
     required ValueChanged<double> onChanged,
+    VoidCallback? onChangeEnd,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -894,56 +902,57 @@ class _PlaybackPageState extends State<PlaybackPage>
             max: max,
             divisions: divisions,
             onChanged: onChanged,
+            onChangeEnd: (val) => onChangeEnd?.call(),
           ),
         ),
       ],
     );
   }
+}
 
-  String _formatDuration(Duration d) {
-    final minutes = d.inMinutes;
-    final seconds = d.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, "0")}';
-  }
+String _formatDuration(Duration d) {
+  final minutes = d.inMinutes;
+  final seconds = d.inSeconds % 60;
+  return '$minutes:${seconds.toString().padLeft(2, "0")}';
+}
 
-  Widget _buildCoverImage(AudioService audio, bool isLandscape) {
-    if (audio.currentArtworkBytes != null) {
-      return Image.memory(
-        audio.currentArtworkBytes!,
+Widget _buildCoverImage(AudioService audio, bool isLandscape) {
+  if (audio.currentArtworkBytes != null) {
+    return Image.memory(
+      audio.currentArtworkBytes!,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      gaplessPlayback: true,
+    );
+  } else if (audio.currentArtworkPath != null) {
+    final file = File(audio.currentArtworkPath!);
+    if (file.existsSync()) {
+      return Image.file(
+        file,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
       );
-    } else if (audio.currentArtworkPath != null) {
-      final file = File(audio.currentArtworkPath!);
-      if (file.existsSync()) {
-        return Image.file(
-          file,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          gaplessPlayback: true,
-        );
-      }
     }
-
-    return Center(
-      child: Container(
-        width: isLandscape ? 60 : 80,
-        height: isLandscape ? 60 : 80,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
-        child: Icon(
-          Icons.music_note,
-          size: isLandscape ? 30 : 40,
-          color: Colors.white54,
-        ),
-      ),
-    );
   }
+
+  return Center(
+    child: Container(
+      width: isLandscape ? 60 : 80,
+      height: isLandscape ? 60 : 80,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.1),
+      ),
+      child: Icon(
+        Icons.music_note,
+        size: isLandscape ? 30 : 40,
+        color: Colors.white54,
+      ),
+    ),
+  );
 }
 
 class FftPainter extends CustomPainter {
@@ -951,7 +960,7 @@ class FftPainter extends CustomPainter {
   final Color color;
 
   FftPainter({required this.values, required this.color});
-  
+
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
