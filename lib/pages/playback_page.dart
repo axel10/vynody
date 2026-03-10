@@ -619,131 +619,166 @@ class _PlaybackPageState extends State<PlaybackPage>
             return AlertDialog(
               backgroundColor: Colors.grey[900],
               title: const Text('可视化设置', style: TextStyle(color: Colors.white)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildOptionSlider(
-                      label: '平滑系数 (Smoothing)',
-                      value: options.smoothingCoefficient,
-                      min: 0.0,
-                      max: 0.99,
-                      onChanged: (val) {
-                        audio.updateVisualOptions(
-                          options.copyWith(smoothingCoefficient: val),
-                        );
-                        setDialogState(() {});
-                      },
-                    ),
-                    _buildOptionSlider(
-                      label: '重力系数 (Gravity)',
-                      value: options.gravityCoefficient,
-                      min: 0.1,
-                      max: 5.0,
-                      onChanged: (val) {
-                        audio.updateVisualOptions(
-                          options.copyWith(gravityCoefficient: val),
-                        );
-                        setDialogState(() {});
-                      },
-                    ),
-                    _buildOptionSlider(
-                      label: '对数缩放 (Log Scale)',
-                      value: options.logarithmicScale,
-                      min: 1.0,
-                      max: 5.0,
-                      onChanged: (val) {
-                        audio.updateVisualOptions(
-                          options.copyWith(logarithmicScale: val),
-                        );
-                        setDialogState(() {});
-                      },
-                    ),
-                    _buildOptionSlider(
-                      label: '对比度 (Contrast)',
-                      value: options.groupContrastExponent,
-                      min: 0.5,
-                      max: 3.0,
-                      onChanged: (val) {
-                        audio.updateVisualOptions(
-                          options.copyWith(groupContrastExponent: val),
-                        );
-                        setDialogState(() {});
-                      },
-                    ),
-                    _buildOptionSlider(
-                      label: '总体倍数',
-                      value: options.overallMultiplier,
-                      min: 0.1,
-                      max: 10.0,
-                      divisions: 99,
-                      onChanged: (val) {
-                        audio.updateVisualOptions(
-                          options.copyWith(overallMultiplier: val),
-                        );
-                        setDialogState(() {});
-                      },
-                    ),
-
-                    _buildOptionSlider(
-                      label: '跳过高频',
-                      value: options.skipHighFrequencyGroups.toDouble(),
-                      min: 0,
-                      max: 20,
-                      onChanged: (val) {
-                        audio.updateVisualOptions(
-                          options.copyWith(
-                            skipHighFrequencyGroups: val.toInt(),
-                          ),
-                        );
-                        setDialogState(() {});
-                      },
-                    ),
-                    _buildOptionSlider(
-                      label: '频率分组 (Frequency Groups)',
-                      value: options.frequencyGroups.toDouble(),
-                      min: 8,
-                      max: 128,
-                      divisions: 15,
-                      onChanged: (val) {
-                        audio.updateVisualOptions(
-                          options.copyWith(frequencyGroups: val.toInt()),
-                        );
-                        setDialogState(() {});
-                      },
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.only(top: 16, bottom: 8),
-                      child: Text(
-                        '聚合模式 (Aggregation Mode)',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
-                    ),
-                    DropdownButtonFormField<FftAggregationMode>(
-                      value: options.aggregationMode,
-                      dropdownColor: Colors.grey[900],
-                      decoration: const InputDecoration(
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white12),
+              content: SizedBox(
+                width: 600, // 设置一个合适的宽度
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    spacing: 20,
+                    runSpacing: 10,
+                    children: [
+                      SizedBox(
+                        width: 270,
+                        child: _buildOptionSlider(
+                          label: '平滑系数 (Smoothing)',
+                          value: options.smoothingCoefficient,
+                          min: 0.0,
+                          max: 0.99,
+                          onChanged: (val) {
+                            audio.updateVisualOptions(
+                              options.copyWith(smoothingCoefficient: val),
+                            );
+                            setDialogState(() {});
+                          },
                         ),
                       ),
-                      style: const TextStyle(color: Colors.white),
-                      items: FftAggregationMode.values.map((mode) {
-                        return DropdownMenuItem(
-                          value: mode,
-                          child: Text(mode.name.toUpperCase()),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          audio.updateVisualOptions(
-                            options.copyWith(aggregationMode: val),
-                          );
-                          setDialogState(() {});
-                        }
-                      },
-                    ),
-                  ],
+                      SizedBox(
+                        width: 270,
+                        child: _buildOptionSlider(
+                          label: '重力系数 (Gravity)',
+                          value: options.gravityCoefficient,
+                          min: 0.1,
+                          max: 5.0,
+                          onChanged: (val) {
+                            audio.updateVisualOptions(
+                              options.copyWith(gravityCoefficient: val),
+                            );
+                            setDialogState(() {});
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 270,
+                        child: _buildOptionSlider(
+                          label: '对数缩放 (Log Scale)',
+                          value: options.logarithmicScale,
+                          min: 1.0,
+                          max: 5.0,
+                          onChanged: (val) {
+                            audio.updateVisualOptions(
+                              options.copyWith(logarithmicScale: val),
+                            );
+                            setDialogState(() {});
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 270,
+                        child: _buildOptionSlider(
+                          label: '对比度 (Contrast)',
+                          value: options.groupContrastExponent,
+                          min: 0.5,
+                          max: 3.0,
+                          onChanged: (val) {
+                            audio.updateVisualOptions(
+                              options.copyWith(groupContrastExponent: val),
+                            );
+                            setDialogState(() {});
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 270,
+                        child: _buildOptionSlider(
+                          label: '总体倍数',
+                          value: options.overallMultiplier,
+                          min: 0.1,
+                          max: 10.0,
+                          divisions: 99,
+                          onChanged: (val) {
+                            audio.updateVisualOptions(
+                              options.copyWith(overallMultiplier: val),
+                            );
+                            setDialogState(() {});
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 270,
+                        child: _buildOptionSlider(
+                          label: '跳过高频',
+                          value: options.skipHighFrequencyGroups.toDouble(),
+                          min: 0,
+                          max: 20,
+                          onChanged: (val) {
+                            audio.updateVisualOptions(
+                              options.copyWith(
+                                skipHighFrequencyGroups: val.toInt(),
+                              ),
+                            );
+                            setDialogState(() {});
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 270,
+                        child: _buildOptionSlider(
+                          label: '频率分组 (Frequency Groups)',
+                          value: options.frequencyGroups.toDouble(),
+                          min: 8,
+                          max: 128,
+                          divisions: 15,
+                          onChanged: (val) {
+                            audio.updateVisualOptions(
+                              options.copyWith(frequencyGroups: val.toInt()),
+                            );
+                            setDialogState(() {});
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 270,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 16, bottom: 8),
+                              child: Text(
+                                '聚合模式 (Aggregation Mode)',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            DropdownButtonFormField<FftAggregationMode>(
+                              value: options.aggregationMode,
+                              dropdownColor: Colors.grey[900],
+                              decoration: const InputDecoration(
+                                enabledBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.white12),
+                                ),
+                              ),
+                              style: const TextStyle(color: Colors.white),
+                              items: FftAggregationMode.values.map((mode) {
+                                return DropdownMenuItem(
+                                  value: mode,
+                                  child: Text(mode.name.toUpperCase()),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  audio.updateVisualOptions(
+                                    options.copyWith(aggregationMode: val),
+                                  );
+                                  setDialogState(() {});
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
