@@ -238,7 +238,7 @@ class _FoldersPageState extends State<FoldersPage> {
                         } else {
                           audio.playFile(file.path, file.name, id: file.id);
                         }
-                        
+
                         if (mounted) {
                           pageController.animateToPage(
                             1,
@@ -322,6 +322,32 @@ class _FoldersPageState extends State<FoldersPage> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  RadioGroup(
+                    onChanged: (v) {
+                      if (v != null) {
+                        scanner.setSortCriteria(v);
+                        setState(() {});
+                      }
+                    },
+                    groupValue: scanner.sortCriteria,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      ListTile(
+                        title: const Text('标题'),
+                        leading: Radio(value: SortCriteria.title),
+                      ),
+                      ListTile(
+                        title: const Text('文件名'),
+                        leading: Radio(value: SortCriteria.filename),
+                      ),
+
+                      ListTile(
+                        title: const Text('轨道号 (Track Number)'),
+                        leading: Radio(value: SortCriteria.trackNumber),
+                      ),
+                    ]),
+                  ),
+                ],
+                /*children: [
                   RadioListTile<SortCriteria>(
                     title: const Text('标题'),
                     value: SortCriteria.title,
@@ -378,7 +404,7 @@ class _FoldersPageState extends State<FoldersPage> {
                       }
                     },
                   ),
-                ],
+                ],*/
               ),
               actions: [
                 TextButton(

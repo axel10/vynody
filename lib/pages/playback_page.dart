@@ -18,6 +18,7 @@ class PlaybackPage extends StatefulWidget {
 class _PlaybackPageState extends State<PlaybackPage> {
   bool _showVolumeHUD = false;
   bool _showVolumeSlider = false;
+  bool _showVisualizer = true;
   Timer? _hudTimer;
 
   @override
@@ -184,6 +185,20 @@ class _PlaybackPageState extends State<PlaybackPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
+                      icon: Icon(
+                        _showVisualizer ? Icons.analytics : Icons.analytics_outlined,
+                        size: 28,
+                        color: _showVisualizer ? Colors.white : Colors.white70,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _showVisualizer = !_showVisualizer;
+                        });
+                      },
+                      tooltip: '音频可视化',
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
                       icon: const Icon(
                         Icons.skip_previous_rounded,
                         size: 48,
@@ -325,21 +340,22 @@ class _PlaybackPageState extends State<PlaybackPage> {
                   ),
 
                 // Visualizer layer
-                Positioned.fill(
-                  child: StreamBuilder<FftFrame>(
-                    stream: audio.player.optimizedFftStream,
-                    builder: (context, snapshot) {
-                      final frame = snapshot.data;
-                      if (frame == null) return const SizedBox.shrink();
-                      return CustomPaint(
-                        painter: FftPainter(
-                          values: frame.values,
-                          color: Colors.white.withValues(alpha: 0.2),
-                        ),
-                      );
-                    },
+                if (_showVisualizer)
+                  Positioned.fill(
+                    child: StreamBuilder<FftFrame>(
+                      stream: audio.player.optimizedFftStream,
+                      builder: (context, snapshot) {
+                        final frame = snapshot.data;
+                        if (frame == null) return const SizedBox.shrink();
+                        return CustomPaint(
+                          painter: FftPainter(
+                            values: frame.values,
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
 
                 content,
                 if (_showVolumeSlider)
