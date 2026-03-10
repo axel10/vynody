@@ -325,10 +325,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                     padding: const EdgeInsets.all(32.0),
                     child: Row(
                       children: [
-                        Expanded(
-                          flex: 4,
-                          child: albumArt
-                        ),
+                        Expanded(flex: 4, child: albumArt),
                         const SizedBox(width: 32),
                         Expanded(
                           flex: 5,
@@ -674,9 +671,20 @@ class _PlaybackPageState extends State<PlaybackPage>
                         setDialogState(() {});
                       },
                     ),
+                    _buildOptionSlider(
+                      label: '总体倍数',
+                      value: options.overallMultiplier,
+                      min: 0.1,
+                      max: 10.0,
+                      divisions: 99,
+                      onChanged: (val) {
+                        audio.updateVisualOptions(
+                          options.copyWith(overallMultiplier: val),
+                        );
+                        setDialogState(() {});
+                      },
+                    ),
 
-
-                    
                     _buildOptionSlider(
                       label: '跳过高频',
                       value: options.skipHighFrequencyGroups.toDouble(),
@@ -684,7 +692,9 @@ class _PlaybackPageState extends State<PlaybackPage>
                       max: 20,
                       onChanged: (val) {
                         audio.updateVisualOptions(
-                          options.copyWith(skipHighFrequencyGroups: val.toInt()),
+                          options.copyWith(
+                            skipHighFrequencyGroups: val.toInt(),
+                          ),
                         );
                         setDialogState(() {});
                       },
