@@ -22,6 +22,9 @@ class _PlaybackPageState extends State<PlaybackPage>
   bool _showVisualizer = true;
   Timer? _hudTimer;
 
+  int? _lastIndex;
+  bool _isNext = true;
+
   late AnimationController _animationController;
   late Animation<Offset> _offsetAnimation;
   late Animation<double> _fadeAnimation;
@@ -93,6 +96,20 @@ class _PlaybackPageState extends State<PlaybackPage>
       );
     }
 
+    final currentIndex = audio.currentIndex;
+    if (_lastIndex != null && currentIndex != _lastIndex) {
+      if (_lastIndex == 0 && currentIndex > 1) {
+        // 向前循环
+        _isNext = false;
+      } else if (currentIndex == 0 && _lastIndex! > 1) {
+        // 向后循环
+        _isNext = true;
+      } else {
+        _isNext = currentIndex > _lastIndex!;
+      }
+    }
+    _lastIndex = currentIndex;
+
     return OrientationBuilder(
       builder: (context, orientation) {
         final isLandscape = orientation == Orientation.landscape;
@@ -115,21 +132,64 @@ class _PlaybackPageState extends State<PlaybackPage>
               ].reduce((a, b) => a < b ? a : b);
               return SizedBox.square(
                 dimension: side,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    color: Colors.black87,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        blurRadius: 30,
-                        spreadRadius: 5,
-                        offset: const Offset(0, 10),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                        final inAnimation =
+                            Tween<Offset>(
+                              begin: _isNext
+                                  ? const Offset(1.0, 0.0)
+                                  : const Offset(-1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutQuart,
+                              ),
+                            );
+                        final outAnimation =
+                            Tween<Offset>(
+                              begin: _isNext
+                                  ? const Offset(-1.0, 0.0)
+                                  : const Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutQuart,
+                              ),
+                            );
+
+                        final isEntering =
+                            child.key == ValueKey(audio.currentFilePath);
+                        return SlideTransition(
+                          position: isEntering ? inAnimation : outAnimation,
+                          child: FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          ),
+                        );
+                      },
+                  child: KeyedSubtree(
+                    key: ValueKey(audio.currentFilePath),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        color: Colors.black87,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                    ],
+                      clipBehavior: Clip.antiAlias,
+                      child: _buildCoverImage(audio, isLandscape),
+                    ),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: _buildCoverImage(audio, isLandscape),
                 ),
               );
             },
@@ -374,35 +434,52 @@ class _PlaybackPageState extends State<PlaybackPage>
               clipBehavior: Clip.hardEdge,
               children: [
                 // Blurred Background
-                if (audio.currentArtworkBytes != null ||
-                    audio.currentArtworkPath != null)
-                  Positioned.fill(
-                    child: Transform.scale(
-                      scale: 1.1, // Slight scale for safety
-                      child: ImageFiltered(
-                        imageFilter: ImageFilter.blur(
-                          sigmaX: 60,
-                          sigmaY: 60,
-                          tileMode: TileMode.mirror,
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: audio.currentArtworkBytes != null
-                                  ? MemoryImage(audio.currentArtworkBytes!)
-                                  : FileImage(File(audio.currentArtworkPath!))
-                                        as ImageProvider,
-                              fit: BoxFit.cover,
-                              colorFilter: ColorFilter.mode(
-                                Colors.black.withValues(alpha: 0.4),
-                                BlendMode.darken,
+                Positioned.fill(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 800),
+                    child:
+                        (audio.currentArtworkBytes != null ||
+                            audio.currentArtworkPath != null)
+                        ? KeyedSubtree(
+                            key: ValueKey(audio.currentFilePath ?? 'bg_art'),
+                            child: Transform.scale(
+                              scale: 1.1, // Slight scale for safety
+                              child: ImageFiltered(
+                                imageFilter: ImageFilter.blur(
+                                  sigmaX: 60,
+                                  sigmaY: 60,
+                                  tileMode: TileMode.mirror,
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    image: DecorationImage(
+                                      image: audio.currentArtworkBytes != null
+                                          ? MemoryImage(
+                                              audio.currentArtworkBytes!,
+                                            )
+                                          : FileImage(
+                                                  File(
+                                                    audio.currentArtworkPath!,
+                                                  ),
+                                                )
+                                                as ImageProvider,
+                                      fit: BoxFit.cover,
+                                      colorFilter: ColorFilter.mode(
+                                        Colors.black.withValues(alpha: 0.4),
+                                        BlendMode.darken,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
+                          )
+                        : Container(
+                            key: const ValueKey('bg_empty'),
+                            color: Colors.black, // 退底颜色，防止闪烁
                           ),
-                        ),
-                      ),
-                    ),
                   ),
+                ),
 
                 // Visualizer layer
                 if (_showVisualizer)
@@ -860,6 +937,7 @@ class _PlaybackPageState extends State<PlaybackPage>
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
+        gaplessPlayback: true,
       );
     } else if (audio.currentArtworkPath != null) {
       final file = File(audio.currentArtworkPath!);
@@ -869,6 +947,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
+          gaplessPlayback: true,
         );
       }
     }
