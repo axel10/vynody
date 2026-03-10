@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -25,10 +26,6 @@ class _PlaybackPageState extends State<PlaybackPage>
   int? _lastIndex;
   bool _isNext = true;
 
-  late AnimationController _animationController;
-  late Animation<Offset> _offsetAnimation;
-  late Animation<double> _fadeAnimation;
-
   void toNextMusic(AudioService audio) {
     audio.next();
   }
@@ -37,27 +34,6 @@ class _PlaybackPageState extends State<PlaybackPage>
   void initState() {
     // TODO: implement initState
     super.initState();
-    // 1. 初始化控制器
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this, // 绑定心跳
-    );
-
-    _fadeAnimation = Tween<double>(begin: 1.0, end: 0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-
-    // 2. 设置动画曲线与路径
-    _offsetAnimation =
-        Tween<Offset>(
-          begin: Offset.zero, // 初始位置（原位）
-          end: const Offset(-1.0, 0.0), // 结束位置（向左滑出屏幕，-1.0 是滑出一个身位）
-        ).animate(
-          CurvedAnimation(
-            parent: _animationController,
-            curve: Curves.easeIn, // 设置动画曲线
-          ),
-        );
   }
 
   @override
@@ -145,7 +121,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             ).animate(
                               CurvedAnimation(
                                 parent: animation,
-                                curve: Curves.easeOutQuart,
+                                curve: Curves.easeInQuart,
                               ),
                             );
                         final outAnimation =
@@ -265,7 +241,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                     thumbColor: Colors.white,
                   ),
                   child: Slider(
-                    value: audio.progress,
+                    value: audio.progress.clamp(0.0, 1.0),
                     onChanged: (val) {
                       final position = Duration(
                         milliseconds: (val * audio.duration.inMilliseconds)
@@ -465,7 +441,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                                                 as ImageProvider,
                                       fit: BoxFit.cover,
                                       colorFilter: ColorFilter.mode(
-                                        Colors.black.withValues(alpha: 0.4),
+                                        Colors.black.withValues(alpha: 0.2),
                                         BlendMode.darken,
                                       ),
                                     ),
@@ -768,11 +744,10 @@ class _PlaybackPageState extends State<PlaybackPage>
                       SizedBox(
                         width: 270,
                         child: _buildOptionSlider(
-                          label: '总体倍数',
+                          label: '总增益 (Multiplier)',
                           value: options.overallMultiplier,
                           min: 0.1,
                           max: 10.0,
-                          divisions: 99,
                           onChanged: (val) {
                             audio.updateVisualOptions(
                               options.copyWith(overallMultiplier: val),
@@ -781,6 +756,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                           },
                         ),
                       ),
+
                       SizedBox(
                         width: 270,
                         child: _buildOptionSlider(
@@ -975,7 +951,7 @@ class FftPainter extends CustomPainter {
   final Color color;
 
   FftPainter({required this.values, required this.color});
-
+  
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
