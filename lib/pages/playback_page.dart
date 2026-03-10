@@ -118,25 +118,34 @@ class _PlaybackPageState extends State<PlaybackPage> {
             },
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: isLandscape
-                  ? CrossAxisAlignment.start
-                  : CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  audio.currentFileName ?? '未知',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isLandscape ? 450 : screenWidth * 0.9,
                   ),
-                  textAlign: isLandscape ? TextAlign.left : TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  child: Text(
+                    audio.currentFileName ?? '未知',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 // Top menu bar for secondary controls
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox.shrink(), // Placeholder if needed
+                  ],
+                ),
                 Row(
-                  mainAxisAlignment: isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
                       icon: const Icon(Icons.more_horiz, color: Colors.white70),
@@ -198,7 +207,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                   children: [
                     IconButton(
                       icon: Icon(
-                        _showVisualizer ? Icons.analytics : Icons.analytics_outlined,
+                        _showVisualizer
+                            ? Icons.analytics
+                            : Icons.analytics_outlined,
                         size: 28,
                         color: _showVisualizer ? Colors.white : Colors.white70,
                       ),
@@ -306,7 +317,10 @@ class _PlaybackPageState extends State<PlaybackPage> {
                   const SizedBox(height: 24),
                   FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: SizedBox(width: screenWidth - 48, child: controls),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: SizedBox(width: screenWidth, child: controls),
+                    ),
                   ),
                 ],
               ),
@@ -398,7 +412,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                       borderRadius: BorderRadius.circular(30),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.3),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.3,
+                                          ),
                                           blurRadius: 10,
                                           spreadRadius: 2,
                                         ),
@@ -536,8 +552,14 @@ class _PlaybackPageState extends State<PlaybackPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.settings_input_component, color: Colors.blueAccent),
-              title: const Text('设置音频可视化', style: TextStyle(color: Colors.white)),
+              leading: const Icon(
+                Icons.settings_input_component,
+                color: Colors.blueAccent,
+              ),
+              title: const Text(
+                '设置音频可视化',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _showVisualizerOptions(context, audio);
@@ -550,15 +572,13 @@ class _PlaybackPageState extends State<PlaybackPage> {
   }
 
   void _showVisualizerOptions(BuildContext context, AudioService audio) {
-    final currentOptions = audio.player.visualOptions;
-
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final options = audio.player.visualOptions;
-            
+
             return AlertDialog(
               backgroundColor: Colors.grey[900],
               title: const Text('可视化设置', style: TextStyle(color: Colors.white)),
@@ -572,7 +592,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       min: 0.0,
                       max: 0.99,
                       onChanged: (val) {
-                        audio.updateVisualOptions(options.copyWith(smoothingCoefficient: val));
+                        audio.updateVisualOptions(
+                          options.copyWith(smoothingCoefficient: val),
+                        );
                         setDialogState(() {});
                       },
                     ),
@@ -582,7 +604,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       min: 0.1,
                       max: 5.0,
                       onChanged: (val) {
-                        audio.updateVisualOptions(options.copyWith(gravityCoefficient: val));
+                        audio.updateVisualOptions(
+                          options.copyWith(gravityCoefficient: val),
+                        );
                         setDialogState(() {});
                       },
                     ),
@@ -592,7 +616,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       min: 1.0,
                       max: 5.0,
                       onChanged: (val) {
-                        audio.updateVisualOptions(options.copyWith(logarithmicScale: val));
+                        audio.updateVisualOptions(
+                          options.copyWith(logarithmicScale: val),
+                        );
                         setDialogState(() {});
                       },
                     ),
@@ -602,7 +628,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       min: 0.5,
                       max: 3.0,
                       onChanged: (val) {
-                        audio.updateVisualOptions(options.copyWith(groupContrastExponent: val));
+                        audio.updateVisualOptions(
+                          options.copyWith(groupContrastExponent: val),
+                        );
                         setDialogState(() {});
                       },
                     ),
@@ -613,7 +641,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       max: 128,
                       divisions: 15,
                       onChanged: (val) {
-                        audio.updateVisualOptions(options.copyWith(frequencyGroups: val.toInt()));
+                        audio.updateVisualOptions(
+                          options.copyWith(frequencyGroups: val.toInt()),
+                        );
                         setDialogState(() {});
                       },
                     ),
@@ -623,14 +653,22 @@ class _PlaybackPageState extends State<PlaybackPage> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    audio.updateVisualOptions(const VisualizerOptimizationOptions());
+                    audio.updateVisualOptions(
+                      const VisualizerOptimizationOptions(),
+                    );
                     setDialogState(() {});
                   },
-                  child: const Text('重置', style: TextStyle(color: Colors.redAccent)),
+                  child: const Text(
+                    '重置',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('确定', style: TextStyle(color: Colors.blueAccent)),
+                  child: const Text(
+                    '确定',
+                    style: TextStyle(color: Colors.blueAccent),
+                  ),
                 ),
               ],
             );
