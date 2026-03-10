@@ -15,11 +15,47 @@ class PlaybackPage extends StatefulWidget {
   State<PlaybackPage> createState() => _PlaybackPageState();
 }
 
-class _PlaybackPageState extends State<PlaybackPage> {
+class _PlaybackPageState extends State<PlaybackPage>
+    with SingleTickerProviderStateMixin {
   bool _showVolumeHUD = false;
   bool _showVolumeSlider = false;
   bool _showVisualizer = true;
   Timer? _hudTimer;
+
+  late AnimationController _animationController;
+  late Animation<Offset> _offsetAnimation;
+  late Animation<double> _fadeAnimation;
+
+  void toNextMusic(AudioService audio) {
+    audio.next();
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    // 1. 初始化控制器
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this, // 绑定心跳
+    );
+
+    _fadeAnimation = Tween<double>(begin: 1.0, end: 0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    // 2. 设置动画曲线与路径
+    _offsetAnimation =
+        Tween<Offset>(
+          begin: Offset.zero, // 初始位置（原位）
+          end: const Offset(-1.0, 0.0), // 结束位置（向左滑出屏幕，-1.0 是滑出一个身位）
+        ).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeIn, // 设置动画曲线
+          ),
+        );
+  }
 
   @override
   void dispose() {
@@ -255,7 +291,8 @@ class _PlaybackPageState extends State<PlaybackPage> {
                         size: 48,
                         color: Colors.white,
                       ),
-                      onPressed: audio.next,
+                      // onPressed: audio.next,
+                      onPressed: () => toNextMusic(audio),
                     ),
                     const SizedBox(width: 16),
                     IconButton(
@@ -288,7 +325,10 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     padding: const EdgeInsets.all(32.0),
                     child: Row(
                       children: [
-                        Expanded(flex: 4, child: albumArt),
+                        Expanded(
+                          flex: 4,
+                          child: albumArt
+                        ),
                         const SizedBox(width: 32),
                         Expanded(
                           flex: 5,
@@ -634,6 +674,21 @@ class _PlaybackPageState extends State<PlaybackPage> {
                         setDialogState(() {});
                       },
                     ),
+
+
+                    
+                    _buildOptionSlider(
+                      label: '跳过高频',
+                      value: options.skipHighFrequencyGroups.toDouble(),
+                      min: 0,
+                      max: 20,
+                      onChanged: (val) {
+                        audio.updateVisualOptions(
+                          options.copyWith(skipHighFrequencyGroups: val.toInt()),
+                        );
+                        setDialogState(() {});
+                      },
+                    ),
                     _buildOptionSlider(
                       label: '频率分组 (Frequency Groups)',
                       value: options.frequencyGroups.toDouble(),
@@ -645,6 +700,37 @@ class _PlaybackPageState extends State<PlaybackPage> {
                           options.copyWith(frequencyGroups: val.toInt()),
                         );
                         setDialogState(() {});
+                      },
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 16, bottom: 8),
+                      child: Text(
+                        '聚合模式 (Aggregation Mode)',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ),
+                    DropdownButtonFormField<FftAggregationMode>(
+                      value: options.aggregationMode,
+                      dropdownColor: Colors.grey[900],
+                      decoration: const InputDecoration(
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white12),
+                        ),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                      items: FftAggregationMode.values.map((mode) {
+                        return DropdownMenuItem(
+                          value: mode,
+                          child: Text(mode.name.toUpperCase()),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          audio.updateVisualOptions(
+                            options.copyWith(aggregationMode: val),
+                          );
+                          setDialogState(() {});
+                        }
                       },
                     ),
                   ],
