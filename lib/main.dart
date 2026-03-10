@@ -7,9 +7,11 @@ import 'package:window_manager/window_manager.dart';
 import 'player/audio_service.dart';
 import 'player/scanner_service.dart';
 import 'player/playlist_service.dart';
+import 'player/settings_service.dart';
 import 'pages/folder_page.dart';
 import 'pages/playback_page.dart';
 import 'pages/playlist_page.dart';
+import 'pages/settings_page.dart';
 import 'package:path/path.dart' as p;
 
 void main(List<String> args) async {
@@ -36,12 +38,16 @@ void main(List<String> args) async {
   if (Platform.isWindows || Platform.isLinux) {
     MetadataGod.initialize();
   }
+
+  final settingsService = await SettingsService.init();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AudioService()),
         ChangeNotifierProvider(create: (_) => ScannerService()),
         ChangeNotifierProvider(create: (_) => PlaylistService()),
+        ChangeNotifierProvider.value(value: settingsService),
       ],
       child: MyApp(args: args),
     ),
@@ -160,6 +166,10 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _onDestinationSelected(int index) {
+    if (index == 3) {
+      _showMoreMenu();
+      return;
+    }
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
@@ -167,8 +177,38 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
+  void _showMoreMenu() {
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+    final offset = renderBox.localToGlobal(Offset.zero);
+
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        size.width,
+        offset.dy + size.height - 100, // Positioned near bottom
+        0,
+        0,
+      ),
+      items: [
+        const PopupMenuItem(
+          value: 'settings',
+          child: ListTile(leading: Icon(Icons.settings), title: Text('设置')),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'settings') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SettingsPage()),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<SettingsService>();
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final List<Widget> pages = [
@@ -220,49 +260,69 @@ class _MainLayoutState extends State<MainLayout> {
               ),
           ],
         ),
-        bottomNavigationBar: NavigationBar(
-          height: 60,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-          selectedIndex: _currentIndex,
-          backgroundColor: isPlayback ? Colors.transparent : null,
-          elevation: 0,
-          indicatorColor: isPlayback ? Colors.transparent : null,
-          onDestinationSelected: _onDestinationSelected,
-          destinations: [
-            NavigationDestination(
-              icon: Icon(
-                Icons.folder_outlined,
-                color: isPlayback ? Colors.white70 : null,
+        bottomNavigationBar: AnimatedOpacity(
+          duration: const Duration(milliseconds: 500),
+          opacity:
+              (isPlayback &&
+                  settings.isImmersiveTabBarEnabled &&
+                  settings.isUserInactive)
+              ? 0.0
+              : 1.0,
+          child: NavigationBar(
+            height: 60,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+            selectedIndex: _currentIndex,
+            backgroundColor: isPlayback ? Colors.transparent : null,
+            elevation: 0,
+            indicatorColor: isPlayback ? Colors.transparent : null,
+            onDestinationSelected: _onDestinationSelected,
+            destinations: [
+              NavigationDestination(
+                icon: Icon(
+                  Icons.folder_outlined,
+                  color: isPlayback ? Colors.white70 : null,
+                ),
+                selectedIcon: Icon(
+                  Icons.folder,
+                  color: isPlayback ? Colors.white : null,
+                ),
+                label: '文件',
               ),
-              selectedIcon: Icon(
-                Icons.folder,
-                color: isPlayback ? Colors.white : null,
+              NavigationDestination(
+                icon: Icon(
+                  Icons.play_circle_outline,
+                  color: isPlayback ? Colors.white70 : null,
+                ),
+                selectedIcon: Icon(
+                  Icons.play_circle,
+                  color: isPlayback ? Colors.white : null,
+                ),
+                label: '播放',
               ),
-              label: '文件',
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.play_circle_outline,
-                color: isPlayback ? Colors.white70 : null,
+              NavigationDestination(
+                icon: Icon(
+                  Icons.playlist_play_outlined,
+                  color: isPlayback ? Colors.white70 : null,
+                ),
+                selectedIcon: Icon(
+                  Icons.playlist_play,
+                  color: isPlayback ? Colors.white : null,
+                ),
+                label: '列表',
               ),
-              selectedIcon: Icon(
-                Icons.play_circle,
-                color: isPlayback ? Colors.white : null,
+              NavigationDestination(
+                icon: Icon(
+                  Icons.more_horiz_outlined,
+                  color: isPlayback ? Colors.white70 : null,
+                ),
+                selectedIcon: Icon(
+                  Icons.more_horiz,
+                  color: isPlayback ? Colors.white : null,
+                ),
+                label: '更多',
               ),
-              label: '播放',
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.playlist_play_outlined,
-                color: isPlayback ? Colors.white70 : null,
-              ),
-              selectedIcon: Icon(
-                Icons.playlist_play,
-                color: isPlayback ? Colors.white : null,
-              ),
-              label: '列表',
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

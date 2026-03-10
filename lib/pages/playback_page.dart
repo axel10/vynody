@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../player/audio_service.dart';
+import '../player/settings_service.dart';
 
 // 播放页
 class PlaybackPage extends StatefulWidget {
@@ -22,24 +23,43 @@ class _PlaybackPageState extends State<PlaybackPage>
   bool _showVolumeSlider = false;
   bool _showVisualizer = true;
   Timer? _hudTimer;
+  Timer? _inactivityTimer;
 
   int? _lastIndex;
   bool _isNext = true;
 
-  void toNextMusic(AudioService audio) {
-    audio.next();
-  }
-
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startInactivityTimer();
+    });
   }
 
   @override
   void dispose() {
     _hudTimer?.cancel();
+    _inactivityTimer?.cancel();
     super.dispose();
+  }
+
+  void _startInactivityTimer() {
+    _inactivityTimer?.cancel();
+    final settings = context.read<SettingsService>();
+    settings.isUserInactive = false;
+    _inactivityTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        settings.isUserInactive = true;
+      }
+    });
+  }
+
+  void toNextMusic(AudioService audio) {
+    audio.next();
+  }
+
+  void _handleInteraction([dynamic _]) {
+    _startInactivityTimer();
   }
 
   void _triggerHUD() {
@@ -86,551 +106,566 @@ class _PlaybackPageState extends State<PlaybackPage>
     }
     _lastIndex = currentIndex;
 
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        final isLandscape = orientation == Orientation.landscape;
+    return Listener(
+      onPointerDown: (event) {
+        _handleInteraction();
+      },
+      onPointerMove: (event) {
+        _handleInteraction();
+      },
+      child: OrientationBuilder(
+        builder: (context, orientation) {
+          final isLandscape = orientation == Orientation.landscape;
 
-        final screenWidth = MediaQuery.of(context).size.width;
-        final screenHeight = MediaQuery.of(context).size.height;
+          final screenWidth = MediaQuery.of(context).size.width;
+          final screenHeight = MediaQuery.of(context).size.height;
 
-        // Use a generous maximum size based on screen dimensions
-        final double maxDisplaySize = isLandscape
-            ? screenHeight * 0.75
-            : screenWidth * 0.85;
+          // Use a generous maximum size based on screen dimensions
+          final double maxDisplaySize = isLandscape
+              ? screenHeight * 0.75
+              : screenWidth * 0.85;
 
-        final albumArt = Center(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final side = [
-                maxDisplaySize,
-                constraints.maxWidth,
-                constraints.maxHeight,
-              ].reduce((a, b) => a < b ? a : b);
-              return SizedBox.square(
-                dimension: side,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  transitionBuilder:
-                      (Widget child, Animation<double> animation) {
-                        final inAnimation =
-                            Tween<Offset>(
-                              begin: _isNext
-                                  ? const Offset(1.0, 0.0)
-                                  : const Offset(-1.0, 0.0),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeInQuart,
-                              ),
-                            );
-                        final outAnimation =
-                            Tween<Offset>(
-                              begin: _isNext
-                                  ? const Offset(-1.0, 0.0)
-                                  : const Offset(1.0, 0.0),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOutQuart,
-                              ),
-                            );
+          final albumArt = Center(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final side = [
+                  maxDisplaySize,
+                  constraints.maxWidth,
+                  constraints.maxHeight,
+                ].reduce((a, b) => a < b ? a : b);
+                return SizedBox.square(
+                  dimension: side,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          final inAnimation =
+                              Tween<Offset>(
+                                begin: _isNext
+                                    ? const Offset(1.0, 0.0)
+                                    : const Offset(-1.0, 0.0),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeInQuart,
+                                ),
+                              );
+                          final outAnimation =
+                              Tween<Offset>(
+                                begin: _isNext
+                                    ? const Offset(-1.0, 0.0)
+                                    : const Offset(1.0, 0.0),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutQuart,
+                                ),
+                              );
 
-                        final isEntering =
-                            child.key == ValueKey(audio.currentFilePath);
-                        return SlideTransition(
-                          position: isEntering ? inAnimation : outAnimation,
-                          child: FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          ),
-                        );
-                      },
-                  child: KeyedSubtree(
-                    key: ValueKey(audio.currentFilePath),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
-                        color: Colors.black87,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 30,
-                            spreadRadius: 5,
-                            // offset: const Offset(0, 5),
-                          ),
-                        ],
+                          final isEntering =
+                              child.key == ValueKey(audio.currentFilePath);
+                          return SlideTransition(
+                            position: isEntering ? inAnimation : outAnimation,
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          );
+                        },
+                    child: KeyedSubtree(
+                      key: ValueKey(audio.currentFilePath),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          color: Colors.black87,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 30,
+                              spreadRadius: 5,
+                              // offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: _buildCoverImage(audio, isLandscape),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: _buildCoverImage(audio, isLandscape),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        );
-
-        final controls = GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onVerticalDragUpdate: (details) {
-            final delta = details.primaryDelta ?? 0;
-            audio.setVolume(audio.volume - delta * 0.2);
-            _triggerHUD();
-          },
-          child: Listener(
-            onPointerSignal: (pointerSignal) {
-              if (pointerSignal is PointerScrollEvent) {
-                audio.setVolume(
-                  audio.volume - pointerSignal.scrollDelta.dy * 0.1,
                 );
-                _triggerHUD();
-              }
+              },
+            ),
+          );
+
+          final controls = GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragUpdate: (details) {
+              final delta = details.primaryDelta ?? 0;
+              audio.setVolume(audio.volume - delta * 0.2);
+              _triggerHUD();
             },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isLandscape ? 450 : screenWidth * 0.9,
-                  ),
-                  child: Text(
-                    audio.currentFileName ?? '未知',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            child: Listener(
+              onPointerSignal: (pointerSignal) {
+                if (pointerSignal is PointerScrollEvent) {
+                  audio.setVolume(
+                    audio.volume - pointerSignal.scrollDelta.dy * 0.1,
+                  );
+                  _triggerHUD();
+                }
+              },
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: isLandscape ? 450 : screenWidth * 0.9,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Top menu bar for secondary controls
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox.shrink(), // Placeholder if needed
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.more_horiz, color: Colors.white70),
-                      onPressed: () => _showMoreMenu(context, audio),
-                      tooltip: '更多选项',
-                    ),
-                  ],
-                ),
-                SizedBox(height: isLandscape ? 8 : 16),
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 4,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 6,
-                    ),
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 14,
-                    ),
-                    activeTrackColor: Colors.white,
-                    inactiveTrackColor: Colors.white24,
-                    thumbColor: Colors.white,
-                  ),
-                  child: Slider(
-                    value: audio.progress.clamp(0.0, 1.0),
-                    onChanged: (val) {
-                      final position = Duration(
-                        milliseconds: (val * audio.duration.inMilliseconds)
-                            .toInt(),
-                      );
-                      audio.seek(position);
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _formatDuration(audio.position),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
+                    child: Text(
+                      audio.currentFileName ?? '未知',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                      Text(
-                        _formatDuration(audio.duration),
-                        style: const TextStyle(
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Top menu bar for secondary controls
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox.shrink(), // Placeholder if needed
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.more_horiz,
                           color: Colors.white70,
-                          fontSize: 12,
                         ),
+                        onPressed: () => _showMoreMenu(context, audio),
+                        tooltip: '更多选项',
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        _showVisualizer
-                            ? Icons.analytics
-                            : Icons.analytics_outlined,
-                        size: 28,
-                        color: _showVisualizer ? Colors.white : Colors.white70,
+                  SizedBox(height: isLandscape ? 8 : 16),
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 4,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _showVisualizer = !_showVisualizer;
-                        });
-                      },
-                      tooltip: '音频可视化',
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 14,
+                      ),
+                      activeTrackColor: Colors.white,
+                      inactiveTrackColor: Colors.white24,
+                      thumbColor: Colors.white,
                     ),
-                    const SizedBox(width: 16),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.skip_previous_rounded,
-                        size: 48,
-                        color: Colors.white,
-                      ),
-                      onPressed: audio.previous,
-                    ),
-                    const SizedBox(width: 24),
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                      ),
-                      child: IconButton(
-                        onPressed: audio.togglePlay,
-                        icon: Icon(
-                          audio.isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          size: 40,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.skip_next_rounded,
-                        size: 48,
-                        color: Colors.white,
-                      ),
-                      // onPressed: audio.next,
-                      onPressed: () => toNextMusic(audio),
-                    ),
-                    const SizedBox(width: 16),
-                    IconButton(
-                      icon: Icon(
-                        _getVolumeIcon(audio.volume),
-                        size: 28,
-                        color: Colors.white70,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _showVolumeSlider = !_showVolumeSlider;
-                        });
+                    child: Slider(
+                      value: audio.progress.clamp(0.0, 1.0),
+                      onChanged: (val) {
+                        final position = Duration(
+                          milliseconds: (val * audio.duration.inMilliseconds)
+                              .toInt(),
+                        );
+                        audio.seek(position);
                       },
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-
-        Widget content;
-        if (isLandscape) {
-          content = SafeArea(
-            child: Column(
-              children: [
-                if (Platform.isWindows) const SizedBox(height: 32),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32.0),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Spacer(flex: 1),
-                        Expanded(flex: 8, child: albumArt),
-                        const SizedBox(width: 48),
-                        Expanded(
-                          flex: 10,
-                          child: Center(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: SizedBox(width: 450, child: controls),
-                            ),
+                        Text(
+                          _formatDuration(audio.position),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
                           ),
                         ),
-                        const Spacer(flex: 1),
+                        Text(
+                          _formatDuration(audio.duration),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          content = SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  if (Platform.isWindows) const SizedBox(height: 32),
-                  Expanded(child: albumArt),
-                  const SizedBox(height: 24),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SizedBox(width: screenWidth, child: controls),
-                    ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          _showVisualizer
+                              ? Icons.analytics
+                              : Icons.analytics_outlined,
+                          size: 28,
+                          color: _showVisualizer
+                              ? Colors.white
+                              : Colors.white70,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _showVisualizer = !_showVisualizer;
+                          });
+                        },
+                        tooltip: '音频可视化',
+                      ),
+                      const SizedBox(width: 16),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.skip_previous_rounded,
+                          size: 48,
+                          color: Colors.white,
+                        ),
+                        onPressed: audio.previous,
+                      ),
+                      const SizedBox(width: 24),
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                        child: IconButton(
+                          onPressed: audio.togglePlay,
+                          icon: Icon(
+                            audio.isPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            size: 40,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.skip_next_rounded,
+                          size: 48,
+                          color: Colors.white,
+                        ),
+                        // onPressed: audio.next,
+                        onPressed: () => toNextMusic(audio),
+                      ),
+                      const SizedBox(width: 16),
+                      IconButton(
+                        icon: Icon(
+                          _getVolumeIcon(audio.volume),
+                          size: 28,
+                          color: Colors.white70,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _showVolumeSlider = !_showVolumeSlider;
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           );
-        }
 
-        return ClipRect(
-          child: Container(
-            color: Colors.black,
-            child: Stack(
-              clipBehavior: Clip.hardEdge,
-              children: [
-                // Blurred Background
-                Positioned.fill(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 800),
-                    child:
-                        (audio.currentArtworkBytes != null ||
-                            audio.currentArtworkPath != null)
-                        ? KeyedSubtree(
-                            key: ValueKey(audio.currentFilePath ?? 'bg_art'),
-                            child: Transform.scale(
-                              scale: 1.1, // Slight scale for safety
-                              child: ImageFiltered(
-                                imageFilter: ImageFilter.blur(
-                                  sigmaX: 60,
-                                  sigmaY: 60,
-                                  tileMode: TileMode.mirror,
-                                ),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    image: DecorationImage(
-                                      image: audio.currentArtworkBytes != null
-                                          ? MemoryImage(
-                                              audio.currentArtworkBytes!,
-                                            )
-                                          : FileImage(
-                                                  File(
-                                                    audio.currentArtworkPath!,
-                                                  ),
-                                                )
-                                                as ImageProvider,
-                                      fit: BoxFit.cover,
-                                      colorFilter: ColorFilter.mode(
-                                        Colors.black.withValues(alpha: 0.2),
-                                        BlendMode.darken,
+          Widget content;
+          if (isLandscape) {
+            content = SafeArea(
+              child: Column(
+                children: [
+                  if (Platform.isWindows) const SizedBox(height: 32),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Row(
+                        children: [
+                          const Spacer(flex: 1),
+                          Expanded(flex: 8, child: albumArt),
+                          const SizedBox(width: 48),
+                          Expanded(
+                            flex: 10,
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: SizedBox(width: 450, child: controls),
+                              ),
+                            ),
+                          ),
+                          const Spacer(flex: 1),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            content = SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    if (Platform.isWindows) const SizedBox(height: 32),
+                    Expanded(child: albumArt),
+                    const SizedBox(height: 24),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: SizedBox(width: screenWidth, child: controls),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          return ClipRect(
+            child: Container(
+              color: Colors.black,
+              child: Stack(
+                clipBehavior: Clip.hardEdge,
+                children: [
+                  // Blurred Background
+                  Positioned.fill(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 800),
+                      child:
+                          (audio.currentArtworkBytes != null ||
+                              audio.currentArtworkPath != null)
+                          ? KeyedSubtree(
+                              key: ValueKey(audio.currentFilePath ?? 'bg_art'),
+                              child: Transform.scale(
+                                scale: 1.1, // Slight scale for safety
+                                child: ImageFiltered(
+                                  imageFilter: ImageFilter.blur(
+                                    sigmaX: 60,
+                                    sigmaY: 60,
+                                    tileMode: TileMode.mirror,
+                                  ),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      image: DecorationImage(
+                                        image: audio.currentArtworkBytes != null
+                                            ? MemoryImage(
+                                                audio.currentArtworkBytes!,
+                                              )
+                                            : FileImage(
+                                                    File(
+                                                      audio.currentArtworkPath!,
+                                                    ),
+                                                  )
+                                                  as ImageProvider,
+                                        fit: BoxFit.cover,
+                                        colorFilter: ColorFilter.mode(
+                                          Colors.black.withValues(alpha: 0.2),
+                                          BlendMode.darken,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
+                            )
+                          : Container(
+                              key: const ValueKey('bg_empty'),
+                              color: Colors.black, // 退底颜色，防止闪烁
                             ),
-                          )
-                        : Container(
-                            key: const ValueKey('bg_empty'),
-                            color: Colors.black, // 退底颜色，防止闪烁
-                          ),
-                  ),
-                ),
-
-                // Visualizer layer
-                if (_showVisualizer)
-                  Positioned.fill(
-                    child: StreamBuilder<FftFrame>(
-                      stream: audio.player.optimizedFftStream,
-                      builder: (context, snapshot) {
-                        final frame = snapshot.data;
-                        if (frame == null) return const SizedBox.shrink();
-                        return CustomPaint(
-                          painter: FftPainter(
-                            values: frame.values,
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
-                        );
-                      },
                     ),
                   ),
 
-                content,
-                if (_showVolumeSlider)
-                  Positioned.fill(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => setState(() => _showVolumeSlider = false),
-                      child: Container(
-                        color: Colors.transparent,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: isLandscape ? 100 : 160,
-                                ),
-                                child: GestureDetector(
-                                  onTap: () {}, // Prevent dismissal
-                                  child: Container(
-                                    width: 300,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black87,
-                                      borderRadius: BorderRadius.circular(30),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.3,
+                  // Visualizer layer
+                  if (_showVisualizer)
+                    Positioned.fill(
+                      child: StreamBuilder<FftFrame>(
+                        stream: audio.player.optimizedFftStream,
+                        builder: (context, snapshot) {
+                          final frame = snapshot.data;
+                          if (frame == null) return const SizedBox.shrink();
+                          return CustomPaint(
+                            painter: FftPainter(
+                              values: frame.values,
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                  content,
+                  if (_showVolumeSlider)
+                    Positioned.fill(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setState(() => _showVolumeSlider = false),
+                        child: Container(
+                          color: Colors.transparent,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: isLandscape ? 100 : 160,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () {}, // Prevent dismissal
+                                    child: Container(
+                                      width: 300,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black87,
+                                        borderRadius: BorderRadius.circular(30),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                            blurRadius: 10,
+                                            spreadRadius: 2,
                                           ),
-                                          blurRadius: 10,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          _getVolumeIcon(audio.volume),
-                                          color: Colors.white,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Listener(
-                                            onPointerSignal: (pointerSignal) {
-                                              if (pointerSignal
-                                                  is PointerScrollEvent) {
-                                                audio.setVolume(
-                                                  audio.volume -
-                                                      pointerSignal
-                                                              .scrollDelta
-                                                              .dy *
-                                                          0.1,
-                                                );
-                                              }
-                                            },
-                                            child: SliderTheme(
-                                              data: SliderTheme.of(context)
-                                                  .copyWith(
-                                                    activeTrackColor:
-                                                        Colors.white,
-                                                    inactiveTrackColor:
-                                                        Colors.white24,
-                                                    thumbColor: Colors.white,
-                                                    overlayColor: Colors.white
-                                                        .withValues(alpha: 0.2),
-                                                  ),
-                                              child: Slider(
-                                                value: audio.volume,
-                                                min: 0,
-                                                max: 100,
-                                                onChanged: (val) =>
-                                                    audio.setVolume(val),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            _getVolumeIcon(audio.volume),
+                                            color: Colors.white,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Listener(
+                                              onPointerSignal: (pointerSignal) {
+                                                if (pointerSignal
+                                                    is PointerScrollEvent) {
+                                                  audio.setVolume(
+                                                    audio.volume -
+                                                        pointerSignal
+                                                                .scrollDelta
+                                                                .dy *
+                                                            0.1,
+                                                  );
+                                                }
+                                              },
+                                              child: SliderTheme(
+                                                data: SliderTheme.of(context)
+                                                    .copyWith(
+                                                      activeTrackColor:
+                                                          Colors.white,
+                                                      inactiveTrackColor:
+                                                          Colors.white24,
+                                                      thumbColor: Colors.white,
+                                                      overlayColor: Colors.white
+                                                          .withValues(
+                                                            alpha: 0.2,
+                                                          ),
+                                                    ),
+                                                child: Slider(
+                                                  value: audio.volume,
+                                                  min: 0,
+                                                  max: 100,
+                                                  onChanged: (val) =>
+                                                      audio.setVolume(val),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          '${audio.volume.round()}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '${audio.volume.round()}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_showVolumeHUD)
+                    Positioned(
+                      top: 100,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                audio.volume > 0
+                                    ? Icons.volume_up
+                                    : Icons.volume_off,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '音量',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${audio.volume.toInt()}%',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ),
                       ),
                     ),
-                  ),
-                if (_showVolumeHUD)
-                  Positioned(
-                    top: 100,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              audio.volume > 0
-                                  ? Icons.volume_up
-                                  : Icons.volume_off,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  '音量',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Text(
-                                  '${audio.volume.toInt()}%',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -750,8 +785,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                         child: _buildOptionSlider(
                           label: '总增益 (Multiplier)',
                           value: options.overallMultiplier,
-                          min: 0.1,
-                          max: 10.0,
+                          min: 0.5,
+                          max: 5.0,
                           onChanged: (val) {
                             audio.updateVisualOptions(
                               options.copyWith(overallMultiplier: val),
