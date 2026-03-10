@@ -230,6 +230,11 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateVisualOptions(VisualizerOptimizationOptions options) {
+    _player.updateVisualOptions(options);
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _player.removeListener(_handlePlayerChanges);

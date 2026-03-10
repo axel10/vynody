@@ -133,7 +133,19 @@ class _PlaybackPageState extends State<PlaybackPage> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: isLandscape ? 24 : 48),
+                const SizedBox(height: 16),
+                // Top menu bar for secondary controls
+                Row(
+                  mainAxisAlignment: isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.more_horiz, color: Colors.white70),
+                      onPressed: () => _showMoreMenu(context, audio),
+                      tooltip: '更多选项',
+                    ),
+                  ],
+                ),
+                SizedBox(height: isLandscape ? 8 : 16),
                 SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     trackHeight: 4,
@@ -511,6 +523,156 @@ class _PlaybackPageState extends State<PlaybackPage> {
           ),
         );
       },
+    );
+  }
+
+  void _showMoreMenu(BuildContext context, AudioService audio) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text('播放选项', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.settings_input_component, color: Colors.blueAccent),
+              title: const Text('设置音频可视化', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _showVisualizerOptions(context, audio);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showVisualizerOptions(BuildContext context, AudioService audio) {
+    final currentOptions = audio.player.visualOptions;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final options = audio.player.visualOptions;
+            
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text('可视化设置', style: TextStyle(color: Colors.white)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildOptionSlider(
+                      label: '平滑系数 (Smoothing)',
+                      value: options.smoothingCoefficient,
+                      min: 0.0,
+                      max: 0.99,
+                      onChanged: (val) {
+                        audio.updateVisualOptions(options.copyWith(smoothingCoefficient: val));
+                        setDialogState(() {});
+                      },
+                    ),
+                    _buildOptionSlider(
+                      label: '重力系数 (Gravity)',
+                      value: options.gravityCoefficient,
+                      min: 0.1,
+                      max: 5.0,
+                      onChanged: (val) {
+                        audio.updateVisualOptions(options.copyWith(gravityCoefficient: val));
+                        setDialogState(() {});
+                      },
+                    ),
+                    _buildOptionSlider(
+                      label: '对数缩放 (Log Scale)',
+                      value: options.logarithmicScale,
+                      min: 1.0,
+                      max: 5.0,
+                      onChanged: (val) {
+                        audio.updateVisualOptions(options.copyWith(logarithmicScale: val));
+                        setDialogState(() {});
+                      },
+                    ),
+                    _buildOptionSlider(
+                      label: '对比度 (Contrast)',
+                      value: options.groupContrastExponent,
+                      min: 0.5,
+                      max: 3.0,
+                      onChanged: (val) {
+                        audio.updateVisualOptions(options.copyWith(groupContrastExponent: val));
+                        setDialogState(() {});
+                      },
+                    ),
+                    _buildOptionSlider(
+                      label: '频率分组 (Frequency Groups)',
+                      value: options.frequencyGroups.toDouble(),
+                      min: 8,
+                      max: 128,
+                      divisions: 15,
+                      onChanged: (val) {
+                        audio.updateVisualOptions(options.copyWith(frequencyGroups: val.toInt()));
+                        setDialogState(() {});
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    audio.updateVisualOptions(const VisualizerOptimizationOptions());
+                    setDialogState(() {});
+                  },
+                  child: const Text('重置', style: TextStyle(color: Colors.redAccent)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('确定', style: TextStyle(color: Colors.blueAccent)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionSlider({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    int? divisions,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 16, bottom: 8),
+          child: Text(
+            '$label: ${value.toStringAsFixed(2)}',
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+        ),
+        SliderTheme(
+          data: const SliderThemeData(
+            activeTrackColor: Colors.blueAccent,
+            inactiveTrackColor: Colors.white12,
+            thumbColor: Colors.blueAccent,
+          ),
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            divisions: divisions,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
     );
   }
 
