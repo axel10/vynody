@@ -325,10 +325,11 @@ class _PlaybackPageState extends State<PlaybackPage>
                     padding: const EdgeInsets.all(32.0),
                     child: Row(
                       children: [
-                        Expanded(flex: 4, child: albumArt),
-                        const SizedBox(width: 32),
+                        const Spacer(flex: 1),
+                        Expanded(flex: 8, child: albumArt),
+                        const SizedBox(width: 48),
                         Expanded(
-                          flex: 5,
+                          flex: 10,
                           child: Center(
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
@@ -336,6 +337,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             ),
                           ),
                         ),
+                        const Spacer(flex: 1),
                       ],
                     ),
                   ),
