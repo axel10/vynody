@@ -142,25 +142,25 @@ class _PlaybackPageState extends State<PlaybackPage>
                           final inAnimation =
                               Tween<Offset>(
                                 begin: _isNext
-                                    ? const Offset(1.0, 0.0)
-                                    : const Offset(-1.0, 0.0),
-                                end: Offset.zero,
-                              ).animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeInQuart,
-                                ),
-                              );
-                          final outAnimation =
-                              Tween<Offset>(
-                                begin: _isNext
-                                    ? const Offset(-1.0, 0.0)
-                                    : const Offset(1.0, 0.0),
+                                    ? const Offset(0.7, 0.0)
+                                    : const Offset(-0.7, 0.0),
                                 end: Offset.zero,
                               ).animate(
                                 CurvedAnimation(
                                   parent: animation,
                                   curve: Curves.easeOutQuart,
+                                ),
+                              );
+                          final outAnimation =
+                              Tween<Offset>(
+                                begin: _isNext
+                                    ? const Offset(-0.7, 0.0)
+                                    : const Offset(0.7, 0.0),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeInQuart,
                                 ),
                               );
 
@@ -182,9 +182,9 @@ class _PlaybackPageState extends State<PlaybackPage>
                           color: Colors.black87,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 30,
-                              spreadRadius: 5,
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 50,
+                              spreadRadius: 15,
                               // offset: const Offset(0, 5),
                             ),
                           ],
