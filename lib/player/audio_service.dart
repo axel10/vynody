@@ -198,8 +198,12 @@ class AudioService extends ChangeNotifier {
       return AudioTrack(id: e.key.toString(), uri: e.value.path);
     }).toList();
 
-    // await _player.setPlaylist(tracks, startIndex: safeIndex, autoPlay: true);
-    _player.loadFromPath(tracks[safeIndex].uri);
+    // Clear existing playlist and add all tracks
+    await _player.clearPlaylist();
+    await _player.addTracks(tracks);
+
+    // Play the selected track
+    await _player.playAt(safeIndex);
 
     final current = songs[safeIndex];
     await _updateCurrentMetadata(current.path, current.name, id: current.id);

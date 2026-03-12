@@ -148,7 +148,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                               ).animate(
                                 CurvedAnimation(
                                   parent: animation,
-                                  curve: Curves.easeOutQuart,
+                                  curve: Curves.easeOut,
                                 ),
                               );
                           final outAnimation =
@@ -160,7 +160,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                               ).animate(
                                 CurvedAnimation(
                                   parent: animation,
-                                  curve: Curves.easeInQuart,
+                                  curve: Curves.easeIn,
                                 ),
                               );
 

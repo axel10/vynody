@@ -5,7 +5,6 @@ import 'package:file_picker/file_picker.dart';
 import '../models/music_folder.dart';
 import '../player/scanner_service.dart';
 import '../player/audio_service.dart';
-import '../player/playlist_service.dart';
 import '../widgets/song_thumbnail.dart';
 
 // 目录页
@@ -214,30 +213,14 @@ class _FoldersPageState extends State<FoldersPage> {
                       title: Text(file.name),
                       onTap: () async {
                         final pageController = context.read<PageController>();
-                        final playlistService = context.read<PlaylistService>();
 
-                        if (Platform.isAndroid) {
-                          final index = _currentFolder!.files.indexOf(file);
-                          audio.playPlaylist(
-                            _currentFolder!.files,
-                            initialIndex: index,
-                          );
-
-                          // 在安卓下，自动将当前目录所有歌曲加入默认播放列表
-                          final currentPlaylist =
-                              playlistService.currentPlaylist;
-                          if (currentPlaylist != null) {
-                            await playlistService.clearPlaylist(
-                              currentPlaylist.id,
-                            );
-                            await playlistService.addSongsToPlaylist(
-                              currentPlaylist.id,
-                              _currentFolder!.files,
-                            );
-                          }
-                        } else {
-                          audio.playFile(file.path, file.name, id: file.id);
-                        }
+                        // Unified behavior across all platforms:
+                        // Clear queue and load all files in current directory
+                        final index = _currentFolder!.files.indexOf(file);
+                        audio.playPlaylist(
+                          _currentFolder!.files,
+                          initialIndex: index,
+                        );
 
                         if (mounted) {
                           pageController.animateToPage(
@@ -330,21 +313,24 @@ class _FoldersPageState extends State<FoldersPage> {
                       }
                     },
                     groupValue: scanner.sortCriteria,
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      ListTile(
-                        title: const Text('标题'),
-                        leading: Radio(value: SortCriteria.title),
-                      ),
-                      ListTile(
-                        title: const Text('文件名'),
-                        leading: Radio(value: SortCriteria.filename),
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          title: const Text('标题'),
+                          leading: Radio(value: SortCriteria.title),
+                        ),
+                        ListTile(
+                          title: const Text('文件名'),
+                          leading: Radio(value: SortCriteria.filename),
+                        ),
 
-                      ListTile(
-                        title: const Text('轨道号 (Track Number)'),
-                        leading: Radio(value: SortCriteria.trackNumber),
-                      ),
-                    ]),
+                        ListTile(
+                          title: const Text('轨道号 (Track Number)'),
+                          leading: Radio(value: SortCriteria.trackNumber),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
                 /*children: [

@@ -10,6 +10,7 @@ import 'player/playlist_service.dart';
 import 'player/settings_service.dart';
 import 'pages/folder_page.dart';
 import 'pages/playback_page.dart';
+import 'pages/queue_page.dart';
 import 'pages/playlist_page.dart';
 import 'pages/settings_page.dart';
 import 'package:path/path.dart' as p;
@@ -166,7 +167,7 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _onDestinationSelected(int index) {
-    if (index == 3) {
+    if (index == 4) {
       _showMoreMenu();
       return;
     }
@@ -220,6 +221,10 @@ class _MainLayoutState extends State<MainLayout> {
       Padding(
         padding: EdgeInsets.only(top: isDesktop ? 32 : 0),
         child: const PlaylistPage(),
+      ),
+      Padding(
+        padding: EdgeInsets.only(top: isDesktop ? 32 : 0),
+        child: const QueuePage(),
       ),
     ];
 
@@ -309,6 +314,17 @@ class _MainLayoutState extends State<MainLayout> {
                   color: isPlayback ? Colors.white : null,
                 ),
                 label: '列表',
+              ),
+              NavigationDestination(
+                icon: Icon(
+                  Icons.queue_music_outlined,
+                  color: isPlayback ? Colors.white70 : null,
+                ),
+                selectedIcon: Icon(
+                  Icons.queue_music,
+                  color: isPlayback ? Colors.white : null,
+                ),
+                label: '队列',
               ),
               NavigationDestination(
                 icon: Icon(
