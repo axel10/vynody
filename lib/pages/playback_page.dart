@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
@@ -545,10 +546,18 @@ class _PlaybackPageState extends State<PlaybackPage>
                         builder: (context, snapshot) {
                           final frame = snapshot.data;
                           if (frame == null) return const SizedBox.shrink();
+
+                          final settings = context.watch<SettingsService>();
                           return CustomPaint(
                             painter: FftPainter(
                               values: frame.values,
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: settings.visualizerColor,
+                              opacity: settings.visualizerOpacity,
+                              useGradient: settings.isVisualizerGradientEnabled,
+                              startColor: settings.visualizerStartColor,
+                              endColor: settings.visualizerEndColor,
+                              gradientDirection:
+                                  settings.visualizerGradientDirection,
                             ),
                           );
                         },
@@ -764,205 +773,412 @@ class _PlaybackPageState extends State<PlaybackPage>
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final options = audio.player.visualOptions;
+        return DefaultTabController(
+          length: 2,
+          child: StatefulBuilder(
+            builder: (context, setDialogState) {
+              final options = audio.player.visualOptions;
+              final settings = context.watch<SettingsService>();
 
-            return AlertDialog(
-              backgroundColor: Colors.grey[900],
-              title: const Text('可视化设置', style: TextStyle(color: Colors.white)),
-              content: SizedBox(
-                width: 600, // 设置一个合适的宽度
-                child: SingleChildScrollView(
-                  child: Wrap(
-                    spacing: 20,
-                    runSpacing: 10,
+              return AlertDialog(
+                backgroundColor: Colors.grey[900],
+                title: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('可视化设置', style: TextStyle(color: Colors.white)),
+                    SizedBox(height: 10),
+                    TabBar(
+                      tabs: [
+                        Tab(text: '算法'),
+                        Tab(text: '外观'),
+                      ],
+                      labelColor: Colors.blueAccent,
+                      unselectedLabelColor: Colors.white70,
+                      indicatorColor: Colors.blueAccent,
+                      dividerColor: Colors.transparent,
+                    ),
+                  ],
+                ),
+                content: SizedBox(
+                  width: 600, // 设置一个合适的宽度
+                  height: 400,
+                  child: TabBarView(
                     children: [
-                      SizedBox(
-                        width: 270,
-                        child: _buildOptionSlider(
-                          label: '平滑系数 (Smoothing)',
-                          value: options.smoothingCoefficient,
-                          min: 0.0,
-                          max: 0.99,
-                          onChanged: (val) {
-                            audio.updateVisualOptions(
-                              options.copyWith(smoothingCoefficient: val),
-                            );
-                            setDialogState(() {});
-                          },
-                          onChangeEnd: () => audio.saveVisualizerOptions(),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 270,
-                        child: _buildOptionSlider(
-                          label: '重力系数 (Gravity)',
-                          value: options.gravityCoefficient,
-                          min: 0.1,
-                          max: 5.0,
-                          onChanged: (val) {
-                            audio.updateVisualOptions(
-                              options.copyWith(gravityCoefficient: val),
-                            );
-                            setDialogState(() {});
-                          },
-                          onChangeEnd: () => audio.saveVisualizerOptions(),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 270,
-                        child: _buildOptionSlider(
-                          label: '对数缩放 (Log Scale)',
-                          value: options.logarithmicScale,
-                          min: 1.0,
-                          max: 5.0,
-                          onChanged: (val) {
-                            audio.updateVisualOptions(
-                              options.copyWith(logarithmicScale: val),
-                            );
-                            setDialogState(() {});
-                          },
-                          onChangeEnd: () => audio.saveVisualizerOptions(),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 270,
-                        child: _buildOptionSlider(
-                          label: '对比度 (Contrast)',
-                          value: options.groupContrastExponent,
-                          min: 0.5,
-                          max: 3.0,
-                          onChanged: (val) {
-                            audio.updateVisualOptions(
-                              options.copyWith(groupContrastExponent: val),
-                            );
-                            setDialogState(() {});
-                          },
-                          onChangeEnd: () => audio.saveVisualizerOptions(),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 270,
-                        child: _buildOptionSlider(
-                          label: '总增益 (Multiplier)',
-                          value: options.overallMultiplier,
-                          min: 0.5,
-                          max: 5.0,
-                          onChanged: (val) {
-                            audio.updateVisualOptions(
-                              options.copyWith(overallMultiplier: val),
-                            );
-                            setDialogState(() {});
-                          },
-                          onChangeEnd: () => audio.saveVisualizerOptions(),
-                        ),
-                      ),
-
-                      SizedBox(
-                        width: 270,
-                        child: _buildOptionSlider(
-                          label: '跳过高频',
-                          value: options.skipHighFrequencyGroups.toDouble(),
-                          min: 0,
-                          max: 20,
-                          onChanged: (val) {
-                            audio.updateVisualOptions(
-                              options.copyWith(
-                                skipHighFrequencyGroups: val.toInt(),
-                              ),
-                            );
-                            setDialogState(() {});
-                          },
-                          onChangeEnd: () => audio.saveVisualizerOptions(),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 270,
-                        child: _buildOptionSlider(
-                          label: '频率分组 (Frequency Groups)',
-                          value: options.frequencyGroups.toDouble(),
-                          min: 8,
-                          max: 128,
-                          divisions: 15,
-                          onChanged: (val) {
-                            audio.updateVisualOptions(
-                              options.copyWith(frequencyGroups: val.toInt()),
-                            );
-                            setDialogState(() {});
-                          },
-                          onChangeEnd: () => audio.saveVisualizerOptions(),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 270,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 20,
+                          runSpacing: 10,
                           children: [
-                            const Padding(
-                              padding: EdgeInsets.only(top: 16, bottom: 8),
-                              child: Text(
-                                '聚合模式 (Aggregation Mode)',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                            DropdownButtonFormField<FftAggregationMode>(
-                              value: options.aggregationMode,
-                              dropdownColor: Colors.grey[900],
-                              decoration: const InputDecoration(
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.white12),
-                                ),
-                              ),
-                              style: const TextStyle(color: Colors.white),
-                              items: FftAggregationMode.values.map((mode) {
-                                return DropdownMenuItem(
-                                  value: mode,
-                                  child: Text(mode.name.toUpperCase()),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
+                            SizedBox(
+                              width: 270,
+                              child: _buildOptionSlider(
+                                label: '平滑系数 (Smoothing)',
+                                value: options.smoothingCoefficient,
+                                min: 0.0,
+                                max: 0.99,
+                                onChanged: (val) {
                                   audio.updateVisualOptions(
-                                    options.copyWith(aggregationMode: val),
+                                    options.copyWith(smoothingCoefficient: val),
                                   );
                                   setDialogState(() {});
-                                }
-                              },
+                                },
+                                onChangeEnd: () =>
+                                    audio.saveVisualizerOptions(),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 270,
+                              child: _buildOptionSlider(
+                                label: '重力系数 (Gravity)',
+                                value: options.gravityCoefficient,
+                                min: 0.1,
+                                max: 5.0,
+                                onChanged: (val) {
+                                  audio.updateVisualOptions(
+                                    options.copyWith(gravityCoefficient: val),
+                                  );
+                                  setDialogState(() {});
+                                },
+                                onChangeEnd: () =>
+                                    audio.saveVisualizerOptions(),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 270,
+                              child: _buildOptionSlider(
+                                label: '对数缩放 (Log Scale)',
+                                value: options.logarithmicScale,
+                                min: 1.0,
+                                max: 5.0,
+                                onChanged: (val) {
+                                  audio.updateVisualOptions(
+                                    options.copyWith(logarithmicScale: val),
+                                  );
+                                  setDialogState(() {});
+                                },
+                                onChangeEnd: () =>
+                                    audio.saveVisualizerOptions(),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 270,
+                              child: _buildOptionSlider(
+                                label: '对比度 (Contrast)',
+                                value: options.groupContrastExponent,
+                                min: 0.5,
+                                max: 3.0,
+                                onChanged: (val) {
+                                  audio.updateVisualOptions(
+                                    options.copyWith(
+                                      groupContrastExponent: val,
+                                    ),
+                                  );
+                                  setDialogState(() {});
+                                },
+                                onChangeEnd: () =>
+                                    audio.saveVisualizerOptions(),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 270,
+                              child: _buildOptionSlider(
+                                label: '总增益 (Multiplier)',
+                                value: options.overallMultiplier,
+                                min: 0.5,
+                                max: 5.0,
+                                onChanged: (val) {
+                                  audio.updateVisualOptions(
+                                    options.copyWith(overallMultiplier: val),
+                                  );
+                                  setDialogState(() {});
+                                },
+                                onChangeEnd: () =>
+                                    audio.saveVisualizerOptions(),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 270,
+                              child: _buildOptionSlider(
+                                label: '跳过高频',
+                                value: options.skipHighFrequencyGroups
+                                    .toDouble(),
+                                min: 0,
+                                max: 20,
+                                onChanged: (val) {
+                                  audio.updateVisualOptions(
+                                    options.copyWith(
+                                      skipHighFrequencyGroups: val.toInt(),
+                                    ),
+                                  );
+                                  setDialogState(() {});
+                                },
+                                onChangeEnd: () =>
+                                    audio.saveVisualizerOptions(),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 270,
+                              child: _buildOptionSlider(
+                                label: '频率分组 (Frequency Groups)',
+                                value: options.frequencyGroups.toDouble(),
+                                min: 8,
+                                max: 128,
+                                divisions: 15,
+                                onChanged: (val) {
+                                  audio.updateVisualOptions(
+                                    options.copyWith(
+                                      frequencyGroups: val.toInt(),
+                                    ),
+                                  );
+                                  setDialogState(() {});
+                                },
+                                onChangeEnd: () =>
+                                    audio.saveVisualizerOptions(),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 270,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Padding(
+                                    padding: EdgeInsets.only(
+                                      top: 16,
+                                      bottom: 8,
+                                    ),
+                                    child: Text(
+                                      '聚合模式 (Aggregation Mode)',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  DropdownButtonFormField<FftAggregationMode>(
+                                    value: options.aggregationMode,
+                                    dropdownColor: Colors.grey[900],
+                                    decoration: const InputDecoration(
+                                      enabledBorder: UnderlineInputBorder(
+                                        borderSide: BorderSide(
+                                          color: Colors.white12,
+                                        ),
+                                      ),
+                                    ),
+                                    style: const TextStyle(color: Colors.white),
+                                    items: FftAggregationMode.values.map((
+                                      mode,
+                                    ) {
+                                      return DropdownMenuItem(
+                                        value: mode,
+                                        child: Text(mode.name.toUpperCase()),
+                                      );
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        audio.updateVisualOptions(
+                                          options.copyWith(
+                                            aggregationMode: val,
+                                          ),
+                                        );
+                                        setDialogState(() {});
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
+                      SingleChildScrollView(
+                        child: _buildAppearanceOptions(context, settings),
+                      ),
                     ],
                   ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    audio.updateVisualOptions(
-                      const VisualizerOptimizationOptions(),
-                    );
-                    setDialogState(() {});
-                  },
-                  child: const Text(
-                    '重置',
-                    style: TextStyle(color: Colors.redAccent),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      audio.updateVisualOptions(
+                        const VisualizerOptimizationOptions(),
+                      );
+                      setDialogState(() {});
+                    },
+                    child: const Text(
+                      '重置算法',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
                   ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    '确定',
-                    style: TextStyle(color: Colors.blueAccent),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      '确定',
+                      style: TextStyle(color: Colors.blueAccent),
+                    ),
                   ),
-                ),
-              ],
-            );
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAppearanceOptions(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildOptionSlider(
+          label: '透明度 (Opacity)',
+          value: settings.visualizerOpacity,
+          min: 0.0,
+          max: 1.0,
+          onChanged: (val) {
+            settings.visualizerOpacity = val;
           },
+        ),
+        const SizedBox(height: 16),
+        SwitchListTile(
+          title: const Text(
+            '启用渐变色',
+            style: TextStyle(color: Colors.white, fontSize: 13),
+          ),
+          value: settings.isVisualizerGradientEnabled,
+          activeColor: Colors.blueAccent,
+          onChanged: (val) {
+            settings.isVisualizerGradientEnabled = val;
+          },
+          contentPadding: EdgeInsets.zero,
+        ),
+        const SizedBox(height: 8),
+        if (settings.isVisualizerGradientEnabled) ...[
+          _buildColorPickerRow(
+            context,
+            label: '起始颜色',
+            color: settings.visualizerStartColor,
+            onColorChanged: (c) => settings.visualizerStartColor = c,
+          ),
+          const SizedBox(height: 16),
+          _buildColorPickerRow(
+            context,
+            label: '结束颜色',
+            color: settings.visualizerEndColor,
+            onColorChanged: (c) => settings.visualizerEndColor = c,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '渐变方向',
+            style: TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          Row(
+            children: [
+              Radio<int>(
+                value: 0,
+                groupValue: settings.visualizerGradientDirection,
+                activeColor: Colors.blueAccent,
+                onChanged: (val) {
+                  if (val != null) settings.visualizerGradientDirection = val;
+                },
+              ),
+              const Text(
+                '水平',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+              const SizedBox(width: 16),
+              Radio<int>(
+                value: 1,
+                groupValue: settings.visualizerGradientDirection,
+                activeColor: Colors.blueAccent,
+                onChanged: (val) {
+                  if (val != null) settings.visualizerGradientDirection = val;
+                },
+              ),
+              const Text(
+                '垂直',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ],
+          ),
+        ] else ...[
+          _buildColorPickerRow(
+            context,
+            label: '纯色',
+            color: settings.visualizerColor,
+            onColorChanged: (c) => settings.visualizerColor = c,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildColorPickerRow(
+    BuildContext context, {
+    required String label,
+    required Color color,
+    required ValueChanged<Color> onColorChanged,
+  }) {
+    return Row(
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 13)),
+        const SizedBox(width: 16),
+        InkWell(
+          onTap: () => _pickColor(context, color, onColorChanged),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color,
+              border: Border.all(color: Colors.white70, width: 1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _pickColor(
+    BuildContext context,
+    Color initialColor,
+    ValueChanged<Color> onColorChanged,
+  ) {
+    Color selectedColor = initialColor;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text('选择颜色', style: TextStyle(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: ColorPicker(
+              pickerColor: initialColor,
+              onColorChanged: (c) => selectedColor = c,
+              pickerAreaHeightPercent: 0.8,
+              enableAlpha: false,
+              displayThumbColor: true,
+              paletteType: PaletteType.hsv,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消', style: TextStyle(color: Colors.white70)),
+            ),
+            TextButton(
+              onPressed: () {
+                onColorChanged(selectedColor);
+                Navigator.pop(context);
+              },
+              child: const Text(
+                '确定',
+                style: TextStyle(color: Colors.blueAccent),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -1055,16 +1271,42 @@ Widget _buildCoverImage(AudioService audio, bool isLandscape) {
 class FftPainter extends CustomPainter {
   final List<double> values;
   final Color color;
+  final double opacity;
+  final bool useGradient;
+  final Color? startColor;
+  final Color? endColor;
+  final int? gradientDirection;
 
-  FftPainter({required this.values, required this.color});
+  FftPainter({
+    required this.values,
+    required this.color,
+    this.opacity = 0.2,
+    this.useGradient = false,
+    this.startColor,
+    this.endColor,
+    this.gradientDirection,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
 
     final paint = Paint()
-      ..color = color
+      ..color = color.withOpacity(opacity)
       ..style = PaintingStyle.fill;
+
+    if (useGradient && startColor != null && endColor != null) {
+      final isVertical = gradientDirection == 1; // 0 for LTR, 1 for TTB
+
+      paint.shader = LinearGradient(
+        colors: [
+          startColor!.withOpacity(opacity),
+          endColor!.withOpacity(opacity),
+        ],
+        begin: isVertical ? Alignment.topCenter : Alignment.centerLeft,
+        end: isVertical ? Alignment.bottomCenter : Alignment.centerRight,
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    }
 
     final barCount = values.length;
     final gap = 2.0;
