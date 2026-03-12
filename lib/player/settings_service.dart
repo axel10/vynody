@@ -11,8 +11,9 @@ class SettingsService extends ChangeNotifier {
   static const String _keyVisGradient = 'visualizer_gradient_enabled';
   static const String _keyVisStartColor = 'visualizer_start_color';
   static const String _keyVisEndColor = 'visualizer_end_color';
-  static const String _keyVisGradientDirection =
-      'visualizer_gradient_direction'; // 0: LTR, 1: TTB
+  static const String _keyVisGradientStop1 = 'visualizer_gradient_stop_1';
+  static const String _keyVisGradientStop2 = 'visualizer_gradient_stop_2';
+  static const String _keyVisGradientTileMode = 'visualizer_gradient_tile_mode';
 
   final SharedPreferences _prefs;
   bool _isImmersiveTabBarEnabled;
@@ -24,7 +25,9 @@ class SettingsService extends ChangeNotifier {
   late bool _isVisualizerGradientEnabled;
   late Color _visualizerStartColor;
   late Color _visualizerEndColor;
-  late int _visualizerGradientDirection;
+  late double _visualizerGradientStop1;
+  late double _visualizerGradientStop2;
+  late int _visualizerGradientTileMode;
 
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false {
@@ -37,7 +40,10 @@ class SettingsService extends ChangeNotifier {
     _visualizerEndColor = Color(
       _prefs.getInt(_keyVisEndColor) ?? Colors.purple.value,
     );
-    _visualizerGradientDirection = _prefs.getInt(_keyVisGradientDirection) ?? 0;
+    _visualizerGradientStop1 = _prefs.getDouble(_keyVisGradientStop1) ?? 0.0;
+    _visualizerGradientStop2 = _prefs.getDouble(_keyVisGradientStop2) ?? 1.0;
+    _visualizerGradientTileMode =
+        _prefs.getInt(_keyVisGradientTileMode) ?? TileMode.clamp.index;
   }
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
@@ -48,7 +54,20 @@ class SettingsService extends ChangeNotifier {
   bool get isVisualizerGradientEnabled => _isVisualizerGradientEnabled;
   Color get visualizerStartColor => _visualizerStartColor;
   Color get visualizerEndColor => _visualizerEndColor;
-  int get visualizerGradientDirection => _visualizerGradientDirection;
+  double get visualizerGradientStop1 => _visualizerGradientStop1;
+  double get visualizerGradientStop2 => _visualizerGradientStop2;
+  int get visualizerGradientTileMode => _visualizerGradientTileMode;
+
+  void resetVisualizerAppearance() {
+    visualizerOpacity = 0.2;
+    visualizerColor = Colors.white;
+    isVisualizerGradientEnabled = false;
+    visualizerStartColor = Colors.blue;
+    visualizerEndColor = Colors.purple;
+    visualizerGradientStop1 = 0.0;
+    visualizerGradientStop2 = 1.0;
+    visualizerGradientTileMode = TileMode.clamp.index;
+  }
 
   set isImmersiveTabBarEnabled(bool value) {
     _isImmersiveTabBarEnabled = value;
@@ -93,9 +112,21 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
-  set visualizerGradientDirection(int value) {
-    _visualizerGradientDirection = value;
-    _prefs.setInt(_keyVisGradientDirection, value);
+  set visualizerGradientStop1(double value) {
+    _visualizerGradientStop1 = value;
+    _prefs.setDouble(_keyVisGradientStop1, value);
+    notifyListeners();
+  }
+
+  set visualizerGradientStop2(double value) {
+    _visualizerGradientStop2 = value;
+    _prefs.setDouble(_keyVisGradientStop2, value);
+    notifyListeners();
+  }
+
+  set visualizerGradientTileMode(int value) {
+    _visualizerGradientTileMode = value;
+    _prefs.setInt(_keyVisGradientTileMode, value);
     notifyListeners();
   }
 

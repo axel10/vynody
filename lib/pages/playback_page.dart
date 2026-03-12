@@ -556,8 +556,10 @@ class _PlaybackPageState extends State<PlaybackPage>
                               useGradient: settings.isVisualizerGradientEnabled,
                               startColor: settings.visualizerStartColor,
                               endColor: settings.visualizerEndColor,
-                              gradientDirection:
-                                  settings.visualizerGradientDirection,
+                              gradientStop1: settings.visualizerGradientStop1,
+                              gradientStop2: settings.visualizerGradientStop2,
+                              gradientTileMode:
+                                  settings.visualizerGradientTileMode,
                             ),
                           );
                         },
@@ -991,7 +993,11 @@ class _PlaybackPageState extends State<PlaybackPage>
                         ),
                       ),
                       SingleChildScrollView(
-                        child: _buildAppearanceOptions(context, settings),
+                        child: _buildAppearanceOptions(
+                          context,
+                          settings,
+                          setDialogState,
+                        ),
                       ),
                     ],
                   ),
@@ -1006,6 +1012,18 @@ class _PlaybackPageState extends State<PlaybackPage>
                     },
                     child: const Text(
                       '重置算法',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      context
+                          .read<SettingsService>()
+                          .resetVisualizerAppearance();
+                      setDialogState(() {});
+                    },
+                    child: const Text(
+                      '重置外观',
                       style: TextStyle(color: Colors.redAccent),
                     ),
                   ),
@@ -1028,6 +1046,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   Widget _buildAppearanceOptions(
     BuildContext context,
     SettingsService settings,
+    StateSetter setDialogState,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1039,6 +1058,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           max: 1.0,
           onChanged: (val) {
             settings.visualizerOpacity = val;
+            setDialogState(() {});
           },
         ),
         const SizedBox(height: 16),
@@ -1051,6 +1071,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           activeColor: Colors.blueAccent,
           onChanged: (val) {
             settings.isVisualizerGradientEnabled = val;
+            setDialogState(() {});
           },
           contentPadding: EdgeInsets.zero,
         ),
@@ -1060,46 +1081,69 @@ class _PlaybackPageState extends State<PlaybackPage>
             context,
             label: '起始颜色',
             color: settings.visualizerStartColor,
-            onColorChanged: (c) => settings.visualizerStartColor = c,
+            onColorChanged: (c) {
+              settings.visualizerStartColor = c;
+              setDialogState(() {});
+            },
           ),
           const SizedBox(height: 16),
           _buildColorPickerRow(
             context,
             label: '结束颜色',
             color: settings.visualizerEndColor,
-            onColorChanged: (c) => settings.visualizerEndColor = c,
+            onColorChanged: (c) {
+              settings.visualizerEndColor = c;
+              setDialogState(() {});
+            },
           ),
           const SizedBox(height: 16),
-          const Text(
-            '渐变方向',
-            style: TextStyle(color: Colors.white70, fontSize: 13),
+          _buildOptionSlider(
+            label: '渐变范围 Stop 1',
+            value: settings.visualizerGradientStop1,
+            min: 0.0,
+            max: 1.0,
+            onChanged: (val) {
+              settings.visualizerGradientStop1 = val;
+              setDialogState(() {});
+            },
           ),
+          const SizedBox(height: 16),
+          _buildOptionSlider(
+            label: '渐变范围 Stop 2',
+            value: settings.visualizerGradientStop2,
+            min: 0.0,
+            max: 1.0,
+            onChanged: (val) {
+              settings.visualizerGradientStop2 = val;
+              setDialogState(() {});
+            },
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
-              Radio<int>(
-                value: 0,
-                groupValue: settings.visualizerGradientDirection,
-                activeColor: Colors.blueAccent,
-                onChanged: (val) {
-                  if (val != null) settings.visualizerGradientDirection = val;
-                },
-              ),
               const Text(
-                '水平',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                '渐变重复模式 (TileMode)',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const SizedBox(width: 16),
-              Radio<int>(
-                value: 1,
-                groupValue: settings.visualizerGradientDirection,
-                activeColor: Colors.blueAccent,
-                onChanged: (val) {
-                  if (val != null) settings.visualizerGradientDirection = val;
+              DropdownButton<int>(
+                value: settings.visualizerGradientTileMode,
+                dropdownColor: Colors.grey[800],
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                onChanged: (int? newValue) {
+                  if (newValue != null) {
+                    settings.visualizerGradientTileMode = newValue;
+                    setDialogState(() {});
+                  }
                 },
-              ),
-              const Text(
-                '垂直',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                items: TileMode.values.map<DropdownMenuItem<int>>((
+                  TileMode mode,
+                ) {
+                  return DropdownMenuItem<int>(
+                    value: mode.index,
+                    child: Text(mode.name),
+                  );
+                }).toList(),
               ),
             ],
           ),
@@ -1108,7 +1152,10 @@ class _PlaybackPageState extends State<PlaybackPage>
             context,
             label: '纯色',
             color: settings.visualizerColor,
-            onColorChanged: (c) => settings.visualizerColor = c,
+            onColorChanged: (c) {
+              settings.visualizerColor = c;
+              setDialogState(() {});
+            },
           ),
         ],
       ],
@@ -1275,7 +1322,9 @@ class FftPainter extends CustomPainter {
   final bool useGradient;
   final Color? startColor;
   final Color? endColor;
-  final int? gradientDirection;
+  final double? gradientStop1;
+  final double? gradientStop2;
+  final int? gradientTileMode;
 
   FftPainter({
     required this.values,
@@ -1284,7 +1333,9 @@ class FftPainter extends CustomPainter {
     this.useGradient = false,
     this.startColor,
     this.endColor,
-    this.gradientDirection,
+    this.gradientStop1,
+    this.gradientStop2,
+    this.gradientTileMode,
   });
 
   @override
@@ -1296,15 +1347,19 @@ class FftPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     if (useGradient && startColor != null && endColor != null) {
-      final isVertical = gradientDirection == 1; // 0 for LTR, 1 for TTB
-
       paint.shader = LinearGradient(
         colors: [
           startColor!.withOpacity(opacity),
           endColor!.withOpacity(opacity),
         ],
-        begin: isVertical ? Alignment.topCenter : Alignment.centerLeft,
-        end: isVertical ? Alignment.bottomCenter : Alignment.centerRight,
+        stops: gradientStop1 != null && gradientStop2 != null
+            ? [gradientStop1!, gradientStop2!]
+            : null,
+        tileMode: gradientTileMode != null
+            ? TileMode.values[gradientTileMode!]
+            : TileMode.clamp,
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     }
 
