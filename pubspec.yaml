@@ -65,6 +65,7 @@ dependencies:
   audio_visualizer_player: 
     path: audio_visualizer_player
   flutter_colorpicker: ^1.1.0
+  palette_generator: ^0.3.3+7
 
 dev_dependencies:
   flutter_test:

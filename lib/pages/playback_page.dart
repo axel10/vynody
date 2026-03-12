@@ -551,11 +551,20 @@ class _PlaybackPageState extends State<PlaybackPage>
                           return CustomPaint(
                             painter: FftPainter(
                               values: frame.values,
-                              color: settings.visualizerColor,
+                              color: settings.isVisualizerDynamicColor
+                                  ? (audio.dynamicStartColor ??
+                                        settings.visualizerColor)
+                                  : settings.visualizerColor,
                               opacity: settings.visualizerOpacity,
                               useGradient: settings.isVisualizerGradientEnabled,
-                              startColor: settings.visualizerStartColor,
-                              endColor: settings.visualizerEndColor,
+                              startColor: settings.isVisualizerDynamicStartColor
+                                  ? (audio.dynamicStartColor ??
+                                        settings.visualizerStartColor)
+                                  : settings.visualizerStartColor,
+                              endColor: settings.isVisualizerDynamicEndColor
+                                  ? (audio.dynamicEndColor ??
+                                        settings.visualizerEndColor)
+                                  : settings.visualizerEndColor,
                               gradientStop1: settings.visualizerGradientStop1,
                               gradientStop2: settings.visualizerGradientStop2,
                               gradientTileMode:
@@ -924,7 +933,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                                 label: '频率分组 (Frequency Groups)',
                                 value: options.frequencyGroups.toDouble(),
                                 min: 8,
-                                max: 128,
+                                max: 512,
                                 divisions: 15,
                                 onChanged: (val) {
                                   audio.updateVisualOptions(
@@ -1081,6 +1090,14 @@ class _PlaybackPageState extends State<PlaybackPage>
             context,
             label: '起始颜色',
             color: settings.visualizerStartColor,
+            isDynamic: settings.isVisualizerDynamicStartColor,
+            onDynamicChanged: (val) {
+              settings.isVisualizerDynamicStartColor = val;
+              if (val) {
+                context.read<AudioService>().updateDynamicColors();
+              }
+              setDialogState(() {});
+            },
             onColorChanged: (c) {
               settings.visualizerStartColor = c;
               setDialogState(() {});
@@ -1091,6 +1108,14 @@ class _PlaybackPageState extends State<PlaybackPage>
             context,
             label: '结束颜色',
             color: settings.visualizerEndColor,
+            isDynamic: settings.isVisualizerDynamicEndColor,
+            onDynamicChanged: (val) {
+              settings.isVisualizerDynamicEndColor = val;
+              if (val) {
+                context.read<AudioService>().updateDynamicColors();
+              }
+              setDialogState(() {});
+            },
             onColorChanged: (c) {
               settings.visualizerEndColor = c;
               setDialogState(() {});
@@ -1152,6 +1177,14 @@ class _PlaybackPageState extends State<PlaybackPage>
             context,
             label: '纯色',
             color: settings.visualizerColor,
+            isDynamic: settings.isVisualizerDynamicColor,
+            onDynamicChanged: (val) {
+              settings.isVisualizerDynamicColor = val;
+              if (val) {
+                context.read<AudioService>().updateDynamicColors();
+              }
+              setDialogState(() {});
+            },
             onColorChanged: (c) {
               settings.visualizerColor = c;
               setDialogState(() {});
@@ -1167,23 +1200,48 @@ class _PlaybackPageState extends State<PlaybackPage>
     required String label,
     required Color color,
     required ValueChanged<Color> onColorChanged,
+    bool isDynamic = false,
+    ValueChanged<bool>? onDynamicChanged,
   }) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 13)),
-        const SizedBox(width: 16),
-        InkWell(
-          onTap: () => _pickColor(context, color, onColorChanged),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color,
-              border: Border.all(color: Colors.white70, width: 1),
-              borderRadius: BorderRadius.circular(4),
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
             ),
-          ),
+            const SizedBox(width: 16),
+            if (!isDynamic)
+              InkWell(
+                onTap: () => _pickColor(context, color, onColorChanged),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    border: Border.all(color: Colors.white70, width: 1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+          ],
         ),
+        if (onDynamicChanged != null)
+          Row(
+            children: [
+              const Text(
+                '随封面变更',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              Switch(
+                value: isDynamic,
+                activeTrackColor: Colors.blueAccent,
+                onChanged: onDynamicChanged,
+              ),
+            ],
+          ),
       ],
     );
   }

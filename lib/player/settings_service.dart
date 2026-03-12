@@ -14,6 +14,11 @@ class SettingsService extends ChangeNotifier {
   static const String _keyVisGradientStop1 = 'visualizer_gradient_stop_1';
   static const String _keyVisGradientStop2 = 'visualizer_gradient_stop_2';
   static const String _keyVisGradientTileMode = 'visualizer_gradient_tile_mode';
+  static const String _keyVisualizerDynamicColor = 'visualizer_dynamic_color';
+  static const String _keyVisualizerDynamicStartColor =
+      'visualizer_dynamic_start_color';
+  static const String _keyVisualizerDynamicEndColor =
+      'visualizer_dynamic_end_color';
 
   final SharedPreferences _prefs;
   bool _isImmersiveTabBarEnabled;
@@ -28,6 +33,9 @@ class SettingsService extends ChangeNotifier {
   late double _visualizerGradientStop1;
   late double _visualizerGradientStop2;
   late int _visualizerGradientTileMode;
+  late bool _isVisualizerDynamicColor;
+  late bool _isVisualizerDynamicStartColor;
+  late bool _isVisualizerDynamicEndColor;
 
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false {
@@ -44,6 +52,12 @@ class SettingsService extends ChangeNotifier {
     _visualizerGradientStop2 = _prefs.getDouble(_keyVisGradientStop2) ?? 1.0;
     _visualizerGradientTileMode =
         _prefs.getInt(_keyVisGradientTileMode) ?? TileMode.clamp.index;
+    _isVisualizerDynamicColor =
+        _prefs.getBool(_keyVisualizerDynamicColor) ?? false;
+    _isVisualizerDynamicStartColor =
+        _prefs.getBool(_keyVisualizerDynamicStartColor) ?? false;
+    _isVisualizerDynamicEndColor =
+        _prefs.getBool(_keyVisualizerDynamicEndColor) ?? false;
   }
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
@@ -57,6 +71,9 @@ class SettingsService extends ChangeNotifier {
   double get visualizerGradientStop1 => _visualizerGradientStop1;
   double get visualizerGradientStop2 => _visualizerGradientStop2;
   int get visualizerGradientTileMode => _visualizerGradientTileMode;
+  bool get isVisualizerDynamicColor => _isVisualizerDynamicColor;
+  bool get isVisualizerDynamicStartColor => _isVisualizerDynamicStartColor;
+  bool get isVisualizerDynamicEndColor => _isVisualizerDynamicEndColor;
 
   void resetVisualizerAppearance() {
     visualizerOpacity = 0.2;
@@ -67,6 +84,9 @@ class SettingsService extends ChangeNotifier {
     visualizerGradientStop1 = 0.0;
     visualizerGradientStop2 = 1.0;
     visualizerGradientTileMode = TileMode.clamp.index;
+    isVisualizerDynamicColor = false;
+    isVisualizerDynamicStartColor = false;
+    isVisualizerDynamicEndColor = false;
   }
 
   set isImmersiveTabBarEnabled(bool value) {
@@ -127,6 +147,24 @@ class SettingsService extends ChangeNotifier {
   set visualizerGradientTileMode(int value) {
     _visualizerGradientTileMode = value;
     _prefs.setInt(_keyVisGradientTileMode, value);
+    notifyListeners();
+  }
+
+  set isVisualizerDynamicColor(bool value) {
+    _isVisualizerDynamicColor = value;
+    _prefs.setBool(_keyVisualizerDynamicColor, value);
+    notifyListeners();
+  }
+
+  set isVisualizerDynamicStartColor(bool value) {
+    _isVisualizerDynamicStartColor = value;
+    _prefs.setBool(_keyVisualizerDynamicStartColor, value);
+    notifyListeners();
+  }
+
+  set isVisualizerDynamicEndColor(bool value) {
+    _isVisualizerDynamicEndColor = value;
+    _prefs.setBool(_keyVisualizerDynamicEndColor, value);
     notifyListeners();
   }
 

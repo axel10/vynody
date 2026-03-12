@@ -3,13 +3,16 @@ import 'dart:io';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:palette_generator/palette_generator.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:image/image.dart' as img;
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
+import 'settings_service.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioVisualizerPlayerController _player;
@@ -30,7 +33,14 @@ class AudioService extends ChangeNotifier {
   final List<MusicFile> _playlist = [];
   int _currentIndex = -1;
 
-  AudioService() {
+  final SettingsService settingsService;
+  Color? _dynamicStartColor;
+  Color? _dynamicEndColor;
+
+  Color? get dynamicStartColor => _dynamicStartColor;
+  Color? get dynamicEndColor => _dynamicEndColor;
+
+  AudioService(this.settingsService) {
     _player = AudioVisualizerPlayerController();
     _player.addListener(_handlePlayerChanges);
     unawaited(_player.initialize().then((_) => _loadVisualizerOptions()));
@@ -120,6 +130,49 @@ class AudioService extends ChangeNotifier {
       ? _position.inMilliseconds / _duration.inMilliseconds
       : 0.0;
 
+  Future<void> updateDynamicColors() async {
+    await _updatePalette();
+    notifyListeners();
+  }
+
+  Future<void> _updatePalette() async {
+    if (!settingsService.isVisualizerDynamicColor &&
+        !settingsService.isVisualizerDynamicStartColor &&
+        !settingsService.isVisualizerDynamicEndColor) {
+      _dynamicStartColor = null;
+      _dynamicEndColor = null;
+      return;
+    }
+
+    ImageProvider? imageProvider;
+    if (_currentArtworkBytes != null) {
+      imageProvider = MemoryImage(_currentArtworkBytes!);
+    } else if (_currentArtworkPath != null && _currentArtworkPath!.isNotEmpty) {
+      imageProvider = FileImage(File(_currentArtworkPath!));
+    }
+
+    if (imageProvider != null) {
+      try {
+        final palette = await PaletteGenerator.fromImageProvider(
+          imageProvider,
+          maximumColorCount: 20,
+        );
+        _dynamicStartColor =
+            palette.dominantColor?.color ?? palette.vibrantColor?.color;
+        _dynamicEndColor =
+            palette.vibrantColor?.color.withOpacity(0.5) ??
+            palette.mutedColor?.color;
+      } catch (e) {
+        debugPrint('Error generating palette: $e');
+        _dynamicStartColor = null;
+        _dynamicEndColor = null;
+      }
+    } else {
+      _dynamicStartColor = null;
+      _dynamicEndColor = null;
+    }
+  }
+
   Future<void> _updateCurrentMetadata(
     String path,
     String name, {
@@ -167,6 +220,8 @@ class AudioService extends ChangeNotifier {
         debugPrint('Error querying artwork on Android: $e');
       }
     }
+
+    await _updatePalette();
     notifyListeners();
   }
 
