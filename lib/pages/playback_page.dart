@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +21,8 @@ class _PlaybackPageState extends State<PlaybackPage>
   bool _showVolumeHUD = false;
   bool _showVolumeSlider = false;
   bool _showVisualizer = true;
+  bool _isScrubbingProgress = false;
+  double _scrubProgress = 0.0;
   Timer? _hudTimer;
   Timer? _inactivityTimer;
 
@@ -32,7 +33,12 @@ class _PlaybackPageState extends State<PlaybackPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final audio = context.read<AudioService>();
+      _showVisualizer = audio.player.fftEnabled;
       _startInactivityTimer();
+      if (mounted) {
+        setState(() {});
+      }
     });
   }
 
@@ -40,6 +46,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   void dispose() {
     _hudTimer?.cancel();
     _inactivityTimer?.cancel();
+    context.read<SettingsService>().isUserInactive = false;
     super.dispose();
   }
 
@@ -58,7 +65,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     audio.next();
   }
 
-  void _handleInteraction([dynamic _]) {
+  void _handleInteraction() {
     _startInactivityTimer();
   }
 
@@ -76,6 +83,24 @@ class _PlaybackPageState extends State<PlaybackPage>
     });
   }
 
+  void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
+    audio.setVolume(audio.volume - dragDelta * 0.2);
+    _triggerHUD();
+  }
+
+  void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY) {
+    audio.setVolume(audio.volume - scrollDeltaY * 0.1);
+    _triggerHUD();
+  }
+
+  Future<void> _toggleVisualizer(AudioService audio) async {
+    final nextVisible = !_showVisualizer;
+    setState(() {
+      _showVisualizer = nextVisible;
+    });
+    await audio.player.setFftEnabled(nextVisible);
+  }
+
   IconData _getVolumeIcon(double volume) {
     if (volume <= 0) return Icons.volume_mute;
     if (volume < 75) return Icons.volume_down;
@@ -85,6 +110,15 @@ class _PlaybackPageState extends State<PlaybackPage>
   @override
   Widget build(BuildContext context) {
     final audio = context.watch<AudioService>();
+    final sliderProgress = _isScrubbingProgress
+        ? _scrubProgress
+        : audio.progress.clamp(0.0, 1.0);
+    final previewPosition = _isScrubbingProgress
+        ? Duration(
+            milliseconds: (_scrubProgress * audio.duration.inMilliseconds)
+                .round(),
+          )
+        : audio.position;
 
     if (audio.currentFilePath == null) {
       return const Center(
@@ -111,6 +145,9 @@ class _PlaybackPageState extends State<PlaybackPage>
         _handleInteraction();
       },
       onPointerMove: (event) {
+        _handleInteraction();
+      },
+      onPointerHover: (event) {
         _handleInteraction();
       },
       child: OrientationBuilder(
@@ -199,187 +236,198 @@ class _PlaybackPageState extends State<PlaybackPage>
             ),
           );
 
-          final controls = GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onVerticalDragUpdate: (details) {
-              final delta = details.primaryDelta ?? 0;
-              audio.setVolume(audio.volume - delta * 0.2);
-              _triggerHUD();
-            },
-            child: Listener(
-              onPointerSignal: (pointerSignal) {
-                if (pointerSignal is PointerScrollEvent) {
-                  audio.setVolume(
-                    audio.volume - pointerSignal.scrollDelta.dy * 0.1,
-                  );
-                  _triggerHUD();
-                }
-              },
-              child: Column(
+          final controls = Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isLandscape ? 450 : screenWidth * 0.9,
+                ),
+                child: Text(
+                  audio.currentFileName ?? '未知',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Top menu bar for secondary controls
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: isLandscape ? 450 : screenWidth * 0.9,
-                    ),
-                    child: Text(
-                      audio.currentFileName ?? '未知',
+                  SizedBox.shrink(), // Placeholder if needed
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.more_horiz, color: Colors.white70),
+                    onPressed: () => _showMoreMenu(context, audio),
+                    tooltip: '更多选项',
+                  ),
+                ],
+              ),
+              SizedBox(height: isLandscape ? 8 : 16),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 4,
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 14,
+                  ),
+                  activeTrackColor: Colors.white,
+                  inactiveTrackColor: Colors.white24,
+                  thumbColor: Colors.white,
+                ),
+                child: Slider(
+                  value: sliderProgress,
+                  onChangeStart: (val) {
+                    _handleInteraction();
+                    setState(() {
+                      _isScrubbingProgress = true;
+                      _scrubProgress = val;
+                    });
+                  },
+                  onChanged: (val) {
+                    setState(() {
+                      _isScrubbingProgress = true;
+                      _scrubProgress = val;
+                    });
+                  },
+                  onChangeEnd: (val) {
+                    final target = Duration(
+                      milliseconds: (val * audio.duration.inMilliseconds)
+                          .round(),
+                    );
+                    setState(() {
+                      _isScrubbingProgress = false;
+                      _scrubProgress = val;
+                    });
+                    audio.seek(target);
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatDuration(previewPosition),
                       style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Colors.white70,
+                        fontSize: 12,
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      _formatDuration(audio.duration),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      _showVisualizer
+                          ? Icons.analytics
+                          : Icons.analytics_outlined,
+                      size: 28,
+                      color: _showVisualizer ? Colors.white : Colors.white70,
+                    ),
+                    onPressed: () {
+                      _toggleVisualizer(audio);
+                    },
+                    tooltip: '音频可视化',
+                  ),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.skip_previous_rounded,
+                      size: 48,
+                      color: Colors.white,
+                    ),
+                    onPressed: audio.previous,
+                  ),
+                  const SizedBox(width: 24),
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                    child: IconButton(
+                      onPressed: audio.togglePlay,
+                      icon: Icon(
+                        audio.isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        size: 40,
+                        color: Colors.black,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // Top menu bar for secondary controls
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox.shrink(), // Placeholder if needed
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.more_horiz,
-                          color: Colors.white70,
-                        ),
-                        onPressed: () => _showMoreMenu(context, audio),
-                        tooltip: '更多选项',
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: isLandscape ? 8 : 16),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 4,
-                      thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: 6,
-                      ),
-                      overlayShape: const RoundSliderOverlayShape(
-                        overlayRadius: 14,
-                      ),
-                      activeTrackColor: Colors.white,
-                      inactiveTrackColor: Colors.white24,
-                      thumbColor: Colors.white,
+                  const SizedBox(width: 24),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.skip_next_rounded,
+                      size: 48,
+                      color: Colors.white,
                     ),
-                    child: Slider(
-                      value: audio.progress.clamp(0.0, 1.0),
-                      onChanged: (val) {
-                        final position = Duration(
-                          milliseconds: (val * audio.duration.inMilliseconds)
-                              .toInt(),
-                        );
-                        audio.seek(position);
+                    // onPressed: audio.next,
+                    onPressed: () => toNextMusic(audio),
+                  ),
+                  const SizedBox(width: 16),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onVerticalDragUpdate: (details) {
+                      _handleInteraction();
+                      _adjustVolumeFromDrag(audio, details.primaryDelta ?? 0);
+                    },
+                    child: Listener(
+                      onPointerSignal: (pointerSignal) {
+                        if (pointerSignal is PointerScrollEvent) {
+                          _handleInteraction();
+                          _adjustVolumeFromScroll(
+                            audio,
+                            pointerSignal.scrollDelta.dy,
+                          );
+                        }
                       },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatDuration(audio.position),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          _formatDuration(audio.duration),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          _showVisualizer
-                              ? Icons.analytics
-                              : Icons.analytics_outlined,
-                          size: 28,
-                          color: _showVisualizer
-                              ? Colors.white
-                              : Colors.white70,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _showVisualizer = !_showVisualizer;
-                          });
-                        },
-                        tooltip: '音频可视化',
-                      ),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.skip_previous_rounded,
-                          size: 48,
-                          color: Colors.white,
-                        ),
-                        onPressed: audio.previous,
-                      ),
-                      const SizedBox(width: 24),
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                        ),
-                        child: IconButton(
-                          onPressed: audio.togglePlay,
-                          icon: Icon(
-                            audio.isPlaying
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
-                            size: 40,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.skip_next_rounded,
-                          size: 48,
-                          color: Colors.white,
-                        ),
-                        // onPressed: audio.next,
-                        onPressed: () => toNextMusic(audio),
-                      ),
-                      const SizedBox(width: 16),
-                      IconButton(
+                      child: IconButton(
                         icon: Icon(
                           _getVolumeIcon(audio.volume),
                           size: 28,
                           color: Colors.white70,
                         ),
                         onPressed: () {
+                          _handleInteraction();
                           setState(() {
                             _showVolumeSlider = !_showVolumeSlider;
                           });
                         },
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-            ),
+            ],
           );
 
           Widget content;
@@ -552,38 +600,52 @@ class _PlaybackPageState extends State<PlaybackPage>
                                           ),
                                           const SizedBox(width: 8),
                                           Expanded(
-                                            child: Listener(
-                                              onPointerSignal: (pointerSignal) {
-                                                if (pointerSignal
-                                                    is PointerScrollEvent) {
-                                                  audio.setVolume(
-                                                    audio.volume -
-                                                        pointerSignal
-                                                                .scrollDelta
-                                                                .dy *
-                                                            0.1,
-                                                  );
-                                                }
+                                            child: GestureDetector(
+                                              behavior: HitTestBehavior.opaque,
+                                              onVerticalDragUpdate: (details) {
+                                                _handleInteraction();
+                                                _adjustVolumeFromDrag(
+                                                  audio,
+                                                  details.primaryDelta ?? 0,
+                                                );
                                               },
-                                              child: SliderTheme(
-                                                data: SliderTheme.of(context)
-                                                    .copyWith(
-                                                      activeTrackColor:
-                                                          Colors.white,
-                                                      inactiveTrackColor:
-                                                          Colors.white24,
-                                                      thumbColor: Colors.white,
-                                                      overlayColor: Colors.white
-                                                          .withValues(
-                                                            alpha: 0.2,
-                                                          ),
-                                                    ),
-                                                child: Slider(
-                                                  value: audio.volume,
-                                                  min: 0,
-                                                  max: 100,
-                                                  onChanged: (val) =>
-                                                      audio.setVolume(val),
+                                              child: Listener(
+                                                onPointerSignal: (pointerSignal) {
+                                                  if (pointerSignal
+                                                      is PointerScrollEvent) {
+                                                    _handleInteraction();
+                                                    _adjustVolumeFromScroll(
+                                                      audio,
+                                                      pointerSignal
+                                                          .scrollDelta
+                                                          .dy,
+                                                    );
+                                                  }
+                                                },
+                                                child: SliderTheme(
+                                                  data: SliderTheme.of(context)
+                                                      .copyWith(
+                                                        activeTrackColor:
+                                                            Colors.white,
+                                                        inactiveTrackColor:
+                                                            Colors.white24,
+                                                        thumbColor:
+                                                            Colors.white,
+                                                        overlayColor: Colors
+                                                            .white
+                                                            .withValues(
+                                                              alpha: 0.2,
+                                                            ),
+                                                      ),
+                                                  child: Slider(
+                                                    value: audio.volume,
+                                                    min: 0,
+                                                    max: 100,
+                                                    onChanged: (val) {
+                                                      _handleInteraction();
+                                                      audio.setVolume(val);
+                                                    },
+                                                  ),
                                                 ),
                                               ),
                                             ),

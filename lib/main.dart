@@ -110,6 +110,17 @@ class _MainLayoutState extends State<MainLayout> {
   late PageController _pageController;
   int _currentIndex = 0;
 
+  void _handleDesktopPointerActivity(PointerEvent _) {
+    if (_currentIndex != 1) {
+      // if (!Platform.isWindows || _currentIndex != 1) {
+      return;
+    }
+    final settings = context.read<SettingsService>();
+    if (settings.isImmersiveTabBarEnabled && settings.isUserInactive) {
+      settings.isUserInactive = false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -210,6 +221,7 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsService>();
+    final theme = Theme.of(context);
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final List<Widget> pages = [
@@ -229,115 +241,141 @@ class _MainLayoutState extends State<MainLayout> {
     ];
 
     final bool isPlayback = _currentIndex == 1;
+    final navBgBaseColor =
+        theme.navigationBarTheme.backgroundColor ?? theme.colorScheme.surface;
+    final navIndicatorBaseColor =
+        theme.navigationBarTheme.indicatorColor ??
+        theme.colorScheme.secondaryContainer;
+    final navBgOpacityTarget = isPlayback ? 0.0 : 1.0;
 
     return ListenableProvider<PageController>.value(
       value: _pageController,
-      child: Scaffold(
-        extendBody: true,
-        body: Stack(
-          children: [
-            PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              children: pages,
-            ),
-            if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Column(
-                  children: [
-                    DragToMoveArea(
-                      child: SizedBox(
-                        height: 32,
-                        child: WindowCaption(
-                          brightness: isPlayback
-                              ? Brightness.dark
-                              : Theme.of(context).brightness,
-                          backgroundColor: Colors.transparent,
-                          title: const SizedBox(),
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerMove: _handleDesktopPointerActivity,
+        onPointerHover: _handleDesktopPointerActivity,
+        child: Scaffold(
+          extendBody: true,
+          body: Stack(
+            children: [
+              PageView(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                children: pages,
+              ),
+              if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Column(
+                    children: [
+                      DragToMoveArea(
+                        child: SizedBox(
+                          height: 32,
+                          child: WindowCaption(
+                            brightness: isPlayback
+                                ? Brightness.dark
+                                : theme.brightness,
+                            backgroundColor: Colors.transparent,
+                            title: const SizedBox(),
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          bottomNavigationBar: AnimatedOpacity(
+            duration: const Duration(milliseconds: 500),
+            opacity:
+                (isPlayback &&
+                    settings.isImmersiveTabBarEnabled &&
+                    settings.isUserInactive)
+                ? 0.0
+                : 1.0,
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
+              tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
+              builder: (context, animatedOpacity, child) {
+                return NavigationBar(
+                  height: 60,
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+                  selectedIndex: _currentIndex,
+                  backgroundColor: Color.lerp(
+                    Colors.transparent,
+                    navBgBaseColor,
+                    animatedOpacity,
+                  ),
+                  elevation: 0,
+                  indicatorColor: Color.lerp(
+                    Colors.transparent,
+                    navIndicatorBaseColor,
+                    animatedOpacity,
+                  ),
+                  onDestinationSelected: _onDestinationSelected,
+                  destinations: [
+                    NavigationDestination(
+                      icon: Icon(
+                        Icons.folder_outlined,
+                        color: isPlayback ? Colors.white70 : null,
+                      ),
+                      selectedIcon: Icon(
+                        Icons.folder,
+                        color: isPlayback ? Colors.white : null,
+                      ),
+                      label: '文件',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(
+                        Icons.play_circle_outline,
+                        color: isPlayback ? Colors.white70 : null,
+                      ),
+                      selectedIcon: Icon(
+                        Icons.play_circle,
+                        color: isPlayback ? Colors.white : null,
+                      ),
+                      label: '播放',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(
+                        Icons.playlist_play_outlined,
+                        color: isPlayback ? Colors.white70 : null,
+                      ),
+                      selectedIcon: Icon(
+                        Icons.playlist_play,
+                        color: isPlayback ? Colors.white : null,
+                      ),
+                      label: '列表',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(
+                        Icons.queue_music_outlined,
+                        color: isPlayback ? Colors.white70 : null,
+                      ),
+                      selectedIcon: Icon(
+                        Icons.queue_music,
+                        color: isPlayback ? Colors.white : null,
+                      ),
+                      label: '队列',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(
+                        Icons.more_horiz_outlined,
+                        color: isPlayback ? Colors.white70 : null,
+                      ),
+                      selectedIcon: Icon(
+                        Icons.more_horiz,
+                        color: isPlayback ? Colors.white : null,
+                      ),
+                      label: '更多',
                     ),
                   ],
-                ),
-              ),
-          ],
-        ),
-        bottomNavigationBar: AnimatedOpacity(
-          duration: const Duration(milliseconds: 500),
-          opacity:
-              (isPlayback &&
-                  settings.isImmersiveTabBarEnabled &&
-                  settings.isUserInactive)
-              ? 0.0
-              : 1.0,
-          child: NavigationBar(
-            height: 60,
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-            selectedIndex: _currentIndex,
-            backgroundColor: isPlayback ? Colors.transparent : null,
-            elevation: 0,
-            indicatorColor: isPlayback ? Colors.transparent : null,
-            onDestinationSelected: _onDestinationSelected,
-            destinations: [
-              NavigationDestination(
-                icon: Icon(
-                  Icons.folder_outlined,
-                  color: isPlayback ? Colors.white70 : null,
-                ),
-                selectedIcon: Icon(
-                  Icons.folder,
-                  color: isPlayback ? Colors.white : null,
-                ),
-                label: '文件',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.play_circle_outline,
-                  color: isPlayback ? Colors.white70 : null,
-                ),
-                selectedIcon: Icon(
-                  Icons.play_circle,
-                  color: isPlayback ? Colors.white : null,
-                ),
-                label: '播放',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.playlist_play_outlined,
-                  color: isPlayback ? Colors.white70 : null,
-                ),
-                selectedIcon: Icon(
-                  Icons.playlist_play,
-                  color: isPlayback ? Colors.white : null,
-                ),
-                label: '列表',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.queue_music_outlined,
-                  color: isPlayback ? Colors.white70 : null,
-                ),
-                selectedIcon: Icon(
-                  Icons.queue_music,
-                  color: isPlayback ? Colors.white : null,
-                ),
-                label: '队列',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.more_horiz_outlined,
-                  color: isPlayback ? Colors.white70 : null,
-                ),
-                selectedIcon: Icon(
-                  Icons.more_horiz,
-                  color: isPlayback ? Colors.white : null,
-                ),
-                label: '更多',
-              ),
-            ],
+                );
+              },
+            ),
           ),
         ),
       ),
