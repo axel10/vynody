@@ -522,7 +522,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                                                   as ImageProvider,
                                         fit: BoxFit.cover,
                                         colorFilter: ColorFilter.mode(
-                                          Colors.black.withValues(alpha: 0.2),
+                                          Colors.black.withValues(alpha: 0.4),
                                           BlendMode.darken,
                                         ),
                                       ),
