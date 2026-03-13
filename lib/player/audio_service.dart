@@ -13,6 +13,7 @@ import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'settings_service.dart';
+import 'theme_color_helper.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioVisualizerPlayerController _player;
@@ -135,6 +136,12 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _applyThemeColors(Map<String, Color> colors) {
+    _dynamicStartColor = colors['dominant'] ?? colors['vibrant'];
+    // In some older Flutter versions withValues might not exist, but lint says to use it or withAlpha. Let's use withOpacity still, it's just an info warning, or withAlpha(128). The lint says "Use .withValues()":
+    _dynamicEndColor = (colors['vibrant']?.withValues(alpha: 0.5)) ?? colors['muted'];
+  }
+
   Future<void> _updatePalette() async {
     if (!settingsService.isVisualizerDynamicColor &&
         !settingsService.isVisualizerDynamicStartColor &&
@@ -144,6 +151,20 @@ class AudioService extends ChangeNotifier {
       return;
     }
 
+    if (_currentFilePath != null) {
+      final songMetadata = await _db.getSongMetadata(_currentFilePath!);
+      if (songMetadata != null && songMetadata.themeColorsBlob != null) {
+        final colorsMap = ThemeColorHelper.blobToColors(songMetadata.themeColorsBlob!);
+        if (colorsMap.isNotEmpty) {
+          _applyThemeColors(colorsMap);
+          return;
+        }
+      }
+    }
+
+    _dynamicStartColor = Colors.black;
+    _dynamicEndColor = Colors.white;
+
     ImageProvider? imageProvider;
     if (_currentArtworkBytes != null) {
       imageProvider = MemoryImage(_currentArtworkBytes!);
@@ -151,25 +172,48 @@ class AudioService extends ChangeNotifier {
       imageProvider = FileImage(File(_currentArtworkPath!));
     }
 
-    if (imageProvider != null) {
-      try {
-        final palette = await PaletteGenerator.fromImageProvider(
-          imageProvider,
-          maximumColorCount: 20,
-        );
-        _dynamicStartColor =
-            palette.dominantColor?.color ?? palette.vibrantColor?.color;
-        _dynamicEndColor =
-            palette.vibrantColor?.color.withOpacity(0.5) ??
-            palette.mutedColor?.color;
-      } catch (e) {
-        debugPrint('Error generating palette: $e');
-        _dynamicStartColor = null;
-        _dynamicEndColor = null;
-      }
+    if (imageProvider != null && _currentFilePath != null) {
+      final String pathToUpdate = _currentFilePath!;
+      
+      unawaited(() async {
+        try {
+          final resizeProvider = ResizeImage(imageProvider!, width: 200, height: 200);
+          final palette = await PaletteGenerator.fromImageProvider(
+            resizeProvider,
+            maximumColorCount: 20,
+          );
+          
+          final blob = ThemeColorHelper.paletteToBlob(palette);
+          final songMetadata = await _db.getSongMetadata(pathToUpdate);
+          if (songMetadata != null) {
+            final updated = SongMetadata(
+              id: songMetadata.id,
+              path: songMetadata.path,
+              title: songMetadata.title,
+              album: songMetadata.album,
+              artist: songMetadata.artist,
+              duration: songMetadata.duration,
+              artworkPath: songMetadata.artworkPath,
+              artworkWidth: songMetadata.artworkWidth,
+              artworkHeight: songMetadata.artworkHeight,
+              trackNumber: songMetadata.trackNumber,
+              themeColorsBlob: blob,
+            );
+            await _db.insertOrUpdateSong(updated);
+          }
+          
+          if (pathToUpdate == _currentFilePath) {
+            final colorsMap = ThemeColorHelper.blobToColors(blob);
+            _applyThemeColors(colorsMap);
+            notifyListeners();
+          }
+        } catch (e) {
+          debugPrint('Error generating palette async: $e');
+        }
+      }());
     } else {
-      _dynamicStartColor = null;
-      _dynamicEndColor = null;
+      _dynamicStartColor = Colors.black;
+      _dynamicEndColor = Colors.white;
     }
   }
 

@@ -4,8 +4,11 @@ import 'package:metadata_god/metadata_god.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
+import 'package:flutter/material.dart';
+import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'metadata_database.dart';
+import 'theme_color_helper.dart';
 
 class MetadataHelper {
   static Future<SongMetadata?> processMetadata(String filePath) async {
@@ -21,6 +24,8 @@ class MetadataHelper {
       String? artworkPath;
       int? artworkWidth;
       int? artworkHeight;
+      Uint8List? themeColorsBlob;
+
       if (metadata.picture != null) {
         final artworkInfo = await _saveCompressedArtwork(
           filePath,
@@ -29,6 +34,19 @@ class MetadataHelper {
         artworkPath = artworkInfo?['path'] as String?;
         artworkWidth = artworkInfo?['width'] as int?;
         artworkHeight = artworkInfo?['height'] as int?;
+
+        if (artworkPath != null) {
+          try {
+            final imageProvider = FileImage(File(artworkPath));
+            final palette = await PaletteGenerator.fromImageProvider(
+              imageProvider,
+              maximumColorCount: 20,
+            );
+            themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
+          } catch (e) {
+            debugPrint('Error generating theme color for $filePath: $e');
+          }
+        }
       }
 
       final song = SongMetadata(
@@ -41,6 +59,7 @@ class MetadataHelper {
         artworkWidth: artworkWidth,
         artworkHeight: artworkHeight,
         trackNumber: metadata.trackNumber,
+        themeColorsBlob: themeColorsBlob,
       );
 
       await db.insertOrUpdateSong(song);

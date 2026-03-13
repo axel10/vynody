@@ -43,11 +43,19 @@ class _PlaybackPageState extends State<PlaybackPage>
     });
   }
 
+  SettingsService? _settingsService;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _settingsService ??= context.read<SettingsService>();
+  }
+
   @override
   void dispose() {
     _hudTimer?.cancel();
     _inactivityTimer?.cancel();
-    context.read<SettingsService>().isUserInactive = false;
+    _settingsService?.isUserInactive = false;
     super.dispose();
   }
 

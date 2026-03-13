@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -14,6 +15,7 @@ class SongMetadata {
   final int? artworkWidth;
   final int? artworkHeight;
   final int? trackNumber;
+  final Uint8List? themeColorsBlob;
 
   SongMetadata({
     this.id,
@@ -26,6 +28,7 @@ class SongMetadata {
     this.artworkWidth,
     this.artworkHeight,
     this.trackNumber,
+    this.themeColorsBlob,
   });
 
   Map<String, dynamic> toMap() {
@@ -39,6 +42,7 @@ class SongMetadata {
       'artworkWidth': artworkWidth,
       'artworkHeight': artworkHeight,
       'trackNumber': trackNumber,
+      'themeColorsBlob': themeColorsBlob,
     };
   }
 
@@ -54,6 +58,7 @@ class SongMetadata {
       artworkWidth: map['artworkWidth'],
       artworkHeight: map['artworkHeight'],
       trackNumber: map['trackNumber'],
+      themeColorsBlob: map['themeColorsBlob'] as Uint8List?,
     );
   }
 }
@@ -83,7 +88,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -96,7 +101,8 @@ class MetadataDatabase {
             artworkPath TEXT,
             artworkWidth INTEGER,
             artworkHeight INTEGER,
-            trackNumber INTEGER
+            trackNumber INTEGER,
+            themeColorsBlob BLOB
           )
         ''');
       },
@@ -108,7 +114,10 @@ class MetadataDatabase {
           );
         }
         if (oldVersion < 3) {
-          await db.execute('ALTER TABLE songs ADD COLUMN trackNumber INTEGER');
+          await db.execute('ALTER TABLE songs ADD COLUMN trackNumber INTEGER'); 
+        }
+        if (oldVersion < 4) {
+          await db.execute('ALTER TABLE songs ADD COLUMN themeColorsBlob BLOB'); 
         }
       },
     );

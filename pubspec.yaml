@@ -56,7 +56,7 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.24
   flutter_image_compress: ^2.4.0
   shared_preferences: ^2.5.2
-  image: ^4.5.2
+  image: ^4.8.0
 
   window_manager: ^0.5.1
   desktop_drop: ^0.7.0

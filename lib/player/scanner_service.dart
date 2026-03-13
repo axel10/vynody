@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:palette_generator/palette_generator.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -11,6 +14,7 @@ import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
+import 'theme_color_helper.dart';
 
 enum SortCriteria { title, filename, trackNumber }
 
@@ -228,8 +232,57 @@ class ScannerService extends ChangeNotifier {
       _systemMediaFolder = _organizeSongsIntoFolders(songs);
       _sortFolderRecursive(_systemMediaFolder!);
       notifyListeners();
+
+      unawaited(_processAndSaveAndroidSongsBackground(songs));
     } catch (e) {
       debugPrint('Error scanning system media: $e');
+    }
+  }
+
+  Future<void> _processAndSaveAndroidSongsBackground(List<SongModel> songs) async {
+    final db = MetadataDatabase();
+    for (var song in songs) {
+      try {
+        final existing = await db.getSongMetadata(song.data);
+        if (existing != null && existing.themeColorsBlob != null) {
+          continue;
+        }
+
+        Uint8List? themeColorsBlob;
+        final artworkBytes = await _audioQuery.queryArtwork(
+          song.id,
+          ArtworkType.AUDIO,
+          format: ArtworkFormat.JPEG,
+          size: 200,
+          quality: 100,
+        );
+
+        if (artworkBytes != null) {
+          final imageProvider = MemoryImage(artworkBytes);
+          final palette = await PaletteGenerator.fromImageProvider(
+            imageProvider,
+            maximumColorCount: 20,
+          );
+          themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
+        }
+
+        final songMetadata = SongMetadata(
+          path: song.data,
+          title: song.title,
+          album: song.album ?? '',
+          artist: song.artist ?? '',
+          duration: song.duration,
+          trackNumber: song.track,
+          themeColorsBlob: themeColorsBlob,
+        );
+
+        await db.insertOrUpdateSong(songMetadata);
+      } catch (e) {
+        debugPrint('Background processing error for ${song.data}: $e');
+      }
+
+      // Yield to event loop to avoid UI jank
+      await Future.delayed(const Duration(milliseconds: 100));
     }
   }
 
