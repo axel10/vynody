@@ -137,8 +137,9 @@ class ScannerService extends ChangeNotifier {
   Future<void> _loadRootPaths() async {
     final prefs = await SharedPreferences.getInstance();
     final paths = prefs.getStringList('root_paths') ?? [];
+    final normalizedPaths = paths.map(_normalizePath).toSet().toList();
     _rootPaths.clear();
-    _rootPaths.addAll(paths);
+    _rootPaths.addAll(normalizedPaths);
     notifyListeners();
   }
 
@@ -155,27 +156,40 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  Future<void> addRootPath(String path) async {
-    if (_rootPaths.contains(path)) return;
-    _rootPaths.add(path);
+  Future<bool> addRootPath(String path) async {
+    final normalizedPath = _normalizePath(path);
+    if (_rootPaths.any((existing) => _pathsEqual(existing, normalizedPath))) {
+      final existingFolder = _rootFolders.firstWhereOrNull(
+        (folder) => _pathsEqual(folder.path, normalizedPath),
+      );
+      return existingFolder != null && !existingFolder.isEmpty;
+    }
+
+    _rootPaths.add(normalizedPath);
     await _saveRootPaths();
     notifyListeners();
 
     if (Platform.isAndroid) {
       try {
-        await MediaScanner.loadMedia(path: path);
+        await MediaScanner.loadMedia(path: normalizedPath);
       } catch (e) {
         debugPrint('MediaScanner error: $e');
       }
     }
 
     await scan();
+
+    final addedFolder = _rootFolders.firstWhereOrNull(
+      (folder) => _pathsEqual(folder.path, normalizedPath),
+    );
+    return addedFolder != null && !addedFolder.isEmpty;
   }
 
   Future<void> removeRootPath(String path) async {
-    _rootPaths.remove(path);
+    final normalizedPath = _normalizePath(path);
+    _rootPaths.removeWhere((existing) => _pathsEqual(existing, normalizedPath));
     await _saveRootPaths();
-    _rootFolders.removeWhere((f) => f.path == path);
+    _rootFolders.removeWhere((f) => _pathsEqual(f.path, normalizedPath));
     notifyListeners();
   }
 
@@ -239,7 +253,9 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  Future<void> _processAndSaveAndroidSongsBackground(List<SongModel> songs) async {
+  Future<void> _processAndSaveAndroidSongsBackground(
+    List<SongModel> songs,
+  ) async {
     final db = MetadataDatabase();
     for (var song in songs) {
       try {
@@ -398,9 +414,9 @@ class ScannerService extends ChangeNotifier {
           }
 
           final folder = await _scanDirectory(path);
-          if (folder != null) {
-            _rootFolders.add(folder);
-          }
+          _rootFolders.add(
+            folder ?? MusicFolder(path: path, name: _displayNameForPath(path)),
+          );
         }
       } else {
         debugPrint('Scan aborted: Permission not granted.');
@@ -451,7 +467,9 @@ class ScannerService extends ChangeNotifier {
     final List<MusicFile> files = [];
 
     try {
-      final List<FileSystemEntity> entities = await dir.list().toList();
+      final List<FileSystemEntity> entities = await dir
+          .list(followLinks: false)
+          .toList();
       debugPrint('Scanning $path: Found ${entities.length} entities');
 
       for (var entity in entities) {
@@ -472,7 +490,9 @@ class ScannerService extends ChangeNotifier {
             int? trackNumber;
 
             if (Platform.isWindows) {
-              final metadata = await MetadataHelper.processMetadata(
+              // Avoid expensive per-file parsing during directory crawl.
+              // Thumbnail/title metadata is loaded lazily when list items build.
+              final metadata = await MetadataDatabase().getSongMetadata(
                 entity.path,
               );
               if (metadata != null) {
@@ -502,11 +522,49 @@ class ScannerService extends ChangeNotifier {
 
     return MusicFolder(
       path: path,
-      name: p.basename(path),
+      name: _displayNameForPath(path),
       subFolders: subFolders
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
       files: files
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
     );
+  }
+
+  String _normalizePath(String path) {
+    var normalized = p.normalize(path.trim());
+    if (Platform.isWindows) {
+      normalized = normalized.replaceAll('/', r'\');
+      if (normalized.length > 3 && normalized.endsWith(r'\')) {
+        normalized = normalized.substring(0, normalized.length - 1);
+      }
+    } else if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    return normalized;
+  }
+
+  bool _pathsEqual(String left, String right) {
+    final normalizedLeft = _normalizePath(left);
+    final normalizedRight = _normalizePath(right);
+    if (Platform.isWindows) {
+      return normalizedLeft.toLowerCase() == normalizedRight.toLowerCase();
+    }
+    return normalizedLeft == normalizedRight;
+  }
+
+  String _displayNameForPath(String path) {
+    final normalizedPath = _normalizePath(path);
+    final basename = p.basename(normalizedPath);
+    if (basename.isNotEmpty) return basename;
+
+    if (Platform.isWindows) {
+      var drive = p.rootPrefix(normalizedPath);
+      if (drive.endsWith(r'\') || drive.endsWith('/')) {
+        drive = drive.substring(0, drive.length - 1);
+      }
+      if (drive.isNotEmpty) return drive;
+    }
+
+    return normalizedPath;
   }
 }

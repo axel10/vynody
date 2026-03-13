@@ -6,13 +6,13 @@ import 'package:palette_generator/palette_generator.dart';
 class ThemeColorHelper {
   static Uint8List paletteToBlob(PaletteGenerator palette) {
     final Map<String, int> colors = {};
-    
+
     // Helper to get ARGB32 integer representation across flutter versions
     int getColorValue(Color color) {
       // ignore: deprecated_member_use
       return color.value;
     }
-    
+
     if (palette.dominantColor != null) {
       colors['dominant'] = getColorValue(palette.dominantColor!.color);
     }
@@ -34,7 +34,7 @@ class ThemeColorHelper {
     if (palette.darkMutedColor != null) {
       colors['darkMuted'] = getColorValue(palette.darkMutedColor!.color);
     }
-    
+
     final jsonStr = jsonEncode(colors);
     return Uint8List.fromList(utf8.encode(jsonStr));
   }
@@ -44,7 +44,7 @@ class ThemeColorHelper {
       final jsonStr = utf8.decode(blob);
       final Map<String, dynamic> decoded = jsonDecode(jsonStr);
       final Map<String, Color> colors = {};
-      
+
       decoded.forEach((key, value) {
         if (value is int) {
           colors[key] = Color(value);

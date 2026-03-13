@@ -43,7 +43,18 @@ class _FoldersPageState extends State<FoldersPage> {
   Future<void> _pickFolder(ScannerService scanner) async {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     if (selectedDirectory != null) {
-      await scanner.addRootPath(selectedDirectory);
+      if (!mounted) return;
+
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(const SnackBar(content: Text('正在扫描目录...')));
+
+      final hasMusic = await scanner.addRootPath(selectedDirectory);
+
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(content: Text(hasMusic ? '目录添加成功' : '目录已添加，但未发现可播放音频文件')),
+      );
     }
   }
 

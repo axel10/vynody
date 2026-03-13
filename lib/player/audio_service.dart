@@ -139,7 +139,8 @@ class AudioService extends ChangeNotifier {
   void _applyThemeColors(Map<String, Color> colors) {
     _dynamicStartColor = colors['dominant'] ?? colors['vibrant'];
     // In some older Flutter versions withValues might not exist, but lint says to use it or withAlpha. Let's use withOpacity still, it's just an info warning, or withAlpha(128). The lint says "Use .withValues()":
-    _dynamicEndColor = (colors['vibrant']?.withValues(alpha: 0.5)) ?? colors['muted'];
+    _dynamicEndColor =
+        (colors['vibrant']?.withValues(alpha: 0.5)) ?? colors['muted'];
   }
 
   Future<void> _updatePalette() async {
@@ -154,7 +155,9 @@ class AudioService extends ChangeNotifier {
     if (_currentFilePath != null) {
       final songMetadata = await _db.getSongMetadata(_currentFilePath!);
       if (songMetadata != null && songMetadata.themeColorsBlob != null) {
-        final colorsMap = ThemeColorHelper.blobToColors(songMetadata.themeColorsBlob!);
+        final colorsMap = ThemeColorHelper.blobToColors(
+          songMetadata.themeColorsBlob!,
+        );
         if (colorsMap.isNotEmpty) {
           _applyThemeColors(colorsMap);
           return;
@@ -174,15 +177,19 @@ class AudioService extends ChangeNotifier {
 
     if (imageProvider != null && _currentFilePath != null) {
       final String pathToUpdate = _currentFilePath!;
-      
+
       unawaited(() async {
         try {
-          final resizeProvider = ResizeImage(imageProvider!, width: 200, height: 200);
+          final resizeProvider = ResizeImage(
+            imageProvider!,
+            width: 200,
+            height: 200,
+          );
           final palette = await PaletteGenerator.fromImageProvider(
             resizeProvider,
             maximumColorCount: 20,
           );
-          
+
           final blob = ThemeColorHelper.paletteToBlob(palette);
           final songMetadata = await _db.getSongMetadata(pathToUpdate);
           if (songMetadata != null) {
@@ -201,7 +208,7 @@ class AudioService extends ChangeNotifier {
             );
             await _db.insertOrUpdateSong(updated);
           }
-          
+
           if (pathToUpdate == _currentFilePath) {
             final colorsMap = ThemeColorHelper.blobToColors(blob);
             _applyThemeColors(colorsMap);

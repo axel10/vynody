@@ -3,7 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  audio_visualizer_player
   desktop_drop
   media_kit_libs_windows_audio
   permission_handler_windows
@@ -13,6 +12,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+  audio_visualizer_player
   metadata_god
 )
 

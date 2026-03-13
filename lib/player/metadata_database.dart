@@ -108,19 +108,42 @@ class MetadataDatabase {
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          await db.execute('ALTER TABLE songs ADD COLUMN artworkWidth INTEGER');
-          await db.execute(
-            'ALTER TABLE songs ADD COLUMN artworkHeight INTEGER',
-          );
+          if (!await _columnExists(db, 'songs', 'artworkWidth')) {
+            await db.execute(
+              'ALTER TABLE songs ADD COLUMN artworkWidth INTEGER',
+            );
+          }
+          if (!await _columnExists(db, 'songs', 'artworkHeight')) {
+            await db.execute(
+              'ALTER TABLE songs ADD COLUMN artworkHeight INTEGER',
+            );
+          }
         }
         if (oldVersion < 3) {
-          await db.execute('ALTER TABLE songs ADD COLUMN trackNumber INTEGER'); 
+          if (!await _columnExists(db, 'songs', 'trackNumber')) {
+            await db.execute(
+              'ALTER TABLE songs ADD COLUMN trackNumber INTEGER',
+            );
+          }
         }
         if (oldVersion < 4) {
-          await db.execute('ALTER TABLE songs ADD COLUMN themeColorsBlob BLOB'); 
+          if (!await _columnExists(db, 'songs', 'themeColorsBlob')) {
+            await db.execute(
+              'ALTER TABLE songs ADD COLUMN themeColorsBlob BLOB',
+            );
+          }
         }
       },
     );
+  }
+
+  Future<bool> _columnExists(
+    DatabaseExecutor db,
+    String table,
+    String column,
+  ) async {
+    final rows = await db.rawQuery('PRAGMA table_info($table)');
+    return rows.any((row) => row['name'] == column);
   }
 
   Future<void> insertOrUpdateSong(SongMetadata song) async {
