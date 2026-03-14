@@ -47,12 +47,20 @@ class WaveformProgressBar extends StatelessWidget {
           child: SizedBox(
             height: 60,
             width: double.infinity,
-            child: CustomPaint(
-              painter: WaveformPainter(
-                waveform: waveform,
-                progress: progress,
-                activeColor: activeColor,
-                inactiveColor: inactiveColor,
+            child: ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [activeColor, inactiveColor],
+                  stops: [progress, progress],
+                ).createShader(bounds);
+              },
+              blendMode: BlendMode.srcIn,
+              child: CustomPaint(
+                painter: WaveformPainter(
+                  waveform: waveform,
+                ),
               ),
             ),
           ),
@@ -64,15 +72,9 @@ class WaveformProgressBar extends StatelessWidget {
 
 class WaveformPainter extends CustomPainter {
   final List<double> waveform;
-  final double progress;
-  final Color activeColor;
-  final Color inactiveColor;
 
   WaveformPainter({
     required this.waveform,
-    required this.progress,
-    required this.activeColor,
-    required this.inactiveColor,
   });
 
   @override
@@ -80,7 +82,7 @@ class WaveformPainter extends CustomPainter {
     if (waveform.isEmpty) {
       // Draw a simple line if no waveform data
       final paint = Paint()
-        ..color = inactiveColor
+        ..color = Colors.white
         ..strokeWidth = 2;
       canvas.drawLine(
         Offset(0, size.height / 2),
@@ -90,8 +92,7 @@ class WaveformPainter extends CustomPainter {
       return;
     }
 
-    final paintActive = Paint()..color = activeColor;
-    final paintInactive = Paint()..color = inactiveColor;
+    final paint = Paint()..color = Colors.white;
 
     final double barWidth = size.width / waveform.length;
     final double maxBarHeight = size.height;
@@ -103,19 +104,15 @@ class WaveformPainter extends CustomPainter {
 
       final RRect rrect = RRect.fromRectAndRadius(
         Rect.fromLTWH(x + 1, y, math.max(1, barWidth - 2), barHeight),
-        Radius.circular(2),
+        const Radius.circular(2),
       );
 
-      if (x / size.width <= progress) {
-        canvas.drawRRect(rrect, paintActive);
-      } else {
-        canvas.drawRRect(rrect, paintInactive);
-      }
+      canvas.drawRRect(rrect, paint);
     }
   }
 
   @override
   bool shouldRepaint(covariant WaveformPainter oldDelegate) {
-    return oldDelegate.waveform != waveform || oldDelegate.progress != progress;
+    return oldDelegate.waveform != waveform;
   }
 }
