@@ -8,6 +8,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
+import '../widgets/waveform_progress_bar.dart';
 
 // 播放页
 class PlaybackPage extends StatefulWidget {
@@ -24,6 +25,8 @@ class _PlaybackPageState extends State<PlaybackPage>
   bool _showVisualizer = true;
   bool _isScrubbingProgress = false;
   double _scrubProgress = 0.0;
+  List<double> _waveform = [];
+  String? _lastWaveformPath;
   Timer? _hudTimer;
   Timer? _inactivityTimer;
 
@@ -102,6 +105,23 @@ class _PlaybackPageState extends State<PlaybackPage>
     _triggerHUD();
   }
 
+  Future<void> _updateWaveform(AudioService audio) async {
+    final path = audio.currentFilePath;
+    if (path == null || path == _lastWaveformPath) return;
+
+    _lastWaveformPath = path;
+    // Request 80 chunks for the waveform visualization
+    final waveform = await audio.player.getLoadedWaveform(
+      expectedChunks: 80,
+      sampleStride: 3,
+    );
+    if (mounted && path == audio.currentFilePath) {
+      setState(() {
+        _waveform = waveform;
+      });
+    }
+  }
+
   Future<void> _toggleVisualizer(AudioService audio) async {
     final nextVisible = !_showVisualizer;
     setState(() {
@@ -148,6 +168,8 @@ class _PlaybackPageState extends State<PlaybackPage>
       }
     }
     _lastIndex = currentIndex;
+
+    _updateWaveform(audio);
 
     return Listener(
       onPointerDown: (event) {
@@ -284,46 +306,26 @@ class _PlaybackPageState extends State<PlaybackPage>
                 ],
               ),
               SizedBox(height: isLandscape ? 8 : 16),
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 4,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 6,
-                  ),
-                  overlayShape: const RoundSliderOverlayShape(
-                    overlayRadius: 14,
-                  ),
-                  activeTrackColor: Colors.white,
-                  inactiveTrackColor: Colors.white24,
-                  thumbColor: Colors.white,
-                ),
-                child: Slider(
-                  value: sliderProgress,
-                  onChangeStart: (val) {
-                    _handleInteraction();
-                    setState(() {
-                      _isScrubbingProgress = true;
-                      _scrubProgress = val;
-                    });
-                  },
-                  onChanged: (val) {
-                    setState(() {
-                      _isScrubbingProgress = true;
-                      _scrubProgress = val;
-                    });
-                  },
-                  onChangeEnd: (val) {
-                    final target = Duration(
-                      milliseconds: (val * audio.duration.inMilliseconds)
-                          .round(),
-                    );
-                    setState(() {
-                      _isScrubbingProgress = false;
-                      _scrubProgress = val;
-                    });
-                    audio.seek(target);
-                  },
-                ),
+              WaveformProgressBar(
+                waveform: _waveform,
+                progress: sliderProgress,
+                onScrubbing: (val) {
+                  _handleInteraction();
+                  setState(() {
+                    _isScrubbingProgress = true;
+                    _scrubProgress = val;
+                  });
+                },
+                onSeek: (val) {
+                  final target = Duration(
+                    milliseconds: (val * audio.duration.inMilliseconds).round(),
+                  );
+                  setState(() {
+                    _isScrubbingProgress = false;
+                    _scrubProgress = val;
+                  });
+                  audio.seek(target);
+                },
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
