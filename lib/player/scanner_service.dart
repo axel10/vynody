@@ -16,12 +16,14 @@ import '../models/music_folder.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 import 'theme_color_helper.dart';
+import 'settings_service.dart';
 
 enum SortCriteria { title, filename, trackNumber }
 
 enum SortOrder { ascending, descending }
 
 class ScannerService extends ChangeNotifier {
+  final SettingsService? _settingsService;
   final List<String> _rootPaths = [];
   final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
@@ -55,7 +57,7 @@ class ScannerService extends ChangeNotifier {
     '.ogg',
   ];
 
-  ScannerService() {
+  ScannerService([this._settingsService]) {
     _init();
   }
 
@@ -292,7 +294,7 @@ class ScannerService extends ChangeNotifier {
             await player.initialize();
             final waveform = await player.getWaveform(
               expectedChunks: 80,
-              sampleStride: 3,
+              sampleStride: _settingsService?.sampleStride ?? 4,
               filePath: song.data,
             );
             if (waveform.isNotEmpty) {

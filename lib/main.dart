@@ -46,7 +46,7 @@ void main(List<String> args) async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AudioService(settingsService)),
-        ChangeNotifierProvider(create: (_) => ScannerService()),
+        ChangeNotifierProvider(create: (_) => ScannerService(settingsService)),
         ChangeNotifierProvider(create: (_) => PlaylistService()),
         ChangeNotifierProvider.value(value: settingsService),
       ],

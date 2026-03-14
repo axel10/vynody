@@ -21,6 +21,34 @@ class SettingsPage extends StatelessWidget {
               settings.isImmersiveTabBarEnabled = value;
             },
           ),
+          ListTile(
+            title: const Text('波形采样步长 (sampleStride)'),
+            subtitle: const Text('值越大扫描越快，但波形精度越低（默认 4）'),
+            trailing: SizedBox(
+              width: 120,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: settings.sampleStride > 1
+                        ? () => settings.sampleStride--
+                        : null,
+                  ),
+                  Text(
+                    '${settings.sampleStride}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: settings.sampleStride < 20
+                        ? () => settings.sampleStride++
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

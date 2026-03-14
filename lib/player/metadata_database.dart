@@ -140,9 +140,7 @@ class MetadataDatabase {
         }
         if (oldVersion < 5) {
           if (!await _columnExists(db, 'songs', 'waveformBlob')) {
-            await db.execute(
-              'ALTER TABLE songs ADD COLUMN waveformBlob BLOB',
-            );
+            await db.execute('ALTER TABLE songs ADD COLUMN waveformBlob BLOB');
           }
         }
       },

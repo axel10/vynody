@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsService extends ChangeNotifier {
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
+  static const String _keySampleStride = 'sample_stride';
 
   // Visualizer styling keys
   static const String _keyVisColor = 'visualizer_color';
@@ -22,6 +23,7 @@ class SettingsService extends ChangeNotifier {
 
   final SharedPreferences _prefs;
   bool _isImmersiveTabBarEnabled;
+  int _sampleStride;
   bool _isUserInactive = false;
 
   // Visualizer styling state
@@ -38,7 +40,8 @@ class SettingsService extends ChangeNotifier {
   late bool _isVisualizerDynamicEndColor;
 
   SettingsService(this._prefs)
-    : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false {
+    : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
+      _sampleStride = _prefs.getInt(_keySampleStride) ?? 4 {
     _visualizerColor = Color(_prefs.getInt(_keyVisColor) ?? Colors.white.value);
     _visualizerOpacity = _prefs.getDouble(_keyVisOpacity) ?? 0.2;
     _isVisualizerGradientEnabled = _prefs.getBool(_keyVisGradient) ?? false;
@@ -61,6 +64,7 @@ class SettingsService extends ChangeNotifier {
   }
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
+  int get sampleStride => _sampleStride;
   bool get isUserInactive => _isUserInactive;
 
   Color get visualizerColor => _visualizerColor;
@@ -92,6 +96,12 @@ class SettingsService extends ChangeNotifier {
   set isImmersiveTabBarEnabled(bool value) {
     _isImmersiveTabBarEnabled = value;
     _prefs.setBool(_keyImmersiveTabBar, value);
+    notifyListeners();
+  }
+
+  set sampleStride(int value) {
+    _sampleStride = value;
+    _prefs.setInt(_keySampleStride, value);
     notifyListeners();
   }
 
