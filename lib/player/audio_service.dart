@@ -33,6 +33,7 @@ class AudioService extends ChangeNotifier {
 
   final List<MusicFile> _playlist = [];
   int _currentIndex = -1;
+  bool _isTransitioning = false;
 
   final SettingsService settingsService;
   Color? _dynamicStartColor;
@@ -144,11 +145,11 @@ class AudioService extends ChangeNotifier {
     _volume = _player.volume * 100.0;
 
     final int newIndex = _player.currentIndex ?? -1;
-    if (newIndex != _currentIndex) {
+    if (newIndex != _currentIndex && !_isTransitioning) {
       _currentIndex = newIndex;
       if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
         final song = _playlist[_currentIndex];
-        _updateCurrentMetadata(song.path, song.name, id: song.id);
+        unawaited(_updateCurrentMetadata(song.path, song.name, id: song.id));
       }
       notifyListeners();
     } else {
@@ -275,6 +276,8 @@ class AudioService extends ChangeNotifier {
     String name, {
     int? id,
   }) async {
+    if (_currentFilePath == path && _currentSongId == id) return;
+
     _currentFilePath = path;
     _currentFileName = name;
     _currentSongId = id;
@@ -409,11 +412,41 @@ class AudioService extends ChangeNotifier {
   }
 
   Future<void> next() async {
-    await _player.playNext();
+    if (_isTransitioning) return;
+    _isTransitioning = true;
+    try {
+      final success = await _player.playNext();
+      if (success) {
+        final newIndex = _player.currentIndex ?? -1;
+        if (newIndex >= 0 && newIndex < _playlist.length) {
+          _currentIndex = newIndex;
+          final song = _playlist[_currentIndex];
+          await _updateCurrentMetadata(song.path, song.name, id: song.id);
+        }
+      }
+    } finally {
+      _isTransitioning = false;
+      notifyListeners();
+    }
   }
 
   Future<void> previous() async {
-    await _player.playPrevious();
+    if (_isTransitioning) return;
+    _isTransitioning = true;
+    try {
+      final success = await _player.playPrevious();
+      if (success) {
+        final newIndex = _player.currentIndex ?? -1;
+        if (newIndex >= 0 && newIndex < _playlist.length) {
+          _currentIndex = newIndex;
+          final song = _playlist[_currentIndex];
+          await _updateCurrentMetadata(song.path, song.name, id: song.id);
+        }
+      }
+    } finally {
+      _isTransitioning = false;
+      notifyListeners();
+    }
   }
 
   Future<void> togglePlay() async {
