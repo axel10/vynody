@@ -435,7 +435,51 @@ class ScannerService extends ChangeNotifier {
       await MetadataHelper.clearThumbnails();
       _metadataMap.clear();
       await scan();
+
+      // Background process to collect all files and update metadata
+      unawaited(_backgroundMetadataRebuild());
     }
+  }
+
+  Future<void> _backgroundMetadataRebuild() async {
+    final List<String> allFilePaths = [];
+
+    void collectFiles(MusicFolder folder) {
+      for (final file in folder.files) {
+        allFilePaths.add(file.path);
+      }
+      for (final subFolder in folder.subFolders) {
+        collectFiles(subFolder);
+      }
+    }
+
+    for (final root in _rootFolders) {
+      collectFiles(root);
+    }
+
+    if (allFilePaths.isEmpty) return;
+
+    debugPrint(
+      'Starting background metadata rebuild for ${allFilePaths.length} files',
+    );
+
+    // Process in batches or one by one
+    for (final path in allFilePaths) {
+      try {
+        await MetadataHelper.processMetadata(path);
+        // We don't need to load it into _metadataMap here as it's saved to DB,
+        // but if the file is currently visible in UI, loadMetadataForPath will be called.
+        // To update UI immediately if user is looking at it:
+        final metadata = await MetadataDatabase().getSongMetadata(path);
+        if (metadata != null) {
+          _metadataMap[path] = metadata;
+          notifyListeners();
+        }
+      } catch (e) {
+        debugPrint('Error in background metadata rebuild for $path: $e');
+      }
+    }
+    debugPrint('Background metadata rebuild completed');
   }
 
   /// Loads metadata for a single path from the DB (or processes it fresh) and
