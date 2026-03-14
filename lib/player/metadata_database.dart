@@ -16,6 +16,7 @@ class SongMetadata {
   final int? artworkHeight;
   final int? trackNumber;
   final Uint8List? themeColorsBlob;
+  final Uint8List? waveformBlob;
 
   SongMetadata({
     this.id,
@@ -29,6 +30,7 @@ class SongMetadata {
     this.artworkHeight,
     this.trackNumber,
     this.themeColorsBlob,
+    this.waveformBlob,
   });
 
   Map<String, dynamic> toMap() {
@@ -43,6 +45,7 @@ class SongMetadata {
       'artworkHeight': artworkHeight,
       'trackNumber': trackNumber,
       'themeColorsBlob': themeColorsBlob,
+      'waveformBlob': waveformBlob,
     };
   }
 
@@ -59,6 +62,7 @@ class SongMetadata {
       artworkHeight: map['artworkHeight'],
       trackNumber: map['trackNumber'],
       themeColorsBlob: map['themeColorsBlob'] as Uint8List?,
+      waveformBlob: map['waveformBlob'] as Uint8List?,
     );
   }
 }
@@ -88,7 +92,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -102,7 +106,8 @@ class MetadataDatabase {
             artworkWidth INTEGER,
             artworkHeight INTEGER,
             trackNumber INTEGER,
-            themeColorsBlob BLOB
+            themeColorsBlob BLOB,
+            waveformBlob BLOB
           )
         ''');
       },
@@ -130,6 +135,13 @@ class MetadataDatabase {
           if (!await _columnExists(db, 'songs', 'themeColorsBlob')) {
             await db.execute(
               'ALTER TABLE songs ADD COLUMN themeColorsBlob BLOB',
+            );
+          }
+        }
+        if (oldVersion < 5) {
+          if (!await _columnExists(db, 'songs', 'waveformBlob')) {
+            await db.execute(
+              'ALTER TABLE songs ADD COLUMN waveformBlob BLOB',
             );
           }
         }

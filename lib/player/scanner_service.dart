@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
@@ -260,11 +261,13 @@ class ScannerService extends ChangeNotifier {
     for (var song in songs) {
       try {
         final existing = await db.getSongMetadata(song.data);
-        if (existing != null && existing.themeColorsBlob != null) {
+        if (existing != null &&
+            existing.themeColorsBlob != null &&
+            existing.waveformBlob != null) {
           continue;
         }
 
-        Uint8List? themeColorsBlob;
+        Uint8List? themeColorsBlob = existing?.themeColorsBlob;
         final artworkBytes = await _audioQuery.queryArtwork(
           song.id,
           ArtworkType.AUDIO,
@@ -273,13 +276,35 @@ class ScannerService extends ChangeNotifier {
           quality: 100,
         );
 
-        if (artworkBytes != null) {
+        if (artworkBytes != null && themeColorsBlob == null) {
           final imageProvider = MemoryImage(artworkBytes);
           final palette = await PaletteGenerator.fromImageProvider(
             imageProvider,
             maximumColorCount: 20,
           );
           themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
+        }
+
+        Uint8List? waveformBlob = existing?.waveformBlob;
+        if (waveformBlob == null) {
+          try {
+            final player = AudioVisualizerPlayerController();
+            await player.initialize();
+            final waveform = await player.getWaveform(
+              expectedChunks: 80,
+              sampleStride: 3,
+              filePath: song.data,
+            );
+            if (waveform.isNotEmpty) {
+              final float32List = Float32List.fromList(
+                waveform.map((e) => e.toDouble()).toList(),
+              );
+              waveformBlob = float32List.buffer.asUint8List();
+            }
+            player.dispose();
+          } catch (e) {
+            debugPrint('Waveform extraction failed for scan: $e');
+          }
         }
 
         final songMetadata = SongMetadata(
@@ -290,6 +315,7 @@ class ScannerService extends ChangeNotifier {
           duration: song.duration,
           trackNumber: song.track,
           themeColorsBlob: themeColorsBlob,
+          waveformBlob: waveformBlob,
         );
 
         await db.insertOrUpdateSong(songMetadata);

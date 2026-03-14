@@ -111,7 +111,7 @@ class _PlaybackPageState extends State<PlaybackPage>
 
     _lastWaveformPath = path;
     // Request 80 chunks for the waveform visualization
-    final waveform = await audio.player.getWaveform(
+    final waveform = await audio.getWaveform(
       expectedChunks: 80,
       sampleStride: 3,
     );

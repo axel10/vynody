@@ -92,6 +92,51 @@ class AudioService extends ChangeNotifier {
     }
   }
 
+  Future<List<double>> getWaveform({
+    int expectedChunks = 80,
+    int sampleStride = 3,
+  }) async {
+    final path = _currentFilePath;
+    if (path == null) return [];
+
+    final songMetadata = await _db.getSongMetadata(path);
+    if (songMetadata != null && songMetadata.waveformBlob != null) {
+      final list = Float32List.view(songMetadata.waveformBlob!.buffer);
+      return list.map((e) => e.toDouble()).toList();
+    }
+
+    // No cache, calculate and store
+    final waveform = await _player.getWaveform(
+      expectedChunks: expectedChunks,
+      sampleStride: sampleStride,
+    );
+
+    if (waveform.isNotEmpty && songMetadata != null) {
+      final float32List = Float32List.fromList(
+        waveform.map((e) => e.toDouble()).toList(),
+      );
+      final blob = float32List.buffer.asUint8List();
+
+      final updated = SongMetadata(
+        id: songMetadata.id,
+        path: songMetadata.path,
+        title: songMetadata.title,
+        album: songMetadata.album,
+        artist: songMetadata.artist,
+        duration: songMetadata.duration,
+        artworkPath: songMetadata.artworkPath,
+        artworkWidth: songMetadata.artworkWidth,
+        artworkHeight: songMetadata.artworkHeight,
+        trackNumber: songMetadata.trackNumber,
+        themeColorsBlob: songMetadata.themeColorsBlob,
+        waveformBlob: blob,
+      );
+      await _db.insertOrUpdateSong(updated);
+    }
+
+    return waveform;
+  }
+
   void _handlePlayerChanges() {
     _isPlaying = _player.isPlaying;
     _position = _player.position;
@@ -205,6 +250,7 @@ class AudioService extends ChangeNotifier {
               artworkHeight: songMetadata.artworkHeight,
               trackNumber: songMetadata.trackNumber,
               themeColorsBlob: blob,
+              waveformBlob: songMetadata.waveformBlob,
             );
             await _db.insertOrUpdateSong(updated);
           }
