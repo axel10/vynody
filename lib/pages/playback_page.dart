@@ -447,7 +447,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                     },
                     tooltip: '音频可视化',
                   ),
-                  
+
                   const SizedBox(width: 16),
                   IconButton(
                     icon: const Icon(
@@ -871,7 +871,6 @@ class _PlaybackPageState extends State<PlaybackPage>
                 _showVisualizerOptions(context, audio);
               },
             ),
-            
           ],
         ),
       ),
@@ -988,7 +987,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                                     audio.saveVisualizerOptions(),
                               ),
                             ),
-                                                        SizedBox(
+                            SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
                                 label: '归一化 (Normalization)',
@@ -997,9 +996,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                                 max: 0.0,
                                 onChanged: (val) {
                                   audio.updateVisualOptions(
-                                    options.copyWith(
-                                      normalizationFloorDb: val,
-                                    ),
+                                    options.copyWith(normalizationFloorDb: val),
                                   );
                                   setDialogState(() {});
                                 },

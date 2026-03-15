@@ -287,7 +287,7 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                 ),
               Positioned(
-                top: isDesktop ? 40 : 16,
+                bottom: 80,
                 left: 0,
                 right: 0,
                 child: Center(
@@ -295,38 +295,35 @@ class _MainLayoutState extends State<MainLayout> {
                     duration: const Duration(milliseconds: 500),
                     transitionBuilder:
                         (Widget child, Animation<double> animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0.0, -1.0),
-                            end: Offset.zero,
-                          ).animate(
-                            CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOutCubic,
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position:
+                                  Tween<Offset>(
+                                    begin: const Offset(0.0, 1.0),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOutCubic,
+                                    ),
+                                  ),
+                              child: child,
                             ),
-                          ),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child:
-                        !isPlayback
-                            ? Container(
-                              key: const ValueKey('dynamic-island'),
-                              constraints: BoxConstraints(
-                                maxWidth:
-                                    MediaQuery.of(context).size.width * 0.8,
-                              ),
-                              child: GestureDetector(
-                                onTap: () => _onDestinationSelected(1),
-                                child: const DynamicIslandPlayer(),
-                              ),
-                            )
-                            : const SizedBox.shrink(
-                              key: ValueKey('empty-island'),
+                          );
+                        },
+                    child: !isPlayback
+                        ? Container(
+                            key: const ValueKey('dynamic-island'),
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.9,
                             ),
+                            child: GestureDetector(
+                              onTap: () => _onDestinationSelected(1),
+                              child: const DynamicIslandPlayer(),
+                            ),
+                          )
+                        : const SizedBox.shrink(key: ValueKey('empty-island')),
                   ),
                 ),
               ),
