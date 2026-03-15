@@ -982,6 +982,25 @@ class _PlaybackPageState extends State<PlaybackPage>
                                     audio.saveVisualizerOptions(),
                               ),
                             ),
+                                                        SizedBox(
+                              width: 270,
+                              child: _buildOptionSlider(
+                                label: '归一化 (Normalization)',
+                                value: options.normalizationFloorDb,
+                                min: -100.0,
+                                max: 0.0,
+                                onChanged: (val) {
+                                  audio.updateVisualOptions(
+                                    options.copyWith(
+                                      normalizationFloorDb: val,
+                                    ),
+                                  );
+                                  setDialogState(() {});
+                                },
+                                onChangeEnd: () =>
+                                    audio.saveVisualizerOptions(),
+                              ),
+                            ),
                             SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
