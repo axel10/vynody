@@ -130,6 +130,68 @@ class _PlaybackPageState extends State<PlaybackPage>
     await audio.player.setFftEnabled(nextVisible);
   }
 
+  void _cyclePlaylistMode(AudioService audio) {
+    final currentMode = audio.player.playlistMode;
+    final nextMode = PlaylistMode
+        .values[(currentMode.index + 1) % PlaylistMode.values.length];
+    audio.player.setPlaylistMode(nextMode);
+  }
+
+  void _showPlaylistModeSelector(BuildContext context, AudioService audio) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('选择播放模式'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: PlaylistMode.values.map((mode) {
+              return ListTile(
+                leading: Icon(_getPlaylistModeIcon(mode)),
+                title: Text(_getPlaylistModeName(mode)),
+                selected: audio.player.playlistMode == mode,
+                onTap: () {
+                  audio.player.setPlaylistMode(mode);
+                  Navigator.of(context).pop();
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _getPlaylistModeIcon(PlaylistMode mode) {
+    switch (mode) {
+      case PlaylistMode.single:
+        return Icons.looks_one_outlined;
+      case PlaylistMode.singleLoop:
+        return Icons.repeat_one_rounded;
+      case PlaylistMode.queue:
+        return Icons.reorder_rounded;
+      case PlaylistMode.queueLoop:
+        return Icons.repeat_rounded;
+      case PlaylistMode.autoQueueLoop:
+        return Icons.all_inclusive_rounded;
+    }
+  }
+
+  String _getPlaylistModeName(PlaylistMode mode) {
+    switch (mode) {
+      case PlaylistMode.single:
+        return '单曲播放';
+      case PlaylistMode.singleLoop:
+        return '单曲循环';
+      case PlaylistMode.queue:
+        return '队列播放';
+      case PlaylistMode.queueLoop:
+        return '队列循环';
+      case PlaylistMode.autoQueueLoop:
+        return '自动队列循环';
+    }
+  }
+
   IconData _getVolumeIcon(double volume) {
     if (volume <= 0) return Icons.volume_mute;
     if (volume < 75) return Icons.volume_down;
@@ -303,6 +365,24 @@ class _PlaybackPageState extends State<PlaybackPage>
                     onPressed: () => _showMoreMenu(context, audio),
                     tooltip: '更多选项',
                   ),
+
+                  const SizedBox(width: 16),
+                  GestureDetector(
+                    child: IconButton(
+                      icon: Icon(
+                        _getPlaylistModeIcon(audio.player.playlistMode),
+                        size: 28,
+                        color: Colors.white70,
+                      ),
+                      onPressed: () {
+                        _cyclePlaylistMode(audio);
+                      },
+                      tooltip: _getPlaylistModeName(audio.player.playlistMode),
+                    ),
+                    onLongPress: () {
+                      _showPlaylistModeSelector(context, audio);
+                    },
+                  ),
                 ],
               ),
               SizedBox(height: isLandscape ? 8 : 16),
@@ -366,6 +446,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                     },
                     tooltip: '音频可视化',
                   ),
+                  
                   const SizedBox(width: 16),
                   IconButton(
                     icon: const Icon(
@@ -784,6 +865,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                 _showVisualizerOptions(context, audio);
               },
             ),
+            
           ],
         ),
       ),
