@@ -20,6 +20,7 @@ class PlaybackPage extends StatefulWidget {
 
 class _PlaybackPageState extends State<PlaybackPage>
     with SingleTickerProviderStateMixin {
+  final _heroTag = 'player_capsule';
   bool _showVolumeHUD = false;
   bool _showVolumeSlider = false;
   bool _showVisualizer = true;
@@ -534,7 +535,10 @@ class _PlaybackPageState extends State<PlaybackPage>
                       child: Row(
                         children: [
                           const Spacer(flex: 1),
-                          Expanded(flex: 8, child: albumArt),
+                          Expanded(
+                            flex: 8,
+                            child: Hero(tag: _heroTag, child: albumArt),
+                          ),
                           const SizedBox(width: 48),
                           Expanded(
                             flex: 10,
@@ -560,7 +564,9 @@ class _PlaybackPageState extends State<PlaybackPage>
                 child: Column(
                   children: [
                     if (Platform.isWindows) const SizedBox(height: 32),
-                    Expanded(child: albumArt),
+                    Expanded(
+                      child: Hero(tag: _heroTag, child: albumArt),
+                    ),
                     const SizedBox(height: 24),
                     FittedBox(
                       fit: BoxFit.scaleDown,

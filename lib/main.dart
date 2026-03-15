@@ -13,6 +13,7 @@ import 'pages/playback_page.dart';
 import 'pages/queue_page.dart';
 import 'pages/playlist_page.dart';
 import 'pages/settings_page.dart';
+import 'widgets/dynamic_island_player.dart';
 import 'package:path/path.dart' as p;
 
 void main(List<String> args) async {
@@ -285,6 +286,50 @@ class _MainLayoutState extends State<MainLayout> {
                     ],
                   ),
                 ),
+              Positioned(
+                top: isDesktop ? 40 : 16,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.0, -1.0),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            ),
+                          ),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child:
+                        !isPlayback
+                            ? Container(
+                              key: const ValueKey('dynamic-island'),
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.8,
+                              ),
+                              child: GestureDetector(
+                                onTap: () => _onDestinationSelected(1),
+                                child: const DynamicIslandPlayer(),
+                              ),
+                            )
+                            : const SizedBox.shrink(
+                              key: ValueKey('empty-island'),
+                            ),
+                  ),
+                ),
+              ),
             ],
           ),
           bottomNavigationBar: AnimatedOpacity(
