@@ -10,7 +10,9 @@ import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../widgets/waveform_progress_bar.dart';
 
-// 播放页
+const String playbackHeroTag = 'player_capsule';
+
+// 鎾斁椤?
 class PlaybackPage extends StatefulWidget {
   const PlaybackPage({super.key});
 
@@ -20,7 +22,6 @@ class PlaybackPage extends StatefulWidget {
 
 class _PlaybackPageState extends State<PlaybackPage>
     with SingleTickerProviderStateMixin {
-  final _heroTag = 'player_capsule';
   bool _showVolumeHUD = false;
   bool _showVolumeSlider = false;
   bool _showVisualizer = true;
@@ -143,7 +144,7 @@ class _PlaybackPageState extends State<PlaybackPage>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('选择播放模式'),
+          title: const Text('閫夋嫨鎾斁妯″紡'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: PlaylistMode.values.map((mode) {
@@ -181,15 +182,15 @@ class _PlaybackPageState extends State<PlaybackPage>
   String _getPlaylistModeName(PlaylistMode mode) {
     switch (mode) {
       case PlaylistMode.single:
-        return '单曲播放';
+        return '鍗曟洸鎾斁';
       case PlaylistMode.singleLoop:
-        return '单曲循环';
+        return '鍗曟洸寰幆';
       case PlaylistMode.queue:
-        return '队列播放';
+        return '闃熷垪鎾斁';
       case PlaylistMode.queueLoop:
-        return '队列循环';
+        return '闃熷垪寰幆';
       case PlaylistMode.autoQueueLoop:
-        return '自动队列循环';
+        return '鑷姩闃熷垪寰幆';
     }
   }
 
@@ -214,17 +215,17 @@ class _PlaybackPageState extends State<PlaybackPage>
 
     if (audio.currentFilePath == null) {
       return const Center(
-        child: Text('当前无播放内容', style: TextStyle(color: Colors.grey)),
+        child: Text('当前没有播放内容', style: TextStyle(color: Colors.grey)),
       );
     }
 
     final currentIndex = audio.currentIndex;
     if (_lastIndex != null && currentIndex != _lastIndex) {
       if (_lastIndex == 0 && currentIndex > 1) {
-        // 向前循环
+        // 鍚戝墠寰幆
         _isNext = false;
       } else if (currentIndex == 0 && _lastIndex! > 1) {
-        // 向后循环
+        // 鍚戝悗寰幆
         _isNext = true;
       } else {
         _isNext = currentIndex > _lastIndex!;
@@ -251,335 +252,71 @@ class _PlaybackPageState extends State<PlaybackPage>
           final screenWidth = MediaQuery.of(context).size.width;
           final screenHeight = MediaQuery.of(context).size.height;
 
-          // Use a generous maximum size based on screen dimensions
-          final double maxDisplaySize = isLandscape
-              ? screenHeight * 0.75
-              : screenWidth * 0.85;
-
-          final albumArt = Center(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final side = [
-                  maxDisplaySize,
-                  constraints.maxWidth,
-                  constraints.maxHeight,
-                ].reduce((a, b) => a < b ? a : b);
-                return SizedBox.square(
-                  dimension: side,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    transitionBuilder:
-                        (Widget child, Animation<double> animation) {
-                          final inAnimation =
-                              Tween<Offset>(
-                                begin: _isNext
-                                    ? const Offset(0.7, 0.0)
-                                    : const Offset(-0.7, 0.0),
-                                end: Offset.zero,
-                              ).animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeOut,
-                                ),
-                              );
-                          final outAnimation =
-                              Tween<Offset>(
-                                begin: _isNext
-                                    ? const Offset(-0.7, 0.0)
-                                    : const Offset(0.7, 0.0),
-                                end: Offset.zero,
-                              ).animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeIn,
-                                ),
-                              );
-
-                          final isEntering =
-                              child.key == ValueKey(audio.currentFilePath);
-                          return SlideTransition(
-                            position: isEntering ? inAnimation : outAnimation,
-                            child: FadeTransition(
-                              opacity: animation,
-                              child: child,
-                            ),
-                          );
-                        },
-                    child: KeyedSubtree(
-                      key: ValueKey(audio.currentFilePath),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                          color: Colors.black87,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 50,
-                              spreadRadius: 15,
-                              // offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: _buildCoverImage(audio, isLandscape),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          );
-
-          final controls = Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: isLandscape ? 450 : screenWidth * 0.9,
-                ),
-                child: Text(
-                  audio.currentFileName ?? '未知',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Top menu bar for secondary controls
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+          final content = SafeArea(
+            child: Padding(
+              padding: EdgeInsets.all(isLandscape ? 32.0 : 24.0),
+              child: Column(
                 children: [
-                  SizedBox.shrink(), // Placeholder if needed
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.more_horiz, color: Colors.white70),
-                    onPressed: () => _showMoreMenu(context, audio),
-                    tooltip: '更多选项',
-                  ),
-
-                  const SizedBox(width: 16),
-                  GestureDetector(
-                    child: IconButton(
-                      icon: Icon(
-                        _getPlaylistModeIcon(audio.player.playlistMode),
-                        size: 28,
-                        color: Colors.white70,
-                      ),
-                      onPressed: () {
-                        _cyclePlaylistMode(audio);
-                      },
-                      tooltip: _getPlaylistModeName(audio.player.playlistMode),
-                    ),
-                    onLongPress: () {
-                      _showPlaylistModeSelector(context, audio);
-                    },
-                  ),
-                ],
-              ),
-              SizedBox(height: isLandscape ? 8 : 16),
-              WaveformProgressBar(
-                waveform: _waveform,
-                progress: sliderProgress,
-                onScrubbing: (val) {
-                  _handleInteraction();
-                  setState(() {
-                    _isScrubbingProgress = true;
-                    _scrubProgress = val;
-                  });
-                },
-                onSeek: (val) {
-                  final target = Duration(
-                    milliseconds: (val * audio.duration.inMilliseconds).round(),
-                  );
-                  setState(() {
-                    _isScrubbingProgress = false;
-                    _scrubProgress = val;
-                  });
-                  audio.seek(target);
-                },
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _formatDuration(previewPosition),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      _formatDuration(audio.duration),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      _showVisualizer
-                          ? Icons.analytics
-                          : Icons.analytics_outlined,
-                      size: 28,
-                      color: _showVisualizer ? Colors.white : Colors.white70,
-                    ),
-                    onPressed: () {
-                      _toggleVisualizer(audio);
-                    },
-                    tooltip: '音频可视化',
-                  ),
-
-                  const SizedBox(width: 16),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.skip_previous_rounded,
-                      size: 48,
-                      color: Colors.white,
-                    ),
-                    onPressed: audio.previous,
-                  ),
-                  const SizedBox(width: 24),
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                    ),
-                    child: IconButton(
-                      onPressed: audio.togglePlay,
-                      icon: Icon(
-                        audio.isPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                        size: 40,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.skip_next_rounded,
-                      size: 48,
-                      color: Colors.white,
-                    ),
-                    // onPressed: audio.next,
-                    onPressed: () => toNextMusic(audio),
-                  ),
-                  const SizedBox(width: 16),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onVerticalDragUpdate: (details) {
-                      _handleInteraction();
-                      _adjustVolumeFromDrag(audio, details.primaryDelta ?? 0);
-                    },
-                    child: Listener(
-                      onPointerSignal: (pointerSignal) {
-                        if (pointerSignal is PointerScrollEvent) {
+                  if (Platform.isWindows) const SizedBox(height: 32),
+                  Expanded(
+                    child: Center(
+                      child: PlaybackHeroCard(
+                        isMini: false,
+                        isLandscape: isLandscape,
+                        screenWidth: screenWidth,
+                        screenHeight: screenHeight,
+                        isNext: _isNext,
+                        waveform: _waveform,
+                        sliderProgress: sliderProgress,
+                        previewPosition: previewPosition,
+                        showVisualizerToggle: _showVisualizer,
+                        onShowMoreMenu: () => _showMoreMenu(context, audio),
+                        onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
+                        onShowPlaylistModeSelector: () =>
+                            _showPlaylistModeSelector(context, audio),
+                        onScrubbing: (val) {
                           _handleInteraction();
-                          _adjustVolumeFromScroll(
-                            audio,
-                            pointerSignal.scrollDelta.dy,
+                          setState(() {
+                            _isScrubbingProgress = true;
+                            _scrubProgress = val;
+                          });
+                        },
+                        onSeek: (val) {
+                          final target = Duration(
+                            milliseconds: (val * audio.duration.inMilliseconds)
+                                .round(),
                           );
-                        }
-                      },
-                      child: IconButton(
-                        icon: Icon(
-                          _getVolumeIcon(audio.volume),
-                          size: 28,
-                          color: Colors.white70,
-                        ),
-                        onPressed: () {
+                          setState(() {
+                            _isScrubbingProgress = false;
+                            _scrubProgress = val;
+                          });
+                          audio.seek(target);
+                        },
+                        onToggleVisualizer: () => _toggleVisualizer(audio),
+                        onPrevious: audio.previous,
+                        onPlayPause: audio.togglePlay,
+                        onNext: () => toNextMusic(audio),
+                        onVolumeTap: () {
                           _handleInteraction();
                           setState(() {
                             _showVolumeSlider = !_showVolumeSlider;
                           });
                         },
+                        onVolumeDrag: (delta) {
+                          _handleInteraction();
+                          _adjustVolumeFromDrag(audio, delta);
+                        },
+                        onVolumeScroll: (deltaY) {
+                          _handleInteraction();
+                          _adjustVolumeFromScroll(audio, deltaY);
+                        },
                       ),
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
           );
-
-          Widget content;
-          if (isLandscape) {
-            content = SafeArea(
-              child: Column(
-                children: [
-                  if (Platform.isWindows) const SizedBox(height: 32),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Row(
-                        children: [
-                          const Spacer(flex: 1),
-                          Expanded(
-                            flex: 8,
-                            child: Hero(tag: _heroTag, child: albumArt),
-                          ),
-                          const SizedBox(width: 48),
-                          Expanded(
-                            flex: 10,
-                            child: Center(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: SizedBox(width: 450, child: controls),
-                              ),
-                            ),
-                          ),
-                          const Spacer(flex: 1),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            content = SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    if (Platform.isWindows) const SizedBox(height: 32),
-                    Expanded(
-                      child: Hero(tag: _heroTag, child: albumArt),
-                    ),
-                    const SizedBox(height: 24),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: SizedBox(width: screenWidth, child: controls),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
 
           return ClipRect(
             child: Container(
@@ -630,7 +367,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             )
                           : Container(
                               key: const ValueKey('bg_empty'),
-                              color: Colors.black, // 退底颜色，防止闪烁
+                              color: Colors.black, // 閫€搴曢鑹诧紝闃叉闂儊
                             ),
                     ),
                   ),
@@ -818,7 +555,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    '音量',
+                                    '闊抽噺',
                                     style: TextStyle(
                                       color: Colors.white70,
                                       fontSize: 12,
@@ -853,7 +590,7 @@ class _PlaybackPageState extends State<PlaybackPage>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: const Text('播放选项', style: TextStyle(color: Colors.white)),
+        title: const Text('鎾斁閫夐」', style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -863,7 +600,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                 color: Colors.blueAccent,
               ),
               title: const Text(
-                '设置音频可视化',
+                '设置频谱显示',
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {
@@ -897,8 +634,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                     SizedBox(height: 10),
                     TabBar(
                       tabs: [
-                        Tab(text: '算法'),
-                        Tab(text: '外观'),
+                        Tab(text: '绠楁硶'),
+                        Tab(text: '澶栬'),
                       ],
                       labelColor: Colors.blueAccent,
                       unselectedLabelColor: Colors.white70,
@@ -908,7 +645,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                   ],
                 ),
                 content: SizedBox(
-                  width: 600, // 设置一个合适的宽度
+                  width: 600, // 璁剧疆涓€涓悎閫傜殑瀹藉害
                   height: 400,
                   child: TabBarView(
                     children: [
@@ -920,7 +657,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
-                                label: '平滑系数 (Smoothing)',
+                                label: '骞虫粦绯绘暟 (Smoothing)',
                                 value: options.smoothingCoefficient,
                                 min: 0.0,
                                 max: 0.99,
@@ -937,7 +674,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
-                                label: '重力系数 (Gravity)',
+                                label: '閲嶅姏绯绘暟 (Gravity)',
                                 value: options.gravityCoefficient,
                                 min: 0.1,
                                 max: 5.0,
@@ -954,7 +691,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
-                                label: '对数缩放 (Log Scale)',
+                                label: '瀵规暟缂╂斁 (Log Scale)',
                                 value: options.logarithmicScale,
                                 min: 1.0,
                                 max: 5.0,
@@ -971,7 +708,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
-                                label: '对比度 (Contrast)',
+                                label: '瀵规瘮搴?(Contrast)',
                                 value: options.groupContrastExponent,
                                 min: 0.5,
                                 max: 3.0,
@@ -990,7 +727,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
-                                label: '归一化 (Normalization)',
+                                label: '褰掍竴鍖?(Normalization)',
                                 value: options.normalizationFloorDb,
                                 min: -100.0,
                                 max: 0.0,
@@ -1007,7 +744,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
-                                label: '总增益 (Multiplier)',
+                                label: '鎬诲鐩?(Multiplier)',
                                 value: options.overallMultiplier,
                                 min: 0.5,
                                 max: 5.0,
@@ -1024,7 +761,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
-                                label: '跳过高频',
+                                label: '璺宠繃楂橀',
                                 value: options.skipHighFrequencyGroups
                                     .toDouble(),
                                 min: 0,
@@ -1044,7 +781,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             SizedBox(
                               width: 270,
                               child: _buildOptionSlider(
-                                label: '频率分组 (Frequency Groups)',
+                                label: '棰戠巼鍒嗙粍 (Frequency Groups)',
                                 value: options.frequencyGroups.toDouble(),
                                 min: 8,
                                 max: 512,
@@ -1072,7 +809,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                                       bottom: 8,
                                     ),
                                     child: Text(
-                                      '聚合模式 (Aggregation Mode)',
+                                      '鑱氬悎妯″紡 (Aggregation Mode)',
                                       style: TextStyle(
                                         color: Colors.white70,
                                         fontSize: 13,
@@ -1134,7 +871,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                       setDialogState(() {});
                     },
                     child: const Text(
-                      '重置算法',
+                      '閲嶇疆绠楁硶',
                       style: TextStyle(color: Colors.redAccent),
                     ),
                   ),
@@ -1146,14 +883,14 @@ class _PlaybackPageState extends State<PlaybackPage>
                       setDialogState(() {});
                     },
                     child: const Text(
-                      '重置外观',
+                      '閲嶇疆澶栬',
                       style: TextStyle(color: Colors.redAccent),
                     ),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text(
-                      '确定',
+                      '纭畾',
                       style: TextStyle(color: Colors.blueAccent),
                     ),
                   ),
@@ -1175,7 +912,7 @@ class _PlaybackPageState extends State<PlaybackPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildOptionSlider(
-          label: '透明度 (Opacity)',
+          label: '閫忔槑搴?(Opacity)',
           value: settings.visualizerOpacity,
           min: 0.0,
           max: 1.0,
@@ -1202,7 +939,7 @@ class _PlaybackPageState extends State<PlaybackPage>
         if (settings.isVisualizerGradientEnabled) ...[
           _buildColorPickerRow(
             context,
-            label: '起始颜色',
+            label: '璧峰棰滆壊',
             color: settings.visualizerStartColor,
             isDynamic: settings.isVisualizerDynamicStartColor,
             onDynamicChanged: (val) {
@@ -1220,7 +957,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           const SizedBox(height: 16),
           _buildColorPickerRow(
             context,
-            label: '结束颜色',
+            label: '缁撴潫棰滆壊',
             color: settings.visualizerEndColor,
             isDynamic: settings.isVisualizerDynamicEndColor,
             onDynamicChanged: (val) {
@@ -1237,7 +974,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           ),
           const SizedBox(height: 16),
           _buildOptionSlider(
-            label: '渐变范围 Stop 1',
+            label: '娓愬彉鑼冨洿 Stop 1',
             value: settings.visualizerGradientStop1,
             min: 0.0,
             max: 1.0,
@@ -1248,7 +985,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           ),
           const SizedBox(height: 16),
           _buildOptionSlider(
-            label: '渐变范围 Stop 2',
+            label: '娓愬彉鑼冨洿 Stop 2',
             value: settings.visualizerGradientStop2,
             min: 0.0,
             max: 1.0,
@@ -1261,7 +998,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           Row(
             children: [
               const Text(
-                '渐变重复模式 (TileMode)',
+                '娓愬彉閲嶅妯″紡 (TileMode)',
                 style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const SizedBox(width: 16),
@@ -1289,7 +1026,7 @@ class _PlaybackPageState extends State<PlaybackPage>
         ] else ...[
           _buildColorPickerRow(
             context,
-            label: '纯色',
+            label: '绾壊',
             color: settings.visualizerColor,
             isDynamic: settings.isVisualizerDynamicColor,
             onDynamicChanged: (val) {
@@ -1346,7 +1083,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           Row(
             children: [
               const Text(
-                '随封面变更',
+                '跟随封面变色',
                 style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Switch(
@@ -1371,7 +1108,7 @@ class _PlaybackPageState extends State<PlaybackPage>
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
-          title: const Text('选择颜色', style: TextStyle(color: Colors.white)),
+          title: const Text('閫夋嫨棰滆壊', style: TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: ColorPicker(
               pickerColor: initialColor,
@@ -1385,7 +1122,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消', style: TextStyle(color: Colors.white70)),
+              child: const Text('鍙栨秷', style: TextStyle(color: Colors.white70)),
             ),
             TextButton(
               onPressed: () {
@@ -1393,7 +1130,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                 Navigator.pop(context);
               },
               child: const Text(
-                '确定',
+                '纭畾',
                 style: TextStyle(color: Colors.blueAccent),
               ),
             ),
@@ -1442,10 +1179,508 @@ class _PlaybackPageState extends State<PlaybackPage>
   }
 }
 
+class PlaybackHeroCard extends StatelessWidget {
+  const PlaybackHeroCard({
+    super.key,
+    required this.isMini,
+    this.isLandscape = false,
+    this.screenWidth,
+    this.screenHeight,
+    this.isNext = true,
+    this.waveform = const [],
+    this.sliderProgress = 0,
+    this.previewPosition = Duration.zero,
+    this.showVisualizerToggle = true,
+    this.onShowMoreMenu,
+    this.onCyclePlaylistMode,
+    this.onShowPlaylistModeSelector,
+    this.onScrubbing,
+    this.onSeek,
+    this.onToggleVisualizer,
+    this.onPrevious,
+    this.onPlayPause,
+    this.onNext,
+    this.onVolumeTap,
+    this.onVolumeDrag,
+    this.onVolumeScroll,
+  });
+
+  final bool isMini;
+  final bool isLandscape;
+  final double? screenWidth;
+  final double? screenHeight;
+  final bool isNext;
+  final List<double> waveform;
+  final double sliderProgress;
+  final Duration previewPosition;
+  final bool showVisualizerToggle;
+  final VoidCallback? onShowMoreMenu;
+  final VoidCallback? onCyclePlaylistMode;
+  final VoidCallback? onShowPlaylistModeSelector;
+  final ValueChanged<double>? onScrubbing;
+  final ValueChanged<double>? onSeek;
+  final VoidCallback? onToggleVisualizer;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onPlayPause;
+  final VoidCallback? onNext;
+  final VoidCallback? onVolumeTap;
+  final ValueChanged<double>? onVolumeDrag;
+  final ValueChanged<double>? onVolumeScroll;
+
+  @override
+  Widget build(BuildContext context) {
+    final audio = context.watch<AudioService>();
+    if (audio.currentFilePath == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Hero(
+      tag: playbackHeroTag,
+      child: Material(
+        type: MaterialType.transparency,
+        child: isMini
+            ? _buildMiniCard(context, audio)
+            : _buildFullCard(context, audio),
+      ),
+    );
+  }
+
+  Widget _buildMiniCard(BuildContext context, AudioService audio) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _MiniArtwork(audio: audio),
+          const SizedBox(width: 12),
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    audio.currentFileName ?? 'Unknown',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: 3,
+                      value: audio.progress.clamp(0.0, 1.0),
+                      backgroundColor: Colors.white24,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          _MiniControlButton(
+            icon: Icons.skip_previous_rounded,
+            onPressed: onPrevious,
+          ),
+          const SizedBox(width: 8),
+          _MiniControlButton(
+            icon: audio.isPlaying
+                ? Icons.pause_rounded
+                : Icons.play_arrow_rounded,
+            onPressed: onPlayPause,
+          ),
+          const SizedBox(width: 8),
+          _MiniControlButton(icon: Icons.skip_next_rounded, onPressed: onNext),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFullCard(BuildContext context, AudioService audio) {
+    final width = screenWidth ?? MediaQuery.of(context).size.width;
+    final height = screenHeight ?? MediaQuery.of(context).size.height;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxDisplaySize = isLandscape ? height * 0.75 : width * 0.85;
+        final content = isLandscape
+            ? Row(
+                children: [
+                  const Spacer(flex: 1),
+                  Expanded(
+                    flex: 8,
+                    child: _buildAlbumArt(audio, maxDisplaySize),
+                  ),
+                  const SizedBox(width: 48),
+                  Expanded(
+                    flex: 10,
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: SizedBox(
+                          width: 450,
+                          child: _buildControls(context, audio, width),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Spacer(flex: 1),
+                ],
+              )
+            : Column(
+                children: [
+                  Expanded(child: _buildAlbumArt(audio, maxDisplaySize)),
+                  const SizedBox(height: 24),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: SizedBox(
+                        width: width,
+                        child: _buildControls(context, audio, width),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+
+        return SizedBox(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          child: content,
+        );
+      },
+    );
+  }
+
+  Widget _buildAlbumArt(AudioService audio, double maxDisplaySize) {
+    return Center(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final side = [
+            maxDisplaySize,
+            constraints.maxWidth,
+            constraints.maxHeight,
+          ].reduce((a, b) => a < b ? a : b);
+          return SizedBox.square(
+            dimension: side,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                final inAnimation =
+                    Tween<Offset>(
+                      begin: isNext
+                          ? const Offset(0.7, 0.0)
+                          : const Offset(-0.7, 0.0),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(parent: animation, curve: Curves.easeOut),
+                    );
+                final outAnimation =
+                    Tween<Offset>(
+                      begin: isNext
+                          ? const Offset(-0.7, 0.0)
+                          : const Offset(0.7, 0.0),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(parent: animation, curve: Curves.easeIn),
+                    );
+
+                final isEntering = child.key == ValueKey(audio.currentFilePath);
+                return SlideTransition(
+                  position: isEntering ? inAnimation : outAnimation,
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey(audio.currentFilePath),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    color: Colors.black87,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 50,
+                        spreadRadius: 15,
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _buildCoverImage(audio, isLandscape),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildControls(
+    BuildContext context,
+    AudioService audio,
+    double width,
+  ) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isLandscape ? 450 : width * 0.9,
+          ),
+          child: Text(
+            audio.currentFileName ?? 'Unknown',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.more_horiz, color: Colors.white70),
+              onPressed: onShowMoreMenu,
+              tooltip: 'More',
+            ),
+            const SizedBox(width: 16),
+            GestureDetector(
+              onLongPress: onShowPlaylistModeSelector,
+              child: IconButton(
+                icon: Icon(
+                  _playlistModeIcon(audio.player.playlistMode),
+                  size: 28,
+                  color: Colors.white70,
+                ),
+                onPressed: onCyclePlaylistMode,
+                tooltip: _playlistModeName(audio.player.playlistMode),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: isLandscape ? 8 : 16),
+        WaveformProgressBar(
+          waveform: waveform,
+          progress: sliderProgress,
+          onScrubbing: onScrubbing ?? (_) {},
+          onSeek: onSeek ?? (_) {},
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _formatDuration(previewPosition),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              Text(
+                _formatDuration(audio.duration),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: Icon(
+                showVisualizerToggle
+                    ? Icons.analytics
+                    : Icons.analytics_outlined,
+                size: 28,
+                color: showVisualizerToggle ? Colors.white : Colors.white70,
+              ),
+              onPressed: onToggleVisualizer,
+              tooltip: 'Visualizer',
+            ),
+            const SizedBox(width: 16),
+            IconButton(
+              icon: const Icon(
+                Icons.skip_previous_rounded,
+                size: 48,
+                color: Colors.white,
+              ),
+              onPressed: onPrevious,
+            ),
+            const SizedBox(width: 24),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: IconButton(
+                onPressed: onPlayPause,
+                icon: Icon(
+                  audio.isPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
+                  size: 40,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(width: 24),
+            IconButton(
+              icon: const Icon(
+                Icons.skip_next_rounded,
+                size: 48,
+                color: Colors.white,
+              ),
+              onPressed: onNext,
+            ),
+            const SizedBox(width: 16),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragUpdate: (details) {
+                onVolumeDrag?.call(details.primaryDelta ?? 0);
+              },
+              child: Listener(
+                onPointerSignal: (pointerSignal) {
+                  if (pointerSignal is PointerScrollEvent) {
+                    onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+                  }
+                },
+                child: IconButton(
+                  icon: Icon(
+                    _volumeIcon(audio.volume),
+                    size: 28,
+                    color: Colors.white70,
+                  ),
+                  onPressed: onVolumeTap,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniArtwork extends StatelessWidget {
+  const _MiniArtwork({required this.audio});
+
+  final AudioService audio;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        image: audio.currentArtworkBytes != null
+            ? DecorationImage(
+                image: MemoryImage(audio.currentArtworkBytes!),
+                fit: BoxFit.cover,
+              )
+            : audio.currentArtworkPath != null
+            ? DecorationImage(
+                image: FileImage(File(audio.currentArtworkPath!)),
+                fit: BoxFit.cover,
+              )
+            : null,
+        color: Colors.grey[900],
+      ),
+      child:
+          (audio.currentArtworkBytes == null &&
+              audio.currentArtworkPath == null)
+          ? const Icon(Icons.music_note, color: Colors.white, size: 20)
+          : null,
+    );
+  }
+}
+
+class _MiniControlButton extends StatelessWidget {
+  const _MiniControlButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(icon, color: Colors.white, size: 24),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      onPressed: onPressed,
+    );
+  }
+}
+
 String _formatDuration(Duration d) {
   final minutes = d.inMinutes;
   final seconds = d.inSeconds % 60;
   return '$minutes:${seconds.toString().padLeft(2, "0")}';
+}
+
+IconData _playlistModeIcon(PlaylistMode mode) {
+  switch (mode) {
+    case PlaylistMode.single:
+      return Icons.looks_one_outlined;
+    case PlaylistMode.singleLoop:
+      return Icons.repeat_one_rounded;
+    case PlaylistMode.queue:
+      return Icons.reorder_rounded;
+    case PlaylistMode.queueLoop:
+      return Icons.repeat_rounded;
+    case PlaylistMode.autoQueueLoop:
+      return Icons.all_inclusive_rounded;
+  }
+}
+
+String _playlistModeName(PlaylistMode mode) {
+  switch (mode) {
+    case PlaylistMode.single:
+      return 'Single';
+    case PlaylistMode.singleLoop:
+      return 'Single Loop';
+    case PlaylistMode.queue:
+      return 'Queue';
+    case PlaylistMode.queueLoop:
+      return 'Queue Loop';
+    case PlaylistMode.autoQueueLoop:
+      return 'Auto Queue Loop';
+  }
+}
+
+IconData _volumeIcon(double volume) {
+  if (volume <= 0) return Icons.volume_mute;
+  if (volume < 75) return Icons.volume_down;
+  return Icons.volume_up;
 }
 
 Widget _buildCoverImage(AudioService audio, bool isLandscape) {

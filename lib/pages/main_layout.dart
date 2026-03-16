@@ -12,7 +12,6 @@ import '../pages/playback_page.dart';
 import '../pages/playlist_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
-import '../widgets/dynamic_island_player.dart';
 
 Route<void> buildMainLayoutRoute({
   required List<String> args,
@@ -224,7 +223,7 @@ class _MainLayoutState extends State<MainLayout> {
                         ),
                         child: GestureDetector(
                           onTap: () => _onDestinationSelected(1),
-                          child: const DynamicIslandPlayer(),
+                          child: const PlaybackHeroCard(isMini: true),
                         ),
                       )
                     : const SizedBox.shrink(key: ValueKey('empty-island')),
