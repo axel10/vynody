@@ -1171,6 +1171,7 @@ class PlaybackHeroCard extends StatelessWidget {
     this.previewPosition = Duration.zero,
     this.showVisualizerToggle = true,
     this.onShowMoreMenu,
+    this.onMiniTap,
     this.onCyclePlaylistMode,
     this.onShowPlaylistModeSelector,
     this.onScrubbing,
@@ -1194,6 +1195,7 @@ class PlaybackHeroCard extends StatelessWidget {
   final Duration previewPosition;
   final bool showVisualizerToggle;
   final VoidCallback? onShowMoreMenu;
+  final VoidCallback? onMiniTap;
   final VoidCallback? onCyclePlaylistMode;
   final VoidCallback? onShowPlaylistModeSelector;
   final ValueChanged<double>? onScrubbing;
@@ -1241,34 +1243,45 @@ class PlaybackHeroCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _MiniArtwork(audio: audio),
-          const SizedBox(width: 12),
           Flexible(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 160),
-              child: Column(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onMiniTap,
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    audio.currentFileName ?? 'Unknown',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      minHeight: 3,
-                      value: audio.progress.clamp(0.0, 1.0),
-                      backgroundColor: Colors.white24,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.white,
+                  _MiniArtwork(audio: audio),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 160),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            audio.currentFileName ?? 'Unknown',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              minHeight: 3,
+                              value: audio.progress.clamp(0.0, 1.0),
+                              backgroundColor: Colors.white24,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

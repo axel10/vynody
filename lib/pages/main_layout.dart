@@ -216,15 +216,23 @@ class _MainLayoutState extends State<MainLayout> {
               right: 0,
               child: Center(
                 child: !isPlayback
-                    ? Container(
-                        key: const ValueKey('dynamic-island'),
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.9,
-                        ),
-                        child: GestureDetector(
-                          onTap: () => _onDestinationSelected(1),
-                          child: const PlaybackHeroCard(isMini: true),
-                        ),
+                    ? Builder(
+                        builder: (context) {
+                          final audio = context.read<AudioService>();
+                          return Container(
+                            key: const ValueKey('dynamic-island'),
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.9,
+                            ),
+                            child: PlaybackHeroCard(
+                              isMini: true,
+                              onMiniTap: () => _onDestinationSelected(1),
+                              onPrevious: audio.previous,
+                              onPlayPause: audio.togglePlay,
+                              onNext: audio.next,
+                            ),
+                          );
+                        },
                       )
                     : const SizedBox.shrink(key: ValueKey('empty-island')),
               ),
