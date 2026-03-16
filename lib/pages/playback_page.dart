@@ -27,8 +27,6 @@ class _PlaybackPageState extends State<PlaybackPage>
   bool _showVisualizer = true;
   bool _isScrubbingProgress = false;
   double _scrubProgress = 0.0;
-  List<double> _waveform = [];
-  String? _lastWaveformPath;
   Timer? _hudTimer;
   Timer? _inactivityTimer;
 
@@ -105,23 +103,6 @@ class _PlaybackPageState extends State<PlaybackPage>
   void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY) {
     audio.setVolume(audio.volume - scrollDeltaY * 0.1);
     _triggerHUD();
-  }
-
-  Future<void> _updateWaveform(AudioService audio) async {
-    final path = audio.currentFilePath;
-    if (path == null || path == _lastWaveformPath) return;
-
-    _lastWaveformPath = path;
-    // Request 80 chunks for the waveform visualization
-    final waveform = await audio.getWaveform(
-      expectedChunks: 80,
-      sampleStride: 3,
-    );
-    if (mounted && path == audio.currentFilePath) {
-      setState(() {
-        _waveform = waveform;
-      });
-    }
   }
 
   Future<void> _toggleVisualizer(AudioService audio) async {
@@ -233,8 +214,6 @@ class _PlaybackPageState extends State<PlaybackPage>
     }
     _lastIndex = currentIndex;
 
-    _updateWaveform(audio);
-
     return Listener(
       onPointerDown: (event) {
         _handleInteraction();
@@ -266,7 +245,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                         screenWidth: screenWidth,
                         screenHeight: screenHeight,
                         isNext: _isNext,
-                        waveform: _waveform,
+                        waveform: audio.currentWaveform,
                         sliderProgress: sliderProgress,
                         previewPosition: previewPosition,
                         showVisualizerToggle: _showVisualizer,

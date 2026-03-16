@@ -21,8 +21,8 @@ Route<void> buildMainLayoutRoute({
     settings: RouteSettings(name: 'main-tab-$initialIndex'),
     pageBuilder: (context, animation, secondaryAnimation) =>
         MainLayout(args: args, initialIndex: initialIndex),
-    transitionDuration: const Duration(milliseconds: 220),
-    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionDuration: const Duration(milliseconds: 320),
+    reverseTransitionDuration: const Duration(milliseconds: 320),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return child;
     },

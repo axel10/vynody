@@ -21,6 +21,7 @@ class AudioService extends ChangeNotifier {
   String? _currentFilePath;
   String? _currentFileName;
   int? _currentSongId;
+  List<double> _currentWaveform = const [];
   Uint8List? _currentArtworkBytes;
   String? _currentArtworkPath;
   int? _artworkWidth;
@@ -149,7 +150,13 @@ class AudioService extends ChangeNotifier {
       _currentIndex = newIndex;
       if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
         final song = _playlist[_currentIndex];
-        unawaited(_updateCurrentMetadata(song.path, song.name, id: song.id));
+        unawaited(
+          _updateCurrentMetadata(
+            song.path,
+            song.name,
+            id: song.id,
+          ).then((_) => _refreshCurrentWaveform()),
+        );
       }
       notifyListeners();
     } else {
@@ -163,6 +170,7 @@ class AudioService extends ChangeNotifier {
   String? get currentFilePath => _currentFilePath;
   String? get currentFileName => _currentFileName;
   int? get currentSongId => _currentSongId;
+  List<double> get currentWaveform => List.unmodifiable(_currentWaveform);
   Uint8List? get currentArtworkBytes => _currentArtworkBytes;
   Duration get position => _position;
   Duration get duration => _duration;
@@ -180,6 +188,33 @@ class AudioService extends ChangeNotifier {
   Future<void> updateDynamicColors() async {
     await _updatePalette();
     notifyListeners();
+  }
+
+  List<double> _waveformFromBlob(Uint8List? blob) {
+    if (blob == null || blob.isEmpty) return const [];
+    final list = Float32List.view(blob.buffer, blob.offsetInBytes);
+    return list.map((e) => e.toDouble()).toList();
+  }
+
+  Future<void> _refreshCurrentWaveform({bool notify = true}) async {
+    final path = _currentFilePath;
+    if (path == null) {
+      if (_currentWaveform.isNotEmpty) {
+        _currentWaveform = const [];
+        if (notify) {
+          notifyListeners();
+        }
+      }
+      return;
+    }
+
+    final waveform = await getWaveform(expectedChunks: 80, sampleStride: 3);
+    if (path == _currentFilePath && waveform.isNotEmpty) {
+      _currentWaveform = waveform;
+      if (notify) {
+        notifyListeners();
+      }
+    }
   }
 
   void _applyThemeColors(Map<String, Color> colors) {
@@ -281,6 +316,8 @@ class AudioService extends ChangeNotifier {
     _currentFilePath = path;
     _currentFileName = name;
     _currentSongId = id;
+    final songFromDb = await _db.getSongMetadata(path);
+    _currentWaveform = _waveformFromBlob(songFromDb?.waveformBlob);
     _currentArtworkBytes = null;
     _currentArtworkPath = null;
     _artworkWidth = null;
@@ -288,7 +325,6 @@ class AudioService extends ChangeNotifier {
 
     if (Platform.isWindows) {
       try {
-        final songFromDb = await _db.getSongMetadata(path);
         _currentArtworkPath = songFromDb?.artworkPath;
         _artworkWidth = songFromDb?.artworkWidth;
         _artworkHeight = songFromDb?.artworkHeight;
@@ -334,6 +370,7 @@ class AudioService extends ChangeNotifier {
     await _updateCurrentMetadata(path, name, id: id);
     await _player.setVolume(_volume / 100.0);
     await _player.loadFromPath(path);
+    await _refreshCurrentWaveform(notify: false);
     await _player.play();
     notifyListeners();
   }
@@ -364,6 +401,7 @@ class AudioService extends ChangeNotifier {
     await _updateCurrentMetadata(current.path, current.name, id: current.id);
 
     await _player.setVolume(_volume / 100.0);
+    await _refreshCurrentWaveform(notify: false);
     notifyListeners();
   }
 
@@ -384,6 +422,7 @@ class AudioService extends ChangeNotifier {
       final current = songs[0];
       await _updateCurrentMetadata(current.path, current.name, id: current.id);
       await _player.setVolume(_volume / 100.0);
+      await _refreshCurrentWaveform(notify: false);
     }
     notifyListeners();
   }
@@ -402,6 +441,7 @@ class AudioService extends ChangeNotifier {
     _currentFilePath = null;
     _currentFileName = null;
     _currentSongId = null;
+    _currentWaveform = const [];
     _currentArtworkBytes = null;
     _currentArtworkPath = null;
     await _player.clearPlaylist();
@@ -422,6 +462,7 @@ class AudioService extends ChangeNotifier {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
           await _updateCurrentMetadata(song.path, song.name, id: song.id);
+          await _refreshCurrentWaveform(notify: false);
         }
       }
     } finally {
@@ -441,6 +482,7 @@ class AudioService extends ChangeNotifier {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
           await _updateCurrentMetadata(song.path, song.name, id: song.id);
+          await _refreshCurrentWaveform(notify: false);
         }
       }
     } finally {
