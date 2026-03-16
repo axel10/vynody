@@ -9,7 +9,9 @@ import '../widgets/song_thumbnail.dart';
 
 // 目录页
 class FoldersPage extends StatefulWidget {
-  const FoldersPage({super.key});
+  final Future<void> Function()? onOpenPlayback;
+
+  const FoldersPage({super.key, this.onOpenPlayback});
 
   @override
   State<FoldersPage> createState() => _FoldersPageState();
@@ -223,8 +225,6 @@ class _FoldersPageState extends State<FoldersPage> {
                       leading: SongThumbnail(path: file.path, id: file.id),
                       title: Text(file.name),
                       onTap: () async {
-                        final pageController = context.read<PageController>();
-
                         // Unified behavior across all platforms:
                         // Clear queue and load all files in current directory
                         final index = _currentFolder!.files.indexOf(file);
@@ -234,11 +234,7 @@ class _FoldersPageState extends State<FoldersPage> {
                         );
 
                         if (mounted) {
-                          pageController.animateToPage(
-                            1,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
+                          await widget.onOpenPlayback?.call();
                         }
                       },
                     ),
