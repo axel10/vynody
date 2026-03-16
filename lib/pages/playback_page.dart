@@ -1,5 +1,6 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -1379,11 +1380,13 @@ class PlaybackHeroCard extends StatelessWidget {
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 500),
               transitionBuilder: (Widget child, Animation<double> animation) {
+                const perspective = 0.002;
+                final startTilt = isNext ? math.pi / 6 : -math.pi / 6;
                 final inAnimation =
                     Tween<Offset>(
                       begin: isNext
-                          ? const Offset(0.7, 0.0)
-                          : const Offset(-0.7, 0.0),
+                          ? const Offset(1, 0.0)
+                          : const Offset(-1, 0.0),
                       end: Offset.zero,
                     ).animate(
                       CurvedAnimation(parent: animation, curve: Curves.easeOut),
@@ -1397,11 +1400,42 @@ class PlaybackHeroCard extends StatelessWidget {
                     ).animate(
                       CurvedAnimation(parent: animation, curve: Curves.easeIn),
                     );
+                final turnAnimation = Tween<double>(
+                  begin: startTilt,
+                  end: 0.0,
+                ).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                );
 
                 final isEntering = child.key == ValueKey(audio.currentFilePath);
-                return SlideTransition(
-                  position: isEntering ? inAnimation : outAnimation,
+                final direction = isEntering ? 1.0 : -1.0;
+
+                return AnimatedBuilder(
+                  animation: animation,
                   child: FadeTransition(opacity: animation, child: child),
+                  builder: (context, transitionChild) {
+                    final tilt = turnAnimation.value * direction;
+                    final transform = Matrix4.identity()
+                      ..setEntry(3, 2, perspective)
+                      ..rotateY(tilt);
+                    final alignment =
+                        isEntering
+                            ? (isNext
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft)
+                            : (isNext
+                                ? Alignment.centerLeft
+                                : Alignment.centerRight);
+
+                    return Transform(
+                      alignment: alignment,
+                      transform: transform,
+                      child: SlideTransition(
+                        position: isEntering ? inAnimation : outAnimation,
+                        child: transitionChild,
+                      ),
+                    );
+                  },
                 );
               },
               child: KeyedSubtree(
