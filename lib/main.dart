@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -32,9 +31,14 @@ void main(List<String> args) async {
     });
   }
 
-  MediaKit.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux) {
     MetadataGod.initialize();
+  }
+
+  if (args.isNotEmpty) {
+    final filePath = args[0];
+    print("打开文件: $filePath");
+    // TODO: 交给播放器播放
   }
 
   final settingsService = await SettingsService.init();

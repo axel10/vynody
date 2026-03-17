@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -363,7 +363,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   Widget _buildVisualizerLayer(AudioService audio) {
     return Positioned.fill(
       child: StreamBuilder<FftFrame>(
-        stream: audio.player.optimizedFftStream,
+        stream: audio.player.optimizedFftStream,  // 优化后的FFT流
         builder: (context, snapshot) {
           final frame = snapshot.data;
           if (frame == null) return const SizedBox.shrink();

@@ -80,7 +80,6 @@ class PlaybackHeroCard extends StatelessWidget {
 
   Widget _buildMiniCard(BuildContext context, AudioService audio) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(30),
@@ -92,44 +91,61 @@ class PlaybackHeroCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onMiniTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.6, // Slightly dimmer when full screen to not distract
+                child: MiniSpectrumBackground(audio: audio),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  MiniArtwork(audio: audio),
-                  const SizedBox(width: 12),
                   Flexible(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 160),
-                      child: Column(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onMiniTap,
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            audio.currentFileName ?? 'Unknown',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              minHeight: 3,
-                              value: audio.progress.clamp(0.0, 1.0),
-                              backgroundColor: Colors.white24,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                          MiniArtwork(audio: audio),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 160),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    audio.currentFileName ?? 'Unknown',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: LinearProgressIndicator(
+                                      minHeight: 3,
+                                      value: audio.progress.clamp(0.0, 1.0),
+                                      backgroundColor: Colors.white24,
+                                      valueColor:
+                                          const AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -137,25 +153,31 @@ class PlaybackHeroCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      MiniControlButton(
+                        icon: Icons.skip_previous_rounded,
+                        onPressed: onPrevious,
+                      ),
+                      const SizedBox(width: 8),
+                      MiniControlButton(
+                        icon: audio.isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        onPressed: onPlayPause,
+                      ),
+                      const SizedBox(width: 8),
+                      MiniControlButton(
+                          icon: Icons.skip_next_rounded, onPressed: onNext),
+                    ],
+                  ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          MiniControlButton(
-            icon: Icons.skip_previous_rounded,
-            onPressed: onPrevious,
-          ),
-          const SizedBox(width: 8),
-          MiniControlButton(
-            icon: audio.isPlaying
-                ? Icons.pause_rounded
-                : Icons.play_arrow_rounded,
-            onPressed: onPlayPause,
-          ),
-          const SizedBox(width: 8),
-          MiniControlButton(icon: Icons.skip_next_rounded, onPressed: onNext),
-        ],
+          ],
+        ),
       ),
     );
   }
