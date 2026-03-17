@@ -31,17 +31,25 @@ class CoverCarousel extends StatefulWidget {
   State<CoverCarousel> createState() => _CoverCarouselState();
 }
 
-class _CoverCarouselState extends State<CoverCarousel> {
-  late PageController _pageController;
+class _CoverCarouselState extends State<CoverCarousel>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
   late int _currentPage;
+  bool _isDragging = false;
+
+  static const double _swipeThreshold = 0.2;
+  static const double _resistanceFactor = 0.2;
 
   @override
   void initState() {
     super.initState();
     _currentPage = widget.currentIndex;
-    _pageController = PageController(
-      viewportFraction: 1.0,
-      initialPage: widget.currentIndex,
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+      value: widget.currentIndex.toDouble(),
+      lowerBound: -0.5,
+      upperBound: widget.playlist.length.toDouble() - 0.5,
     );
   }
 
@@ -50,29 +58,39 @@ class _CoverCarouselState extends State<CoverCarousel> {
     super.didUpdateWidget(oldWidget);
     if (widget.currentIndex != oldWidget.currentIndex &&
         widget.currentIndex != _currentPage) {
+      _currentPage = widget.currentIndex;
       _animateToPage(widget.currentIndex);
     }
   }
 
-  void _animateToPage(int page) {
-    _pageController.animateToPage(
-      page,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+  void _animateToPage(int page, {double? velocity}) {
+    _animationController
+        .animateTo(
+      page.toDouble(),
+      duration: Duration(
+          milliseconds: velocity != null && velocity.abs() > 500 ? 250 : 400),
+      curve: Curves.easeOutCubic,
+    )
+        .then((_) {
+      if (mounted && _currentPage != page) {
+        setState(() {
+          _currentPage = page;
+        });
+        widget.onPageChanged?.call(page);
+      }
+    });
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
-  void _onPageChanged(int page) {
-    setState(() {
-      _currentPage = page;
-    });
-    widget.onPageChanged?.call(page);
+  double get _currentDragOffset {
+    if (!mounted) return 0;
+    final screenWidth = MediaQuery.of(context).size.width;
+    return (_currentPage - _animationController.value) * screenWidth;
   }
 
   @override
@@ -81,42 +99,140 @@ class _CoverCarouselState extends State<CoverCarousel> {
       return const SizedBox.shrink();
     }
 
-    return SizedBox(
-      width: double.infinity,
-      height: double.infinity,
-      child: PageView.builder(
-        clipBehavior: Clip.none,
-        controller: _pageController,
-        itemCount: widget.playlist.length,
-        onPageChanged: _onPageChanged,
-        itemBuilder: (context, index) {
-          return _CoverItem(
-            audioService: widget.audioService,
-            musicFile: widget.playlist[index],
-            pageController: _pageController,
-            itemIndex: index,
-            currentPage: _currentPage.toDouble(),
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return GestureDetector(
+      onHorizontalDragStart: (details) {
+        _isDragging = true;
+      },
+      onHorizontalDragUpdate: (details) {
+        if (!_isDragging) return;
+
+        final delta = details.primaryDelta ?? 0;
+        double adjustedDelta = delta;
+
+        if (delta > 0 && _animationController.value <= 0) {
+          adjustedDelta *= _resistanceFactor;
+        } else if (delta < 0 &&
+            _animationController.value >= widget.playlist.length - 1) {
+          adjustedDelta *= _resistanceFactor;
+        }
+
+        _animationController.value -= adjustedDelta / screenWidth;
+      },
+      onHorizontalDragEnd: (details) {
+        if (!_isDragging) return;
+
+        final velocity = details.primaryVelocity ?? 0;
+        int targetPage = _currentPage;
+        final currentVal = _animationController.value;
+
+        if (velocity.abs() > 500) {
+          if (velocity < 0 && _currentPage < widget.playlist.length - 1) {
+            targetPage = _currentPage + 1;
+          } else if (velocity > 0 && _currentPage > 0) {
+            targetPage = _currentPage - 1;
+          }
+        } else {
+          final diff = currentVal - _currentPage;
+          if (diff > _swipeThreshold &&
+              _currentPage < widget.playlist.length - 1) {
+            targetPage = _currentPage + 1;
+          } else if (diff < -_swipeThreshold && _currentPage > 0) {
+            targetPage = _currentPage - 1;
+          }
+        }
+
+        _isDragging = false;
+        _animateToPage(targetPage, velocity: velocity);
+      },
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ..._buildItems(),
+              Positioned.fill(
+                child: _buildResistanceOverlay(),
+              ),
+            ],
           );
         },
       ),
     );
   }
+
+  List<Widget> _buildItems() {
+    final double value = _animationController.value;
+    final int center = value.round();
+    final List<int> indices = [];
+
+    // Add current, previous and next
+    indices.add(center);
+    if (center > 0) indices.add(center - 1);
+    if (center < widget.playlist.length - 1) indices.add(center + 1);
+
+    // Sort to ensure correct layering: items further from the current value are rendered first
+    final List<int> uniqueIndices = indices.toSet().toList();
+    uniqueIndices.sort((a, b) {
+      final distA = (a - value).abs();
+      final distB = (b - value).abs();
+      return distB.compareTo(distA);
+    });
+
+    return uniqueIndices.map((index) {
+      return _CoverItem(
+        key: ValueKey(widget.playlist[index].path),
+        audioService: widget.audioService,
+        musicFile: widget.playlist[index],
+        animation: _animationController,
+        itemIndex: index,
+      );
+    }).toList();
+  }
+
+  Widget _buildResistanceOverlay() {
+    final offset = _currentDragOffset;
+    final isAtStart = _currentPage == 0;
+    final isAtEnd = _currentPage == widget.playlist.length - 1;
+
+    if ((isAtStart && offset > 0) || (isAtEnd && offset < 0)) {
+      final opacity = (offset.abs() / 100).clamp(0.0, 0.3);
+      if (opacity <= 0) return const SizedBox.shrink();
+
+      return IgnorePointer(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: offset > 0 ? Alignment.centerLeft : Alignment.centerRight,
+              end: offset > 0 ? Alignment.centerRight : Alignment.centerLeft,
+              colors: [
+                Colors.black.withValues(alpha: opacity),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
 }
 
 class _CoverItem extends StatefulWidget {
   const _CoverItem({
+    super.key,
     required this.audioService,
     required this.musicFile,
-    required this.pageController,
+    required this.animation,
     required this.itemIndex,
-    required this.currentPage,
   });
 
   final AudioService audioService;
   final MusicFile musicFile;
-  final PageController pageController;
+  final Animation<double> animation;
   final int itemIndex;
-  final double currentPage;
 
   @override
   State<_CoverItem> createState() => _CoverItemState();
@@ -140,9 +256,10 @@ class _CoverItemState extends State<_CoverItem> {
       _loadArtwork();
     } else if (_artworkBytes == null) {
       // Check if we should now load high-res artwork because we are "near" or "on" the current song
-      final isCurrent = widget.audioService.currentFilePath == widget.musicFile.path;
+      final isCurrent =
+          widget.audioService.currentFilePath == widget.musicFile.path;
       final diff = (widget.audioService.currentIndex - widget.itemIndex).abs();
-      
+
       if (isCurrent) {
         if (widget.audioService.currentArtworkBytes != null) {
           setState(() {
@@ -163,7 +280,7 @@ class _CoverItemState extends State<_CoverItem> {
     // 1. Always start with database metadata (fast placeholder)
     final db = MetadataDatabase();
     final metadata = await db.getSongMetadata(widget.musicFile.path);
-    
+
     if (mounted) {
       setState(() {
         _artworkPath = metadata?.artworkPath;
@@ -172,9 +289,10 @@ class _CoverItemState extends State<_CoverItem> {
     }
 
     // 2. Load high-res immediately if we are current or neighbor
-    final isCurrent = widget.audioService.currentFilePath == widget.musicFile.path;
+    final isCurrent =
+        widget.audioService.currentFilePath == widget.musicFile.path;
     final diff = (widget.audioService.currentIndex - widget.itemIndex).abs();
-    
+
     if (isCurrent && widget.audioService.currentArtworkBytes != null) {
       if (mounted) {
         setState(() {
@@ -204,9 +322,11 @@ class _CoverItemState extends State<_CoverItem> {
 
   Future<void> _loadHighResMetadata() async {
     if (!Platform.isWindows) return;
-    
+
     try {
-      final metadataGod = await MetadataGod.readMetadata(file: widget.musicFile.path);
+      final metadataGod = await MetadataGod.readMetadata(
+        file: widget.musicFile.path,
+      );
       final bytes = metadataGod.picture?.data;
       if (bytes != null && mounted) {
         setState(() {
@@ -221,19 +341,13 @@ class _CoverItemState extends State<_CoverItem> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: widget.pageController,
+      animation: widget.animation,
       builder: (context, child) {
-        double pageOffset = 0;
+        final double pageOffset = widget.animation.value - widget.itemIndex;
 
-        if (widget.pageController.position.haveDimensions) {
-          pageOffset = (widget.pageController.page ?? widget.currentPage) - widget.itemIndex;
-        } else {
-          pageOffset = widget.currentPage - widget.itemIndex;
-        }
-
-        final double opacity = (1 - pageOffset.abs()).clamp(0.0, 1.0);
-        final double scale = (1 - (pageOffset.abs() * 0.3)).clamp(0.7, 1.0);
-        final double rotationY = pageOffset * -0.5;
+        final double opacity = (1 - pageOffset.abs() * 1.2).clamp(0.0, 1.0);
+        final double scale = (1 - (pageOffset.abs() * 0.2)).clamp(0.8, 1.0);
+        final double rotationY = pageOffset * -0.4;
 
         return Opacity(
           opacity: opacity,
@@ -255,7 +369,9 @@ class _CoverItemState extends State<_CoverItem> {
                       color: Colors.black87,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15 + (0.1 * (1 - pageOffset.abs()))),
+                          color: Colors.black.withValues(
+                            alpha: 0.15 + (0.1 * (1 - pageOffset.abs())),
+                          ),
                           blurRadius: 50 * scale,
                           spreadRadius: 15 * scale,
                         ),
@@ -309,10 +425,7 @@ class _CoverItemState extends State<_CoverItem> {
 
     if (!_isLoaded) {
       return const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: Colors.white24,
-        ),
+        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
       );
     }
 
@@ -324,11 +437,7 @@ class _CoverItemState extends State<_CoverItem> {
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.1),
         ),
-        child: const Icon(
-          Icons.music_note,
-          size: 40,
-          color: Colors.white54,
-        ),
+        child: const Icon(Icons.music_note, size: 40, color: Colors.white54),
       ),
     );
   }

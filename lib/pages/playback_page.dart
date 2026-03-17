@@ -218,13 +218,10 @@ class _PlaybackPageState extends State<PlaybackPage>
 
           final content = SafeArea(
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isLandscape ? 24.0 : 0.0,
-                vertical: isLandscape ? 24.0 : 8.0,
-              ),
+              padding: EdgeInsets.all(isLandscape ? 32.0 : 24.0),
               child: Column(
                 children: [
-                  if (Platform.isWindows) const SizedBox(height: 16),
+                  if (Platform.isWindows) const SizedBox(height: 32),
                   Expanded(
                     child: Center(
                       child: PlaybackHeroCard(
@@ -363,7 +360,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   Widget _buildVisualizerLayer(AudioService audio) {
     return Positioned.fill(
       child: StreamBuilder<FftFrame>(
-        stream: audio.player.optimizedFftStream,  // 优化后的FFT流
+        stream: audio.player.optimizedFftStream,
         builder: (context, snapshot) {
           final frame = snapshot.data;
           if (frame == null) return const SizedBox.shrink();
