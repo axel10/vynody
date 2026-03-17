@@ -1,18 +1,56 @@
 import 'dart:io';
+import 'package:path/path.dart' as p;
 
 import 'package:flutter/material.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
-
+import 'package:windows_single_instance/windows_single_instance.dart';
 import 'pages/main_layout.dart';
 import 'player/audio_service.dart';
 import 'player/playlist_service.dart';
 import 'player/scanner_service.dart';
 import 'player/settings_service.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+void handleFileOpen(List<String> args) {
+  if (args.isEmpty) return;
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+
+  final audio = context.read<AudioService>();
+  final List<String> audioExtensions = [
+    '.mp3',
+    '.m4a',
+    '.wav',
+    '.flac',
+    '.ogg',
+  ];
+
+  for (var arg in args) {
+    if (File(arg).existsSync()) {
+      final ext = p.extension(arg).toLowerCase();
+      if (audioExtensions.contains(ext)) {
+        audio.playFile(arg, p.basename(arg), append: true);
+        navigateToMainTab(context, index: 1);
+        break;
+      }
+    }
+  }
+}
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows) {
+    await WindowsSingleInstance.ensureSingleInstance(
+      args,
+      "custom_identifier",
+      onSecondWindow: (args) {
+        handleFileOpen(args);
+      },
+    );
+  }
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
@@ -33,12 +71,6 @@ void main(List<String> args) async {
 
   if (Platform.isWindows || Platform.isLinux) {
     MetadataGod.initialize();
-  }
-
-  if (args.isNotEmpty) {
-    final filePath = args[0];
-    print("打开文件: $filePath");
-    // TODO: 交给播放器播放
   }
 
   final settingsService = await SettingsService.init();
@@ -95,6 +127,8 @@ class MyApp extends StatelessWidget {
         fontFamilyFallback: fontFallbacks,
       ),
       home: MainLayout(args: args),
+      navigatorKey: navigatorKey,
     );
+
   }
 }

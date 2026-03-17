@@ -93,7 +93,7 @@ class _MainLayoutState extends State<MainLayout> {
       if (File(arg).existsSync()) {
         final ext = p.extension(arg).toLowerCase();
         if (audioExtensions.contains(ext)) {
-          audio.playFile(arg, p.basename(arg));
+          audio.playFile(arg, p.basename(arg), append: true);
           if (!mounted) return;
           await navigateToMainTab(context, index: 1);
           break;

@@ -381,18 +381,18 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> playFile(String path, String name, {int? id}) async {
+  Future<void> playFile(String path, String name, {int? id, bool append = false}) async {
     final song = MusicFile(path: path, name: name, id: id);
-    _playlist.clear();
-    _playlist.add(song);
-    _currentIndex = 0;
+    if (!append) {
+      _playlist.clear();
+      await _player.clearPlaylist();
+    }
 
-    await _updateCurrentMetadata(path, name, id: id);
-    await _player.setVolume(_volume / 100.0);
-    await _player.loadFromPath(path);
-    await _refreshCurrentWaveform(notify: false);
-    await _player.play();
-    notifyListeners();
+    final int index = _playlist.length;
+    _playlist.add(song);
+    await _player.addTracks([AudioTrack(id: index.toString(), uri: path)]);
+
+    await playAtIndex(index);
   }
 
   Future<void> playPlaylist(
