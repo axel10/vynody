@@ -188,7 +188,7 @@ class PlaybackHeroCard extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxDisplaySize = isLandscape ? height * 0.82 : width;
+        final maxDisplaySize = isLandscape ? height : width;
         final content = isLandscape
             ? Row(
                 children: [
@@ -216,11 +216,11 @@ class PlaybackHeroCard extends StatelessWidget {
             : Column(
                 children: [
                   Expanded(
-                    flex: 12,
+                    flex: 18,  // 封面宽度
                     child: Padding(
                       padding: const EdgeInsets.only(
-                        left: 24, // ← 封面左边距
-                        right: 24, // ← 封面右边距
+                        // left: 0, // ← 封面左边距
+                        // right: 0, // ← 封面右边距
                         top: 16, // ← 封面顶边距
                         bottom: 24, // ← 封面底边距
                       ),
