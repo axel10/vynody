@@ -218,10 +218,13 @@ class _PlaybackPageState extends State<PlaybackPage>
 
           final content = SafeArea(
             child: Padding(
-              padding: EdgeInsets.all(isLandscape ? 32.0 : 24.0),
+              padding: EdgeInsets.symmetric(
+                horizontal: isLandscape ? 24.0 : 0.0,
+                vertical: isLandscape ? 24.0 : 8.0,
+              ),
               child: Column(
                 children: [
-                  if (Platform.isWindows) const SizedBox(height: 32),
+                  if (Platform.isWindows) const SizedBox(height: 16),
                   Expanded(
                     child: Center(
                       child: PlaybackHeroCard(

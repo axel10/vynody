@@ -40,7 +40,7 @@ class _CoverCarouselState extends State<CoverCarousel> {
     super.initState();
     _currentPage = widget.currentIndex;
     _pageController = PageController(
-      viewportFraction: 0.9,
+      viewportFraction: 1.0,
       initialPage: widget.currentIndex,
     );
   }
@@ -245,7 +245,7 @@ class _CoverItemState extends State<_CoverItem> {
               ..setEntry(0, 0, scale)
               ..setEntry(1, 1, scale),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 0),
               child: Center(
                 child: AspectRatio(
                   aspectRatio: 1,

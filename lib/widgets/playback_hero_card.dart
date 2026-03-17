@@ -166,18 +166,18 @@ class PlaybackHeroCard extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxDisplaySize = isLandscape ? height * 0.75 : width * 0.85;
+        final maxDisplaySize = isLandscape ? height * 0.82 : width;
         final content = isLandscape
             ? Row(
                 children: [
                   const Spacer(flex: 1),
                   Expanded(
-                    flex: 8,
+                    flex: 10,
                     child: _buildAlbumArt(audio, maxDisplaySize),
                   ),
                   const SizedBox(width: 48),
                   Expanded(
-                    flex: 10,
+                    flex: 11,
                     child: Center(
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
@@ -193,9 +193,21 @@ class PlaybackHeroCard extends StatelessWidget {
               )
             : Column(
                 children: [
-                  Expanded(child: _buildAlbumArt(audio, maxDisplaySize)),
-                  const SizedBox(height: 24),
+                  Expanded(
+                    flex: 12,
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        left: 24, // ← 封面左边距
+                        right: 24, // ← 封面右边距
+                        top: 16, // ← 封面顶边距
+                        bottom: 24, // ← 封面底边距
+                      ),
+                      child: _buildAlbumArt(audio, maxDisplaySize),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Flexible(
+                    flex: 10,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Padding(
@@ -280,7 +292,7 @@ class PlaybackHeroCard extends StatelessWidget {
       children: [
         ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: isLandscape ? 450 : width * 0.9,
+            maxWidth: isLandscape ? 450 : width * 0.95,
           ),
           child: Text(
             audio.currentFileName ?? 'Unknown',
@@ -294,7 +306,7 @@ class PlaybackHeroCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: isLandscape ? 16 : 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -318,7 +330,7 @@ class PlaybackHeroCard extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(height: isLandscape ? 8 : 16),
+        SizedBox(height: isLandscape ? 8 : 4),
         WaveformProgressBar(
           waveform: waveform,
           progress: sliderProgress,
@@ -341,7 +353,7 @@ class PlaybackHeroCard extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: isLandscape ? 16 : 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

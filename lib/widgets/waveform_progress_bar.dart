@@ -45,7 +45,7 @@ class WaveformProgressBar extends StatelessWidget {
             onSeek(newProgress);
           },
           child: SizedBox(
-            height: 60,
+            height: 60, // 调整进度条高度
             width: double.infinity,
             child: ShaderMask(
               shaderCallback: (Rect bounds) {
