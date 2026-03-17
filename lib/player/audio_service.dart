@@ -402,27 +402,35 @@ class AudioService extends ChangeNotifier {
     if (songs.isEmpty) return;
     final safeIndex = initialIndex.clamp(0, songs.length - 1);
 
-    _playlist.clear();
-    _playlist.addAll(songs);
-    _currentIndex = safeIndex;
-
-    final tracks = songs.asMap().entries.map((e) {
-      return AudioTrack(id: e.key.toString(), uri: e.value.path);
-    }).toList();
-
-    // Clear existing playlist and add all tracks
-    await _player.clearPlaylist();
-    await _player.addTracks(tracks);
-
-    // Play the selected track
-    await _player.playAt(safeIndex);
-
-    final current = songs[safeIndex];
-    await _updateCurrentMetadata(current.path, current.name, id: current.id);
-
-    await _player.setVolume(_volume / 100.0);
-    await _refreshCurrentWaveform(notify: false);
+    _isTransitioning = true;
     notifyListeners();
+
+    try {
+      _playlist.clear();
+      _playlist.addAll(songs);
+      _currentIndex = safeIndex;
+      notifyListeners();
+
+      final tracks = songs.asMap().entries.map((e) {
+        return AudioTrack(id: e.key.toString(), uri: e.value.path);
+      }).toList();
+
+      // Clear existing playlist and add all tracks
+      await _player.clearPlaylist();
+      await _player.addTracks(tracks);
+
+      // Play the selected track
+      await _player.playAt(safeIndex);
+
+      final current = songs[safeIndex];
+      await _updateCurrentMetadata(current.path, current.name, id: current.id);
+
+      await _player.setVolume(_volume / 100.0);
+      await _refreshCurrentWaveform(notify: false);
+    } finally {
+      _isTransitioning = false;
+      notifyListeners();
+    }
   }
 
   Future<void> addToPlaylist(List<MusicFile> songs) async {

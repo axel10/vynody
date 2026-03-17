@@ -228,7 +228,7 @@ class _FoldersPageState extends State<FoldersPage> {
                         // Unified behavior across all platforms:
                         // Clear queue and load all files in current directory
                         final index = _currentFolder!.files.indexOf(file);
-                        audio.playPlaylist(
+                        await audio.playPlaylist(
                           _currentFolder!.files,
                           initialIndex: index,
                         );
