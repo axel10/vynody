@@ -313,31 +313,46 @@ class AudioService extends ChangeNotifier {
   }) async {
     if (_currentFilePath == path && _currentSongId == id) return;
 
+    // Clear previous high-res bytes to avoid showing wrong artwork during transition
+    _currentArtworkBytes = null;
     _currentFilePath = path;
     _currentFileName = name;
     _currentSongId = id;
+
+    // 1. Try to get metadata from database immediately (fast)
     final songFromDb = await _db.getSongMetadata(path);
-    _currentWaveform = _waveformFromBlob(songFromDb?.waveformBlob);
-    _currentArtworkBytes = null;
-    _currentArtworkPath = null;
-    _artworkWidth = null;
-    _artworkHeight = null;
+    if (songFromDb != null) {
+      _currentWaveform = _waveformFromBlob(songFromDb.waveformBlob);
+      _currentArtworkPath = songFromDb.artworkPath;
+      _artworkWidth = songFromDb.artworkWidth;
+      _artworkHeight = songFromDb.artworkHeight;
+    } else {
+      _currentWaveform = const [];
+      _currentArtworkPath = null;
+      _artworkWidth = null;
+      _artworkHeight = null;
+    }
+    
+    // Notify listeners immediately so the UI can show the placeholder (thumbnail from DB)
+    notifyListeners();
+
+    // 2. Load fresh high-quality metadata and artwork
+    Uint8List? newArtworkBytes;
+    String? newArtworkPath = _currentArtworkPath;
+    int? newArtworkWidth = _artworkWidth;
+    int? newArtworkHeight = _artworkHeight;
 
     if (Platform.isWindows) {
       try {
-        _currentArtworkPath = songFromDb?.artworkPath;
-        _artworkWidth = songFromDb?.artworkWidth;
-        _artworkHeight = songFromDb?.artworkHeight;
-
         // Playback page should prefer embedded original artwork, not cached thumbnails.
         final metadata = await MetadataGod.readMetadata(file: path);
         final bytes = metadata.picture?.data;
         if (bytes != null) {
-          _currentArtworkBytes = bytes;
+          newArtworkBytes = bytes;
           final image = img.decodeImage(bytes);
           if (image != null) {
-            _artworkWidth = image.width;
-            _artworkHeight = image.height;
+            newArtworkWidth = image.width;
+            newArtworkHeight = image.height;
           }
         }
       } catch (e) {
@@ -345,7 +360,7 @@ class AudioService extends ChangeNotifier {
       }
     } else if (Platform.isAndroid && id != null) {
       try {
-        _currentArtworkBytes = await _audioQuery.queryArtwork(
+        newArtworkBytes = await _audioQuery.queryArtwork(
           id,
           ArtworkType.AUDIO,
           format: ArtworkFormat.JPEG,
@@ -356,6 +371,11 @@ class AudioService extends ChangeNotifier {
         debugPrint('Error querying artwork on Android: $e');
       }
     }
+
+    _currentArtworkBytes = newArtworkBytes;
+    _currentArtworkPath = newArtworkPath;
+    _artworkWidth = newArtworkWidth;
+    _artworkHeight = newArtworkHeight;
 
     await _updatePalette();
     notifyListeners();

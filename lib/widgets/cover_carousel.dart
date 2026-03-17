@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:on_audio_query/on_audio_query.dart';
+import 'package:metadata_god/metadata_god.dart';
 import '../player/audio_service.dart';
+import '../player/metadata_database.dart';
 import '../models/music_file.dart';
 
 class CoverCarousel extends StatefulWidget {
@@ -100,7 +103,7 @@ class _CoverCarouselState extends State<CoverCarousel> {
   }
 }
 
-class _CoverItem extends StatelessWidget {
+class _CoverItem extends StatefulWidget {
   const _CoverItem({
     required this.audioService,
     required this.musicFile,
@@ -116,16 +119,116 @@ class _CoverItem extends StatelessWidget {
   final double currentPage;
 
   @override
+  State<_CoverItem> createState() => _CoverItemState();
+}
+
+class _CoverItemState extends State<_CoverItem> {
+  Uint8List? _artworkBytes;
+  String? _artworkPath;
+  bool _isLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadArtwork();
+  }
+
+  @override
+  void didUpdateWidget(_CoverItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.musicFile.path != widget.musicFile.path) {
+      _loadArtwork();
+    } else if (_artworkBytes == null) {
+      // Check if we should now load high-res artwork because we are "near" or "on" the current song
+      final isCurrent = widget.audioService.currentFilePath == widget.musicFile.path;
+      final diff = (widget.audioService.currentIndex - widget.itemIndex).abs();
+      
+      if (isCurrent) {
+        if (widget.audioService.currentArtworkBytes != null) {
+          setState(() {
+            _artworkBytes = widget.audioService.currentArtworkBytes;
+          });
+        } else {
+          _loadHighResMetadata();
+        }
+      } else if (diff <= 1) {
+        _loadHighResMetadata();
+      }
+    }
+  }
+
+  Future<void> _loadArtwork() async {
+    _isLoaded = false;
+
+    // 1. Always start with database metadata (fast placeholder)
+    final db = MetadataDatabase();
+    final metadata = await db.getSongMetadata(widget.musicFile.path);
+    
+    if (mounted) {
+      setState(() {
+        _artworkPath = metadata?.artworkPath;
+        _isLoaded = true;
+      });
+    }
+
+    // 2. Load high-res immediately if we are current or neighbor
+    final isCurrent = widget.audioService.currentFilePath == widget.musicFile.path;
+    final diff = (widget.audioService.currentIndex - widget.itemIndex).abs();
+    
+    if (isCurrent && widget.audioService.currentArtworkBytes != null) {
+      if (mounted) {
+        setState(() {
+          _artworkBytes = widget.audioService.currentArtworkBytes;
+        });
+      }
+    } else if (isCurrent || diff <= 1) {
+      _loadHighResMetadata();
+    }
+
+    // 3. For Android/iOS, query if we don't have a path
+    if (Platform.isAndroid || Platform.isIOS) {
+      if (_artworkPath == null && widget.musicFile.id != null) {
+        final bytes = await OnAudioQuery().queryArtwork(
+          widget.musicFile.id!,
+          ArtworkType.AUDIO,
+          size: 500,
+        );
+        if (mounted) {
+          setState(() {
+            _artworkBytes = bytes;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _loadHighResMetadata() async {
+    if (!Platform.isWindows) return;
+    
+    try {
+      final metadataGod = await MetadataGod.readMetadata(file: widget.musicFile.path);
+      final bytes = metadataGod.picture?.data;
+      if (bytes != null && mounted) {
+        setState(() {
+          _artworkBytes = bytes;
+        });
+      }
+    } catch (_) {
+      // Ignore background loading errors
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: pageController,
+      animation: widget.pageController,
       builder: (context, child) {
         double pageOffset = 0;
 
-        if (pageController.position.haveDimensions) {
-          pageOffset = (pageController.page ?? currentPage) - itemIndex;
+        if (widget.pageController.position.haveDimensions) {
+          pageOffset = (widget.pageController.page ?? widget.currentPage) - widget.itemIndex;
         } else {
-          pageOffset = currentPage - itemIndex;
+          pageOffset = widget.currentPage - widget.itemIndex;
         }
 
         final double opacity = (1 - pageOffset.abs()).clamp(0.0, 1.0);
@@ -159,7 +262,7 @@ class _CoverItem extends StatelessWidget {
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: _buildCoverImage(audioService, musicFile),
+                    child: _buildCoverImage(),
                   ),
                 ),
               ),
@@ -170,20 +273,29 @@ class _CoverItem extends StatelessWidget {
     );
   }
 
-  Widget _buildCoverImage(AudioService audioService, MusicFile musicFile) {
-    final artworkBytes = _getArtworkForFile(musicFile);
-    final artworkPath = _getArtworkPathForFile(musicFile);
-
-    if (artworkBytes != null) {
+  Widget _buildCoverImage() {
+    // Always prefer AudioService if it's the current song and has bytes
+    if (widget.audioService.currentFilePath == widget.musicFile.path &&
+        widget.audioService.currentArtworkBytes != null) {
       return Image.memory(
-        artworkBytes,
+        widget.audioService.currentArtworkBytes!,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
       );
-    } else if (artworkPath != null) {
-      final file = File(artworkPath);
+    }
+
+    if (_artworkBytes != null) {
+      return Image.memory(
+        _artworkBytes!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        gaplessPlayback: true,
+      );
+    } else if (_artworkPath != null) {
+      final file = File(_artworkPath!);
       if (file.existsSync()) {
         return Image.file(
           file,
@@ -193,6 +305,15 @@ class _CoverItem extends StatelessWidget {
           gaplessPlayback: true,
         );
       }
+    }
+
+    if (!_isLoaded) {
+      return const Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Colors.white24,
+        ),
+      );
     }
 
     return Center(
@@ -210,19 +331,5 @@ class _CoverItem extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Uint8List? _getArtworkForFile(MusicFile musicFile) {
-    if (audioService.currentFilePath == musicFile.path) {
-      return audioService.currentArtworkBytes;
-    }
-    return null;
-  }
-
-  String? _getArtworkPathForFile(MusicFile musicFile) {
-    if (audioService.currentFilePath == musicFile.path) {
-      return audioService.currentArtworkPath;
-    }
-    return null;
   }
 }
