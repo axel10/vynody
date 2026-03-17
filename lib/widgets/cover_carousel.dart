@@ -82,6 +82,7 @@ class _CoverCarouselState extends State<CoverCarousel> {
       width: double.infinity,
       height: double.infinity,
       child: PageView.builder(
+        clipBehavior: Clip.none,
         controller: _pageController,
         itemCount: widget.playlist.length,
         onPageChanged: _onPageChanged,

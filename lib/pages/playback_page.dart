@@ -282,11 +282,10 @@ class _PlaybackPageState extends State<PlaybackPage>
             ),
           );
 
-          return ClipRect(
-            child: Container(
+          return Container(
               color: Colors.black,
               child: Stack(
-                clipBehavior: Clip.hardEdge,
+                clipBehavior: Clip.none,
                 children: [
                   _buildBlurredBackground(audio),
                   if (_showVisualizer) _buildVisualizerLayer(audio),
@@ -312,7 +311,6 @@ class _PlaybackPageState extends State<PlaybackPage>
                   if (_showVolumeHUD) VolumeHUD(volume: audio.volume),
                 ],
               ),
-            ),
           );
         },
       ),
