@@ -12,6 +12,7 @@ import '../pages/playback_page.dart';
 import '../pages/playlist_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
+import '../widgets/playback_hero_card.dart';
 
 Route<void> buildMainLayoutRoute({
   required List<String> args,

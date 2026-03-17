@@ -471,6 +471,24 @@ class AudioService extends ChangeNotifier {
     }
   }
 
+  Future<void> playAtIndex(int index) async {
+    if (index < 0 || index >= _playlist.length) return;
+    if (_isTransitioning) return;
+    if (index == _currentIndex && _isPlaying) return;
+
+    _isTransitioning = true;
+    try {
+      await _player.playAt(index);
+      _currentIndex = index;
+      final song = _playlist[_currentIndex];
+      await _updateCurrentMetadata(song.path, song.name, id: song.id);
+      await _refreshCurrentWaveform(notify: false);
+    } finally {
+      _isTransitioning = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> previous() async {
     if (_isTransitioning) return;
     _isTransitioning = true;
