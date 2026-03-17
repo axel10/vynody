@@ -195,13 +195,15 @@ class PlaybackHeroCard extends StatelessWidget {
                 children: [
                   Expanded(child: _buildAlbumArt(audio, maxDisplaySize)),
                   const SizedBox(height: 24),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SizedBox(
-                        width: width,
-                        child: _buildControls(context, audio, width),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: SizedBox(
+                          width: width,
+                          child: _buildControls(context, audio, width),
+                        ),
                       ),
                     ),
                   ),
@@ -234,11 +236,7 @@ class PlaybackHeroCard extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.music_note,
-            size: 80,
-            color: Colors.white54,
-          ),
+          child: const Icon(Icons.music_note, size: 80, color: Colors.white54),
         ),
       );
     }
@@ -258,7 +256,9 @@ class PlaybackHeroCard extends StatelessWidget {
               currentIndex: audio.currentIndex,
               audioService: audio,
               onPageChanged: (page) {
-                if (page >= 0 && page < audio.playlist.length && page != audio.currentIndex) {
+                if (page >= 0 &&
+                    page < audio.playlist.length &&
+                    page != audio.currentIndex) {
                   audio.playAtIndex(page);
                 }
               },
