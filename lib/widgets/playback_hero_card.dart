@@ -399,23 +399,29 @@ class PlaybackHeroCard extends StatelessWidget {
               onPressed: onPrevious,
             ),
             const SizedBox(width: 24),
-            Container(
-              width: 72,
-              height: 72,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
-              child: IconButton(
-                onPressed: onPlayPause,
-                icon: Icon(
-                  audio.isPlaying
-                      ? Icons.pause_rounded
-                      : Icons.play_arrow_rounded,
-                  size: 40,
-                  color: Colors.black,
-                ),
-              ),
+            Builder(
+              builder: (context) {
+                final darkThemeColor = audio.currentThemeColorsMap['darkVibrant'] ??
+                    audio.currentThemeColorsMap['darkMuted'];
+                return Container(
+                  width: 72,
+                  height: 72,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                  ),
+                  child: IconButton(
+                    onPressed: onPlayPause,
+                    icon: Icon(
+                      audio.isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                      size: 40,
+                      color: darkThemeColor ?? Colors.black,
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(width: 24),
             IconButton(

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -14,6 +15,8 @@ import '../pages/playlist_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
 import '../widgets/playback_hero_card.dart';
+import '../widgets/volume_controls.dart';
+import 'dart:async';
 
 Route<void> buildMainLayoutRoute({
   required List<String> args,
@@ -41,6 +44,38 @@ Future<void> navigateToMainTab(
   ).pushReplacement(buildMainLayoutRoute(args: args, initialIndex: index));
 }
 
+class PlayPauseIntent extends Intent {
+  const PlayPauseIntent();
+}
+
+class NextIntent extends Intent {
+  const NextIntent();
+}
+
+class PreviousIntent extends Intent {
+  const PreviousIntent();
+}
+
+class VolumeUpIntent extends Intent {
+  const VolumeUpIntent();
+}
+
+class VolumeDownIntent extends Intent {
+  const VolumeDownIntent();
+}
+
+class MuteIntent extends Intent {
+  const MuteIntent();
+}
+
+class SeekForwardIntent extends Intent {
+  const SeekForwardIntent();
+}
+
+class SeekBackwardIntent extends Intent {
+  const SeekBackwardIntent();
+}
+
 class MainLayout extends StatefulWidget {
   final List<String> args;
   final int initialIndex;
@@ -53,8 +88,23 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   late int _currentIndex;
+  bool _showVolumeHUD = false;
+  Timer? _hudTimer;
+  double? _lastVolume;
+  late AudioService _audioService;
 
-  void _handleDesktopPointerActivity(PointerEvent _) {
+  void _handleDesktopPointerActivity(PointerEvent event) {
+    if (event is PointerDownEvent) {
+      debugPrint('event.buttons: ${event.buttons}');
+      if (event.buttons == 16) {
+        // Forward button
+        _audioService.setVolume((_audioService.volume + 5).roundToDouble());
+      } else if (event.buttons == 8) {
+        // Back button
+        _audioService.setVolume((_audioService.volume - 5).roundToDouble());
+      }
+    }
+
     if (_currentIndex != 1) {
       return;
     }
@@ -64,16 +114,49 @@ class _MainLayoutState extends State<MainLayout> {
     }
   }
 
+  void _triggerHUD() {
+    if (!mounted) return;
+    setState(() {
+      _showVolumeHUD = true;
+    });
+    _hudTimer?.cancel();
+    _hudTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showVolumeHUD = false;
+        });
+      }
+    });
+  }
+
+  void _onAudioServiceChange() {
+    if (!mounted) return;
+    if (_lastVolume != null && (_lastVolume! - _audioService.volume).abs() > 0.1) {
+      _triggerHUD();
+    }
+    _lastVolume = _audioService.volume;
+  }
+
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+
+    _audioService = context.read<AudioService>();
+    _audioService.addListener(_onAudioServiceChange);
 
     if (Platform.isWindows) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _handleArgs();
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _audioService.removeListener(_onAudioServiceChange);
+    _hudTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _handleArgs() async {
@@ -181,11 +264,59 @@ class _MainLayoutState extends State<MainLayout> {
         theme.colorScheme.secondaryContainer;
     final navBgOpacityTarget = isPlayback ? 0.0 : 1.0;
 
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerMove: _handleDesktopPointerActivity,
-      onPointerHover: _handleDesktopPointerActivity,
-      child: Scaffold(
+    return Shortcuts(
+      shortcuts: <ShortcutActivator, Intent>{
+        const SingleActivator(LogicalKeyboardKey.space): const PlayPauseIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowRight, control: true):
+            const NextIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true):
+            const PreviousIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowUp, control: true):
+            const VolumeUpIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowDown, control: true):
+            const VolumeDownIntent(),
+        const SingleActivator(LogicalKeyboardKey.keyM, control: true):
+            const MuteIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowRight):
+            const SeekForwardIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowLeft):
+            const SeekBackwardIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          PlayPauseIntent: CallbackAction<PlayPauseIntent>(
+            onInvoke: (_) => _audioService.togglePlay(),
+          ),
+          NextIntent: CallbackAction<NextIntent>(
+            onInvoke: (_) => _audioService.next(),
+          ),
+          PreviousIntent: CallbackAction<PreviousIntent>(
+            onInvoke: (_) => _audioService.previous(),
+          ),
+          VolumeUpIntent: CallbackAction<VolumeUpIntent>(
+            onInvoke: (_) => _audioService.setVolume((_audioService.volume + 5).roundToDouble()),
+          ),
+          VolumeDownIntent: CallbackAction<VolumeDownIntent>(
+            onInvoke: (_) => _audioService.setVolume((_audioService.volume - 5).roundToDouble()),
+          ),
+          MuteIntent: CallbackAction<MuteIntent>(
+            onInvoke: (_) => _audioService.toggleMute(),
+          ),
+          SeekForwardIntent: CallbackAction<SeekForwardIntent>(
+            onInvoke: (_) => _audioService.seekRelative(const Duration(seconds: 5)),
+          ),
+          SeekBackwardIntent: CallbackAction<SeekBackwardIntent>(
+            onInvoke: (_) => _audioService.seekRelative(const Duration(seconds: -5)),
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: _handleDesktopPointerActivity,
+            onPointerMove: _handleDesktopPointerActivity,
+            onPointerHover: _handleDesktopPointerActivity,
+            child: Scaffold(
         extendBody: true,
         body: Stack(
           children: [
@@ -239,6 +370,7 @@ class _MainLayoutState extends State<MainLayout> {
                     : const SizedBox.shrink(key: ValueKey('empty-island')),
               ),
             ),
+            if (_showVolumeHUD) VolumeHUD(volume: _audioService.volume),
           ],
         ),
         bottomNavigationBar: AnimatedOpacity(
@@ -329,6 +461,9 @@ class _MainLayoutState extends State<MainLayout> {
                 ],
               );
             },
+                ),
+              ),
+            ),
           ),
         ),
       ),

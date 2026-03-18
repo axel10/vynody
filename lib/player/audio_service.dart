@@ -29,6 +29,8 @@ class AudioService extends ChangeNotifier {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   double _volume = 100.0;
+  double _previousVolume = 100.0;
+  bool _isMuted = false;
   final OnAudioQuery _audioQuery = OnAudioQuery();
   final MetadataDatabase _db = MetadataDatabase();
 
@@ -145,7 +147,7 @@ class AudioService extends ChangeNotifier {
     _isPlaying = _player.isPlaying;
     _position = _player.position;
     _duration = _player.duration;
-    _volume = _player.volume * 100.0;
+    _volume = (_player.volume * 100.0).roundToDouble();
 
     final int newIndex = _player.currentIndex ?? -1;
     if (newIndex != _currentIndex && !_isTransitioning) {
@@ -177,6 +179,7 @@ class AudioService extends ChangeNotifier {
   Duration get position => _position;
   Duration get duration => _duration;
   double get volume => _volume;
+  bool get isMuted => _isMuted;
   int? get artworkWidth => _artworkWidth;
   int? get artworkHeight => _artworkHeight;
   String? get currentArtworkPath => _currentArtworkPath;
@@ -556,8 +559,30 @@ class AudioService extends ChangeNotifier {
 
   Future<void> setVolume(double volume) async {
     _volume = volume.clamp(0.0, 100.0);
+    if (_volume > 0) {
+      _isMuted = false;
+    }
     await _player.setVolume(_volume / 100.0);
     notifyListeners();
+  }
+
+  Future<void> toggleMute() async {
+    if (_isMuted) {
+      _isMuted = false;
+      await setVolume(_previousVolume);
+    } else {
+      _previousVolume = _volume;
+      _isMuted = true;
+      await setVolume(0);
+    }
+  }
+
+  Future<void> seekRelative(Duration delta) async {
+    final target = _position + delta;
+    final clampedTarget = Duration(
+      milliseconds: target.inMilliseconds.clamp(0, _duration.inMilliseconds),
+    );
+    await seek(clampedTarget);
   }
 
   void updateVisualOptions(VisualizerOptimizationOptions options) {

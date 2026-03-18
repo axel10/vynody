@@ -14,6 +14,8 @@ import '../widgets/dynamic_mesh_background.dart';
 import '../utils/playback_utils.dart';
 import '../dialogs/visualizer_options_dialog.dart';
 
+// PlaybackPage is now cleaner as volume HUD is handled globally
+
 class PlaybackPage extends StatefulWidget {
   const PlaybackPage({super.key});
 
@@ -23,12 +25,10 @@ class PlaybackPage extends StatefulWidget {
 
 class _PlaybackPageState extends State<PlaybackPage>
     with SingleTickerProviderStateMixin {
-  bool _showVolumeHUD = false;
   bool _showVolumeSlider = false;
   bool _showVisualizer = true;
   bool _isScrubbingProgress = false;
   double _scrubProgress = 0.0;
-  Timer? _hudTimer;
   Timer? _inactivityTimer;
 
   int? _lastIndex;
@@ -57,7 +57,6 @@ class _PlaybackPageState extends State<PlaybackPage>
 
   @override
   void dispose() {
-    _hudTimer?.cancel();
     _inactivityTimer?.cancel();
     _settingsService?.isUserInactive = false;
     super.dispose();
@@ -82,28 +81,12 @@ class _PlaybackPageState extends State<PlaybackPage>
     _startInactivityTimer();
   }
 
-  void _triggerHUD() {
-    setState(() {
-      _showVolumeHUD = true;
-    });
-    _hudTimer?.cancel();
-    _hudTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _showVolumeHUD = false;
-        });
-      }
-    });
-  }
-
   void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
-    audio.setVolume(audio.volume - dragDelta * 0.2);
-    _triggerHUD();
+    audio.setVolume((audio.volume - dragDelta * 0.2).roundToDouble());
   }
 
   void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY) {
-    audio.setVolume(audio.volume - scrollDeltaY * 0.1);
-    _triggerHUD();
+    audio.setVolume((audio.volume - scrollDeltaY * 0.1).roundToDouble());
   }
 
   Future<void> _toggleVisualizer(AudioService audio) async {
@@ -209,79 +192,81 @@ class _PlaybackPageState extends State<PlaybackPage>
     _lastIndex = currentIndex;
 
     return Listener(
-      onPointerDown: (event) => _handleInteraction(),
+      onPointerDown: (event) {
+        _handleInteraction();
+      },
       onPointerMove: (event) => _handleInteraction(),
-      onPointerHover: (event) => _handleInteraction(),
-      child: OrientationBuilder(
-        builder: (context, orientation) {
-          final isLandscape = orientation == Orientation.landscape;
+          onPointerHover: (event) => _handleInteraction(),
+          child: OrientationBuilder(
+            builder: (context, orientation) {
+              final isLandscape = orientation == Orientation.landscape;
 
-          final screenWidth = MediaQuery.of(context).size.width;
-          final screenHeight = MediaQuery.of(context).size.height;
+              final screenWidth = MediaQuery.of(context).size.width;
+              final screenHeight = MediaQuery.of(context).size.height;
 
-          final content = SafeArea(
-            child: Padding(
-              padding: EdgeInsets.all(isLandscape ? 32.0 : 24.0),
-              child: Column(
-                children: [
-                  if (Platform.isWindows) const SizedBox(height: 32),
-                  Expanded(
-                    child: Center(
-                      child: PlaybackHeroCard(
-                        isMini: false,
-                        isLandscape: isLandscape,
-                        screenWidth: screenWidth,
-                        screenHeight: screenHeight,
-                        isNext: _isNext,
-                        waveform: audio.currentWaveform,
-                        sliderProgress: sliderProgress,
-                        previewPosition: previewPosition,
-                        showVisualizerToggle: _showVisualizer,
-                        onShowMoreMenu: () => _showMoreMenu(context, audio),
-                        onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
-                        onShowPlaylistModeSelector: () =>
-                            _showPlaylistModeSelector(context, audio),
-                        onScrubbing: (val) {
-                          _handleInteraction();
-                          setState(() {
-                            _isScrubbingProgress = true;
-                            _scrubProgress = val;
-                          });
-                        },
-                        onSeek: (val) {
-                          final target = Duration(
-                            milliseconds: (val * audio.duration.inMilliseconds)
-                                .round(),
-                          );
-                          setState(() {
-                            _isScrubbingProgress = false;
-                            _scrubProgress = val;
-                          });
-                          audio.seek(target);
-                        },
-                        onToggleVisualizer: () => _toggleVisualizer(audio),
-                        onPrevious: audio.previous,
-                        onPlayPause: audio.togglePlay,
-                        onNext: () => toNextMusic(audio),
-                        onVolumeTap: () {
-                          _handleInteraction();
-                          setState(() {
-                            _showVolumeSlider = !_showVolumeSlider;
-                          });
-                        },
-                        onVolumeDrag: (delta) {
-                          _handleInteraction();
-                          _adjustVolumeFromDrag(audio, delta);
-                        },
-                        onVolumeScroll: (deltaY) {
-                          _handleInteraction();
-                          _adjustVolumeFromScroll(audio, deltaY);
-                        },
+              final content = SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.all(isLandscape ? 32.0 : 24.0),
+                  child: Column(
+                    children: [
+                      if (Platform.isWindows) const SizedBox(height: 32),
+                      Expanded(
+                        child: Center(
+                          child: PlaybackHeroCard(
+                            isMini: false,
+                            isLandscape: isLandscape,
+                            screenWidth: screenWidth,
+                            screenHeight: screenHeight,
+                            isNext: _isNext,
+                            waveform: audio.currentWaveform,
+                            sliderProgress: sliderProgress,
+                            previewPosition: previewPosition,
+                            showVisualizerToggle: _showVisualizer,
+                            onShowMoreMenu: () => _showMoreMenu(context, audio),
+                            onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
+                            onShowPlaylistModeSelector: () =>
+                                _showPlaylistModeSelector(context, audio),
+                            onScrubbing: (val) {
+                              _handleInteraction();
+                              setState(() {
+                                _isScrubbingProgress = true;
+                                _scrubProgress = val;
+                              });
+                            },
+                            onSeek: (val) {
+                              final target = Duration(
+                                milliseconds: (val * audio.duration.inMilliseconds)
+                                    .round(),
+                              );
+                              setState(() {
+                                _isScrubbingProgress = false;
+                                _scrubProgress = val;
+                              });
+                              audio.seek(target);
+                            },
+                            onToggleVisualizer: () => _toggleVisualizer(audio),
+                            onPrevious: audio.previous,
+                            onPlayPause: audio.togglePlay,
+                            onNext: () => toNextMusic(audio),
+                            onVolumeTap: () {
+                              _handleInteraction();
+                              setState(() {
+                                _showVolumeSlider = !_showVolumeSlider;
+                              });
+                            },
+                            onVolumeDrag: (delta) {
+                              _handleInteraction();
+                              _adjustVolumeFromDrag(audio, delta);
+                            },
+                            onVolumeScroll: (deltaY) {
+                              _handleInteraction();
+                              _adjustVolumeFromScroll(audio, deltaY);
+                            },
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
             ),
           );
 
@@ -295,15 +280,13 @@ class _PlaybackPageState extends State<PlaybackPage>
                 else
                   _buildBlurredBackground(audio),
                 if (_showVisualizer) _buildVisualizerLayer(audio),
-                // _buildTopGradient(),
-                // _buildBottomGradient(),
                 content,
                 if (_showVolumeSlider)
                   VolumeSliderOverlay(
                     volume: audio.volume,
                     onVolumeChanged: (val) {
                       _handleInteraction();
-                      audio.setVolume(val);
+                      audio.setVolume(val.roundToDouble());
                     },
                     onDismiss: () => setState(() => _showVolumeSlider = false),
                     isLandscape: isLandscape,
@@ -313,7 +296,6 @@ class _PlaybackPageState extends State<PlaybackPage>
                         _adjustVolumeFromScroll(audio, deltaY),
                     onInteraction: _handleInteraction,
                   ),
-                if (_showVolumeHUD) VolumeHUD(volume: audio.volume),
               ],
             ),
           );

@@ -174,7 +174,7 @@ class VolumeHUD extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${volume.toInt()}%',
+                    '${volume.round()}%',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
