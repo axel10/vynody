@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:desktop_drop/desktop_drop.dart';
-import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../player/audio_service.dart';
@@ -18,48 +16,10 @@ class PlaylistPage extends StatefulWidget {
 }
 
 class _PlaylistPageState extends State<PlaylistPage> {
-  final List<String> _audioExtensions = const [
-    '.mp3',
-    '.m4a',
-    '.wav',
-    '.flac',
-    '.ogg',
-  ];
 
   bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
 
-  Future<List<MusicFile>> _getFilesFromPath(String path) async {
-    final List<MusicFile> results = [];
-    final entity = FileSystemEntity.typeSync(path);
-
-    if (entity == FileSystemEntityType.file) {
-      final ext = p.extension(path).toLowerCase();
-      if (_audioExtensions.contains(ext)) {
-        results.add(MusicFile(path: path, name: p.basename(path)));
-      }
-    } else if (entity == FileSystemEntityType.directory) {
-      final dir = Directory(path);
-      try {
-        await for (final item in dir.list(
-          recursive: true,
-          followLinks: false,
-        )) {
-          if (item is File) {
-            final ext = p.extension(item.path).toLowerCase();
-            if (_audioExtensions.contains(ext)) {
-              results.add(
-                MusicFile(path: item.path, name: p.basename(item.path)),
-              );
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('Error scanning directory $path: $e');
-      }
-    }
-    return results;
-  }
 
   void _toggleSelectionMode() {
     setState(() {
@@ -317,21 +277,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     final scanner = context.watch<ScannerService>();
     final currentPlaylist = playlistService.currentPlaylist;
 
-    return DropTarget(
-      onDragDone: (details) async {
-        final List<MusicFile> allFiles = [];
-        for (final file in details.files) {
-          final files = await _getFilesFromPath(file.path);
-          allFiles.addAll(files);
-        }
-        if (allFiles.isNotEmpty && currentPlaylist != null) {
-          await playlistService.addSongsToPlaylist(
-            currentPlaylist.id,
-            allFiles,
-          );
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           title: currentPlaylist != null
               ? Row(
@@ -628,7 +574,6 @@ class _PlaylistPageState extends State<PlaylistPage> {
                     ),
                 ],
               ),
-      ),
     );
   }
 
