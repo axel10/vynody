@@ -87,11 +87,6 @@ class _CoverCarouselState extends State<CoverCarousel>
     super.dispose();
   }
 
-  double _getCurrentDragOffset(double width) {
-    if (!mounted) return 0;
-    return (_currentPage - _animationController.value) * width;
-  }
-
   @override
   Widget build(BuildContext context) {
     if (widget.playlist.isEmpty) {
@@ -153,10 +148,7 @@ class _CoverCarouselState extends State<CoverCarousel>
               return Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  ..._buildItems(width),
-                  Positioned.fill(
-                    child: _buildResistanceOverlay(width),
-                  ),
+                   ..._buildItems(width),
                 ],
               );
             },
@@ -194,33 +186,6 @@ class _CoverCarouselState extends State<CoverCarousel>
         width: width,
       );
     }).toList();
-  }
-
-  Widget _buildResistanceOverlay(double width) {
-    final offset = _getCurrentDragOffset(width);
-    final isAtStart = _currentPage == 0;
-    final isAtEnd = _currentPage == widget.playlist.length - 1;
-
-    if ((isAtStart && offset > 0) || (isAtEnd && offset < 0)) {
-      final opacity = (offset.abs() / 100).clamp(0.0, 0.3);
-      if (opacity <= 0) return const SizedBox.shrink();
-
-      return IgnorePointer(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: offset > 0 ? Alignment.centerLeft : Alignment.centerRight,
-              end: offset > 0 ? Alignment.centerRight : Alignment.centerLeft,
-              colors: [
-                Colors.black.withValues(alpha: opacity),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
   }
 }
 
@@ -374,7 +339,7 @@ class _CoverItemState extends State<_CoverItem> {
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      color: Colors.black87,
+                      color: Colors.black26,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(
