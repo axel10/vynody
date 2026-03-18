@@ -65,9 +65,12 @@ class MiniSpectrumBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // We don't check fftEnabled here to allow it to be driven by the stream
+    // 使用独立的 FFT 流（专用于迷你播放器）
+    final fftStream = audio.miniPlayerFftStream;
+    if (fftStream == null) return const SizedBox.shrink();
+
     return StreamBuilder<FftFrame>(
-      stream: audio.player.optimizedFftStream,
+      stream: fftStream,
       builder: (context, snapshot) {
         final frame = snapshot.data;
         if (frame == null || !audio.isPlaying) return const SizedBox.shrink();
@@ -76,7 +79,6 @@ class MiniSpectrumBackground extends StatelessWidget {
           child: CustomPaint(
             painter: _MiniSpectrumPainter(
               values: frame.values,
-              // Increase opacity for better visibility
               color: Colors.white.withValues(alpha: 0.25),
             ),
           ),

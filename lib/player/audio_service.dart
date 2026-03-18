@@ -38,6 +38,9 @@ class AudioService extends ChangeNotifier {
   int _currentIndex = -1;
   bool _isTransitioning = false;
 
+  // 独立的 FFT 输出流（用于迷你播放器）
+  VisualizerOutputStream? _miniPlayerFftStream;
+
   final SettingsService settingsService;
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
@@ -50,8 +53,37 @@ class AudioService extends ChangeNotifier {
   AudioService(this.settingsService) {
     _player = AudioVisualizerPlayerController();
     _player.addListener(_handlePlayerChanges);
-    unawaited(_player.initialize().then((_) => _loadVisualizerOptions()));
+    unawaited(_player.initialize().then((_) {
+      _loadVisualizerOptions();
+      _initializeMiniPlayerFftStream();
+    }));
   }
+
+  void _initializeMiniPlayerFftStream() {
+    // 创建独立的 FFT 输出流，专用于迷你播放器
+    _miniPlayerFftStream = _player.createVisualizerOutput(
+      const VisualizerOutputConfig(
+        id: 'mini_player',
+        label: 'Mini Player',
+        options: VisualizerOptimizationOptions(
+          smoothingCoefficient: 0.2,
+          gravityCoefficient: 3,
+          logarithmicScale: 5.0,
+          normalizationFloorDb: -75,
+          aggregationMode: FftAggregationMode.peak,
+          frequencyGroups: 64,
+          targetFrameRate: 60,
+          groupContrastExponent: 0.5,
+          // skipHighFrequencyGroups: 10,
+          // overallMultiplier: 1.2
+        ),
+      ),
+    );
+  }
+
+  /// 独立的 FFT 流，用于迷你播放器
+  Stream<FftFrame>? get miniPlayerFftStream =>
+      _miniPlayerFftStream?.fftStream;
 
   static const String _visualizerOptionsKey = 'visualizer_optimization_options';
 
@@ -593,6 +625,7 @@ class AudioService extends ChangeNotifier {
   @override
   void dispose() {
     _player.removeListener(_handlePlayerChanges);
+    _player.removeVisualizerOutput('mini_player');
     _player.dispose();
     super.dispose();
   }
