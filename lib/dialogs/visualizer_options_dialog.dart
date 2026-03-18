@@ -280,6 +280,8 @@ class VisualizerOptionsDialog extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildBackgroundTypeDropdown(context, settings, setDialogState),
+          const SizedBox(height: 16),
           _buildOptionSlider(
             context,
             label: AppLocalizations.of(context)!.opacity,
@@ -550,6 +552,51 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildBackgroundTypeDropdown(
+    BuildContext context,
+    SettingsService settings,
+    StateSetter setDialogState,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 8),
+          child: Text(
+            AppLocalizations.of(context)!.playbackBackground,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+        ),
+        DropdownButtonFormField<int>(
+          value: settings.playbackBackgroundType,
+          dropdownColor: Colors.grey[900],
+          decoration: const InputDecoration(
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white12),
+            ),
+          ),
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          items: [
+            DropdownMenuItem(
+              value: 0,
+              child: Text(AppLocalizations.of(context)!.blurredArtwork),
+            ),
+            DropdownMenuItem(
+              value: 1,
+              child: Text(AppLocalizations.of(context)!.dynamicMesh),
+            ),
+          ],
+          onChanged: (val) {
+            if (val != null) {
+              settings.playbackBackgroundType = val;
+              setDialogState(() {});
+            }
+          },
+        ),
+      ],
     );
   }
 }

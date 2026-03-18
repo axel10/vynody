@@ -655,6 +655,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'要显示的波形柱数量 (默认: 80)'**
   String get waveformSegmentsDescription;
+
+  /// No description provided for @playbackBackground.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放页背景'**
+  String get playbackBackground;
+
+  /// No description provided for @blurredArtwork.
+  ///
+  /// In zh, this message translates to:
+  /// **'模糊封面 (默认)'**
+  String get blurredArtwork;
+
+  /// No description provided for @dynamicMesh.
+  ///
+  /// In zh, this message translates to:
+  /// **'动态流变 (Apple Music 效果)'**
+  String get dynamicMesh;
 }
 
 class _AppLocalizationsDelegate

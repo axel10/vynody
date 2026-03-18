@@ -10,6 +10,7 @@ import '../player/settings_service.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/visualizer_painter.dart';
 import '../widgets/volume_controls.dart';
+import '../widgets/dynamic_mesh_background.dart';
 import '../utils/playback_utils.dart';
 import '../dialogs/visualizer_options_dialog.dart';
 
@@ -178,6 +179,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   @override
   Widget build(BuildContext context) {
     final audio = context.watch<AudioService>();
+    final settings = context.watch<SettingsService>();
     final sliderProgress = _isScrubbingProgress
         ? _scrubProgress
         : audio.progress.clamp(0.0, 1.0);
@@ -288,7 +290,10 @@ class _PlaybackPageState extends State<PlaybackPage>
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                _buildBlurredBackground(audio),
+                if (settings.playbackBackgroundType == 1)
+                  const Positioned.fill(child: DynamicMeshBackground())
+                else
+                  _buildBlurredBackground(audio),
                 if (_showVisualizer) _buildVisualizerLayer(audio),
                 // _buildTopGradient(),
                 // _buildBottomGradient(),

@@ -21,6 +21,7 @@ class SettingsService extends ChangeNotifier {
       'visualizer_dynamic_start_color';
   static const String _keyVisualizerDynamicEndColor =
       'visualizer_dynamic_end_color';
+  static const String _keyPlaybackBackgroundType = 'playback_background_type';
 
   final SharedPreferences _prefs;
   bool _isImmersiveTabBarEnabled;
@@ -40,6 +41,7 @@ class SettingsService extends ChangeNotifier {
   late bool _isVisualizerDynamicColor;
   late bool _isVisualizerDynamicStartColor;
   late bool _isVisualizerDynamicEndColor;
+  late int _playbackBackgroundType;
 
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
@@ -64,6 +66,7 @@ class SettingsService extends ChangeNotifier {
         _prefs.getBool(_keyVisualizerDynamicStartColor) ?? false;
     _isVisualizerDynamicEndColor =
         _prefs.getBool(_keyVisualizerDynamicEndColor) ?? false;
+    _playbackBackgroundType = _prefs.getInt(_keyPlaybackBackgroundType) ?? 0;
   }
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
@@ -82,6 +85,7 @@ class SettingsService extends ChangeNotifier {
   bool get isVisualizerDynamicColor => _isVisualizerDynamicColor;
   bool get isVisualizerDynamicStartColor => _isVisualizerDynamicStartColor;
   bool get isVisualizerDynamicEndColor => _isVisualizerDynamicEndColor;
+  int get playbackBackgroundType => _playbackBackgroundType;
 
   void resetVisualizerAppearance() {
     visualizerOpacity = 0.2;
@@ -185,6 +189,12 @@ class SettingsService extends ChangeNotifier {
   set isVisualizerDynamicEndColor(bool value) {
     _isVisualizerDynamicEndColor = value;
     _prefs.setBool(_keyVisualizerDynamicEndColor, value);
+    notifyListeners();
+  }
+
+  set playbackBackgroundType(int value) {
+    _playbackBackgroundType = value;
+    _prefs.setInt(_keyPlaybackBackgroundType, value);
     notifyListeners();
   }
 

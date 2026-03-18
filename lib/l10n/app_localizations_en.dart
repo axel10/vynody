@@ -304,4 +304,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get waveformSegmentsDescription =>
       'Number of waveform bars to display (default: 80)';
+
+  @override
+  String get playbackBackground => 'Playback Background';
+
+  @override
+  String get blurredArtwork => 'Blurred Artwork (Default)';
+
+  @override
+  String get dynamicMesh => 'Dynamic Mesh (Apple Music style)';
 }

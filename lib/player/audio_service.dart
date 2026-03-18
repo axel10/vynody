@@ -39,9 +39,11 @@ class AudioService extends ChangeNotifier {
   final SettingsService settingsService;
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
+  Map<String, Color> _currentThemeColorsMap = const {};
 
   Color? get dynamicStartColor => _dynamicStartColor;
   Color? get dynamicEndColor => _dynamicEndColor;
+  Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
 
   AudioService(this.settingsService) {
     _player = AudioVisualizerPlayerController();
@@ -218,16 +220,18 @@ class AudioService extends ChangeNotifier {
   }
 
   void _applyThemeColors(Map<String, Color> colors) {
+    _currentThemeColorsMap = colors;
     _dynamicStartColor = colors['dominant'] ?? colors['vibrant'];
     // In some older Flutter versions withValues might not exist, but lint says to use it or withAlpha. Let's use withOpacity still, it's just an info warning, or withAlpha(128). The lint says "Use .withValues()":
     _dynamicEndColor =
-        (colors['vibrant']?.withValues(alpha: 0.5)) ?? colors['muted'];
+        (colors['vibrant']?.withValues(alpha: 0.8)) ?? colors['muted'];
   }
 
   Future<void> _updatePalette() async {
     if (!settingsService.isVisualizerDynamicColor &&
         !settingsService.isVisualizerDynamicStartColor &&
-        !settingsService.isVisualizerDynamicEndColor) {
+        !settingsService.isVisualizerDynamicEndColor &&
+        settingsService.playbackBackgroundType != 1) {
       _dynamicStartColor = null;
       _dynamicEndColor = null;
       return;
@@ -301,8 +305,13 @@ class AudioService extends ChangeNotifier {
         }
       }());
     } else {
-      _dynamicStartColor = Colors.black;
-      _dynamicEndColor = Colors.white;
+      _dynamicStartColor = Colors.blue;
+      _dynamicEndColor = Colors.deepPurple;
+      _currentThemeColorsMap = {
+        'dominant': Colors.blue,
+        'vibrant': Colors.deepPurple,
+        'muted': Colors.indigo,
+      };
     }
   }
 

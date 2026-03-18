@@ -407,5 +407,8 @@
   "waveformSegmentsDescription": "要显示的波形柱数量 (默认: 80)",
   "@waveformSegmentsDescription": {
     "description": "Waveform Segments description"
-  }
+  },
+  "playbackBackground": "播放页背景",
+  "blurredArtwork": "模糊封面 (默认)",
+  "dynamicMesh": "动态流变 (Apple Music 效果)"
 }

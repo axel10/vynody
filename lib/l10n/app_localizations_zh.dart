@@ -299,4 +299,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get waveformSegmentsDescription => '要显示的波形柱数量 (默认: 80)';
+
+  @override
+  String get playbackBackground => '播放页背景';
+
+  @override
+  String get blurredArtwork => '模糊封面 (默认)';
+
+  @override
+  String get dynamicMesh => '动态流变 (Apple Music 效果)';
 }

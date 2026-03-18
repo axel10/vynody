@@ -92,5 +92,8 @@
   "sampleStride": "Sample Stride",
   "sampleStrideDescription": "Larger values scan faster but with lower waveform precision (default: 4)",
   "waveformSegments": "Waveform Segments",
-  "waveformSegmentsDescription": "Number of waveform bars to display (default: 80)"
+  "waveformSegmentsDescription": "Number of waveform bars to display (default: 80)",
+  "playbackBackground": "Playback Background",
+  "blurredArtwork": "Blurred Artwork (Default)",
+  "dynamicMesh": "Dynamic Mesh (Apple Music style)"
 }
