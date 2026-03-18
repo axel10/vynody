@@ -220,8 +220,8 @@ class PlaybackHeroCard extends StatelessWidget {
                       padding: const EdgeInsets.only(
                         // left: 0, // ← 封面左边距
                         // right: 0, // ← 封面右边距
-                        top: 16, // ← 封面顶边距
-                        bottom: 24, // ← 封面底边距
+                        top: 0, // ← 封面顶边距
+                        bottom: 36, // ← 封面底边距
                       ),
                       child: _buildAlbumArt(audio, maxDisplaySize),
                     ),
