@@ -216,7 +216,7 @@ class PlaybackHeroCard extends StatelessWidget {
             : Column(
                 children: [
                   Expanded(
-                    flex: 18,  // 封面宽度
+                    flex: 14,  // 封面宽度
                     child: Padding(
                       padding: const EdgeInsets.only(
                         // left: 0, // ← 封面左边距

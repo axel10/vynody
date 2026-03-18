@@ -283,34 +283,33 @@ class _PlaybackPageState extends State<PlaybackPage>
           );
 
           return Container(
-              color: Colors.black,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  _buildBlurredBackground(audio),
-                  if (_showVisualizer) _buildVisualizerLayer(audio),
-                  // _buildTopGradient(),
-                  // _buildBottomGradient(),
-                  content,
-                  if (_showVolumeSlider)
-                    VolumeSliderOverlay(
-                      volume: audio.volume,
-                      onVolumeChanged: (val) {
-                        _handleInteraction();
-                        audio.setVolume(val);
-                      },
-                      onDismiss: () =>
-                          setState(() => _showVolumeSlider = false),
-                      isLandscape: isLandscape,
-                      getVolumeIcon: getVolumeIcon,
-                      onDrag: (delta) => _adjustVolumeFromDrag(audio, delta),
-                      onScroll: (deltaY) =>
-                          _adjustVolumeFromScroll(audio, deltaY),
-                      onInteraction: _handleInteraction,
-                    ),
-                  if (_showVolumeHUD) VolumeHUD(volume: audio.volume),
-                ],
-              ),
+            color: Colors.black,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _buildBlurredBackground(audio),
+                if (_showVisualizer) _buildVisualizerLayer(audio),
+                // _buildTopGradient(),
+                // _buildBottomGradient(),
+                content,
+                if (_showVolumeSlider)
+                  VolumeSliderOverlay(
+                    volume: audio.volume,
+                    onVolumeChanged: (val) {
+                      _handleInteraction();
+                      audio.setVolume(val);
+                    },
+                    onDismiss: () => setState(() => _showVolumeSlider = false),
+                    isLandscape: isLandscape,
+                    getVolumeIcon: getVolumeIcon,
+                    onDrag: (delta) => _adjustVolumeFromDrag(audio, delta),
+                    onScroll: (deltaY) =>
+                        _adjustVolumeFromScroll(audio, deltaY),
+                    onInteraction: _handleInteraction,
+                  ),
+                if (_showVolumeHUD) VolumeHUD(volume: audio.volume),
+              ],
+            ),
           );
         },
       ),

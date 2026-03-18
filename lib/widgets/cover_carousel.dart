@@ -87,10 +87,9 @@ class _CoverCarouselState extends State<CoverCarousel>
     super.dispose();
   }
 
-  double get _currentDragOffset {
+  double _getCurrentDragOffset(double width) {
     if (!mounted) return 0;
-    final screenWidth = MediaQuery.of(context).size.width;
-    return (_currentPage - _animationController.value) * screenWidth;
+    return (_currentPage - _animationController.value) * width;
   }
 
   @override
@@ -99,71 +98,75 @@ class _CoverCarouselState extends State<CoverCarousel>
       return const SizedBox.shrink();
     }
 
-    final screenWidth = MediaQuery.of(context).size.width;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
 
-    return GestureDetector(
-      onHorizontalDragStart: (details) {
-        _isDragging = true;
+        return GestureDetector(
+          onHorizontalDragStart: (details) {
+            _isDragging = true;
+          },
+          onHorizontalDragUpdate: (details) {
+            if (!_isDragging) return;
+
+            final delta = details.primaryDelta ?? 0;
+            double adjustedDelta = delta;
+
+            if (delta > 0 && _animationController.value <= 0) {
+              adjustedDelta *= _resistanceFactor;
+            } else if (delta < 0 &&
+                _animationController.value >= widget.playlist.length - 1) {
+              adjustedDelta *= _resistanceFactor;
+            }
+
+            _animationController.value -= adjustedDelta / width;
+          },
+          onHorizontalDragEnd: (details) {
+            if (!_isDragging) return;
+
+            final velocity = details.primaryVelocity ?? 0;
+            int targetPage = _currentPage;
+            final currentVal = _animationController.value;
+
+            if (velocity.abs() > 500) {
+              if (velocity < 0 && _currentPage < widget.playlist.length - 1) {
+                targetPage = _currentPage + 1;
+              } else if (velocity > 0 && _currentPage > 0) {
+                targetPage = _currentPage - 1;
+              }
+            } else {
+              final diff = currentVal - _currentPage;
+              if (diff > _swipeThreshold &&
+                  _currentPage < widget.playlist.length - 1) {
+                targetPage = _currentPage + 1;
+              } else if (diff < -_swipeThreshold && _currentPage > 0) {
+                targetPage = _currentPage - 1;
+              }
+            }
+
+            _isDragging = false;
+            _animateToPage(targetPage, velocity: velocity);
+          },
+          child: AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ..._buildItems(width),
+                  Positioned.fill(
+                    child: _buildResistanceOverlay(width),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
       },
-      onHorizontalDragUpdate: (details) {
-        if (!_isDragging) return;
-
-        final delta = details.primaryDelta ?? 0;
-        double adjustedDelta = delta;
-
-        if (delta > 0 && _animationController.value <= 0) {
-          adjustedDelta *= _resistanceFactor;
-        } else if (delta < 0 &&
-            _animationController.value >= widget.playlist.length - 1) {
-          adjustedDelta *= _resistanceFactor;
-        }
-
-        _animationController.value -= adjustedDelta / screenWidth;
-      },
-      onHorizontalDragEnd: (details) {
-        if (!_isDragging) return;
-
-        final velocity = details.primaryVelocity ?? 0;
-        int targetPage = _currentPage;
-        final currentVal = _animationController.value;
-
-        if (velocity.abs() > 500) {
-          if (velocity < 0 && _currentPage < widget.playlist.length - 1) {
-            targetPage = _currentPage + 1;
-          } else if (velocity > 0 && _currentPage > 0) {
-            targetPage = _currentPage - 1;
-          }
-        } else {
-          final diff = currentVal - _currentPage;
-          if (diff > _swipeThreshold &&
-              _currentPage < widget.playlist.length - 1) {
-            targetPage = _currentPage + 1;
-          } else if (diff < -_swipeThreshold && _currentPage > 0) {
-            targetPage = _currentPage - 1;
-          }
-        }
-
-        _isDragging = false;
-        _animateToPage(targetPage, velocity: velocity);
-      },
-      child: AnimatedBuilder(
-        animation: _animationController,
-        builder: (context, child) {
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              ..._buildItems(),
-              Positioned.fill(
-                child: _buildResistanceOverlay(),
-              ),
-            ],
-          );
-        },
-      ),
     );
   }
 
-  List<Widget> _buildItems() {
+  List<Widget> _buildItems(double width) {
     final double value = _animationController.value;
     final int center = value.round();
     final List<int> indices = [];
@@ -188,12 +191,13 @@ class _CoverCarouselState extends State<CoverCarousel>
         musicFile: widget.playlist[index],
         animation: _animationController,
         itemIndex: index,
+        width: width,
       );
     }).toList();
   }
 
-  Widget _buildResistanceOverlay() {
-    final offset = _currentDragOffset;
+  Widget _buildResistanceOverlay(double width) {
+    final offset = _getCurrentDragOffset(width);
     final isAtStart = _currentPage == 0;
     final isAtEnd = _currentPage == widget.playlist.length - 1;
 
@@ -227,12 +231,14 @@ class _CoverItem extends StatefulWidget {
     required this.musicFile,
     required this.animation,
     required this.itemIndex,
+    required this.width,
   });
 
   final AudioService audioService;
   final MusicFile musicFile;
   final Animation<double> animation;
   final int itemIndex;
+  final double width;
 
   @override
   State<_CoverItem> createState() => _CoverItemState();
@@ -348,6 +354,7 @@ class _CoverItemState extends State<_CoverItem> {
         final double opacity = (1 - pageOffset.abs() * 1.2).clamp(0.0, 1.0);
         final double scale = (1 - (pageOffset.abs() * 0.2)).clamp(0.8, 1.0);
         final double rotationY = pageOffset * -0.4;
+        final double translateX = pageOffset * -widget.width;
 
         return Opacity(
           opacity: opacity,
@@ -355,6 +362,7 @@ class _CoverItemState extends State<_CoverItem> {
             alignment: Alignment.center,
             transform: Matrix4.identity()
               ..setEntry(3, 2, 0.001)
+              ..translate(translateX)
               ..rotateY(rotationY)
               ..setEntry(0, 0, scale)
               ..setEntry(1, 1, scale),
