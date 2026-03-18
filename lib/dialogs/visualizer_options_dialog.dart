@@ -187,7 +187,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
             label: AppLocalizations.of(context)!.skipHighFrequency,
             value: options.skipHighFrequencyGroups.toDouble(),
             min: 0,
-            max: 20,
+            max: 50,
             onChanged: (val) {
               audio.updateVisualOptions(
                 options.copyWith(skipHighFrequencyGroups: val.toInt()),
