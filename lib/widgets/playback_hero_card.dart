@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
 import '../utils/playback_utils.dart';
 import '../widgets/cover_carousel.dart';
@@ -122,7 +123,7 @@ class PlaybackHeroCard extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    audio.currentFileName ?? 'Unknown',
+                                    audio.currentFileName ?? AppLocalizations.of(context)!.unknown,
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 14,
@@ -152,13 +153,13 @@ class PlaybackHeroCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       MiniControlButton(
                         icon: Icons.skip_previous_rounded,
                         onPressed: onPrevious,
+                        tooltip: AppLocalizations.of(context)!.previous,
                       ),
                       const SizedBox(width: 8),
                       MiniControlButton(
@@ -166,10 +167,16 @@ class PlaybackHeroCard extends StatelessWidget {
                             ? Icons.pause_rounded
                             : Icons.play_arrow_rounded,
                         onPressed: onPlayPause,
+                        tooltip: audio.isPlaying
+                            ? AppLocalizations.of(context)!.pause
+                            : AppLocalizations.of(context)!.play,
                       ),
                       const SizedBox(width: 8),
                       MiniControlButton(
-                          icon: Icons.skip_next_rounded, onPressed: onNext),
+                        icon: Icons.skip_next_rounded,
+                        onPressed: onNext,
+                        tooltip: AppLocalizations.of(context)!.next,
+                      ),
                     ],
                   ),
                 ],
@@ -316,7 +323,7 @@ class PlaybackHeroCard extends StatelessWidget {
             maxWidth: isLandscape ? 450 : width * 0.95,
           ),
           child: Text(
-            audio.currentFileName ?? 'Unknown',
+            audio.currentFileName ?? AppLocalizations.of(context)!.unknown,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -334,7 +341,7 @@ class PlaybackHeroCard extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.more_horiz, color: Colors.white70),
               onPressed: onShowMoreMenu,
-              tooltip: 'More',
+              tooltip: AppLocalizations.of(context)!.more,
             ),
             const SizedBox(width: 16),
             GestureDetector(
@@ -346,7 +353,10 @@ class PlaybackHeroCard extends StatelessWidget {
                   color: Colors.white70,
                 ),
                 onPressed: onCyclePlaylistMode,
-                tooltip: getPlaylistModeName(audio.player.playlistMode),
+                tooltip: getPlaylistModeName(
+                  audio.player.playlistMode,
+                  AppLocalizations.of(context)!,
+                ),
               ),
             ),
           ],
@@ -387,7 +397,7 @@ class PlaybackHeroCard extends StatelessWidget {
                 color: showVisualizerToggle ? Colors.white : Colors.white70,
               ),
               onPressed: onToggleVisualizer,
-              tooltip: 'Visualizer',
+              tooltip: AppLocalizations.of(context)!.visualizer,
             ),
             const SizedBox(width: 16),
             IconButton(
@@ -397,12 +407,15 @@ class PlaybackHeroCard extends StatelessWidget {
                 color: Colors.white,
               ),
               onPressed: onPrevious,
+              tooltip: AppLocalizations.of(context)!.previous,
             ),
             const SizedBox(width: 24),
             Builder(
               builder: (context) {
-                final darkThemeColor = audio.currentThemeColorsMap['darkVibrant'] ??
+                final darkThemeColor =
+                    audio.currentThemeColorsMap['darkVibrant'] ??
                     audio.currentThemeColorsMap['darkMuted'];
+                final l10n = AppLocalizations.of(context)!;
                 return Container(
                   width: 72,
                   height: 72,
@@ -412,6 +425,7 @@ class PlaybackHeroCard extends StatelessWidget {
                   ),
                   child: IconButton(
                     onPressed: onPlayPause,
+                    tooltip: audio.isPlaying ? l10n.pause : l10n.play,
                     icon: Icon(
                       audio.isPlaying
                           ? Icons.pause_rounded
@@ -431,6 +445,7 @@ class PlaybackHeroCard extends StatelessWidget {
                 color: Colors.white,
               ),
               onPressed: onNext,
+              tooltip: AppLocalizations.of(context)!.next,
             ),
             const SizedBox(width: 16),
             GestureDetector(
@@ -451,6 +466,7 @@ class PlaybackHeroCard extends StatelessWidget {
                     color: Colors.white70,
                   ),
                   onPressed: onVolumeTap,
+                  tooltip: AppLocalizations.of(context)!.volume,
                 ),
               ),
             ),

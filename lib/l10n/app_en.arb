@@ -95,5 +95,15 @@
   "waveformSegmentsDescription": "Number of waveform bars to display (default: 80)",
   "playbackBackground": "Playback Background",
   "blurredArtwork": "Blurred Artwork (Default)",
-  "dynamicMesh": "Dynamic Mesh (Apple Music style)"
+  "dynamicMesh": "Dynamic Mesh (Apple Music style)",
+  "unknown": "Unknown",
+  "playlistModeSingle": "Single",
+  "playlistModeSingleLoop": "Single Loop",
+  "playlistModeQueue": "Queue",
+  "playlistModeQueueLoop": "Queue Loop",
+  "playlistModeAutoQueueLoop": "Auto Queue Loop",
+  "visualizer": "Visualizer",
+  "previous": "Previous",
+  "next": "Next",
+  "pause": "Pause"
 }

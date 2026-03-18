@@ -42,10 +42,12 @@ class MiniControlButton extends StatelessWidget {
     super.key,
     required this.icon,
     required this.onPressed,
+    this.tooltip,
   });
 
   final IconData icon;
   final VoidCallback? onPressed;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +56,7 @@ class MiniControlButton extends StatelessWidget {
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),
       onPressed: onPressed,
+      tooltip: tooltip,
     );
   }
 }

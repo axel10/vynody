@@ -410,5 +410,15 @@
   },
   "playbackBackground": "播放页背景",
   "blurredArtwork": "模糊封面 (默认)",
-  "dynamicMesh": "动态流变 (Apple Music 效果)"
+  "dynamicMesh": "动态流变 (Apple Music 效果)",
+  "unknown": "未知",
+  "playlistModeSingle": "单曲播放",
+  "playlistModeSingleLoop": "单曲循环",
+  "playlistModeQueue": "播放列表",
+  "playlistModeQueueLoop": "列表循环",
+  "playlistModeAutoQueueLoop": "自动列表循环",
+  "visualizer": "可视化",
+  "previous": "上一首",
+  "next": "下一首",
+  "pause": "暂停"
 }

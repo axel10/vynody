@@ -313,4 +313,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dynamicMesh => 'Dynamic Mesh (Apple Music style)';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get playlistModeSingle => 'Single';
+
+  @override
+  String get playlistModeSingleLoop => 'Single Loop';
+
+  @override
+  String get playlistModeQueue => 'Queue';
+
+  @override
+  String get playlistModeQueueLoop => 'Queue Loop';
+
+  @override
+  String get playlistModeAutoQueueLoop => 'Auto Queue Loop';
+
+  @override
+  String get visualizer => 'Visualizer';
+
+  @override
+  String get previous => 'Previous';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get pause => 'Pause';
 }

@@ -308,4 +308,34 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dynamicMesh => '动态流变 (Apple Music 效果)';
+
+  @override
+  String get unknown => '未知';
+
+  @override
+  String get playlistModeSingle => '单曲播放';
+
+  @override
+  String get playlistModeSingleLoop => '单曲循环';
+
+  @override
+  String get playlistModeQueue => '播放列表';
+
+  @override
+  String get playlistModeQueueLoop => '列表循环';
+
+  @override
+  String get playlistModeAutoQueueLoop => '自动列表循环';
+
+  @override
+  String get visualizer => '可视化';
+
+  @override
+  String get previous => '上一首';
+
+  @override
+  String get next => '下一首';
+
+  @override
+  String get pause => '暂停';
 }

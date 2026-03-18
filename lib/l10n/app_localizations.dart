@@ -673,6 +673,66 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'动态流变 (Apple Music 效果)'**
   String get dynamicMesh;
+
+  /// No description provided for @unknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知'**
+  String get unknown;
+
+  /// No description provided for @playlistModeSingle.
+  ///
+  /// In zh, this message translates to:
+  /// **'单曲播放'**
+  String get playlistModeSingle;
+
+  /// No description provided for @playlistModeSingleLoop.
+  ///
+  /// In zh, this message translates to:
+  /// **'单曲循环'**
+  String get playlistModeSingleLoop;
+
+  /// No description provided for @playlistModeQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放列表'**
+  String get playlistModeQueue;
+
+  /// No description provided for @playlistModeQueueLoop.
+  ///
+  /// In zh, this message translates to:
+  /// **'列表循环'**
+  String get playlistModeQueueLoop;
+
+  /// No description provided for @playlistModeAutoQueueLoop.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动列表循环'**
+  String get playlistModeAutoQueueLoop;
+
+  /// No description provided for @visualizer.
+  ///
+  /// In zh, this message translates to:
+  /// **'可视化'**
+  String get visualizer;
+
+  /// No description provided for @previous.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一首'**
+  String get previous;
+
+  /// No description provided for @next.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一首'**
+  String get next;
+
+  /// No description provided for @pause.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂停'**
+  String get pause;
 }
 
 class _AppLocalizationsDelegate

@@ -115,7 +115,7 @@ class _PlaybackPageState extends State<PlaybackPage>
             children: PlaylistMode.values.map((mode) {
               return ListTile(
                 leading: Icon(getPlaylistModeIcon(mode)),
-                title: Text(getPlaylistModeName(mode)),
+                title: Text(getPlaylistModeName(mode, AppLocalizations.of(context)!)),
                 selected: audio.player.playlistMode == mode,
                 onTap: () {
                   audio.player.setPlaylistMode(mode);

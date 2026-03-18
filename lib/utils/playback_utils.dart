@@ -1,5 +1,6 @@
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 String formatDuration(Duration d) {
   final minutes = d.inMinutes;
@@ -22,18 +23,18 @@ IconData getPlaylistModeIcon(PlaylistMode mode) {
   }
 }
 
-String getPlaylistModeName(PlaylistMode mode) {
+String getPlaylistModeName(PlaylistMode mode, AppLocalizations l10n) {
   switch (mode) {
     case PlaylistMode.single:
-      return 'Single';
+      return l10n.playlistModeSingle;
     case PlaylistMode.singleLoop:
-      return 'Single Loop';
+      return l10n.playlistModeSingleLoop;
     case PlaylistMode.queue:
-      return 'Queue';
+      return l10n.playlistModeQueue;
     case PlaylistMode.queueLoop:
-      return 'Queue Loop';
+      return l10n.playlistModeQueueLoop;
     case PlaylistMode.autoQueueLoop:
-      return 'Auto Queue Loop';
+      return l10n.playlistModeAutoQueueLoop;
   }
 }
 
