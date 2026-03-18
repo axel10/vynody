@@ -30,7 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  flutter_localizations: # 核心插件
+    sdk: flutter
   on_audio_query:
     git:
       url: https://github.com/rozpo/on_audio_query
@@ -67,6 +68,7 @@ dependencies:
   flutter_colorpicker: ^1.1.0
   palette_generator: ^0.3.3+7
   windows_single_instance: ^1.1.0
+  intl: ^0.20.2
   # flutter_tilt: ^3.3.2
 
 dev_dependencies:

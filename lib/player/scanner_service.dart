@@ -293,7 +293,7 @@ class ScannerService extends ChangeNotifier {
             final player = AudioVisualizerPlayerController();
             await player.initialize();
             final waveform = await player.getWaveform(
-              expectedChunks: 80,
+              expectedChunks: _settingsService?.waveformChunks ?? 80,
               sampleStride: _settingsService?.sampleStride ?? 4,
               filePath: song.data,
             );

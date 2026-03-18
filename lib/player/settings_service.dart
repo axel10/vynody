@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsService extends ChangeNotifier {
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
+  static const String _keyWaveformChunks = 'waveform_chunks';
 
   // Visualizer styling keys
   static const String _keyVisColor = 'visualizer_color';
@@ -24,6 +25,7 @@ class SettingsService extends ChangeNotifier {
   final SharedPreferences _prefs;
   bool _isImmersiveTabBarEnabled;
   int _sampleStride;
+  int _waveformChunks;
   bool _isUserInactive = false;
 
   // Visualizer styling state
@@ -41,7 +43,8 @@ class SettingsService extends ChangeNotifier {
 
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
-      _sampleStride = _prefs.getInt(_keySampleStride) ?? 4 {
+      _sampleStride = _prefs.getInt(_keySampleStride) ?? 4,
+      _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 80 {
     _visualizerColor = Color(_prefs.getInt(_keyVisColor) ?? Colors.white.value);
     _visualizerOpacity = _prefs.getDouble(_keyVisOpacity) ?? 0.2;
     _isVisualizerGradientEnabled = _prefs.getBool(_keyVisGradient) ?? false;
@@ -65,6 +68,7 @@ class SettingsService extends ChangeNotifier {
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
   int get sampleStride => _sampleStride;
+  int get waveformChunks => _waveformChunks;
   bool get isUserInactive => _isUserInactive;
 
   Color get visualizerColor => _visualizerColor;
@@ -102,6 +106,12 @@ class SettingsService extends ChangeNotifier {
   set sampleStride(int value) {
     _sampleStride = value;
     _prefs.setInt(_keySampleStride, value);
+    notifyListeners();
+  }
+
+  set waveformChunks(int value) {
+    _waveformChunks = value;
+    _prefs.setInt(_keyWaveformChunks, value);
     notifyListeners();
   }
 

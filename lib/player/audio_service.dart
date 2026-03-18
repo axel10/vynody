@@ -208,7 +208,7 @@ class AudioService extends ChangeNotifier {
       return;
     }
 
-    final waveform = await getWaveform(expectedChunks: 80, sampleStride: 3);
+    final waveform = await getWaveform(expectedChunks: settingsService.waveformChunks, sampleStride: settingsService.sampleStride);
     if (path == _currentFilePath && waveform.isNotEmpty) {
       _currentWaveform = waveform;
       if (notify) {
