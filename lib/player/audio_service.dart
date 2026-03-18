@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'package:image/image.dart' as img;
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
+import 'metadata_helper.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
 
@@ -37,6 +39,7 @@ class AudioService extends ChangeNotifier {
   final List<MusicFile> _playlist = [];
   int _currentIndex = -1;
   bool _isTransitioning = false;
+  bool _isProcessingQueue = false;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -436,6 +439,7 @@ class AudioService extends ChangeNotifier {
     _playlist.add(song);
     await _player.addTracks([AudioTrack(id: index.toString(), uri: path)]);
 
+    _startQueueBackgroundProcessing();
     await playAtIndex(index);
   }
 
@@ -471,6 +475,7 @@ class AudioService extends ChangeNotifier {
 
       await _player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
+      _startQueueBackgroundProcessing();
     } finally {
       _isTransitioning = false;
       notifyListeners();
@@ -496,6 +501,7 @@ class AudioService extends ChangeNotifier {
       await _player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
     }
+    _startQueueBackgroundProcessing();
     notifyListeners();
   }
 
@@ -620,6 +626,139 @@ class AudioService extends ChangeNotifier {
   void updateVisualOptions(VisualizerOptimizationOptions options) {
     _player.updateVisualOptions(options);
     notifyListeners();
+  }
+
+  void _startQueueBackgroundProcessing() {
+    if (_isProcessingQueue) return;
+    unawaited(_processQueueBackground());
+  }
+
+  Future<void> _processQueueBackground() async {
+    if (_isProcessingQueue || _playlist.isEmpty) return;
+    _isProcessingQueue = true;
+
+    try {
+      debugPrint('Starting background queue processing');
+      // Create a snapshot to avoid concurrent modification issues
+      final List<MusicFile> processingList = List.from(_playlist);
+
+      for (final song in processingList) {
+        // Re-check if song is still in the playlist
+        if (!_playlist.any((s) => s.path == song.path)) continue;
+
+        try {
+          final existing = await _db.getSongMetadata(song.path);
+
+          bool needsWaveform = existing == null || existing.waveformBlob == null;
+          bool needsThemeColor =
+              existing == null || existing.themeColorsBlob == null;
+
+          if (needsWaveform || needsThemeColor) {
+            debugPrint('Background processing: ${song.path}');
+
+            // 1. Process basic metadata
+            final SongMetadata? initialMetadata =
+                await MetadataHelper.processMetadata(song.path);
+
+            if (initialMetadata != null) {
+              SongMetadata m = initialMetadata;
+
+              // If theme colors are missing but artwork exists, extract them
+              if (m.themeColorsBlob == null && m.artworkPath != null) {
+                try {
+                  final imageProvider = FileImage(File(m.artworkPath!));
+                  final palette = await PaletteGenerator.fromImageProvider(
+                    imageProvider,
+                    maximumColorCount: 20,
+                  );
+                  final themeColorsBlob =
+                      ThemeColorHelper.paletteToBlob(palette);
+
+                  m = SongMetadata(
+                    id: m.id,
+                    path: m.path,
+                    title: m.title,
+                    album: m.album,
+                    artist: m.artist,
+                    duration: m.duration,
+                    artworkPath: m.artworkPath,
+                    artworkWidth: m.artworkWidth,
+                    artworkHeight: m.artworkHeight,
+                    trackNumber: m.trackNumber,
+                    themeColorsBlob: themeColorsBlob,
+                    waveformBlob: m.waveformBlob,
+                  );
+                  await _db.insertOrUpdateSong(m);
+
+                  // Update current colors if this is the playing song
+                  if (song.path == _currentFilePath) {
+                    _applyThemeColors(
+                      ThemeColorHelper.blobToColors(themeColorsBlob),
+                    );
+                    notifyListeners();
+                  }
+                } catch (e) {
+                  debugPrint('Theme color extraction error for ${song.path}: $e');
+                }
+              }
+
+              // 2. Process waveform if still missing
+              if (m.waveformBlob == null) {
+                try {
+                  final waveform = await _player.getWaveform(
+                    expectedChunks: settingsService.waveformChunks,
+                    sampleStride: settingsService.sampleStride,
+                    filePath: song.path,
+                  );
+
+                  if (waveform.isNotEmpty) {
+                    final float32List = Float32List.fromList(
+                      waveform.map((e) => e.toDouble()).toList(),
+                    );
+                    final blob = float32List.buffer.asUint8List();
+
+                    final updated = SongMetadata(
+                      id: m.id,
+                      path: m.path,
+                      title: m.title,
+                      album: m.album,
+                      artist: m.artist,
+                      duration: m.duration,
+                      artworkPath: m.artworkPath,
+                      artworkWidth: m.artworkWidth,
+                      artworkHeight: m.artworkHeight,
+                      trackNumber: m.trackNumber,
+                      themeColorsBlob: m.themeColorsBlob,
+                      waveformBlob: blob,
+                    );
+                    await _db.insertOrUpdateSong(updated);
+
+                    // Also update 'm' in case we add more steps later
+                    m = updated;
+
+                    // Update current waveform if this is the playing song
+                    if (song.path == _currentFilePath) {
+                      _currentWaveform = waveform;
+                      notifyListeners();
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Waveform extraction error for ${song.path}: $e');
+                }
+              }
+            }
+
+            // Small delay between songs to avoid heavy load
+            await Future.delayed(const Duration(milliseconds: 300));
+          }
+        } catch (e) {
+          debugPrint('Error processing background song ${song.path}: $e');
+        }
+      }
+    } finally {
+      _isProcessingQueue = false;
+      debugPrint('Background queue processing finished');
+    }
   }
 
   @override
