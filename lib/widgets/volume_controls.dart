@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import '../utils/playback_utils.dart';
+import '../l10n/app_localizations.dart';
 
 class VolumeSliderOverlay extends StatelessWidget {
   const VolumeSliderOverlay({
@@ -166,8 +166,8 @@ class VolumeHUD extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '音量',
+                  Text(
+                    AppLocalizations.of(context)!.volume,
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12,

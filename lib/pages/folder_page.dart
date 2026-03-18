@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import '../l10n/app_localizations.dart';
 import '../models/music_folder.dart';
 import '../player/scanner_service.dart';
 import '../player/audio_service.dart';
@@ -48,14 +49,14 @@ class _FoldersPageState extends State<FoldersPage> {
       if (!mounted) return;
 
       final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(const SnackBar(content: Text('正在扫描目录...')));
+      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.scanningDirectory)));
 
       final hasMusic = await scanner.addRootPath(selectedDirectory);
 
       if (!mounted) return;
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(
-        SnackBar(content: Text(hasMusic ? '目录添加成功' : '目录已添加，但未发现可播放音频文件')),
+        SnackBar(content: Text(hasMusic ? AppLocalizations.of(context)!.directoryAddedSuccess : AppLocalizations.of(context)!.directoryAddedNoMusic)),
       );
     }
   }
@@ -86,16 +87,16 @@ class _FoldersPageState extends State<FoldersPage> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '扫描目录',
+                    AppLocalizations.of(context)!.scanDirectory,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.sort),
                   onPressed: () => _showSortDialog(context, scanner),
-                  tooltip: '排序',
+                  tooltip: AppLocalizations.of(context)!.sort,
                 ),
               ],
             ),
@@ -111,18 +112,18 @@ class _FoldersPageState extends State<FoldersPage> {
                       Icons.library_music,
                       color: Colors.purple,
                     ),
-                    title: const Text('系统媒体库'),
+                    title: Text(AppLocalizations.of(context)!.systemMediaLibrary),
                     subtitle: scanner.hasPermission
                         ? null
-                        : const Text(
-                            '需授予权限以扫描本地音乐',
+                        : Text(
+                            AppLocalizations.of(context)!.needPermissionToScan,
                             style: TextStyle(color: Colors.red, fontSize: 12),
                           ),
                     onTap: () {
                       // Navigate to a virtual folder or the real system folder
                       _navigateTo(
                         scanner.systemMediaFolder ??
-                            MusicFolder(path: 'system', name: '系统媒体库'),
+                            MusicFolder(path: 'system', name: AppLocalizations.of(context)!.systemMediaLibrary),
                       );
                     },
                   ),
@@ -133,7 +134,7 @@ class _FoldersPageState extends State<FoldersPage> {
                     Icons.add_circle_outline,
                     color: Colors.blue,
                   ),
-                  title: const Text('添加根目录'),
+                  title: Text(AppLocalizations.of(context)!.addRootDirectory),
                   onTap: () => _pickFolder(scanner),
                 ),
 
@@ -183,7 +184,7 @@ class _FoldersPageState extends State<FoldersPage> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.arrow_back),
-                    title: const Text('返回上一层'),
+                    title: Text(AppLocalizations.of(context)!.goBack),
                     onTap: _goBack,
                   ),
 
@@ -201,12 +202,12 @@ class _FoldersPageState extends State<FoldersPage> {
                               color: Colors.grey,
                             ),
                             const SizedBox(height: 16),
-                            const Text('未获得媒体库访问权限'),
+                            Text(AppLocalizations.of(context)!.noMediaLibraryPermission),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () =>
                                   scanner.checkAndRequestPermissions(),
-                              child: const Text('给予权限'),
+                              child: Text(AppLocalizations.of(context)!.grantPermission),
                             ),
                           ],
                         ),
@@ -255,7 +256,7 @@ class _FoldersPageState extends State<FoldersPage> {
             right: 24,
             bottom: 84, // 24 + 60 (NavigationBar height)
             child: FloatingActionButton(
-              tooltip: '重建标签数据库',
+              tooltip: AppLocalizations.of(context)!.rebuildTagDatabase,
               onPressed: () => _showRebuildDialog(context, scanner),
               child: scanner.isScanning
                   ? const SizedBox(
@@ -277,12 +278,12 @@ class _FoldersPageState extends State<FoldersPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('重建数据库'),
-        content: const Text('确定要手动刷新所有歌曲的标签信息吗？这可能需要一些时间来重新加载封面和元数据。'),
+        title: Text(AppLocalizations.of(context)!.rebuildDatabase),
+        content: Text(AppLocalizations.of(context)!.confirmRebuildDatabase),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -291,10 +292,10 @@ class _FoldersPageState extends State<FoldersPage> {
               if (context.mounted) {
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(const SnackBar(content: Text('正在重建歌曲标签数据库...')));
+                ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.rebuildingDatabase)));
               }
             },
-            child: const Text('确定'),
+            child: Text(AppLocalizations.of(context)!.confirm),
           ),
         ],
       ),
@@ -308,7 +309,7 @@ class _FoldersPageState extends State<FoldersPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('排序方式'),
+              title: Text(AppLocalizations.of(context)!.sortBy),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -324,85 +325,27 @@ class _FoldersPageState extends State<FoldersPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ListTile(
-                          title: const Text('标题'),
+                          title: Text(AppLocalizations.of(context)!.title),
                           leading: Radio(value: SortCriteria.title),
                         ),
                         ListTile(
-                          title: const Text('文件名'),
+                          title: Text(AppLocalizations.of(context)!.fileName),
                           leading: Radio(value: SortCriteria.filename),
                         ),
 
                         ListTile(
-                          title: const Text('轨道号 (Track Number)'),
+                          title: Text(AppLocalizations.of(context)!.trackNumber),
                           leading: Radio(value: SortCriteria.trackNumber),
                         ),
                       ],
                     ),
                   ),
                 ],
-                /*children: [
-                  RadioListTile<SortCriteria>(
-                    title: const Text('标题'),
-                    value: SortCriteria.title,
-                    groupValue: scanner.sortCriteria,
-                    onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortCriteria(v);
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  RadioListTile<SortCriteria>(
-                    title: const Text('文件名'),
-                    value: SortCriteria.filename,
-                    groupValue: scanner.sortCriteria,
-                    onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortCriteria(v);
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  RadioListTile<SortCriteria>(
-                    title: const Text('轨道号 (Track Number)'),
-                    value: SortCriteria.trackNumber,
-                    groupValue: scanner.sortCriteria,
-                    onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortCriteria(v);
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  const Divider(),
-                  RadioListTile<SortOrder>(
-                    title: const Text('升序'),
-                    value: SortOrder.ascending,
-                    groupValue: scanner.sortOrder,
-                    onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortOrder(v);
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  RadioListTile<SortOrder>(
-                    title: const Text('降序'),
-                    value: SortOrder.descending,
-                    groupValue: scanner.sortOrder,
-                    onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortOrder(v);
-                        setState(() {});
-                      }
-                    },
-                  ),
-                ],*/
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('确定'),
+                  child: Text(AppLocalizations.of(context)!.confirm),
                 ),
               ],
             );
@@ -506,7 +449,7 @@ class _FoldersPageState extends State<FoldersPage> {
           IconButton(
             icon: const Icon(Icons.sort),
             onPressed: () => _showSortDialog(context, scanner),
-            tooltip: '排序',
+            tooltip: AppLocalizations.of(context)!.sort,
           ),
         ],
       ),

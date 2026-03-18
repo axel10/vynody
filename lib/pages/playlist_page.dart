@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
+import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../player/audio_service.dart';
 import '../player/scanner_service.dart';
@@ -84,19 +85,19 @@ class _PlaylistPageState extends State<PlaylistPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('创建播放列表'),
+        title: Text(AppLocalizations.of(context)!.createPlaylist),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: '播放列表名称',
-            hintText: '请输入播放列表名称',
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.playlistName,
+            hintText: AppLocalizations.of(context)!.enterPlaylistName,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -106,7 +107,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 Navigator.pop(context);
               }
             },
-            child: const Text('创建'),
+            child: Text(AppLocalizations.of(context)!.createPlaylist),
           ),
         ],
       ),
@@ -118,16 +119,16 @@ class _PlaylistPageState extends State<PlaylistPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('重命名播放列表'),
+        title: Text(AppLocalizations.of(context)!.renamePlaylist),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: '播放列表名称'),
+          decoration: InputDecoration(labelText: AppLocalizations.of(context)!.playlistName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -140,7 +141,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 Navigator.pop(context);
               }
             },
-            child: const Text('确定'),
+            child: Text(AppLocalizations.of(context)!.confirm),
           ),
         ],
       ),
@@ -151,19 +152,19 @@ class _PlaylistPageState extends State<PlaylistPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除播放列表'),
-        content: Text('确定要删除播放列表"${playlist.name}"吗？'),
+        title: Text(AppLocalizations.of(context)!.deletePlaylist),
+        content: Text(AppLocalizations.of(context)!.confirmDeletePlaylist(playlist.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
               context.read<PlaylistService>().deletePlaylist(playlist.id);
               Navigator.pop(context);
             },
-            child: const Text('删除'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),
@@ -179,7 +180,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('添加到播放列表'),
+        title: Text(AppLocalizations.of(context)!.addToPlaylist),
         content: SizedBox(
           width: double.maxFinite,
           height: 300,
@@ -190,7 +191,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
               return ListTile(
                 leading: const Icon(Icons.playlist_play),
                 title: Text(playlist.name),
-                subtitle: Text('${playlist.songs.length} 首歌曲'),
+                subtitle: Text(AppLocalizations.of(context)!.songCount(playlist.songs.length)),
                 onTap: () {
                   playlistService.addSongsToPlaylist(
                     playlist.id,
@@ -200,7 +201,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        '已添加 ${selectedSongs.length} 首歌曲到${playlist.name}',
+                        AppLocalizations.of(context)!.addedToPlaylist(selectedSongs.length, playlist.name),
                       ),
                     ),
                   );
@@ -213,14 +214,14 @@ class _PlaylistPageState extends State<PlaylistPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _showCreatePlaylistAndAddDialog(context, selectedSongs);
             },
-            child: const Text('新建列表'),
+            child: Text(AppLocalizations.of(context)!.createNewList),
           ),
         ],
       ),
@@ -235,19 +236,19 @@ class _PlaylistPageState extends State<PlaylistPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('创建播放列表'),
+        title: Text(AppLocalizations.of(context)!.createPlaylist),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: '播放列表名称',
-            hintText: '请输入播放列表名称',
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.playlistName,
+            hintText: AppLocalizations.of(context)!.enterPlaylistName,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -265,7 +266,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        '已创建播放列表"$name"并添加 ${selectedSongs.length} 首歌曲',
+                        AppLocalizations.of(context)!.createdPlaylist(name, selectedSongs.length),
                       ),
                     ),
                   );
@@ -273,7 +274,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 }
               }
             },
-            child: const Text('创建'),
+            child: Text(AppLocalizations.of(context)!.createPlaylist),
           ),
         ],
       ),
@@ -289,7 +290,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text('重命名'),
+              title: Text(AppLocalizations.of(context)!.rename),
               onTap: () {
                 Navigator.pop(context);
                 _showRenamePlaylistDialog(context, playlist);
@@ -297,7 +298,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
             ),
             ListTile(
               leading: const Icon(Icons.delete),
-              title: const Text('删除'),
+              title: Text(AppLocalizations.of(context)!.delete),
               onTap: () {
                 Navigator.pop(context);
                 _showDeletePlaylistDialog(context, playlist);
@@ -350,12 +351,12 @@ class _PlaylistPageState extends State<PlaylistPage> {
                     ),
                   ],
                 )
-              : const Text('播放列表'),
+              : Text(AppLocalizations.of(context)!.playlist),
           actions: [
             if (currentPlaylist != null && currentPlaylist.songs.isNotEmpty)
               IconButton(
                 icon: const Icon(Icons.clear_all),
-                tooltip: '清空列表',
+                tooltip: AppLocalizations.of(context)!.emptyList,
                 onPressed: () =>
                     playlistService.clearPlaylist(currentPlaylist.id),
               ),
@@ -368,18 +369,18 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'create',
                   child: ListTile(
                     leading: Icon(Icons.add),
-                    title: Text('创建播放列表'),
+                    title: Text(AppLocalizations.of(context)!.createPlaylist),
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'manage',
                   child: ListTile(
                     leading: Icon(Icons.list),
-                    title: Text('管理播放列表'),
+                    title: Text(AppLocalizations.of(context)!.managePlaylists),
                   ),
                 ),
               ],
@@ -397,15 +398,15 @@ class _PlaylistPageState extends State<PlaylistPage> {
                       color: Theme.of(context).colorScheme.outlineVariant,
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      '列表为空',
+                    Text(
+                      AppLocalizations.of(context)!.emptyList,
                       style: TextStyle(fontSize: 18, color: Colors.grey),
                     ),
                     if (Platform.isWindows)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(top: 8.0),
                         child: Text(
-                          '拖入文件或文件夹以添加音乐',
+                          AppLocalizations.of(context)!.dragToAddMusic,
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ),
@@ -425,11 +426,11 @@ class _PlaylistPageState extends State<PlaylistPage> {
                           ),
                           child: Row(
                             children: [
-                              Text('已选择 ${_selectedIndices.length} 首'),
+                              Text(AppLocalizations.of(context)!.selectedSongs(_selectedIndices.length)),
                               const Spacer(),
                               TextButton(
                                 onPressed: _toggleSelectionMode,
-                                child: const Text('取消'),
+                                child: Text(AppLocalizations.of(context)!.cancel),
                               ),
                             ],
                           ),
@@ -524,7 +525,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  '${scanner.metadataMap[song.path]?.artist ?? '未知艺术家'} - ${scanner.metadataMap[song.path]?.album ?? '未知专辑'}',
+                                  '${scanner.metadataMap[song.path]?.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${scanner.metadataMap[song.path]?.album ?? AppLocalizations.of(context)!.unknownAlbum}',
                                   style: const TextStyle(fontSize: 10),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -589,7 +590,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                             );
                                           },
                                     icon: const Icon(Icons.playlist_add),
-                                    label: const Text('添加到播放列表'),
+                                    label: Text(AppLocalizations.of(context)!.addToPlaylist),
                                   ),
                                   const Spacer(),
                                   TextButton.icon(
@@ -609,14 +610,14 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                             ).showSnackBar(
                                               SnackBar(
                                                 content: Text(
-                                                  '已删除 ${indices.length} 首歌曲',
+                                                  AppLocalizations.of(context)!.deletedSongs(indices.length),
                                                 ),
                                               ),
                                             );
                                             _toggleSelectionMode();
                                           },
                                     icon: const Icon(Icons.delete),
-                                    label: const Text('删除'),
+                                    label: Text(AppLocalizations.of(context)!.delete),
                                   ),
                                 ],
                               ),
@@ -644,7 +645,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
               (playlist) => ListTile(
                 leading: const Icon(Icons.playlist_play),
                 title: Text(playlist.name),
-                subtitle: Text('${playlist.songs.length} 首歌曲'),
+                subtitle: Text(AppLocalizations.of(context)!.songCount(playlist.songs.length)),
                 trailing: playlist.id == playlistService.currentPlaylist?.id
                     ? const Icon(Icons.check, color: Colors.blue)
                     : null,
@@ -656,7 +657,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
             ),
             ListTile(
               leading: const Icon(Icons.add),
-              title: const Text('创建新播放列表'),
+              title: Text(AppLocalizations.of(context)!.createNewPlaylist),
               onTap: () {
                 Navigator.pop(context);
                 _showCreatePlaylistDialog(context);
@@ -679,7 +680,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
           children: [
             ListTile(
               title: Text(
-                '管理播放列表',
+                AppLocalizations.of(context)!.managePlaylists,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -689,7 +690,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 leading: const Icon(Icons.playlist_play),
                 title: Text(playlist.name),
                 subtitle: Text(
-                  '${playlist.songs.length} 首歌曲 · ${_formatDate(playlist.updatedAt)}',
+                  '${AppLocalizations.of(context)!.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.more_vert),

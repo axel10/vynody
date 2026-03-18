@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
 import '../player/scanner_service.dart';
 import '../widgets/song_thumbnail.dart';
@@ -40,12 +41,12 @@ class _QueuePageState extends State<QueuePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('清空队列'),
-        content: const Text('确定要清空当前队列吗？'),
+        title: Text(AppLocalizations.of(context)!.clearQueue),
+        content: Text(AppLocalizations.of(context)!.confirmClearQueue),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -54,10 +55,10 @@ class _QueuePageState extends State<QueuePage> {
               if (context.mounted) {
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(const SnackBar(content: Text('队列已清空')));
+                ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.queueCleared)));
               }
             },
-            child: const Text('清空'),
+            child: Text(AppLocalizations.of(context)!.clearQueue),
           ),
         ],
       ),
@@ -73,13 +74,13 @@ class _QueuePageState extends State<QueuePage> {
     if (playlist.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('队列'),
+          title: Text(AppLocalizations.of(context)!.queue),
           centerTitle: true,
           actions: [
             IconButton(
               icon: const Icon(Icons.delete_sweep),
               onPressed: null,
-              tooltip: '队列为空',
+              tooltip: AppLocalizations.of(context)!.queueEmpty,
             ),
           ],
         ),
@@ -93,8 +94,8 @@ class _QueuePageState extends State<QueuePage> {
                 color: Colors.grey.withOpacity(0.5),
               ),
               const SizedBox(height: 16),
-              const Text(
-                '队列为空',
+              Text(
+                AppLocalizations.of(context)!.queueEmpty,
                 style: TextStyle(fontSize: 18, color: Colors.grey),
               ),
             ],
@@ -105,13 +106,13 @@ class _QueuePageState extends State<QueuePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('队列'),
+        title: Text(AppLocalizations.of(context)!.queue),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep),
             onPressed: () => _showClearQueueDialog(context, audio),
-            tooltip: '清空队列',
+            tooltip: AppLocalizations.of(context)!.clearQueue,
           ),
         ],
       ),
@@ -128,11 +129,11 @@ class _QueuePageState extends State<QueuePage> {
                   ),
                   child: Row(
                     children: [
-                      Text('已选择 ${_selectedIndices.length} 首'),
+                      Text(AppLocalizations.of(context)!.selectedSongs(_selectedIndices.length)),
                       const Spacer(),
                       TextButton(
                         onPressed: _toggleSelectionMode,
-                        child: const Text('取消'),
+                        child: Text(AppLocalizations.of(context)!.cancel),
                       ),
                     ],
                   ),
@@ -217,7 +218,7 @@ class _QueuePageState extends State<QueuePage> {
                           ),
                         ),
                         subtitle: Text(
-                          scanner.metadataMap[song.path]?.artist ?? '未知艺术家',
+                          scanner.metadataMap[song.path]?.artist ?? AppLocalizations.of(context)!.unknownArtist,
                           style: const TextStyle(fontSize: 10),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -289,14 +290,14 @@ class _QueuePageState extends State<QueuePage> {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            '已删除 ${sortedIndices.length} 首歌曲',
+                                            AppLocalizations.of(context)!.deletedSongs(sortedIndices.length),
                                           ),
                                         ),
                                       );
                                     }
                                   },
                             icon: const Icon(Icons.delete),
-                            label: const Text('删除'),
+                            label: Text(AppLocalizations.of(context)!.delete),
                           ),
                         ],
                       ),

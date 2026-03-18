@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 
@@ -22,19 +23,18 @@ class VisualizerOptionsDialog extends StatelessWidget {
       length: 2,
       child: StatefulBuilder(
         builder: (context, setDialogState) {
-          final options = audio.player.visualOptions;
 
           return AlertDialog(
             backgroundColor: Colors.grey[900],
-            title: const Column(
+            title: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('可视化设置', style: TextStyle(color: Colors.white)),
+                Text(AppLocalizations.of(context)!.visualizerSettings, style: TextStyle(color: Colors.white)),
                 SizedBox(height: 10),
                 TabBar(
                   tabs: [
-                    Tab(text: '算法'),
-                    Tab(text: '外观'),
+                    Tab(text: AppLocalizations.of(context)!.algorithm),
+                    Tab(text: AppLocalizations.of(context)!.appearance),
                   ],
                   labelColor: Colors.blueAccent,
                   unselectedLabelColor: Colors.white70,
@@ -61,8 +61,8 @@ class VisualizerOptionsDialog extends StatelessWidget {
                   );
                   setDialogState(() {});
                 },
-                child: const Text(
-                  '重置算法',
+                child: Text(
+                  AppLocalizations.of(context)!.resetAlgorithm,
                   style: TextStyle(color: Colors.redAccent),
                 ),
               ),
@@ -71,15 +71,15 @@ class VisualizerOptionsDialog extends StatelessWidget {
                   context.read<SettingsService>().resetVisualizerAppearance();
                   setDialogState(() {});
                 },
-                child: const Text(
-                  '重置外观',
+                child: Text(
+                  AppLocalizations.of(context)!.resetAppearance,
                   style: TextStyle(color: Colors.redAccent),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  '确定',
+                child: Text(
+                  AppLocalizations.of(context)!.confirm,
                   style: TextStyle(color: Colors.blueAccent),
                 ),
               ),
@@ -100,7 +100,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
         children: [
           _buildOptionSlider(
             context,
-            label: '平滑系数 (Smoothing)',
+            label: AppLocalizations.of(context)!.smoothing,
             value: options.smoothingCoefficient,
             min: 0.0,
             max: 0.99,
@@ -114,7 +114,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ),
           _buildOptionSlider(
             context,
-            label: '重力系数 (Gravity)',
+            label: AppLocalizations.of(context)!.gravity,
             value: options.gravityCoefficient,
             min: 0.1,
             max: 5.0,
@@ -128,7 +128,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ),
           _buildOptionSlider(
             context,
-            label: '对数缩放 (Log Scale)',
+            label: AppLocalizations.of(context)!.logScale,
             value: options.logarithmicScale,
             min: 1.0,
             max: 5.0,
@@ -142,7 +142,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ),
           _buildOptionSlider(
             context,
-            label: '对比度 (Contrast)',
+            label: AppLocalizations.of(context)!.contrast,
             value: options.groupContrastExponent,
             min: 0.5,
             max: 3.0,
@@ -156,7 +156,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ),
           _buildOptionSlider(
             context,
-            label: '归一化 (Normalization)',
+            label: AppLocalizations.of(context)!.normalization,
             value: options.normalizationFloorDb,
             min: -100.0,
             max: 0.0,
@@ -170,7 +170,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ),
           _buildOptionSlider(
             context,
-            label: '增益 (Multiplier)',
+            label: AppLocalizations.of(context)!.multiplier,
             value: options.overallMultiplier,
             min: 0.5,
             max: 5.0,
@@ -184,7 +184,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ),
           _buildOptionSlider(
             context,
-            label: '跳过高频',
+            label: AppLocalizations.of(context)!.skipHighFrequency,
             value: options.skipHighFrequencyGroups.toDouble(),
             min: 0,
             max: 20,
@@ -198,7 +198,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ),
           _buildOptionSlider(
             context,
-            label: '频率分组 (Frequency Groups)',
+            label: AppLocalizations.of(context)!.frequencyGroups,
             value: options.frequencyGroups.toDouble(),
             min: 8,
             max: 512,
@@ -227,13 +227,13 @@ class VisualizerOptionsDialog extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(
               top: 16,
               bottom: 8,
             ),
             child: Text(
-              '聚合模式 (Aggregation Mode)',
+              AppLocalizations.of(context)!.aggregationMode,
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: 13,
@@ -282,7 +282,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
         children: [
           _buildOptionSlider(
             context,
-            label: '透明度 (Opacity)',
+            label: AppLocalizations.of(context)!.opacity,
             value: settings.visualizerOpacity,
             min: 0.0,
             max: 1.0,
@@ -293,8 +293,8 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           SwitchListTile(
-            title: const Text(
-              '启用渐变色',
+            title: Text(
+              AppLocalizations.of(context)!.enableGradient,
               style: TextStyle(color: Colors.white, fontSize: 13),
             ),
             value: settings.isVisualizerGradientEnabled,
@@ -309,7 +309,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
           if (settings.isVisualizerGradientEnabled) ...[
             _buildColorPickerRow(
               context,
-              label: '起始颜色',
+              label: AppLocalizations.of(context)!.startColor,
               color: settings.visualizerStartColor,
               isDynamic: settings.isVisualizerDynamicStartColor,
               onDynamicChanged: (val) {
@@ -327,7 +327,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
             const SizedBox(height: 16),
             _buildColorPickerRow(
               context,
-              label: '结束颜色',
+              label: AppLocalizations.of(context)!.endColor,
               color: settings.visualizerEndColor,
               isDynamic: settings.isVisualizerDynamicEndColor,
               onDynamicChanged: (val) {
@@ -345,7 +345,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
             const SizedBox(height: 16),
             _buildOptionSlider(
               context,
-              label: '渐变范围 Stop 1',
+              label: AppLocalizations.of(context)!.gradientRangeStop1,
               value: settings.visualizerGradientStop1,
               min: 0.0,
               max: 1.0,
@@ -357,7 +357,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
             const SizedBox(height: 16),
             _buildOptionSlider(
               context,
-              label: '渐变范围 Stop 2',
+              label: AppLocalizations.of(context)!.gradientRangeStop2,
               value: settings.visualizerGradientStop2,
               min: 0.0,
               max: 1.0,
@@ -369,8 +369,8 @@ class VisualizerOptionsDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text(
-                  '渐变重复模式 (TileMode)',
+                Text(
+                  AppLocalizations.of(context)!.gradientRepeatMode,
                   style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
                 const SizedBox(width: 16),
@@ -396,7 +396,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
           ] else ...[
             _buildColorPickerRow(
               context,
-              label: '颜色',
+              label: AppLocalizations.of(context)!.color,
               color: settings.visualizerColor,
               isDynamic: settings.isVisualizerDynamicColor,
               onDynamicChanged: (val) {
@@ -495,8 +495,8 @@ class VisualizerOptionsDialog extends StatelessWidget {
         if (onDynamicChanged != null)
           Row(
             children: [
-              const Text(
-                '跟随封面变色',
+              Text(
+                AppLocalizations.of(context)!.followCoverColor,
                 style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Switch(
@@ -521,7 +521,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
-          title: const Text('选择颜色', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.of(context)!.selectColor, style: TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: ColorPicker(
               pickerColor: initialColor,
@@ -535,15 +535,15 @@ class VisualizerOptionsDialog extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消', style: TextStyle(color: Colors.white70)),
+              child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: Colors.white70)),
             ),
             TextButton(
               onPressed: () {
                 onColorChanged(selectedColor);
                 Navigator.pop(context);
               },
-              child: const Text(
-                '确定',
+              child: Text(
+                AppLocalizations.of(context)!.confirm,
                 style: TextStyle(color: Colors.blueAccent),
               ),
             ),

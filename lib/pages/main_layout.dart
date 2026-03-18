@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../pages/folder_page.dart';
@@ -127,9 +128,9 @@ class _MainLayoutState extends State<MainLayout> {
         0,
       ),
       items: [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'settings',
-          child: ListTile(leading: Icon(Icons.settings), title: Text('璁剧疆')),
+          child: ListTile(leading: Icon(Icons.settings), title: Text(AppLocalizations.of(context)!.settings)),
         ),
       ],
     );
@@ -279,7 +280,7 @@ class _MainLayoutState extends State<MainLayout> {
                       Icons.folder,
                       color: isPlayback ? Colors.white : null,
                     ),
-                    label: '文件', // 修复：鏂囦欢 -> 文件
+                    label: AppLocalizations.of(context)!.file,
                   ),
                   NavigationDestination(
                     icon: Icon(
@@ -290,7 +291,7 @@ class _MainLayoutState extends State<MainLayout> {
                       Icons.play_circle,
                       color: isPlayback ? Colors.white : null,
                     ),
-                    label: '播放', // 修复：鎾斁 -> 播放
+                    label: AppLocalizations.of(context)!.play, // 修复：鎾斁 -> 播放
                   ),
                   NavigationDestination(
                     icon: Icon(
@@ -301,7 +302,7 @@ class _MainLayoutState extends State<MainLayout> {
                       Icons.playlist_play,
                       color: isPlayback ? Colors.white : null,
                     ),
-                    label: '列表', // 修复：鍒楄〃 -> 列表
+                    label: AppLocalizations.of(context)!.list, // 修复：鍒楄〃 -> 列表
                   ),
                   NavigationDestination(
                     icon: Icon(
@@ -312,7 +313,7 @@ class _MainLayoutState extends State<MainLayout> {
                       Icons.queue_music,
                       color: isPlayback ? Colors.white : null,
                     ),
-                    label: '队列', // 修复：闃熷垪 -> 队列
+                    label: AppLocalizations.of(context)!.queueTab, // 修复：闃熷垪 -> 队列
                   ),
                   NavigationDestination(
                     icon: Icon(

@@ -1,9 +1,10 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../widgets/playback_hero_card.dart';
@@ -124,7 +125,7 @@ class _PlaybackPageState extends State<PlaybackPage>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('选择播放模式'),
+          title: Text(AppLocalizations.of(context)!.playbackMode),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: PlaylistMode.values.map((mode) {
@@ -149,7 +150,7 @@ class _PlaybackPageState extends State<PlaybackPage>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: const Text('播放选项', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.of(context)!.playbackOptions, style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -158,8 +159,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                 Icons.settings_input_component,
                 color: Colors.blueAccent,
               ),
-              title: const Text(
-                '设置频谱显示',
+              title: Text(
+                AppLocalizations.of(context)!.setVisualizerDisplay,
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {
@@ -188,8 +189,8 @@ class _PlaybackPageState extends State<PlaybackPage>
         : audio.position;
 
     if (audio.currentFilePath == null) {
-      return const Center(
-        child: Text('当前没有播放内容', style: TextStyle(color: Colors.grey)),
+      return Center(
+        child: Text(AppLocalizations.of(context)!.noPlaybackContent, style: TextStyle(color: Colors.grey)),
       );
     }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../player/settings_service.dart';
+import '../l10n/app_localizations.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -8,22 +9,23 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsService>();
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings', style: TextStyle(color: Colors.white))),
+      appBar: AppBar(title: Text(l10n.settings, style: const TextStyle(color: Colors.white))),
       body: ListView(
         children: [
           SwitchListTile(
-            title: const Text('Immersive Tab Bar', style: TextStyle(color: Colors.white)),
-            subtitle: const Text('Hide navigation bar after 5 seconds of inactivity', style: TextStyle(color: Colors.white70)),
+            title: Text(l10n.immersiveTabBar, style: const TextStyle(color: Colors.white)),
+            subtitle: Text(l10n.immersiveTabBarDescription, style: const TextStyle(color: Colors.white70)),
             value: settings.isImmersiveTabBarEnabled,
             onChanged: (value) {
               settings.isImmersiveTabBarEnabled = value;
             },
           ),
           ListTile(
-            title: const Text('Sample Stride', style: TextStyle(color: Colors.white)),
-            subtitle: const Text('Larger values scan faster but with lower waveform precision (default: 4)', style: TextStyle(color: Colors.white70)),
+            title: Text(l10n.sampleStride, style: const TextStyle(color: Colors.white)),
+            subtitle: Text(l10n.sampleStrideDescription, style: const TextStyle(color: Colors.white70)),
             trailing: SizedBox(
               width: 120,
               child: Row(
@@ -50,8 +52,8 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
           ListTile(
-            title: const Text('Waveform Segments', style: TextStyle(color: Colors.white)),
-            subtitle: const Text('Number of waveform bars to display (default: 80)', style: TextStyle(color: Colors.white70)),
+            title: Text(l10n.waveformSegments, style: const TextStyle(color: Colors.white)),
+            subtitle: Text(l10n.waveformSegmentsDescription, style: const TextStyle(color: Colors.white70)),
             trailing: SizedBox(
               width: 120,
               child: Row(
@@ -82,3 +84,4 @@ class SettingsPage extends StatelessWidget {
     );
   }
 }
+
