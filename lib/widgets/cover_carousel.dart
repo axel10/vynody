@@ -317,8 +317,8 @@ class _CoverItemState extends State<_CoverItem> {
         final double pageOffset = widget.animation.value - widget.itemIndex;
 
         final double opacity = (1 - pageOffset.abs() * 1.2).clamp(0.0, 1.0);
-        final double scale = (1 - (pageOffset.abs() * 0.2)).clamp(0.8, 1.0);
-        final double rotationY = pageOffset * -0.4;
+        final double scale = (1 - (pageOffset.abs() * 0.3)).clamp(0.8, 1.0);
+        final double rotationY = pageOffset * -0.3;
         final double translateX = pageOffset * -widget.width;
 
         return Opacity(
