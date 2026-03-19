@@ -74,6 +74,16 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
     super.dispose();
   }
 
+  List<Color>? _stableTargetColors;
+
+  bool _isListEqual(List<Color> a, List<Color> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].value != b[i].value) return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final audio = context.watch<AudioService>();
@@ -87,13 +97,15 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
     Color color3 = themeColors['lightVibrant'] ?? themeColors['muted'] ?? color1.withValues(alpha: 0.8);
     Color color4 = themeColors['darkVibrant'] ?? themeColors['darkMuted'] ?? color2.withValues(alpha: 0.8);
 
-    // If all colors are very dark, the mesh looks black. 
-    // We can add a fallback or slightly lighten them if they are too dark.
-    // However, the user wants the "theme color", so we'll stick to it but ensure distinctness.
+    final List<Color> currentTarget = [color1, color2, color3, color4];
+    
+    // Stabilize targetColors to avoid unnecessary animation restarts on every FFT frame
+    if (_stableTargetColors == null || !_isListEqual(_stableTargetColors!, currentTarget)) {
+      _stableTargetColors = currentTarget;
+    }
 
     // Dynamic scale based on bass energy
-    // Apple music effect: colors expand and contract
-    double pulse = 1.0 + (_bassEnergy * 0.3); // 缩放脉冲：由于低音能量导致的整体缩放感，调低让它更柔和
+    double pulse = 1.0 + (_bassEnergy * 0.3);
 
     return SizedBox.expand(
       child: ClipRect(
@@ -101,25 +113,36 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
           maxWidth: double.infinity,
           maxHeight: double.infinity,
           child: Transform.scale(
-            scale: pulse * 1.0, // Make it larger to avoid edges when pulsing
-            // scale: 1,
-            child: AnimatedMeshGradient(
-              colors: [
-                color1,
-                color2,
-                color3,
-                color4,
-              ],
-              options: AnimatedMeshGradientOptions(
-                // speed: 0.01 + (_bassEnergy * 0.02), // 速度控制：基础速度 0.01，后面是随音乐波动的增量
-                // amplitude: 0.1 + (_bassEnergy * 0.01), // 幅度控制：基础幅度 0.1，后面是随音乐波动的增量
-                // frequency: 0.5,
-                // grain: 1
-              ),
+            scale: pulse * 1.0,
+            child: TweenAnimationBuilder<List<Color>>(
+              tween: ListColorTween(end: _stableTargetColors!),
+              duration: const Duration(milliseconds: 1500),
+              curve: Curves.easeInOut,
+              builder: (context, animatedColors, child) {
+                return AnimatedMeshGradient(
+                  colors: animatedColors,
+                  options: AnimatedMeshGradientOptions(),
+                );
+              },
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+class ListColorTween extends Tween<List<Color>> {
+  ListColorTween({super.begin, super.end});
+
+  @override
+  List<Color> lerp(double t) {
+    if (begin == null || end == null) return end ?? [];
+    final int length = max(begin!.length, end!.length);
+    return List.generate(length, (i) {
+      final Color start = i < begin!.length ? begin![i] : (end!.isNotEmpty ? end![i % end!.length] : Colors.transparent);
+      final Color target = i < end!.length ? end![i] : (begin!.isNotEmpty ? begin![i % begin!.length] : Colors.transparent);
+      return Color.lerp(start, target, t) ?? target;
+    });
   }
 }
