@@ -209,7 +209,7 @@ class _QueuePageState extends State<QueuePage> {
                           ),
                         ),
                         title: Text(
-                          song.name,
+                          song.displayName,
                           style: TextStyle(
                             color: isCurrent
                                 ? Theme.of(context).colorScheme.primary

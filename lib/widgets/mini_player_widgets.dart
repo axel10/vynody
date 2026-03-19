@@ -77,7 +77,7 @@ class MiniSpectrumBackground extends StatelessWidget {
       builder: (context, snapshot) {
         final frame = snapshot.data;
         if (frame == null || !audio.isPlaying) return const SizedBox.shrink();
-
+        debugPrint(frame.values.toString());
         return RepaintBoundary(
           child: CustomPaint(
             painter: _MiniSpectrumPainter(

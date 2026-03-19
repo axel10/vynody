@@ -98,8 +98,8 @@ class ScannerService extends ChangeNotifier {
     switch (_sortCriteria) {
       case SortCriteria.title:
         comparator = (a, b) => compareNatural(
-          (a.title ?? a.name).toLowerCase(),
-          (b.title ?? b.name).toLowerCase(),
+          a.displayName.toLowerCase(),
+          b.displayName.toLowerCase(),
         );
         break;
       case SortCriteria.filename:

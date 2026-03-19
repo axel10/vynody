@@ -192,7 +192,7 @@ class AudioService extends ChangeNotifier {
         unawaited(
           _updateCurrentMetadata(
             song.path,
-            song.name,
+            song.displayName,
             id: song.id,
           ).then((_) => _refreshCurrentWaveform()),
         );
@@ -373,6 +373,9 @@ class AudioService extends ChangeNotifier {
       _currentArtworkPath = songFromDb.artworkPath;
       _artworkWidth = songFromDb.artworkWidth;
       _artworkHeight = songFromDb.artworkHeight;
+      if (songFromDb.title.trim().isNotEmpty && songFromDb.title != 'Unknown') {
+        _currentFileName = songFromDb.title;
+      }
     } else {
       _currentWaveform = const [];
       _currentArtworkPath = null;
@@ -393,6 +396,9 @@ class AudioService extends ChangeNotifier {
       try {
         // Playback page should prefer embedded original artwork, not cached thumbnails.
         final metadata = await MetadataGod.readMetadata(file: path);
+        if (metadata.title != null && metadata.title!.trim().isNotEmpty) {
+          _currentFileName = metadata.title;
+        }
         final bytes = metadata.picture?.data;
         if (bytes != null) {
           newArtworkBytes = bytes;
@@ -471,7 +477,7 @@ class AudioService extends ChangeNotifier {
       await _player.playAt(safeIndex);
 
       final current = songs[safeIndex];
-      await _updateCurrentMetadata(current.path, current.name, id: current.id);
+      await _updateCurrentMetadata(current.path, current.displayName, id: current.id);
 
       await _player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
@@ -497,7 +503,7 @@ class AudioService extends ChangeNotifier {
     if (wasEmpty) {
       _currentIndex = 0;
       final current = songs[0];
-      await _updateCurrentMetadata(current.path, current.name, id: current.id);
+      await _updateCurrentMetadata(current.path, current.displayName, id: current.id);
       await _player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
     }
@@ -539,7 +545,7 @@ class AudioService extends ChangeNotifier {
         if (newIndex >= 0 && newIndex < _playlist.length) {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
-          await _updateCurrentMetadata(song.path, song.name, id: song.id);
+          await _updateCurrentMetadata(song.path, song.displayName, id: song.id);
           await _refreshCurrentWaveform(notify: false);
         }
       }
@@ -559,7 +565,7 @@ class AudioService extends ChangeNotifier {
       await _player.playAt(index);
       _currentIndex = index;
       final song = _playlist[_currentIndex];
-      await _updateCurrentMetadata(song.path, song.name, id: song.id);
+      await _updateCurrentMetadata(song.path, song.displayName, id: song.id);
       await _refreshCurrentWaveform(notify: false);
     } finally {
       _isTransitioning = false;
@@ -577,7 +583,7 @@ class AudioService extends ChangeNotifier {
         if (newIndex >= 0 && newIndex < _playlist.length) {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
-          await _updateCurrentMetadata(song.path, song.name, id: song.id);
+          await _updateCurrentMetadata(song.path, song.displayName, id: song.id);
           await _refreshCurrentWaveform(notify: false);
         }
       }

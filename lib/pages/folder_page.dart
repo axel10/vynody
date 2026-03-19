@@ -224,7 +224,7 @@ class _FoldersPageState extends State<FoldersPage> {
                   ..._currentFolder!.files.map(
                     (file) => ListTile(
                       leading: SongThumbnail(path: file.path, id: file.id),
-                      title: Text(file.name),
+                      title: Text(file.displayName),
                       onTap: () async {
                         // Unified behavior across all platforms:
                         // Clear queue and load all files in current directory
