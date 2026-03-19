@@ -334,6 +334,26 @@ class PlaybackHeroCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+        if ((audio.currentArtist != null && audio.currentArtist != 'Unknown') ||
+            (audio.currentAlbum != null && audio.currentAlbum != 'Unknown'))
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isLandscape ? 400 : width * 0.9,
+              ),
+              child: Text(
+                '${audio.currentArtist ?? AppLocalizations.of(context)!.unknown} — ${audio.currentAlbum ?? AppLocalizations.of(context)!.unknown}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
         SizedBox(height: isLandscape ? 16 : 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -365,6 +385,7 @@ class PlaybackHeroCard extends StatelessWidget {
         WaveformProgressBar(
           waveform: waveform,
           progress: sliderProgress,
+          duration: audio.duration,
           onScrubbing: onScrubbing ?? (_) {},
           onSeek: onSeek ?? (_) {},
         ),

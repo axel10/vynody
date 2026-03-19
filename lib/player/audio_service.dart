@@ -22,6 +22,8 @@ class AudioService extends ChangeNotifier {
   bool _isPlaying = false;
   String? _currentFilePath;
   String? _currentFileName;
+  String? _currentArtist;
+  String? _currentAlbum;
   int? _currentSongId;
   List<double> _currentWaveform = const [];
   Uint8List? _currentArtworkBytes;
@@ -208,6 +210,8 @@ class AudioService extends ChangeNotifier {
   bool get isPlaying => _isPlaying;
   String? get currentFilePath => _currentFilePath;
   String? get currentFileName => _currentFileName;
+  String? get currentArtist => _currentArtist;
+  String? get currentAlbum => _currentAlbum;
   int? get currentSongId => _currentSongId;
   List<double> get currentWaveform => List.unmodifiable(_currentWaveform);
   Uint8List? get currentArtworkBytes => _currentArtworkBytes;
@@ -364,6 +368,8 @@ class AudioService extends ChangeNotifier {
     _currentArtworkBytes = null;
     _currentFilePath = path;
     _currentFileName = name;
+    _currentArtist = null;
+    _currentAlbum = null;
     _currentSongId = id;
 
     // 1. Try to get metadata from database immediately (fast)
@@ -376,6 +382,8 @@ class AudioService extends ChangeNotifier {
       if (songFromDb.title.trim().isNotEmpty && songFromDb.title != 'Unknown') {
         _currentFileName = songFromDb.title;
       }
+      _currentArtist = songFromDb.artist;
+      _currentAlbum = songFromDb.album;
     } else {
       _currentWaveform = const [];
       _currentArtworkPath = null;
@@ -399,6 +407,8 @@ class AudioService extends ChangeNotifier {
         if (metadata.title != null && metadata.title!.trim().isNotEmpty) {
           _currentFileName = metadata.title;
         }
+        _currentArtist = metadata.artist;
+        _currentAlbum = metadata.album;
         final bytes = metadata.picture?.data;
         if (bytes != null) {
           newArtworkBytes = bytes;
@@ -524,6 +534,8 @@ class AudioService extends ChangeNotifier {
     _currentIndex = -1;
     _currentFilePath = null;
     _currentFileName = null;
+    _currentArtist = null;
+    _currentAlbum = null;
     _currentSongId = null;
     _currentWaveform = const [];
     _currentArtworkBytes = null;

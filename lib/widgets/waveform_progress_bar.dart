@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../utils/playback_utils.dart';
 
-class WaveformProgressBar extends StatelessWidget {
+class WaveformProgressBar extends StatefulWidget {
   final List<double> waveform;
   final double progress;
+  final Duration duration;
   final Function(double) onSeek;
   final Function(double) onScrubbing;
   final Color activeColor;
@@ -13,6 +15,7 @@ class WaveformProgressBar extends StatelessWidget {
     super.key,
     required this.waveform,
     required this.progress,
+    required this.duration,
     required this.onSeek,
     required this.onScrubbing,
     this.activeColor = Colors.white,
@@ -20,48 +23,124 @@ class WaveformProgressBar extends StatelessWidget {
   });
 
   @override
+  State<WaveformProgressBar> createState() => _WaveformProgressBarState();
+}
+
+class _WaveformProgressBarState extends State<WaveformProgressBar> {
+  double? _hoverProgress;
+  bool _isDragging = false;
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return GestureDetector(
-          onHorizontalDragUpdate: (details) {
-            final double localX = details.localPosition.dx;
-            final double newProgress = (localX / constraints.maxWidth).clamp(
-              0.0,
-              1.0,
-            );
-            onScrubbing(newProgress);
+        return MouseRegion(
+          onHover: (event) {
+            setState(() {
+              _hoverProgress = (event.localPosition.dx / constraints.maxWidth).clamp(0.0, 1.0);
+            });
           },
-          onHorizontalDragEnd: (details) {
-            onSeek(progress);
+          onExit: (event) {
+            setState(() {
+              _hoverProgress = null;
+            });
           },
-          onTapDown: (details) {
-            final double localX = details.localPosition.dx;
-            final double newProgress = (localX / constraints.maxWidth).clamp(
-              0.0,
-              1.0,
-            );
-            onScrubbing(newProgress);
-            onSeek(newProgress);
-          },
-          child: SizedBox(
-            height: 60, // 调整进度条高度
-            width: double.infinity,
-            child: ShaderMask(
-              shaderCallback: (Rect bounds) {
-                return LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [activeColor, inactiveColor],
-                  stops: [progress, progress],
-                ).createShader(bounds);
-              },
-              blendMode: BlendMode.srcIn,
-              child: CustomPaint(
-                painter: WaveformPainter(
-                  waveform: waveform,
+          child: GestureDetector(
+            onHorizontalDragStart: (_) => setState(() => _isDragging = true),
+            onHorizontalDragUpdate: (details) {
+              final double localX = details.localPosition.dx;
+              final double newProgress = (localX / constraints.maxWidth).clamp(
+                0.0,
+                1.0,
+              );
+              widget.onScrubbing(newProgress);
+              setState(() {
+                _hoverProgress = newProgress;
+              });
+            },
+            onHorizontalDragEnd: (details) {
+              widget.onSeek(widget.progress);
+              setState(() {
+                _isDragging = false;
+                _hoverProgress = null;
+              });
+            },
+            onTapDown: (details) {
+              final double localX = details.localPosition.dx;
+              final double newProgress = (localX / constraints.maxWidth).clamp(
+                0.0,
+                1.0,
+              );
+              widget.onScrubbing(newProgress);
+              widget.onSeek(newProgress);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 时间显示预览
+                if (_hoverProgress != null || _isDragging)
+                  SizedBox(
+                    height: 20,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          formatDuration(Duration(
+                            milliseconds: (widget.duration.inMilliseconds * (_hoverProgress ?? widget.progress)).toInt(),
+                          )),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox(height: 20), // Keep space to prevent jumping
+                SizedBox(
+                  height: 60, // 调整进度条高度
+                  width: double.infinity,
+                  child: Stack(
+                    children: [
+                      // 背景波形
+                      ShaderMask(
+                        shaderCallback: (Rect bounds) {
+                          return LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [widget.activeColor, widget.inactiveColor],
+                            stops: [widget.progress, widget.progress],
+                          ).createShader(bounds);
+                        },
+                        blendMode: BlendMode.srcIn,
+                        child: CustomPaint(
+                          size: Size(constraints.maxWidth, 60),
+                          painter: WaveformPainter(
+                            waveform: widget.waveform,
+                          ),
+                        ),
+                      ),
+                      // 悬浮指示线
+                      if (_hoverProgress != null)
+                        Positioned(
+                          left: _hoverProgress! * constraints.maxWidth,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 2,
+                            color: widget.activeColor.withValues(alpha: 0.3),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         );
