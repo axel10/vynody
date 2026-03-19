@@ -144,7 +144,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
             context,
             label: AppLocalizations.of(context)!.contrast,
             value: options.groupContrastExponent,
-            min: 0.5,
+            min: 0.1,
             max: 3.0,
             onChanged: (val) {
               audio.updateVisualOptions(
