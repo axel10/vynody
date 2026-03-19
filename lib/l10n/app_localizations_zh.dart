@@ -338,4 +338,46 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pause => '暂停';
+
+  @override
+  String get autoMode => '自动模式';
+
+  @override
+  String get advancedOptions => '高级选项';
+
+  @override
+  String get spectrumQuantity => '频谱数量';
+
+  @override
+  String get speed => '速度';
+
+  @override
+  String get quantityHigh => '多';
+
+  @override
+  String get quantityMedium => '中';
+
+  @override
+  String get quantityLow => '少';
+
+  @override
+  String get speedFast => '快';
+
+  @override
+  String get speedMedium => '中';
+
+  @override
+  String get speedSlow => '慢';
+
+  @override
+  String get portraitFrequencyGroups => '竖屏频谱数量';
+
+  @override
+  String get landscapeFrequencyGroups => '横屏频谱数量';
+
+  @override
+  String get portraitGap => '竖屏频谱间距';
+
+  @override
+  String get landscapeGap => '横屏频谱间距';
 }

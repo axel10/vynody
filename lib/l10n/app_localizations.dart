@@ -733,6 +733,90 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'暂停'**
   String get pause;
+
+  /// No description provided for @autoMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动模式'**
+  String get autoMode;
+
+  /// No description provided for @advancedOptions.
+  ///
+  /// In zh, this message translates to:
+  /// **'高级选项'**
+  String get advancedOptions;
+
+  /// No description provided for @spectrumQuantity.
+  ///
+  /// In zh, this message translates to:
+  /// **'频谱数量'**
+  String get spectrumQuantity;
+
+  /// No description provided for @speed.
+  ///
+  /// In zh, this message translates to:
+  /// **'速度'**
+  String get speed;
+
+  /// No description provided for @quantityHigh.
+  ///
+  /// In zh, this message translates to:
+  /// **'多'**
+  String get quantityHigh;
+
+  /// No description provided for @quantityMedium.
+  ///
+  /// In zh, this message translates to:
+  /// **'中'**
+  String get quantityMedium;
+
+  /// No description provided for @quantityLow.
+  ///
+  /// In zh, this message translates to:
+  /// **'少'**
+  String get quantityLow;
+
+  /// No description provided for @speedFast.
+  ///
+  /// In zh, this message translates to:
+  /// **'快'**
+  String get speedFast;
+
+  /// No description provided for @speedMedium.
+  ///
+  /// In zh, this message translates to:
+  /// **'中'**
+  String get speedMedium;
+
+  /// No description provided for @speedSlow.
+  ///
+  /// In zh, this message translates to:
+  /// **'慢'**
+  String get speedSlow;
+
+  /// No description provided for @portraitFrequencyGroups.
+  ///
+  /// In zh, this message translates to:
+  /// **'竖屏频谱数量'**
+  String get portraitFrequencyGroups;
+
+  /// No description provided for @landscapeFrequencyGroups.
+  ///
+  /// In zh, this message translates to:
+  /// **'横屏频谱数量'**
+  String get landscapeFrequencyGroups;
+
+  /// No description provided for @portraitGap.
+  ///
+  /// In zh, this message translates to:
+  /// **'竖屏频谱间距'**
+  String get portraitGap;
+
+  /// No description provided for @landscapeGap.
+  ///
+  /// In zh, this message translates to:
+  /// **'横屏频谱间距'**
+  String get landscapeGap;
 }
 
 class _AppLocalizationsDelegate

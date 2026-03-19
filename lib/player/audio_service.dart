@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -99,16 +98,36 @@ class AudioService extends ChangeNotifier {
       if (jsonStr != null) {
         final Map<String, dynamic> map = jsonDecode(jsonStr);
         final options = VisualizerOptimizationOptions(
-          frequencyGroups: map['frequencyGroups'] ?? 64,
+          frequencyGroups: map['frequencyGroups'] ?? 172,
           smoothingCoefficient: map['smoothingCoefficient']?.toDouble() ?? 0.8,
           gravityCoefficient: map['gravityCoefficient']?.toDouble() ?? 1.5,
-          overallMultiplier: map['overallMultiplier']?.toDouble() ?? 1.0,
+          overallMultiplier: map['overallMultiplier']?.toDouble() ?? 1.5,
           logarithmicScale: map['logarithmicScale']?.toDouble() ?? 2.0,
           groupContrastExponent:
-              map['groupContrastExponent']?.toDouble() ?? 1.2,
+              map['groupContrastExponent']?.toDouble() ?? 0.5,
           skipHighFrequencyGroups: map['skipHighFrequencyGroups'] ?? 0,
+          normalizationFloorDb:
+              map['normalizationFloorDb']?.toDouble() ?? -70.0,
+          aggregationMode: FftAggregationMode.values.firstWhere(
+            (e) => e.name == (map['aggregationMode'] ?? 'peak'),
+            orElse: () => FftAggregationMode.peak,
+          ),
         );
         _player.updateVisualOptions(options);
+        notifyListeners();
+      } else {
+        // Apply default values if no saved settings
+        _player.updateVisualOptions(const VisualizerOptimizationOptions(
+          frequencyGroups: 172,
+          smoothingCoefficient: 0.8,
+          gravityCoefficient: 1.5,
+          overallMultiplier: 1.5,
+          logarithmicScale: 2.0,
+          groupContrastExponent: 0.5,
+          skipHighFrequencyGroups: 0,
+          normalizationFloorDb: -70.0,
+          aggregationMode: FftAggregationMode.peak,
+        ));
         notifyListeners();
       }
     } catch (e) {
@@ -128,11 +147,92 @@ class AudioService extends ChangeNotifier {
         'logarithmicScale': options.logarithmicScale,
         'groupContrastExponent': options.groupContrastExponent,
         'skipHighFrequencyGroups': options.skipHighFrequencyGroups,
+        'normalizationFloorDb': options.normalizationFloorDb,
+        'aggregationMode': options.aggregationMode.name,
       };
       await prefs.setString(_visualizerOptionsKey, jsonEncode(map));
     } catch (e) {
       debugPrint('Error saving visualizer options: $e');
     }
+  }
+
+  void applyVisualizerSettings({required Orientation orientation}) {
+    if (!settingsService.isAutoMode) {
+      // Manual mode uses saved options already applied to player
+      return;
+    }
+
+    final isLandscape = orientation == Orientation.landscape;
+    int freqGroups = isLandscape
+        ? settingsService.landscapeFrequencyGroups
+        : settingsService.portraitFrequencyGroups;
+    int skipHigh = 0;
+
+    // Automatic Mode Logic
+    if (isLandscape) {
+      switch (settingsService.autoSpectrumQuantity) {
+        case 'high':
+          freqGroups = 172;
+          skipHigh = 11;
+          break;
+        case 'medium':
+          freqGroups = 100;
+          skipHigh = 6;
+          break;
+        case 'low':
+          freqGroups = 42;
+          skipHigh = 2;
+          break;
+      }
+    } else {
+      switch (settingsService.autoSpectrumQuantity) {
+        case 'high':
+          freqGroups = 100;
+          skipHigh = 6;
+          break;
+        case 'medium':
+          freqGroups = 50;
+          skipHigh = 4;
+          break;
+        case 'low':
+          freqGroups = 20;
+          skipHigh = 1;
+          break;
+      }
+    }
+
+    double smoothing = 1.0;
+    double gravity = 1.0;
+
+    switch (settingsService.autoSpeed) {
+      case 'slow':
+        smoothing = 0.7;
+        gravity = 0.7;
+        break;
+      case 'medium':
+        smoothing = 0.4;
+        gravity = 1.0;
+        break;
+      case 'fast':
+        smoothing = 0.25;
+        gravity = 1.5;
+        break;
+    }
+
+    final options = _player.visualOptions.copyWith(
+      frequencyGroups: freqGroups,
+      skipHighFrequencyGroups: skipHigh,
+      smoothingCoefficient: smoothing,
+      gravityCoefficient: gravity,
+      // Default values also enforced here if needed, but copyWith preserves current ones
+      groupContrastExponent: 0.5,
+      normalizationFloorDb: -70.0,
+      overallMultiplier: 1.5,
+      aggregationMode: FftAggregationMode.peak,
+    );
+
+    _player.updateVisualOptions(options);
+    notifyListeners();
   }
 
   Future<List<double>> getWaveform({
@@ -644,6 +744,22 @@ class AudioService extends ChangeNotifier {
   void updateVisualOptions(VisualizerOptimizationOptions options) {
     _player.updateVisualOptions(options);
     notifyListeners();
+  }
+
+  void resetVisualizerOptions() {
+    final options = const VisualizerOptimizationOptions(
+      frequencyGroups: 172,
+      smoothingCoefficient: 0.8,
+      gravityCoefficient: 1.5,
+      overallMultiplier: 1.5,
+      logarithmicScale: 2.0,
+      groupContrastExponent: 0.5,
+      skipHighFrequencyGroups: 0,
+      normalizationFloorDb: -70.0,
+      aggregationMode: FftAggregationMode.peak,
+    );
+    updateVisualOptions(options);
+    saveVisualizerOptions();
   }
 
   void _startQueueBackgroundProcessing() {

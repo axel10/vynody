@@ -105,5 +105,19 @@
   "visualizer": "Visualizer",
   "previous": "Previous",
   "next": "Next",
-  "pause": "Pause"
+  "pause": "Pause",
+  "autoMode": "Auto Mode",
+  "advancedOptions": "Advanced Options",
+  "spectrumQuantity": "Spectrum Quantity",
+  "speed": "Speed",
+  "quantityHigh": "High",
+  "quantityMedium": "Medium",
+  "quantityLow": "Low",
+  "speedFast": "Fast",
+  "speedMedium": "Medium",
+  "speedSlow": "Slow",
+  "portraitFrequencyGroups": "Portrait Freq Quantity",
+  "landscapeFrequencyGroups": "Landscape Freq Quantity",
+  "portraitGap": "Portrait Gap",
+  "landscapeGap": "Landscape Gap"
 }

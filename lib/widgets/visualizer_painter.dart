@@ -10,6 +10,7 @@ class FftPainter extends CustomPainter {
   final double? gradientStop1;
   final double? gradientStop2;
   final int? gradientTileMode;
+  final double gap;
 
   FftPainter({
     required this.values,
@@ -21,6 +22,7 @@ class FftPainter extends CustomPainter {
     this.gradientStop1,
     this.gradientStop2,
     this.gradientTileMode,
+    this.gap = 1.0,
   });
 
   @override
@@ -49,7 +51,6 @@ class FftPainter extends CustomPainter {
     }
 
     final barCount = values.length;
-    final gap = 2.0;
     final totalGap = gap * (barCount - 1);
     final barWidth = (size.width - totalGap) / barCount;
 

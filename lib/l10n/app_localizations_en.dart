@@ -343,4 +343,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pause => 'Pause';
+
+  @override
+  String get autoMode => 'Auto Mode';
+
+  @override
+  String get advancedOptions => 'Advanced Options';
+
+  @override
+  String get spectrumQuantity => 'Spectrum Quantity';
+
+  @override
+  String get speed => 'Speed';
+
+  @override
+  String get quantityHigh => 'High';
+
+  @override
+  String get quantityMedium => 'Medium';
+
+  @override
+  String get quantityLow => 'Low';
+
+  @override
+  String get speedFast => 'Fast';
+
+  @override
+  String get speedMedium => 'Medium';
+
+  @override
+  String get speedSlow => 'Slow';
+
+  @override
+  String get portraitFrequencyGroups => 'Portrait Freq Quantity';
+
+  @override
+  String get landscapeFrequencyGroups => 'Landscape Freq Quantity';
+
+  @override
+  String get portraitGap => 'Portrait Gap';
+
+  @override
+  String get landscapeGap => 'Landscape Gap';
 }

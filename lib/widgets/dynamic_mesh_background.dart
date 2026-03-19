@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
 import 'package:provider/provider.dart';

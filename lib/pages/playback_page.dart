@@ -33,6 +33,7 @@ class _PlaybackPageState extends State<PlaybackPage>
 
   int? _lastIndex;
   bool _isNext = true;
+  Orientation? _lastOrientation;
 
   @override
   void initState() {
@@ -204,6 +205,13 @@ class _PlaybackPageState extends State<PlaybackPage>
               final screenWidth = MediaQuery.of(context).size.width;
               final screenHeight = MediaQuery.of(context).size.height;
 
+              if (_lastOrientation != orientation) {
+                _lastOrientation = orientation;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  audio.applyVisualizerSettings(orientation: orientation);
+                });
+              }
+
               final content = SafeArea(
                 child: Padding(
                   padding: EdgeInsets.all(isLandscape ? 32.0 : 24.0),
@@ -279,7 +287,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                   const Positioned.fill(child: DynamicMeshBackground())
                 else
                   _buildBlurredBackground(audio),
-                if (_showVisualizer) _buildVisualizerLayer(audio),
+                if (_showVisualizer) _buildVisualizerLayer(audio, orientation),
                 content,
                 if (_showVolumeSlider)
                   VolumeSliderOverlay(
@@ -344,7 +352,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     );
   }
 
-  Widget _buildVisualizerLayer(AudioService audio) {
+  Widget _buildVisualizerLayer(AudioService audio, Orientation orientation) {
     return Positioned.fill(
       child: StreamBuilder<FftFrame>(
         stream: audio.player.optimizedFftStream,
@@ -353,9 +361,13 @@ class _PlaybackPageState extends State<PlaybackPage>
           if (frame == null) return const SizedBox.shrink();
 
           final settings = context.watch<SettingsService>();
+          final isLandscape = orientation == Orientation.landscape;
+          final gap = isLandscape ? settings.landscapeGap : settings.portraitGap;
+
           return CustomPaint(
             painter: FftPainter(
               values: frame.values,
+              gap: gap,
               color: settings.isVisualizerDynamicColor
                   ? (audio.dynamicStartColor ?? settings.visualizerColor)
                   : settings.visualizerColor,

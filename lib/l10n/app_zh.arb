@@ -420,5 +420,19 @@
   "visualizer": "可视化",
   "previous": "上一首",
   "next": "下一首",
-  "pause": "暂停"
+  "pause": "暂停",
+  "autoMode": "自动模式",
+  "advancedOptions": "高级选项",
+  "spectrumQuantity": "频谱数量",
+  "speed": "速度",
+  "quantityHigh": "多",
+  "quantityMedium": "中",
+  "quantityLow": "少",
+  "speedFast": "快",
+  "speedMedium": "中",
+  "speedSlow": "慢",
+  "portraitFrequencyGroups": "竖屏频谱数量",
+  "landscapeFrequencyGroups": "横屏频谱数量",
+  "portraitGap": "竖屏频谱间距",
+  "landscapeGap": "横屏频谱间距"
 }

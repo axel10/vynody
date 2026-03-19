@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,6 +21,16 @@ class SettingsService extends ChangeNotifier {
   static const String _keyVisualizerDynamicEndColor =
       'visualizer_dynamic_end_color';
   static const String _keyPlaybackBackgroundType = 'playback_background_type';
+  static const String _keyIsAutoMode = 'visualizer_auto_mode';
+  static const String _keyAutoSpectrumQuantity =
+      'visualizer_auto_spectrum_quantity';
+  static const String _keyAutoSpeed = 'visualizer_auto_speed';
+  static const String _keyPortraitFrequencyGroups =
+      'visualizer_portrait_frequency_groups';
+  static const String _keyLandscapeFrequencyGroups =
+      'visualizer_landscape_frequency_groups';
+  static const String _keyPortraitGap = 'visualizer_portrait_gap';
+  static const String _keyLandscapeGap = 'visualizer_landscape_gap';
 
   final SharedPreferences _prefs;
   bool _isImmersiveTabBarEnabled;
@@ -42,6 +51,13 @@ class SettingsService extends ChangeNotifier {
   late bool _isVisualizerDynamicStartColor;
   late bool _isVisualizerDynamicEndColor;
   late int _playbackBackgroundType;
+  late bool _isAutoMode;
+  late String _autoSpectrumQuantity;
+  late String _autoSpeed;
+  late int _portraitFrequencyGroups;
+  late int _landscapeFrequencyGroups;
+  late double _portraitGap;
+  late double _landscapeGap;
 
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
@@ -67,6 +83,15 @@ class SettingsService extends ChangeNotifier {
     _isVisualizerDynamicEndColor =
         _prefs.getBool(_keyVisualizerDynamicEndColor) ?? false;
     _playbackBackgroundType = _prefs.getInt(_keyPlaybackBackgroundType) ?? 0;
+    _isAutoMode = _prefs.getBool(_keyIsAutoMode) ?? true;
+    _autoSpectrumQuantity =
+        _prefs.getString(_keyAutoSpectrumQuantity) ?? 'high';
+    _autoSpeed = _prefs.getString(_keyAutoSpeed) ?? 'medium';
+    _portraitFrequencyGroups = _prefs.getInt(_keyPortraitFrequencyGroups) ?? 100;
+    _landscapeFrequencyGroups =
+        _prefs.getInt(_keyLandscapeFrequencyGroups) ?? 172;
+    _portraitGap = _prefs.getDouble(_keyPortraitGap) ?? 1.0;
+    _landscapeGap = _prefs.getDouble(_keyLandscapeGap) ?? 2.0;
   }
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
@@ -86,6 +111,13 @@ class SettingsService extends ChangeNotifier {
   bool get isVisualizerDynamicStartColor => _isVisualizerDynamicStartColor;
   bool get isVisualizerDynamicEndColor => _isVisualizerDynamicEndColor;
   int get playbackBackgroundType => _playbackBackgroundType;
+  bool get isAutoMode => _isAutoMode;
+  String get autoSpectrumQuantity => _autoSpectrumQuantity;
+  String get autoSpeed => _autoSpeed;
+  int get portraitFrequencyGroups => _portraitFrequencyGroups;
+  int get landscapeFrequencyGroups => _landscapeFrequencyGroups;
+  double get portraitGap => _portraitGap;
+  double get landscapeGap => _landscapeGap;
 
   void resetVisualizerAppearance() {
     visualizerOpacity = 0.2;
@@ -99,6 +131,13 @@ class SettingsService extends ChangeNotifier {
     isVisualizerDynamicColor = false;
     isVisualizerDynamicStartColor = false;
     isVisualizerDynamicEndColor = false;
+    isAutoMode = true;
+    autoSpectrumQuantity = 'high';
+    autoSpeed = 'medium';
+    portraitFrequencyGroups = 100;
+    landscapeFrequencyGroups = 172;
+    portraitGap = 1.0;
+    landscapeGap = 2.0;
   }
 
   set isImmersiveTabBarEnabled(bool value) {
@@ -195,6 +234,48 @@ class SettingsService extends ChangeNotifier {
   set playbackBackgroundType(int value) {
     _playbackBackgroundType = value;
     _prefs.setInt(_keyPlaybackBackgroundType, value);
+    notifyListeners();
+  }
+
+  set isAutoMode(bool value) {
+    _isAutoMode = value;
+    _prefs.setBool(_keyIsAutoMode, value);
+    notifyListeners();
+  }
+
+  set autoSpectrumQuantity(String value) {
+    _autoSpectrumQuantity = value;
+    _prefs.setString(_keyAutoSpectrumQuantity, value);
+    notifyListeners();
+  }
+
+  set autoSpeed(String value) {
+    _autoSpeed = value;
+    _prefs.setString(_keyAutoSpeed, value);
+    notifyListeners();
+  }
+
+  set portraitFrequencyGroups(int value) {
+    _portraitFrequencyGroups = value;
+    _prefs.setInt(_keyPortraitFrequencyGroups, value);
+    notifyListeners();
+  }
+
+  set landscapeFrequencyGroups(int value) {
+    _landscapeFrequencyGroups = value;
+    _prefs.setInt(_keyLandscapeFrequencyGroups, value);
+    notifyListeners();
+  }
+
+  set portraitGap(double value) {
+    _portraitGap = value;
+    _prefs.setDouble(_keyPortraitGap, value);
+    notifyListeners();
+  }
+
+  set landscapeGap(double value) {
+    _landscapeGap = value;
+    _prefs.setDouble(_keyLandscapeGap, value);
     notifyListeners();
   }
 
