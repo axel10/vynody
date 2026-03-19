@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -12,9 +10,11 @@ import 'package:image/image.dart' as img;
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
-import 'metadata_helper.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
+import 'visualizer_options_service.dart';
+import 'playback_queue_processor.dart';
+import 'waveform_service.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioVisualizerPlayerController _player;
@@ -40,12 +40,14 @@ class AudioService extends ChangeNotifier {
   final List<MusicFile> _playlist = [];
   int _currentIndex = -1;
   bool _isTransitioning = false;
-  bool _isProcessingQueue = false;
+  final SettingsService settingsService;
+  late final VisualizerOptionsService _visualizerOptions;
+  late final PlaybackQueueProcessor _queueProcessor;
+  late final WaveformService _waveformService;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
 
-  final SettingsService settingsService;
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
   Map<String, Color> _currentThemeColorsMap = const {};
@@ -56,9 +58,22 @@ class AudioService extends ChangeNotifier {
 
   AudioService(this.settingsService) {
     _player = AudioVisualizerPlayerController();
+    _visualizerOptions = VisualizerOptionsService(
+      controller: _player,
+      settingsService: settingsService,
+    );
+    _queueProcessor = PlaybackQueueProcessor(
+      db: _db,
+      player: _player,
+      settingsService: settingsService,
+    );
+    _waveformService = WaveformService(
+      db: _db,
+      player: _player,
+    );
     _player.addListener(_handlePlayerChanges);
     unawaited(_player.initialize().then((_) {
-      _loadVisualizerOptions();
+      _visualizerOptions.loadOptions().then((_) => notifyListeners());
       _initializeMiniPlayerFftStream();
     }));
   }
@@ -89,149 +104,14 @@ class AudioService extends ChangeNotifier {
   Stream<FftFrame>? get miniPlayerFftStream =>
       _miniPlayerFftStream?.fftStream;
 
-  static const String _visualizerOptionsKey = 'visualizer_optimization_options';
-
-  Future<void> _loadVisualizerOptions() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString(_visualizerOptionsKey);
-      if (jsonStr != null) {
-        final Map<String, dynamic> map = jsonDecode(jsonStr);
-        final options = VisualizerOptimizationOptions(
-          frequencyGroups: map['frequencyGroups'] ?? 172,
-          smoothingCoefficient: map['smoothingCoefficient']?.toDouble() ?? 0.8,
-          gravityCoefficient: map['gravityCoefficient']?.toDouble() ?? 1.5,
-          overallMultiplier: map['overallMultiplier']?.toDouble() ?? 1.5,
-          logarithmicScale: map['logarithmicScale']?.toDouble() ?? 2.0,
-          groupContrastExponent:
-              map['groupContrastExponent']?.toDouble() ?? 0.5,
-          skipHighFrequencyGroups: map['skipHighFrequencyGroups'] ?? 0,
-          normalizationFloorDb:
-              map['normalizationFloorDb']?.toDouble() ?? -70.0,
-          aggregationMode: FftAggregationMode.values.firstWhere(
-            (e) => e.name == (map['aggregationMode'] ?? 'peak'),
-            orElse: () => FftAggregationMode.peak,
-          ),
-        );
-        _player.updateVisualOptions(options);
-        notifyListeners();
-      } else {
-        // Apply default values if no saved settings
-        _player.updateVisualOptions(const VisualizerOptimizationOptions(
-          frequencyGroups: 172,
-          smoothingCoefficient: 0.8,
-          gravityCoefficient: 1.5,
-          overallMultiplier: 1.5,
-          logarithmicScale: 2.0,
-          groupContrastExponent: 0.5,
-          skipHighFrequencyGroups: 0,
-          normalizationFloorDb: -70.0,
-          aggregationMode: FftAggregationMode.peak,
-        ));
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Error loading visualizer options: $e');
-    }
-  }
+  VisualizerOptionsService get visualizerOptions => _visualizerOptions;
 
   Future<void> saveVisualizerOptions() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final options = _player.visualOptions;
-      final map = {
-        'frequencyGroups': options.frequencyGroups,
-        'smoothingCoefficient': options.smoothingCoefficient,
-        'gravityCoefficient': options.gravityCoefficient,
-        'overallMultiplier': options.overallMultiplier,
-        'logarithmicScale': options.logarithmicScale,
-        'groupContrastExponent': options.groupContrastExponent,
-        'skipHighFrequencyGroups': options.skipHighFrequencyGroups,
-        'normalizationFloorDb': options.normalizationFloorDb,
-        'aggregationMode': options.aggregationMode.name,
-      };
-      await prefs.setString(_visualizerOptionsKey, jsonEncode(map));
-    } catch (e) {
-      debugPrint('Error saving visualizer options: $e');
-    }
+    await _visualizerOptions.saveOptions();
   }
 
   void applyVisualizerSettings({required Orientation orientation}) {
-    if (!settingsService.isAutoMode) {
-      // Manual mode uses saved options already applied to player
-      return;
-    }
-
-    final isLandscape = orientation == Orientation.landscape;
-    int freqGroups = isLandscape
-        ? settingsService.landscapeFrequencyGroups
-        : settingsService.portraitFrequencyGroups;
-    int skipHigh = 0;
-
-    // Automatic Mode Logic
-    if (isLandscape) {
-      switch (settingsService.autoSpectrumQuantity) {
-        case 'high':
-          freqGroups = 172;
-          skipHigh = 11;
-          break;
-        case 'medium':
-          freqGroups = 100;
-          skipHigh = 6;
-          break;
-        case 'low':
-          freqGroups = 42;
-          skipHigh = 2;
-          break;
-      }
-    } else {
-      switch (settingsService.autoSpectrumQuantity) {
-        case 'high':
-          freqGroups = 100;
-          skipHigh = 6;
-          break;
-        case 'medium':
-          freqGroups = 50;
-          skipHigh = 4;
-          break;
-        case 'low':
-          freqGroups = 20;
-          skipHigh = 1;
-          break;
-      }
-    }
-
-    double smoothing = 1.0;
-    double gravity = 1.0;
-
-    switch (settingsService.autoSpeed) {
-      case 'slow':
-        smoothing = 0.7;
-        gravity = 0.7;
-        break;
-      case 'medium':
-        smoothing = 0.4;
-        gravity = 1.0;
-        break;
-      case 'fast':
-        smoothing = 0.25;
-        gravity = 1.5;
-        break;
-    }
-
-    final options = _player.visualOptions.copyWith(
-      frequencyGroups: freqGroups,
-      skipHighFrequencyGroups: skipHigh,
-      smoothingCoefficient: smoothing,
-      gravityCoefficient: gravity,
-      // Default values also enforced here if needed, but copyWith preserves current ones
-      groupContrastExponent: 0.5,
-      normalizationFloorDb: -70.0,
-      overallMultiplier: 1.5,
-      aggregationMode: FftAggregationMode.peak,
-    );
-
-    _player.updateVisualOptions(options);
+    _visualizerOptions.applySettings(orientation: orientation);
     notifyListeners();
   }
 
@@ -242,42 +122,11 @@ class AudioService extends ChangeNotifier {
     final path = _currentFilePath;
     if (path == null) return [];
 
-    final songMetadata = await _db.getSongMetadata(path);
-    if (songMetadata != null && songMetadata.waveformBlob != null) {
-      final list = Float32List.view(songMetadata.waveformBlob!.buffer);
-      return list.map((e) => e.toDouble()).toList();
-    }
-
-    // No cache, calculate and store
-    final waveform = await _player.getWaveform(
+    return _waveformService.getWaveform(
+      path: path,
       expectedChunks: expectedChunks,
       sampleStride: sampleStride,
     );
-
-    if (waveform.isNotEmpty && songMetadata != null) {
-      final float32List = Float32List.fromList(
-        waveform.map((e) => e.toDouble()).toList(),
-      );
-      final blob = float32List.buffer.asUint8List();
-
-      final updated = SongMetadata(
-        id: songMetadata.id,
-        path: songMetadata.path,
-        title: songMetadata.title,
-        album: songMetadata.album,
-        artist: songMetadata.artist,
-        duration: songMetadata.duration,
-        artworkPath: songMetadata.artworkPath,
-        artworkWidth: songMetadata.artworkWidth,
-        artworkHeight: songMetadata.artworkHeight,
-        trackNumber: songMetadata.trackNumber,
-        themeColorsBlob: songMetadata.themeColorsBlob,
-        waveformBlob: blob,
-      );
-      await _db.insertOrUpdateSong(updated);
-    }
-
-    return waveform;
   }
 
   void _handlePlayerChanges() {
@@ -332,12 +181,6 @@ class AudioService extends ChangeNotifier {
   Future<void> updateDynamicColors() async {
     await _updatePalette();
     notifyListeners();
-  }
-
-  List<double> _waveformFromBlob(Uint8List? blob) {
-    if (blob == null || blob.isEmpty) return const [];
-    final list = Float32List.view(blob.buffer, blob.offsetInBytes);
-    return list.map((e) => e.toDouble()).toList();
   }
 
   Future<void> _refreshCurrentWaveform({bool notify = true}) async {
@@ -475,7 +318,7 @@ class AudioService extends ChangeNotifier {
     // 1. Try to get metadata from database immediately (fast)
     final songFromDb = await _db.getSongMetadata(path);
     if (songFromDb != null) {
-      _currentWaveform = _waveformFromBlob(songFromDb.waveformBlob);
+      _currentWaveform = _waveformService.waveformFromBlob(songFromDb.waveformBlob);
       _currentArtworkPath = songFromDb.artworkPath;
       _artworkWidth = songFromDb.artworkWidth;
       _artworkHeight = songFromDb.artworkHeight;
@@ -742,157 +585,33 @@ class AudioService extends ChangeNotifier {
   }
 
   void updateVisualOptions(VisualizerOptimizationOptions options) {
-    _player.updateVisualOptions(options);
+    _visualizerOptions.updateOptions(options);
     notifyListeners();
   }
 
   void resetVisualizerOptions() {
-    final options = const VisualizerOptimizationOptions(
-      frequencyGroups: 172,
-      smoothingCoefficient: 0.8,
-      gravityCoefficient: 1.5,
-      overallMultiplier: 1.5,
-      logarithmicScale: 2.0,
-      groupContrastExponent: 0.5,
-      skipHighFrequencyGroups: 0,
-      normalizationFloorDb: -70.0,
-      aggregationMode: FftAggregationMode.peak,
-    );
-    updateVisualOptions(options);
-    saveVisualizerOptions();
+    _visualizerOptions.resetOptions();
+    notifyListeners();
   }
 
   void _startQueueBackgroundProcessing() {
-    if (_isProcessingQueue) return;
-    unawaited(_processQueueBackground());
-  }
+    if (_queueProcessor.isProcessing || _playlist.isEmpty) return;
 
-  Future<void> _processQueueBackground() async {
-    if (_isProcessingQueue || _playlist.isEmpty) return;
-    _isProcessingQueue = true;
-
-    try {
-      debugPrint('Starting background queue processing');
-      // Create a snapshot to avoid concurrent modification issues
-      final List<MusicFile> processingList = List.from(_playlist);
-
-      for (final song in processingList) {
-        // Re-check if song is still in the playlist
-        if (!_playlist.any((s) => s.path == song.path)) continue;
-
-        try {
-          final existing = await _db.getSongMetadata(song.path);
-
-          bool needsWaveform = existing == null || existing.waveformBlob == null;
-          bool needsThemeColor =
-              existing == null || existing.themeColorsBlob == null;
-
-          if (needsWaveform || needsThemeColor) {
-            debugPrint('Background processing: ${song.path}');
-
-            // 1. Process basic metadata
-            final SongMetadata? initialMetadata =
-                await MetadataHelper.processMetadata(song.path);
-
-            if (initialMetadata != null) {
-              SongMetadata m = initialMetadata;
-
-              // If theme colors are missing but artwork exists, extract them
-              if (m.themeColorsBlob == null && m.artworkPath != null) {
-                try {
-                  final imageProvider = FileImage(File(m.artworkPath!));
-                  final palette = await PaletteGenerator.fromImageProvider(
-                    imageProvider,
-                    maximumColorCount: 20,
-                  );
-                  final themeColorsBlob =
-                      ThemeColorHelper.paletteToBlob(palette);
-
-                  m = SongMetadata(
-                    id: m.id,
-                    path: m.path,
-                    title: m.title,
-                    album: m.album,
-                    artist: m.artist,
-                    duration: m.duration,
-                    artworkPath: m.artworkPath,
-                    artworkWidth: m.artworkWidth,
-                    artworkHeight: m.artworkHeight,
-                    trackNumber: m.trackNumber,
-                    themeColorsBlob: themeColorsBlob,
-                    waveformBlob: m.waveformBlob,
-                  );
-                  await _db.insertOrUpdateSong(m);
-
-                  // Update current colors if this is the playing song
-                  if (song.path == _currentFilePath) {
-                    _applyThemeColors(
-                      ThemeColorHelper.blobToColors(themeColorsBlob),
-                    );
-                    notifyListeners();
-                  }
-                } catch (e) {
-                  debugPrint('Theme color extraction error for ${song.path}: $e');
-                }
-              }
-
-              // 2. Process waveform if still missing
-              if (m.waveformBlob == null) {
-                try {
-                  final waveform = await _player.getWaveform(
-                    expectedChunks: settingsService.waveformChunks,
-                    sampleStride: settingsService.sampleStride,
-                    filePath: song.path,
-                  );
-
-                  if (waveform.isNotEmpty) {
-                    final float32List = Float32List.fromList(
-                      waveform.map((e) => e.toDouble()).toList(),
-                    );
-                    final blob = float32List.buffer.asUint8List();
-
-                    final updated = SongMetadata(
-                      id: m.id,
-                      path: m.path,
-                      title: m.title,
-                      album: m.album,
-                      artist: m.artist,
-                      duration: m.duration,
-                      artworkPath: m.artworkPath,
-                      artworkWidth: m.artworkWidth,
-                      artworkHeight: m.artworkHeight,
-                      trackNumber: m.trackNumber,
-                      themeColorsBlob: m.themeColorsBlob,
-                      waveformBlob: blob,
-                    );
-                    await _db.insertOrUpdateSong(updated);
-
-                    // Also update 'm' in case we add more steps later
-                    m = updated;
-
-                    // Update current waveform if this is the playing song
-                    if (song.path == _currentFilePath) {
-                      _currentWaveform = waveform;
-                      notifyListeners();
-                    }
-                  }
-                } catch (e) {
-                  debugPrint('Waveform extraction error for ${song.path}: $e');
-                }
-              }
-            }
-
-            // Small delay between songs to avoid heavy load
-            await Future.delayed(const Duration(milliseconds: 300));
+    unawaited(_queueProcessor.processQueue(
+      playlist: List.from(_playlist),
+      currentFilePath: _currentFilePath,
+      onUpdate: (path, updates) {
+        if (path == _currentFilePath) {
+          if (updates.containsKey('themeColors')) {
+            _applyThemeColors(updates['themeColors'] as Map<String, Color>);
           }
-        } catch (e) {
-          debugPrint('Error processing background song ${song.path}: $e');
+          if (updates.containsKey('waveform')) {
+            _currentWaveform = updates['waveform'] as List<double>;
+          }
+          notifyListeners();
         }
-      }
-    } finally {
-      _isProcessingQueue = false;
-      debugPrint('Background queue processing finished');
-    }
+      },
+    ));
   }
 
   @override
