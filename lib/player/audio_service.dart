@@ -74,7 +74,7 @@ class AudioService extends ChangeNotifier {
           logarithmicScale: 5.0,
           normalizationFloorDb: -75,
           aggregationMode: FftAggregationMode.peak,
-          frequencyGroups: 64,
+          frequencyGroups: 128,
           targetFrameRate: 60,
           groupContrastExponent: 0.5,
           // skipHighFrequencyGroups: 10,
