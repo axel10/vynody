@@ -168,25 +168,43 @@ class WaveformPainter extends CustomPainter {
       return;
     }
 
-    
-
-    final activePaint = Paint()..color = activeColor;
-    final inactivePaint = Paint()..color = inactiveColor;
-
     final double barWidth = size.width / waveform.length;
     final double maxBarHeight = size.height;
-    
     // 限制波形数量，避免过度绘制导致花屏
-    // 特别是在 Android 上，如果数据长度异常导致 barWidth 极小，会产生大量重叠
     final int step = (1 / barWidth).ceil().clamp(1, 100);
 
-    for (int i = 0; i < waveform.length; i += step) {
+    // 1. 绘制底色 (未播放部分)
+    final inactivePaint = Paint()..color = inactiveColor;
+    _drawBars(canvas, size, barWidth, maxBarHeight, step, inactivePaint);
+
+    // 2. 绘制激活色 (已播放部分)
+    // 使用 clipRect 实现精确到像素的裁剪，从而实现“柱子内部”的颜色渐变效果
+    canvas.save();
+    final double activeWidth = size.width * progress;
+    canvas.clipRect(Rect.fromLTWH(0, 0, activeWidth, size.height));
+    
+    final activePaint = Paint()..color = activeColor;
+    // 性能优化：在绘制激活部分时，只绘制在裁剪区域内的柱子
+    final int activeEndIndex = (activeWidth / barWidth).ceil().clamp(0, waveform.length);
+    _drawBars(canvas, size, barWidth, maxBarHeight, step, activePaint, maxIndex: activeEndIndex);
+    
+    canvas.restore();
+  }
+
+  void _drawBars(
+    Canvas canvas,
+    Size size,
+    double barWidth,
+    double maxBarHeight,
+    int step,
+    Paint paint, {
+    int? maxIndex,
+  }) {
+    final int end = maxIndex ?? waveform.length;
+    for (int i = 0; i < end; i += step) {
       final double barHeight = waveform[i] * maxBarHeight;
       final double x = i * barWidth;
       final double y = (size.height - barHeight) / 2;
-
-      final double currentProgress = i / waveform.length;
-      final paint = currentProgress <= progress ? activePaint : inactivePaint;
 
       // 如果宽度太窄，直接绘制直线而不是圆角矩形，提高性能并减少渲染错误
       if (barWidth < 3) {
