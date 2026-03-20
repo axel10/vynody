@@ -124,7 +124,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
   }
 
   Widget _buildAlgorithmTab(BuildContext context, StateSetter setDialogState) {
-    final options = audio.player.visualOptions;
+    final options = audio.player.visualizer.options;
 
     return SingleChildScrollView(
       child: Wrap(

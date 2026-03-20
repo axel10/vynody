@@ -17,7 +17,7 @@ class VisualizerOptionsService extends ChangeNotifier {
     required this.settingsService,
   });
 
-  VisualizerOptimizationOptions get options => controller.visualOptions;
+  VisualizerOptimizationOptions get options => controller.visualizer.options;
 
   Future<void> loadOptions() async {
     try {
@@ -41,7 +41,7 @@ class VisualizerOptionsService extends ChangeNotifier {
             orElse: () => FftAggregationMode.peak,
           ),
         );
-        controller.updateVisualOptions(options);
+        controller.visualizer.updateOptions(options);
         notifyListeners();
       } else {
         // Apply default values if no saved settings
@@ -55,7 +55,7 @@ class VisualizerOptionsService extends ChangeNotifier {
   Future<void> saveOptions() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final options = controller.visualOptions;
+      final options = controller.visualizer.options;
       final map = {
         'frequencyGroups': options.frequencyGroups,
         'smoothingCoefficient': options.smoothingCoefficient,
@@ -74,7 +74,7 @@ class VisualizerOptionsService extends ChangeNotifier {
   }
 
   void updateOptions(VisualizerOptimizationOptions options) {
-    controller.updateVisualOptions(options);
+    controller.visualizer.updateOptions(options);
     notifyListeners();
   }
 
@@ -157,7 +157,7 @@ class VisualizerOptionsService extends ChangeNotifier {
         break;
     }
 
-    final options = controller.visualOptions.copyWith(
+    final options = controller.visualizer.options.copyWith(
       frequencyGroups: freqGroups,
       skipHighFrequencyGroups: skipHigh,
       smoothingCoefficient: smoothing,
@@ -168,7 +168,7 @@ class VisualizerOptionsService extends ChangeNotifier {
       aggregationMode: FftAggregationMode.peak,
     );
 
-    controller.updateVisualOptions(options);
+    controller.visualizer.updateOptions(options);
     notifyListeners();
   }
 }

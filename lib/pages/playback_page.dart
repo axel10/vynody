@@ -40,7 +40,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final audio = context.read<AudioService>();
-      _showVisualizer = audio.player.fftEnabled;
+      _showVisualizer = audio.player.visualizer.enabled;
       _startInactivityTimer();
       if (mounted) {
         setState(() {});
@@ -95,14 +95,14 @@ class _PlaybackPageState extends State<PlaybackPage>
     setState(() {
       _showVisualizer = nextVisible;
     });
-    await audio.player.setFftEnabled(nextVisible);
+    audio.player.visualizer.setEnabled(nextVisible);
   }
 
   void _cyclePlaylistMode(AudioService audio) {
-    final currentMode = audio.player.playlistMode;
+    final currentMode = audio.player.playlist.mode;
     final nextMode = PlaylistMode
         .values[(currentMode.index + 1) % PlaylistMode.values.length];
-    audio.player.setPlaylistMode(nextMode);
+    audio.player.playlist.setMode(nextMode);
   }
 
   void _showPlaylistModeSelector(BuildContext context, AudioService audio) {
@@ -117,9 +117,9 @@ class _PlaybackPageState extends State<PlaybackPage>
               return ListTile(
                 leading: Icon(getPlaylistModeIcon(mode)),
                 title: Text(getPlaylistModeName(mode, AppLocalizations.of(context)!)),
-                selected: audio.player.playlistMode == mode,
+                selected: audio.player.playlist.mode == mode,
                 onTap: () {
-                  audio.player.setPlaylistMode(mode);
+                  audio.player.playlist.setMode(mode);
                   Navigator.of(context).pop();
                 },
               );
@@ -355,7 +355,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   Widget _buildVisualizerLayer(AudioService audio, Orientation orientation) {
     return Positioned.fill(
       child: StreamBuilder<FftFrame>(
-        stream: audio.player.optimizedFftStream,
+        stream: audio.player.visualizer.optimizedStream,
         builder: (context, snapshot) {
           final frame = snapshot.data;
           if (frame == null) return const SizedBox.shrink();

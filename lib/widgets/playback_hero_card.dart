@@ -369,13 +369,13 @@ class PlaybackHeroCard extends StatelessWidget {
               onLongPress: onShowPlaylistModeSelector,
               child: IconButton(
                 icon: Icon(
-                  getPlaylistModeIcon(audio.player.playlistMode),
+                  getPlaylistModeIcon(audio.player.playlist.mode),
                   size: 28,
                   color: Colors.white70,
                 ),
                 onPressed: onCyclePlaylistMode,
                 tooltip: getPlaylistModeName(
-                  audio.player.playlistMode,
+                  audio.player.playlist.mode,
                   AppLocalizations.of(context)!,
                 ),
               ),

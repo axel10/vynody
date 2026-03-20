@@ -80,7 +80,7 @@ class AudioService extends ChangeNotifier {
 
   void _initializeMiniPlayerFftStream() {
     // 创建独立的 FFT 输出流，专用于迷你播放器
-    _miniPlayerFftStream = _player.createVisualizerOutput(
+    _miniPlayerFftStream = _player.visualizer.createOutput(
       const VisualizerOutputConfig(
         id: 'mini_player',
         label: 'Mini Player',
@@ -130,12 +130,12 @@ class AudioService extends ChangeNotifier {
   }
 
   void _handlePlayerChanges() {
-    _isPlaying = _player.isPlaying;
-    _position = _player.position;
-    _duration = _player.duration;
-    _volume = (_player.volume * 100.0).roundToDouble();
+    _isPlaying = _player.player.isPlaying;
+    _position = _player.player.position;
+    _duration = _player.player.duration;
+    _volume = (_player.player.volume * 100.0).roundToDouble();
 
-    final int newIndex = _player.currentIndex ?? -1;
+    final int newIndex = _player.playlist.currentIndex ?? -1;
     if (newIndex != _currentIndex && !_isTransitioning) {
       _currentIndex = newIndex;
       if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
@@ -391,12 +391,12 @@ class AudioService extends ChangeNotifier {
     final song = MusicFile(path: path, name: name, id: id);
     if (!append) {
       _playlist.clear();
-      await _player.clearPlaylist();
+      await _player.playlist.clear();
     }
 
     final int index = _playlist.length;
     _playlist.add(song);
-    await _player.addTracks([AudioTrack(id: index.toString(), uri: path)]);
+    await _player.playlist.addTracks([AudioTrack(id: index.toString(), uri: path)]);
 
     _startQueueBackgroundProcessing();
     await playAtIndex(index);
@@ -423,16 +423,18 @@ class AudioService extends ChangeNotifier {
       }).toList();
 
       // Clear existing playlist and add all tracks
-      await _player.clearPlaylist();
-      await _player.addTracks(tracks);
+      await _player.playlist.clear();
+      await _player.playlist.addTracks(tracks);
 
       // Play the selected track
-      await _player.playAt(safeIndex);
+      if (_player.playlist.activePlaylistId != null) {
+        await _player.playlist.setActivePlaylist(_player.playlist.activePlaylistId!, startIndex: safeIndex, autoPlay: true);
+      }
 
       final current = songs[safeIndex];
       await _updateCurrentMetadata(current.path, current.displayName, id: current.id);
 
-      await _player.setVolume(_volume / 100.0);
+      await _player.player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
       _startQueueBackgroundProcessing();
     } finally {
@@ -447,17 +449,17 @@ class AudioService extends ChangeNotifier {
     final bool wasEmpty = _playlist.isEmpty;
     _playlist.addAll(songs);
 
-    final startIndex = _player.playlist.length;
+    final startIndex = _player.playlist.items.length;
     final tracks = songs.asMap().entries.map((e) {
       return AudioTrack(id: (startIndex + e.key).toString(), uri: e.value.path);
     }).toList();
-    await _player.addTracks(tracks);
+    await _player.playlist.addTracks(tracks);
 
     if (wasEmpty) {
       _currentIndex = 0;
       final current = songs[0];
       await _updateCurrentMetadata(current.path, current.displayName, id: current.id);
-      await _player.setVolume(_volume / 100.0);
+      await _player.player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
     }
     _startQueueBackgroundProcessing();
@@ -467,7 +469,7 @@ class AudioService extends ChangeNotifier {
   Future<void> removeFromPlaylist(int index) async {
     if (index >= 0 && index < _playlist.length) {
       _playlist.removeAt(index);
-      await _player.removeTrackAt(index);
+      await _player.playlist.removeTrackAt(index);
       notifyListeners();
     }
   }
@@ -483,7 +485,7 @@ class AudioService extends ChangeNotifier {
     _currentWaveform = const [];
     _currentArtworkBytes = null;
     _currentArtworkPath = null;
-    await _player.clearPlaylist();
+    await _player.playlist.clear();
     _duration = Duration.zero;
     _position = Duration.zero;
     _isPlaying = false;
@@ -494,9 +496,9 @@ class AudioService extends ChangeNotifier {
     if (_isTransitioning) return;
     _isTransitioning = true;
     try {
-      final success = await _player.playNext();
+      final success = await _player.playlist.playNext();
       if (success) {
-        final newIndex = _player.currentIndex ?? -1;
+        final newIndex = _player.playlist.currentIndex ?? -1;
         if (newIndex >= 0 && newIndex < _playlist.length) {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
@@ -517,7 +519,9 @@ class AudioService extends ChangeNotifier {
 
     _isTransitioning = true;
     try {
-      await _player.playAt(index);
+      if (_player.playlist.activePlaylistId != null) {
+        await _player.playlist.setActivePlaylist(_player.playlist.activePlaylistId!, startIndex: index, autoPlay: true);
+      }
       _currentIndex = index;
       final song = _playlist[_currentIndex];
       await _updateCurrentMetadata(song.path, song.displayName, id: song.id);
@@ -532,9 +536,9 @@ class AudioService extends ChangeNotifier {
     if (_isTransitioning) return;
     _isTransitioning = true;
     try {
-      final success = await _player.playPrevious();
+      final success = await _player.playlist.playPrevious();
       if (success) {
-        final newIndex = _player.currentIndex ?? -1;
+        final newIndex = _player.playlist.currentIndex ?? -1;
         if (newIndex >= 0 && newIndex < _playlist.length) {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
@@ -549,11 +553,11 @@ class AudioService extends ChangeNotifier {
   }
 
   Future<void> togglePlay() async {
-    await _player.togglePlayPause();
+    await _player.player.togglePlayPause();
   }
 
   Future<void> seek(Duration position) async {
-    await _player.seek(position);
+    await _player.player.seek(position);
   }
 
   Future<void> setVolume(double volume) async {
@@ -561,7 +565,7 @@ class AudioService extends ChangeNotifier {
     if (_volume > 0) {
       _isMuted = false;
     }
-    await _player.setVolume(_volume / 100.0);
+    await _player.player.setVolume(_volume / 100.0);
     notifyListeners();
   }
 
@@ -617,7 +621,7 @@ class AudioService extends ChangeNotifier {
   @override
   void dispose() {
     _player.removeListener(_handlePlayerChanges);
-    _player.removeVisualizerOutput('mini_player');
+    _player.visualizer.removeOutput('mini_player');
     _player.dispose();
     super.dispose();
   }

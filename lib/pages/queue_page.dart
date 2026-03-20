@@ -149,7 +149,7 @@ class _QueuePageState extends State<QueuePage> {
                   itemCount: playlist.length,
                   onReorder: (oldIndex, newIndex) {
                     if (newIndex > oldIndex) newIndex--;
-                    audio.player.moveTrack(oldIndex, newIndex);
+                    audio.player.playlist.moveTrack(oldIndex, newIndex);
                   },
                   itemBuilder: (context, index) {
                     final song = playlist[index];
@@ -239,7 +239,7 @@ class _QueuePageState extends State<QueuePage> {
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(index)
                             : () {
-                                audio.player.playAt(index);
+                                audio.playAtIndex(index);
                               },
                       ),
                     );

@@ -49,7 +49,7 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
 
   void _subscribeToFft() {
     final audio = context.read<AudioService>();
-    _fftSubscription = audio.player.optimizedFftStream.listen((frame) {
+    _fftSubscription = audio.player.visualizer.optimizedStream.listen((frame) {
       if (!mounted) return;
       
       // Calculate bass energy from first few bins
