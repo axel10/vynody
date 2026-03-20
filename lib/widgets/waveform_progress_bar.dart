@@ -156,7 +156,6 @@ class WaveformPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    debugPrint(waveform.toString());
     if (waveform.isEmpty) {
       final paint = Paint()
         ..color = inactiveColor
