@@ -260,73 +260,82 @@ class ScannerService extends ChangeNotifier {
     List<SongModel> songs,
   ) async {
     final db = MetadataDatabase();
-    for (var song in songs) {
-      try {
-        final existing = await db.getSongMetadata(song.data);
-        if (existing != null &&
-            existing.themeColorsBlob != null &&
-            existing.waveformBlob != null) {
-          continue;
-        }
+    final player = AudioVisualizerPlayerController();
+    try {
+      await player.initialize();
+    } catch (e) {
+      debugPrint('Failed to initialize player for background scanning: $e');
+      return;
+    }
 
-        Uint8List? themeColorsBlob = existing?.themeColorsBlob;
-        final artworkBytes = await _audioQuery.queryArtwork(
-          song.id,
-          ArtworkType.AUDIO,
-          format: ArtworkFormat.JPEG,
-          size: 200,
-          quality: 100,
-        );
-
-        if (artworkBytes != null && themeColorsBlob == null) {
-          final imageProvider = MemoryImage(artworkBytes);
-          final palette = await PaletteGenerator.fromImageProvider(
-            imageProvider,
-            maximumColorCount: 20,
-          );
-          themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
-        }
-
-        Uint8List? waveformBlob = existing?.waveformBlob;
-        if (waveformBlob == null) {
-          try {
-            final player = AudioVisualizerPlayerController();
-            await player.initialize();
-            final waveform = await player.getWaveform(
-              expectedChunks: _settingsService?.waveformChunks ?? 80,
-              sampleStride: _settingsService?.sampleStride ?? 4,
-              filePath: song.data,
-            );
-            if (waveform.isNotEmpty) {
-              final float32List = Float32List.fromList(
-                waveform.map((e) => e.toDouble()).toList(),
-              );
-              waveformBlob = float32List.buffer.asUint8List();
-            }
-            player.dispose();
-          } catch (e) {
-            debugPrint('Waveform extraction failed for scan: $e');
+    try {
+      for (var song in songs) {
+        try {
+          final existing = await db.getSongMetadata(song.data);
+          if (existing != null &&
+              existing.themeColorsBlob != null &&
+              existing.waveformBlob != null) {
+            continue;
           }
+
+          Uint8List? themeColorsBlob = existing?.themeColorsBlob;
+          final artworkBytes = await _audioQuery.queryArtwork(
+            song.id,
+            ArtworkType.AUDIO,
+            format: ArtworkFormat.JPEG,
+            size: 200,
+            quality: 100,
+          );
+
+          if (artworkBytes != null && themeColorsBlob == null) {
+            final imageProvider = MemoryImage(artworkBytes);
+            final palette = await PaletteGenerator.fromImageProvider(
+              imageProvider,
+              maximumColorCount: 20,
+            );
+            themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
+          }
+
+          Uint8List? waveformBlob = existing?.waveformBlob;
+          if (waveformBlob == null) {
+            try {
+              final waveform = await player.getWaveform(
+                expectedChunks: _settingsService?.waveformChunks ?? 80,
+                sampleStride: _settingsService?.sampleStride ?? 4,
+                filePath: song.data,
+              );
+              if (waveform.isNotEmpty) {
+                final float32List = Float32List.fromList(
+                  waveform.map((e) => e.toDouble()).toList(),
+                );
+                waveformBlob = float32List.buffer.asUint8List();
+              }
+            } catch (e) {
+              debugPrint('Waveform extraction failed for scan: $e');
+            }
+          }
+
+          final songMetadata = SongMetadata(
+            path: song.data,
+            title: song.title,
+            album: song.album ?? '',
+            artist: song.artist ?? '',
+            duration: song.duration,
+            trackNumber: song.track,
+            themeColorsBlob: themeColorsBlob,
+            waveformBlob: waveformBlob,
+          );
+
+          await db.insertOrUpdateSong(songMetadata);
+        } catch (e) {
+          debugPrint('Background processing error for ${song.data}: $e');
         }
 
-        final songMetadata = SongMetadata(
-          path: song.data,
-          title: song.title,
-          album: song.album ?? '',
-          artist: song.artist ?? '',
-          duration: song.duration,
-          trackNumber: song.track,
-          themeColorsBlob: themeColorsBlob,
-          waveformBlob: waveformBlob,
-        );
-
-        await db.insertOrUpdateSong(songMetadata);
-      } catch (e) {
-        debugPrint('Background processing error for ${song.data}: $e');
+        // Yield to event loop to avoid UI jank
+        await Future.delayed(const Duration(milliseconds: 100));
       }
-
-      // Yield to event loop to avoid UI jank
-      await Future.delayed(const Duration(milliseconds: 100));
+    } finally {
+      player.dispose();
     }
   }
 

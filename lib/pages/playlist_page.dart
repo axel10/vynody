@@ -460,7 +460,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                   ),
                                 ),
                                 title: Text(
-                                  song.displayName,
+                                  song.title ?? song.name,
                                   style: TextStyle(
                                     color: isCurrent
                                         ? Theme.of(context).colorScheme.primary

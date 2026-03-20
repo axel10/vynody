@@ -4,7 +4,6 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   desktop_drop
-  media_kit_libs_linux
   screen_retriever_linux
   sqlite3_flutter_libs
   window_manager

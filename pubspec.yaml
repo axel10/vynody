@@ -39,8 +39,6 @@ dependencies:
       ref: main
   media_scanner: ^2.2.0
   metadata_god: ^1.1.0
-  media_kit: ^1.2.6 # Primary package.
-  media_kit_libs_audio: ^1.0.7 # Native audio dependencies.
   file_picker: ^8.0.0
 
   # The following adds the Cupertino Icons font to your application.
