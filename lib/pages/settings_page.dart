@@ -79,6 +79,16 @@ class SettingsPage extends StatelessWidget {
               ),
             ),
           ),
+          SwitchListTile(
+            title: Text(l10n.enableWaveformProgressBar,
+                style: const TextStyle(color: Colors.white)),
+            subtitle: Text(l10n.enableWaveformProgressBarDescription,
+                style: const TextStyle(color: Colors.white70)),
+            value: settings.isWaveformProgressBarEnabled,
+            onChanged: (value) {
+              settings.isWaveformProgressBarEnabled = value;
+            },
+          ),
         ],
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
+import '../player/settings_service.dart';
 import '../utils/playback_utils.dart';
 import '../widgets/cover_carousel.dart';
 import '../widgets/mini_player_widgets.dart';
@@ -382,13 +383,16 @@ class PlaybackHeroCard extends StatelessWidget {
           ],
         ),
         SizedBox(height: isLandscape ? 8 : 4),
-        WaveformProgressBar(
-          waveform: waveform,
-          progress: sliderProgress,
-          duration: audio.duration,
-          onScrubbing: onScrubbing ?? (_) {},
-          onSeek: onSeek ?? (_) {},
-        ),
+        if (context.watch<SettingsService>().isWaveformProgressBarEnabled)
+          WaveformProgressBar(
+            waveform: waveform,
+            progress: sliderProgress,
+            duration: audio.duration,
+            onScrubbing: onScrubbing ?? (_) {},
+            onSeek: onSeek ?? (_) {},
+          )
+        else
+          _buildStandardSlider(context, audio),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
@@ -494,6 +498,30 @@ class PlaybackHeroCard extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildStandardSlider(BuildContext context, AudioService audio) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SliderTheme(
+        data: SliderTheme.of(context).copyWith(
+          trackHeight: 4,
+          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+          overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+          activeTrackColor: Colors.white,
+          inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+          thumbColor: Colors.white,
+          overlayColor: Colors.white.withValues(alpha: 0.1),
+        ),
+        child: Slider(
+          value: sliderProgress.clamp(0.0, 1.0),
+          onChanged: onScrubbing,
+          onChangeEnd: (value) {
+            onSeek?.call(value);
+          },
+        ),
+      ),
     );
   }
 }

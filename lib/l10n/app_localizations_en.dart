@@ -385,4 +385,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get landscapeGap => 'Landscape Gap';
+
+  @override
+  String get enableWaveformProgressBar => 'Enable Waveform Progress Bar';
+
+  @override
+  String get enableWaveformProgressBarDescription =>
+      'Use full-song waveform instead of standard slider';
 }

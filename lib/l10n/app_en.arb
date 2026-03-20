@@ -119,5 +119,7 @@
   "portraitFrequencyGroups": "Portrait Freq Quantity",
   "landscapeFrequencyGroups": "Landscape Freq Quantity",
   "portraitGap": "Portrait Gap",
-  "landscapeGap": "Landscape Gap"
+  "landscapeGap": "Landscape Gap",
+  "enableWaveformProgressBar": "Enable Waveform Progress Bar",
+  "enableWaveformProgressBarDescription": "Use full-song waveform instead of standard slider"
 }

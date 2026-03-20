@@ -18,7 +18,8 @@ class WaveformService {
   }) async {
     final songMetadata = await db.getSongMetadata(path);
     if (songMetadata != null && songMetadata.waveformBlob != null) {
-      final list = Float32List.view(songMetadata.waveformBlob!.buffer);
+      final blob = songMetadata.waveformBlob!;
+      final list = blob.buffer.asFloat32List(blob.offsetInBytes, blob.length ~/ 4);
       return list.map((e) => e.toDouble()).toList();
     }
 
@@ -57,7 +58,7 @@ class WaveformService {
 
   List<double> waveformFromBlob(Uint8List? blob) {
     if (blob == null || blob.isEmpty) return const [];
-    final list = Float32List.view(blob.buffer, blob.offsetInBytes);
+    final list = blob.buffer.asFloat32List(blob.offsetInBytes, blob.length ~/ 4);
     return list.map((e) => e.toDouble()).toList();
   }
 }

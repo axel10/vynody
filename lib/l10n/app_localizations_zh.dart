@@ -380,4 +380,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get landscapeGap => '横屏频谱间距';
+
+  @override
+  String get enableWaveformProgressBar => '启用波形进度条';
+
+  @override
+  String get enableWaveformProgressBarDescription => '使用整首歌的波形图代替标准滑块';
 }

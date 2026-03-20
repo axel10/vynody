@@ -108,22 +108,14 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                   width: double.infinity,
                   child: Stack(
                     children: [
-                      // 背景波形
-                      ShaderMask(
-                        shaderCallback: (Rect bounds) {
-                          return LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [widget.activeColor, widget.inactiveColor],
-                            stops: [widget.progress, widget.progress],
-                          ).createShader(bounds);
-                        },
-                        blendMode: BlendMode.srcIn,
-                        child: CustomPaint(
-                          size: Size(constraints.maxWidth, 60),
-                          painter: WaveformPainter(
-                            waveform: widget.waveform,
-                          ),
+                      // 波形显示
+                      CustomPaint(
+                        size: Size(constraints.maxWidth, 60),
+                        painter: WaveformPainter(
+                          waveform: widget.waveform,
+                          progress: widget.progress,
+                          activeColor: widget.activeColor,
+                          inactiveColor: widget.inactiveColor,
                         ),
                       ),
                       // 悬浮指示线
@@ -151,17 +143,23 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
 
 class WaveformPainter extends CustomPainter {
   final List<double> waveform;
+  final double progress;
+  final Color activeColor;
+  final Color inactiveColor;
 
   WaveformPainter({
     required this.waveform,
+    required this.progress,
+    required this.activeColor,
+    required this.inactiveColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    debugPrint(waveform.toString());
     if (waveform.isEmpty) {
-      // Draw a simple line if no waveform data
       final paint = Paint()
-        ..color = Colors.white
+        ..color = inactiveColor
         ..strokeWidth = 2;
       canvas.drawLine(
         Offset(0, size.height / 2),
@@ -171,27 +169,48 @@ class WaveformPainter extends CustomPainter {
       return;
     }
 
-    final paint = Paint()..color = Colors.white;
+    
+
+    final activePaint = Paint()..color = activeColor;
+    final inactivePaint = Paint()..color = inactiveColor;
 
     final double barWidth = size.width / waveform.length;
     final double maxBarHeight = size.height;
+    
+    // 限制波形数量，避免过度绘制导致花屏
+    // 特别是在 Android 上，如果数据长度异常导致 barWidth 极小，会产生大量重叠
+    final int step = (1 / barWidth).ceil().clamp(1, 100);
 
-    for (int i = 0; i < waveform.length; i++) {
+    for (int i = 0; i < waveform.length; i += step) {
       final double barHeight = waveform[i] * maxBarHeight;
       final double x = i * barWidth;
       final double y = (size.height - barHeight) / 2;
 
-      final RRect rrect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(x + 1, y, math.max(1, barWidth - 2), barHeight),
-        const Radius.circular(2),
-      );
+      final double currentProgress = i / waveform.length;
+      final paint = currentProgress <= progress ? activePaint : inactivePaint;
 
-      canvas.drawRRect(rrect, paint);
+      // 如果宽度太窄，直接绘制直线而不是圆角矩形，提高性能并减少渲染错误
+      if (barWidth < 3) {
+        canvas.drawLine(
+          Offset(x + barWidth / 2, y),
+          Offset(x + barWidth / 2, y + barHeight),
+          paint..strokeWidth = math.max(1, barWidth),
+        );
+      } else {
+        final RRect rrect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(x + 1, y, barWidth - 2, barHeight),
+          const Radius.circular(2),
+        );
+        canvas.drawRRect(rrect, paint);
+      }
     }
   }
 
   @override
   bool shouldRepaint(covariant WaveformPainter oldDelegate) {
-    return oldDelegate.waveform != waveform;
+    return oldDelegate.waveform != waveform ||
+        oldDelegate.progress != progress ||
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.inactiveColor != inactiveColor;
   }
 }

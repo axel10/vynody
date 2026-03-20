@@ -817,6 +817,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'横屏频谱间距'**
   String get landscapeGap;
+
+  /// Enable Waveform Progress Bar label
+  ///
+  /// In zh, this message translates to:
+  /// **'启用波形进度条'**
+  String get enableWaveformProgressBar;
+
+  /// Enable Waveform Progress Bar description
+  ///
+  /// In zh, this message translates to:
+  /// **'使用整首歌的波形图代替标准滑块'**
+  String get enableWaveformProgressBarDescription;
 }
 
 class _AppLocalizationsDelegate

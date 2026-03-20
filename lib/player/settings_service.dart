@@ -31,6 +31,7 @@ class SettingsService extends ChangeNotifier {
       'visualizer_landscape_frequency_groups';
   static const String _keyPortraitGap = 'visualizer_portrait_gap';
   static const String _keyLandscapeGap = 'visualizer_landscape_gap';
+  static const String _keyIsWaveformProgressBarEnabled = 'waveform_progress_bar_enabled';
 
   final SharedPreferences _prefs;
   bool _isImmersiveTabBarEnabled;
@@ -58,6 +59,7 @@ class SettingsService extends ChangeNotifier {
   late int _landscapeFrequencyGroups;
   late double _portraitGap;
   late double _landscapeGap;
+  late bool _isWaveformProgressBarEnabled;
 
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
@@ -92,6 +94,7 @@ class SettingsService extends ChangeNotifier {
         _prefs.getInt(_keyLandscapeFrequencyGroups) ?? 172;
     _portraitGap = _prefs.getDouble(_keyPortraitGap) ?? 1.0;
     _landscapeGap = _prefs.getDouble(_keyLandscapeGap) ?? 2.0;
+    _isWaveformProgressBarEnabled = _prefs.getBool(_keyIsWaveformProgressBarEnabled) ?? false;
   }
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
@@ -118,6 +121,7 @@ class SettingsService extends ChangeNotifier {
   int get landscapeFrequencyGroups => _landscapeFrequencyGroups;
   double get portraitGap => _portraitGap;
   double get landscapeGap => _landscapeGap;
+  bool get isWaveformProgressBarEnabled => _isWaveformProgressBarEnabled;
 
   void resetVisualizerAppearance() {
     visualizerOpacity = 0.2;
@@ -138,6 +142,7 @@ class SettingsService extends ChangeNotifier {
     landscapeFrequencyGroups = 172;
     portraitGap = 1.0;
     landscapeGap = 2.0;
+    isWaveformProgressBarEnabled = false;
   }
 
   set isImmersiveTabBarEnabled(bool value) {
@@ -276,6 +281,12 @@ class SettingsService extends ChangeNotifier {
   set landscapeGap(double value) {
     _landscapeGap = value;
     _prefs.setDouble(_keyLandscapeGap, value);
+    notifyListeners();
+  }
+
+  set isWaveformProgressBarEnabled(bool value) {
+    _isWaveformProgressBarEnabled = value;
+    _prefs.setBool(_keyIsWaveformProgressBarEnabled, value);
     notifyListeners();
   }
 
