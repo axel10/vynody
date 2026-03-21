@@ -108,25 +108,34 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
     double pulse = 1.0;
 
     return SizedBox.expand(
-      child: ClipRect(
-        child: OverflowBox(
-          maxWidth: double.infinity,
-          maxHeight: double.infinity,
-          child: Transform.scale(
-            scale: pulse * 1.0,
-            child: TweenAnimationBuilder<List<Color>>(
-              tween: ListColorTween(end: _stableTargetColors!),
-              duration: const Duration(milliseconds: 1500),
-              curve: Curves.easeInOut,
-              builder: (context, animatedColors, child) {
-                return AnimatedMeshGradient(
-                  colors: animatedColors,
-                  options: AnimatedMeshGradientOptions(),
-                );
-              },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRect(
+            child: OverflowBox(
+              maxWidth: double.infinity,
+              maxHeight: double.infinity,
+              child: Transform.scale(
+                scale: pulse * 1.0,
+                child: TweenAnimationBuilder<List<Color>>(
+                  tween: ListColorTween(end: _stableTargetColors!),
+                  duration: const Duration(milliseconds: 1500),
+                  curve: Curves.easeInOut,
+                  builder: (context, animatedColors, child) {
+                    return AnimatedMeshGradient(
+                      colors: animatedColors,
+                      options: AnimatedMeshGradientOptions(),
+                    );
+                  },
+                ),
+              ),
             ),
           ),
-        ),
+          // Dark overlay to improve text readability
+          Container(
+            color: Colors.black.withValues(alpha: 0), // 先设成0，寻找替代方案
+          ),
+        ],
       ),
     );
   }
