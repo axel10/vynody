@@ -251,6 +251,126 @@ class _MainLayoutState extends State<MainLayout> {
     }
   }
 
+  List<NavigationDestination> _buildBottomDestinations(BuildContext context, bool isPlayback) {
+    return [
+      NavigationDestination(
+        icon: Icon(
+          Icons.folder_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.folder,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: AppLocalizations.of(context)!.file,
+      ),
+      NavigationDestination(
+        icon: Icon(
+          Icons.play_circle_outline,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.play_circle,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: AppLocalizations.of(context)!.play,
+      ),
+      NavigationDestination(
+        icon: Icon(
+          Icons.playlist_play_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.playlist_play,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: AppLocalizations.of(context)!.list,
+      ),
+      NavigationDestination(
+        icon: Icon(
+          Icons.queue_music_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.queue_music,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: AppLocalizations.of(context)!.queueTab,
+      ),
+      NavigationDestination(
+        icon: Icon(
+          Icons.more_horiz_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.more_horiz,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: '更多',
+      ),
+    ];
+  }
+
+  List<NavigationRailDestination> _buildRailDestinations(BuildContext context, bool isPlayback) {
+    return [
+      NavigationRailDestination(
+        icon: Icon(
+          Icons.folder_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.folder,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: Text(AppLocalizations.of(context)!.file),
+      ),
+      NavigationRailDestination(
+        icon: Icon(
+          Icons.play_circle_outline,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.play_circle,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: Text(AppLocalizations.of(context)!.play),
+      ),
+      NavigationRailDestination(
+        icon: Icon(
+          Icons.playlist_play_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.playlist_play,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: Text(AppLocalizations.of(context)!.list),
+      ),
+      NavigationRailDestination(
+        icon: Icon(
+          Icons.queue_music_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.queue_music,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: Text(AppLocalizations.of(context)!.queueTab),
+      ),
+      NavigationRailDestination(
+        icon: Icon(
+          Icons.more_horiz_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: Icon(
+          Icons.more_horiz,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: const Text('更多'),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsService>();
@@ -264,6 +384,9 @@ class _MainLayoutState extends State<MainLayout> {
         theme.navigationBarTheme.indicatorColor ??
         theme.colorScheme.secondaryContainer;
     final navBgOpacityTarget = isPlayback ? 0.0 : 1.0;
+
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final bool useSidebar = isLandscape;
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
@@ -320,151 +443,150 @@ class _MainLayoutState extends State<MainLayout> {
               onPointerHover: _handleDesktopPointerActivity,
               child: Scaffold(
                 extendBody: true,
-                body: Stack(
+                body: Row(
                   children: [
-                    _buildCurrentPage(isDesktop),
-                    if (isDesktop)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: Column(
-                          children: [
-                            DragToMoveArea(
-                              child: SizedBox(
-                                height: 32,
-                                child: WindowCaption(
-                                  brightness: isPlayback
-                                      ? Brightness.dark
-                                      : theme.brightness,
-                                  backgroundColor: Colors.transparent,
-                                  title: const SizedBox(),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    Positioned(
-                      bottom: 80,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: !isPlayback
-                            ? Builder(
-                                builder: (context) {
-                                  final audio = context.read<AudioService>();
-                                  return Container(
-                                    key: const ValueKey('dynamic-island'),
-                                    constraints: BoxConstraints(
-                                      maxWidth: MediaQuery.of(context).size.width * 0.9,
+                    if (useSidebar)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        width: (isPlayback &&
+                                settings.isImmersiveTabBarEnabled &&
+                                settings.isUserInactive)
+                            ? 0.0
+                            : 80.0,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: SizedBox(
+                            width: 80,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 500),
+                              opacity: (isPlayback &&
+                                      settings.isImmersiveTabBarEnabled &&
+                                      settings.isUserInactive)
+                                  ? 0.0
+                                  : 1.0,
+                              child: TweenAnimationBuilder<double>(
+                                duration: const Duration(milliseconds: 120),
+                                curve: Curves.easeOut,
+                                tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
+                                builder: (context, animatedOpacity, child) {
+                                  return NavigationRail(
+                                    backgroundColor: Color.lerp(
+                                      Colors.transparent,
+                                      navBgBaseColor,
+                                      animatedOpacity,
                                     ),
-                                    child: PlaybackHeroCard(
-                                      isMini: true,
-                                      onMiniTap: () => _onDestinationSelected(1),
-                                      onPrevious: audio.previous,
-                                      onPlayPause: audio.togglePlay,
-                                      onNext: audio.next,
+                                    selectedIndex: _currentIndex,
+                                    onDestinationSelected: _onDestinationSelected,
+                                    labelType: NavigationRailLabelType.none,
+                                    indicatorColor: Color.lerp(
+                                      Colors.transparent,
+                                      navIndicatorBaseColor,
+                                      animatedOpacity,
                                     ),
+                                    destinations: _buildRailDestinations(context, isPlayback),
                                   );
                                 },
-                              )
-                            : const SizedBox.shrink(key: ValueKey('empty-island')),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          _buildCurrentPage(isDesktop),
+                          if (isDesktop)
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              child: Column(
+                                children: [
+                                  DragToMoveArea(
+                                    child: SizedBox(
+                                      height: 32,
+                                      child: WindowCaption(
+                                        brightness: isPlayback
+                                            ? Brightness.dark
+                                            : theme.brightness,
+                                        backgroundColor: Colors.transparent,
+                                        title: const SizedBox(),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          Positioned(
+                            bottom: useSidebar ? 20 : 80,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: !isPlayback
+                                  ? Builder(
+                                      builder: (context) {
+                                        final audio = context.read<AudioService>();
+                                        return Container(
+                                          key: const ValueKey('dynamic-island'),
+                                          constraints: BoxConstraints(
+                                            maxWidth: MediaQuery.of(context).size.width * 0.9,
+                                          ),
+                                          child: PlaybackHeroCard(
+                                            isMini: true,
+                                            onMiniTap: () => _onDestinationSelected(1),
+                                            onPrevious: audio.previous,
+                                            onPlayPause: audio.togglePlay,
+                                            onNext: audio.next,
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : const SizedBox.shrink(key: ValueKey('empty-island')),
+                            ),
+                          ),
+                          if (_showVolumeHUD) VolumeHUD(volume: _audioService.volume),
+                        ],
                       ),
                     ),
-                    if (_showVolumeHUD) VolumeHUD(volume: _audioService.volume),
                   ],
                 ),
-                bottomNavigationBar: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 500),
-                  opacity:
-                      (isPlayback &&
-                          settings.isImmersiveTabBarEnabled &&
-                          settings.isUserInactive)
-                      ? 0.0
-                      : 1.0,
-                  child: TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 120),
-                    curve: Curves.easeOut,
-                    tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
-                    builder: (context, animatedOpacity, child) {
-                      return NavigationBar(
-                        height: 60,
-                        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-                        selectedIndex: _currentIndex,
-                        backgroundColor: Color.lerp(
-                          Colors.transparent,
-                          navBgBaseColor,
-                          animatedOpacity,
+                bottomNavigationBar: useSidebar
+                    ? null
+                    : AnimatedOpacity(
+                        duration: const Duration(milliseconds: 500),
+                        opacity: (isPlayback &&
+                                settings.isImmersiveTabBarEnabled &&
+                                settings.isUserInactive)
+                            ? 0.0
+                            : 1.0,
+                        child: TweenAnimationBuilder<double>(
+                          duration: const Duration(milliseconds: 120),
+                          curve: Curves.easeOut,
+                          tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
+                          builder: (context, animatedOpacity, child) {
+                            return NavigationBar(
+                              height: 60,
+                              labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+                              selectedIndex: _currentIndex,
+                              backgroundColor: Color.lerp(
+                                Colors.transparent,
+                                navBgBaseColor,
+                                animatedOpacity,
+                              ),
+                              elevation: 0,
+                              indicatorColor: Color.lerp(
+                                Colors.transparent,
+                                navIndicatorBaseColor,
+                                animatedOpacity,
+                              ),
+                              onDestinationSelected: _onDestinationSelected,
+                              destinations: _buildBottomDestinations(context, isPlayback),
+                            );
+                          },
                         ),
-                        elevation: 0,
-                        indicatorColor: Color.lerp(
-                          Colors.transparent,
-                          navIndicatorBaseColor,
-                          animatedOpacity,
-                        ),
-                        onDestinationSelected: _onDestinationSelected,
-                        destinations: [
-                          NavigationDestination(
-                            icon: Icon(
-                              Icons.folder_outlined,
-                              color: isPlayback ? Colors.white70 : null,
-                            ),
-                            selectedIcon: Icon(
-                              Icons.folder,
-                              color: isPlayback ? Colors.white : null,
-                            ),
-                            label: AppLocalizations.of(context)!.file,
-                          ),
-                          NavigationDestination(
-                            icon: Icon(
-                              Icons.play_circle_outline,
-                              color: isPlayback ? Colors.white70 : null,
-                            ),
-                            selectedIcon: Icon(
-                              Icons.play_circle,
-                              color: isPlayback ? Colors.white : null,
-                            ),
-                            label: AppLocalizations.of(context)!.play,
-                          ),
-                          NavigationDestination(
-                            icon: Icon(
-                              Icons.playlist_play_outlined,
-                              color: isPlayback ? Colors.white70 : null,
-                            ),
-                            selectedIcon: Icon(
-                              Icons.playlist_play,
-                              color: isPlayback ? Colors.white : null,
-                            ),
-                            label: AppLocalizations.of(context)!.list,
-                          ),
-                          NavigationDestination(
-                            icon: Icon(
-                              Icons.queue_music_outlined,
-                              color: isPlayback ? Colors.white70 : null,
-                            ),
-                            selectedIcon: Icon(
-                              Icons.queue_music,
-                              color: isPlayback ? Colors.white : null,
-                            ),
-                            label: AppLocalizations.of(context)!.queueTab,
-                          ),
-                          NavigationDestination(
-                            icon: Icon(
-                              Icons.more_horiz_outlined,
-                              color: isPlayback ? Colors.white70 : null,
-                            ),
-                            selectedIcon: Icon(
-                              Icons.more_horiz,
-                              color: isPlayback ? Colors.white : null,
-                            ),
-                            label: '更多',
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
+                      ),
               ),
             ),
           ),

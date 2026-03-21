@@ -67,7 +67,9 @@ class _PlaybackPageState extends State<PlaybackPage>
     _inactivityTimer?.cancel();
     final settings = context.read<SettingsService>();
     settings.isUserInactive = false;
-    _inactivityTimer = Timer(const Duration(seconds: 5), () {
+
+    // 沉浸式任务栏 等待时间
+    _inactivityTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         settings.isUserInactive = true;
       }
