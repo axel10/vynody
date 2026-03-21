@@ -104,7 +104,8 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
     }
 
     // Dynamic scale based on bass energy
-    double pulse = 1.0 + (_bassEnergy * 0.3);
+    // double pulse = 1.0 + (_bassEnergy * 0.3);
+    double pulse = 1.0;
 
     return SizedBox.expand(
       child: ClipRect(
