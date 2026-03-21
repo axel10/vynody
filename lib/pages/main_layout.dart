@@ -227,23 +227,26 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildCurrentPage(bool isDesktop) {
+  Widget _buildCurrentPage(bool isDesktop, bool useSidebar) {
+    final bool isPlayback = _currentIndex == 1;
+    final double leftPadding = (useSidebar && !isPlayback) ? 80.0 : 0.0;
+
     switch (_currentIndex) {
       case 0:
         return Padding(
-          padding: EdgeInsets.only(top: isDesktop ? 32 : 0),
+          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
           child: FoldersPage(onOpenPlayback: () => _onDestinationSelected(1)),
         );
       case 1:
         return const PlaybackPage();
       case 2:
         return Padding(
-          padding: EdgeInsets.only(top: isDesktop ? 32 : 0),
+          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
           child: const PlaylistPage(),
         );
       case 3:
         return Padding(
-          padding: EdgeInsets.only(top: isDesktop ? 32 : 0),
+          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
           child: const QueuePage(),
         );
       default:
@@ -443,113 +446,117 @@ class _MainLayoutState extends State<MainLayout> {
               onPointerHover: _handleDesktopPointerActivity,
               child: Scaffold(
                 extendBody: true,
-                body: Row(
+                body: Stack(
                   children: [
+                    Positioned.fill(
+                      child: _buildCurrentPage(isDesktop, useSidebar),
+                    ),
                     if (useSidebar)
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        width: (isPlayback &&
-                                settings.isImmersiveTabBarEnabled &&
-                                settings.isUserInactive)
-                            ? 0.0
-                            : 80.0,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: SizedBox(
-                            width: 80,
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 500),
-                              opacity: (isPlayback &&
-                                      settings.isImmersiveTabBarEnabled &&
-                                      settings.isUserInactive)
-                                  ? 0.0
-                                  : 1.0,
-                              child: TweenAnimationBuilder<double>(
-                                duration: const Duration(milliseconds: 120),
-                                curve: Curves.easeOut,
-                                tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
-                                builder: (context, animatedOpacity, child) {
-                                  return NavigationRail(
-                                    backgroundColor: Color.lerp(
-                                      Colors.transparent,
-                                      navBgBaseColor,
-                                      animatedOpacity,
-                                    ),
-                                    selectedIndex: _currentIndex,
-                                    onDestinationSelected: _onDestinationSelected,
-                                    labelType: NavigationRailLabelType.none,
-                                    indicatorColor: Color.lerp(
-                                      Colors.transparent,
-                                      navIndicatorBaseColor,
-                                      animatedOpacity,
-                                    ),
-                                    destinations: _buildRailDestinations(context, isPlayback),
-                                  );
-                                },
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          width: (isPlayback &&
+                                  settings.isImmersiveTabBarEnabled &&
+                                  settings.isUserInactive)
+                              ? 0.0
+                              : 80.0,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: SizedBox(
+                              width: 80,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 500),
+                                opacity: (isPlayback &&
+                                        settings.isImmersiveTabBarEnabled &&
+                                        settings.isUserInactive)
+                                    ? 0.0
+                                    : 1.0,
+                                child: TweenAnimationBuilder<double>(
+                                  duration: const Duration(milliseconds: 120),
+                                  curve: Curves.easeOut,
+                                  tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
+                                  builder: (context, animatedOpacity, child) {
+                                    return NavigationRail(
+                                      leading: isDesktop
+                                          ? const SizedBox(height: 32)
+                                          : null,
+                                      backgroundColor: Color.lerp(
+                                        Colors.transparent,
+                                        navBgBaseColor,
+                                        animatedOpacity,
+                                      ),
+                                      selectedIndex: _currentIndex,
+                                      onDestinationSelected: _onDestinationSelected,
+                                      labelType: NavigationRailLabelType.none,
+                                      indicatorColor: Color.lerp(
+                                        Colors.transparent,
+                                        navIndicatorBaseColor,
+                                        animatedOpacity,
+                                      ),
+                                      destinations: _buildRailDestinations(context, isPlayback),
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          _buildCurrentPage(isDesktop),
-                          if (isDesktop)
-                            Positioned(
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              child: Column(
-                                children: [
-                                  DragToMoveArea(
-                                    child: SizedBox(
-                                      height: 32,
-                                      child: WindowCaption(
-                                        brightness: isPlayback
-                                            ? Brightness.dark
-                                            : theme.brightness,
-                                        backgroundColor: Colors.transparent,
-                                        title: const SizedBox(),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                    if (isDesktop)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Column(
+                          children: [
+                            DragToMoveArea(
+                              child: SizedBox(
+                                height: 32,
+                                child: WindowCaption(
+                                  brightness: isPlayback
+                                      ? Brightness.dark
+                                      : theme.brightness,
+                                  backgroundColor: Colors.transparent,
+                                  title: const SizedBox(),
+                                ),
                               ),
                             ),
-                          Positioned(
-                            bottom: useSidebar ? 20 : 80,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: !isPlayback
-                                  ? Builder(
-                                      builder: (context) {
-                                        final audio = context.read<AudioService>();
-                                        return Container(
-                                          key: const ValueKey('dynamic-island'),
-                                          constraints: BoxConstraints(
-                                            maxWidth: MediaQuery.of(context).size.width * 0.9,
-                                          ),
-                                          child: PlaybackHeroCard(
-                                            isMini: true,
-                                            onMiniTap: () => _onDestinationSelected(1),
-                                            onPrevious: audio.previous,
-                                            onPlayPause: audio.togglePlay,
-                                            onNext: audio.next,
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : const SizedBox.shrink(key: ValueKey('empty-island')),
-                            ),
-                          ),
-                          if (_showVolumeHUD) VolumeHUD(volume: _audioService.volume),
-                        ],
+                          ],
+                        ),
+                      ),
+                    Positioned(
+                      bottom: useSidebar ? 20 : 80,
+                      left: (useSidebar && !isPlayback) ? 80 : 0,
+                      right: 0,
+                      child: Center(
+                        child: !isPlayback
+                            ? Builder(
+                                builder: (context) {
+                                  final audio = context.read<AudioService>();
+                                  return Container(
+                                    key: const ValueKey('dynamic-island'),
+                                    constraints: BoxConstraints(
+                                      maxWidth: MediaQuery.of(context).size.width * 0.9,
+                                    ),
+                                    child: PlaybackHeroCard(
+                                      isMini: true,
+                                      onMiniTap: () => _onDestinationSelected(1),
+                                      onPrevious: audio.previous,
+                                      onPlayPause: audio.togglePlay,
+                                      onNext: audio.next,
+                                    ),
+                                  );
+                                },
+                              )
+                            : const SizedBox.shrink(key: ValueKey('empty-island')),
                       ),
                     ),
+                    if (_showVolumeHUD) VolumeHUD(volume: _audioService.volume),
                   ],
                 ),
                 bottomNavigationBar: useSidebar
