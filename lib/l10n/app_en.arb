@@ -88,7 +88,7 @@
   "more": "More",
   "settings": "Settings",
   "immersiveTabBar": "Immersive Tab Bar",
-  "immersiveTabBarDescription": "Hide navigation bar after 5 seconds of inactivity",
+  "immersiveTabBarDescription": "Hide navigation bar after 3 seconds of inactivity",
   "sampleStride": "Sample Stride",
   "sampleStrideDescription": "Larger values scan faster but with lower waveform precision (default: 4)",
   "waveformSegments": "Waveform Segments",

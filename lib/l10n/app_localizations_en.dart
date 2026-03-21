@@ -289,7 +289,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get immersiveTabBarDescription =>
-      'Hide navigation bar after 5 seconds of inactivity';
+      'Hide navigation bar after 3 seconds of inactivity';
 
   @override
   String get sampleStride => 'Sample Stride';
