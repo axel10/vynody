@@ -133,7 +133,7 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
           ),
           // Dark overlay to improve text readability
           Container(
-            color: Colors.black.withValues(alpha: 0), // 先设成0，寻找替代方案
+            color: Colors.black.withValues(alpha: 0.15), 
           ),
         ],
       ),
