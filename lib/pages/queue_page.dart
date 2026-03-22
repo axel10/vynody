@@ -17,6 +17,8 @@ class QueuePage extends StatefulWidget {
 class _QueuePageState extends State<QueuePage> {
   bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
+  bool _showRandomHistory = false;
+  bool? _lastRandomMode;
 
   void _toggleSelectionMode() {
     setState(() {
@@ -66,6 +68,20 @@ class _QueuePageState extends State<QueuePage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final audio = Provider.of<AudioService>(context);
+    if (_lastRandomMode != audio.isRandomMode) {
+      if (audio.isRandomMode) {
+        _showRandomHistory = true;
+      } else {
+        _showRandomHistory = false;
+      }
+      _lastRandomMode = audio.isRandomMode;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final audio = context.watch<AudioService>();
     final scanner = context.watch<ScannerService>();
@@ -106,7 +122,38 @@ class _QueuePageState extends State<QueuePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.queue),
+        title: audio.isRandomMode
+            ? DropdownButtonHideUnderline(
+                child: DropdownButton<bool>(
+                  value: _showRandomHistory,
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  dropdownColor: Colors.grey[900],
+                  items: [
+                    DropdownMenuItem(
+                      value: false,
+                      child: Text(
+                        AppLocalizations.of(context)!.queue,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: true,
+                      child: Text(
+                        AppLocalizations.of(context)!.randomQueue,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _showRandomHistory = val;
+                      });
+                    }
+                  },
+                ),
+              )
+            : Text(AppLocalizations.of(context)!.queue),
         centerTitle: true,
         actions: [
           IconButton(
@@ -146,14 +193,19 @@ class _QueuePageState extends State<QueuePage> {
                         ? 80
                         : (Platform.isWindows ? 84 : 0),
                   ),
-                  itemCount: playlist.length,
+                  itemCount: _showRandomHistory && audio.isRandomMode
+                      ? audio.randomHistory.length
+                      : playlist.length,
                   onReorder: (oldIndex, newIndex) {
+                    if (_showRandomHistory && audio.isRandomMode) return;
                     if (newIndex > oldIndex) newIndex--;
                     audio.player.playlist.moveTrack(oldIndex, newIndex);
                   },
                   itemBuilder: (context, index) {
-                    final song = playlist[index];
-                    final isCurrent = audio.currentIndex == index;
+                    final isHistoryView = _showRandomHistory && audio.isRandomMode;
+                    final displayPlaylist = isHistoryView ? audio.randomHistory : playlist;
+                    final song = displayPlaylist[index];
+                    final isCurrent = isHistoryView ? (index == audio.historyCursor) : (audio.currentIndex == index);
                     final isSelected = _selectedIndices.contains(index);
 
                     return GestureDetector(
@@ -228,18 +280,30 @@ class _QueuePageState extends State<QueuePage> {
                                 index: index,
                                 child: const Icon(Icons.drag_handle),
                               )
-                            : Icon(
-                                isCurrent
-                                    ? Icons.play_circle
-                                    : Icons.play_circle_outline,
-                                color: isCurrent
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                              ),
+                            : isHistoryView
+                                ? Icon(
+                                    Icons.history,
+                                    color: isCurrent ? Colors.blue : Colors.grey.withOpacity(0.3),
+                                  )
+                                : Icon(
+                                    isCurrent
+                                        ? Icons.play_circle
+                                        : Icons.play_circle_outline,
+                                    color: isCurrent
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(index)
                             : () {
-                                audio.playAtIndex(index);
+                                if (isHistoryView) {
+                                  final actualIndex = audio.playlist.indexWhere((s) => s.path == song.path);
+                                  if (actualIndex >= 0) {
+                                    audio.playAtIndex(actualIndex);
+                                  }
+                                } else {
+                                  audio.playAtIndex(index);
+                                }
                               },
                       ),
                     );

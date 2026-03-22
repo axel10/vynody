@@ -392,4 +392,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get enableWaveformProgressBarDescription =>
       'Use full-song waveform instead of standard slider';
+
+  @override
+  String get randomMode => 'Random Mode';
+
+  @override
+  String get randomQueue => 'Random Queue';
 }

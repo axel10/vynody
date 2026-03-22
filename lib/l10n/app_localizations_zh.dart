@@ -386,4 +386,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get enableWaveformProgressBarDescription => '使用整首歌的波形图代替标准滑块';
+
+  @override
+  String get randomMode => '随机模式';
+
+  @override
+  String get randomQueue => '随机队列';
 }

@@ -173,6 +173,22 @@ class AudioService extends ChangeNotifier {
   String? get currentArtworkPath => _currentArtworkPath;
   List<MusicFile> get playlist => List.unmodifiable(_playlist);
   int get currentIndex => _currentIndex;
+  bool get isRandomMode => _player.playlist.randomPolicy != null;
+
+  int? get historyCursor => _player.playlist.historyCursor;
+
+  List<MusicFile> get randomHistory {
+    final history = _player.playlist.randomHistory;
+    return history.map((entry) {
+      if (entry.trackIndex >= 0 && entry.trackIndex < _playlist.length) {
+        return _playlist[entry.trackIndex];
+      }
+      return MusicFile(
+        path: entry.trackId, // Fallback if index invalid
+        name: 'Unknown',
+      );
+    }).toList();
+  }
 
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds
@@ -595,6 +611,15 @@ class AudioService extends ChangeNotifier {
 
   void resetVisualizerOptions() {
     _visualizerOptions.resetOptions();
+    notifyListeners();
+  }
+
+  void toggleRandomMode() {
+    if (isRandomMode) {
+      _player.playlist.setRandomPolicy(null);
+    } else {
+      _player.playlist.setRandomPolicy(RandomPolicy.randomAll());
+    }
     notifyListeners();
   }
 

@@ -28,7 +28,7 @@ packages:
   audio_visualizer_player:
     dependency: "direct main"
     description:
-      path: "../audio_visualizer_player"
+      path: audio_visualizer_player
       relative: true
     source: path
     version: "0.0.1"

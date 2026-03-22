@@ -829,6 +829,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'使用整首歌的波形图代替标准滑块'**
   String get enableWaveformProgressBarDescription;
+
+  /// No description provided for @randomMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机模式'**
+  String get randomMode;
+
+  /// No description provided for @randomQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机队列'**
+  String get randomQueue;
 }
 
 class _AppLocalizationsDelegate

@@ -121,5 +121,7 @@
   "portraitGap": "Portrait Gap",
   "landscapeGap": "Landscape Gap",
   "enableWaveformProgressBar": "Enable Waveform Progress Bar",
-  "enableWaveformProgressBarDescription": "Use full-song waveform instead of standard slider"
+  "enableWaveformProgressBarDescription": "Use full-song waveform instead of standard slider",
+  "randomMode": "Random Mode",
+  "randomQueue": "Random Queue"
 }

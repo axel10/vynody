@@ -384,6 +384,18 @@ class PlaybackHeroCard extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             IconButton(
+              icon: Icon(
+                audio.isRandomMode ? Icons.shuffle_rounded : Icons.shuffle_rounded,
+                size: 28,
+                color: audio.isRandomMode
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.white70,
+              ),
+              onPressed: audio.toggleRandomMode,
+              tooltip: AppLocalizations.of(context)!.randomMode,
+            ),
+            const SizedBox(width: 8),
+            IconButton(
               icon: const Icon(
                 Icons.tune_rounded,
                 size: 28,
