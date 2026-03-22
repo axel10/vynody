@@ -13,6 +13,7 @@ import '../widgets/volume_controls.dart';
 import '../widgets/dynamic_mesh_background.dart';
 import '../utils/playback_utils.dart';
 import '../dialogs/visualizer_options_dialog.dart';
+import '../widgets/equalizer_panel.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
 
@@ -105,6 +106,15 @@ class _PlaybackPageState extends State<PlaybackPage>
     final nextMode = PlaylistMode
         .values[(currentMode.index + 1) % PlaylistMode.values.length];
     audio.player.playlist.setMode(nextMode);
+  }
+
+  void _showEqualizerPanel(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => const EqualizerPanel(),
+    );
   }
 
   void _showPlaylistModeSelector(BuildContext context, AudioService audio) {
@@ -255,6 +265,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                               audio.seek(target);
                             },
                             onToggleVisualizer: () => _toggleVisualizer(audio),
+                            onEqualizerTap: () => _showEqualizerPanel(context),
                             onPrevious: audio.previous,
                             onPlayPause: audio.togglePlay,
                             onNext: () => toNextMusic(audio),

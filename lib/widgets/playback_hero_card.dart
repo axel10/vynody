@@ -30,6 +30,7 @@ class PlaybackHeroCard extends StatelessWidget {
     this.onScrubbing,
     this.onSeek,
     this.onToggleVisualizer,
+    this.onEqualizerTap,
     this.onPrevious,
     this.onPlayPause,
     this.onNext,
@@ -54,6 +55,7 @@ class PlaybackHeroCard extends StatelessWidget {
   final ValueChanged<double>? onScrubbing;
   final ValueChanged<double>? onSeek;
   final VoidCallback? onToggleVisualizer;
+  final VoidCallback? onEqualizerTap;
   final VoidCallback? onPrevious;
   final VoidCallback? onPlayPause;
   final VoidCallback? onNext;
@@ -380,6 +382,16 @@ class PlaybackHeroCard extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(
+                Icons.tune_rounded,
+                size: 28,
+                color: Colors.white70,
+              ),
+              onPressed: onEqualizerTap,
+              tooltip: "均衡器",
+            ),
           ],
         ),
         SizedBox(height: isLandscape ? 8 : 4),
@@ -424,7 +436,8 @@ class PlaybackHeroCard extends StatelessWidget {
               onPressed: onToggleVisualizer,
               tooltip: AppLocalizations.of(context)!.visualizer,
             ),
-            const SizedBox(width: 16),
+
+            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(
                 Icons.skip_previous_rounded,
