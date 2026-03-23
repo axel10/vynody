@@ -410,4 +410,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shuffleRandom => '洗牌随机';
+
+  @override
+  String get randomQueue => '随机队列';
 }

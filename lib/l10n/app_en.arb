@@ -129,5 +129,6 @@
   "currentQueue": "Current Queue",
   "globalRange": "Global (All Playlists)",
   "completeRandom": "Complete Random",
-  "shuffleRandom": "Shuffle Random"
+  "shuffleRandom": "Shuffle Random",
+  "randomQueue": "Random Queue"
 }

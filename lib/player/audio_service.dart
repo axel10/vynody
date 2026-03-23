@@ -181,6 +181,9 @@ class AudioService extends ChangeNotifier {
   int get currentIndex => _currentIndex;
   bool get isRandomMode => _player.playlist.randomPolicy != null;
 
+  bool get isShuffleRandomMode =>
+      _player.playlist.randomPolicy?.label == 'shuffleRandom';
+
   int? get historyCursor => _player.playlist.historyCursor;
 
   List<MusicFile> get randomHistory {
@@ -195,6 +198,23 @@ class AudioService extends ChangeNotifier {
       );
     }).toList();
   }
+
+  List<MusicFile> get randomQueue {
+    final deck = _player.playlist.currentDeck;
+    return deck.map((id) {
+      final index = int.tryParse(id) ?? -1;
+      if (index >= 0 && index < _playlist.length) {
+        return _playlist[index];
+      }
+      return MusicFile(
+        path: id, // Fallback
+        name: 'Unknown',
+      );
+    }).toList();
+  }
+
+  int? get deckCursor => _player.playlist.deckCursor;
+
 
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds

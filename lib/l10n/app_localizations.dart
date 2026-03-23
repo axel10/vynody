@@ -877,6 +877,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'洗牌随机'**
   String get shuffleRandom;
+
+  /// No description provided for @randomQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机队列'**
+  String get randomQueue;
 }
 
 class _AppLocalizationsDelegate

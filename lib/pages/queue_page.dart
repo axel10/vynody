@@ -17,8 +17,7 @@ class QueuePage extends StatefulWidget {
 class _QueuePageState extends State<QueuePage> {
   bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
-  bool _showRandomHistory = false;
-  bool? _lastRandomMode;
+  int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
 
   void _toggleSelectionMode() {
     setState(() {
@@ -71,13 +70,17 @@ class _QueuePageState extends State<QueuePage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final audio = Provider.of<AudioService>(context);
-    if (_lastRandomMode != audio.isRandomMode) {
+    
+    // Validate current view index against current mode
+    if (_viewIndex == 1 && !audio.isRandomMode) {
+      _viewIndex = 0;
+    }
+    if (_viewIndex == 2 && !audio.isShuffleRandomMode) {
       if (audio.isRandomMode) {
-        _showRandomHistory = true;
+        _viewIndex = 1;
       } else {
-        _showRandomHistory = false;
+        _viewIndex = 0;
       }
-      _lastRandomMode = audio.isRandomMode;
     }
   }
 
@@ -124,30 +127,38 @@ class _QueuePageState extends State<QueuePage> {
       appBar: AppBar(
         title: audio.isRandomMode
             ? DropdownButtonHideUnderline(
-                child: DropdownButton<bool>(
-                  value: _showRandomHistory,
+                child: DropdownButton<int>(
+                  value: _viewIndex,
                   icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
                   dropdownColor: Colors.grey[900],
                   items: [
                     DropdownMenuItem(
-                      value: false,
+                      value: 0,
                       child: Text(
                         AppLocalizations.of(context)!.queue,
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
                     DropdownMenuItem(
-                      value: true,
+                      value: 1,
                       child: Text(
                         AppLocalizations.of(context)!.randomHistory,
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
+                    if (audio.isShuffleRandomMode)
+                      DropdownMenuItem(
+                        value: 2,
+                        child: Text(
+                          AppLocalizations.of(context)!.randomQueue,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
                   ],
                   onChanged: (val) {
                     if (val != null) {
                       setState(() {
-                        _showRandomHistory = val;
+                        _viewIndex = val;
                       });
                     }
                   },
@@ -193,19 +204,34 @@ class _QueuePageState extends State<QueuePage> {
                         ? 80
                         : (Platform.isWindows ? 84 : 0),
                   ),
-                  itemCount: _showRandomHistory && audio.isRandomMode
+                  itemCount: _viewIndex == 1
                       ? audio.randomHistory.length
-                      : playlist.length,
+                      : _viewIndex == 2
+                          ? audio.randomQueue.length
+                          : playlist.length,
                   onReorder: (oldIndex, newIndex) {
-                    if (_showRandomHistory && audio.isRandomMode) return;
+                    if (_viewIndex != 0) return;
                     if (newIndex > oldIndex) newIndex--;
                     audio.player.playlist.moveTrack(oldIndex, newIndex);
                   },
                   itemBuilder: (context, index) {
-                    final isHistoryView = _showRandomHistory && audio.isRandomMode;
-                    final displayPlaylist = isHistoryView ? audio.randomHistory : playlist;
+                    final isHistoryView = _viewIndex == 1;
+                    final isRandomQueueView = _viewIndex == 2;
+                    final displayPlaylist = isHistoryView
+                        ? audio.randomHistory
+                        : isRandomQueueView
+                            ? audio.randomQueue
+                            : playlist;
                     final song = displayPlaylist[index];
-                    final isCurrent = isHistoryView ? (index == audio.historyCursor) : (audio.currentIndex == index);
+
+                    final bool isCurrent;
+                    if (isHistoryView) {
+                      isCurrent = (index == audio.historyCursor);
+                    } else if (isRandomQueueView) {
+                      isCurrent = (index == audio.deckCursor);
+                    } else {
+                      isCurrent = (audio.currentIndex == index);
+                    }
                     final isSelected = _selectedIndices.contains(index);
 
                     return GestureDetector(
@@ -283,9 +309,18 @@ class _QueuePageState extends State<QueuePage> {
                             : isHistoryView
                                 ? Icon(
                                     Icons.history,
-                                    color: isCurrent ? Colors.blue : Colors.grey.withOpacity(0.3),
+                                    color: isCurrent
+                                        ? Colors.blue
+                                        : Colors.grey.withOpacity(0.3),
                                   )
-                                : Icon(
+                                : isRandomQueueView
+                                    ? Icon(
+                                        Icons.shuffle,
+                                        color: isCurrent
+                                            ? Colors.purpleAccent
+                                            : Colors.grey.withOpacity(0.3),
+                                      )
+                                    : Icon(
                                     isCurrent
                                         ? Icons.play_circle
                                         : Icons.play_circle_outline,
@@ -296,8 +331,9 @@ class _QueuePageState extends State<QueuePage> {
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(index)
                             : () {
-                                if (isHistoryView) {
-                                  final actualIndex = audio.playlist.indexWhere((s) => s.path == song.path);
+                                if (isHistoryView || isRandomQueueView) {
+                                  final actualIndex = audio.playlist
+                                      .indexWhere((s) => s.path == song.path);
                                   if (actualIndex >= 0) {
                                     audio.playAtIndex(actualIndex);
                                   }

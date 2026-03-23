@@ -416,4 +416,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shuffleRandom => 'Shuffle Random';
+
+  @override
+  String get randomQueue => 'Random Queue';
 }
