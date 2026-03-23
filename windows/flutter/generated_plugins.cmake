@@ -9,11 +9,13 @@ list(APPEND FLUTTER_PLUGIN_LIST
   sqlite3_flutter_libs
   window_manager
   windows_single_instance
+  windows_taskbar
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   audio_visualizer_player
   metadata_god
+  smtc_windows
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

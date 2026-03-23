@@ -12,6 +12,7 @@
 #include <sqlite3_flutter_libs/sqlite3_flutter_libs_plugin.h>
 #include <window_manager/window_manager_plugin.h>
 #include <windows_single_instance/windows_single_instance_plugin.h>
+#include <windows_taskbar/windows_taskbar_plugin.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   DesktopDropPluginRegisterWithRegistrar(
@@ -26,4 +27,6 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("WindowManagerPlugin"));
   WindowsSingleInstancePluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("WindowsSingleInstancePlugin"));
+  WindowsTaskbarPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("WindowsTaskbarPlugin"));
 }

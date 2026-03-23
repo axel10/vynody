@@ -12,6 +12,7 @@ import 'player/audio_service.dart';
 import 'player/playlist_service.dart';
 import 'player/scanner_service.dart';
 import 'player/settings_service.dart';
+import 'package:smtc_windows/smtc_windows.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -68,6 +69,10 @@ void main(List<String> args) async {
       await windowManager.show();
       await windowManager.focus();
     });
+  }
+
+  if (Platform.isWindows) {
+    await SMTCWindows.initialize();
   }
 
   if (Platform.isWindows || Platform.isLinux) {

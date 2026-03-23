@@ -15,6 +15,7 @@ import 'theme_color_helper.dart';
 import 'visualizer_options_service.dart';
 import 'playback_queue_processor.dart';
 import 'waveform_service.dart';
+import 'windows_integration_service.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioVisualizerPlayerController _player;
@@ -52,6 +53,7 @@ class AudioService extends ChangeNotifier {
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
   Map<String, Color> _currentThemeColorsMap = const {};
+  late final WindowsIntegrationService? _windowsIntegration;
 
   Color? get dynamicStartColor => _dynamicStartColor;
   Color? get dynamicEndColor => _dynamicEndColor;
@@ -72,6 +74,7 @@ class AudioService extends ChangeNotifier {
       db: _db,
       player: _player,
     );
+    _windowsIntegration = Platform.isWindows ? WindowsIntegrationService(this) : null;
     _player.addListener(_handlePlayerChanges);
     unawaited(_player.initialize().then((_) {
       _visualizerOptions.loadOptions().then((_) => notifyListeners());
@@ -149,11 +152,17 @@ class AudioService extends ChangeNotifier {
             song.path,
             song.displayName,
             id: song.id,
-          ).then((_) => _refreshCurrentWaveform()),
+          ).then((_) {
+            _refreshCurrentWaveform();
+            _windowsIntegration?.updateMetadata(_playlist[newIndex]);
+          }),
         );
       }
+      _windowsIntegration?.updatePlaybackStatus(_isPlaying);
       notifyListeners();
     } else {
+      _windowsIntegration?.updateTimeline(_position, _duration);
+      _windowsIntegration?.updatePlaybackStatus(_isPlaying);
       notifyListeners();
     }
   }
@@ -377,6 +386,7 @@ class AudioService extends ChangeNotifier {
     }
     
     // Notify listeners immediately so the UI can show the placeholder (thumbnail from DB)
+    _windowsIntegration?.updateMetadata(null);
     notifyListeners();
 
     // 2. Load fresh high-quality metadata and artwork
@@ -426,6 +436,7 @@ class AudioService extends ChangeNotifier {
     _artworkHeight = newArtworkHeight;
 
     await _updatePalette();
+    _windowsIntegration?.updateMetadata(null);
     notifyListeners();
   }
 
@@ -714,6 +725,7 @@ class AudioService extends ChangeNotifier {
   void dispose() {
     _player.removeListener(_handlePlayerChanges);
     _player.visualizer.removeOutput('mini_player');
+    _windowsIntegration?.dispose();
     _player.dispose();
     super.dispose();
   }
