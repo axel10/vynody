@@ -441,8 +441,11 @@
   },
   "enableWaveformProgressBarDescription": "使用整首歌的波形图代替标准滑块",
   "randomMode": "随机模式",
-  "randomQueue": "随机队列",
-  "@enableWaveformProgressBarDescription": {
-    "description": "Enable Waveform Progress Bar description"
-  }
+  "randomHistory": "随机历史",
+  "randomRange": "随机范围",
+  "randomMethod": "随机方式",
+  "currentQueue": "当前队列",
+  "globalRange": "全局 (包含所有列表歌曲)",
+  "completeRandom": "完全随机",
+  "shuffleRandom": "洗牌随机"
 }

@@ -123,5 +123,11 @@
   "enableWaveformProgressBar": "Enable Waveform Progress Bar",
   "enableWaveformProgressBarDescription": "Use full-song waveform instead of standard slider",
   "randomMode": "Random Mode",
-  "randomQueue": "Random Queue"
+  "randomHistory": "Random History",
+  "randomRange": "Random Range",
+  "randomMethod": "Random Method",
+  "currentQueue": "Current Queue",
+  "globalRange": "Global (All Playlists)",
+  "completeRandom": "Complete Random",
+  "shuffleRandom": "Shuffle Random"
 }

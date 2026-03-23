@@ -397,5 +397,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get randomMode => 'Random Mode';
 
   @override
-  String get randomQueue => 'Random Queue';
+  String get randomHistory => 'Random History';
+
+  @override
+  String get randomRange => 'Random Range';
+
+  @override
+  String get randomMethod => 'Random Method';
+
+  @override
+  String get currentQueue => 'Current Queue';
+
+  @override
+  String get globalRange => 'Global (All Playlists)';
+
+  @override
+  String get completeRandom => 'Complete Random';
+
+  @override
+  String get shuffleRandom => 'Shuffle Random';
 }

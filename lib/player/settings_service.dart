@@ -32,6 +32,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyPortraitGap = 'visualizer_portrait_gap';
   static const String _keyLandscapeGap = 'visualizer_landscape_gap';
   static const String _keyIsWaveformProgressBarEnabled = 'waveform_progress_bar_enabled';
+  static const String _keyRandomRange = 'random_range';
+  static const String _keyRandomMethod = 'random_method';
 
   final SharedPreferences _prefs;
   bool _isImmersiveTabBarEnabled;
@@ -60,6 +62,8 @@ class SettingsService extends ChangeNotifier {
   late double _portraitGap;
   late double _landscapeGap;
   late bool _isWaveformProgressBarEnabled;
+  late int _randomRange; // 0: current, 1: global
+  late int _randomMethod; // 0: complete, 1: shuffle
 
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
@@ -95,6 +99,8 @@ class SettingsService extends ChangeNotifier {
     _portraitGap = _prefs.getDouble(_keyPortraitGap) ?? 1.0;
     _landscapeGap = _prefs.getDouble(_keyLandscapeGap) ?? 2.0;
     _isWaveformProgressBarEnabled = _prefs.getBool(_keyIsWaveformProgressBarEnabled) ?? false;
+    _randomRange = _prefs.getInt(_keyRandomRange) ?? 0;
+    _randomMethod = _prefs.getInt(_keyRandomMethod) ?? 1; // Default to shuffle
   }
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
@@ -122,6 +128,8 @@ class SettingsService extends ChangeNotifier {
   double get portraitGap => _portraitGap;
   double get landscapeGap => _landscapeGap;
   bool get isWaveformProgressBarEnabled => _isWaveformProgressBarEnabled;
+  int get randomRange => _randomRange;
+  int get randomMethod => _randomMethod;
 
   void resetVisualizerAppearance() {
     visualizerOpacity = 0.2;
@@ -143,6 +151,8 @@ class SettingsService extends ChangeNotifier {
     portraitGap = 1.0;
     landscapeGap = 2.0;
     isWaveformProgressBarEnabled = false;
+    randomRange = 0;
+    randomMethod = 1;
   }
 
   set isImmersiveTabBarEnabled(bool value) {
@@ -287,6 +297,18 @@ class SettingsService extends ChangeNotifier {
   set isWaveformProgressBarEnabled(bool value) {
     _isWaveformProgressBarEnabled = value;
     _prefs.setBool(_keyIsWaveformProgressBarEnabled, value);
+    notifyListeners();
+  }
+  
+  set randomRange(int value) {
+    _randomRange = value;
+    _prefs.setInt(_keyRandomRange, value);
+    notifyListeners();
+  }
+
+  set randomMethod(int value) {
+    _randomMethod = value;
+    _prefs.setInt(_keyRandomMethod, value);
     notifyListeners();
   }
 

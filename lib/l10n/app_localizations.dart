@@ -824,7 +824,7 @@ abstract class AppLocalizations {
   /// **'启用波形进度条'**
   String get enableWaveformProgressBar;
 
-  /// Enable Waveform Progress Bar description
+  /// No description provided for @enableWaveformProgressBarDescription.
   ///
   /// In zh, this message translates to:
   /// **'使用整首歌的波形图代替标准滑块'**
@@ -836,11 +836,47 @@ abstract class AppLocalizations {
   /// **'随机模式'**
   String get randomMode;
 
-  /// No description provided for @randomQueue.
+  /// No description provided for @randomHistory.
   ///
   /// In zh, this message translates to:
-  /// **'随机队列'**
-  String get randomQueue;
+  /// **'随机历史'**
+  String get randomHistory;
+
+  /// No description provided for @randomRange.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机范围'**
+  String get randomRange;
+
+  /// No description provided for @randomMethod.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机方式'**
+  String get randomMethod;
+
+  /// No description provided for @currentQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前队列'**
+  String get currentQueue;
+
+  /// No description provided for @globalRange.
+  ///
+  /// In zh, this message translates to:
+  /// **'全局 (包含所有列表歌曲)'**
+  String get globalRange;
+
+  /// No description provided for @completeRandom.
+  ///
+  /// In zh, this message translates to:
+  /// **'完全随机'**
+  String get completeRandom;
+
+  /// No description provided for @shuffleRandom.
+  ///
+  /// In zh, this message translates to:
+  /// **'洗牌随机'**
+  String get shuffleRandom;
 }
 
 class _AppLocalizationsDelegate

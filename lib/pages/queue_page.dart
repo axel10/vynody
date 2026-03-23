@@ -139,7 +139,7 @@ class _QueuePageState extends State<QueuePage> {
                     DropdownMenuItem(
                       value: true,
                       child: Text(
-                        AppLocalizations.of(context)!.randomQueue,
+                        AppLocalizations.of(context)!.randomHistory,
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),

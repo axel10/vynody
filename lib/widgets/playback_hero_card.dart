@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
+import '../player/playlist_service.dart';
+import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
 import '../widgets/cover_carousel.dart';
 import '../widgets/mini_player_widgets.dart';
@@ -27,6 +29,7 @@ class PlaybackHeroCard extends StatelessWidget {
     this.onMiniTap,
     this.onCyclePlaylistMode,
     this.onShowPlaylistModeSelector,
+    this.onShowRandomModeSelector,
     this.onScrubbing,
     this.onSeek,
     this.onToggleVisualizer,
@@ -52,6 +55,7 @@ class PlaybackHeroCard extends StatelessWidget {
   final VoidCallback? onMiniTap;
   final VoidCallback? onCyclePlaylistMode;
   final VoidCallback? onShowPlaylistModeSelector;
+  final VoidCallback? onShowRandomModeSelector;
   final ValueChanged<double>? onScrubbing;
   final ValueChanged<double>? onSeek;
   final VoidCallback? onToggleVisualizer;
@@ -384,16 +388,33 @@ class PlaybackHeroCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            IconButton(
-              icon: Icon(
-                audio.isRandomMode ? Icons.shuffle_rounded : Icons.shuffle_rounded,
-                size: 28,
-                color: audio.isRandomMode
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.white70,
+            GestureDetector(
+              onLongPress: onShowRandomModeSelector,
+              child: IconButton(
+                icon: Icon(
+                  audio.isRandomMode ? Icons.shuffle_rounded : Icons.shuffle_rounded,
+                  size: 28,
+                  color: audio.isRandomMode
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.white70,
+                ),
+                onPressed: () {
+                  if (audio.settingsService.randomRange == 1 && !audio.isRandomMode) {
+                    final playlistService = context.read<PlaylistService>();
+                    final List<MusicFile> allSongs = [];
+                    final pathSet = <String>{};
+                    for (final p in playlistService.playlists) {
+                      for (final s in p.songs) {
+                        if (pathSet.add(s.path)) allSongs.add(s);
+                      }
+                    }
+                    audio.toggleRandomMode(globalSongs: allSongs);
+                  } else {
+                    audio.toggleRandomMode();
+                  }
+                },
+                tooltip: AppLocalizations.of(context)!.randomMode,
               ),
-              onPressed: audio.toggleRandomMode,
-              tooltip: AppLocalizations.of(context)!.randomMode,
             ),
             const SizedBox(width: 8),
             IconButton(

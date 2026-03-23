@@ -623,13 +623,51 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleRandomMode() {
+  void toggleRandomMode({List<MusicFile>? globalSongs}) {
     if (isRandomMode) {
       _player.playlist.setRandomPolicy(null);
     } else {
-      _player.playlist.setRandomPolicy(RandomPolicy.randomAll());
+      _applyRandomPolicy(globalSongs: globalSongs);
     }
     notifyListeners();
+  }
+
+  void _applyRandomPolicy({List<MusicFile>? globalSongs}) {
+    final range = settingsService.randomRange;
+    final method = settingsService.randomMethod;
+
+    if (range == 1 && globalSongs != null) {
+      _expandPlaylistToGlobal(globalSongs);
+    }
+
+    final strategy = method == 0
+        ? RandomStrategy.random()
+        : RandomStrategy.fisherYates();
+
+    _player.playlist.setRandomPolicy(RandomPolicy(
+      scope: RandomScope.all(),
+      strategy: strategy,
+      label: method == 0 ? 'completeRandom' : 'shuffleRandom',
+    ));
+  }
+
+  void _expandPlaylistToGlobal(List<MusicFile> globalSongs) {
+    // Merge current playlist with global songs, deduplicate by path
+    final existingPaths = _playlist.map((s) => s.path).toSet();
+    final newSongs = globalSongs.where((s) => !existingPaths.contains(s.path)).toList();
+    
+    if (newSongs.isEmpty) return;
+
+    final startIndex = _playlist.length;
+    _playlist.addAll(newSongs);
+
+    final tracks = newSongs.asMap().entries.map((e) {
+      return AudioTrack(id: (startIndex + e.key).toString(), uri: e.value.path);
+    }).toList();
+    
+    // We don't use await here to keep it synchronous for the toggle
+    unawaited(_player.playlist.addTracks(tracks));
+    _startQueueBackgroundProcessing();
   }
 
   void _startQueueBackgroundProcessing() {

@@ -12,6 +12,8 @@ import '../widgets/visualizer_painter.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/dynamic_mesh_background.dart';
 import '../utils/playback_utils.dart';
+import '../player/playlist_service.dart';
+import '../models/music_file.dart';
 import '../dialogs/visualizer_options_dialog.dart';
 import '../widgets/equalizer_panel.dart';
 
@@ -116,6 +118,113 @@ class _PlaybackPageState extends State<PlaybackPage>
     );
   }
 
+  void _showRandomModeSelector(BuildContext context, AudioService audio) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        final settings = context.watch<SettingsService>();
+        return AlertDialog(
+          title: Text(l10n.randomMode),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.randomRange, style: const TextStyle(fontWeight: FontWeight.bold)),
+              RadioListTile<int>(
+                title: Text(l10n.currentQueue),
+                value: 0,
+                groupValue: settings.randomRange,
+                onChanged: (val) {
+                  if (val != null) {
+                    settings.randomRange = val;
+                    if (audio.isRandomMode) {
+                      audio.toggleRandomMode(); // Off
+                      audio.toggleRandomMode(); // Re-apply with new range (Current)
+                    }
+                  }
+                },
+              ),
+              RadioListTile<int>(
+                title: Text(l10n.globalRange),
+                value: 1,
+                groupValue: settings.randomRange,
+                onChanged: (val) {
+                  if (val != null) {
+                    settings.randomRange = val;
+                    if (audio.isRandomMode) {
+                      audio.toggleRandomMode(); // Off
+                      final playlistService = context.read<PlaylistService>();
+                      final allSongs = _getGlobalSongs(playlistService);
+                      audio.toggleRandomMode(globalSongs: allSongs);
+                    }
+                  }
+                },
+              ),
+              const Divider(),
+              Text(l10n.randomMethod, style: const TextStyle(fontWeight: FontWeight.bold)),
+              RadioListTile<int>(
+                title: Text(l10n.completeRandom),
+                value: 0,
+                groupValue: settings.randomMethod,
+                onChanged: (val) {
+                  if (val != null) {
+                    settings.randomMethod = val;
+                    if (audio.isRandomMode) {
+                      audio.toggleRandomMode(); // Off
+                      if (settings.randomRange == 1) {
+                         final allSongs = _getGlobalSongs(context.read<PlaylistService>());
+                         audio.toggleRandomMode(globalSongs: allSongs);
+                      } else {
+                         audio.toggleRandomMode();
+                      }
+                    }
+                  }
+                },
+              ),
+              RadioListTile<int>(
+                title: Text(l10n.shuffleRandom),
+                value: 1,
+                groupValue: settings.randomMethod,
+                onChanged: (val) {
+                  if (val != null) {
+                    settings.randomMethod = val;
+                    if (audio.isRandomMode) {
+                      audio.toggleRandomMode(); // Off
+                      if (settings.randomRange == 1) {
+                         final allSongs = _getGlobalSongs(context.read<PlaylistService>());
+                         audio.toggleRandomMode(globalSongs: allSongs);
+                      } else {
+                         audio.toggleRandomMode();
+                      }
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.confirm),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  List<MusicFile> _getGlobalSongs(PlaylistService playlistService) {
+    final List<MusicFile> allSongs = [];
+    final pathSet = <String>{};
+    for (final p in playlistService.playlists) {
+      for (final s in p.songs) {
+        if (pathSet.add(s.path)) allSongs.add(s);
+      }
+    }
+    return allSongs;
+  }
+
   void _showPlaylistModeSelector(BuildContext context, AudioService audio) {
     showDialog(
       context: context,
@@ -146,7 +255,7 @@ class _PlaybackPageState extends State<PlaybackPage>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: Text(AppLocalizations.of(context)!.playbackOptions, style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.of(context)!.playbackOptions, style: const TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -157,7 +266,7 @@ class _PlaybackPageState extends State<PlaybackPage>
               ),
               title: Text(
                 AppLocalizations.of(context)!.setVisualizerDisplay,
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -235,6 +344,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                             onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
                             onShowPlaylistModeSelector: () =>
                                 _showPlaylistModeSelector(context, audio),
+                            onShowRandomModeSelector: () =>
+                                _showRandomModeSelector(context, audio),
                             onScrubbing: (val) {
                               _handleInteraction();
                               setState(() {

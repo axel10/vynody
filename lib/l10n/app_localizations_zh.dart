@@ -391,5 +391,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get randomMode => '随机模式';
 
   @override
-  String get randomQueue => '随机队列';
+  String get randomHistory => '随机历史';
+
+  @override
+  String get randomRange => '随机范围';
+
+  @override
+  String get randomMethod => '随机方式';
+
+  @override
+  String get currentQueue => '当前队列';
+
+  @override
+  String get globalRange => '全局 (包含所有列表歌曲)';
+
+  @override
+  String get completeRandom => '完全随机';
+
+  @override
+  String get shuffleRandom => '洗牌随机';
 }
