@@ -17,6 +17,7 @@ class CoverCarousel extends StatefulWidget {
     this.isLandscape = false,
     this.screenWidth,
     this.screenHeight,
+    this.isNext,
   });
 
   final List<MusicFile> playlist;
@@ -26,6 +27,7 @@ class CoverCarousel extends StatefulWidget {
   final bool isLandscape;
   final double? screenWidth;
   final double? screenHeight;
+  final bool? isNext;
 
   @override
   State<CoverCarousel> createState() => _CoverCarouselState();
@@ -36,6 +38,7 @@ class _CoverCarouselState extends State<CoverCarousel>
   late AnimationController _animationController;
   late int _currentPage;
   bool _isDragging = false;
+  final Map<int, int> _indexOverrides = {};
 
   static const double _swipeThreshold = 0.2;
   static const double _resistanceFactor = 0.2;
@@ -48,8 +51,8 @@ class _CoverCarouselState extends State<CoverCarousel>
       vsync: this,
       duration: const Duration(milliseconds: 400),
       value: widget.currentIndex.toDouble(),
-      lowerBound: -0.5,
-      upperBound: widget.playlist.length.toDouble() - 0.5,
+      lowerBound: -1000.5,
+      upperBound: widget.playlist.length.toDouble() + 1000.5,
     );
   }
 
@@ -59,26 +62,63 @@ class _CoverCarouselState extends State<CoverCarousel>
     if (widget.currentIndex != oldWidget.currentIndex &&
         widget.currentIndex != _currentPage) {
       _currentPage = widget.currentIndex;
-      _animateToPage(widget.currentIndex);
+      _animateToPage(widget.currentIndex, forceStepDirection: true);
     }
   }
 
-  void _animateToPage(int page, {double? velocity}) {
-    _animationController
-        .animateTo(
-      page.toDouble(),
-      duration: Duration(
-          milliseconds: velocity != null && velocity.abs() > 500 ? 250 : 400),
-      curve: Curves.easeOutCubic,
-    )
-        .then((_) {
-      if (mounted && _currentPage != page) {
-        setState(() {
-          _currentPage = page;
-        });
-        widget.onPageChanged?.call(page);
-      }
-    });
+  void _animateToPage(int page, {double? velocity, bool forceStepDirection = false}) {
+    final double currentVal = _animationController.value;
+    final int targetPage = page;
+    final double diff = targetPage - currentVal;
+
+    if (diff == 0) return;
+
+    // Use 1-step jump logic if forced (programmatic change) or if it's a large jump
+    if (forceStepDirection || diff.abs() > 1.5) {
+      // Determine direction: prioritize widget.isNext, fallback to diff direction
+      final bool isForward = widget.isNext ?? (diff > 0);
+      final int direction = isForward ? 1 : -1;
+      final int virtualTarget = currentVal.round() + direction;
+
+      _indexOverrides[virtualTarget] = targetPage;
+
+      _animationController
+          .animateTo(
+        virtualTarget.toDouble(),
+        duration: Duration(
+            milliseconds: velocity != null && velocity.abs() > 500 ? 250 : 400),
+        curve: Curves.easeOutCubic,
+      )
+          .then((_) {
+        if (mounted) {
+          // Teleport to the actual index position
+          _animationController.value = targetPage.toDouble();
+          _indexOverrides.clear();
+          if (_currentPage != targetPage) {
+            setState(() {
+              _currentPage = targetPage;
+            });
+            widget.onPageChanged?.call(targetPage);
+          }
+        }
+      });
+    } else {
+      _animationController
+          .animateTo(
+        page.toDouble(),
+        duration: Duration(
+            milliseconds: velocity != null && velocity.abs() > 500 ? 250 : 400),
+        curve: Curves.easeOutCubic,
+      )
+          .then((_) {
+        if (mounted && _currentPage != page) {
+          setState(() {
+            _currentPage = page;
+          });
+          widget.onPageChanged?.call(page);
+        }
+      });
+    }
   }
 
   @override
@@ -165,8 +205,8 @@ class _CoverCarouselState extends State<CoverCarousel>
 
     // Add current, previous and next
     indices.add(center);
-    if (center > 0) indices.add(center - 1);
-    if (center < widget.playlist.length - 1) indices.add(center + 1);
+    indices.add(center - 1);
+    indices.add(center + 1);
 
     // Sort to ensure correct layering: items further from the current value are rendered first
     final List<int> uniqueIndices = indices.toSet().toList();
@@ -176,11 +216,15 @@ class _CoverCarouselState extends State<CoverCarousel>
       return distB.compareTo(distA);
     });
 
-    return uniqueIndices.map((index) {
+    return uniqueIndices.where((idx) {
+      final actualIdx = _indexOverrides[idx] ?? idx;
+      return actualIdx >= 0 && actualIdx < widget.playlist.length;
+    }).map((index) {
+      final actualIndex = _indexOverrides[index] ?? index;
       return _CoverItem(
-        key: ValueKey(widget.playlist[index].path),
+        key: ValueKey('track_${actualIndex}_slot_$index'),
         audioService: widget.audioService,
-        musicFile: widget.playlist[index],
+        musicFile: widget.playlist[actualIndex],
         animation: _animationController,
         itemIndex: index,
         width: width,

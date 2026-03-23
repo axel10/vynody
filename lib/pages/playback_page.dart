@@ -32,7 +32,6 @@ class _PlaybackPageState extends State<PlaybackPage>
   double _scrubProgress = 0.0;
   Timer? _inactivityTimer;
 
-  int? _lastIndex;
   bool _isNext = true;
   Orientation? _lastOrientation;
 
@@ -192,17 +191,7 @@ class _PlaybackPageState extends State<PlaybackPage>
       );
     }
 
-    final currentIndex = audio.currentIndex;
-    if (_lastIndex != null && currentIndex != _lastIndex) {
-      if (_lastIndex == 0 && currentIndex > 1) {
-        _isNext = false;
-      } else if (currentIndex == 0 && _lastIndex! > 1) {
-        _isNext = true;
-      } else {
-        _isNext = currentIndex > _lastIndex!;
-      }
-    }
-    _lastIndex = currentIndex;
+    _isNext = audio.isLastActionNext ?? true;
 
     return Listener(
       onPointerDown: (event) {

@@ -39,6 +39,7 @@ class AudioService extends ChangeNotifier {
 
   final List<MusicFile> _playlist = [];
   int _currentIndex = -1;
+  bool? _lastActionNext;
   bool _isTransitioning = false;
   final SettingsService settingsService;
   late final VisualizerOptionsService _visualizerOptions;
@@ -137,6 +138,9 @@ class AudioService extends ChangeNotifier {
 
     final int newIndex = _player.playlist.currentIndex ?? -1;
     if (newIndex != _currentIndex && !_isTransitioning) {
+      if (_currentIndex >= 0) {
+        _lastActionNext = true; // Auto advance
+      }
       _currentIndex = newIndex;
       if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
         final song = _playlist[_currentIndex];
@@ -153,6 +157,8 @@ class AudioService extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool? get isLastActionNext => _lastActionNext;
 
   AudioVisualizerPlayerController get player => _player;
 
@@ -511,6 +517,7 @@ class AudioService extends ChangeNotifier {
   Future<void> next() async {
     if (_isTransitioning) return;
     _isTransitioning = true;
+    _lastActionNext = true;
     try {
       final success = await _player.playlist.playNext();
       if (success) {
@@ -534,6 +541,7 @@ class AudioService extends ChangeNotifier {
     if (index == _currentIndex && _isPlaying) return;
 
     _isTransitioning = true;
+    _lastActionNext = (index > _currentIndex);
     try {
       if (_player.playlist.activePlaylistId != null) {
         await _player.playlist.setActivePlaylist(_player.playlist.activePlaylistId!, startIndex: index, autoPlay: true);
@@ -551,6 +559,7 @@ class AudioService extends ChangeNotifier {
   Future<void> previous() async {
     if (_isTransitioning) return;
     _isTransitioning = true;
+    _lastActionNext = false;
     try {
       final success = await _player.playlist.playPrevious();
       if (success) {

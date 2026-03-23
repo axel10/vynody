@@ -298,6 +298,7 @@ class PlaybackHeroCard extends StatelessWidget {
               playlist: audio.playlist,
               currentIndex: audio.currentIndex,
               audioService: audio,
+              isNext: isNext,
               onPageChanged: (page) {
                 if (page >= 0 &&
                     page < audio.playlist.length &&
