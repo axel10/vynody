@@ -436,11 +436,15 @@ class _CoverItemState extends State<_CoverItem> {
 }
 
   Widget _buildCoverImage() {
+    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final int? cacheSize = widget.displaySize != null 
+        ? (widget.displaySize! * devicePixelRatio).round() 
+        : null;
+
     // 1. Try AudioService Cache (HD from PlaybackQueueProcessor pre-loading)
     final cachedBytes =
         widget.audioService.getCachedArtwork(widget.musicFile.path);
     if (cachedBytes != null) {
-      final cacheSize = widget.displaySize?.toInt();
       return Image.memory(
         cachedBytes,
         fit: BoxFit.cover,
@@ -455,7 +459,6 @@ class _CoverItemState extends State<_CoverItem> {
     // 2. Try Current Artwork (HD from AudioService current song loading)
     if (widget.audioService.currentFilePath == widget.musicFile.path &&
         widget.audioService.currentArtworkBytes != null) {
-      final cacheSize = widget.displaySize?.toInt();
       return Image.memory(
         widget.audioService.currentArtworkBytes!,
         fit: BoxFit.cover,
@@ -469,7 +472,6 @@ class _CoverItemState extends State<_CoverItem> {
 
     // 3. Fallback to local State/DB thumbnails
     if (_artworkBytes != null) {
-      final cacheSize = widget.displaySize?.toInt();
       return Image.memory(
         _artworkBytes!,
         fit: BoxFit.cover,
@@ -482,7 +484,6 @@ class _CoverItemState extends State<_CoverItem> {
     } else if (_artworkPath != null) {
       final file = File(_artworkPath!);
       if (file.existsSync()) {
-        final cacheSize = widget.displaySize?.toInt();
         return Image.file(
           file,
           fit: BoxFit.cover,

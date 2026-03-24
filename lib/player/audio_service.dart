@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:image/image.dart' as img;
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
-import 'package:collection/collection.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
@@ -213,6 +212,7 @@ class AudioService extends ChangeNotifier {
   }
 
   bool? get isLastActionNext => _lastActionNext;
+  bool get isTransitioning => _isTransitioning;
 
   AudioVisualizerPlayerController get player => _player;
 
@@ -453,11 +453,10 @@ class AudioService extends ChangeNotifier {
     bool wasInCache = newArtworkBytes != null;
     if (wasInCache) {
       // Get dimensions from the cached bytes if possible
-      final image = img.decodeImage(newArtworkBytes);
-      if (image != null) {
-        newArtworkWidth = image.width;
-        newArtworkHeight = image.height;
-      }
+      final codec = await ui.instantiateImageCodec(newArtworkBytes);
+      final frameInfo = await codec.getNextFrame();
+      newArtworkWidth = frameInfo.image.width;
+      newArtworkHeight = frameInfo.image.height;
     }
 
     if (songFromDb == null) {
@@ -483,12 +482,12 @@ class AudioService extends ChangeNotifier {
         final bytes = metadata.picture?.data;
         if (bytes != null) {
           newArtworkBytes = bytes;
-          _hdArtworkCache[path] = bytes; // Cache it for potential immediate replay
-          final image = img.decodeImage(bytes);
-          if (image != null) {
-            newArtworkWidth = image.width;
-            newArtworkHeight = image.height;
-          }
+          _hdArtworkCache[path] = bytes; 
+          // Use dart:ui for much faster decoding on native side
+          final codec = await ui.instantiateImageCodec(bytes);
+          final frameInfo = await codec.getNextFrame();
+          newArtworkWidth = frameInfo.image.width;
+          newArtworkHeight = frameInfo.image.height;
         } else if (Platform.isAndroid && id != null) {
           // 如果 MetadataGod 未能直接从文件读取到封面，Android 平台尝试从系统 MediaStore 兜底
           try {

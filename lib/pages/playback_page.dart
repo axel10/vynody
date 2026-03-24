@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -31,11 +32,9 @@ class _PlaybackPageState extends State<PlaybackPage>
   bool _showVolumeSlider = false;
   bool _showVisualizer = true;
   bool _isScrubbingProgress = false;
-  double _scrubProgress = 0.0;
-  Timer? _inactivityTimer;
-
-  bool _isNext = true;
+  double _scrubProgress = 0.0; // Added missing declaration
   Orientation? _lastOrientation;
+  Timer? _inactivityTimer; // Added missing declaration
 
   @override
   void initState() {
@@ -282,25 +281,21 @@ class _PlaybackPageState extends State<PlaybackPage>
 
   @override
   Widget build(BuildContext context) {
-    final audio = context.watch<AudioService>();
-    final settings = context.watch<SettingsService>();
-    final sliderProgress = _isScrubbingProgress
-        ? _scrubProgress
-        : audio.progress.clamp(0.0, 1.0);
-    final previewPosition = _isScrubbingProgress
-        ? Duration(
-            milliseconds: (_scrubProgress * audio.duration.inMilliseconds)
-                .round(),
-          )
-        : audio.position;
+    final currentFilePath = context.select((AudioService a) => a.currentFilePath);
 
-    if (audio.currentFilePath == null) {
+    if (currentFilePath == null) {
       return Center(
-        child: Text(AppLocalizations.of(context)!.noPlaybackContent, style: TextStyle(color: Colors.grey)),
+        child: Text(AppLocalizations.of(context)!.noPlaybackContent, style: const TextStyle(color: Colors.grey)),
       );
     }
-
-    _isNext = audio.isLastActionNext ?? true;
+    
+    // Separate UI status from rendering visibility to avoid flicker
+    final isVisualizerEnabled = context.select((AudioService a) => a.player.visualizer.enabled);
+    final isTransitioning = context.select((AudioService a) => a.isTransitioning);
+    final shouldDrawVisualizer = isVisualizerEnabled && !isTransitioning;
+    
+    final isNext = context.select((AudioService a) => a.isLastActionNext ?? true);
+    final backgroundType = context.select((SettingsService s) => s.playbackBackgroundType);
 
     return Listener(
       onPointerDown: (event) {
@@ -318,7 +313,7 @@ class _PlaybackPageState extends State<PlaybackPage>
               if (_lastOrientation != orientation) {
                 _lastOrientation = orientation;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  audio.applyVisualizerSettings(orientation: orientation);
+                  context.read<AudioService>().applyVisualizerSettings(orientation: orientation);
                 });
               }
 
@@ -330,176 +325,222 @@ class _PlaybackPageState extends State<PlaybackPage>
                       if (Platform.isWindows) const SizedBox(height: 32),
                       Expanded(
                         child: Center(
-                          child: PlaybackHeroCard(
-                            isMini: false,
-                            isLandscape: isLandscape,
-                            screenWidth: screenWidth,
-                            screenHeight: screenHeight,
-                            isNext: _isNext,
-                            waveform: audio.currentWaveform,
-                            sliderProgress: sliderProgress,
-                            previewPosition: previewPosition,
-                            showVisualizerToggle: _showVisualizer,
-                            onShowMoreMenu: () => _showMoreMenu(context, audio),
-                            onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
-                            onShowPlaylistModeSelector: () =>
-                                _showPlaylistModeSelector(context, audio),
-                            onShowRandomModeSelector: () =>
-                                _showRandomModeSelector(context, audio),
-                            onScrubbing: (val) {
-                              _handleInteraction();
-                              setState(() {
-                                _isScrubbingProgress = true;
-                                _scrubProgress = val;
-                              });
-                            },
-                            onSeek: (val) {
-                              final target = Duration(
-                                milliseconds: (val * audio.duration.inMilliseconds)
-                                    .round(),
+                          child: Selector<AudioService, (double, Duration, Duration, List<double>)>(
+                            selector: (_, a) => (a.progress, a.position, a.duration, a.currentWaveform),
+                            builder: (context, data, _) {
+                              final progress = data.$1;
+                              final position = data.$2;
+                              final duration = data.$3;
+                              final waveform = data.$4;
+                              final audio = context.read<AudioService>();
+                              
+                              final sliderProgress = _isScrubbingProgress
+                                  ? _scrubProgress
+                                  : progress.clamp(0.0, 1.0);
+                              final previewPosition = _isScrubbingProgress
+                                  ? Duration(
+                                      milliseconds: (_scrubProgress * duration.inMilliseconds)
+                                          .round(),
+                                    )
+                                  : position;
+                              
+                              return PlaybackHeroCard(
+                                isMini: false,
+                                isLandscape: isLandscape,
+                                screenWidth: screenWidth,
+                                screenHeight: screenHeight,
+                                isNext: isNext,
+                                waveform: waveform,
+                                sliderProgress: sliderProgress,
+                                previewPosition: previewPosition,
+                                showVisualizerToggle: isVisualizerEnabled,
+                                onShowMoreMenu: () => _showMoreMenu(context, audio),
+                                onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
+                                onShowPlaylistModeSelector: () =>
+                                    _showPlaylistModeSelector(context, audio),
+                                onShowRandomModeSelector: () =>
+                                    _showRandomModeSelector(context, audio),
+                                onScrubbing: (val) {
+                                  _handleInteraction();
+                                  setState(() {
+                                    _isScrubbingProgress = true;
+                                    _scrubProgress = val;
+                                  });
+                                },
+                                onSeek: (val) {
+                                  final target = Duration(
+                                    milliseconds: (val * duration.inMilliseconds)
+                                        .round(),
+                                  );
+                                  setState(() {
+                                    _isScrubbingProgress = false;
+                                    _scrubProgress = val;
+                                  });
+                                  audio.seek(target);
+                                },
+                                onToggleVisualizer: () => _toggleVisualizer(audio),
+                                onEqualizerTap: () => _showEqualizerPanel(context),
+                                onPrevious: audio.previous,
+                                onPlayPause: audio.togglePlay,
+                                onNext: () => toNextMusic(audio),
+                                onVolumeTap: () {
+                                  _handleInteraction();
+                                  setState(() {
+                                    _showVolumeSlider = !_showVolumeSlider;
+                                  });
+                                },
+                                onVolumeDrag: (delta) {
+                                  _handleInteraction();
+                                  _adjustVolumeFromDrag(audio, delta);
+                                },
+                                onVolumeScroll: (deltaY) {
+                                  _handleInteraction();
+                                  _adjustVolumeFromScroll(audio, deltaY);
+                                },
                               );
-                              setState(() {
-                                _isScrubbingProgress = false;
-                                _scrubProgress = val;
-                              });
-                              audio.seek(target);
-                            },
-                            onToggleVisualizer: () => _toggleVisualizer(audio),
-                            onEqualizerTap: () => _showEqualizerPanel(context),
-                            onPrevious: audio.previous,
-                            onPlayPause: audio.togglePlay,
-                            onNext: () => toNextMusic(audio),
-                            onVolumeTap: () {
-                              _handleInteraction();
-                              setState(() {
-                                _showVolumeSlider = !_showVolumeSlider;
-                              });
-                            },
-                            onVolumeDrag: (delta) {
-                              _handleInteraction();
-                              _adjustVolumeFromDrag(audio, delta);
-                            },
-                            onVolumeScroll: (deltaY) {
-                              _handleInteraction();
-                              _adjustVolumeFromScroll(audio, deltaY);
                             },
                           ),
                         ),
                       ),
                     ],
                   ),
-            ),
-          );
+                ),
+              );
 
-          return Container(
-            color: Colors.black,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                if (settings.playbackBackgroundType == 1)
-                  const Positioned.fill(child: DynamicMeshBackground())
-                else
-                  _buildBlurredBackground(audio),
-                if (_showVisualizer) _buildVisualizerLayer(audio, orientation),
-                content,
-                if (_showVolumeSlider)
-                  VolumeSliderOverlay(
-                    volume: audio.volume,
-                    onVolumeChanged: (val) {
-                      _handleInteraction();
-                      audio.setVolume(val.roundToDouble());
-                    },
-                    onDismiss: () => setState(() => _showVolumeSlider = false),
-                    isLandscape: isLandscape,
-                    getVolumeIcon: getVolumeIcon,
-                    onDrag: (delta) => _adjustVolumeFromDrag(audio, delta),
-                    onScroll: (deltaY) =>
-                        _adjustVolumeFromScroll(audio, deltaY),
-                    onInteraction: _handleInteraction,
-                  ),
-              ],
-            ),
-          );
-        },
-      ),
+              return Container(
+                color: Colors.black,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    if (backgroundType == 1)
+                      const Positioned.fill(child: DynamicMeshBackground())
+                    else
+                      _buildBlurredBackground(context),
+                    if (shouldDrawVisualizer) _buildVisualizerLayer(context, orientation),
+                    content,
+                    if (_showVolumeSlider)
+                      Selector<AudioService, double>(
+                        selector: (_, a) => a.volume,
+                        builder: (context, volume, _) {
+                          final audio = context.read<AudioService>();
+                          return VolumeSliderOverlay(
+                            volume: volume,
+                            onVolumeChanged: (val) {
+                              _handleInteraction();
+                              audio.setVolume(val.roundToDouble());
+                            },
+                            onDismiss: () => setState(() => _showVolumeSlider = false),
+                            isLandscape: isLandscape,
+                            getVolumeIcon: getVolumeIcon,
+                            onDrag: (delta) => _adjustVolumeFromDrag(audio, delta),
+                            onScroll: (deltaY) =>
+                                _adjustVolumeFromScroll(audio, deltaY),
+                            onInteraction: _handleInteraction,
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
     );
   }
 
-  Widget _buildBlurredBackground(AudioService audio) {
-    return Positioned.fill(
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 800),
-        child:
-            (audio.currentArtworkBytes != null ||
-                audio.currentArtworkPath != null)
-            ? KeyedSubtree(
-                key: ValueKey(audio.currentFilePath ?? 'bg_art'),
-                child: Transform.scale(
-                  scale: 1.1,
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(
-                      sigmaX: 60,
-                      sigmaY: 60,
-                      tileMode: TileMode.mirror,
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: ResizeImage(
-                            audio.currentArtworkBytes != null
-                                ? MemoryImage(audio.currentArtworkBytes!)
-                                : FileImage(File(audio.currentArtworkPath!))
-                                      as ImageProvider,
-                            width: 200,
-                            height: 200,
-                          ),
-                          fit: BoxFit.cover,
-                          colorFilter: ColorFilter.mode(
-                            Colors.black.withValues(alpha: 0.4),
-                            BlendMode.darken,
-                          ),
-                        ),
+  Widget _buildBlurredBackground(BuildContext context) {
+    return Selector<AudioService, (Uint8List?, String?, String?)>(
+      selector: (_, a) => (a.currentArtworkBytes, a.currentArtworkPath, a.currentFilePath),
+      builder: (context, data, _) {
+        final artworkBytes = data.$1;
+        final artworkPath = data.$2;
+        final filePath = data.$3;
+
+        Widget content;
+        if (artworkBytes == null && (artworkPath == null || artworkPath.isEmpty)) {
+          content = Container(key: const ValueKey('bg_empty'), color: Colors.black);
+        } else {
+          content = KeyedSubtree(
+            key: ValueKey(filePath ?? 'bg_art'),
+            child: Transform.scale(
+              scale: 1.1,
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(
+                  sigmaX: 60,
+                  sigmaY: 60,
+                  tileMode: TileMode.mirror,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: ResizeImage(
+                        artworkBytes != null
+                            ? MemoryImage(artworkBytes)
+                            : FileImage(File(artworkPath!))
+                                  as ImageProvider,
+                        width: 200,
+                        height: 200,
+                      ),
+                      fit: BoxFit.cover,
+                      colorFilter: ColorFilter.mode(
+                        Colors.black.withValues(alpha: 0.4),
+                        BlendMode.darken,
                       ),
                     ),
                   ),
                 ),
-              )
-            : Container(key: const ValueKey('bg_empty'), color: Colors.black),
-      ),
+              ),
+            ),
+          );
+        }
+
+        return Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 800),
+            child: content,
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildVisualizerLayer(AudioService audio, Orientation orientation) {
+  Widget _buildVisualizerLayer(BuildContext context, Orientation orientation) {
     return Positioned.fill(
       child: StreamBuilder<FftFrame>(
-        stream: audio.player.visualizer.optimizedStream,
+        stream: context.read<AudioService>().player.visualizer.optimizedStream,
         builder: (context, snapshot) {
           final frame = snapshot.data;
           if (frame == null) return const SizedBox.shrink();
 
-          final settings = context.watch<SettingsService>();
-          final isLandscape = orientation == Orientation.landscape;
-          final gap = isLandscape ? settings.landscapeGap : settings.portraitGap;
+          return Selector<SettingsService, bool>(
+            selector: (_, s) => s.isAutoMode, // Just pick something so it rebuilds on auto mode change
+            builder: (context, _, __) {
+              // Re-read settings more cleanly or use the data tuple
+              final settings = context.read<SettingsService>();
+              final audio = context.read<AudioService>();
+              final isLandscape = orientation == Orientation.landscape;
+              final gap = isLandscape ? settings.landscapeGap : settings.portraitGap;
 
-          return CustomPaint(
-            painter: FftPainter(
-              values: frame.values,
-              gap: gap,
-              color: settings.isVisualizerDynamicColor
-                  ? (audio.dynamicStartColor ?? settings.visualizerColor)
-                  : settings.visualizerColor,
-              opacity: settings.visualizerOpacity,
-              useGradient: settings.isVisualizerGradientEnabled,
-              startColor: settings.isVisualizerDynamicStartColor
-                  ? (audio.dynamicStartColor ?? settings.visualizerStartColor)
-                  : settings.visualizerStartColor,
-              endColor: settings.isVisualizerDynamicEndColor
-                  ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
-                  : settings.visualizerEndColor,
-              gradientStop1: settings.visualizerGradientStop1,
-              gradientStop2: settings.visualizerGradientStop2,
-              gradientTileMode: settings.visualizerGradientTileMode,
-            ),
+              return CustomPaint(
+                painter: FftPainter(
+                  values: frame.values,
+                  gap: gap,
+                  color: settings.isVisualizerDynamicColor
+                      ? (audio.dynamicStartColor ?? settings.visualizerColor)
+                      : settings.visualizerColor,
+                  opacity: settings.visualizerOpacity,
+                  useGradient: settings.isVisualizerGradientEnabled,
+                  startColor: settings.isVisualizerDynamicStartColor
+                      ? (audio.dynamicStartColor ?? settings.visualizerStartColor)
+                      : settings.visualizerStartColor,
+                  endColor: settings.isVisualizerDynamicEndColor
+                      ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
+                      : settings.visualizerEndColor,
+                  gradientStop1: settings.visualizerGradientStop1,
+                  gradientStop2: settings.visualizerGradientStop2,
+                  gradientTileMode: settings.visualizerGradientTileMode,
+                ),
+              );
+            },
           );
         },
       ),

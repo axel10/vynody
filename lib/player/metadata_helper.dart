@@ -137,7 +137,6 @@ class MetadataHelper {
           interpolation: img.Interpolation.average,
         );
 
-        // Encode to JPEG (image package supports WebP but JPEG is safer/faster for legacy)
         result = Uint8List.fromList(img.encodeJpg(resized, quality: 80));
       } else {
         // Use flutter_image_compress on supported platforms (Android, iOS, macOS)
