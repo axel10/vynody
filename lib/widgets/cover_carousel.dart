@@ -18,6 +18,7 @@ class CoverCarousel extends StatefulWidget {
     this.screenWidth,
     this.screenHeight,
     this.isNext,
+    this.displaySize,
   });
 
   final List<MusicFile> playlist;
@@ -28,6 +29,7 @@ class CoverCarousel extends StatefulWidget {
   final double? screenWidth;
   final double? screenHeight;
   final bool? isNext;
+  final double? displaySize;
 
   @override
   State<CoverCarousel> createState() => _CoverCarouselState();
@@ -228,6 +230,7 @@ class _CoverCarouselState extends State<CoverCarousel>
         animation: _animationController,
         itemIndex: index,
         width: width,
+        displaySize: widget.displaySize,
       );
     }).toList();
   }
@@ -241,6 +244,7 @@ class _CoverItem extends StatefulWidget {
     required this.animation,
     required this.itemIndex,
     required this.width,
+    this.displaySize,
   });
 
   final AudioService audioService;
@@ -248,6 +252,7 @@ class _CoverItem extends StatefulWidget {
   final Animation<double> animation;
   final int itemIndex;
   final double width;
+  final double? displaySize;
 
   @override
   State<_CoverItem> createState() => _CoverItemState();
@@ -387,9 +392,10 @@ class _CoverItemState extends State<_CoverItem> {
         final double rotationY = pageOffset * -0.3;
         final double translateX = pageOffset * -widget.width;
 
-        return Opacity(
-          opacity: opacity,
-          child: Transform(
+        return RepaintBoundary(
+          child: Opacity(
+            opacity: opacity,
+            child: Transform(
             alignment: Alignment.center,
             transform: Matrix4.identity()
               ..setEntry(3, 2, 0.001)
@@ -423,55 +429,68 @@ class _CoverItemState extends State<_CoverItem> {
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildCoverImage() {
     // 1. Try AudioService Cache (HD from PlaybackQueueProcessor pre-loading)
     final cachedBytes =
         widget.audioService.getCachedArtwork(widget.musicFile.path);
     if (cachedBytes != null) {
+      final cacheSize = widget.displaySize?.toInt();
       return Image.memory(
         cachedBytes,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
+        cacheWidth: cacheSize,
+        cacheHeight: cacheSize,
       );
     }
 
     // 2. Try Current Artwork (HD from AudioService current song loading)
     if (widget.audioService.currentFilePath == widget.musicFile.path &&
         widget.audioService.currentArtworkBytes != null) {
+      final cacheSize = widget.displaySize?.toInt();
       return Image.memory(
         widget.audioService.currentArtworkBytes!,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
+        cacheWidth: cacheSize,
+        cacheHeight: cacheSize,
       );
     }
 
     // 3. Fallback to local State/DB thumbnails
     if (_artworkBytes != null) {
+      final cacheSize = widget.displaySize?.toInt();
       return Image.memory(
         _artworkBytes!,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
+        cacheWidth: cacheSize,
+        cacheHeight: cacheSize,
       );
     } else if (_artworkPath != null) {
       final file = File(_artworkPath!);
       if (file.existsSync()) {
+        final cacheSize = widget.displaySize?.toInt();
         return Image.file(
           file,
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
           gaplessPlayback: true,
+          cacheWidth: cacheSize,
+          cacheHeight: cacheSize,
         );
       }
     }

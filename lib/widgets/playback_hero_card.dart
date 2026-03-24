@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -69,8 +70,8 @@ class PlaybackHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final audio = context.watch<AudioService>();
-    if (audio.currentFilePath == null) {
+    final currentFilePath = context.select((AudioService a) => a.currentFilePath);
+    if (currentFilePath == null) {
       return const SizedBox.shrink();
     }
 
@@ -79,13 +80,14 @@ class PlaybackHeroCard extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: isMini
-            ? _buildMiniCard(context, audio)
-            : _buildFullCard(context, audio),
+            ? _buildMiniCard(context)
+            : _buildFullCard(context),
       ),
     );
   }
 
-  Widget _buildMiniCard(BuildContext context, AudioService audio) {
+  Widget _buildMiniCard(BuildContext context) {
+    final audio = context.read<AudioService>();
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.82),
@@ -104,7 +106,7 @@ class PlaybackHeroCard extends StatelessWidget {
           children: [
             Positioned.fill(
               child: Opacity(
-                opacity: 0.6, // Slightly dimmer when full screen to not distract
+                opacity: 0.6,
                 child: MiniSpectrumBackground(audio: audio),
               ),
             ),
@@ -129,26 +131,31 @@ class PlaybackHeroCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    audio.currentFileName ?? AppLocalizations.of(context)!.unknown,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
+                                  Selector<AudioService, String?>(
+                                    selector: (_, a) => a.currentFileName,
+                                    builder: (context, name, _) => Text(
+                                      name ?? AppLocalizations.of(context)!.unknown,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(999),
-                                    child: LinearProgressIndicator(
-                                      minHeight: 3,
-                                      value: audio.progress.clamp(0.0, 1.0),
-                                      backgroundColor: Colors.white24,
-                                      valueColor:
-                                          const AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                                  Selector<AudioService, double>(
+                                    selector: (_, a) => a.progress,
+                                    builder: (context, progress, _) => ClipRRect(
+                                      borderRadius: BorderRadius.circular(999),
+                                      child: LinearProgressIndicator(
+                                        minHeight: 3,
+                                        value: progress.clamp(0.0, 1.0),
+                                        backgroundColor: Colors.white24,
+                                        valueColor: const AlwaysStoppedAnimation<Color>(
+                                          Colors.white,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -169,14 +176,17 @@ class PlaybackHeroCard extends StatelessWidget {
                         tooltip: AppLocalizations.of(context)!.previous,
                       ),
                       const SizedBox(width: 8),
-                      MiniControlButton(
-                        icon: audio.isPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                        onPressed: onPlayPause,
-                        tooltip: audio.isPlaying
-                            ? AppLocalizations.of(context)!.pause
-                            : AppLocalizations.of(context)!.play,
+                      Selector<AudioService, bool>(
+                        selector: (_, a) => a.isPlaying,
+                        builder: (context, isPlaying, _) => MiniControlButton(
+                          icon: isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          onPressed: onPlayPause,
+                          tooltip: isPlaying
+                              ? AppLocalizations.of(context)!.pause
+                              : AppLocalizations.of(context)!.play,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       MiniControlButton(
@@ -195,7 +205,7 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFullCard(BuildContext context, AudioService audio) {
+  Widget _buildFullCard(BuildContext context) {
     final width = screenWidth ?? MediaQuery.of(context).size.width;
     final height = screenHeight ?? MediaQuery.of(context).size.height;
 
@@ -208,7 +218,7 @@ class PlaybackHeroCard extends StatelessWidget {
                   const Spacer(flex: 1),
                   Expanded(
                     flex: 10,
-                    child: _buildAlbumArt(audio, maxDisplaySize),
+                    child: _buildAlbumArt(context, maxDisplaySize),
                   ),
                   const SizedBox(width: 48),
                   Expanded(
@@ -218,7 +228,7 @@ class PlaybackHeroCard extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         child: SizedBox(
                           width: 450,
-                          child: _buildControls(context, audio, width),
+                          child: _buildControls(context, width),
                         ),
                       ),
                     ),
@@ -229,15 +239,10 @@ class PlaybackHeroCard extends StatelessWidget {
             : Column(
                 children: [
                   Expanded(
-                    flex: 14,  // 封面宽度
+                    flex: 14,
                     child: Padding(
-                      padding: const EdgeInsets.only(
-                        // left: 0, // ← 封面左边距
-                        // right: 0, // ← 封面右边距
-                        top: 0, // ← 封面顶边距
-                        bottom: 36, // ← 封面底边距
-                      ),
-                      child: _buildAlbumArt(audio, maxDisplaySize),
+                      padding: const EdgeInsets.only(bottom: 36),
+                      child: _buildAlbumArt(context, maxDisplaySize),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -249,7 +254,7 @@ class PlaybackHeroCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: SizedBox(
                           width: width,
-                          child: _buildControls(context, audio, width),
+                          child: _buildControls(context, width),
                         ),
                       ),
                     ),
@@ -266,28 +271,7 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAlbumArt(AudioService audio, double maxDisplaySize) {
-    if (audio.playlist.isEmpty) {
-      return Center(
-        child: Container(
-          width: 200,
-          height: 200,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: Colors.black87,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 50,
-                spreadRadius: 15,
-              ),
-            ],
-          ),
-          child: const Icon(Icons.music_note, size: 80, color: Colors.white54),
-        ),
-      );
-    }
-
+  Widget _buildAlbumArt(BuildContext context, double maxDisplaySize) {
     return Center(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -296,30 +280,63 @@ class PlaybackHeroCard extends StatelessWidget {
             constraints.maxWidth,
             constraints.maxHeight,
           ].reduce((a, b) => a < b ? a : b);
-          return SizedBox.square(
-            dimension: side,
-            child: CoverCarousel(
-              playlist: audio.playlist,
-              currentIndex: audio.currentIndex,
-              audioService: audio,
-              isNext: isNext,
-              onPageChanged: (page) {
-                if (page >= 0 &&
-                    page < audio.playlist.length &&
-                    page != audio.currentIndex) {
-                  audio.playAtIndex(page);
-                }
-              },
-            ),
+
+          return Selector<AudioService, (List<MusicFile>, int)>(
+            selector: (_, a) => (a.playlist, a.currentIndex),
+            shouldRebuild: (prev, next) =>
+                !listEquals(prev.$1, next.$1) || prev.$2 != next.$2,
+            builder: (context, data, _) {
+              if (data.$1.isEmpty) {
+                return _buildArtworkPlaceholder();
+              }
+              return SizedBox.square(
+                dimension: side,
+                child: CoverCarousel(
+                  playlist: data.$1,
+                  currentIndex: data.$2,
+                  audioService: context.read<AudioService>(),
+                  isNext: isNext,
+                  displaySize: side,
+                  onPageChanged: (page) {
+                    final audio = context.read<AudioService>();
+                    if (page >= 0 &&
+                        page < audio.playlist.length &&
+                        page != audio.currentIndex) {
+                      audio.playAtIndex(page);
+                    }
+                  },
+                ),
+              );
+            },
           );
         },
       ),
     );
   }
 
+  Widget _buildArtworkPlaceholder() {
+    return Center(
+      child: Container(
+        width: 200,
+        height: 200,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          color: Colors.black87,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 50,
+              spreadRadius: 15,
+            ),
+          ],
+        ),
+        child: const Icon(Icons.music_note, size: 80, color: Colors.white54),
+      ),
+    );
+  }
+
   Widget _buildControls(
     BuildContext context,
-    AudioService audio,
     double width,
   ) {
     return Column(
@@ -330,38 +347,50 @@ class PlaybackHeroCard extends StatelessWidget {
           constraints: BoxConstraints(
             maxWidth: isLandscape ? 450 : width * 0.95,
           ),
-          child: Text(
-            audio.currentFileName ?? AppLocalizations.of(context)!.unknown,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          child: Selector<AudioService, String?>(
+            selector: (_, a) => a.currentFileName,
+            builder: (context, name, _) => Text(
+              name ?? AppLocalizations.of(context)!.unknown,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
         ),
-        if ((audio.currentArtist != null && audio.currentArtist != 'Unknown') ||
-            (audio.currentAlbum != null && audio.currentAlbum != 'Unknown'))
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isLandscape ? 400 : width * 0.9,
-              ),
-              child: Text(
-                '${audio.currentArtist ?? AppLocalizations.of(context)!.unknown} — ${audio.currentAlbum ?? AppLocalizations.of(context)!.unknown}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.white70,
+        Selector<AudioService, (String?, String?)>(
+          selector: (_, a) => (a.currentArtist, a.currentAlbum),
+          builder: (context, data, _) {
+            final artist = data.$1;
+            final album = data.$2;
+            if ((artist != null && artist != 'Unknown') ||
+                (album != null && album != 'Unknown')) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isLandscape ? 400 : width * 0.9,
+                  ),
+                  child: Text(
+                    '${artist ?? AppLocalizations.of(context)!.unknown} — ${album ?? AppLocalizations.of(context)!.unknown}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
         SizedBox(height: isLandscape ? 16 : 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -372,48 +401,55 @@ class PlaybackHeroCard extends StatelessWidget {
               tooltip: AppLocalizations.of(context)!.more,
             ),
             const SizedBox(width: 16),
-            GestureDetector(
-              onLongPress: onShowPlaylistModeSelector,
-              child: IconButton(
-                icon: Icon(
-                  getPlaylistModeIcon(audio.player.playlist.mode),
-                  size: 28,
-                  color: Colors.white70,
-                ),
-                onPressed: onCyclePlaylistMode,
-                tooltip: getPlaylistModeName(
-                  audio.player.playlist.mode,
-                  AppLocalizations.of(context)!,
+            Selector<AudioService, dynamic>(
+              selector: (_, a) => a.player.playlist.mode,
+              builder: (context, mode, _) => GestureDetector(
+                onLongPress: onShowPlaylistModeSelector,
+                child: IconButton(
+                  icon: Icon(
+                    getPlaylistModeIcon(mode),
+                    size: 28,
+                    color: Colors.white70,
+                  ),
+                  onPressed: onCyclePlaylistMode,
+                  tooltip: getPlaylistModeName(
+                    mode,
+                    AppLocalizations.of(context)!,
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            GestureDetector(
-              onLongPress: onShowRandomModeSelector,
-              child: IconButton(
-                icon: Icon(
-                  audio.isRandomMode ? Icons.shuffle_rounded : Icons.shuffle_rounded,
-                  size: 28,
-                  color: audio.isRandomMode
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.white70,
-                ),
-                onPressed: () {
-                  if (audio.settingsService.randomRange == 1 && !audio.isRandomMode) {
-                    final playlistService = context.read<PlaylistService>();
-                    final List<MusicFile> allSongs = [];
-                    final pathSet = <String>{};
-                    for (final p in playlistService.playlists) {
-                      for (final s in p.songs) {
-                        if (pathSet.add(s.path)) allSongs.add(s);
+            Selector<AudioService, bool>(
+              selector: (_, a) => a.isRandomMode,
+              builder: (context, isRandomMode, _) => GestureDetector(
+                onLongPress: onShowRandomModeSelector,
+                child: IconButton(
+                  icon: Icon(
+                    isRandomMode ? Icons.shuffle_rounded : Icons.shuffle_rounded,
+                    size: 28,
+                    color: isRandomMode
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.white70,
+                  ),
+                  onPressed: () {
+                    final audio = context.read<AudioService>();
+                    if (audio.settingsService.randomRange == 1 && !isRandomMode) {
+                      final playlistService = context.read<PlaylistService>();
+                      final List<MusicFile> allSongs = [];
+                      final pathSet = <String>{};
+                      for (final p in playlistService.playlists) {
+                        for (final s in p.songs) {
+                          if (pathSet.add(s.path)) allSongs.add(s);
+                        }
                       }
+                      audio.toggleRandomMode(globalSongs: allSongs);
+                    } else {
+                      audio.toggleRandomMode();
                     }
-                    audio.toggleRandomMode(globalSongs: allSongs);
-                  } else {
-                    audio.toggleRandomMode();
-                  }
-                },
-                tooltip: AppLocalizations.of(context)!.randomMode,
+                  },
+                  tooltip: AppLocalizations.of(context)!.randomMode,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -429,16 +465,24 @@ class PlaybackHeroCard extends StatelessWidget {
           ],
         ),
         SizedBox(height: isLandscape ? 8 : 4),
-        if (context.watch<SettingsService>().isWaveformProgressBarEnabled)
-          WaveformProgressBar(
-            waveform: waveform,
-            progress: sliderProgress,
-            duration: audio.duration,
-            onScrubbing: onScrubbing ?? (_) {},
-            onSeek: onSeek ?? (_) {},
-          )
-        else
-          _buildStandardSlider(context, audio),
+        Selector<AudioService, Duration>(
+          selector: (_, a) => a.duration,
+          builder: (context, duration, _) => Selector<SettingsService, bool>(
+            selector: (_, s) => s.isWaveformProgressBarEnabled,
+            builder: (context, enabled, _) {
+              if (enabled) {
+                return WaveformProgressBar(
+                  waveform: waveform,
+                  progress: sliderProgress,
+                  duration: duration,
+                  onScrubbing: onScrubbing ?? (_) {},
+                  onSeek: onSeek ?? (_) {},
+                );
+              }
+              return _buildStandardSlider(context);
+            },
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
@@ -448,9 +492,12 @@ class PlaybackHeroCard extends StatelessWidget {
                 formatDuration(previewPosition),
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
-              Text(
-                formatDuration(audio.duration),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              Selector<AudioService, Duration>(
+                selector: (_, a) => a.duration,
+                builder: (context, duration, _) => Text(
+                  formatDuration(duration),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
               ),
             ],
           ),
@@ -482,11 +529,15 @@ class PlaybackHeroCard extends StatelessWidget {
               tooltip: AppLocalizations.of(context)!.previous,
             ),
             const SizedBox(width: 24),
-            Builder(
-              builder: (context) {
+            Selector<AudioService, (bool, Map<String, Color>)>(
+              selector: (_, a) => (a.isPlaying, a.currentThemeColorsMap),
+              shouldRebuild: (prev, next) =>
+                  prev.$1 != next.$1 || !mapEquals(prev.$2, next.$2),
+              builder: (context, data, _) {
+                final isPlaying = data.$1;
+                final themeColors = data.$2;
                 final darkThemeColor =
-                    audio.currentThemeColorsMap['darkVibrant'] ??
-                    audio.currentThemeColorsMap['darkMuted'];
+                    themeColors['darkVibrant'] ?? themeColors['darkMuted'];
                 final l10n = AppLocalizations.of(context)!;
                 return Container(
                   width: 72,
@@ -497,9 +548,9 @@ class PlaybackHeroCard extends StatelessWidget {
                   ),
                   child: IconButton(
                     onPressed: onPlayPause,
-                    tooltip: audio.isPlaying ? l10n.pause : l10n.play,
+                    tooltip: isPlaying ? l10n.pause : l10n.play,
                     icon: Icon(
-                      audio.isPlaying
+                      isPlaying
                           ? Icons.pause_rounded
                           : Icons.play_arrow_rounded,
                       size: 40,
@@ -520,25 +571,28 @@ class PlaybackHeroCard extends StatelessWidget {
               tooltip: AppLocalizations.of(context)!.next,
             ),
             const SizedBox(width: 16),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onVerticalDragUpdate: (details) {
-                onVolumeDrag?.call(details.primaryDelta ?? 0);
-              },
-              child: Listener(
-                onPointerSignal: (pointerSignal) {
-                  if (pointerSignal is PointerScrollEvent) {
-                    onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-                  }
+            Selector<AudioService, double>(
+              selector: (_, a) => a.volume,
+              builder: (context, volume, _) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragUpdate: (details) {
+                  onVolumeDrag?.call(details.primaryDelta ?? 0);
                 },
-                child: IconButton(
-                  icon: Icon(
-                    getVolumeIcon(audio.volume),
-                    size: 28,
-                    color: Colors.white70,
+                child: Listener(
+                  onPointerSignal: (pointerSignal) {
+                    if (pointerSignal is PointerScrollEvent) {
+                      onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+                    }
+                  },
+                  child: IconButton(
+                    icon: Icon(
+                      getVolumeIcon(volume),
+                      size: 28,
+                      color: Colors.white70,
+                    ),
+                    onPressed: onVolumeTap,
+                    tooltip: AppLocalizations.of(context)!.volume,
                   ),
-                  onPressed: onVolumeTap,
-                  tooltip: AppLocalizations.of(context)!.volume,
                 ),
               ),
             ),
@@ -548,7 +602,7 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStandardSlider(BuildContext context, AudioService audio) {
+  Widget _buildStandardSlider(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SliderTheme(
