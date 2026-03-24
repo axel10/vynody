@@ -11,6 +11,7 @@ import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import 'package:collection/collection.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
+import 'metadata_helper.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
 import 'visualizer_options_service.dart';
@@ -442,15 +443,26 @@ class AudioService extends ChangeNotifier {
     int? newArtworkWidth = _artworkWidth;
     int? newArtworkHeight = _artworkHeight;
 
+    if (songFromDb == null) {
+      // If not in DB, use MetadataHelper to process it (and save to DB for next time)
+      final processed = await MetadataHelper.processMetadata(path);
+      if (processed != null) {
+        if (processed.title.trim().isNotEmpty && processed.title != 'Unknown') {
+          _currentFileName = processed.title;
+        }
+        _currentArtist = processed.artist;
+        _currentAlbum = processed.album;
+        _currentArtworkPath = processed.artworkPath;
+        _artworkWidth = processed.artworkWidth;
+        _artworkHeight = processed.artworkHeight;
+        _currentWaveform = _waveformService.waveformFromBlob(processed.waveformBlob);
+      }
+    }
+
+    // Still try to get original high-res bytes for the playback page
     if (Platform.isWindows) {
       try {
-        // Playback page should prefer embedded original artwork, not cached thumbnails.
         final metadata = await MetadataGod.readMetadata(file: path);
-        if (metadata.title != null && metadata.title!.trim().isNotEmpty) {
-          _currentFileName = metadata.title;
-        }
-        _currentArtist = metadata.artist;
-        _currentAlbum = metadata.album;
         final bytes = metadata.picture?.data;
         if (bytes != null) {
           newArtworkBytes = bytes;
@@ -461,46 +473,21 @@ class AudioService extends ChangeNotifier {
           }
         }
       } catch (e) {
-        debugPrint('Error reading metadata on Windows: $e');
+        debugPrint('Error reading high-res metadata on Windows: $e');
       }
     } else if (Platform.isAndroid && id != null) {
       try {
-        // Fetch metadata if missing
-        if (_currentArtist == null ||
-            _currentArtist == 'Unknown' ||
-            _currentAlbum == null ||
-            _currentAlbum == 'Unknown') {
-          // We can use querySongs with a small scope or just use queryArtwork then query info.
-          // on_audio_query doesn't have a direct querySongById, but we can filter.
-          // To avoid performance issues, we only do this if we really need it.
-          final songs = await _audioQuery.querySongs(
-            sortType: null,
-            orderType: OrderType.ASC_OR_SMALLER,
-            uriType: UriType.EXTERNAL,
-            ignoreCase: true,
-          );
-          final actualSong = songs.firstWhereOrNull((s) => s.id == id);
-          if (actualSong != null) {
-            _currentFileName = actualSong.title;
-            _currentArtist = actualSong.artist;
-            _currentAlbum = actualSong.album;
-          }
-        }
-
         final bytes = await _audioQuery.queryArtwork(
           id,
           ArtworkType.AUDIO,
           format: ArtworkFormat.JPEG,
-          size: 600, // Reasonable size for notification
+          size: 600,
           quality: 100,
         );
         if (bytes != null) {
           newArtworkBytes = bytes;
           try {
             final tempDir = await getTemporaryDirectory();
-            // Use a unique file name per artwork refresh so Android's native
-            // bitmap cache does not keep serving a stale cover when the same
-            // temp path gets overwritten for the next song.
             final artworkSuffix = [
               id.toString(),
               DateTime.now().microsecondsSinceEpoch.toString(),
@@ -515,7 +502,7 @@ class AudioService extends ChangeNotifier {
           }
         }
       } catch (e) {
-        debugPrint('Error querying artwork/metadata on Android: $e');
+        debugPrint('Error querying high-res artwork on Android: $e');
       }
     }
 

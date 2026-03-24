@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:palette_generator/palette_generator.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:on_audio_query/on_audio_query.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
@@ -15,7 +14,6 @@ import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
-import 'theme_color_helper.dart';
 import 'settings_service.dart';
 
 enum SortCriteria { title, filename, trackNumber }
@@ -259,7 +257,6 @@ class ScannerService extends ChangeNotifier {
   Future<void> _processAndSaveAndroidSongsBackground(
     List<SongModel> songs,
   ) async {
-    final db = MetadataDatabase();
     final player = AudioVisualizerPlayerController();
     try {
       await player.initialize();
@@ -271,62 +268,50 @@ class ScannerService extends ChangeNotifier {
     try {
       for (var song in songs) {
         try {
-          final existing = await db.getSongMetadata(song.data);
-          if (existing != null &&
-              existing.themeColorsBlob != null &&
-              existing.waveformBlob != null) {
-            continue;
-          }
-
-          Uint8List? themeColorsBlob = existing?.themeColorsBlob;
-          final artworkBytes = await _audioQuery.queryArtwork(
-            song.id,
-            ArtworkType.AUDIO,
-            format: ArtworkFormat.JPEG,
-            size: 200,
-            quality: 100,
+          // Use the unified MetadataHelper to process metadata.
+          // This will extract tags, save thumbnails, and generate theme colors.
+          final metadata = await MetadataHelper.processMetadata(
+            song.data,
+            songId: song.id,
           );
 
-          if (artworkBytes != null && themeColorsBlob == null) {
-            final imageProvider = MemoryImage(artworkBytes);
-            final palette = await PaletteGenerator.fromImageProvider(
-              imageProvider,
-              maximumColorCount: 20,
-            );
-            themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
-          }
-
-          Uint8List? waveformBlob = existing?.waveformBlob;
-          if (waveformBlob == null) {
-            try {
-              final waveform = await player.getWaveform(
-                expectedChunks: _settingsService?.waveformChunks ?? 80,
-                sampleStride: _settingsService?.sampleStride ?? 4,
-                filePath: song.data,
-              );
-              if (waveform.isNotEmpty) {
-                final float32List = Float32List.fromList(
-                  waveform.map((e) => e.toDouble()).toList(),
+          if (metadata != null) {
+            // After common metadata is processed, check if waveform is needed.
+            if (metadata.waveformBlob == null) {
+              try {
+                final waveform = await player.getWaveform(
+                  expectedChunks: _settingsService?.waveformChunks ?? 80,
+                  sampleStride: _settingsService?.sampleStride ?? 4,
+                  filePath: song.data,
                 );
-                waveformBlob = float32List.buffer.asUint8List();
+                if (waveform.isNotEmpty) {
+                  final float32List = Float32List.fromList(
+                    waveform.map((e) => e.toDouble()).toList(),
+                  );
+                  final waveformBlob = float32List.buffer.asUint8List();
+
+                  // Update the DB with the waveform
+                  final updatedMetadata = SongMetadata(
+                    id: metadata.id,
+                    path: metadata.path,
+                    title: metadata.title,
+                    album: metadata.album,
+                    artist: metadata.artist,
+                    duration: metadata.duration,
+                    artworkPath: metadata.artworkPath,
+                    artworkWidth: metadata.artworkWidth,
+                    artworkHeight: metadata.artworkHeight,
+                    trackNumber: metadata.trackNumber,
+                    themeColorsBlob: metadata.themeColorsBlob,
+                    waveformBlob: waveformBlob,
+                  );
+                  await MetadataDatabase().insertOrUpdateSong(updatedMetadata);
+                }
+              } catch (e) {
+                debugPrint('Waveform extraction failed for scan: $e');
               }
-            } catch (e) {
-              debugPrint('Waveform extraction failed for scan: $e');
             }
           }
-
-          final songMetadata = SongMetadata(
-            path: song.data,
-            title: song.title,
-            album: song.album ?? '',
-            artist: song.artist ?? '',
-            duration: song.duration,
-            trackNumber: song.track,
-            themeColorsBlob: themeColorsBlob,
-            waveformBlob: waveformBlob,
-          );
-
-          await db.insertOrUpdateSong(songMetadata);
         } catch (e) {
           debugPrint('Background processing error for ${song.data}: $e');
         }
@@ -525,7 +510,6 @@ class ScannerService extends ChangeNotifier {
   /// caches it in [metadataMap]. Safe to call multiple times — exits early if
   /// the path is already in the map or if the platform is not Windows.
   Future<void> loadMetadataForPath(String path) async {
-    if (!Platform.isWindows) return;
     if (_metadataMap.containsKey(path)) return;
 
     final db = MetadataDatabase();

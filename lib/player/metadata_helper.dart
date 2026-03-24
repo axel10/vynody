@@ -11,7 +11,10 @@ import 'metadata_database.dart';
 import 'theme_color_helper.dart';
 
 class MetadataHelper {
-  static Future<SongMetadata?> processMetadata(String filePath) async {
+  static Future<SongMetadata?> processMetadata(
+    String filePath, {
+    int? songId,
+  }) async {
     final db = MetadataDatabase();
 
     // Check if already in DB
@@ -19,17 +22,36 @@ class MetadataHelper {
     if (existing != null) return existing;
 
     try {
-      final metadata = await MetadataGod.readMetadata(file: filePath);
+      Uint8List? artworkData;
+      String? title;
+      String? album;
+      String? artist;
+      int? duration;
+      int? trackNumber;
+
+      try {
+        final metadata = await MetadataGod.readMetadata(file: filePath);
+        title = metadata.title;
+        album = metadata.album;
+        artist = metadata.artist;
+        duration = (metadata.durationMs as num?)?.toInt();
+        trackNumber = metadata.trackNumber;
+        artworkData = metadata.picture?.data;
+      } catch (e) {
+        debugPrint('MetadataGod error for $filePath: $e');
+        // If MetadataGod fails and we have a songId (Android), we might consider on_audio_query as fallback here, 
+        // but let's keep it simple and let the caller decide if it wants to try on_audio_query first.
+      }
 
       String? artworkPath;
       int? artworkWidth;
       int? artworkHeight;
       Uint8List? themeColorsBlob;
 
-      if (metadata.picture != null) {
+      if (artworkData != null) {
         final artworkInfo = await _saveCompressedArtwork(
           filePath,
-          metadata.picture!.data,
+          artworkData,
         );
         artworkPath = artworkInfo?['path'] as String?;
         artworkWidth = artworkInfo?['width'] as int?;
@@ -51,14 +73,14 @@ class MetadataHelper {
 
       final song = SongMetadata(
         path: filePath,
-        title: metadata.title ?? p.basenameWithoutExtension(filePath),
-        album: metadata.album ?? 'Unknown Album',
-        artist: metadata.artist ?? 'Unknown Artist',
-        duration: (metadata.durationMs as num?)?.toInt(),
+        title: title ?? p.basenameWithoutExtension(filePath),
+        album: album ?? 'Unknown Album',
+        artist: artist ?? 'Unknown Artist',
+        duration: duration,
         artworkPath: artworkPath,
         artworkWidth: artworkWidth,
         artworkHeight: artworkHeight,
-        trackNumber: metadata.trackNumber,
+        trackNumber: trackNumber,
         themeColorsBlob: themeColorsBlob,
       );
 
@@ -81,11 +103,8 @@ class MetadataHelper {
         await thumbnailsDir.create(recursive: true);
       }
 
-      final extension = (Platform.isWindows || Platform.isLinux)
-          ? 'jpg'
-          : 'webp';
       final fileName =
-          '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}.$extension';
+          '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}.webp';
       final targetPath = p.join(thumbnailsDir.path, fileName);
 
       Uint8List result;
@@ -117,7 +136,8 @@ class MetadataHelper {
           interpolation: img.Interpolation.average,
         );
 
-        // Encode to JPEG (WebP encoding not supported on Windows by current libs)
+        // Encode to WebP if possible, or JPEG. metadata_god/image package etc.
+        // img.encodeWebP is available in recent 'image' package versions.
         result = Uint8List.fromList(img.encodeJpg(resized, quality: 80));
       } else {
         // Use flutter_image_compress on supported platforms (Android, iOS, macOS)
