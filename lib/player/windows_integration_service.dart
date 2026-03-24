@@ -23,7 +23,7 @@ class WindowsIntegrationService {
 
   void _init() {
     _smtc = SMTCWindows();
-    
+
     _smtcSubscription = _smtc?.buttonPressStream.listen((event) {
       switch (event) {
         case PressedButton.play:
@@ -47,6 +47,16 @@ class WindowsIntegrationService {
     });
 
     _scheduleInitialTaskbarSetup();
+
+    // TEST: Deliberate early call to verify the new error message reporting.
+    // This is expected to fail with "SetProgressMode failed: Window is not visible."
+    unawaited(() async {
+      try {
+        await WindowsTaskbar.setProgressMode(TaskbarProgressMode.normal);
+      } catch (e) {
+        debugPrint('TEST: Expected startup error: $e');
+      }
+    }());
   }
 
   void updateMetadata(MusicFile? song) {
@@ -90,18 +100,26 @@ class WindowsIntegrationService {
       ),
     );
 
+    if (!_taskbarReady) return;
+
     // Throttled taskbar progress update (every 1 second or if it's a significant change like a seek)
     final diff = (position - _lastPosition).abs().inMilliseconds;
     if (diff >= 1000 || diff < 0 || position == Duration.zero) {
       _lastPosition = position;
-      if (duration.inMilliseconds > 0) {
-        WindowsTaskbar.setProgressMode(TaskbarProgressMode.normal);
-        WindowsTaskbar.setProgress(
-          position.inMilliseconds,
-          duration.inMilliseconds,
-        );
-      } else {
-        WindowsTaskbar.setProgressMode(TaskbarProgressMode.noProgress);
+      try {
+        if (duration.inMilliseconds > 0) {
+          WindowsTaskbar.setProgressMode(TaskbarProgressMode.normal);
+          WindowsTaskbar.setProgress(
+            position.inMilliseconds,
+            duration.inMilliseconds,
+          );
+        } else {
+          WindowsTaskbar.setProgressMode(TaskbarProgressMode.noProgress);
+        }
+      } catch (e) {
+        // Log only if it's not a 'Window is not visible' error or if we really want to see it
+        // At this point _taskbarReady is true, so this is unexpected.
+        debugPrint('WindowsTaskbar progress error: $e');
       }
     }
   }

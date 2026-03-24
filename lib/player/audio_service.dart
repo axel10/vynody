@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
@@ -15,7 +15,9 @@ import 'theme_color_helper.dart';
 import 'visualizer_options_service.dart';
 import 'playback_queue_processor.dart';
 import 'waveform_service.dart';
+import 'package:path_provider/path_provider.dart';
 import 'windows_integration_service.dart';
+import 'android_integration_service.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioVisualizerPlayerController _player;
@@ -54,6 +56,7 @@ class AudioService extends ChangeNotifier {
   Color? _dynamicEndColor;
   Map<String, Color> _currentThemeColorsMap = const {};
   late final WindowsIntegrationService? _windowsIntegration;
+  late final AndroidIntegrationService? _androidIntegration;
 
   Color? get dynamicStartColor => _dynamicStartColor;
   Color? get dynamicEndColor => _dynamicEndColor;
@@ -70,16 +73,20 @@ class AudioService extends ChangeNotifier {
       player: _player,
       settingsService: settingsService,
     );
-    _waveformService = WaveformService(
-      db: _db,
-      player: _player,
-    );
-    _windowsIntegration = Platform.isWindows ? WindowsIntegrationService(this) : null;
+    _waveformService = WaveformService(db: _db, player: _player);
+    _windowsIntegration = Platform.isWindows
+        ? WindowsIntegrationService(this)
+        : null;
+    _androidIntegration = Platform.isAndroid
+        ? AndroidIntegrationService(this)
+        : null;
     _player.addListener(_handlePlayerChanges);
-    unawaited(_player.initialize().then((_) {
-      _visualizerOptions.loadOptions().then((_) => notifyListeners());
-      _initializeMiniPlayerFftStream();
-    }));
+    unawaited(
+      _player.initialize().then((_) {
+        _visualizerOptions.loadOptions().then((_) => notifyListeners());
+        _initializeMiniPlayerFftStream();
+      }),
+    );
   }
 
   void _initializeMiniPlayerFftStream() {
@@ -105,8 +112,7 @@ class AudioService extends ChangeNotifier {
   }
 
   /// 独立的 FFT 流，用于迷你播放器
-  Stream<FftFrame>? get miniPlayerFftStream =>
-      _miniPlayerFftStream?.fftStream;
+  Stream<FftFrame>? get miniPlayerFftStream => _miniPlayerFftStream?.fftStream;
 
   VisualizerOptionsService get visualizerOptions => _visualizerOptions;
 
@@ -148,21 +154,23 @@ class AudioService extends ChangeNotifier {
       if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
         final song = _playlist[_currentIndex];
         unawaited(
-          _updateCurrentMetadata(
-            song.path,
-            song.displayName,
-            id: song.id,
-          ).then((_) {
-            _refreshCurrentWaveform();
-            _windowsIntegration?.updateMetadata(_playlist[newIndex]);
-          }),
+          _updateCurrentMetadata(song.path, song.displayName, id: song.id).then(
+            (_) {
+              _refreshCurrentWaveform();
+              _windowsIntegration?.updateMetadata(_playlist[newIndex]);
+              _androidIntegration?.updateMetadata(_playlist[newIndex]);
+            },
+          ),
         );
       }
       _windowsIntegration?.updatePlaybackStatus(_isPlaying);
+      _androidIntegration?.updatePlaybackStatus(_isPlaying);
       notifyListeners();
     } else {
       _windowsIntegration?.updateTimeline(_position, _duration);
+      _androidIntegration?.updateTimeline(_position, _duration);
       _windowsIntegration?.updatePlaybackStatus(_isPlaying);
+      _androidIntegration?.updatePlaybackStatus(_isPlaying);
       notifyListeners();
     }
   }
@@ -224,7 +232,6 @@ class AudioService extends ChangeNotifier {
 
   int? get deckCursor => _player.playlist.deckCursor;
 
-
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds
       : 0.0;
@@ -246,7 +253,10 @@ class AudioService extends ChangeNotifier {
       return;
     }
 
-    final waveform = await getWaveform(expectedChunks: settingsService.waveformChunks, sampleStride: settingsService.sampleStride);
+    final waveform = await getWaveform(
+      expectedChunks: settingsService.waveformChunks,
+      sampleStride: settingsService.sampleStride,
+    );
     if (path == _currentFilePath && waveform.isNotEmpty) {
       _currentWaveform = waveform;
       if (notify) {
@@ -369,7 +379,9 @@ class AudioService extends ChangeNotifier {
     // 1. Try to get metadata from database immediately (fast)
     final songFromDb = await _db.getSongMetadata(path);
     if (songFromDb != null) {
-      _currentWaveform = _waveformService.waveformFromBlob(songFromDb.waveformBlob);
+      _currentWaveform = _waveformService.waveformFromBlob(
+        songFromDb.waveformBlob,
+      );
       _currentArtworkPath = songFromDb.artworkPath;
       _artworkWidth = songFromDb.artworkWidth;
       _artworkHeight = songFromDb.artworkHeight;
@@ -384,7 +396,7 @@ class AudioService extends ChangeNotifier {
       _artworkWidth = null;
       _artworkHeight = null;
     }
-    
+
     // Notify listeners immediately so the UI can show the placeholder (thumbnail from DB)
     _windowsIntegration?.updateMetadata(null);
     notifyListeners();
@@ -418,13 +430,26 @@ class AudioService extends ChangeNotifier {
       }
     } else if (Platform.isAndroid && id != null) {
       try {
-        newArtworkBytes = await _audioQuery.queryArtwork(
+        final bytes = await _audioQuery.queryArtwork(
           id,
           ArtworkType.AUDIO,
           format: ArtworkFormat.JPEG,
-          size: 1000, // Query a larger size for high quality
+          size: 600, // Reasonable size for notification
           quality: 100,
         );
+        if (bytes != null) {
+          newArtworkBytes = bytes;
+          try {
+            final tempDir = await getTemporaryDirectory();
+            final artworkFile = File(
+              '${tempDir.path}/current_notification_artwork.jpg',
+            );
+            await artworkFile.writeAsBytes(bytes);
+            newArtworkPath = artworkFile.path;
+          } catch (e) {
+            debugPrint('Error saving notification artwork: $e');
+          }
+        }
       } catch (e) {
         debugPrint('Error querying artwork on Android: $e');
       }
@@ -437,10 +462,16 @@ class AudioService extends ChangeNotifier {
 
     await _updatePalette();
     _windowsIntegration?.updateMetadata(null);
+    _androidIntegration?.updateMetadata(null);
     notifyListeners();
   }
 
-  Future<void> playFile(String path, String name, {int? id, bool append = false}) async {
+  Future<void> playFile(
+    String path,
+    String name, {
+    int? id,
+    bool append = false,
+  }) async {
     final song = MusicFile(path: path, name: name, id: id);
     if (!append) {
       _playlist.clear();
@@ -449,7 +480,9 @@ class AudioService extends ChangeNotifier {
 
     final int index = _playlist.length;
     _playlist.add(song);
-    await _player.playlist.addTracks([AudioTrack(id: index.toString(), uri: path)]);
+    await _player.playlist.addTracks([
+      AudioTrack(id: index.toString(), uri: path),
+    ]);
 
     _startQueueBackgroundProcessing();
     await playAtIndex(index);
@@ -481,11 +514,19 @@ class AudioService extends ChangeNotifier {
 
       // Play the selected track
       if (_player.playlist.activePlaylistId != null) {
-        await _player.playlist.setActivePlaylist(_player.playlist.activePlaylistId!, startIndex: safeIndex, autoPlay: true);
+        await _player.playlist.setActivePlaylist(
+          _player.playlist.activePlaylistId!,
+          startIndex: safeIndex,
+          autoPlay: true,
+        );
       }
 
       final current = songs[safeIndex];
-      await _updateCurrentMetadata(current.path, current.displayName, id: current.id);
+      await _updateCurrentMetadata(
+        current.path,
+        current.displayName,
+        id: current.id,
+      );
 
       await _player.player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
@@ -511,7 +552,11 @@ class AudioService extends ChangeNotifier {
     if (wasEmpty) {
       _currentIndex = 0;
       final current = songs[0];
-      await _updateCurrentMetadata(current.path, current.displayName, id: current.id);
+      await _updateCurrentMetadata(
+        current.path,
+        current.displayName,
+        id: current.id,
+      );
       await _player.player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
     }
@@ -556,7 +601,11 @@ class AudioService extends ChangeNotifier {
         if (newIndex >= 0 && newIndex < _playlist.length) {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
-          await _updateCurrentMetadata(song.path, song.displayName, id: song.id);
+          await _updateCurrentMetadata(
+            song.path,
+            song.displayName,
+            id: song.id,
+          );
           await _refreshCurrentWaveform(notify: false);
         }
       }
@@ -575,7 +624,11 @@ class AudioService extends ChangeNotifier {
     _lastActionNext = (index > _currentIndex);
     try {
       if (_player.playlist.activePlaylistId != null) {
-        await _player.playlist.setActivePlaylist(_player.playlist.activePlaylistId!, startIndex: index, autoPlay: true);
+        await _player.playlist.setActivePlaylist(
+          _player.playlist.activePlaylistId!,
+          startIndex: index,
+          autoPlay: true,
+        );
       }
       _currentIndex = index;
       final song = _playlist[_currentIndex];
@@ -598,7 +651,11 @@ class AudioService extends ChangeNotifier {
         if (newIndex >= 0 && newIndex < _playlist.length) {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
-          await _updateCurrentMetadata(song.path, song.displayName, id: song.id);
+          await _updateCurrentMetadata(
+            song.path,
+            song.displayName,
+            id: song.id,
+          );
           await _refreshCurrentWaveform(notify: false);
         }
       }
@@ -609,6 +666,12 @@ class AudioService extends ChangeNotifier {
   }
 
   Future<void> togglePlay() async {
+    if (Platform.isAndroid && !_isPlaying) {
+      final session = await AudioSession.instance;
+      if (!await session.setActive(true)) {
+        return; // Failed to get focus
+      }
+    }
     await _player.player.togglePlayPause();
   }
 
@@ -675,18 +738,22 @@ class AudioService extends ChangeNotifier {
         ? RandomStrategy.random()
         : RandomStrategy.fisherYates();
 
-    _player.playlist.setRandomPolicy(RandomPolicy(
-      scope: RandomScope.all(),
-      strategy: strategy,
-      label: method == 0 ? 'completeRandom' : 'shuffleRandom',
-    ));
+    _player.playlist.setRandomPolicy(
+      RandomPolicy(
+        scope: RandomScope.all(),
+        strategy: strategy,
+        label: method == 0 ? 'completeRandom' : 'shuffleRandom',
+      ),
+    );
   }
 
   void _expandPlaylistToGlobal(List<MusicFile> globalSongs) {
     // Merge current playlist with global songs, deduplicate by path
     final existingPaths = _playlist.map((s) => s.path).toSet();
-    final newSongs = globalSongs.where((s) => !existingPaths.contains(s.path)).toList();
-    
+    final newSongs = globalSongs
+        .where((s) => !existingPaths.contains(s.path))
+        .toList();
+
     if (newSongs.isEmpty) return;
 
     final startIndex = _playlist.length;
@@ -695,7 +762,7 @@ class AudioService extends ChangeNotifier {
     final tracks = newSongs.asMap().entries.map((e) {
       return AudioTrack(id: (startIndex + e.key).toString(), uri: e.value.path);
     }).toList();
-    
+
     // We don't use await here to keep it synchronous for the toggle
     unawaited(_player.playlist.addTracks(tracks));
     _startQueueBackgroundProcessing();
@@ -704,21 +771,23 @@ class AudioService extends ChangeNotifier {
   void _startQueueBackgroundProcessing() {
     if (_queueProcessor.isProcessing || _playlist.isEmpty) return;
 
-    unawaited(_queueProcessor.processQueue(
-      playlist: List.from(_playlist),
-      currentFilePath: _currentFilePath,
-      onUpdate: (path, updates) {
-        if (path == _currentFilePath) {
-          if (updates.containsKey('themeColors')) {
-            _applyThemeColors(updates['themeColors'] as Map<String, Color>);
+    unawaited(
+      _queueProcessor.processQueue(
+        playlist: List.from(_playlist),
+        currentFilePath: _currentFilePath,
+        onUpdate: (path, updates) {
+          if (path == _currentFilePath) {
+            if (updates.containsKey('themeColors')) {
+              _applyThemeColors(updates['themeColors'] as Map<String, Color>);
+            }
+            if (updates.containsKey('waveform')) {
+              _currentWaveform = updates['waveform'] as List<double>;
+            }
+            notifyListeners();
           }
-          if (updates.containsKey('waveform')) {
-            _currentWaveform = updates['waveform'] as List<double>;
-          }
-          notifyListeners();
-        }
-      },
-    ));
+        },
+      ),
+    );
   }
 
   @override

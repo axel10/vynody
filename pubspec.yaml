@@ -72,9 +72,11 @@ dependencies:
     path: ./plugin/liquid_glass_easy
   windows_taskbar: 
     path: ./plugin/windows_taskbar
-  smtc_windows:
-    path: ./plugin/frb_plugins/packages/smtc_windows
-  # flutter_tilt: ^3.3.2
+  smtc_windows: ^1.1.0
+  audio_session: ^0.2.3
+  audio_service: 
+    path: ./plugin/audio_service/audio_service
+
 
 dev_dependencies:
   flutter_test:

@@ -25,6 +25,37 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.13.0"
+  audio_service:
+    dependency: "direct main"
+    description:
+      path: "plugin/audio_service/audio_service"
+      relative: true
+    source: path
+    version: "0.18.18"
+  audio_service_platform_interface:
+    dependency: transitive
+    description:
+      name: audio_service_platform_interface
+      sha256: "6283782851f6c8b501b60904a32fc7199dc631172da0629d7301e66f672ab777"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.1.3"
+  audio_service_web:
+    dependency: transitive
+    description:
+      name: audio_service_web
+      sha256: b8ea9243201ee53383157fbccf13d5d2a866b5dda922ec19d866d1d5d70424df
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.1.4"
+  audio_session:
+    dependency: "direct main"
+    description:
+      name: audio_session
+      sha256: "7217b229db57cc4dc577a8abb56b7429a5a212b978517a5be578704bfe5e568b"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.2.3"
   audio_visualizer_player:
     dependency: "direct main"
     description:
@@ -173,6 +204,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_cache_manager:
+    dependency: transitive
+    description:
+      name: flutter_cache_manager
+      sha256: "400b6592f16a4409a7f2bb929a9a7e38c72cceb8ffb99ee57bbf2cb2cecf8386"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "3.4.1"
   flutter_colorpicker:
     dependency: "direct main"
     description:
@@ -292,6 +331,22 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.2"
+  http:
+    dependency: transitive
+    description:
+      name: http
+      sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.6.0"
+  http_parser:
+    dependency: transitive
+    description:
+      name: http_parser
+      sha256: "178d74305e7866013777bab2c3d8726205dc5a4dd935297175b19a23a2e66571"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "4.1.2"
   id3:
     dependency: transitive
     description:
@@ -316,6 +371,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.20.2"
+  js:
+    dependency: transitive
+    description:
+      name: js
+      sha256: "53385261521cc4a0c4658fd0ad07a7d14591cf8fc33abbceae306ddb974888dc"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.7.2"
   json_annotation:
     dependency: transitive
     description:
@@ -669,6 +732,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.0"
+  rxdart:
+    dependency: transitive
+    description:
+      name: rxdart
+      sha256: "5c3004a4a8dbb94bd4bf5412a4def4acdaa12e12f269737a5751369e12d1a962"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.28.0"
   screen_retriever:
     dependency: transitive
     description:
@@ -773,9 +844,10 @@ packages:
   smtc_windows:
     dependency: "direct main"
     description:
-      path: "plugin/frb_plugins/packages/smtc_windows"
-      relative: true
-    source: path
+      name: smtc_windows
+      sha256: dee279b0ddf663c4c729a88bca4e57fb4861aa1b3d01e230bdbf1277b8bfe664
+      url: "https://pub.flutter-io.cn"
+    source: hosted
     version: "1.1.0"
   source_span:
     dependency: transitive
@@ -983,7 +1055,7 @@ packages:
       path: "plugin/windows_taskbar"
       relative: true
     source: path
-    version: "1.1.2"
+    version: "1.1.4"
   xdg_directories:
     dependency: transitive
     description:
