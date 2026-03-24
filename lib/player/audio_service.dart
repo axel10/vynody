@@ -45,6 +45,12 @@ class AudioService extends ChangeNotifier {
   int _currentIndex = -1;
   bool? _lastActionNext;
   bool _isTransitioning = false;
+  DateTime _lastPlayerNotifyAt = DateTime.fromMillisecondsSinceEpoch(0);
+  Duration _lastNotifiedPosition = Duration.zero;
+  Duration _lastNotifiedDuration = Duration.zero;
+  bool? _lastNotifiedIsPlaying;
+  int _lastNotifiedIndex = -1;
+  String? _lastNotifiedFilePath;
   final SettingsService settingsService;
   late final VisualizerOptionsService _visualizerOptions;
   late final PlaybackQueueProcessor _queueProcessor;
@@ -155,25 +161,53 @@ class AudioService extends ChangeNotifier {
       if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
         final song = _playlist[_currentIndex];
         unawaited(
-          _updateCurrentMetadata(song).then(
-            (_) {
-              _refreshCurrentWaveform();
-              _windowsIntegration?.updateMetadata(_playlist[newIndex]);
-              _androidIntegration?.updateMetadata(_playlist[newIndex]);
-            },
-          ),
+          _updateCurrentMetadata(song).then((_) {
+            _refreshCurrentWaveform();
+            _windowsIntegration?.updateMetadata(_playlist[newIndex]);
+            _androidIntegration?.updateMetadata(_playlist[newIndex]);
+          }),
         );
       }
       _windowsIntegration?.updatePlaybackStatus(_isPlaying);
       _androidIntegration?.updatePlaybackStatus(_isPlaying);
-      notifyListeners();
+      _notifyIfNeeded(force: true);
     } else {
       _windowsIntegration?.updateTimeline(_position, _duration);
       _androidIntegration?.updateTimeline(_position, _duration);
       _windowsIntegration?.updatePlaybackStatus(_isPlaying);
       _androidIntegration?.updatePlaybackStatus(_isPlaying);
-      notifyListeners();
+      _notifyIfNeeded();
     }
+  }
+
+  void _notifyIfNeeded({bool force = false}) {
+    final now = DateTime.now();
+    final playbackChanged =
+        _isPlaying != _lastNotifiedIsPlaying ||
+        _duration != _lastNotifiedDuration ||
+        _currentIndex != _lastNotifiedIndex ||
+        _currentFilePath != _lastNotifiedFilePath;
+    final positionJump = (_position - _lastNotifiedPosition)
+        .abs()
+        .inMilliseconds;
+    final positionChangedSignificantly = positionJump >= 120;
+    final elapsed = now.difference(_lastPlayerNotifyAt);
+    final shouldNotify =
+        force ||
+        playbackChanged ||
+        positionChangedSignificantly ||
+        (_isPlaying && elapsed >= const Duration(milliseconds: 120)) ||
+        (!_isPlaying && elapsed >= const Duration(milliseconds: 500));
+
+    if (!shouldNotify) return;
+
+    _lastPlayerNotifyAt = now;
+    _lastNotifiedPosition = _position;
+    _lastNotifiedDuration = _duration;
+    _lastNotifiedIsPlaying = _isPlaying;
+    _lastNotifiedIndex = _currentIndex;
+    _lastNotifiedFilePath = _currentFilePath;
+    notifyListeners();
   }
 
   bool? get isLastActionNext => _lastActionNext;
@@ -464,8 +498,15 @@ class AudioService extends ChangeNotifier {
           newArtworkBytes = bytes;
           try {
             final tempDir = await getTemporaryDirectory();
+            // Use a unique file name per artwork refresh so Android's native
+            // bitmap cache does not keep serving a stale cover when the same
+            // temp path gets overwritten for the next song.
+            final artworkSuffix = [
+              id.toString(),
+              DateTime.now().microsecondsSinceEpoch.toString(),
+            ].join('_');
             final artworkFile = File(
-              '${tempDir.path}/current_notification_artwork.jpg',
+              '${tempDir.path}/current_notification_artwork_$artworkSuffix.jpg',
             );
             await artworkFile.writeAsBytes(bytes);
             newArtworkPath = artworkFile.path;

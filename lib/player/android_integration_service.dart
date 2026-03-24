@@ -10,6 +10,12 @@ class AndroidIntegrationService {
   final app.AudioService audioService;
   late MyAudioHandler _handler;
   bool _initialized = false;
+  String? _lastMetadataKey;
+  DateTime _lastTimelineForwardedAt =
+      DateTime.fromMillisecondsSinceEpoch(0);
+  Duration _lastTimelinePosition = Duration.zero;
+  Duration _lastTimelineDuration = Duration.zero;
+  bool _hasForwardedTimeline = false;
 
   AndroidIntegrationService(this.audioService) {
     if (!Platform.isAndroid) return;
@@ -61,6 +67,17 @@ class AndroidIntegrationService {
   void updateMetadata(MusicFile? song) {
     if (!Platform.isAndroid || !_initialized) return;
 
+    final metadataKey = [
+      song?.path ?? audioService.currentFilePath,
+      audioService.currentFileName,
+      audioService.currentArtist,
+      audioService.currentAlbum,
+      audioService.currentArtworkPath,
+      audioService.duration.inMilliseconds.toString(),
+    ].join('|');
+    if (_lastMetadataKey == metadataKey) return;
+    _lastMetadataKey = metadataKey;
+
     _handler.onMetadataChanged();
   }
 
@@ -76,6 +93,26 @@ class AndroidIntegrationService {
 
   void updateTimeline(Duration position, Duration duration) {
     if (!Platform.isAndroid || !_initialized) return;
+
+    final now = DateTime.now();
+    final elapsed = now.difference(_lastTimelineForwardedAt);
+    final positionJump = (position - _lastTimelinePosition).abs();
+    final durationChanged = duration != _lastTimelineDuration;
+
+    final shouldForward = !_hasForwardedTimeline ||
+        durationChanged ||
+        position == Duration.zero ||
+        positionJump >= const Duration(milliseconds: 500) ||
+        elapsed >= const Duration(milliseconds: 250) ||
+        (!audioService.isPlaying &&
+            elapsed >= const Duration(milliseconds: 1000));
+
+    if (!shouldForward) return;
+
+    _hasForwardedTimeline = true;
+    _lastTimelineForwardedAt = now;
+    _lastTimelinePosition = position;
+    _lastTimelineDuration = duration;
 
     _handler.onPositionChanged(position, duration);
   }
@@ -154,11 +191,9 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
         artUri: appAudio.currentArtworkPath != null &&
                 File(appAudio.currentArtworkPath!).existsSync()
             ? Uri.file(appAudio.currentArtworkPath!)
-            : null,
+          : null,
       ),
     );
-    // Also update playback state to ensure duration is reflected
-    onPlaybackStatusChanged(appAudio.isPlaying);
   }
 
   void onPlaybackStatusChanged(bool isPlaying) {
