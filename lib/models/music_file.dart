@@ -4,6 +4,8 @@ class MusicFile {
   final String path;
   final String name;
   final String? title;
+  final String? artist;
+  final String? album;
   final int? trackNumber;
   final int? id; // System Media Library ID
 
@@ -11,6 +13,8 @@ class MusicFile {
     required this.path,
     required this.name,
     this.title,
+    this.artist,
+    this.album,
     this.trackNumber,
     this.id,
   });

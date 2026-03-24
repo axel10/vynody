@@ -64,8 +64,12 @@ class AndroidIntegrationService {
     _handler.onMetadataChanged();
   }
 
+  bool? _lastIsPlaying;
+
   void updatePlaybackStatus(bool isPlaying) {
     if (!Platform.isAndroid || !_initialized) return;
+    if (_lastIsPlaying == isPlaying) return;
+    _lastIsPlaying = isPlaying;
 
     _handler.onPlaybackStatusChanged(isPlaying);
   }
@@ -147,19 +151,25 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
         title: appAudio.currentFileName ?? 'Unknown',
         artist: appAudio.currentArtist ?? 'Unknown',
         duration: appAudio.duration,
-        artUri:
-            appAudio.currentArtworkPath != null &&
+        artUri: appAudio.currentArtworkPath != null &&
                 File(appAudio.currentArtworkPath!).existsSync()
             ? Uri.file(appAudio.currentArtworkPath!)
             : null,
       ),
     );
+    // Also update playback state to ensure duration is reflected
+    onPlaybackStatusChanged(appAudio.isPlaying);
   }
 
   void onPlaybackStatusChanged(bool isPlaying) {
+    _lastPositionUpdateTime = DateTime.now();
+    _lastPositionValue = appAudio.position;
+    
     playbackState.add(
       playbackState.value.copyWith(
         playing: isPlaying,
+        speed: isPlaying ? 1.0 : 0.0,
+        updatePosition: _lastPositionValue,
         androidCompactActionIndices: const [0, 1, 2],
         controls: [
           MediaControl.skipToPrevious,
@@ -176,13 +186,32 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
     );
   }
 
+  DateTime _lastPositionUpdateTime = DateTime.fromMillisecondsSinceEpoch(0);
+  Duration _lastPositionValue = Duration.zero;
+
   void onPositionChanged(Duration position, Duration duration) {
-    playbackState.add(
-      playbackState.value.copyWith(
-        updatePosition: position,
-        bufferedPosition: position, // Simplified
-      ),
-    );
+    // Only update if there is a significant jump (seek) or if it's been a while (e.g. 10 seconds)
+    // to keep the clocks in sync, though usually interpolation is enough.
+    final now = DateTime.now();
+    final timeSinceLastUpdate = now.difference(_lastPositionUpdateTime);
+
+    // If it's a seek (difference between actual and expected > 1s)
+    final expectedPosition = _lastPositionValue +
+        (appAudio.isPlaying
+            ? timeSinceLastUpdate
+            : Duration.zero);
+    final drift = (position - expectedPosition).abs().inMilliseconds;
+
+    if (drift > 1000 || timeSinceLastUpdate.inSeconds > 10) {
+      _lastPositionUpdateTime = now;
+      _lastPositionValue = position;
+      playbackState.add(
+        playbackState.value.copyWith(
+          updatePosition: position,
+          bufferedPosition: position,
+        ),
+      );
+    }
   }
 
   @override

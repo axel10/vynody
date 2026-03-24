@@ -31,6 +31,8 @@ class Playlist {
                     path: s['path'] as String,
                     name: s['name'] as String,
                     title: s['title'] as String?,
+                    artist: s['artist'] as String?,
+                    album: s['album'] as String?,
                     trackNumber: s['trackNumber'] as int?,
                     id: s['id'] as int?,
                   ))
@@ -55,6 +57,8 @@ class Playlist {
                 'path': s.path,
                 'name': s.name,
                 'title': s.title,
+                'artist': s.artist,
+                'album': s.album,
                 'trackNumber': s.trackNumber,
                 'id': s.id,
               })

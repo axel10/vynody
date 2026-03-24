@@ -350,6 +350,8 @@ class ScannerService extends ChangeNotifier {
         path: path,
         name: p.basename(path),
         title: song.title,
+        artist: song.artist,
+        album: song.album,
         trackNumber: song.track,
         id: song.id,
       );
@@ -568,6 +570,8 @@ class ScannerService extends ChangeNotifier {
             final id = _pathIdMap[entity.path];
 
             String? title;
+            String? artist;
+            String? album;
             int? trackNumber;
 
             if (Platform.isWindows) {
@@ -579,6 +583,8 @@ class ScannerService extends ChangeNotifier {
               if (metadata != null) {
                 _metadataMap[entity.path] = metadata;
                 title = metadata.title;
+                artist = metadata.artist;
+                album = metadata.album;
                 trackNumber = metadata.trackNumber;
               }
             }
@@ -588,6 +594,8 @@ class ScannerService extends ChangeNotifier {
                 path: entity.path,
                 name: p.basename(entity.path),
                 title: title,
+                artist: artist,
+                album: album,
                 trackNumber: trackNumber,
                 id: id,
               ),

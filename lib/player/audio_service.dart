@@ -8,6 +8,7 @@ import 'package:metadata_god/metadata_god.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:image/image.dart' as img;
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:collection/collection.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'settings_service.dart';
@@ -154,7 +155,7 @@ class AudioService extends ChangeNotifier {
       if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
         final song = _playlist[_currentIndex];
         unawaited(
-          _updateCurrentMetadata(song.path, song.displayName, id: song.id).then(
+          _updateCurrentMetadata(song).then(
             (_) {
               _refreshCurrentWaveform();
               _windowsIntegration?.updateMetadata(_playlist[newIndex]);
@@ -361,19 +362,19 @@ class AudioService extends ChangeNotifier {
     }
   }
 
-  Future<void> _updateCurrentMetadata(
-    String path,
-    String name, {
-    int? id,
-  }) async {
+  Future<void> _updateCurrentMetadata(MusicFile song) async {
+    final path = song.path;
+    final name = song.displayName;
+    final id = song.id;
+
     if (_currentFilePath == path && _currentSongId == id) return;
 
     // Clear previous high-res bytes to avoid showing wrong artwork during transition
     _currentArtworkBytes = null;
     _currentFilePath = path;
     _currentFileName = name;
-    _currentArtist = null;
-    _currentAlbum = null;
+    _currentArtist = song.artist;
+    _currentAlbum = song.album;
     _currentSongId = id;
 
     // 1. Try to get metadata from database immediately (fast)
@@ -430,6 +431,28 @@ class AudioService extends ChangeNotifier {
       }
     } else if (Platform.isAndroid && id != null) {
       try {
+        // Fetch metadata if missing
+        if (_currentArtist == null ||
+            _currentArtist == 'Unknown' ||
+            _currentAlbum == null ||
+            _currentAlbum == 'Unknown') {
+          // We can use querySongs with a small scope or just use queryArtwork then query info.
+          // on_audio_query doesn't have a direct querySongById, but we can filter.
+          // To avoid performance issues, we only do this if we really need it.
+          final songs = await _audioQuery.querySongs(
+            sortType: null,
+            orderType: OrderType.ASC_OR_SMALLER,
+            uriType: UriType.EXTERNAL,
+            ignoreCase: true,
+          );
+          final actualSong = songs.firstWhereOrNull((s) => s.id == id);
+          if (actualSong != null) {
+            _currentFileName = actualSong.title;
+            _currentArtist = actualSong.artist;
+            _currentAlbum = actualSong.album;
+          }
+        }
+
         final bytes = await _audioQuery.queryArtwork(
           id,
           ArtworkType.AUDIO,
@@ -451,7 +474,7 @@ class AudioService extends ChangeNotifier {
           }
         }
       } catch (e) {
-        debugPrint('Error querying artwork on Android: $e');
+        debugPrint('Error querying artwork/metadata on Android: $e');
       }
     }
 
@@ -522,11 +545,7 @@ class AudioService extends ChangeNotifier {
       }
 
       final current = songs[safeIndex];
-      await _updateCurrentMetadata(
-        current.path,
-        current.displayName,
-        id: current.id,
-      );
+      await _updateCurrentMetadata(current);
 
       await _player.player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
@@ -552,11 +571,7 @@ class AudioService extends ChangeNotifier {
     if (wasEmpty) {
       _currentIndex = 0;
       final current = songs[0];
-      await _updateCurrentMetadata(
-        current.path,
-        current.displayName,
-        id: current.id,
-      );
+      await _updateCurrentMetadata(current);
       await _player.player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
     }
@@ -601,11 +616,7 @@ class AudioService extends ChangeNotifier {
         if (newIndex >= 0 && newIndex < _playlist.length) {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
-          await _updateCurrentMetadata(
-            song.path,
-            song.displayName,
-            id: song.id,
-          );
+          await _updateCurrentMetadata(song);
           await _refreshCurrentWaveform(notify: false);
         }
       }
@@ -632,7 +643,7 @@ class AudioService extends ChangeNotifier {
       }
       _currentIndex = index;
       final song = _playlist[_currentIndex];
-      await _updateCurrentMetadata(song.path, song.displayName, id: song.id);
+      await _updateCurrentMetadata(song);
       await _refreshCurrentWaveform(notify: false);
     } finally {
       _isTransitioning = false;
@@ -651,11 +662,7 @@ class AudioService extends ChangeNotifier {
         if (newIndex >= 0 && newIndex < _playlist.length) {
           _currentIndex = newIndex;
           final song = _playlist[_currentIndex];
-          await _updateCurrentMetadata(
-            song.path,
-            song.displayName,
-            id: song.id,
-          );
+          await _updateCurrentMetadata(song);
           await _refreshCurrentWaveform(notify: false);
         }
       }
