@@ -336,9 +336,8 @@ class _CoverItemState extends State<_CoverItem> {
   }
 
   Future<void> _loadHighResMetadata() async {
-    if (!Platform.isWindows) return;
-
     try {
+      // 1. Try MetadataGod (Directly read from file - Best Quality)
       final metadataGod = await MetadataGod.readMetadata(
         file: widget.musicFile.path,
       );
@@ -347,9 +346,32 @@ class _CoverItemState extends State<_CoverItem> {
         setState(() {
           _artworkBytes = bytes;
         });
+        return; // Success
       }
     } catch (_) {
-      // Ignore background loading errors
+      // Ignore reading errors
+    }
+
+    // 2. Android/iOS Fallback to System Media Store for HD artwork
+    if (Platform.isAndroid || Platform.isIOS) {
+      if (widget.musicFile.id != null) {
+        try {
+          final bytes = await OnAudioQuery().queryArtwork(
+            widget.musicFile.id!,
+            ArtworkType.AUDIO,
+            format: ArtworkFormat.JPEG,
+            size: 600, // Higher resolution for carousel
+            quality: 100,
+          );
+          if (bytes != null && mounted) {
+            setState(() {
+              _artworkBytes = bytes;
+            });
+          }
+        } catch (_) {
+          // Ignore fallback errors
+        }
+      }
     }
   }
 
@@ -407,7 +429,20 @@ class _CoverItemState extends State<_CoverItem> {
   }
 
   Widget _buildCoverImage() {
-    // Always prefer AudioService if it's the current song and has bytes
+    // 1. Try AudioService Cache (HD from PlaybackQueueProcessor pre-loading)
+    final cachedBytes =
+        widget.audioService.getCachedArtwork(widget.musicFile.path);
+    if (cachedBytes != null) {
+      return Image.memory(
+        cachedBytes,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        gaplessPlayback: true,
+      );
+    }
+
+    // 2. Try Current Artwork (HD from AudioService current song loading)
     if (widget.audioService.currentFilePath == widget.musicFile.path &&
         widget.audioService.currentArtworkBytes != null) {
       return Image.memory(
@@ -419,6 +454,7 @@ class _CoverItemState extends State<_CoverItem> {
       );
     }
 
+    // 3. Fallback to local State/DB thumbnails
     if (_artworkBytes != null) {
       return Image.memory(
         _artworkBytes!,

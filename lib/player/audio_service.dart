@@ -166,6 +166,7 @@ class AudioService extends ChangeNotifier {
             _refreshCurrentWaveform();
             _windowsIntegration?.updateMetadata(_playlist[newIndex]);
             _androidIntegration?.updateMetadata(_playlist[newIndex]);
+            _startQueueBackgroundProcessing();
           }),
         );
       }
@@ -233,6 +234,11 @@ class AudioService extends ChangeNotifier {
   List<MusicFile> get playlist => List.unmodifiable(_playlist);
   int get currentIndex => _currentIndex;
   bool get isRandomMode => _player.playlist.randomPolicy != null;
+
+  Uint8List? getCachedArtwork(String? path) =>
+      path != null ? _hdArtworkCache[path] : null;
+
+  int get maxHdCacheSize => _maxHdCacheSize;
 
   bool get isShuffleRandomMode =>
       _player.playlist.randomPolicy?.label == 'shuffleRandom';
@@ -438,10 +444,21 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
 
     // 2. Load fresh high-quality metadata and artwork
-    Uint8List? newArtworkBytes;
+    Uint8List? newArtworkBytes = _hdArtworkCache[path]; // Try cache first
     String? newArtworkPath = _currentArtworkPath;
     int? newArtworkWidth = _artworkWidth;
     int? newArtworkHeight = _artworkHeight;
+    
+    // If not in cache, we'll try to load it asynchronously below
+    bool wasInCache = newArtworkBytes != null;
+    if (wasInCache) {
+      // Get dimensions from the cached bytes if possible
+      final image = img.decodeImage(newArtworkBytes);
+      if (image != null) {
+        newArtworkWidth = image.width;
+        newArtworkHeight = image.height;
+      }
+    }
 
     if (songFromDb == null) {
       // If not in DB, use MetadataHelper to process it (and save to DB for next time)
@@ -459,50 +476,73 @@ class AudioService extends ChangeNotifier {
       }
     }
 
-    // Still try to get original high-res bytes for the playback page
-    if (Platform.isWindows) {
+    // 3. 统一全平台高清元数据与原封加载 (Unified HD Metadata & Artwork Loading)
+    if (!wasInCache) {
       try {
         final metadata = await MetadataGod.readMetadata(file: path);
         final bytes = metadata.picture?.data;
         if (bytes != null) {
           newArtworkBytes = bytes;
+          _hdArtworkCache[path] = bytes; // Cache it for potential immediate replay
           final image = img.decodeImage(bytes);
           if (image != null) {
             newArtworkWidth = image.width;
             newArtworkHeight = image.height;
           }
-        }
-      } catch (e) {
-        debugPrint('Error reading high-res metadata on Windows: $e');
-      }
-    } else if (Platform.isAndroid && id != null) {
-      try {
-        final bytes = await _audioQuery.queryArtwork(
-          id,
-          ArtworkType.AUDIO,
-          format: ArtworkFormat.JPEG,
-          size: 600,
-          quality: 100,
-        );
-        if (bytes != null) {
-          newArtworkBytes = bytes;
+        } else if (Platform.isAndroid && id != null) {
+          // 如果 MetadataGod 未能直接从文件读取到封面，Android 平台尝试从系统 MediaStore 兜底
           try {
-            final tempDir = await getTemporaryDirectory();
-            final artworkSuffix = [
-              id.toString(),
-              DateTime.now().microsecondsSinceEpoch.toString(),
-            ].join('_');
-            final artworkFile = File(
-              '${tempDir.path}/current_notification_artwork_$artworkSuffix.jpg',
+            final fallbackBytes = await _audioQuery.queryArtwork(
+              id,
+              ArtworkType.AUDIO,
+              format: ArtworkFormat.JPEG,
+              size: 600,
+              quality: 100,
             );
-            await artworkFile.writeAsBytes(bytes);
-            newArtworkPath = artworkFile.path;
+            if (fallbackBytes != null) {
+              newArtworkBytes = fallbackBytes;
+              _hdArtworkCache[path] = fallbackBytes;
+            }
           } catch (e) {
-            debugPrint('Error saving notification artwork: $e');
+            debugPrint('Error in Android artwork fallback: $e');
           }
         }
       } catch (e) {
-        debugPrint('Error querying high-res artwork on Android: $e');
+        debugPrint('Error reading high-res metadata (Unified): $e');
+        // 如果 MetadataGod 抛出异常且在 Android 上，则尝试兜底
+        if (Platform.isAndroid && id != null && newArtworkBytes == null) {
+          try {
+            final fallbackBytes = await _audioQuery.queryArtwork(
+              id,
+              ArtworkType.AUDIO,
+              format: ArtworkFormat.JPEG,
+              size: 600,
+              quality: 100,
+            );
+            if (fallbackBytes != null) {
+              newArtworkBytes = fallbackBytes;
+              _hdArtworkCache[path] = fallbackBytes;
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    // Android 平台的通知栏逻辑 (即使在缓存中也要确保 temp 文件存在)
+    if (Platform.isAndroid && newArtworkBytes != null) {
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final artworkSuffix = [
+          (id ?? path.hashCode).toString(),
+          DateTime.now().microsecondsSinceEpoch.toString(),
+        ].join('_');
+        final artworkFile = File(
+          '${tempDir.path}/current_notification_artwork_$artworkSuffix.jpg',
+        );
+        await artworkFile.writeAsBytes(newArtworkBytes);
+        newArtworkPath = artworkFile.path;
+      } catch (e) {
+        debugPrint('Error saving notification artwork on Android: $e');
       }
     }
 
@@ -803,8 +843,11 @@ class AudioService extends ChangeNotifier {
     _startQueueBackgroundProcessing();
   }
 
+  final Map<String, Uint8List> _hdArtworkCache = {};
+  static const int _maxHdCacheSize = 8;
+
   void _startQueueBackgroundProcessing() {
-    if (_queueProcessor.isProcessing || _playlist.isEmpty) return;
+    if (_playlist.isEmpty) return;
 
     unawaited(
       _queueProcessor.processQueue(
@@ -818,6 +861,17 @@ class AudioService extends ChangeNotifier {
             if (updates.containsKey('waveform')) {
               _currentWaveform = updates['waveform'] as List<double>;
             }
+            notifyListeners();
+          }
+        },
+        onHdArtworkLoaded: (path, bytes) {
+          _hdArtworkCache[path] = bytes;
+          if (_hdArtworkCache.length > _maxHdCacheSize) {
+            _hdArtworkCache.remove(_hdArtworkCache.keys.first);
+          }
+          // If the song we just loaded HD art for is the current song, update immediately
+          if (path == _currentFilePath && _currentArtworkBytes == null) {
+            _currentArtworkBytes = bytes;
             notifyListeners();
           }
         },

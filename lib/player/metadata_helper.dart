@@ -107,21 +107,22 @@ class MetadataHelper {
           '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}.webp';
       final targetPath = p.join(thumbnailsDir.path, fileName);
 
+      final originalImage = img.decodeImage(data);
+      if (originalImage == null) return null;
+
       Uint8List result;
 
       if (Platform.isWindows || Platform.isLinux) {
         // Use 'image' package on Windows/Linux as flutter_image_compress doesn't support them
-        final image = img.decodeImage(data);
-        if (image == null) return null;
-
+        
         // Crop center square first to avoid stretching non-square artwork.
-        final cropSize = image.width < image.height
-            ? image.width
-            : image.height;
-        final offsetX = (image.width - cropSize) ~/ 2;
-        final offsetY = (image.height - cropSize) ~/ 2;
+        final cropSize = originalImage.width < originalImage.height
+            ? originalImage.width
+            : originalImage.height;
+        final offsetX = (originalImage.width - cropSize) ~/ 2;
+        final offsetY = (originalImage.height - cropSize) ~/ 2;
         final square = img.copyCrop(
-          image,
+          originalImage,
           x: offsetX,
           y: offsetY,
           width: cropSize,
@@ -136,8 +137,7 @@ class MetadataHelper {
           interpolation: img.Interpolation.average,
         );
 
-        // Encode to WebP if possible, or JPEG. metadata_god/image package etc.
-        // img.encodeWebP is available in recent 'image' package versions.
+        // Encode to JPEG (image package supports WebP but JPEG is safer/faster for legacy)
         result = Uint8List.fromList(img.encodeJpg(resized, quality: 80));
       } else {
         // Use flutter_image_compress on supported platforms (Android, iOS, macOS)
@@ -153,12 +153,10 @@ class MetadataHelper {
       final file = File(targetPath);
       await file.writeAsBytes(result);
 
-      // Also get original dimensions to return
-      final originalImage = img.decodeImage(data);
       return {
         'path': targetPath,
-        'width': originalImage?.width,
-        'height': originalImage?.height,
+        'width': originalImage.width,
+        'height': originalImage.height,
       };
     } catch (e) {
       debugPrint('Error saving artwork: $e');

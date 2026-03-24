@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:palette_generator/palette_generator.dart';
+import 'package:metadata_god/metadata_god.dart';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
@@ -21,6 +22,7 @@ class PlaybackQueueProcessor {
   final AudioVisualizerPlayerController player;
   final SettingsService settingsService;
 
+  int _currentProcessId = 0;
   bool _isProcessing = false;
   bool get isProcessing => _isProcessing;
 
@@ -30,37 +32,100 @@ class PlaybackQueueProcessor {
     required this.settingsService,
   });
 
-  /// Starts processing the queue in the background.
-  /// [playlist] - current list of music files
-  /// [currentFilePath] - path of the song currently playing
-  /// [onUpdate] - callback when a song is updated, especially if it matches [currentFilePath]
   Future<void> processQueue({
     required List<MusicFile> playlist,
     required String? currentFilePath,
     required Function(String path, Map<String, dynamic> updates) onUpdate,
+    Function(String path, Uint8List bytes)? onHdArtworkLoaded,
   }) async {
-    if (_isProcessing || playlist.isEmpty) return;
+    // If already processing, we signal to stop the current one and start fresh with new priority
+    _currentProcessId++;
+    final int myId = _currentProcessId;
+
+    if (_isProcessing) {
+      debugPrint('Signaling background processor to re-prioritize');
+    }
+    
     _isProcessing = true;
 
     try {
-      debugPrint('Starting background queue processing');
-      final List<MusicFile> processingList = List.from(playlist);
+      debugPrint('Starting background queue processing (ID: $myId)');
+      
+      // 1. Sort the processing list to prioritize current and upcoming songs
+      final List<MusicFile> sortedList = List.from(playlist);
+      int currentIndex = -1;
+      if (currentFilePath != null) {
+        currentIndex = playlist.indexWhere((s) => s.path == currentFilePath);
+        if (currentIndex != -1) {
+          final Set<String> processed = <String>{};
+          final List<MusicFile> prioritized = <MusicFile>[];
 
-      for (final song in processingList) {
-        // Here we'd ideally check if the song is still in the playlist,
-        // but that check needs to happen in the loop or passed via another mechanism.
-        // For simplicity, we process what we have.
+          void addIfUnique(int index) {
+            final idx = index % playlist.length;
+            final song = playlist[idx < 0 ? idx + playlist.length : idx];
+            if (processed.add(song.path)) {
+              prioritized.add(song);
+            }
+          }
+
+          // 1 & 2: Next 15 songs (even more than before to avoid gaps)
+          for (int i = 0; i <= 15; i++) {
+            addIfUnique(currentIndex + i);
+          }
+          // 3: Previous 2 songs
+          for (int i = 1; i <= 2; i++) {
+            addIfUnique(currentIndex - i);
+          }
+          // 4: Everything else
+          for (int i = 0; i < playlist.length; i++) {
+            addIfUnique(i);
+          }
+          
+          sortedList.clear();
+          sortedList.addAll(prioritized);
+        }
+      }
+
+      for (final song in sortedList) {
+        // Check if we've been superseded by a newer request
+        if (myId != _currentProcessId) {
+          debugPrint('Background process $myId superseded by $_currentProcessId, exiting.');
+          return;
+        }
 
         try {
           final existing = await db.getSongMetadata(song.path);
 
+          // We check if basic metadata/thumbnail is missing
           bool needsWaveform = existing == null || existing.waveformBlob == null;
           bool needsThemeColor = existing == null || existing.themeColorsBlob == null;
+          
+          // HD PRE-FETCH: If this song is near the current song, pre-fetch HD artwork
+          if (onHdArtworkLoaded != null && currentIndex != -1) {
+            final int songIndex = playlist.indexWhere((s) => s.path == song.path);
+            final int distance = (songIndex - currentIndex + playlist.length) % playlist.length;
+            
+            // Pre-fetch for current, next 3, and previous 1
+            bool isNear = distance <= 3 || distance == playlist.length - 1;
+            
+            if (isNear) {
+              try {
+                // Read from file stream directly
+                final m = await MetadataGod.readMetadata(file: song.path);
+                final bytes = m.picture?.data;
+                if (bytes != null) {
+                  onHdArtworkLoaded(song.path, bytes);
+                }
+              } catch (e) {
+                // Ignore errors for pre-fetch
+              }
+            }
+          }
 
           if (needsWaveform || needsThemeColor) {
             debugPrint('Background processing: ${song.path}');
 
-            // 1. Process basic metadata
+            // 1. Process basic metadata & thumbnail
             final SongMetadata? initialMetadata = await MetadataHelper.processMetadata(song.path);
 
             if (initialMetadata != null) {
