@@ -104,7 +104,7 @@ class MetadataHelper {
       }
 
       final fileName =
-          '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}.webp';
+          '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}.jpg';
       final targetPath = p.join(thumbnailsDir.path, fileName);
 
       final originalImage = img.decodeImage(data);
@@ -146,7 +146,7 @@ class MetadataHelper {
           minWidth: 200,
           minHeight: 200,
           quality: 80,
-          format: CompressFormat.webp,
+          format: CompressFormat.jpeg,
         );
       }
 
