@@ -445,10 +445,14 @@ class _PlaybackPageState extends State<PlaybackPage>
                     child: Container(
                       decoration: BoxDecoration(
                         image: DecorationImage(
-                          image: audio.currentArtworkBytes != null
-                              ? MemoryImage(audio.currentArtworkBytes!)
-                              : FileImage(File(audio.currentArtworkPath!))
-                                    as ImageProvider,
+                          image: ResizeImage(
+                            audio.currentArtworkBytes != null
+                                ? MemoryImage(audio.currentArtworkBytes!)
+                                : FileImage(File(audio.currentArtworkPath!))
+                                      as ImageProvider,
+                            width: 200,
+                            height: 200,
+                          ),
                           fit: BoxFit.cover,
                           colorFilter: ColorFilter.mode(
                             Colors.black.withValues(alpha: 0.4),

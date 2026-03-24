@@ -22,7 +22,8 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
   void initState() {
     super.initState();
     _initializePoints();
-    _subscribeToFft();
+    // FFT-based pulsing is disabled for better performance
+    // _subscribeToFft(); 
   }
 
   void _initializePoints() {
@@ -47,6 +48,7 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
     ];
   }
 
+/*
   void _subscribeToFft() {
     final audio = context.read<AudioService>();
     _fftSubscription = audio.player.visualizer.optimizedStream.listen((frame) {
@@ -66,6 +68,7 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
       });
     });
   }
+*/
 
   @override
   void dispose() {
