@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
-import 'package:metadata_god/metadata_god.dart';
+import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
@@ -31,17 +31,15 @@ class MetadataHelper {
       int? trackNumber;
 
       try {
-        final metadata = await MetadataGod.readMetadata(file: filePath);
+        final metadata = await compute(_readMetadataIsolate, filePath);
         title = metadata.title;
         album = metadata.album;
         artist = metadata.artist;
-        duration = (metadata.durationMs as num?)?.toInt();
+        duration = metadata.duration?.inMilliseconds;
         trackNumber = metadata.trackNumber;
-        artworkData = metadata.picture?.data;
+        artworkData = metadata.pictures.isNotEmpty ? metadata.pictures.first.bytes : null;
       } catch (e) {
-        debugPrint('MetadataGod error for $filePath: $e');
-        // If MetadataGod fails and we have a songId (Android), we might consider on_audio_query as fallback here, 
-        // but let's keep it simple and let the caller decide if it wants to try on_audio_query first.
+        debugPrint('audio_metadata_reader error for $filePath: $e');
       }
 
       String? artworkPath;
@@ -216,17 +214,21 @@ class MetadataHelper {
       if (image == null) return null;
 
       // 1. Downsample for perfo rmance (50x50 is enough for a heavy blur)
-      final resized = img.copyResize(image, width: 50, height: 50);
+      final resized = img.copyResize(image, width: 200, height: 200);
 
       // 2. Apply Gaussian blur
       // Radius 5 on a 50x50 image is equivalent to a much larger radius on original image
       final blurred = img.gaussianBlur(resized, radius: 5);
 
       // 3. Encode as JPG (fastest)
-      return Uint8List.fromList(img.encodeJpg(blurred, quality: 70));
+      return Uint8List.fromList(img.encodePng(blurred, ));
     } catch (e) {
       debugPrint('Error blurring image in isolate: $e');
       return null;
     }
   }
+}
+
+AudioMetadata _readMetadataIsolate(String path) {
+  return readMetadata(File(path), getImage: true);
 }

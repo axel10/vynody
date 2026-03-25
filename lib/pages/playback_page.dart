@@ -447,7 +447,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                     width: double.infinity,
                     height: double.infinity,
                     fit: BoxFit.cover,
-                    filterQuality: FilterQuality.high,
+                    filterQuality: FilterQuality.low,
                     gaplessPlayback: true,
                     excludeFromSemantics: true,
                   );

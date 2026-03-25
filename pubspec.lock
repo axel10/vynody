@@ -25,6 +25,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.13.0"
+  audio_metadata_reader:
+    dependency: "direct main"
+    description:
+      path: "plugin/audio_metadata_reader"
+      relative: true
+    source: path
+    version: "1.4.2"
   audio_service:
     dependency: "direct main"
     description:
@@ -87,6 +94,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.4.1"
+  charset:
+    dependency: transitive
+    description:
+      name: charset
+      sha256: "27802032a581e01ac565904ece8c8962564b1070690794f0072f6865958ce8b9"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "2.0.1"
   clock:
     dependency: transitive
     description:
@@ -482,14 +497,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.17.0"
-  metadata_god:
-    dependency: "direct main"
+  mime:
+    dependency: transitive
     description:
-      name: metadata_god
-      sha256: "2b19b7e88cf5ab7016fe8d1f868bb35a193aaef06fd96cfc7de4ec3eacc16eb0"
+      name: mime
+      sha256: "41a20518f0cb1256669420fdba0cd90d21561e560ac240f26ef8322e45bb7ed6"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "1.1.0"
+    version: "2.0.0"
   native_toolchain_c:
     dependency: transitive
     description:

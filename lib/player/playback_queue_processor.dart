@@ -8,7 +8,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:palette_generator/palette_generator.dart';
-import 'package:metadata_god/metadata_god.dart';
+import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
@@ -111,8 +111,8 @@ class PlaybackQueueProcessor {
             if (isNear) {
               try {
                 // Read from file stream directly
-                final m = await MetadataGod.readMetadata(file: song.path);
-                final bytes = m.picture?.data;
+                final m = readMetadata(File(song.path), getImage: true);
+                final bytes = m.pictures.isNotEmpty ? m.pictures.first.bytes : null;
                 if (bytes != null) {
                   onHdArtworkLoaded(song.path, bytes);
                 }

@@ -35,7 +35,7 @@ dependencies:
   on_audio_query:
     path: ./plugin/on_audio_query/packages/on_audio_query
   media_scanner: ^2.2.0
-  metadata_god: ^1.1.0
+  # (metadata_god removed)
   file_picker: ^8.0.0
 
   # The following adds the Cupertino Icons font to your application.
@@ -73,6 +73,8 @@ dependencies:
   audio_session: ^0.2.3
   audio_service: 
     path: ./plugin/audio_service/audio_service
+  audio_metadata_reader: 
+    path: ./plugin/audio_metadata_reader
 
 
 dev_dependencies:

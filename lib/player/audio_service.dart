@@ -5,7 +5,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
-import 'package:metadata_god/metadata_god.dart';
+import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../models/music_file.dart';
@@ -499,8 +499,8 @@ class AudioService extends ChangeNotifier {
     // 3. 统一全平台高清元数据与原封加载 (Unified HD Metadata & Artwork Loading)
     if (!wasInCache) {
       try {
-        final metadata = await MetadataGod.readMetadata(file: path);
-        final bytes = metadata.picture?.data;
+        final metadata = readMetadata(File(path), getImage: true);
+        final bytes = metadata.pictures.isNotEmpty ? metadata.pictures.first.bytes : null;
         if (bytes != null) {
           newArtworkBytes = bytes;
           _hdArtworkCache[path] = bytes;
@@ -534,7 +534,7 @@ class AudioService extends ChangeNotifier {
         }
       } catch (e) {
         debugPrint('Error reading high-res metadata (Unified): $e');
-        // 如果 MetadataGod 抛出异常且在 Android 上，则尝试兜底
+        // 如果 audio_metadata_reader 抛出异常且在 Android 上，则尝试兜底
         if (Platform.isAndroid && id != null && newArtworkBytes == null) {
           try {
             final fallbackBytes = await _audioQuery.queryArtwork(

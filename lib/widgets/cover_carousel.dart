@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:metadata_god/metadata_god.dart';
+import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import '../player/audio_service.dart';
 import '../player/metadata_database.dart';
 import '../models/music_file.dart';
@@ -342,11 +342,12 @@ class _CoverItemState extends State<_CoverItem> {
 
   Future<void> _loadHighResMetadata() async {
     try {
-      // 1. Try MetadataGod (Directly read from file - Best Quality)
-      final metadataGod = await MetadataGod.readMetadata(
-        file: widget.musicFile.path,
+      // 1. Try audio_metadata_reader (Directly read from file - Best Quality)
+      final metadata = readMetadata(
+        File(widget.musicFile.path),
+        getImage: true,
       );
-      final bytes = metadataGod.picture?.data;
+      final bytes = metadata.pictures.isNotEmpty ? metadata.pictures.first.bytes : null;
       if (bytes != null && mounted) {
         setState(() {
           _artworkBytes = bytes;

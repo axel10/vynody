@@ -14,7 +14,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   audio_visualizer_player
-  metadata_god
   smtc_windows
 )
 

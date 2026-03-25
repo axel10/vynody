@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:metadata_god/metadata_god.dart';
+
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
@@ -75,9 +75,7 @@ void main(List<String> args) async {
     await SMTCWindows.initialize();
   }
 
-  if (Platform.isWindows || Platform.isLinux) {
-    MetadataGod.initialize();
-  }
+
 
   final settingsService = await SettingsService.init();
 
