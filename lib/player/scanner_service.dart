@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
@@ -57,6 +58,7 @@ class ScannerService extends ChangeNotifier {
 
   ScannerService([this._settingsService]) {
     _init();
+    _setupMediaObserver();
   }
 
   void setSortCriteria(SortCriteria criteria) {
@@ -133,6 +135,21 @@ class ScannerService extends ChangeNotifier {
     await checkAndRequestPermissions();
     // Auto scan on startup
     await scan();
+  }
+
+  void _setupMediaObserver() {
+    if (Platform.isAndroid) {
+      const mediaObserverChannel =
+          EventChannel('com.example.pure_player/media_observer');
+      mediaObserverChannel.receiveBroadcastStream().listen((event) {
+        if (event == 'media_changed' && !_isScanning) {
+          debugPrint('Media library change detected, re-scanning system media...');
+          scanSystemMedia();
+        }
+      }, onError: (err) {
+        debugPrint('Media observer error: $err');
+      });
+    }
   }
 
   Future<void> _loadRootPaths() async {
