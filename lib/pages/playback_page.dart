@@ -448,45 +448,22 @@ class _PlaybackPageState extends State<PlaybackPage>
   }
 
   Widget _buildBlurredBackground(BuildContext context) {
-    return Selector<AudioService, (Uint8List?, String?, String?)>(
-      selector: (_, a) => (a.currentArtworkBytes, a.currentArtworkPath, a.currentFilePath),
-      builder: (context, data, _) {
-        final artworkBytes = data.$1;
-        final artworkPath = data.$2;
-        final filePath = data.$3;
-
-        Widget content;
-        if (artworkBytes == null && (artworkPath == null || artworkPath.isEmpty)) {
+    return Selector<AudioService, Uint8List?>(
+      selector: (_, a) => a.currentBlurredArtworkBytes,
+      builder: (context, blurredBytes, _) {
+        final Widget content;
+        if (blurredBytes == null) {
           content = Container(key: const ValueKey('bg_empty'), color: Colors.black);
         } else {
-          content = KeyedSubtree(
-            key: ValueKey(filePath ?? 'bg_art'),
-            child: Transform.scale(
-              scale: 1.1,
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(
-                  sigmaX: 60,
-                  sigmaY: 60,
-                  tileMode: TileMode.mirror,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: ResizeImage(
-                        artworkBytes != null
-                            ? MemoryImage(artworkBytes)
-                            : FileImage(File(artworkPath!))
-                                  as ImageProvider,
-                        width: 200,
-                        height: 200,
-                      ),
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(
-                        Colors.black.withValues(alpha: 0.4),
-                        BlendMode.darken,
-                      ),
-                    ),
-                  ),
+          content = Container(
+            key: ValueKey(blurredBytes.hashCode),
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: MemoryImage(blurredBytes),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withValues(alpha: 0.4),
+                  BlendMode.darken,
                 ),
               ),
             ),
@@ -495,7 +472,10 @@ class _PlaybackPageState extends State<PlaybackPage>
 
         return Positioned.fill(
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 800),
+            duration: const Duration(milliseconds: 1200),
+            transitionBuilder: (child, animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
             child: content,
           ),
         );

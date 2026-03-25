@@ -59,6 +59,10 @@ class AudioService extends ChangeNotifier {
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
 
+  Uint8List? _currentBlurredArtworkBytes;
+  final Map<String, Uint8List> _blurredArtworkCache = {};
+  static const int _maxBlurredCacheSize = 20;
+
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
   Map<String, Color> _currentThemeColorsMap = const {};
@@ -231,6 +235,7 @@ class AudioService extends ChangeNotifier {
   int? get artworkWidth => _artworkWidth;
   int? get artworkHeight => _artworkHeight;
   String? get currentArtworkPath => _currentArtworkPath;
+  Uint8List? get currentBlurredArtworkBytes => _currentBlurredArtworkBytes;
   List<MusicFile> get playlist => List.unmodifiable(_playlist);
   int get currentIndex => _currentIndex;
   bool get isRandomMode => _player.playlist.randomPolicy != null;
@@ -482,7 +487,11 @@ class AudioService extends ChangeNotifier {
         final bytes = metadata.picture?.data;
         if (bytes != null) {
           newArtworkBytes = bytes;
-          _hdArtworkCache[path] = bytes; 
+          _hdArtworkCache[path] = bytes;
+          
+          // Trigger blur in background as soon as we have bytes
+          unawaited(_processBlurForPath(path, bytes));
+
           // Use dart:ui for much faster decoding on native side
           final codec = await ui.instantiateImageCodec(bytes);
           final frameInfo = await codec.getNextFrame();
@@ -501,6 +510,7 @@ class AudioService extends ChangeNotifier {
             if (fallbackBytes != null) {
               newArtworkBytes = fallbackBytes;
               _hdArtworkCache[path] = fallbackBytes;
+              unawaited(_processBlurForPath(path, fallbackBytes));
             }
           } catch (e) {
             debugPrint('Error in Android artwork fallback: $e');
@@ -521,6 +531,7 @@ class AudioService extends ChangeNotifier {
             if (fallbackBytes != null) {
               newArtworkBytes = fallbackBytes;
               _hdArtworkCache[path] = fallbackBytes;
+              unawaited(_processBlurForPath(path, fallbackBytes));
             }
           } catch (_) {}
         }
@@ -546,6 +557,15 @@ class AudioService extends ChangeNotifier {
     }
 
     _currentArtworkBytes = newArtworkBytes;
+    
+    // Check if blurred version is already cached
+    if (_blurredArtworkCache.containsKey(path)) {
+      _currentBlurredArtworkBytes = _blurredArtworkCache[path];
+    } else if (newArtworkBytes != null) {
+      // If not cached but we have bytes, trigger it (already done above but just in case)
+      unawaited(_processBlurForPath(path, newArtworkBytes));
+    }
+
     _currentArtworkPath = newArtworkPath;
     _artworkWidth = newArtworkWidth;
     _artworkHeight = newArtworkHeight;
@@ -665,6 +685,7 @@ class AudioService extends ChangeNotifier {
     _currentWaveform = const [];
     _currentArtworkBytes = null;
     _currentArtworkPath = null;
+    _currentBlurredArtworkBytes = null;
     await _player.playlist.clear();
     _duration = Duration.zero;
     _position = Duration.zero;
@@ -842,6 +863,22 @@ class AudioService extends ChangeNotifier {
     _startQueueBackgroundProcessing();
   }
 
+  Future<void> _processBlurForPath(String path, Uint8List bytes) async {
+    if (_blurredArtworkCache.containsKey(path)) return;
+
+    final blurred = await MetadataHelper.blurImage(bytes);
+    if (blurred != null) {
+      _blurredArtworkCache[path] = blurred;
+      if (_blurredArtworkCache.length > _maxBlurredCacheSize) {
+        _blurredArtworkCache.remove(_blurredArtworkCache.keys.first);
+      }
+      if (path == _currentFilePath) {
+        _currentBlurredArtworkBytes = blurred;
+        notifyListeners();
+      }
+    }
+  }
+
   final Map<String, Uint8List> _hdArtworkCache = {};
   static const int _maxHdCacheSize = 8;
 
@@ -871,7 +908,11 @@ class AudioService extends ChangeNotifier {
           // If the song we just loaded HD art for is the current song, update immediately
           if (path == _currentFilePath && _currentArtworkBytes == null) {
             _currentArtworkBytes = bytes;
+            unawaited(_processBlurForPath(path, bytes));
             notifyListeners();
+          } else {
+            // Also blur it and cache it for upcoming songs
+            unawaited(_processBlurForPath(path, bytes));
           }
         },
       ),

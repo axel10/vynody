@@ -175,4 +175,29 @@ class MetadataHelper {
       debugPrint('Error clearing thumbnails: $e');
     }
   }
+
+  /// Processes Gaussian blur in an Isolate (using compute)
+  static Future<Uint8List?> blurImage(Uint8List bytes) async {
+    return compute(_blurImageIsolate, bytes);
+  }
+
+  static Uint8List? _blurImageIsolate(Uint8List bytes) {
+    try {
+      final image = img.decodeImage(bytes);
+      if (image == null) return null;
+
+      // 1. Downsample for performance (50x50 is enough for a heavy blur)
+      final resized = img.copyResize(image, width: 50, height: 50);
+
+      // 2. Apply Gaussian blur
+      // Radius 5 on a 50x50 image is equivalent to a much larger radius on original image
+      final blurred = img.gaussianBlur(resized, radius: 5);
+
+      // 3. Encode as JPG (fastest)
+      return Uint8List.fromList(img.encodeJpg(blurred, quality: 70));
+    } catch (e) {
+      debugPrint('Error blurring image in isolate: $e');
+      return null;
+    }
+  }
 }
