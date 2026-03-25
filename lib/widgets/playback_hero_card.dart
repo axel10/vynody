@@ -248,14 +248,11 @@ class PlaybackHeroCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Flexible(
                     flex: 10,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: SizedBox(
-                          width: width,
-                          child: _buildControls(context, width),
-                        ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: _buildControls(context, width),
                       ),
                     ),
                   ),
@@ -518,7 +515,7 @@ class PlaybackHeroCard extends StatelessWidget {
               tooltip: AppLocalizations.of(context)!.visualizer,
             ),
 
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             IconButton(
               icon: const Icon(
                 Icons.skip_previous_rounded,
@@ -528,7 +525,7 @@ class PlaybackHeroCard extends StatelessWidget {
               onPressed: onPrevious,
               tooltip: AppLocalizations.of(context)!.previous,
             ),
-            const SizedBox(width: 24),
+            const SizedBox(width: 16),
             Selector<AudioService, (bool, Map<String, Color>)>(
               selector: (_, a) => (a.isPlaying, a.currentThemeColorsMap),
               shouldRebuild: (prev, next) =>
@@ -560,7 +557,7 @@ class PlaybackHeroCard extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(width: 24),
+            const SizedBox(width: 16),
             IconButton(
               icon: const Icon(
                 Icons.skip_next_rounded,
@@ -570,7 +567,7 @@ class PlaybackHeroCard extends StatelessWidget {
               onPressed: onNext,
               tooltip: AppLocalizations.of(context)!.next,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 8),
             Selector<AudioService, double>(
               selector: (_, a) => a.volume,
               builder: (context, volume, _) => GestureDetector(

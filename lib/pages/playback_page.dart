@@ -413,7 +413,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                   clipBehavior: Clip.none,
                   children: [
                     if (backgroundType == 1)
-                      const Positioned.fill(child: DynamicMeshBackground())
+                      const Positioned.fill(child: RepaintBoundary(child: DynamicMeshBackground()))
                     else
                       _buildBlurredBackground(context),
                     if (shouldDrawVisualizer) _buildVisualizerLayer(context, orientation),
@@ -448,81 +448,107 @@ class _PlaybackPageState extends State<PlaybackPage>
   }
 
   Widget _buildBlurredBackground(BuildContext context) {
-    return Selector<AudioService, Uint8List?>(
-      selector: (_, a) => a.currentBlurredArtworkBytes,
-      builder: (context, blurredBytes, _) {
-        final Widget content;
-        if (blurredBytes == null) {
-          content = Container(key: const ValueKey('bg_empty'), color: Colors.black);
-        } else {
-          content = Container(
-            key: ValueKey(blurredBytes.hashCode),
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: MemoryImage(blurredBytes),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withValues(alpha: 0.4),
-                  BlendMode.darken,
+    return Positioned.fill(
+      child: RepaintBoundary(
+        child: Stack(
+          children: [
+            Selector<AudioService, Uint8List?>(
+              selector: (_, a) => a.currentBlurredArtworkBytes,
+              builder: (context, blurredBytes, _) {
+                final Widget content;
+                if (blurredBytes == null) {
+                  content = Container(
+                    key: const ValueKey('bg_empty'),
+                    color: Colors.black,
+                    width: double.infinity,
+                    height: double.infinity,
+                  );
+                } else {
+                  content = Image.memory(
+                    blurredBytes,
+                    key: ValueKey(blurredBytes.hashCode),
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.high,
+                    gaplessPlayback: true,
+                    excludeFromSemantics: true,
+                  );
+                }
+
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 1200),
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOut,
+                      ),
+                      child: child,
+                    );
+                  },
+                  child: content,
+                );
+              },
+            ),
+            // 静态暗化遮罩：避免在动画每一帧进行复杂的 BlendMode 计算
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.15),
+                  ),
                 ),
               ),
             ),
-          );
-        }
-
-        return Positioned.fill(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 1200),
-            transitionBuilder: (child, animation) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            child: content,
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildVisualizerLayer(BuildContext context, Orientation orientation) {
     return Positioned.fill(
-      child: StreamBuilder<FftFrame>(
-        stream: context.read<AudioService>().player.visualizer.optimizedStream,
-        builder: (context, snapshot) {
-          final frame = snapshot.data;
-          if (frame == null) return const SizedBox.shrink();
+      child: RepaintBoundary(
+        child: StreamBuilder<FftFrame>(
+          stream: context.read<AudioService>().player.visualizer.optimizedStream,
+          builder: (context, snapshot) {
+            final frame = snapshot.data;
+            if (frame == null) return const SizedBox.shrink();
 
-          return Selector<SettingsService, bool>(
-            selector: (_, s) => s.isAutoMode, // Just pick something so it rebuilds on auto mode change
-            builder: (context, _, __) {
-              // Re-read settings more cleanly or use the data tuple
-              final settings = context.read<SettingsService>();
-              final audio = context.read<AudioService>();
-              final isLandscape = orientation == Orientation.landscape;
-              final gap = isLandscape ? settings.landscapeGap : settings.portraitGap;
+            return Selector<SettingsService, bool>(
+              selector: (_, s) => s.isAutoMode, // Just pick something so it rebuilds on auto mode change
+              builder: (context, _, __) {
+                // Re-read settings more cleanly or use the data tuple
+                final settings = context.read<SettingsService>();
+                final audio = context.read<AudioService>();
+                final isLandscape = orientation == Orientation.landscape;
+                final gap = isLandscape ? settings.landscapeGap : settings.portraitGap;
 
-              return CustomPaint(
-                painter: FftPainter(
-                  values: frame.values,
-                  gap: gap,
-                  color: settings.isVisualizerDynamicColor
-                      ? (audio.dynamicStartColor ?? settings.visualizerColor)
-                      : settings.visualizerColor,
-                  opacity: settings.visualizerOpacity,
-                  useGradient: settings.isVisualizerGradientEnabled,
-                  startColor: settings.isVisualizerDynamicStartColor
-                      ? (audio.dynamicStartColor ?? settings.visualizerStartColor)
-                      : settings.visualizerStartColor,
-                  endColor: settings.isVisualizerDynamicEndColor
-                      ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
-                      : settings.visualizerEndColor,
-                  gradientStop1: settings.visualizerGradientStop1,
-                  gradientStop2: settings.visualizerGradientStop2,
-                  gradientTileMode: settings.visualizerGradientTileMode,
-                ),
-              );
-            },
-          );
-        },
+                return CustomPaint(
+                  painter: FftPainter(
+                    values: frame.values,
+                    gap: gap,
+                    color: settings.isVisualizerDynamicColor
+                        ? (audio.dynamicStartColor ?? settings.visualizerColor)
+                        : settings.visualizerColor,
+                    opacity: settings.visualizerOpacity,
+                    useGradient: settings.isVisualizerGradientEnabled,
+                    startColor: settings.isVisualizerDynamicStartColor
+                        ? (audio.dynamicStartColor ?? settings.visualizerStartColor)
+                        : settings.visualizerStartColor,
+                    endColor: settings.isVisualizerDynamicEndColor
+                        ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
+                        : settings.visualizerEndColor,
+                    gradientStop1: settings.visualizerGradientStop1,
+                    gradientStop2: settings.visualizerGradientStop2,
+                    gradientTileMode: settings.visualizerGradientTileMode,
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
