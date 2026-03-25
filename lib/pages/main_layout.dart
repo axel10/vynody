@@ -110,8 +110,8 @@ class _MainLayoutState extends State<MainLayout> {
       return;
     }
     final settings = context.read<SettingsService>();
-    if (settings.isImmersiveTabBarEnabled && settings.isUserInactive) {
-      settings.isUserInactive = false;
+    if (settings.isImmersiveTabBarEnabled) {
+      settings.resetInactivity();
     }
   }
 

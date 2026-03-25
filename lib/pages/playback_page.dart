@@ -42,7 +42,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final audio = context.read<AudioService>();
       _showVisualizer = audio.player.visualizer.enabled;
-      _startInactivityTimer();
+      context.read<SettingsService>().resetInactivity();
       if (mounted) {
         setState(() {});
       }
@@ -60,21 +60,18 @@ class _PlaybackPageState extends State<PlaybackPage>
   @override
   void dispose() {
     _inactivityTimer?.cancel();
-    _settingsService?.isUserInactive = false;
+    // 延迟重置，避免在 dispose 过程中触发 notifyListeners 导致的 "locked" 错误
+    final settings = _settingsService;
+    if (settings != null) {
+      Future.microtask(() {
+        settings.isUserInactive = false;
+      });
+    }
     super.dispose();
   }
 
   void _startInactivityTimer() {
-    _inactivityTimer?.cancel();
-    final settings = context.read<SettingsService>();
-    settings.isUserInactive = false;
-
-    // 沉浸式任务栏 等待时间
-    _inactivityTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        settings.isUserInactive = true;
-      }
-    });
+    context.read<SettingsService>().resetInactivity();
   }
 
   void toNextMusic(AudioService audio) {
@@ -293,8 +290,6 @@ class _PlaybackPageState extends State<PlaybackPage>
     final isVisualizerEnabled = context.select((AudioService a) => a.player.visualizer.enabled);
     final isTransitioning = context.select((AudioService a) => a.isTransitioning);
     final shouldDrawVisualizer = isVisualizerEnabled && !isTransitioning;
-    
-    final isNext = context.select((AudioService a) => a.isLastActionNext ?? true);
     final backgroundType = context.select((SettingsService s) => s.playbackBackgroundType);
 
     return Listener(
@@ -325,24 +320,11 @@ class _PlaybackPageState extends State<PlaybackPage>
                       if (Platform.isWindows) const SizedBox(height: 32),
                       Expanded(
                         child: Center(
-                          child: Selector<AudioService, (double, Duration, Duration, List<double>)>(
-                            selector: (_, a) => (a.progress, a.position, a.duration, a.currentWaveform),
-                            builder: (context, data, _) {
-                              final progress = data.$1;
-                              final position = data.$2;
-                              final duration = data.$3;
-                              final waveform = data.$4;
+                          child: Builder(
+                            builder: (context) {
                               final audio = context.read<AudioService>();
-                              
-                              final sliderProgress = _isScrubbingProgress
-                                  ? _scrubProgress
-                                  : progress.clamp(0.0, 1.0);
-                              final previewPosition = _isScrubbingProgress
-                                  ? Duration(
-                                      milliseconds: (_scrubProgress * duration.inMilliseconds)
-                                          .round(),
-                                    )
-                                  : position;
+                              final isNext = context.select((AudioService a) => a.isLastActionNext ?? true);
+                              final isVisualizerEnabled = context.select((AudioService a) => a.player.visualizer.enabled);
                               
                               return PlaybackHeroCard(
                                 isMini: false,
@@ -350,9 +332,12 @@ class _PlaybackPageState extends State<PlaybackPage>
                                 screenWidth: screenWidth,
                                 screenHeight: screenHeight,
                                 isNext: isNext,
-                                waveform: waveform,
-                                sliderProgress: sliderProgress,
-                                previewPosition: previewPosition,
+                                overrideProgress: _isScrubbingProgress ? _scrubProgress : null,
+                                overridePosition: _isScrubbingProgress
+                                    ? Duration(
+                                        milliseconds: (_scrubProgress * (audio.duration.inMilliseconds)).round(),
+                                      )
+                                    : null,
                                 showVisualizerToggle: isVisualizerEnabled,
                                 onShowMoreMenu: () => _showMoreMenu(context, audio),
                                 onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
@@ -369,8 +354,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                                 },
                                 onSeek: (val) {
                                   final target = Duration(
-                                    milliseconds: (val * duration.inMilliseconds)
-                                        .round(),
+                                    milliseconds: (val * (audio.duration.inMilliseconds)).round(),
                                   );
                                   setState(() {
                                     _isScrubbingProgress = false;

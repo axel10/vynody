@@ -187,11 +187,11 @@ class MetadataHelper {
       if (image == null) return null;
 
       // 1. Downsample for performance (50x50 is enough for a heavy blur)
-      final resized = img.copyResize(image, width: 50, height: 50);
+      final resized = img.copyResize(image, width: 75, height: 75);
 
       // 2. Apply Gaussian blur
       // Radius 5 on a 50x50 image is equivalent to a much larger radius on original image
-      final blurred = img.gaussianBlur(resized, radius: 5);
+      final blurred = img.gaussianBlur(resized, radius: 3);
 
       // 3. Encode as JPG (fastest)
       return Uint8List.fromList(img.encodeJpg(blurred, quality: 70));

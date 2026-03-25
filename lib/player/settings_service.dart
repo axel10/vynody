@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -40,6 +41,7 @@ class SettingsService extends ChangeNotifier {
   int _sampleStride;
   int _waveformChunks;
   bool _isUserInactive = false;
+  Timer? _inactivityTimer;
 
   // Visualizer styling state
   late Color _visualizerColor;
@@ -178,6 +180,28 @@ class SettingsService extends ChangeNotifier {
       _isUserInactive = value;
       notifyListeners();
     }
+    if (!value) {
+      // If we are setting it to active (not inactive), reset the timer
+      startInactivityTimer();
+    }
+  }
+
+  void startInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _inactivityTimer = Timer(const Duration(seconds: 3), () {
+      if (!_isUserInactive) {
+        _isUserInactive = true;
+        notifyListeners();
+      }
+    });
+  }
+
+  void resetInactivity() {
+    if (_isUserInactive) {
+      _isUserInactive = false;
+      notifyListeners();
+    }
+    startInactivityTimer();
   }
 
   set visualizerColor(Color value) {

@@ -88,14 +88,15 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = context.watch<AudioService>();
-    final settings = context.watch<SettingsService>();
+    // Use select to only rebuild when colors actually change
+    final themeColors = context.select((AudioService a) => a.currentThemeColorsMap);
+    final visualizerStartColor = context.select((SettingsService s) => s.visualizerStartColor);
+    final visualizerEndColor = context.select((SettingsService s) => s.visualizerEndColor);
+    final dynamicStartColor = context.select((AudioService a) => a.dynamicStartColor);
+    final dynamicEndColor = context.select((AudioService a) => a.dynamicEndColor);
 
-    // Update colors based on dynamic colors from album art
-    Map<String, Color> themeColors = audio.currentThemeColorsMap;
-    
-    Color color1 = themeColors['dominant'] ?? audio.dynamicStartColor ?? settings.visualizerStartColor;
-    Color color2 = themeColors['vibrant'] ?? audio.dynamicEndColor ?? settings.visualizerEndColor;
+    Color color1 = themeColors['dominant'] ?? dynamicStartColor ?? visualizerStartColor;
+    Color color2 = themeColors['vibrant'] ?? dynamicEndColor ?? visualizerEndColor;
     Color color3 = themeColors['lightVibrant'] ?? themeColors['muted'] ?? color1.withValues(alpha: 0.8);
     Color color4 = themeColors['darkVibrant'] ?? themeColors['darkMuted'] ?? color2.withValues(alpha: 0.8);
 

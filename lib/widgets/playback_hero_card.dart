@@ -22,9 +22,6 @@ class PlaybackHeroCard extends StatelessWidget {
     this.screenWidth,
     this.screenHeight,
     this.isNext = true,
-    this.waveform = const [],
-    this.sliderProgress = 0,
-    this.previewPosition = Duration.zero,
     this.showVisualizerToggle = true,
     this.onShowMoreMenu,
     this.onMiniTap,
@@ -41,6 +38,9 @@ class PlaybackHeroCard extends StatelessWidget {
     this.onVolumeTap,
     this.onVolumeDrag,
     this.onVolumeScroll,
+    this.overrideProgress,
+    this.overridePosition,
+    this.overrideWaveform,
   });
 
   final bool isMini;
@@ -48,9 +48,9 @@ class PlaybackHeroCard extends StatelessWidget {
   final double? screenWidth;
   final double? screenHeight;
   final bool isNext;
-  final List<double> waveform;
-  final double sliderProgress;
-  final Duration previewPosition;
+  final List<double>? overrideWaveform;
+  final double? overrideProgress;
+  final Duration? overridePosition;
   final bool showVisualizerToggle;
   final VoidCallback? onShowMoreMenu;
   final VoidCallback? onMiniTap;
@@ -462,32 +462,47 @@ class PlaybackHeroCard extends StatelessWidget {
           ],
         ),
         SizedBox(height: isLandscape ? 8 : 4),
-        Selector<AudioService, Duration>(
-          selector: (_, a) => a.duration,
-          builder: (context, duration, _) => Selector<SettingsService, bool>(
-            selector: (_, s) => s.isWaveformProgressBarEnabled,
-            builder: (context, enabled, _) {
-              if (enabled) {
-                return WaveformProgressBar(
-                  waveform: waveform,
-                  progress: sliderProgress,
-                  duration: duration,
-                  onScrubbing: onScrubbing ?? (_) {},
-                  onSeek: onSeek ?? (_) {},
+        Selector<AudioService, (Duration, List<double>)>(
+          selector: (_, a) => (a.duration, a.currentWaveform),
+          builder: (context, data, _) {
+            final duration = data.$1;
+            final waveform = overrideWaveform ?? data.$2;
+            
+            return Selector<AudioService, double>(
+              selector: (_, a) => a.progress,
+              builder: (context, progress, _) {
+                final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
+                
+                return Selector<SettingsService, bool>(
+                  selector: (_, s) => s.isWaveformProgressBarEnabled,
+                  builder: (context, enabled, _) {
+                    if (enabled) {
+                      return WaveformProgressBar(
+                        waveform: waveform,
+                        progress: displayProgress,
+                        duration: duration,
+                        onScrubbing: onScrubbing ?? (_) {},
+                        onSeek: onSeek ?? (_) {},
+                      );
+                    }
+                    return _buildStandardSlider(context, displayProgress);
+                  },
                 );
-              }
-              return _buildStandardSlider(context);
-            },
-          ),
+              },
+            );
+          },
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                formatDuration(previewPosition),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              Selector<AudioService, Duration>(
+                selector: (_, a) => a.position,
+                builder: (context, position, _) => Text(
+                  formatDuration(overridePosition ?? position),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
               ),
               Selector<AudioService, Duration>(
                 selector: (_, a) => a.duration,
@@ -599,7 +614,7 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStandardSlider(BuildContext context) {
+  Widget _buildStandardSlider(BuildContext context, double displayProgress) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SliderTheme(
@@ -613,7 +628,7 @@ class PlaybackHeroCard extends StatelessWidget {
           overlayColor: Colors.white.withValues(alpha: 0.1),
         ),
         child: Slider(
-          value: sliderProgress.clamp(0.0, 1.0),
+          value: displayProgress.clamp(0.0, 1.0),
           onChanged: onScrubbing,
           onChangeEnd: (value) {
             onSeek?.call(value);
