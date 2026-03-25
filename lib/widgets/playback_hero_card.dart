@@ -70,11 +70,6 @@ class PlaybackHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentFilePath = context.select((AudioService a) => a.currentFilePath);
-    if (currentFilePath == null) {
-      return const SizedBox.shrink();
-    }
-
     return Hero(
       tag: playbackHeroTag,
       child: Material(
@@ -134,7 +129,7 @@ class PlaybackHeroCard extends StatelessWidget {
                                   Selector<AudioService, String?>(
                                     selector: (_, a) => a.currentFileName,
                                     builder: (context, name, _) => Text(
-                                      name ?? AppLocalizations.of(context)!.unknown,
+                                      name ?? AppLocalizations.of(context)!.notSelected,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 14,
@@ -350,7 +345,7 @@ class PlaybackHeroCard extends StatelessWidget {
           child: Selector<AudioService, String?>(
             selector: (_, a) => a.currentFileName,
             builder: (context, name, _) => Text(
-              name ?? AppLocalizations.of(context)!.unknown,
+              name ?? AppLocalizations.of(context)!.notSelected,
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,

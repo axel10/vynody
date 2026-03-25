@@ -81,7 +81,7 @@ class MainLayout extends StatefulWidget {
   final List<String> args;
   final int initialIndex;
 
-  const MainLayout({super.key, required this.args, this.initialIndex = 0});
+  const MainLayout({super.key, required this.args, this.initialIndex = 1});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();

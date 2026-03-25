@@ -883,6 +883,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'随机队列'**
   String get randomQueue;
+
+  /// No description provided for @notSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'未选择音乐'**
+  String get notSelected;
 }
 
 class _AppLocalizationsDelegate

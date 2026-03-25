@@ -413,4 +413,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get randomQueue => '随机队列';
+
+  @override
+  String get notSelected => '未选择音乐';
 }

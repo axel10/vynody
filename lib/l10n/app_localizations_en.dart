@@ -419,4 +419,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get randomQueue => 'Random Queue';
+
+  @override
+  String get notSelected => 'No Music Selected';
 }

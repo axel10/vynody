@@ -278,13 +278,6 @@ class _PlaybackPageState extends State<PlaybackPage>
 
   @override
   Widget build(BuildContext context) {
-    final currentFilePath = context.select((AudioService a) => a.currentFilePath);
-
-    if (currentFilePath == null) {
-      return Center(
-        child: Text(AppLocalizations.of(context)!.noPlaybackContent, style: const TextStyle(color: Colors.grey)),
-      );
-    }
     
     // Separate UI status from rendering visibility to avoid flicker
     final isVisualizerEnabled = context.select((AudioService a) => a.player.visualizer.enabled);

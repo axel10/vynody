@@ -448,5 +448,6 @@
   "globalRange": "全局 (包含所有列表歌曲)",
   "completeRandom": "完全随机",
   "shuffleRandom": "洗牌随机",
-  "randomQueue": "随机队列"
+  "randomQueue": "随机队列",
+  "notSelected": "未选择音乐"
 }

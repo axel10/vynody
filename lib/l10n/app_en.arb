@@ -130,5 +130,6 @@
   "globalRange": "Global (All Playlists)",
   "completeRandom": "Complete Random",
   "shuffleRandom": "Shuffle Random",
-  "randomQueue": "Random Queue"
+  "randomQueue": "Random Queue",
+  "notSelected": "No Music Selected"
 }
