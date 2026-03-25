@@ -241,7 +241,7 @@ class PlaybackHeroCard extends StatelessWidget {
                   Expanded(
                     flex: 14,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 36),
+                      padding: const EdgeInsets.only(bottom: 24),
                       child: _buildAlbumArt(context, maxDisplaySize),
                     ),
                   ),
@@ -252,7 +252,10 @@ class PlaybackHeroCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: _buildControls(context, width),
+                        child: SizedBox(
+                          width: width,
+                          child: _buildControls(context, width),
+                        ),
                       ),
                     ),
                   ),
@@ -388,7 +391,7 @@ class PlaybackHeroCard extends StatelessWidget {
             return const SizedBox.shrink();
           },
         ),
-        SizedBox(height: isLandscape ? 16 : 4),
+        SizedBox(height: isLandscape ? 16 : 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -461,7 +464,7 @@ class PlaybackHeroCard extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(height: isLandscape ? 8 : 4),
+        SizedBox(height: isLandscape ? 16 : 12),
         Selector<AudioService, (Duration, List<double>)>(
           selector: (_, a) => (a.duration, a.currentWaveform),
           builder: (context, data, _) {
@@ -477,12 +480,15 @@ class PlaybackHeroCard extends StatelessWidget {
                   selector: (_, s) => s.isWaveformProgressBarEnabled,
                   builder: (context, enabled, _) {
                     if (enabled) {
-                      return WaveformProgressBar(
-                        waveform: waveform,
-                        progress: displayProgress,
-                        duration: duration,
-                        onScrubbing: onScrubbing ?? (_) {},
-                        onSeek: onSeek ?? (_) {},
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: WaveformProgressBar(
+                          waveform: waveform,
+                          progress: displayProgress,
+                          duration: duration,
+                          onScrubbing: onScrubbing ?? (_) {},
+                          onSeek: onSeek ?? (_) {},
+                        ),
                       );
                     }
                     return _buildStandardSlider(context, displayProgress);
@@ -492,8 +498,9 @@ class PlaybackHeroCard extends StatelessWidget {
             );
           },
         ),
+        const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -514,7 +521,7 @@ class PlaybackHeroCard extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(height: isLandscape ? 16 : 6),
+        SizedBox(height: isLandscape ? 16 : 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
