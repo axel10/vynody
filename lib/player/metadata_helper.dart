@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -11,7 +12,7 @@ import 'metadata_database.dart';
 import 'theme_color_helper.dart';
 
 class MetadataHelper {
-  static Future<SongMetadata?> processMetadata(
+  static Future<(SongMetadata, Uint8List?)?> processMetadata(
     String filePath, {
     int? songId,
   }) async {
@@ -19,7 +20,7 @@ class MetadataHelper {
 
     // Check if already in DB
     final existing = await db.getSongMetadata(filePath);
-    if (existing != null) return existing;
+    if (existing != null) return (existing, null);
 
     try {
       Uint8List? artworkData;
@@ -85,7 +86,7 @@ class MetadataHelper {
       );
 
       await db.insertOrUpdateSong(song);
-      return song;
+      return (song, artworkData);
     } catch (e) {
       debugPrint('Error processing metadata for $filePath: $e');
       return null;
@@ -107,40 +108,32 @@ class MetadataHelper {
           '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}.jpg';
       final targetPath = p.join(thumbnailsDir.path, fileName);
 
-      final originalImage = img.decodeImage(data);
-      if (originalImage == null) return null;
-
-      Uint8List result;
+      int width;
+      int height;
+      Uint8List compressedData;
 
       if (Platform.isWindows || Platform.isLinux) {
-        // Use 'image' package on Windows/Linux as flutter_image_compress doesn't support them
-        
-        // Crop center square first to avoid stretching non-square artwork.
-        final cropSize = originalImage.width < originalImage.height
-            ? originalImage.width
-            : originalImage.height;
-        final offsetX = (originalImage.width - cropSize) ~/ 2;
-        final offsetY = (originalImage.height - cropSize) ~/ 2;
-        final square = img.copyCrop(
-          originalImage,
-          x: offsetX,
-          y: offsetY,
-          width: cropSize,
-          height: cropSize,
-        );
-
-        // Resize
-        final resized = img.copyResize(
-          square,
-          width: 200,
-          height: 200,
-          interpolation: img.Interpolation.average,
-        );
-
-        result = Uint8List.fromList(img.encodeJpg(resized, quality: 80));
+        // Use 'image' package on Windows/Linux but in an ISOLATE to avoid blocking UI
+        final result = await compute(_processImageWindowsIsolate, data);
+        if (result == null) return null;
+        compressedData = result['data'] as Uint8List;
+        width = result['width'] as int;
+        height = result['height'] as int;
       } else {
         // Use flutter_image_compress on supported platforms (Android, iOS, macOS)
-        result = await FlutterImageCompress.compressWithList(
+        // But first get dimensions FAST using native bridge instead of slow Dart image package
+        try {
+          // This is much faster than img.decodeImage
+          final buffer = await ui.ImmutableBuffer.fromUint8List(data);
+          final descriptor = await ui.ImageDescriptor.encoded(buffer);
+          width = descriptor.width;
+          height = descriptor.height;
+        } catch (e) {
+          // Fallback if needed
+          width = 0; height = 0;
+        }
+
+        compressedData = await FlutterImageCompress.compressWithList(
           data,
           minWidth: 200,
           minHeight: 200,
@@ -150,15 +143,51 @@ class MetadataHelper {
       }
 
       final file = File(targetPath);
-      await file.writeAsBytes(result);
+      await file.writeAsBytes(compressedData);
 
       return {
         'path': targetPath,
+        'width': width,
+        'height': height,
+      };
+    } catch (e) {
+      debugPrint('Error saving artwork: $e');
+      return null;
+    }
+  }
+
+  static Map<String, dynamic>? _processImageWindowsIsolate(Uint8List data) {
+    try {
+      final originalImage = img.decodeImage(data);
+      if (originalImage == null) return null;
+
+      final cropSize = originalImage.width < originalImage.height
+          ? originalImage.width
+          : originalImage.height;
+      final offsetX = (originalImage.width - cropSize) ~/ 2;
+      final offsetY = (originalImage.height - cropSize) ~/ 2;
+      
+      final square = img.copyCrop(
+        originalImage,
+        x: offsetX,
+        y: offsetY,
+        width: cropSize,
+        height: cropSize,
+      );
+
+      final resized = img.copyResize(
+        square,
+        width: 200,
+        height: 200,
+        interpolation: img.Interpolation.average,
+      );
+
+      return {
+        'data': Uint8List.fromList(img.encodeJpg(resized, quality: 80)),
         'width': originalImage.width,
         'height': originalImage.height,
       };
     } catch (e) {
-      debugPrint('Error saving artwork: $e');
       return null;
     }
   }
@@ -186,7 +215,7 @@ class MetadataHelper {
       final image = img.decodeImage(bytes);
       if (image == null) return null;
 
-      // 1. Downsample for performance (50x50 is enough for a heavy blur)
+      // 1. Downsample for perfo rmance (50x50 is enough for a heavy blur)
       final resized = img.copyResize(image, width: 50, height: 50);
 
       // 2. Apply Gaussian blur

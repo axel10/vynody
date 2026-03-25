@@ -126,7 +126,8 @@ class PlaybackQueueProcessor {
             debugPrint('Background processing: ${song.path}');
 
             // 1. Process basic metadata & thumbnail
-            final SongMetadata? initialMetadata = await MetadataHelper.processMetadata(song.path);
+            final result = await MetadataHelper.processMetadata(song.path);
+            final SongMetadata? initialMetadata = result?.$1;
 
             if (initialMetadata != null) {
               SongMetadata m = initialMetadata;

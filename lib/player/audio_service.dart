@@ -320,7 +320,7 @@ class AudioService extends ChangeNotifier {
         (colors['vibrant']?.withValues(alpha: 0.8)) ?? colors['muted'];
   }
 
-  Future<void> _updatePalette() async {
+  Future<void> _updatePalette({SongMetadata? metadata}) async {
     if (!settingsService.isVisualizerDynamicColor &&
         !settingsService.isVisualizerDynamicStartColor &&
         !settingsService.isVisualizerDynamicEndColor &&
@@ -331,7 +331,7 @@ class AudioService extends ChangeNotifier {
     }
 
     if (_currentFilePath != null) {
-      final songMetadata = await _db.getSongMetadata(_currentFilePath!);
+      final songMetadata = metadata ?? await _db.getSongMetadata(_currentFilePath!);
       if (songMetadata != null && songMetadata.themeColorsBlob != null) {
         final colorsMap = ThemeColorHelper.blobToColors(
           songMetadata.themeColorsBlob!,
@@ -466,8 +466,11 @@ class AudioService extends ChangeNotifier {
 
     if (songFromDb == null) {
       // If not in DB, use MetadataHelper to process it (and save to DB for next time)
-      final processed = await MetadataHelper.processMetadata(path);
-      if (processed != null) {
+      final result = await MetadataHelper.processMetadata(path);
+      if (result != null) {
+        final processed = result.$1;
+        final processedBytes = result.$2;
+        
         if (processed.title.trim().isNotEmpty && processed.title != 'Unknown') {
           _currentFileName = processed.title;
         }
@@ -477,6 +480,19 @@ class AudioService extends ChangeNotifier {
         _artworkWidth = processed.artworkWidth;
         _artworkHeight = processed.artworkHeight;
         _currentWaveform = _waveformService.waveformFromBlob(processed.waveformBlob);
+        
+        // REUSE BYTES if they were just read during processing!
+        if (processedBytes != null) {
+            newArtworkBytes = processedBytes;
+            _hdArtworkCache[path] = processedBytes;
+            unawaited(_processBlurForPath(path, processedBytes));
+            
+            final codec = await ui.instantiateImageCodec(processedBytes);
+            final frameInfo = await codec.getNextFrame();
+            newArtworkWidth = frameInfo.image.width;
+            newArtworkHeight = frameInfo.image.height;
+            wasInCache = true; // Effectively in cache now
+        }
       }
     }
 
@@ -570,7 +586,7 @@ class AudioService extends ChangeNotifier {
     _artworkWidth = newArtworkWidth;
     _artworkHeight = newArtworkHeight;
 
-    await _updatePalette();
+    await _updatePalette(metadata: songFromDb);
     _windowsIntegration?.updateMetadata(null);
     _androidIntegration?.updateMetadata(null);
     notifyListeners();

@@ -287,10 +287,11 @@ class ScannerService extends ChangeNotifier {
         try {
           // Use the unified MetadataHelper to process metadata.
           // This will extract tags, save thumbnails, and generate theme colors.
-          final metadata = await MetadataHelper.processMetadata(
+          final result = await MetadataHelper.processMetadata(
             song.data,
             songId: song.id,
           );
+          final metadata = result?.$1;
 
           if (metadata != null) {
             // After common metadata is processed, check if waveform is needed.
@@ -532,7 +533,8 @@ class ScannerService extends ChangeNotifier {
     final db = MetadataDatabase();
     // Try DB first (cheapest); fall back to full processing if not found.
     SongMetadata? metadata = await db.getSongMetadata(path);
-    metadata ??= await MetadataHelper.processMetadata(path);
+    final result = metadata == null ? await MetadataHelper.processMetadata(path) : null;
+    metadata ??= result?.$1;
 
     if (metadata != null) {
       _metadataMap[path] = metadata;
