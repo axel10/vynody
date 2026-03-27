@@ -505,6 +505,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.0"
+  my_exoplayer:
+    dependency: transitive
+    description:
+      path: "audio_visualizer_player/plugin/my_exoplayer"
+      relative: true
+    source: path
+    version: "0.0.1"
   native_toolchain_c:
     dependency: transitive
     description:

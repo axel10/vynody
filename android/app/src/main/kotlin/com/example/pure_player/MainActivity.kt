@@ -14,9 +14,9 @@ class MainActivity : AudioServiceActivity() {
     private var eventSink: EventChannel.EventSink? = null
     private var contentObserver: ContentObserver? = null
 
-    init {
-        System.loadLibrary("audio_visualizer_player")
-    }
+//    init {
+//        System.loadLibrary("audio_visualizer_player")
+//    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

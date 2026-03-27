@@ -23,6 +23,7 @@ enum SortOrder { ascending, descending }
 
 class ScannerService extends ChangeNotifier {
   final SettingsService? _settingsService;
+  AudioVisualizerPlayerController? _playerController;
   final List<String> _rootPaths = [];
   final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
@@ -59,6 +60,10 @@ class ScannerService extends ChangeNotifier {
   ScannerService([this._settingsService]) {
     _init();
     _setupMediaObserver();
+  }
+
+  void setPlayerController(AudioVisualizerPlayerController controller) {
+    _playerController = controller;
   }
 
   void setSortCriteria(SortCriteria criteria) {
@@ -274,11 +279,17 @@ class ScannerService extends ChangeNotifier {
   Future<void> _processAndSaveAndroidSongsBackground(
     List<SongModel> songs,
   ) async {
-    final player = AudioVisualizerPlayerController();
+    final player = _playerController;
+    if (player == null) {
+      debugPrint('Player controller not set for background scanning');
+      return;
+    }
+
     try {
+      // Ensure the shared player is initialized (idempotent)
       await player.initialize();
     } catch (e) {
-      debugPrint('Failed to initialize player for background scanning: $e');
+      debugPrint('Failed to initialize shared player for background scanning: $e');
       return;
     }
 
@@ -338,7 +349,7 @@ class ScannerService extends ChangeNotifier {
         await Future.delayed(const Duration(milliseconds: 100));
       }
     } finally {
-      player.dispose();
+      // We no longer dispose the shared player here
     }
   }
 
@@ -508,11 +519,45 @@ class ScannerService extends ChangeNotifier {
     // Process in batches or one by one
     for (final path in allFilePaths) {
       try {
-        await MetadataHelper.processMetadata(path);
-        // We don't need to load it into _metadataMap here as it's saved to DB,
-        // but if the file is currently visible in UI, loadMetadataForPath will be called.
+        final result = await MetadataHelper.processMetadata(path);
+        SongMetadata? metadata = result?.$1;
+
+        // Extract waveform if missing
+        if (metadata != null && metadata.waveformBlob == null && _playerController != null) {
+          try {
+            final waveform = await _playerController!.getWaveform(
+              expectedChunks: _settingsService?.waveformChunks ?? 80,
+              sampleStride: _settingsService?.sampleStride ?? 4,
+              filePath: path,
+            );
+            if (waveform.isNotEmpty) {
+              final float32List = Float32List.fromList(
+                waveform.map((e) => e.toDouble()).toList(),
+              );
+              final waveformBlob = float32List.buffer.asUint8List();
+
+              metadata = SongMetadata(
+                id: metadata.id,
+                path: metadata.path,
+                title: metadata.title,
+                album: metadata.album,
+                artist: metadata.artist,
+                duration: metadata.duration,
+                artworkPath: metadata.artworkPath,
+                artworkWidth: metadata.artworkWidth,
+                artworkHeight: metadata.artworkHeight,
+                trackNumber: metadata.trackNumber,
+                themeColorsBlob: metadata.themeColorsBlob,
+                waveformBlob: waveformBlob,
+              );
+              await MetadataDatabase().insertOrUpdateSong(metadata);
+            }
+          } catch (e) {
+            debugPrint('Waveform extraction failed for background rebuild: $e');
+          }
+        }
+
         // To update UI immediately if user is looking at it:
-        final metadata = await MetadataDatabase().getSongMetadata(path);
         if (metadata != null) {
           _metadataMap[path] = metadata;
           notifyListeners();

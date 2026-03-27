@@ -83,7 +83,10 @@ void main(List<String> args) async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AudioService(settingsService)),
-        ChangeNotifierProvider(create: (_) => ScannerService(settingsService)),
+        ChangeNotifierProxyProvider<AudioService, ScannerService>(
+          create: (_) => ScannerService(settingsService),
+          update: (_, audio, scanner) => scanner!..setPlayerController(audio.player),
+        ),
         ChangeNotifierProvider(create: (_) => PlaylistService()),
         ChangeNotifierProvider.value(value: settingsService),
       ],

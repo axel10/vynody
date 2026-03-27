@@ -74,7 +74,10 @@ class AudioService extends ChangeNotifier {
   Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
 
   AudioService(this.settingsService) {
-    _player = AudioVisualizerPlayerController();
+    _player = AudioVisualizerPlayerController(
+      fadeMode: FadeMode.crossfade,
+      fadeDuration: const Duration(milliseconds: 500),
+    );
     _visualizerOptions = VisualizerOptionsService(
       controller: _player,
       settingsService: settingsService,
