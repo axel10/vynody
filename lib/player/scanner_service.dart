@@ -16,10 +16,8 @@ import '../models/music_folder.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 import 'settings_service.dart';
+import '../utils/music_sorter.dart';
 
-enum SortCriteria { title, filename, trackNumber }
-
-enum SortOrder { ascending, descending }
 
 class ScannerService extends ChangeNotifier {
   final SettingsService? _settingsService;
@@ -77,62 +75,11 @@ class ScannerService extends ChangeNotifier {
   }
 
   void _sortAndNotify() {
-    _sortFolders(_rootFolders);
+    MusicSorter.sortFolders(_rootFolders, criteria: _sortCriteria, order: _sortOrder);
     if (_systemMediaFolder != null) {
-      _sortFolderRecursive(_systemMediaFolder!);
+      MusicSorter.sortFolderRecursive(_systemMediaFolder!, criteria: _sortCriteria, order: _sortOrder);
     }
     notifyListeners();
-  }
-
-  void _sortFolders(List<MusicFolder> folders) {
-    folders.sort(
-      (a, b) => compareNatural(a.name.toLowerCase(), b.name.toLowerCase()),
-    );
-    for (var folder in folders) {
-      _sortFolderRecursive(folder);
-    }
-  }
-
-  void _sortFolderRecursive(MusicFolder folder) {
-    folder.subFolders.sort(
-      (a, b) => compareNatural(a.name.toLowerCase(), b.name.toLowerCase()),
-    );
-
-    int Function(MusicFile, MusicFile) comparator;
-
-    switch (_sortCriteria) {
-      case SortCriteria.title:
-        comparator = (a, b) => compareNatural(
-          a.displayName.toLowerCase(),
-          b.displayName.toLowerCase(),
-        );
-        break;
-      case SortCriteria.filename:
-        comparator = (a, b) =>
-            compareNatural(a.name.toLowerCase(), b.name.toLowerCase());
-        break;
-      case SortCriteria.trackNumber:
-        comparator = (a, b) {
-          if (a.trackNumber != null && b.trackNumber != null) {
-            return a.trackNumber!.compareTo(b.trackNumber!);
-          }
-          if (a.trackNumber != null) return -1;
-          if (b.trackNumber != null) return 1;
-          return compareNatural(a.name.toLowerCase(), b.name.toLowerCase());
-        };
-        break;
-    }
-
-    if (_sortOrder == SortOrder.descending) {
-      final baseComparator = comparator;
-      comparator = (a, b) => baseComparator(b, a);
-    }
-
-    folder.files.sort(comparator);
-
-    for (var sub in folder.subFolders) {
-      _sortFolderRecursive(sub);
-    }
   }
 
   Future<void> _init() async {
@@ -267,8 +214,7 @@ class ScannerService extends ChangeNotifier {
       }
 
       _systemMediaFolder = _organizeSongsIntoFolders(songs);
-      _sortFolderRecursive(_systemMediaFolder!);
-      notifyListeners();
+      _sortAndNotify();
 
       unawaited(_processAndSaveAndroidSongsBackground(songs));
     } catch (e) {
@@ -410,8 +356,7 @@ class ScannerService extends ChangeNotifier {
     return MusicFolder(
       path: 'system',
       name: '系统媒体库',
-      subFolders: topFolders
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+      subFolders: topFolders,
       files: [], // Usually songs are in subfolders
     );
   }
@@ -434,10 +379,8 @@ class ScannerService extends ChangeNotifier {
       name: p.basename(currentPath).isEmpty
           ? currentPath
           : p.basename(currentPath),
-      subFolders: subFolders
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
-      files: files
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+      subFolders: subFolders,
+      files: files,
     );
   }
 
@@ -660,10 +603,8 @@ class ScannerService extends ChangeNotifier {
     return MusicFolder(
       path: path,
       name: _displayNameForPath(path),
-      subFolders: subFolders
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
-      files: files
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+      subFolders: subFolders,
+      files: files,
     );
   }
 

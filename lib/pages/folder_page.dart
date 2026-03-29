@@ -7,6 +7,7 @@ import '../models/music_folder.dart';
 import '../player/scanner_service.dart';
 import '../player/audio_service.dart';
 import '../widgets/song_thumbnail.dart';
+import '../utils/music_sorter.dart';
 
 // 目录页
 class FoldersPage extends StatefulWidget {

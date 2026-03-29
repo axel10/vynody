@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
 import 'package:provider/provider.dart';
-import '../player/audio_service.dart';
+import '../player/playback_theme_service.dart';
 import '../player/settings_service.dart';
 
 class DynamicMeshBackground extends StatefulWidget {
@@ -89,11 +89,11 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
   @override
   Widget build(BuildContext context) {
     // Use select to only rebuild when colors actually change
-    final themeColors = context.select((AudioService a) => a.currentThemeColorsMap);
+    final themeColors = context.select((PlaybackThemeService a) => a.currentThemeColorsMap);
     final visualizerStartColor = context.select((SettingsService s) => s.visualizerStartColor);
     final visualizerEndColor = context.select((SettingsService s) => s.visualizerEndColor);
-    final dynamicStartColor = context.select((AudioService a) => a.dynamicStartColor);
-    final dynamicEndColor = context.select((AudioService a) => a.dynamicEndColor);
+    final dynamicStartColor = context.select((PlaybackThemeService a) => a.dynamicStartColor);
+    final dynamicEndColor = context.select((PlaybackThemeService a) => a.dynamicEndColor);
 
     Color color1 = themeColors['dominant'] ?? dynamicStartColor ?? visualizerStartColor;
     Color color2 = themeColors['vibrant'] ?? dynamicEndColor ?? visualizerEndColor;

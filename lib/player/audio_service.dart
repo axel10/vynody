@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:palette_generator/palette_generator.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:audio_visualizer_player/audio_visualizer_player.dart';
@@ -12,10 +11,10 @@ import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 import 'settings_service.dart';
-import 'theme_color_helper.dart';
 import 'visualizer_options_service.dart';
 import 'playback_queue_processor.dart';
 import 'waveform_service.dart';
+import 'playback_theme_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
@@ -52,6 +51,7 @@ class AudioService extends ChangeNotifier {
   int _lastNotifiedIndex = -1;
   String? _lastNotifiedFilePath;
   final SettingsService settingsService;
+  final PlaybackThemeService themeService;
   late final VisualizerOptionsService _visualizerOptions;
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
@@ -59,21 +59,10 @@ class AudioService extends ChangeNotifier {
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
 
-  Uint8List? _currentBlurredArtworkBytes;
-  final Map<String, Uint8List> _blurredArtworkCache = {};
-  static const int _maxBlurredCacheSize = 20;
-
-  Color? _dynamicStartColor;
-  Color? _dynamicEndColor;
-  Map<String, Color> _currentThemeColorsMap = const {};
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
 
-  Color? get dynamicStartColor => _dynamicStartColor;
-  Color? get dynamicEndColor => _dynamicEndColor;
-  Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
-
-  AudioService(this.settingsService) {
+  AudioService(this.settingsService, this.themeService) {
     _player = AudioVisualizerPlayerController(
       fadeMode: FadeMode.crossfade,
       fadeDuration: const Duration(milliseconds: 500),
@@ -138,6 +127,40 @@ class AudioService extends ChangeNotifier {
     _visualizerOptions.applySettings(orientation: orientation);
     notifyListeners();
   }
+
+  Future<void> _refreshCurrentWaveform({bool notify = true}) async {
+    final path = _currentFilePath;
+    if (path == null) {
+      if (_currentWaveform.isNotEmpty) {
+        _currentWaveform = const [];
+        if (notify) {
+          notifyListeners();
+        }
+      }
+      return;
+    }
+
+    final waveform = await getWaveform(
+      expectedChunks: settingsService.waveformChunks,
+      sampleStride: settingsService.sampleStride,
+    );
+    if (path == _currentFilePath && waveform.isNotEmpty) {
+      _currentWaveform = waveform;
+      if (notify) {
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> updateDynamicColors() async {
+    // Forward to theme service
+    await themeService.updatePalette(
+      filePath: _currentFilePath,
+      artworkBytes: _currentArtworkBytes,
+      artworkPath: _currentArtworkPath,
+    );
+  }
+
 
   Future<List<double>> getWaveform({
     int expectedChunks = 80,
@@ -238,7 +261,10 @@ class AudioService extends ChangeNotifier {
   int? get artworkWidth => _artworkWidth;
   int? get artworkHeight => _artworkHeight;
   String? get currentArtworkPath => _currentArtworkPath;
-  Uint8List? get currentBlurredArtworkBytes => _currentBlurredArtworkBytes;
+  Uint8List? get currentBlurredArtworkBytes => themeService.currentBlurredArtworkBytes;
+  Map<String, Color> get currentThemeColorsMap => themeService.currentThemeColorsMap;
+  Color? get dynamicStartColor => themeService.dynamicStartColor;
+  Color? get dynamicEndColor => themeService.dynamicEndColor;
   List<MusicFile> get playlist => List.unmodifiable(_playlist);
   int get currentIndex => _currentIndex;
   bool get isRandomMode => _player.playlist.randomPolicy != null;
@@ -286,130 +312,6 @@ class AudioService extends ChangeNotifier {
       ? _position.inMilliseconds / _duration.inMilliseconds
       : 0.0;
 
-  Future<void> updateDynamicColors() async {
-    await _updatePalette();
-    notifyListeners();
-  }
-
-  Future<void> _refreshCurrentWaveform({bool notify = true}) async {
-    final path = _currentFilePath;
-    if (path == null) {
-      if (_currentWaveform.isNotEmpty) {
-        _currentWaveform = const [];
-        if (notify) {
-          notifyListeners();
-        }
-      }
-      return;
-    }
-
-    final waveform = await getWaveform(
-      expectedChunks: settingsService.waveformChunks,
-      sampleStride: settingsService.sampleStride,
-    );
-    if (path == _currentFilePath && waveform.isNotEmpty) {
-      _currentWaveform = waveform;
-      if (notify) {
-        notifyListeners();
-      }
-    }
-  }
-
-  void _applyThemeColors(Map<String, Color> colors) {
-    _currentThemeColorsMap = colors;
-    _dynamicStartColor = colors['dominant'] ?? colors['vibrant'];
-    // In some older Flutter versions withValues might not exist, but lint says to use it or withAlpha. Let's use withOpacity still, it's just an info warning, or withAlpha(128). The lint says "Use .withValues()":
-    _dynamicEndColor =
-        (colors['vibrant']?.withValues(alpha: 0.8)) ?? colors['muted'];
-  }
-
-  Future<void> _updatePalette({SongMetadata? metadata}) async {
-    if (!settingsService.isVisualizerDynamicColor &&
-        !settingsService.isVisualizerDynamicStartColor &&
-        !settingsService.isVisualizerDynamicEndColor &&
-        settingsService.playbackBackgroundType != 1) {
-      _dynamicStartColor = null;
-      _dynamicEndColor = null;
-      return;
-    }
-
-    if (_currentFilePath != null) {
-      final songMetadata = metadata ?? await _db.getSongMetadata(_currentFilePath!);
-      if (songMetadata != null && songMetadata.themeColorsBlob != null) {
-        final colorsMap = ThemeColorHelper.blobToColors(
-          songMetadata.themeColorsBlob!,
-        );
-        if (colorsMap.isNotEmpty) {
-          _applyThemeColors(colorsMap);
-          return;
-        }
-      }
-    }
-
-    _dynamicStartColor = Colors.black;
-    _dynamicEndColor = Colors.white;
-
-    ImageProvider? imageProvider;
-    if (_currentArtworkBytes != null) {
-      imageProvider = MemoryImage(_currentArtworkBytes!);
-    } else if (_currentArtworkPath != null && _currentArtworkPath!.isNotEmpty) {
-      imageProvider = FileImage(File(_currentArtworkPath!));
-    }
-
-    if (imageProvider != null && _currentFilePath != null) {
-      final String pathToUpdate = _currentFilePath!;
-
-      unawaited(() async {
-        try {
-          final resizeProvider = ResizeImage(
-            imageProvider!,
-            width: 200,
-            height: 200,
-          );
-          final palette = await PaletteGenerator.fromImageProvider(
-            resizeProvider,
-            maximumColorCount: 20,
-          );
-
-          final blob = ThemeColorHelper.paletteToBlob(palette);
-          final songMetadata = await _db.getSongMetadata(pathToUpdate);
-          if (songMetadata != null) {
-            final updated = SongMetadata(
-              id: songMetadata.id,
-              path: songMetadata.path,
-              title: songMetadata.title,
-              album: songMetadata.album,
-              artist: songMetadata.artist,
-              duration: songMetadata.duration,
-              artworkPath: songMetadata.artworkPath,
-              artworkWidth: songMetadata.artworkWidth,
-              artworkHeight: songMetadata.artworkHeight,
-              trackNumber: songMetadata.trackNumber,
-              themeColorsBlob: blob,
-              waveformBlob: songMetadata.waveformBlob,
-            );
-            await _db.insertOrUpdateSong(updated);
-          }
-
-          if (pathToUpdate == _currentFilePath) {
-            final colorsMap = ThemeColorHelper.blobToColors(blob);
-            _applyThemeColors(colorsMap);
-            notifyListeners();
-          }
-        } catch (e) {
-          debugPrint('Error generating palette async: $e');
-        }
-      }());
-    } else {
-      _dynamicStartColor = Colors.blue;
-      _dynamicEndColor = Colors.deepPurple;
-      _currentThemeColorsMap = {
-        'dominant': Colors.blue,
-        'vibrant': Colors.deepPurple,
-        'muted': Colors.indigo,
-      };
-    }
-  }
 
   Future<void> _updateCurrentMetadata(MusicFile song) async {
     final path = song.path;
@@ -488,7 +390,7 @@ class AudioService extends ChangeNotifier {
         if (processedBytes != null) {
             newArtworkBytes = processedBytes;
             _hdArtworkCache[path] = processedBytes;
-            unawaited(_processBlurForPath(path, processedBytes));
+            unawaited(themeService.updateCurrentArtwork(path, processedBytes));
             
             final codec = await ui.instantiateImageCodec(processedBytes);
             final frameInfo = await codec.getNextFrame();
@@ -509,7 +411,7 @@ class AudioService extends ChangeNotifier {
           _hdArtworkCache[path] = bytes;
           
           // Trigger blur in background as soon as we have bytes
-          unawaited(_processBlurForPath(path, bytes));
+          unawaited(themeService.updateCurrentArtwork(path, bytes));
 
           // Use dart:ui for much faster decoding on native side
           final codec = await ui.instantiateImageCodec(bytes);
@@ -529,7 +431,7 @@ class AudioService extends ChangeNotifier {
             if (fallbackBytes != null) {
               newArtworkBytes = fallbackBytes;
               _hdArtworkCache[path] = fallbackBytes;
-              unawaited(_processBlurForPath(path, fallbackBytes));
+              unawaited(themeService.updateCurrentArtwork(path, fallbackBytes));
             }
           } catch (e) {
             debugPrint('Error in Android artwork fallback: $e');
@@ -550,7 +452,7 @@ class AudioService extends ChangeNotifier {
             if (fallbackBytes != null) {
               newArtworkBytes = fallbackBytes;
               _hdArtworkCache[path] = fallbackBytes;
-              unawaited(_processBlurForPath(path, fallbackBytes));
+              unawaited(themeService.updateCurrentArtwork(path, fallbackBytes));
             }
           } catch (_) {}
         }
@@ -577,19 +479,18 @@ class AudioService extends ChangeNotifier {
 
     _currentArtworkBytes = newArtworkBytes;
     
-    // Check if blurred version is already cached
-    if (_blurredArtworkCache.containsKey(path)) {
-      _currentBlurredArtworkBytes = _blurredArtworkCache[path];
-    } else if (newArtworkBytes != null) {
-      // If not cached but we have bytes, trigger it (already done above but just in case)
-      unawaited(_processBlurForPath(path, newArtworkBytes));
-    }
+    await themeService.updatePalette(
+      filePath: path,
+      artworkBytes: newArtworkBytes,
+      artworkPath: newArtworkPath,
+      metadata: songFromDb,
+    );
+    await themeService.updateCurrentArtwork(path, newArtworkBytes);
 
     _currentArtworkPath = newArtworkPath;
     _artworkWidth = newArtworkWidth;
     _artworkHeight = newArtworkHeight;
 
-    await _updatePalette(metadata: songFromDb);
     _windowsIntegration?.updateMetadata(null);
     _androidIntegration?.updateMetadata(null);
     notifyListeners();
@@ -704,11 +605,8 @@ class AudioService extends ChangeNotifier {
     _currentWaveform = const [];
     _currentArtworkBytes = null;
     _currentArtworkPath = null;
-    _currentBlurredArtworkBytes = null;
-    await _player.playlist.clear();
-    _duration = Duration.zero;
-    _position = Duration.zero;
     _isPlaying = false;
+    themeService.clear();
     notifyListeners();
   }
 
@@ -882,21 +780,6 @@ class AudioService extends ChangeNotifier {
     _startQueueBackgroundProcessing();
   }
 
-  Future<void> _processBlurForPath(String path, Uint8List bytes) async {
-    if (_blurredArtworkCache.containsKey(path)) return;
-
-    final blurred = await MetadataHelper.blurImage(bytes);
-    if (blurred != null) {
-      _blurredArtworkCache[path] = blurred;
-      if (_blurredArtworkCache.length > _maxBlurredCacheSize) {
-        _blurredArtworkCache.remove(_blurredArtworkCache.keys.first);
-      }
-      if (path == _currentFilePath) {
-        _currentBlurredArtworkBytes = blurred;
-        notifyListeners();
-      }
-    }
-  }
 
   final Map<String, Uint8List> _hdArtworkCache = {};
   static const int _maxHdCacheSize = 8;
@@ -911,7 +794,7 @@ class AudioService extends ChangeNotifier {
         onUpdate: (path, updates) {
           if (path == _currentFilePath) {
             if (updates.containsKey('themeColors')) {
-              _applyThemeColors(updates['themeColors'] as Map<String, Color>);
+              themeService.updateFromThemeColors(updates['themeColors'] as Map<String, Color>);
             }
             if (updates.containsKey('waveform')) {
               _currentWaveform = updates['waveform'] as List<double>;
@@ -927,11 +810,11 @@ class AudioService extends ChangeNotifier {
           // If the song we just loaded HD art for is the current song, update immediately
           if (path == _currentFilePath && _currentArtworkBytes == null) {
             _currentArtworkBytes = bytes;
-            unawaited(_processBlurForPath(path, bytes));
+            unawaited(themeService.updateCurrentArtwork(path, bytes));
             notifyListeners();
           } else {
             // Also blur it and cache it for upcoming songs
-            unawaited(_processBlurForPath(path, bytes));
+            unawaited(themeService.updateCurrentArtwork(path, bytes));
           }
         },
       ),

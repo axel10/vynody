@@ -8,6 +8,7 @@ import 'package:audio_visualizer_player/audio_visualizer_player.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
+import '../player/playback_theme_service.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/visualizer_painter.dart';
 import '../widgets/volume_controls.dart';
@@ -429,8 +430,8 @@ class _PlaybackPageState extends State<PlaybackPage>
       child: RepaintBoundary(
         child: Stack(
           children: [
-            Selector<AudioService, Uint8List?>(
-              selector: (_, a) => a.currentBlurredArtworkBytes,
+            Selector<PlaybackThemeService, Uint8List?>(
+              selector: (_, t) => t.currentBlurredArtworkBytes,
               builder: (context, blurredBytes, _) {
                 final Widget content;
                 if (blurredBytes == null) {
@@ -498,7 +499,7 @@ class _PlaybackPageState extends State<PlaybackPage>
               builder: (context, _, __) {
                 // Re-read settings more cleanly or use the data tuple
                 final settings = context.read<SettingsService>();
-                final audio = context.read<AudioService>();
+                final theme = context.watch<PlaybackThemeService>();
                 final isLandscape = orientation == Orientation.landscape;
                 final gap = isLandscape ? settings.landscapeGap : settings.portraitGap;
 
@@ -507,15 +508,15 @@ class _PlaybackPageState extends State<PlaybackPage>
                     values: frame.values,
                     gap: gap,
                     color: settings.isVisualizerDynamicColor
-                        ? (audio.dynamicStartColor ?? settings.visualizerColor)
+                        ? (theme.dynamicStartColor ?? settings.visualizerColor)
                         : settings.visualizerColor,
                     opacity: settings.visualizerOpacity,
                     useGradient: settings.isVisualizerGradientEnabled,
                     startColor: settings.isVisualizerDynamicStartColor
-                        ? (audio.dynamicStartColor ?? settings.visualizerStartColor)
+                        ? (theme.dynamicStartColor ?? settings.visualizerStartColor)
                         : settings.visualizerStartColor,
                     endColor: settings.isVisualizerDynamicEndColor
-                        ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
+                        ? (theme.dynamicEndColor ?? settings.visualizerEndColor)
                         : settings.visualizerEndColor,
                     gradientStop1: settings.visualizerGradientStop1,
                     gradientStop2: settings.visualizerGradientStop2,

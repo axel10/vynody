@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
+import '../player/playback_theme_service.dart';
 import '../player/settings_service.dart';
 import '../player/playlist_service.dart';
 import '../models/music_file.dart';
@@ -543,8 +544,8 @@ class PlaybackHeroCard extends StatelessWidget {
               tooltip: AppLocalizations.of(context)!.previous,
             ),
             const SizedBox(width: 16),
-            Selector<AudioService, (bool, Map<String, Color>)>(
-              selector: (_, a) => (a.isPlaying, a.currentThemeColorsMap),
+            Selector2<AudioService, PlaybackThemeService, (bool, Map<String, Color>)>(
+              selector: (_, audio, theme) => (audio.isPlaying, theme.currentThemeColorsMap),
               shouldRebuild: (prev, next) =>
                   prev.$1 != next.$1 || !mapEquals(prev.$2, next.$2),
               builder: (context, data, _) {

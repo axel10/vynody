@@ -12,6 +12,7 @@ import 'player/audio_service.dart';
 import 'player/playlist_service.dart';
 import 'player/scanner_service.dart';
 import 'player/settings_service.dart';
+import 'player/playback_theme_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -84,13 +85,20 @@ void main(List<String> args) async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AudioService(settingsService)),
+        ChangeNotifierProvider.value(value: settingsService),
+        ChangeNotifierProvider(create: (_) => PlaybackThemeService(settingsService)),
+        ChangeNotifierProxyProvider<PlaybackThemeService, AudioService>(
+          create: (context) => AudioService(
+            settingsService,
+            context.read<PlaybackThemeService>(),
+          ),
+          update: (_, theme, audio) => audio!,
+        ),
         ChangeNotifierProxyProvider<AudioService, ScannerService>(
           create: (_) => ScannerService(settingsService),
           update: (_, audio, scanner) => scanner!..setPlayerController(audio.player),
         ),
         ChangeNotifierProvider(create: (_) => PlaylistService()),
-        ChangeNotifierProvider.value(value: settingsService),
       ],
       child: MyApp(args: args),
     ),
