@@ -161,7 +161,7 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Future<void> _handleArgs() async {
-    if (_currentIndex == 1 || widget.args.isEmpty) {
+    if (widget.args.isEmpty) {
       return;
     }
 
@@ -175,10 +175,12 @@ class _MainLayoutState extends State<MainLayout> {
     ];
 
     for (var arg in widget.args) {
-      if (File(arg).existsSync()) {
-        final ext = p.extension(arg).toLowerCase();
+      final path = arg.replaceAll('"', '').trim();
+      if (path.isEmpty) continue;
+      if (File(path).existsSync()) {
+        final ext = p.extension(path).toLowerCase();
         if (audioExtensions.contains(ext)) {
-          audio.playFile(arg, p.basename(arg), append: true);
+          audio.playFile(path, p.basename(path), append: true);
           if (!mounted) return;
           await navigateToMainTab(context, index: 1);
           break;

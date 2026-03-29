@@ -31,10 +31,12 @@ void handleFileOpen(List<String> args) {
   ];
 
   for (var arg in args) {
-    if (File(arg).existsSync()) {
-      final ext = p.extension(arg).toLowerCase();
+    final path = arg.replaceAll('"', '').trim();
+    if (path.isEmpty) continue;
+    if (File(path).existsSync()) {
+      final ext = p.extension(path).toLowerCase();
       if (audioExtensions.contains(ext)) {
-        audio.playFile(arg, p.basename(arg), append: true);
+        audio.playFile(path, p.basename(path), append: true);
         navigateToMainTab(context, index: 1);
         break;
       }
