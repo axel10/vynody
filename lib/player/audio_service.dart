@@ -75,7 +75,11 @@ class AudioService extends ChangeNotifier {
 
   AudioService(this.settingsService) {
     _player = AudioCoreController(
-      fadeSettings: FadeSettings(fadeOnSwitch: true,fadeOnPauseResume: true,mode: FadeMode.crossfade)
+      fadeSettings: FadeSettings(
+        fadeOnSwitch: true,
+        fadeOnPauseResume: true,
+        mode: FadeMode.crossfade,
+      ),
     );
     _visualizerOptions = VisualizerOptionsService(
       controller: _player,
@@ -220,7 +224,96 @@ class AudioService extends ChangeNotifier {
   bool? get isLastActionNext => _lastActionNext;
   bool get isTransitioning => _isTransitioning;
 
+  @Deprecated('Use playbackController or dedicated AudioService wrappers.')
   AudioCoreController get player => _player;
+
+  AudioCoreController get playbackController => _player;
+
+  // Keep UI and platform adapters behind this facade so the player
+  // implementation can change without spreading direct player access.
+  bool get isVisualizerEnabled => _player.visualizer.enabled;
+
+  Stream<FftFrame> get visualizerStream => _player.visualizer.optimizedStream;
+
+  VisualizerOptimizationOptions get currentVisualizerOptions =>
+      _player.visualizer.options;
+
+  PlaylistMode get playbackMode => _player.playlist.mode;
+
+  EqualizerConfig get equalizerConfig => _player.equalizerConfig;
+
+  void setVisualizerEnabled(bool enabled) {
+    _player.visualizer.setEnabled(enabled);
+    notifyListeners();
+  }
+
+  void setPlaybackMode(PlaylistMode mode) {
+    _player.playlist.setMode(mode);
+    notifyListeners();
+  }
+
+  void moveQueueTrack(int oldIndex, int newIndex) {
+    if (oldIndex < 0 ||
+        oldIndex >= _playlist.length ||
+        newIndex < 0 ||
+        newIndex >= _playlist.length ||
+        oldIndex == newIndex) {
+      return;
+    }
+
+    final movedSong = _playlist.removeAt(oldIndex);
+    _playlist.insert(newIndex, movedSong);
+    _player.playlist.moveTrack(oldIndex, newIndex);
+
+    if (_currentFilePath != null) {
+      final updatedIndex = _playlist.indexWhere(
+        (song) => song.path == _currentFilePath,
+      );
+      if (updatedIndex != -1) {
+        _currentIndex = updatedIndex;
+      }
+    }
+
+    _startQueueBackgroundProcessing();
+    notifyListeners();
+  }
+
+  void ensureEqualizerBandCount(int bandCount) {
+    if (_player.equalizerConfig.bandCount == bandCount) {
+      return;
+    }
+    _player.setEqualizerBandCount(bandCount);
+    notifyListeners();
+  }
+
+  List<double> getEqualizerBandCenters({required int bandCount}) {
+    return _player.getEqualizerBandCenters(bandCount: bandCount);
+  }
+
+  void setEqualizerEnabled(bool value) {
+    _player.setEqualizerEnabled(value);
+    notifyListeners();
+  }
+
+  void setEqualizerBandGain(int index, double value) {
+    _player.setEqualizerBandGain(index, value);
+    notifyListeners();
+  }
+
+  void setBassBoost(double value) {
+    _player.setBassBoost(value);
+    notifyListeners();
+  }
+
+  void setEqualizerPreamp(double value) {
+    _player.setEqualizerPreamp(value);
+    notifyListeners();
+  }
+
+  void resetEqualizerDefaults() {
+    _player.resetEqualizerDefaults();
+    notifyListeners();
+  }
 
   bool get isPlaying => _isPlaying;
   String? get currentFilePath => _currentFilePath;
@@ -238,7 +331,8 @@ class AudioService extends ChangeNotifier {
   int? get artworkHeight => _artworkHeight;
   String? get currentArtworkPath => _currentArtworkPath;
   Uint8List? get currentBlurredArtworkBytes => _currentBlurredArtworkBytes;
-  List<MusicFile> get playlist => List.unmodifiable(_playlist);
+  List<MusicFile> get playbackQueue => List.unmodifiable(_playlist);
+  List<MusicFile> get playlist => playbackQueue;
   int get currentIndex => _currentIndex;
   bool get isRandomMode => _player.playlist.randomPolicy != null;
 
@@ -693,6 +787,15 @@ class AudioService extends ChangeNotifier {
     if (index >= 0 && index < _playlist.length) {
       _playlist.removeAt(index);
       await _player.playlist.removeTrackAt(index);
+      if (_currentFilePath != null) {
+        final updatedIndex = _playlist.indexWhere(
+          (song) => song.path == _currentFilePath,
+        );
+        if (updatedIndex != -1) {
+          _currentIndex = updatedIndex;
+        }
+      }
+      _startQueueBackgroundProcessing();
       notifyListeners();
     }
   }

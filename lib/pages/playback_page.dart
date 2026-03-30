@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_core/audio_core.dart';
@@ -41,7 +40,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final audio = context.read<AudioService>();
-      _showVisualizer = audio.player.visualizer.enabled;
+      _showVisualizer = audio.isVisualizerEnabled;
       context.read<SettingsService>().resetInactivity();
       if (mounted) {
         setState(() {});
@@ -95,14 +94,14 @@ class _PlaybackPageState extends State<PlaybackPage>
     setState(() {
       _showVisualizer = nextVisible;
     });
-    audio.player.visualizer.setEnabled(nextVisible);
+    audio.setVisualizerEnabled(nextVisible);
   }
 
   void _cyclePlaylistMode(AudioService audio) {
-    final currentMode = audio.player.playlist.mode;
+    final currentMode = audio.playbackMode;
     final nextMode = PlaylistMode
         .values[(currentMode.index + 1) % PlaylistMode.values.length];
-    audio.player.playlist.setMode(nextMode);
+    audio.setPlaybackMode(nextMode);
   }
 
   void _showEqualizerPanel(BuildContext context) {
@@ -246,9 +245,9 @@ class _PlaybackPageState extends State<PlaybackPage>
                 title: Text(
                   getPlaylistModeName(mode, AppLocalizations.of(context)!),
                 ),
-                selected: audio.player.playlist.mode == mode,
+                selected: audio.playbackMode == mode,
                 onTap: () {
-                  audio.player.playlist.setMode(mode);
+                  audio.setPlaybackMode(mode);
                   Navigator.of(context).pop();
                 },
               );
@@ -296,7 +295,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   Widget build(BuildContext context) {
     // Separate UI status from rendering visibility to avoid flicker
     final isVisualizerEnabled = context.select(
-      (AudioService a) => a.player.visualizer.enabled,
+      (AudioService a) => a.isVisualizerEnabled,
     );
     final isTransitioning = context.select(
       (AudioService a) => a.isTransitioning,
@@ -343,7 +342,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             (AudioService a) => a.isLastActionNext ?? true,
                           );
                           final isVisualizerEnabled = context.select(
-                            (AudioService a) => a.player.visualizer.enabled,
+                            (AudioService a) => a.isVisualizerEnabled,
                           );
 
                           return PlaybackHeroCard(
@@ -527,11 +526,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     return Positioned.fill(
       child: RepaintBoundary(
         child: StreamBuilder<FftFrame>(
-          stream: context
-              .read<AudioService>()
-              .player
-              .visualizer
-              .optimizedStream,
+          stream: context.read<AudioService>().visualizerStream,
           builder: (context, snapshot) {
             final frame = snapshot.data;
             if (frame == null) return const SizedBox.shrink();

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
@@ -132,7 +131,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
   }
 
   Widget _buildAlgorithmTab(BuildContext context, StateSetter setDialogState) {
-    final options = audio.player.visualizer.options;
+    final options = audio.currentVisualizerOptions;
 
     return SingleChildScrollView(
       child: Wrap(

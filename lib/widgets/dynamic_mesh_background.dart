@@ -23,7 +23,7 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
     super.initState();
     _initializePoints();
     // FFT-based pulsing is disabled for better performance
-    // _subscribeToFft(); 
+    // _subscribeToFft();
   }
 
   void _initializePoints() {
@@ -48,10 +48,10 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
     ];
   }
 
-/*
+  /*
   void _subscribeToFft() {
     final audio = context.read<AudioService>();
-    _fftSubscription = audio.player.visualizer.optimizedStream.listen((frame) {
+    _fftSubscription = audio.visualizerStream.listen((frame) {
       if (!mounted) return;
       
       // Calculate bass energy from first few bins
@@ -89,21 +89,40 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
   @override
   Widget build(BuildContext context) {
     // Use select to only rebuild when colors actually change
-    final themeColors = context.select((AudioService a) => a.currentThemeColorsMap);
-    final visualizerStartColor = context.select((SettingsService s) => s.visualizerStartColor);
-    final visualizerEndColor = context.select((SettingsService s) => s.visualizerEndColor);
-    final dynamicStartColor = context.select((AudioService a) => a.dynamicStartColor);
-    final dynamicEndColor = context.select((AudioService a) => a.dynamicEndColor);
+    final themeColors = context.select(
+      (AudioService a) => a.currentThemeColorsMap,
+    );
+    final visualizerStartColor = context.select(
+      (SettingsService s) => s.visualizerStartColor,
+    );
+    final visualizerEndColor = context.select(
+      (SettingsService s) => s.visualizerEndColor,
+    );
+    final dynamicStartColor = context.select(
+      (AudioService a) => a.dynamicStartColor,
+    );
+    final dynamicEndColor = context.select(
+      (AudioService a) => a.dynamicEndColor,
+    );
 
-    Color color1 = themeColors['dominant'] ?? dynamicStartColor ?? visualizerStartColor;
-    Color color2 = themeColors['vibrant'] ?? dynamicEndColor ?? visualizerEndColor;
-    Color color3 = themeColors['lightVibrant'] ?? themeColors['muted'] ?? color1.withValues(alpha: 0.8);
-    Color color4 = themeColors['darkVibrant'] ?? themeColors['darkMuted'] ?? color2.withValues(alpha: 0.8);
+    Color color1 =
+        themeColors['dominant'] ?? dynamicStartColor ?? visualizerStartColor;
+    Color color2 =
+        themeColors['vibrant'] ?? dynamicEndColor ?? visualizerEndColor;
+    Color color3 =
+        themeColors['lightVibrant'] ??
+        themeColors['muted'] ??
+        color1.withValues(alpha: 0.8);
+    Color color4 =
+        themeColors['darkVibrant'] ??
+        themeColors['darkMuted'] ??
+        color2.withValues(alpha: 0.8);
 
     final List<Color> currentTarget = [color1, color2, color3, color4];
-    
+
     // Stabilize targetColors to avoid unnecessary animation restarts on every FFT frame
-    if (_stableTargetColors == null || !_isListEqual(_stableTargetColors!, currentTarget)) {
+    if (_stableTargetColors == null ||
+        !_isListEqual(_stableTargetColors!, currentTarget)) {
       _stableTargetColors = currentTarget;
     }
 
@@ -136,9 +155,7 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
             ),
           ),
           // Dark overlay to improve text readability
-          Container(
-            color: Colors.black.withValues(alpha: 0.15), 
-          ),
+          Container(color: Colors.black.withValues(alpha: 0.15)),
         ],
       ),
     );
@@ -153,8 +170,14 @@ class ListColorTween extends Tween<List<Color>> {
     if (begin == null || end == null) return end ?? [];
     final int length = max(begin!.length, end!.length);
     return List.generate(length, (i) {
-      final Color start = i < begin!.length ? begin![i] : (end!.isNotEmpty ? end![i % end!.length] : Colors.transparent);
-      final Color target = i < end!.length ? end![i] : (begin!.isNotEmpty ? begin![i % begin!.length] : Colors.transparent);
+      final Color start = i < begin!.length
+          ? begin![i]
+          : (end!.isNotEmpty ? end![i % end!.length] : Colors.transparent);
+      final Color target = i < end!.length
+          ? end![i]
+          : (begin!.isNotEmpty
+                ? begin![i % begin!.length]
+                : Colors.transparent);
       return Color.lerp(start, target, t) ?? target;
     });
   }

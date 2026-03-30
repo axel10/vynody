@@ -74,9 +74,7 @@ class PlaybackHeroCard extends StatelessWidget {
       tag: playbackHeroTag,
       child: Material(
         type: MaterialType.transparency,
-        child: isMini
-            ? _buildMiniCard(context)
-            : _buildFullCard(context),
+        child: isMini ? _buildMiniCard(context) : _buildFullCard(context),
       ),
     );
   }
@@ -129,7 +127,10 @@ class PlaybackHeroCard extends StatelessWidget {
                                   Selector<AudioService, String?>(
                                     selector: (_, a) => a.currentFileName,
                                     builder: (context, name, _) => Text(
-                                      name ?? AppLocalizations.of(context)!.notSelected,
+                                      name ??
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.notSelected,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 14,
@@ -142,17 +143,21 @@ class PlaybackHeroCard extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Selector<AudioService, double>(
                                     selector: (_, a) => a.progress,
-                                    builder: (context, progress, _) => ClipRRect(
-                                      borderRadius: BorderRadius.circular(999),
-                                      child: LinearProgressIndicator(
-                                        minHeight: 3,
-                                        value: progress.clamp(0.0, 1.0),
-                                        backgroundColor: Colors.white24,
-                                        valueColor: const AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
+                                    builder: (context, progress, _) =>
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                          child: LinearProgressIndicator(
+                                            minHeight: 3,
+                                            value: progress.clamp(0.0, 1.0),
+                                            backgroundColor: Colors.white24,
+                                            valueColor:
+                                                const AlwaysStoppedAnimation<
+                                                  Color
+                                                >(Colors.white),
+                                          ),
                                         ),
-                                      ),
-                                    ),
                                   ),
                                 ],
                               ),
@@ -330,10 +335,7 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildControls(
-    BuildContext context,
-    double width,
-  ) {
+  Widget _buildControls(BuildContext context, double width) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -372,10 +374,7 @@ class PlaybackHeroCard extends StatelessWidget {
                   ),
                   child: Text(
                     '${artist ?? AppLocalizations.of(context)!.unknown} — ${album ?? AppLocalizations.of(context)!.unknown}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                    ),
+                    style: const TextStyle(fontSize: 16, color: Colors.white70),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -397,7 +396,7 @@ class PlaybackHeroCard extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             Selector<AudioService, dynamic>(
-              selector: (_, a) => a.player.playlist.mode,
+              selector: (_, a) => a.playbackMode,
               builder: (context, mode, _) => GestureDetector(
                 onLongPress: onShowPlaylistModeSelector,
                 child: IconButton(
@@ -421,7 +420,9 @@ class PlaybackHeroCard extends StatelessWidget {
                 onLongPress: onShowRandomModeSelector,
                 child: IconButton(
                   icon: Icon(
-                    isRandomMode ? Icons.shuffle_rounded : Icons.shuffle_rounded,
+                    isRandomMode
+                        ? Icons.shuffle_rounded
+                        : Icons.shuffle_rounded,
                     size: 28,
                     color: isRandomMode
                         ? Theme.of(context).colorScheme.primary
@@ -429,7 +430,8 @@ class PlaybackHeroCard extends StatelessWidget {
                   ),
                   onPressed: () {
                     final audio = context.read<AudioService>();
-                    if (audio.settingsService.randomRange == 1 && !isRandomMode) {
+                    if (audio.settingsService.randomRange == 1 &&
+                        !isRandomMode) {
                       final playlistService = context.read<PlaylistService>();
                       final List<MusicFile> allSongs = [];
                       final pathSet = <String>{};
@@ -465,12 +467,13 @@ class PlaybackHeroCard extends StatelessWidget {
           builder: (context, data, _) {
             final duration = data.$1;
             final waveform = overrideWaveform ?? data.$2;
-            
+
             return Selector<AudioService, double>(
               selector: (_, a) => a.progress,
               builder: (context, progress, _) {
-                final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
-                
+                final displayProgress =
+                    overrideProgress ?? progress.clamp(0.0, 1.0);
+
                 return Selector<SettingsService, bool>(
                   selector: (_, s) => s.isWaveformProgressBarEnabled,
                   builder: (context, enabled, _) {

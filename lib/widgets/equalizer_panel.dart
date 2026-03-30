@@ -21,13 +21,9 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final audio = context.read<AudioService>();
-      if (audio.player.equalizerConfig.bandCount != bandCount) {
-        audio.player.setEqualizerBandCount(bandCount);
-      }
+      audio.ensureEqualizerBandCount(bandCount);
       setState(() {
-        _frequencies = audio.player.getEqualizerBandCenters(
-          bandCount: bandCount,
-        );
+        _frequencies = audio.getEqualizerBandCenters(bandCount: bandCount);
       });
     });
   }
@@ -35,7 +31,7 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
   @override
   Widget build(BuildContext context) {
     final audio = context.watch<AudioService>();
-    final config = audio.player.equalizerConfig;
+    final config = audio.equalizerConfig;
     const accentColor = Colors.blueAccent;
 
     return BackdropFilter(
@@ -93,7 +89,7 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
         Switch(
           value: config.enabled,
           activeThumbColor: Colors.blueAccent,
-          onChanged: (val) => audio.player.setEqualizerEnabled(val),
+          onChanged: (val) => audio.setEqualizerEnabled(val),
         ),
       ],
     );
@@ -122,9 +118,7 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
                     min: -12.0,
                     max: 12.0,
                     activeColor: accentColor,
-                    onChanged: (val) {
-                      audio.player.setEqualizerBandGain(index, val);
-                    },
+                    onChanged: (val) => audio.setEqualizerBandGain(index, val),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -159,7 +153,7 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
           min: 0,
           max: 100,
           accentColor: accentColor,
-          onChanged: (val) => audio.player.setBassBoost(val),
+          onChanged: (val) => audio.setBassBoost(val),
         ),
         const SizedBox(width: 40),
         Expanded(
@@ -200,7 +194,7 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
                   max: 12.0,
                   activeColor: accentColor,
                   inactiveColor: Colors.white12,
-                  onChanged: (val) => audio.player.setEqualizerPreamp(val),
+                  onChanged: (val) => audio.setEqualizerPreamp(val),
                 ),
               ),
             ],
@@ -208,7 +202,7 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
         ),
         const SizedBox(width: 16),
         IconButton(
-          onPressed: () => audio.player.resetEqualizerDefaults(),
+          onPressed: () => audio.resetEqualizerDefaults(),
           icon: const Icon(Icons.refresh, color: Colors.white54),
           tooltip: '重置',
         ),

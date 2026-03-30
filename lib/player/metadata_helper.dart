@@ -37,7 +37,9 @@ class MetadataHelper {
         artist = metadata.artist;
         duration = metadata.duration?.inMilliseconds;
         trackNumber = metadata.trackNumber;
-        artworkData = metadata.pictures.isNotEmpty ? metadata.pictures.first.bytes : null;
+        artworkData = metadata.pictures.isNotEmpty
+            ? metadata.pictures.first.bytes
+            : null;
       } catch (e) {
         debugPrint('audio_metadata_reader error for $filePath: $e');
       }
@@ -48,10 +50,7 @@ class MetadataHelper {
       Uint8List? themeColorsBlob;
 
       if (artworkData != null) {
-        final artworkInfo = await _saveCompressedArtwork(
-          filePath,
-          artworkData,
-        );
+        final artworkInfo = await _saveCompressedArtwork(filePath, artworkData);
         artworkPath = artworkInfo?['path'] as String?;
         artworkWidth = artworkInfo?['width'] as int?;
         artworkHeight = artworkInfo?['height'] as int?;
@@ -128,7 +127,8 @@ class MetadataHelper {
           height = descriptor.height;
         } catch (e) {
           // Fallback if needed
-          width = 0; height = 0;
+          width = 0;
+          height = 0;
         }
 
         compressedData = await FlutterImageCompress.compressWithList(
@@ -143,11 +143,7 @@ class MetadataHelper {
       final file = File(targetPath);
       await file.writeAsBytes(compressedData);
 
-      return {
-        'path': targetPath,
-        'width': width,
-        'height': height,
-      };
+      return {'path': targetPath, 'width': width, 'height': height};
     } catch (e) {
       debugPrint('Error saving artwork: $e');
       return null;
@@ -164,7 +160,7 @@ class MetadataHelper {
           : originalImage.height;
       final offsetX = (originalImage.width - cropSize) ~/ 2;
       final offsetY = (originalImage.height - cropSize) ~/ 2;
-      
+
       final square = img.copyCrop(
         originalImage,
         x: offsetX,
@@ -221,7 +217,7 @@ class MetadataHelper {
       final blurred = img.gaussianBlur(resized, radius: 5);
 
       // 3. Encode as JPG (fastest)
-      return Uint8List.fromList(img.encodePng(blurred, ));
+      return Uint8List.fromList(img.encodePng(blurred));
     } catch (e) {
       debugPrint('Error blurring image in isolate: $e');
       return null;

@@ -54,9 +54,11 @@ class _QueuePageState extends State<QueuePage> {
               audio.clearPlaylist();
               Navigator.pop(context);
               if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.queueCleared)));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context)!.queueCleared),
+                  ),
+                );
               }
             },
             child: Text(AppLocalizations.of(context)!.clearQueue),
@@ -70,7 +72,7 @@ class _QueuePageState extends State<QueuePage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final audio = Provider.of<AudioService>(context);
-    
+
     // Validate current view index against current mode
     if (_viewIndex == 1 && !audio.isRandomMode) {
       _viewIndex = 0;
@@ -88,9 +90,9 @@ class _QueuePageState extends State<QueuePage> {
   Widget build(BuildContext context) {
     final audio = context.watch<AudioService>();
     final scanner = context.watch<ScannerService>();
-    final playlist = audio.playlist;
+    final queue = audio.playbackQueue;
 
-    if (playlist.isEmpty) {
+    if (queue.isEmpty) {
       return Scaffold(
         appBar: AppBar(
           title: Text(AppLocalizations.of(context)!.queue),
@@ -187,7 +189,11 @@ class _QueuePageState extends State<QueuePage> {
                   ),
                   child: Row(
                     children: [
-                      Text(AppLocalizations.of(context)!.selectedSongs(_selectedIndices.length)),
+                      Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.selectedSongs(_selectedIndices.length),
+                      ),
                       const Spacer(),
                       TextButton(
                         onPressed: _toggleSelectionMode,
@@ -207,22 +213,22 @@ class _QueuePageState extends State<QueuePage> {
                   itemCount: _viewIndex == 1
                       ? audio.randomHistory.length
                       : _viewIndex == 2
-                          ? audio.randomQueue.length
-                          : playlist.length,
+                      ? audio.randomQueue.length
+                      : queue.length,
                   onReorder: (oldIndex, newIndex) {
                     if (_viewIndex != 0) return;
                     if (newIndex > oldIndex) newIndex--;
-                    audio.player.playlist.moveTrack(oldIndex, newIndex);
+                    audio.moveQueueTrack(oldIndex, newIndex);
                   },
                   itemBuilder: (context, index) {
                     final isHistoryView = _viewIndex == 1;
                     final isRandomQueueView = _viewIndex == 2;
-                    final displayPlaylist = isHistoryView
+                    final displayQueue = isHistoryView
                         ? audio.randomHistory
                         : isRandomQueueView
-                            ? audio.randomQueue
-                            : playlist;
-                    final song = displayPlaylist[index];
+                        ? audio.randomQueue
+                        : queue;
+                    final song = displayQueue[index];
 
                     final bool isCurrent;
                     if (isHistoryView) {
@@ -296,7 +302,8 @@ class _QueuePageState extends State<QueuePage> {
                           ),
                         ),
                         subtitle: Text(
-                          scanner.metadataMap[song.path]?.artist ?? AppLocalizations.of(context)!.unknownArtist,
+                          scanner.metadataMap[song.path]?.artist ??
+                              AppLocalizations.of(context)!.unknownArtist,
                           style: const TextStyle(fontSize: 10),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -307,32 +314,32 @@ class _QueuePageState extends State<QueuePage> {
                                 child: const Icon(Icons.drag_handle),
                               )
                             : isHistoryView
-                                ? Icon(
-                                    Icons.history,
-                                    color: isCurrent
-                                        ? Colors.blue
-                                        : Colors.grey.withOpacity(0.3),
-                                  )
-                                : isRandomQueueView
-                                    ? Icon(
-                                        Icons.shuffle,
-                                        color: isCurrent
-                                            ? Colors.purpleAccent
-                                            : Colors.grey.withOpacity(0.3),
-                                      )
-                                    : Icon(
-                                    isCurrent
-                                        ? Icons.play_circle
-                                        : Icons.play_circle_outline,
-                                    color: isCurrent
-                                        ? Theme.of(context).colorScheme.primary
-                                        : null,
-                                  ),
+                            ? Icon(
+                                Icons.history,
+                                color: isCurrent
+                                    ? Colors.blue
+                                    : Colors.grey.withOpacity(0.3),
+                              )
+                            : isRandomQueueView
+                            ? Icon(
+                                Icons.shuffle,
+                                color: isCurrent
+                                    ? Colors.purpleAccent
+                                    : Colors.grey.withOpacity(0.3),
+                              )
+                            : Icon(
+                                isCurrent
+                                    ? Icons.play_circle
+                                    : Icons.play_circle_outline,
+                                color: isCurrent
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                              ),
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(index)
                             : () {
                                 if (isHistoryView || isRandomQueueView) {
-                                  final actualIndex = audio.playlist
+                                  final actualIndex = audio.playbackQueue
                                       .indexWhere((s) => s.path == song.path);
                                   if (actualIndex >= 0) {
                                     audio.playAtIndex(actualIndex);
@@ -390,7 +397,11 @@ class _QueuePageState extends State<QueuePage> {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            AppLocalizations.of(context)!.deletedSongs(sortedIndices.length),
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.deletedSongs(
+                                              sortedIndices.length,
+                                            ),
                                           ),
                                         ),
                                       );

@@ -43,6 +43,7 @@ void handleFileOpen(List<String> args) {
     }
   }
 }
+
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -77,8 +78,6 @@ void main(List<String> args) async {
     await SMTCWindows.initialize();
   }
 
-
-
   final settingsService = await SettingsService.init();
 
   runApp(
@@ -87,7 +86,8 @@ void main(List<String> args) async {
         ChangeNotifierProvider(create: (_) => AudioService(settingsService)),
         ChangeNotifierProxyProvider<AudioService, ScannerService>(
           create: (_) => ScannerService(settingsService),
-          update: (_, audio, scanner) => scanner!..setPlayerController(audio.player),
+          update: (_, audio, scanner) =>
+              scanner!..setPlayerController(audio.playbackController),
         ),
         ChangeNotifierProvider(create: (_) => PlaylistService()),
         ChangeNotifierProvider.value(value: settingsService),
@@ -141,13 +141,9 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('zh'),
-      ],
+      supportedLocales: const [Locale('en'), Locale('zh')],
       home: MainLayout(args: args),
       navigatorKey: navigatorKey,
     );
-
   }
 }
