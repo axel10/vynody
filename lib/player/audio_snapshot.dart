@@ -1,0 +1,158 @@
+import 'dart:typed_data';
+
+import 'package:audio_core/audio_core.dart';
+import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
+
+import '../models/music_file.dart';
+
+class AudioSnapshot {
+  static final DeepCollectionEquality _deepEquality = DeepCollectionEquality();
+
+  final bool isPlaying;
+  final bool isTransitioning;
+  final bool? isLastActionNext;
+  final String? currentFilePath;
+  final String? currentFileName;
+  final String? currentArtist;
+  final String? currentAlbum;
+  final int? currentSongId;
+  final List<double> currentWaveform;
+  final Uint8List? currentArtworkBytes;
+  final String? currentArtworkPath;
+  final Uint8List? currentBlurredArtworkBytes;
+  final int? artworkWidth;
+  final int? artworkHeight;
+  final Duration position;
+  final Duration duration;
+  final double volume;
+  final bool isMuted;
+  final List<MusicFile> playbackQueue;
+  final int currentIndex;
+  final bool isRandomMode;
+  final bool isShuffleRandomMode;
+  final PlaylistMode playbackMode;
+  final int? historyCursor;
+  final int? deckCursor;
+  final bool isVisualizerEnabled;
+  final Color? dynamicStartColor;
+  final Color? dynamicEndColor;
+  final Map<String, Color> currentThemeColorsMap;
+  final double progress;
+
+  AudioSnapshot({
+    required this.isPlaying,
+    required this.isTransitioning,
+    required this.isLastActionNext,
+    required this.currentFilePath,
+    required this.currentFileName,
+    required this.currentArtist,
+    required this.currentAlbum,
+    required this.currentSongId,
+    required List<double> currentWaveform,
+    required this.currentArtworkBytes,
+    required this.currentArtworkPath,
+    required this.currentBlurredArtworkBytes,
+    required this.artworkWidth,
+    required this.artworkHeight,
+    required this.position,
+    required this.duration,
+    required this.volume,
+    required this.isMuted,
+    required List<MusicFile> playbackQueue,
+    required this.currentIndex,
+    required this.isRandomMode,
+    required this.isShuffleRandomMode,
+    required this.playbackMode,
+    required this.historyCursor,
+    required this.deckCursor,
+    required this.isVisualizerEnabled,
+    required this.dynamicStartColor,
+    required this.dynamicEndColor,
+    required Map<String, Color> currentThemeColorsMap,
+  }) : currentWaveform = List<double>.unmodifiable(currentWaveform),
+       playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
+       currentThemeColorsMap = Map<String, Color>.unmodifiable(
+         currentThemeColorsMap,
+       ),
+       progress = duration.inMilliseconds > 0
+           ? position.inMilliseconds / duration.inMilliseconds
+           : 0.0;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is AudioSnapshot &&
+            isPlaying == other.isPlaying &&
+            isTransitioning == other.isTransitioning &&
+            isLastActionNext == other.isLastActionNext &&
+            currentFilePath == other.currentFilePath &&
+            currentFileName == other.currentFileName &&
+            currentArtist == other.currentArtist &&
+            currentAlbum == other.currentAlbum &&
+            currentSongId == other.currentSongId &&
+            _deepEquality.equals(currentWaveform, other.currentWaveform) &&
+            _deepEquality.equals(
+              currentArtworkBytes,
+              other.currentArtworkBytes,
+            ) &&
+            _deepEquality.equals(
+              currentBlurredArtworkBytes,
+              other.currentBlurredArtworkBytes,
+            ) &&
+            currentArtworkPath == other.currentArtworkPath &&
+            artworkWidth == other.artworkWidth &&
+            artworkHeight == other.artworkHeight &&
+            position == other.position &&
+            duration == other.duration &&
+            volume == other.volume &&
+            isMuted == other.isMuted &&
+            _deepEquality.equals(playbackQueue, other.playbackQueue) &&
+            currentIndex == other.currentIndex &&
+            isRandomMode == other.isRandomMode &&
+            isShuffleRandomMode == other.isShuffleRandomMode &&
+            playbackMode == other.playbackMode &&
+            historyCursor == other.historyCursor &&
+            deckCursor == other.deckCursor &&
+            isVisualizerEnabled == other.isVisualizerEnabled &&
+            dynamicStartColor == other.dynamicStartColor &&
+            dynamicEndColor == other.dynamicEndColor &&
+            _deepEquality.equals(
+              currentThemeColorsMap,
+              other.currentThemeColorsMap,
+            );
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    isPlaying,
+    isTransitioning,
+    isLastActionNext,
+    currentFilePath,
+    currentFileName,
+    currentArtist,
+    currentAlbum,
+    currentSongId,
+    _deepEquality.hash(currentWaveform),
+    _deepEquality.hash(currentArtworkBytes),
+    _deepEquality.hash(currentBlurredArtworkBytes),
+    currentArtworkPath,
+    artworkWidth,
+    artworkHeight,
+    position,
+    duration,
+    volume,
+    isMuted,
+    _deepEquality.hash(playbackQueue),
+    currentIndex,
+    isRandomMode,
+    isShuffleRandomMode,
+    playbackMode,
+    historyCursor,
+    deckCursor,
+    isVisualizerEnabled,
+    dynamicStartColor,
+    dynamicEndColor,
+    _deepEquality.hash(currentThemeColorsMap),
+  ]);
+}

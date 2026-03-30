@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
+import '../player/audio_snapshot.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../player/playlist_service.dart';
@@ -81,6 +81,9 @@ class PlaybackHeroCard extends StatelessWidget {
 
   Widget _buildMiniCard(BuildContext context) {
     final audio = context.read<AudioService>();
+    final AudioSnapshot snapshot = context.select(
+      (AudioService a) => a.snapshot,
+    );
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.82),
@@ -124,40 +127,31 @@ class PlaybackHeroCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Selector<AudioService, String?>(
-                                    selector: (_, a) => a.currentFileName,
-                                    builder: (context, name, _) => Text(
-                                      name ??
-                                          AppLocalizations.of(
-                                            context,
-                                          )!.notSelected,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    snapshot.currentFileName ??
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.notSelected,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
-                                  Selector<AudioService, double>(
-                                    selector: (_, a) => a.progress,
-                                    builder: (context, progress, _) =>
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            999,
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: LinearProgressIndicator(
+                                      minHeight: 3,
+                                      value: snapshot.progress.clamp(0.0, 1.0),
+                                      backgroundColor: Colors.white24,
+                                      valueColor:
+                                          const AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
                                           ),
-                                          child: LinearProgressIndicator(
-                                            minHeight: 3,
-                                            value: progress.clamp(0.0, 1.0),
-                                            backgroundColor: Colors.white24,
-                                            valueColor:
-                                                const AlwaysStoppedAnimation<
-                                                  Color
-                                                >(Colors.white),
-                                          ),
-                                        ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -176,17 +170,14 @@ class PlaybackHeroCard extends StatelessWidget {
                         tooltip: AppLocalizations.of(context)!.previous,
                       ),
                       const SizedBox(width: 8),
-                      Selector<AudioService, bool>(
-                        selector: (_, a) => a.isPlaying,
-                        builder: (context, isPlaying, _) => MiniControlButton(
-                          icon: isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          onPressed: onPlayPause,
-                          tooltip: isPlaying
-                              ? AppLocalizations.of(context)!.pause
-                              : AppLocalizations.of(context)!.play,
-                        ),
+                      MiniControlButton(
+                        icon: snapshot.isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        onPressed: onPlayPause,
+                        tooltip: snapshot.isPlaying
+                            ? AppLocalizations.of(context)!.pause
+                            : AppLocalizations.of(context)!.play,
                       ),
                       const SizedBox(width: 8),
                       MiniControlButton(
@@ -281,33 +272,30 @@ class PlaybackHeroCard extends StatelessWidget {
             constraints.maxHeight,
           ].reduce((a, b) => a < b ? a : b);
 
-          return Selector<AudioService, (List<MusicFile>, int)>(
-            selector: (_, a) => (a.playlist, a.currentIndex),
-            shouldRebuild: (prev, next) =>
-                !listEquals(prev.$1, next.$1) || prev.$2 != next.$2,
-            builder: (context, data, _) {
-              if (data.$1.isEmpty) {
-                return _buildArtworkPlaceholder();
-              }
-              return SizedBox.square(
-                dimension: side,
-                child: CoverCarousel(
-                  playlist: data.$1,
-                  currentIndex: data.$2,
-                  audioService: context.read<AudioService>(),
-                  isNext: isNext,
-                  displaySize: side,
-                  onPageChanged: (page) {
-                    final audio = context.read<AudioService>();
-                    if (page >= 0 &&
-                        page < audio.playlist.length &&
-                        page != audio.currentIndex) {
-                      audio.playAtIndex(page);
-                    }
-                  },
-                ),
-              );
-            },
+          final AudioSnapshot snapshot = context.select(
+            (AudioService a) => a.snapshot,
+          );
+          final playlist = snapshot.playbackQueue;
+          if (playlist.isEmpty) {
+            return _buildArtworkPlaceholder();
+          }
+          return SizedBox.square(
+            dimension: side,
+            child: CoverCarousel(
+              playlist: playlist,
+              currentIndex: snapshot.currentIndex,
+              audioService: context.read<AudioService>(),
+              isNext: isNext,
+              displaySize: side,
+              onPageChanged: (page) {
+                final audio = context.read<AudioService>();
+                if (page >= 0 &&
+                    page < playlist.length &&
+                    page != snapshot.currentIndex) {
+                  audio.playAtIndex(page);
+                }
+              },
+            ),
           );
         },
       ),
@@ -336,6 +324,10 @@ class PlaybackHeroCard extends StatelessWidget {
   }
 
   Widget _buildControls(BuildContext context, double width) {
+    final AudioSnapshot snapshot = context.select(
+      (AudioService a) => a.snapshot,
+    );
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -344,47 +336,37 @@ class PlaybackHeroCard extends StatelessWidget {
           constraints: BoxConstraints(
             maxWidth: isLandscape ? 450 : width * 0.95,
           ),
-          child: Selector<AudioService, String?>(
-            selector: (_, a) => a.currentFileName,
-            builder: (context, name, _) => Text(
-              name ?? AppLocalizations.of(context)!.notSelected,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          child: Text(
+            snapshot.currentFileName ?? l10n.notSelected,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        Selector<AudioService, (String?, String?)>(
-          selector: (_, a) => (a.currentArtist, a.currentAlbum),
-          builder: (context, data, _) {
-            final artist = data.$1;
-            final album = data.$2;
-            if ((artist != null && artist != 'Unknown') ||
-                (album != null && album != 'Unknown')) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isLandscape ? 400 : width * 0.9,
-                  ),
-                  child: Text(
-                    '${artist ?? AppLocalizations.of(context)!.unknown} — ${album ?? AppLocalizations.of(context)!.unknown}',
-                    style: const TextStyle(fontSize: 16, color: Colors.white70),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
+        if ((snapshot.currentArtist != null &&
+                snapshot.currentArtist != 'Unknown') ||
+            (snapshot.currentAlbum != null &&
+                snapshot.currentAlbum != 'Unknown'))
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isLandscape ? 400 : width * 0.9,
+              ),
+              child: Text(
+                '${snapshot.currentArtist ?? l10n.unknown} — ${snapshot.currentAlbum ?? l10n.unknown}',
+                style: const TextStyle(fontSize: 16, color: Colors.white70),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
         SizedBox(height: isLandscape ? 16 : 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -392,61 +374,50 @@ class PlaybackHeroCard extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.more_horiz, color: Colors.white70),
               onPressed: onShowMoreMenu,
-              tooltip: AppLocalizations.of(context)!.more,
+              tooltip: l10n.more,
             ),
             const SizedBox(width: 16),
-            Selector<AudioService, dynamic>(
-              selector: (_, a) => a.playbackMode,
-              builder: (context, mode, _) => GestureDetector(
-                onLongPress: onShowPlaylistModeSelector,
-                child: IconButton(
-                  icon: Icon(
-                    getPlaylistModeIcon(mode),
-                    size: 28,
-                    color: Colors.white70,
-                  ),
-                  onPressed: onCyclePlaylistMode,
-                  tooltip: getPlaylistModeName(
-                    mode,
-                    AppLocalizations.of(context)!,
-                  ),
+            GestureDetector(
+              onLongPress: onShowPlaylistModeSelector,
+              child: IconButton(
+                icon: Icon(
+                  getPlaylistModeIcon(snapshot.playbackMode),
+                  size: 28,
+                  color: Colors.white70,
                 ),
+                onPressed: onCyclePlaylistMode,
+                tooltip: getPlaylistModeName(snapshot.playbackMode, l10n),
               ),
             ),
             const SizedBox(width: 8),
-            Selector<AudioService, bool>(
-              selector: (_, a) => a.isRandomMode,
-              builder: (context, isRandomMode, _) => GestureDetector(
-                onLongPress: onShowRandomModeSelector,
-                child: IconButton(
-                  icon: Icon(
-                    isRandomMode
-                        ? Icons.shuffle_rounded
-                        : Icons.shuffle_rounded,
-                    size: 28,
-                    color: isRandomMode
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.white70,
-                  ),
-                  onPressed: () {
-                    final audio = context.read<AudioService>();
-                    if (audio.settingsService.randomRange == 1 &&
-                        !isRandomMode) {
-                      final playlistService = context.read<PlaylistService>();
-                      final List<MusicFile> allSongs = [];
-                      final pathSet = <String>{};
-                      for (final p in playlistService.playlists) {
-                        for (final s in p.songs) {
-                          if (pathSet.add(s.path)) allSongs.add(s);
-                        }
-                      }
-                      audio.toggleRandomMode(globalSongs: allSongs);
-                    } else {
-                      audio.toggleRandomMode();
-                    }
-                  },
-                  tooltip: AppLocalizations.of(context)!.randomMode,
+            GestureDetector(
+              onLongPress: onShowRandomModeSelector,
+              child: IconButton(
+                icon: Icon(
+                  Icons.shuffle_rounded,
+                  size: 28,
+                  color: snapshot.isRandomMode
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.white70,
                 ),
+                onPressed: () {
+                  final audio = context.read<AudioService>();
+                  if (audio.settingsService.randomRange == 1 &&
+                      !snapshot.isRandomMode) {
+                    final playlistService = context.read<PlaylistService>();
+                    final List<MusicFile> allSongs = [];
+                    final pathSet = <String>{};
+                    for (final p in playlistService.playlists) {
+                      for (final s in p.songs) {
+                        if (pathSet.add(s.path)) allSongs.add(s);
+                      }
+                    }
+                    audio.toggleRandomMode(globalSongs: allSongs);
+                  } else {
+                    audio.toggleRandomMode();
+                  }
+                },
+                tooltip: l10n.randomMode,
               ),
             ),
             const SizedBox(width: 8),
@@ -462,38 +433,27 @@ class PlaybackHeroCard extends StatelessWidget {
           ],
         ),
         SizedBox(height: isLandscape ? 16 : 12),
-        Selector<AudioService, (Duration, List<double>)>(
-          selector: (_, a) => (a.duration, a.currentWaveform),
-          builder: (context, data, _) {
-            final duration = data.$1;
-            final waveform = overrideWaveform ?? data.$2;
+        Selector<SettingsService, bool>(
+          selector: (_, s) => s.isWaveformProgressBarEnabled,
+          builder: (context, enabled, _) {
+            final duration = snapshot.duration;
+            final waveform = overrideWaveform ?? snapshot.currentWaveform;
+            final displayProgress =
+                overrideProgress ?? snapshot.progress.clamp(0.0, 1.0);
 
-            return Selector<AudioService, double>(
-              selector: (_, a) => a.progress,
-              builder: (context, progress, _) {
-                final displayProgress =
-                    overrideProgress ?? progress.clamp(0.0, 1.0);
-
-                return Selector<SettingsService, bool>(
-                  selector: (_, s) => s.isWaveformProgressBarEnabled,
-                  builder: (context, enabled, _) {
-                    if (enabled) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: WaveformProgressBar(
-                          waveform: waveform,
-                          progress: displayProgress,
-                          duration: duration,
-                          onScrubbing: onScrubbing ?? (_) {},
-                          onSeek: onSeek ?? (_) {},
-                        ),
-                      );
-                    }
-                    return _buildStandardSlider(context, displayProgress);
-                  },
-                );
-              },
-            );
+            if (enabled) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: WaveformProgressBar(
+                  waveform: waveform,
+                  progress: displayProgress,
+                  duration: duration,
+                  onScrubbing: onScrubbing ?? (_) {},
+                  onSeek: onSeek ?? (_) {},
+                ),
+              );
+            }
+            return _buildStandardSlider(context, displayProgress);
           },
         ),
         const SizedBox(height: 8),
@@ -502,19 +462,13 @@ class PlaybackHeroCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Selector<AudioService, Duration>(
-                selector: (_, a) => a.position,
-                builder: (context, position, _) => Text(
-                  formatDuration(overridePosition ?? position),
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
+              Text(
+                formatDuration(overridePosition ?? snapshot.position),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
-              Selector<AudioService, Duration>(
-                selector: (_, a) => a.duration,
-                builder: (context, duration, _) => Text(
-                  formatDuration(duration),
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
+              Text(
+                formatDuration(snapshot.duration),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
           ),
@@ -543,39 +497,30 @@ class PlaybackHeroCard extends StatelessWidget {
                 color: Colors.white,
               ),
               onPressed: onPrevious,
-              tooltip: AppLocalizations.of(context)!.previous,
+              tooltip: l10n.previous,
             ),
             const SizedBox(width: 16),
-            Selector<AudioService, (bool, Map<String, Color>)>(
-              selector: (_, a) => (a.isPlaying, a.currentThemeColorsMap),
-              shouldRebuild: (prev, next) =>
-                  prev.$1 != next.$1 || !mapEquals(prev.$2, next.$2),
-              builder: (context, data, _) {
-                final isPlaying = data.$1;
-                final themeColors = data.$2;
-                final darkThemeColor =
-                    themeColors['darkVibrant'] ?? themeColors['darkMuted'];
-                final l10n = AppLocalizations.of(context)!;
-                return Container(
-                  width: 72,
-                  height: 72,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                  ),
-                  child: IconButton(
-                    onPressed: onPlayPause,
-                    tooltip: isPlaying ? l10n.pause : l10n.play,
-                    icon: Icon(
-                      isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                      size: 40,
-                      color: darkThemeColor ?? Colors.black,
-                    ),
-                  ),
-                );
-              },
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: IconButton(
+                onPressed: onPlayPause,
+                tooltip: snapshot.isPlaying ? l10n.pause : l10n.play,
+                icon: Icon(
+                  snapshot.isPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
+                  size: 40,
+                  color:
+                      snapshot.currentThemeColorsMap['darkVibrant'] ??
+                      snapshot.currentThemeColorsMap['darkMuted'] ??
+                      Colors.black,
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             IconButton(
@@ -585,31 +530,28 @@ class PlaybackHeroCard extends StatelessWidget {
                 color: Colors.white,
               ),
               onPressed: onNext,
-              tooltip: AppLocalizations.of(context)!.next,
+              tooltip: l10n.next,
             ),
             const SizedBox(width: 8),
-            Selector<AudioService, double>(
-              selector: (_, a) => a.volume,
-              builder: (context, volume, _) => GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onVerticalDragUpdate: (details) {
-                  onVolumeDrag?.call(details.primaryDelta ?? 0);
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragUpdate: (details) {
+                onVolumeDrag?.call(details.primaryDelta ?? 0);
+              },
+              child: Listener(
+                onPointerSignal: (pointerSignal) {
+                  if (pointerSignal is PointerScrollEvent) {
+                    onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+                  }
                 },
-                child: Listener(
-                  onPointerSignal: (pointerSignal) {
-                    if (pointerSignal is PointerScrollEvent) {
-                      onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-                    }
-                  },
-                  child: IconButton(
-                    icon: Icon(
-                      getVolumeIcon(volume),
-                      size: 28,
-                      color: Colors.white70,
-                    ),
-                    onPressed: onVolumeTap,
-                    tooltip: AppLocalizations.of(context)!.volume,
+                child: IconButton(
+                  icon: Icon(
+                    getVolumeIcon(snapshot.volume),
+                    size: 28,
+                    color: Colors.white70,
                   ),
+                  onPressed: onVolumeTap,
+                  tooltip: l10n.volume,
                 ),
               ),
             ),

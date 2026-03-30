@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
-import 'package:audio_metadata_reader/audio_metadata_reader.dart';
-import 'package:on_audio_query/on_audio_query.dart';
 import 'package:audio_core/audio_core.dart';
 import '../models/music_file.dart';
+import 'audio_snapshot.dart';
+import 'current_track_asset_resolver.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 import 'settings_service.dart';
@@ -16,7 +15,6 @@ import 'theme_color_helper.dart';
 import 'visualizer_options_service.dart';
 import 'playback_queue_processor.dart';
 import 'waveform_service.dart';
-import 'package:path_provider/path_provider.dart';
 import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
 
@@ -38,7 +36,6 @@ class AudioService extends ChangeNotifier {
   double _volume = 100.0;
   double _previousVolume = 100.0;
   bool _isMuted = false;
-  final OnAudioQuery _audioQuery = OnAudioQuery();
   final MetadataDatabase _db = MetadataDatabase();
 
   final List<MusicFile> _playlist = [];
@@ -55,6 +52,7 @@ class AudioService extends ChangeNotifier {
   late final VisualizerOptionsService _visualizerOptions;
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
+  late final CurrentTrackAssetResolver _trackAssetResolver;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -91,6 +89,7 @@ class AudioService extends ChangeNotifier {
       settingsService: settingsService,
     );
     _waveformService = WaveformService(db: _db, player: _player);
+    _trackAssetResolver = CurrentTrackAssetResolver(db: _db);
     _windowsIntegration = Platform.isWindows
         ? WindowsIntegrationService(this)
         : null;
@@ -335,6 +334,37 @@ class AudioService extends ChangeNotifier {
   List<MusicFile> get playlist => playbackQueue;
   int get currentIndex => _currentIndex;
   bool get isRandomMode => _player.playlist.randomPolicy != null;
+  AudioSnapshot get snapshot => AudioSnapshot(
+    isPlaying: _isPlaying,
+    isTransitioning: _isTransitioning,
+    isLastActionNext: _lastActionNext,
+    currentFilePath: _currentFilePath,
+    currentFileName: _currentFileName,
+    currentArtist: _currentArtist,
+    currentAlbum: _currentAlbum,
+    currentSongId: _currentSongId,
+    currentWaveform: _currentWaveform,
+    currentArtworkBytes: _currentArtworkBytes,
+    currentArtworkPath: _currentArtworkPath,
+    currentBlurredArtworkBytes: _currentBlurredArtworkBytes,
+    artworkWidth: _artworkWidth,
+    artworkHeight: _artworkHeight,
+    position: _position,
+    duration: _duration,
+    volume: _volume,
+    isMuted: _isMuted,
+    playbackQueue: _playlist,
+    currentIndex: _currentIndex,
+    isRandomMode: isRandomMode,
+    isShuffleRandomMode: isShuffleRandomMode,
+    playbackMode: playbackMode,
+    historyCursor: historyCursor,
+    deckCursor: deckCursor,
+    isVisualizerEnabled: isVisualizerEnabled,
+    dynamicStartColor: _dynamicStartColor,
+    dynamicEndColor: _dynamicEndColor,
+    currentThemeColorsMap: _currentThemeColorsMap,
+  );
 
   Uint8List? getCachedArtwork(String? path) =>
       path != null ? _hdArtworkCache[path] : null;
@@ -507,7 +537,6 @@ class AudioService extends ChangeNotifier {
 
   Future<void> _updateCurrentMetadata(MusicFile song) async {
     final path = song.path;
-    final name = song.displayName;
     final id = song.id;
 
     if (_currentFilePath == path && _currentSongId == id) return;
@@ -515,7 +544,7 @@ class AudioService extends ChangeNotifier {
     // Clear previous high-res bytes to avoid showing wrong artwork during transition
     _currentArtworkBytes = null;
     _currentFilePath = path;
-    _currentFileName = name;
+    _currentFileName = song.displayName;
     _currentArtist = song.artist;
     _currentAlbum = song.album;
     _currentSongId = id;
@@ -545,149 +574,34 @@ class AudioService extends ChangeNotifier {
     _windowsIntegration?.updateMetadata(null);
     notifyListeners();
 
-    // 2. Load fresh high-quality metadata and artwork
-    Uint8List? newArtworkBytes = _hdArtworkCache[path]; // Try cache first
-    String? newArtworkPath = _currentArtworkPath;
-    int? newArtworkWidth = _artworkWidth;
-    int? newArtworkHeight = _artworkHeight;
+    final resolution = await _trackAssetResolver.resolve(
+      song,
+      songFromDb: songFromDb,
+      cachedArtworkBytes: _hdArtworkCache[path],
+    );
 
-    // If not in cache, we'll try to load it asynchronously below
-    bool wasInCache = newArtworkBytes != null;
-    if (wasInCache) {
-      // Get dimensions from the cached bytes if possible
-      final codec = await ui.instantiateImageCodec(newArtworkBytes);
-      final frameInfo = await codec.getNextFrame();
-      newArtworkWidth = frameInfo.image.width;
-      newArtworkHeight = frameInfo.image.height;
+    _currentFileName = resolution.fileName;
+    _currentArtist = resolution.artist;
+    _currentAlbum = resolution.album;
+    _currentWaveform = resolution.waveform;
+    _currentArtworkBytes = resolution.artworkBytes;
+    _currentArtworkPath = resolution.artworkPath ?? _currentArtworkPath;
+    _artworkWidth = resolution.artworkWidth ?? _artworkWidth;
+    _artworkHeight = resolution.artworkHeight ?? _artworkHeight;
+
+    if (resolution.artworkBytes != null) {
+      _hdArtworkCache[path] = resolution.artworkBytes!;
     }
-
-    if (songFromDb == null) {
-      // If not in DB, use MetadataHelper to process it (and save to DB for next time)
-      final result = await MetadataHelper.processMetadata(path);
-      if (result != null) {
-        final processed = result.$1;
-        final processedBytes = result.$2;
-
-        if (processed.title.trim().isNotEmpty && processed.title != 'Unknown') {
-          _currentFileName = processed.title;
-        }
-        _currentArtist = processed.artist;
-        _currentAlbum = processed.album;
-        _currentArtworkPath = processed.artworkPath;
-        _artworkWidth = processed.artworkWidth;
-        _artworkHeight = processed.artworkHeight;
-        _currentWaveform = _waveformService.waveformFromBlob(
-          processed.waveformBlob,
-        );
-
-        // REUSE BYTES if they were just read during processing!
-        if (processedBytes != null) {
-          newArtworkBytes = processedBytes;
-          _hdArtworkCache[path] = processedBytes;
-          unawaited(_processBlurForPath(path, processedBytes));
-
-          final codec = await ui.instantiateImageCodec(processedBytes);
-          final frameInfo = await codec.getNextFrame();
-          newArtworkWidth = frameInfo.image.width;
-          newArtworkHeight = frameInfo.image.height;
-          wasInCache = true; // Effectively in cache now
-        }
-      }
-    }
-
-    // 3. 统一全平台高清元数据与原封加载 (Unified HD Metadata & Artwork Loading)
-    if (!wasInCache) {
-      try {
-        final metadata = readMetadata(File(path), getImage: true);
-        final bytes = metadata.pictures.isNotEmpty
-            ? metadata.pictures.first.bytes
-            : null;
-        if (bytes != null) {
-          newArtworkBytes = bytes;
-          _hdArtworkCache[path] = bytes;
-
-          // Trigger blur in background as soon as we have bytes
-          unawaited(_processBlurForPath(path, bytes));
-
-          // Use dart:ui for much faster decoding on native side
-          final codec = await ui.instantiateImageCodec(bytes);
-          final frameInfo = await codec.getNextFrame();
-          newArtworkWidth = frameInfo.image.width;
-          newArtworkHeight = frameInfo.image.height;
-        } else if (Platform.isAndroid && id != null) {
-          // 如果 MetadataGod 未能直接从文件读取到封面，Android 平台尝试从系统 MediaStore 兜底
-          try {
-            final fallbackBytes = await _audioQuery.queryArtwork(
-              id,
-              ArtworkType.AUDIO,
-              format: ArtworkFormat.JPEG,
-              size: 600,
-              quality: 100,
-            );
-            if (fallbackBytes != null) {
-              newArtworkBytes = fallbackBytes;
-              _hdArtworkCache[path] = fallbackBytes;
-              unawaited(_processBlurForPath(path, fallbackBytes));
-            }
-          } catch (e) {
-            debugPrint('Error in Android artwork fallback: $e');
-          }
-        }
-      } catch (e) {
-        debugPrint('Error reading high-res metadata (Unified): $e');
-        // 如果 audio_metadata_reader 抛出异常且在 Android 上，则尝试兜底
-        if (Platform.isAndroid && id != null && newArtworkBytes == null) {
-          try {
-            final fallbackBytes = await _audioQuery.queryArtwork(
-              id,
-              ArtworkType.AUDIO,
-              format: ArtworkFormat.JPEG,
-              size: 600,
-              quality: 100,
-            );
-            if (fallbackBytes != null) {
-              newArtworkBytes = fallbackBytes;
-              _hdArtworkCache[path] = fallbackBytes;
-              unawaited(_processBlurForPath(path, fallbackBytes));
-            }
-          } catch (_) {}
-        }
-      }
-    }
-
-    // Android 平台的通知栏逻辑 (即使在缓存中也要确保 temp 文件存在)
-    if (Platform.isAndroid && newArtworkBytes != null) {
-      try {
-        final tempDir = await getTemporaryDirectory();
-        final artworkSuffix = [
-          (id ?? path.hashCode).toString(),
-          DateTime.now().microsecondsSinceEpoch.toString(),
-        ].join('_');
-        final artworkFile = File(
-          '${tempDir.path}/current_notification_artwork_$artworkSuffix.jpg',
-        );
-        await artworkFile.writeAsBytes(newArtworkBytes);
-        newArtworkPath = artworkFile.path;
-      } catch (e) {
-        debugPrint('Error saving notification artwork on Android: $e');
-      }
-    }
-
-    _currentArtworkBytes = newArtworkBytes;
 
     // Check if blurred version is already cached
     if (_blurredArtworkCache.containsKey(path)) {
       _currentBlurredArtworkBytes = _blurredArtworkCache[path];
-    } else if (newArtworkBytes != null) {
+    } else if (resolution.artworkBytes != null) {
       // If not cached but we have bytes, trigger it (already done above but just in case)
-      unawaited(_processBlurForPath(path, newArtworkBytes));
+      unawaited(_processBlurForPath(path, resolution.artworkBytes!));
     }
 
-    _currentArtworkPath = newArtworkPath;
-    _artworkWidth = newArtworkWidth;
-    _artworkHeight = newArtworkHeight;
-
-    await _updatePalette(metadata: songFromDb);
+    await _updatePalette(metadata: resolution.songMetadata);
     _windowsIntegration?.updateMetadata(null);
     _androidIntegration?.updateMetadata(null);
     notifyListeners();

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_core/audio_core.dart';
 import '../l10n/app_localizations.dart';
+import '../player/audio_snapshot.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../widgets/playback_hero_card.dart';
@@ -294,12 +295,11 @@ class _PlaybackPageState extends State<PlaybackPage>
   @override
   Widget build(BuildContext context) {
     // Separate UI status from rendering visibility to avoid flicker
-    final isVisualizerEnabled = context.select(
-      (AudioService a) => a.isVisualizerEnabled,
+    final AudioSnapshot snapshot = context.select(
+      (AudioService a) => a.snapshot,
     );
-    final isTransitioning = context.select(
-      (AudioService a) => a.isTransitioning,
-    );
+    final isVisualizerEnabled = snapshot.isVisualizerEnabled;
+    final isTransitioning = snapshot.isTransitioning;
     final shouldDrawVisualizer = isVisualizerEnabled && !isTransitioning;
     final backgroundType = context.select(
       (SettingsService s) => s.playbackBackgroundType,
@@ -338,12 +338,12 @@ class _PlaybackPageState extends State<PlaybackPage>
                       child: Builder(
                         builder: (context) {
                           final audio = context.read<AudioService>();
-                          final isNext = context.select(
-                            (AudioService a) => a.isLastActionNext ?? true,
+                          final playState = context.select(
+                            (AudioService a) => a.snapshot,
                           );
-                          final isVisualizerEnabled = context.select(
-                            (AudioService a) => a.isVisualizerEnabled,
-                          );
+                          final isNext = playState.isLastActionNext ?? true;
+                          final isVisualizerEnabled =
+                              playState.isVisualizerEnabled;
 
                           return PlaybackHeroCard(
                             isMini: false,
@@ -358,7 +358,9 @@ class _PlaybackPageState extends State<PlaybackPage>
                                 ? Duration(
                                     milliseconds:
                                         (_scrubProgress *
-                                                (audio.duration.inMilliseconds))
+                                                playState
+                                                    .duration
+                                                    .inMilliseconds)
                                             .round(),
                                   )
                                 : null,
@@ -380,7 +382,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             onSeek: (val) {
                               final target = Duration(
                                 milliseconds:
-                                    (val * (audio.duration.inMilliseconds))
+                                    (val * playState.duration.inMilliseconds)
                                         .round(),
                               );
                               setState(() {
