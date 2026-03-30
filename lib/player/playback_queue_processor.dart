@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
@@ -19,7 +19,7 @@ import 'theme_color_helper.dart';
 /// Handles background processing of the playback queue (waveforms, colors, etc.)
 class PlaybackQueueProcessor {
   final MetadataDatabase db;
-  final AudioVisualizerPlayerController player;
+  final AudioCoreController player;
   final SettingsService settingsService;
 
   int _currentProcessId = 0;

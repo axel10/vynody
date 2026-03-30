@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:async';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,7 +21,7 @@ import '../utils/music_sorter.dart';
 
 class ScannerService extends ChangeNotifier {
   final SettingsService? _settingsService;
-  AudioVisualizerPlayerController? _playerController;
+  AudioCoreController? _playerController;
   final List<String> _rootPaths = [];
   final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
@@ -60,7 +60,7 @@ class ScannerService extends ChangeNotifier {
     _setupMediaObserver();
   }
 
-  void setPlayerController(AudioVisualizerPlayerController controller) {
+  void setPlayerController(AudioCoreController controller) {
     _playerController = controller;
   }
 

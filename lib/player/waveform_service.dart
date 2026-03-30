@@ -2,12 +2,12 @@
 /// 
 /// 提供歌曲波形图的获取、计算、缓存同步以及 BLOB 数据的序列化与反序列化。
 import 'dart:typed_data';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import 'metadata_database.dart';
 
 class WaveformService {
   final MetadataDatabase db;
-  final AudioVisualizerPlayerController player;
+  final AudioCoreController player;
 
   WaveformService({required this.db, required this.player});
 

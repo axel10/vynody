@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
@@ -20,7 +20,7 @@ import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
 
 class AudioService extends ChangeNotifier {
-  late final AudioVisualizerPlayerController _player;
+  late final AudioCoreController _player;
   bool _isPlaying = false;
   String? _currentFilePath;
   String? _currentFileName;
@@ -63,9 +63,8 @@ class AudioService extends ChangeNotifier {
   late final AndroidIntegrationService? _androidIntegration;
 
   AudioService(this.settingsService, this.themeService) {
-    _player = AudioVisualizerPlayerController(
-      fadeMode: FadeMode.crossfade,
-      fadeDuration: const Duration(milliseconds: 500),
+    _player = AudioCoreController(
+      fadeSettings: FadeSettings(fadeOnPauseResume: true,fadeOnSwitch: true,mode:FadeMode.crossfade)
     );
     _visualizerOptions = VisualizerOptionsService(
       controller: _player,
@@ -244,7 +243,7 @@ class AudioService extends ChangeNotifier {
   bool? get isLastActionNext => _lastActionNext;
   bool get isTransitioning => _isTransitioning;
 
-  AudioVisualizerPlayerController get player => _player;
+  AudioCoreController get player => _player;
 
   bool get isPlaying => _isPlaying;
   String? get currentFilePath => _currentFilePath;

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../player/audio_service.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 
 class MiniArtwork extends StatelessWidget {
   const MiniArtwork({super.key, required this.audio});

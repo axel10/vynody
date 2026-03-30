@@ -4,11 +4,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import 'settings_service.dart';
 
 class VisualizerOptionsService extends ChangeNotifier {
-  final AudioVisualizerPlayerController controller;
+  final AudioCoreController controller;
   final SettingsService settingsService;
   static const String _visualizerOptionsKey = 'visualizer_optimization_options';
 

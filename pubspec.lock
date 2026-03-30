@@ -25,6 +25,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.13.0"
+  audio_core:
+    dependency: "direct main"
+    description:
+      path: audio_core
+      relative: true
+    source: path
+    version: "0.0.1"
   audio_metadata_reader:
     dependency: "direct main"
     description:
@@ -63,13 +70,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.2.3"
-  audio_visualizer_player:
-    dependency: "direct main"
-    description:
-      path: audio_visualizer_player
-      relative: true
-    source: path
-    version: "0.0.1"
   boolean_selector:
     dependency: transitive
     description:
@@ -505,13 +505,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.0"
-  my_exoplayer:
-    dependency: transitive
-    description:
-      path: "audio_visualizer_player/plugin/my_exoplayer"
-      relative: true
-    source: path
-    version: "0.0.1"
   native_toolchain_c:
     dependency: transitive
     description:

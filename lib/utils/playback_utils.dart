@@ -1,4 +1,4 @@
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
