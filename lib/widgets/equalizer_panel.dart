@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import '../player/audio_service.dart';
 
 class EqualizerPanel extends StatefulWidget {
@@ -25,7 +25,9 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
         audio.player.setEqualizerBandCount(bandCount);
       }
       setState(() {
-        _frequencies = audio.player.getEqualizerBandCenters(bandCount: bandCount);
+        _frequencies = audio.player.getEqualizerBandCenters(
+          bandCount: bandCount,
+        );
       });
     });
   }
@@ -97,16 +99,20 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
     );
   }
 
-  Widget _buildEqSliders(AudioService audio, EqualizerConfig config, Color accentColor) {
+  Widget _buildEqSliders(
+    AudioService audio,
+    EqualizerConfig config,
+    Color accentColor,
+  ) {
     return SizedBox(
       height: 220,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(bandCount, (index) {
-          final gain = index < config.bandGainsDb.length 
-              ? config.bandGainsDb[index] 
+          final gain = index < config.bandGainsDb.length
+              ? config.bandGainsDb[index]
               : 0.0;
-          
+
           return Expanded(
             child: Column(
               children: [
@@ -123,7 +129,9 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  _frequencies.length > index ? _formatFreq(_frequencies[index]) : '',
+                  _frequencies.length > index
+                      ? _formatFreq(_frequencies[index])
+                      : '',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 10,
@@ -138,7 +146,11 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
     );
   }
 
-  Widget _buildBottomControls(AudioService audio, EqualizerConfig config, Color accentColor) {
+  Widget _buildBottomControls(
+    AudioService audio,
+    EqualizerConfig config,
+    Color accentColor,
+  ) {
     return Row(
       children: [
         _buildKnobControl(
@@ -163,7 +175,11 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
                   ),
                   Text(
                     '${config.preampDb.toStringAsFixed(1)} dB',
-                    style: TextStyle(color: accentColor, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -171,8 +187,12 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 4,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 14,
+                  ),
                 ),
                 child: Slider(
                   value: config.preampDb.clamp(-12.0, 12.0),
@@ -324,7 +344,7 @@ class _CustomThumbShape extends SliderComponentShape {
     );
 
     canvas.drawRRect(rrect, paint);
-    
+
     // Middle line indicator
     canvas.drawLine(
       Offset(center.dx - 2, center.dy),
@@ -380,7 +400,10 @@ class _KnobState extends State<_Knob> {
       onVerticalDragUpdate: (details) {
         final delta = details.primaryDelta! / widget.size;
         setState(() {
-          _dragValue = (_dragValue - delta * (widget.max - widget.min)).clamp(widget.min, widget.max);
+          _dragValue = (_dragValue - delta * (widget.max - widget.min)).clamp(
+            widget.min,
+            widget.max,
+          );
         });
         widget.onChanged(_dragValue);
       },
@@ -431,10 +454,10 @@ class _KnobPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
-    
+
     const startAngle = 0.75 * math.pi;
     const sweepAngleTotal = 1.5 * math.pi;
-    
+
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
       startAngle,
@@ -466,12 +489,8 @@ class _KnobPainter extends CustomPainter {
       center.dy + (radius - 12) * math.sin(angle),
     );
 
-    canvas.drawCircle(
-      dotPos,
-      4,
-      Paint()..color = Colors.white,
-    );
-    
+    canvas.drawCircle(dotPos, 4, Paint()..color = Colors.white);
+
     // Inner hub
     canvas.drawCircle(
       center,
@@ -483,6 +502,6 @@ class _KnobPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _KnobPainter oldDelegate) => 
-    oldDelegate.value != value || oldDelegate.themeColor != themeColor;
+  bool shouldRepaint(covariant _KnobPainter oldDelegate) =>
+      oldDelegate.value != value || oldDelegate.themeColor != themeColor;
 }

@@ -1,13 +1,13 @@
 /// 波形数据服务
-/// 
+///
 /// 提供歌曲波形图的获取、计算、缓存同步以及 BLOB 数据的序列化与反序列化。
 import 'dart:typed_data';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import 'metadata_database.dart';
 
 class WaveformService {
   final MetadataDatabase db;
-  final AudioVisualizerPlayerController player;
+  final AudioCoreController player;
 
   WaveformService({required this.db, required this.player});
 
@@ -20,10 +20,13 @@ class WaveformService {
     if (songMetadata != null && songMetadata.waveformBlob != null) {
       final blob = songMetadata.waveformBlob!;
       // Ensure the offset is aligned to 4 bytes for asFloat32List
-      final alignedBlob = (blob.offsetInBytes % 4 == 0) 
-          ? blob 
+      final alignedBlob = (blob.offsetInBytes % 4 == 0)
+          ? blob
           : Uint8List.fromList(blob);
-      final list = alignedBlob.buffer.asFloat32List(alignedBlob.offsetInBytes, alignedBlob.length ~/ 4);
+      final list = alignedBlob.buffer.asFloat32List(
+        alignedBlob.offsetInBytes,
+        alignedBlob.length ~/ 4,
+      );
       return list.map((e) => e.toDouble()).toList();
     }
 
@@ -63,10 +66,13 @@ class WaveformService {
   List<double> waveformFromBlob(Uint8List? blob) {
     if (blob == null || blob.isEmpty) return const [];
     // Ensure the offset is aligned to 4 bytes for asFloat32List
-    final alignedBlob = (blob.offsetInBytes % 4 == 0) 
-        ? blob 
+    final alignedBlob = (blob.offsetInBytes % 4 == 0)
+        ? blob
         : Uint8List.fromList(blob);
-    final list = alignedBlob.buffer.asFloat32List(alignedBlob.offsetInBytes, alignedBlob.length ~/ 4);
+    final list = alignedBlob.buffer.asFloat32List(
+      alignedBlob.offsetInBytes,
+      alignedBlob.length ~/ 4,
+    );
     return list.map((e) => e.toDouble()).toList();
   }
 }

@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
@@ -36,14 +36,20 @@ class VisualizerOptionsDialog extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(l10n.visualizerSettings,
-                        style: const TextStyle(color: Colors.white)),
+                    Text(
+                      l10n.visualizerSettings,
+                      style: const TextStyle(color: Colors.white),
+                    ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(l10n.autoMode,
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 13)),
+                        Text(
+                          l10n.autoMode,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
                         Switch(
                           value: isAuto,
                           activeColor: Colors.blueAccent,
@@ -51,10 +57,12 @@ class VisualizerOptionsDialog extends StatelessWidget {
                             settings.isAutoMode = val;
                             if (val) {
                               // Re-apply auto settings immediately
-                              final Orientation orientation =
-                                  MediaQuery.of(context).orientation;
+                              final Orientation orientation = MediaQuery.of(
+                                context,
+                              ).orientation;
                               audio.applyVisualizerSettings(
-                                  orientation: orientation);
+                                orientation: orientation,
+                              );
                             }
                             setDialogState(() {});
                           },
@@ -239,7 +247,8 @@ class VisualizerOptionsDialog extends StatelessWidget {
               settings.landscapeFrequencyGroups = val.toInt();
               if (MediaQuery.of(context).orientation == Orientation.landscape) {
                 audio.updateVisualOptions(
-                    options.copyWith(frequencyGroups: val.toInt()));
+                  options.copyWith(frequencyGroups: val.toInt()),
+                );
               }
               setDialogState(() {});
             },
@@ -255,7 +264,8 @@ class VisualizerOptionsDialog extends StatelessWidget {
               settings.portraitFrequencyGroups = val.toInt();
               if (MediaQuery.of(context).orientation == Orientation.portrait) {
                 audio.updateVisualOptions(
-                    options.copyWith(frequencyGroups: val.toInt()));
+                  options.copyWith(frequencyGroups: val.toInt()),
+                );
               }
               setDialogState(() {});
             },
@@ -289,7 +299,10 @@ class VisualizerOptionsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildAutoModeControls(BuildContext context, StateSetter setDialogState) {
+  Widget _buildAutoModeControls(
+    BuildContext context,
+    StateSetter setDialogState,
+  ) {
     final l10n = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
@@ -297,8 +310,10 @@ class VisualizerOptionsDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 16),
-          Text(l10n.spectrumQuantity,
-              style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          Text(
+            l10n.spectrumQuantity,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
           const SizedBox(height: 8),
           _buildSegmentedControl<String>(
             value: settings.autoSpectrumQuantity,
@@ -310,13 +325,16 @@ class VisualizerOptionsDialog extends StatelessWidget {
             onChanged: (val) {
               settings.autoSpectrumQuantity = val;
               audio.applyVisualizerSettings(
-                  orientation: MediaQuery.of(context).orientation);
+                orientation: MediaQuery.of(context).orientation,
+              );
               setDialogState(() {});
             },
           ),
           const SizedBox(height: 24),
-          Text(l10n.speed,
-              style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          Text(
+            l10n.speed,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
           const SizedBox(height: 8),
           _buildSegmentedControl<String>(
             value: settings.autoSpeed,
@@ -328,12 +346,13 @@ class VisualizerOptionsDialog extends StatelessWidget {
             onChanged: (val) {
               settings.autoSpeed = val;
               audio.applyVisualizerSettings(
-                  orientation: MediaQuery.of(context).orientation);
+                orientation: MediaQuery.of(context).orientation,
+              );
               setDialogState(() {});
             },
           ),
           const SizedBox(height: 32),
-          // In Auto Mode, Appearance settings are also accessible via an expansion or similar? 
+          // In Auto Mode, Appearance settings are also accessible via an expansion or similar?
           // The user said "current visualizer options as advanced options, hidden when auto mode is on".
           // So I will hide EVERYTHING except these two in Auto Mode.
           Center(
@@ -386,16 +405,10 @@ class VisualizerOptionsDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.only(
-              top: 16,
-              bottom: 8,
-            ),
+            padding: EdgeInsets.only(top: 16, bottom: 8),
             child: Text(
               AppLocalizations.of(context)!.aggregationMode,
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
           ),
           DropdownButtonFormField<FftAggregationMode>(
@@ -403,9 +416,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
             dropdownColor: Colors.grey[900],
             decoration: const InputDecoration(
               enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: Colors.white12,
-                ),
+                borderSide: BorderSide(color: Colors.white12),
               ),
             ),
             style: const TextStyle(color: Colors.white),
@@ -681,7 +692,10 @@ class VisualizerOptionsDialog extends StatelessWidget {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
-          title: Text(AppLocalizations.of(context)!.selectColor, style: TextStyle(color: Colors.white)),
+          title: Text(
+            AppLocalizations.of(context)!.selectColor,
+            style: TextStyle(color: Colors.white),
+          ),
           content: SingleChildScrollView(
             child: ColorPicker(
               pickerColor: initialColor,
@@ -695,7 +709,10 @@ class VisualizerOptionsDialog extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: Colors.white70)),
+              child: Text(
+                AppLocalizations.of(context)!.cancel,
+                style: TextStyle(color: Colors.white70),
+              ),
             ),
             TextButton(
               onPressed: () {
@@ -766,9 +783,7 @@ void showVisualizerOptionsDialog(
 ) {
   showDialog(
     context: context,
-    builder: (context) => VisualizerOptionsDialog(
-      audio: audio,
-      settings: settings,
-    ),
+    builder: (context) =>
+        VisualizerOptionsDialog(audio: audio, settings: settings),
   );
 }

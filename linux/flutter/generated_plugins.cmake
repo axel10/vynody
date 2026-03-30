@@ -10,7 +10,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
-  audio_visualizer_player
+  audio_core
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

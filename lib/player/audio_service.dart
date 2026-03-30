@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
@@ -21,7 +21,7 @@ import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
 
 class AudioService extends ChangeNotifier {
-  late final AudioVisualizerPlayerController _player;
+  late final AudioCoreController _player;
   bool _isPlaying = false;
   String? _currentFilePath;
   String? _currentFileName;
@@ -74,9 +74,8 @@ class AudioService extends ChangeNotifier {
   Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
 
   AudioService(this.settingsService) {
-    _player = AudioVisualizerPlayerController(
-      fadeMode: FadeMode.crossfade,
-      fadeDuration: const Duration(milliseconds: 500),
+    _player = AudioCoreController(
+      fadeSettings: FadeSettings(fadeOnSwitch: true,fadeOnPauseResume: true,mode: FadeMode.crossfade)
     );
     _visualizerOptions = VisualizerOptionsService(
       controller: _player,
@@ -221,7 +220,7 @@ class AudioService extends ChangeNotifier {
   bool? get isLastActionNext => _lastActionNext;
   bool get isTransitioning => _isTransitioning;
 
-  AudioVisualizerPlayerController get player => _player;
+  AudioCoreController get player => _player;
 
   bool get isPlaying => _isPlaying;
   String? get currentFilePath => _currentFilePath;
@@ -334,7 +333,8 @@ class AudioService extends ChangeNotifier {
     }
 
     if (_currentFilePath != null) {
-      final songMetadata = metadata ?? await _db.getSongMetadata(_currentFilePath!);
+      final songMetadata =
+          metadata ?? await _db.getSongMetadata(_currentFilePath!);
       if (songMetadata != null && songMetadata.themeColorsBlob != null) {
         final colorsMap = ThemeColorHelper.blobToColors(
           songMetadata.themeColorsBlob!,
@@ -456,7 +456,7 @@ class AudioService extends ChangeNotifier {
     String? newArtworkPath = _currentArtworkPath;
     int? newArtworkWidth = _artworkWidth;
     int? newArtworkHeight = _artworkHeight;
-    
+
     // If not in cache, we'll try to load it asynchronously below
     bool wasInCache = newArtworkBytes != null;
     if (wasInCache) {
@@ -473,7 +473,7 @@ class AudioService extends ChangeNotifier {
       if (result != null) {
         final processed = result.$1;
         final processedBytes = result.$2;
-        
+
         if (processed.title.trim().isNotEmpty && processed.title != 'Unknown') {
           _currentFileName = processed.title;
         }
@@ -482,19 +482,21 @@ class AudioService extends ChangeNotifier {
         _currentArtworkPath = processed.artworkPath;
         _artworkWidth = processed.artworkWidth;
         _artworkHeight = processed.artworkHeight;
-        _currentWaveform = _waveformService.waveformFromBlob(processed.waveformBlob);
-        
+        _currentWaveform = _waveformService.waveformFromBlob(
+          processed.waveformBlob,
+        );
+
         // REUSE BYTES if they were just read during processing!
         if (processedBytes != null) {
-            newArtworkBytes = processedBytes;
-            _hdArtworkCache[path] = processedBytes;
-            unawaited(_processBlurForPath(path, processedBytes));
-            
-            final codec = await ui.instantiateImageCodec(processedBytes);
-            final frameInfo = await codec.getNextFrame();
-            newArtworkWidth = frameInfo.image.width;
-            newArtworkHeight = frameInfo.image.height;
-            wasInCache = true; // Effectively in cache now
+          newArtworkBytes = processedBytes;
+          _hdArtworkCache[path] = processedBytes;
+          unawaited(_processBlurForPath(path, processedBytes));
+
+          final codec = await ui.instantiateImageCodec(processedBytes);
+          final frameInfo = await codec.getNextFrame();
+          newArtworkWidth = frameInfo.image.width;
+          newArtworkHeight = frameInfo.image.height;
+          wasInCache = true; // Effectively in cache now
         }
       }
     }
@@ -503,11 +505,13 @@ class AudioService extends ChangeNotifier {
     if (!wasInCache) {
       try {
         final metadata = readMetadata(File(path), getImage: true);
-        final bytes = metadata.pictures.isNotEmpty ? metadata.pictures.first.bytes : null;
+        final bytes = metadata.pictures.isNotEmpty
+            ? metadata.pictures.first.bytes
+            : null;
         if (bytes != null) {
           newArtworkBytes = bytes;
           _hdArtworkCache[path] = bytes;
-          
+
           // Trigger blur in background as soon as we have bytes
           unawaited(_processBlurForPath(path, bytes));
 
@@ -576,7 +580,7 @@ class AudioService extends ChangeNotifier {
     }
 
     _currentArtworkBytes = newArtworkBytes;
-    
+
     // Check if blurred version is already cached
     if (_blurredArtworkCache.containsKey(path)) {
       _currentBlurredArtworkBytes = _blurredArtworkCache[path];

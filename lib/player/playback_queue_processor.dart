@@ -1,5 +1,5 @@
 /// 播放队列后台处理器
-/// 
+///
 /// 负责在后台异步处理播放列表中的歌曲。
 /// 包括：解析元数据、从封面提取配色方案、生成全曲波形图等耗时操作，不干扰主线程播放。
 import 'dart:async';
@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
@@ -19,7 +19,7 @@ import 'theme_color_helper.dart';
 /// Handles background processing of the playback queue (waveforms, colors, etc.)
 class PlaybackQueueProcessor {
   final MetadataDatabase db;
-  final AudioVisualizerPlayerController player;
+  final AudioCoreController player;
   final SettingsService settingsService;
 
   int _currentProcessId = 0;
@@ -45,12 +45,12 @@ class PlaybackQueueProcessor {
     if (_isProcessing) {
       debugPrint('Signaling background processor to re-prioritize');
     }
-    
+
     _isProcessing = true;
 
     try {
       debugPrint('Starting background queue processing (ID: $myId)');
-      
+
       // 1. Sort the processing list to prioritize current and upcoming songs
       final List<MusicFile> sortedList = List.from(playlist);
       int currentIndex = -1;
@@ -80,7 +80,7 @@ class PlaybackQueueProcessor {
           for (int i = 0; i < playlist.length; i++) {
             addIfUnique(i);
           }
-          
+
           sortedList.clear();
           sortedList.addAll(prioritized);
         }
@@ -89,7 +89,9 @@ class PlaybackQueueProcessor {
       for (final song in sortedList) {
         // Check if we've been superseded by a newer request
         if (myId != _currentProcessId) {
-          debugPrint('Background process $myId superseded by $_currentProcessId, exiting.');
+          debugPrint(
+            'Background process $myId superseded by $_currentProcessId, exiting.',
+          );
           return;
         }
 
@@ -97,22 +99,29 @@ class PlaybackQueueProcessor {
           final existing = await db.getSongMetadata(song.path);
 
           // We check if basic metadata/thumbnail is missing
-          bool needsWaveform = existing == null || existing.waveformBlob == null;
-          bool needsThemeColor = existing == null || existing.themeColorsBlob == null;
-          
+          bool needsWaveform =
+              existing == null || existing.waveformBlob == null;
+          bool needsThemeColor =
+              existing == null || existing.themeColorsBlob == null;
+
           // HD PRE-FETCH: If this song is near the current song, pre-fetch HD artwork
           if (onHdArtworkLoaded != null && currentIndex != -1) {
-            final int songIndex = playlist.indexWhere((s) => s.path == song.path);
-            final int distance = (songIndex - currentIndex + playlist.length) % playlist.length;
-            
+            final int songIndex = playlist.indexWhere(
+              (s) => s.path == song.path,
+            );
+            final int distance =
+                (songIndex - currentIndex + playlist.length) % playlist.length;
+
             // Pre-fetch for current, next 3, and previous 1
             bool isNear = distance <= 3 || distance == playlist.length - 1;
-            
+
             if (isNear) {
               try {
                 // Read from file stream directly
                 final m = readMetadata(File(song.path), getImage: true);
-                final bytes = m.pictures.isNotEmpty ? m.pictures.first.bytes : null;
+                final bytes = m.pictures.isNotEmpty
+                    ? m.pictures.first.bytes
+                    : null;
                 if (bytes != null) {
                   onHdArtworkLoaded(song.path, bytes);
                 }
@@ -140,7 +149,9 @@ class PlaybackQueueProcessor {
                     imageProvider,
                     maximumColorCount: 20,
                   );
-                  final themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
+                  final themeColorsBlob = ThemeColorHelper.paletteToBlob(
+                    palette,
+                  );
 
                   m = SongMetadata(
                     id: m.id,
@@ -160,10 +171,14 @@ class PlaybackQueueProcessor {
 
                   // Notify caller about color update
                   onUpdate(song.path, {
-                    'themeColors': ThemeColorHelper.blobToColors(themeColorsBlob),
+                    'themeColors': ThemeColorHelper.blobToColors(
+                      themeColorsBlob,
+                    ),
                   });
                 } catch (e) {
-                  debugPrint('Theme color extraction error for ${song.path}: $e');
+                  debugPrint(
+                    'Theme color extraction error for ${song.path}: $e',
+                  );
                 }
               }
 

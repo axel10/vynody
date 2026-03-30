@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../player/audio_service.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 
 class MiniArtwork extends StatelessWidget {
   const MiniArtwork({super.key, required this.audio});
@@ -99,7 +99,7 @@ class _MiniSpectrumPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
-    
+
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
@@ -115,9 +115,9 @@ class _MiniSpectrumPainter extends CustomPainter {
       // 这里将采样范围限制在低中频段（values.length / 1.5），因为这些频段的跳动在视觉上更活跃
       int index = (i * values.length / (displayCount * 1.5)).floor();
       if (index >= values.length) index = values.length - 1;
-      
+
       double value = values[index];
-      
+
       // Amplify and clamp height
       double barHeight = (value * size.height * 1.2).clamp(3.0, size.height);
 

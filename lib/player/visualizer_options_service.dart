@@ -1,14 +1,14 @@
 /// 可视化优化选项服务
-/// 
+///
 /// 负责处理频谱分析器的各种优化参数，包括不同屏幕方向下的配置、手动设置的保存与加载，以及自动调整逻辑。
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import 'settings_service.dart';
 
 class VisualizerOptionsService extends ChangeNotifier {
-  final AudioVisualizerPlayerController controller;
+  final AudioCoreController controller;
   final SettingsService settingsService;
   static const String _visualizerOptionsKey = 'visualizer_optimization_options';
 

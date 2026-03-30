@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:async';
-import 'package:audio_visualizer_player/audio_visualizer_player.dart';
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +23,7 @@ enum SortOrder { ascending, descending }
 
 class ScannerService extends ChangeNotifier {
   final SettingsService? _settingsService;
-  AudioVisualizerPlayerController? _playerController;
+  AudioCoreController? _playerController;
   final List<String> _rootPaths = [];
   final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
@@ -62,7 +62,7 @@ class ScannerService extends ChangeNotifier {
     _setupMediaObserver();
   }
 
-  void setPlayerController(AudioVisualizerPlayerController controller) {
+  void setPlayerController(AudioCoreController controller) {
     _playerController = controller;
   }
 
@@ -144,16 +144,22 @@ class ScannerService extends ChangeNotifier {
 
   void _setupMediaObserver() {
     if (Platform.isAndroid) {
-      const mediaObserverChannel =
-          EventChannel('com.example.pure_player/media_observer');
-      mediaObserverChannel.receiveBroadcastStream().listen((event) {
-        if (event == 'media_changed' && !_isScanning) {
-          debugPrint('Media library change detected, re-scanning system media...');
-          scanSystemMedia();
-        }
-      }, onError: (err) {
-        debugPrint('Media observer error: $err');
-      });
+      const mediaObserverChannel = EventChannel(
+        'com.example.pure_player/media_observer',
+      );
+      mediaObserverChannel.receiveBroadcastStream().listen(
+        (event) {
+          if (event == 'media_changed' && !_isScanning) {
+            debugPrint(
+              'Media library change detected, re-scanning system media...',
+            );
+            scanSystemMedia();
+          }
+        },
+        onError: (err) {
+          debugPrint('Media observer error: $err');
+        },
+      );
     }
   }
 
@@ -289,7 +295,9 @@ class ScannerService extends ChangeNotifier {
       // Ensure the shared player is initialized (idempotent)
       await player.initialize();
     } catch (e) {
-      debugPrint('Failed to initialize shared player for background scanning: $e');
+      debugPrint(
+        'Failed to initialize shared player for background scanning: $e',
+      );
       return;
     }
 
@@ -523,7 +531,9 @@ class ScannerService extends ChangeNotifier {
         SongMetadata? metadata = result?.$1;
 
         // Extract waveform if missing
-        if (metadata != null && metadata.waveformBlob == null && _playerController != null) {
+        if (metadata != null &&
+            metadata.waveformBlob == null &&
+            _playerController != null) {
           try {
             final waveform = await _playerController!.getWaveform(
               expectedChunks: _settingsService?.waveformChunks ?? 80,
@@ -578,7 +588,9 @@ class ScannerService extends ChangeNotifier {
     final db = MetadataDatabase();
     // Try DB first (cheapest); fall back to full processing if not found.
     SongMetadata? metadata = await db.getSongMetadata(path);
-    final result = metadata == null ? await MetadataHelper.processMetadata(path) : null;
+    final result = metadata == null
+        ? await MetadataHelper.processMetadata(path)
+        : null;
     metadata ??= result?.$1;
 
     if (metadata != null) {
