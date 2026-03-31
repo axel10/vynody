@@ -122,16 +122,19 @@ class _LyricsPanelState extends State<LyricsPanel> {
     }
 
     if (!widget.isSynced || widget.lines.isEmpty) {
-      return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: SelectableText(
-          widget.plainLyrics,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.92),
-            fontSize: 18,
-            height: 1.6,
+      return ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: SelectableText(
+            widget.plainLyrics,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.92),
+              fontSize: 18,
+              height: 1.6,
+            ),
           ),
         ),
       );
@@ -139,66 +142,69 @@ class _LyricsPanelState extends State<LyricsPanel> {
 
     _scheduleScrollIfNeeded();
 
-    return ListView.builder(
-      controller: _scrollController,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 40),
-      itemExtent: _itemExtent,
-      itemCount: widget.lines.length,
-      itemBuilder: (context, index) {
-        final line = widget.lines[index];
-        final activeIndex = _activeLineIndex();
-        final distance = (index - activeIndex).abs();
-        final isActive = index == activeIndex;
-        final isNear = distance <= 1;
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: ListView.builder(
+        controller: _scrollController,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 40),
+        itemExtent: _itemExtent,
+        itemCount: widget.lines.length,
+        itemBuilder: (context, index) {
+          final line = widget.lines[index];
+          final activeIndex = _activeLineIndex();
+          final distance = (index - activeIndex).abs();
+          final isActive = index == activeIndex;
+          final isNear = distance <= 1;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: isActive
-                ? accent.withValues(alpha: 0.12)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: isActive ? 6 : 0,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              if (isActive) const SizedBox(width: 8),
-              Expanded(
-                child: AnimatedDefaultTextStyle(
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: isActive
+                  ? accent.withValues(alpha: 0.12)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
-                  style: TextStyle(
-                    color: isActive
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: isNear ? 0.72 : 0.46),
-                    fontSize: isActive ? 18 : 16,
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                    height: 1.2,
-                  ),
-                  child: Text(
-                    line.text,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  width: isActive ? 6 : 0,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    borderRadius: BorderRadius.circular(999),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+                if (isActive) const SizedBox(width: 8),
+                Expanded(
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 220),
+                    style: TextStyle(
+                      color: isActive
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: isNear ? 0.72 : 0.46),
+                      fontSize: isActive ? 18 : 16,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                      height: 1.2,
+                    ),
+                    child: Text(
+                      line.text,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
