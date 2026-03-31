@@ -10,6 +10,7 @@ import 'audio_snapshot.dart';
 import 'current_track_asset_resolver.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
+import 'lyrics_service.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
 import 'visualizer_options_service.dart';
@@ -53,6 +54,8 @@ class AudioService extends ChangeNotifier {
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
   late final CurrentTrackAssetResolver _trackAssetResolver;
+  late final LyricsService _lyricsService;
+  int _lyricsRequestSerial = 0;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -90,6 +93,7 @@ class AudioService extends ChangeNotifier {
     );
     _waveformService = WaveformService(db: _db, player: _player);
     _trackAssetResolver = CurrentTrackAssetResolver(db: _db);
+    _lyricsService = LyricsService();
     _windowsIntegration = Platform.isWindows
         ? WindowsIntegrationService(this)
         : null;
@@ -604,7 +608,61 @@ class AudioService extends ChangeNotifier {
     await _updatePalette(metadata: resolution.songMetadata);
     _windowsIntegration?.updateMetadata(null);
     _androidIntegration?.updateMetadata(null);
+    unawaited(_fetchAndLogLyrics(song));
     notifyListeners();
+  }
+
+  Future<void> _fetchAndLogLyrics(MusicFile song) async {
+    final requestId = ++_lyricsRequestSerial;
+    final query = LyricsQuery(
+      filePath: song.path,
+      fileName: song.name,
+      title: _lyricsTitleForQuery(song),
+      artist: _lyricsArtistForQuery(),
+      album: _lyricsAlbumForQuery(),
+      duration: _duration,
+    );
+
+    final result = await _lyricsService.fetchBestLyrics(query: query);
+    if (requestId != _lyricsRequestSerial || _currentFilePath != song.path) {
+      return;
+    }
+
+    _lyricsService.debugPrintSelection(query, result);
+  }
+
+  String _lyricsTitleForQuery(MusicFile song) {
+    final currentTitle = _normalizedLyricsField(_currentFileName);
+    if (currentTitle != null) {
+      return currentTitle;
+    }
+
+    final displayName = song.displayName.trim();
+    return displayName.isNotEmpty ? displayName : song.name.trim();
+  }
+
+  String? _lyricsArtistForQuery() {
+    return _normalizedLyricsField(_currentArtist);
+  }
+
+  String? _lyricsAlbumForQuery() {
+    return _normalizedLyricsField(_currentAlbum);
+  }
+
+  String? _normalizedLyricsField(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+
+    final lower = text.toLowerCase();
+    if (lower == 'unknown' ||
+        lower == 'unknown artist' ||
+        lower == 'unknown album') {
+      return null;
+    }
+
+    return text;
   }
 
   Future<void> playFile(

@@ -47,6 +47,7 @@ dependencies:
   path_provider: ^2.1.5
   device_info_plus: ^10.1.0
   photo_manager: ^3.9.0
+  dio: ^5.7.0
   sqflite: ^2.4.2
   sqflite_common_ffi: ^2.3.4+1
   sqlite3_flutter_libs: ^0.5.24
@@ -75,7 +76,7 @@ dependencies:
     path: ./plugin/audio_service/audio_service
   audio_metadata_reader: 
     path: ./plugin/audio_metadata_reader
-  dio: ^5.9.2
+
 
 
 dev_dependencies:
