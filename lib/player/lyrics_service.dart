@@ -272,12 +272,31 @@ class LyricsService {
     }
 
     scoredResults.sort(_compareSelectionResults);
-    final best = scoredResults.first;
-    if (best.score < _acceptThreshold) {
-      return null;
+    var bestCandidate = scoredResults.first;
+
+    if (bestCandidate.score < _acceptThreshold) {
+      // 检查是否有时间极其接近的（3秒内）作为兜底
+      final fallbackCandidates =
+          scoredResults.where((r) => r.durationDiffSeconds <= 3).toList();
+
+      if (fallbackCandidates.isNotEmpty) {
+        // 在3秒以内的候选中，优先选择时长差距最小的
+        // 如果时长差距相同，则取评分较高的
+        fallbackCandidates.sort((a, b) {
+          final diffCompare = a.durationDiffSeconds.compareTo(
+            b.durationDiffSeconds,
+          );
+          if (diffCompare != 0) return diffCompare;
+          return b.score.compareTo(a.score);
+        });
+        bestCandidate = fallbackCandidates.first;
+      } else {
+        return null;
+      }
     }
-    await _saveToDatabase(query: searchQuery, result: best);
-    return best;
+
+    await _saveToDatabase(query: searchQuery, result: bestCandidate);
+    return bestCandidate;
   }
 
   Future<LyricSelectionResult?> _loadFromDatabase(String cacheKey) async {
