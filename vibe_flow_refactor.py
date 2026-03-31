@@ -1,209 +1,17 @@
-import 'dart:math' as math;
+import codecs
+import sys
 
-import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../l10n/app_localizations.dart';
-import '../player/audio_snapshot.dart';
-import '../player/audio_service.dart';
-import '../player/settings_service.dart';
-import '../player/playlist_service.dart';
-import '../models/music_file.dart';
-import '../utils/playback_utils.dart';
-import '../widgets/cover_carousel.dart';
-import '../widgets/lyrics_panel.dart';
-import '../widgets/mini_player_widgets.dart';
-import '../widgets/waveform_progress_bar.dart';
+file_path = r'c:\Users\Administrator\Desktop\projects\player_project\vibe_flow\lib\widgets\playback_hero_card.dart'
 
-const String playbackHeroTag = 'player_capsule';
+with codecs.open(file_path, 'r', 'utf-8') as f:
+    text = f.read()
 
-class PlaybackHeroCard extends StatelessWidget {
-  const PlaybackHeroCard({
-    super.key,
-    required this.isMini,
-    this.isLyricsMode = false,
-    this.isLandscape = false,
-    this.screenWidth,
-    this.screenHeight,
-    this.isNext = true,
-    this.showVisualizerToggle = true,
-    this.onShowMoreMenu,
-    this.onMiniTap,
-    this.onCyclePlaylistMode,
-    this.onShowPlaylistModeSelector,
-    this.onShowRandomModeSelector,
-    this.onScrubbing,
-    this.onSeek,
-    this.onToggleVisualizer,
-    this.onEqualizerTap,
-    this.onPrevious,
-    this.onPlayPause,
-    this.onNext,
-    this.onVolumeTap,
-    this.onVolumeDrag,
-    this.onVolumeScroll,
-    this.onCoverTap,
-    this.overrideProgress,
-    this.overridePosition,
-    this.overrideWaveform,
-  });
+parts = text.split('Widget _buildFullCard(BuildContext context) {')
+if len(parts) != 2:
+    print("Failed to find split point.")
+    sys.exit(1)
 
-  final bool isMini;
-  final bool isLyricsMode;
-  final bool isLandscape;
-  final double? screenWidth;
-  final double? screenHeight;
-  final bool isNext;
-  final List<double>? overrideWaveform;
-  final double? overrideProgress;
-  final Duration? overridePosition;
-  final bool showVisualizerToggle;
-  final VoidCallback? onShowMoreMenu;
-  final VoidCallback? onMiniTap;
-  final VoidCallback? onCyclePlaylistMode;
-  final VoidCallback? onShowPlaylistModeSelector;
-  final VoidCallback? onShowRandomModeSelector;
-  final ValueChanged<double>? onScrubbing;
-  final ValueChanged<double>? onSeek;
-  final VoidCallback? onToggleVisualizer;
-  final VoidCallback? onEqualizerTap;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onPlayPause;
-  final VoidCallback? onNext;
-  final VoidCallback? onVolumeTap;
-  final ValueChanged<double>? onVolumeDrag;
-  final ValueChanged<double>? onVolumeScroll;
-  final VoidCallback? onCoverTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Hero(
-      tag: playbackHeroTag,
-      child: Material(
-        type: MaterialType.transparency,
-        child: isMini ? _buildMiniCard(context) : _buildFullCard(context),
-      ),
-    );
-  }
-
-  Widget _buildMiniCard(BuildContext context) {
-    final audio = context.read<AudioService>();
-    final AudioSnapshot snapshot = context.select(
-      (AudioService a) => a.snapshot,
-    );
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.6,
-                child: MiniSpectrumBackground(audio: audio),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onMiniTap,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          MiniArtwork(audio: audio),
-                          const SizedBox(width: 12),
-                          Flexible(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 160),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    snapshot.currentFileName ??
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.notSelected,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(999),
-                                    child: LinearProgressIndicator(
-                                      minHeight: 3,
-                                      value: snapshot.progress.clamp(0.0, 1.0),
-                                      backgroundColor: Colors.white24,
-                                      valueColor:
-                                          const AlwaysStoppedAnimation<Color>(
-                                            Colors.white,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      MiniControlButton(
-                        icon: Icons.skip_previous_rounded,
-                        onPressed: onPrevious,
-                        tooltip: AppLocalizations.of(context)!.previous,
-                      ),
-                      const SizedBox(width: 8),
-                      MiniControlButton(
-                        icon: snapshot.isPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                        onPressed: onPlayPause,
-                        tooltip: snapshot.isPlaying
-                            ? AppLocalizations.of(context)!.pause
-                            : AppLocalizations.of(context)!.play,
-                      ),
-                      const SizedBox(width: 8),
-                      MiniControlButton(
-                        icon: Icons.skip_next_rounded,
-                        onPressed: onNext,
-                        tooltip: AppLocalizations.of(context)!.next,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFullCard(BuildContext context) {
+new_widgets = """Widget _buildFullCard(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -211,8 +19,7 @@ class PlaybackHeroCard extends StatelessWidget {
 
         // ---------------- Portrait Normal ----------------
         final pNormalCoverSide = math.min(width * 0.85, height * 0.5);
-        final pNormalCoverTop =
-            height * 0.05 + (height * 0.45 - pNormalCoverSide) / 2;
+        final pNormalCoverTop = height * 0.05 + (height * 0.45 - pNormalCoverSide) / 2;
         final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
 
         final pNormalInfoTop = height * 0.52;
@@ -241,13 +48,13 @@ class PlaybackHeroCard extends StatelessWidget {
         final pLyricsInfoTop = 16.0;
         final pLyricsInfoLeft = 16.0 + pLyricsCoverSide + 14.0;
         final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0;
-        final pLyricsInfoHeight = pLyricsCoverSide;
+        final pLyricsInfoHeight = pLyricsCoverSide; 
         final pLyricsInfoAlign = TextAlign.left;
 
-        final pLyricsControlsTop = height;
+        final pLyricsControlsTop = height; 
         final pLyricsControlsLeft = 16.0;
         final pLyricsControlsWidth = width - 32.0;
-        final pLyricsControlsHeight = pNormalControlsHeight;
+        final pLyricsControlsHeight = pNormalControlsHeight; 
         final pLyricsControlsOpacity = 0.0;
 
         final pLyricsLyricsTop = pLyricsCoverTop + pLyricsCoverSide + 16.0;
@@ -259,8 +66,7 @@ class PlaybackHeroCard extends StatelessWidget {
         // ---------------- Landscape Normal ----------------
         final lNormalCoverSide = math.min(width * 0.42, height * 0.8);
         final lNormalCoverTop = (height - lNormalCoverSide) / 2;
-        final lNormalCoverLeft =
-            width * 0.05 + (width * 0.45 - lNormalCoverSide) / 2;
+        final lNormalCoverLeft = width * 0.05 + (width * 0.45 - lNormalCoverSide) / 2;
 
         final lNormalInfoTop = height * 0.5 - 100 - 45;
         final lNormalInfoLeft = width * 0.5;
@@ -275,7 +81,7 @@ class PlaybackHeroCard extends StatelessWidget {
         final lNormalControlsOpacity = 1.0;
 
         final lNormalLyricsTop = 16.0;
-        final lNormalLyricsLeft = width;
+        final lNormalLyricsLeft = width; 
         final lNormalLyricsWidth = width * 0.45;
         final lNormalLyricsHeight = height - 32.0;
         final lNormalLyricsOpacity = 0.0;
@@ -306,63 +112,27 @@ class PlaybackHeroCard extends StatelessWidget {
         final lLyricsLyricsOpacity = 1.0;
 
         // ---------------- Resolve Targets based on State ----------------
-        final targetCoverSide = isLandscape
-            ? (isLyricsMode ? lLyricsCoverSide : lNormalCoverSide)
-            : (isLyricsMode ? pLyricsCoverSide : pNormalCoverSide);
-        final targetCoverTop = isLandscape
-            ? (isLyricsMode ? lLyricsCoverTop : lNormalCoverTop)
-            : (isLyricsMode ? pLyricsCoverTop : pNormalCoverTop);
-        final targetCoverLeft = isLandscape
-            ? (isLyricsMode ? lLyricsCoverLeft : lNormalCoverLeft)
-            : (isLyricsMode ? pLyricsCoverLeft : pNormalCoverLeft);
+        final targetCoverSide = isLandscape ? (isLyricsMode ? lLyricsCoverSide : lNormalCoverSide) : (isLyricsMode ? pLyricsCoverSide : pNormalCoverSide);
+        final targetCoverTop = isLandscape ? (isLyricsMode ? lLyricsCoverTop : lNormalCoverTop) : (isLyricsMode ? pLyricsCoverTop : pNormalCoverTop);
+        final targetCoverLeft = isLandscape ? (isLyricsMode ? lLyricsCoverLeft : lNormalCoverLeft) : (isLyricsMode ? pLyricsCoverLeft : pNormalCoverLeft);
 
-        final targetInfoTop = isLandscape
-            ? (isLyricsMode ? lLyricsInfoTop : lNormalInfoTop)
-            : (isLyricsMode ? pLyricsInfoTop : pNormalInfoTop);
-        final targetInfoLeft = isLandscape
-            ? (isLyricsMode ? lLyricsInfoLeft : lNormalInfoLeft)
-            : (isLyricsMode ? pLyricsInfoLeft : pNormalInfoLeft);
-        final targetInfoWidth = isLandscape
-            ? (isLyricsMode ? lLyricsInfoWidth : lNormalInfoWidth)
-            : (isLyricsMode ? pLyricsInfoWidth : pNormalInfoWidth);
-        final targetInfoHeight = isLandscape
-            ? (isLyricsMode ? lLyricsInfoHeight : lNormalInfoHeight)
-            : (isLyricsMode ? pLyricsInfoHeight : pNormalInfoHeight);
-        final targetInfoAlign = isLandscape
-            ? (isLyricsMode ? lLyricsInfoAlign : lNormalInfoAlign)
-            : (isLyricsMode ? pLyricsInfoAlign : pNormalInfoAlign);
+        final targetInfoTop = isLandscape ? (isLyricsMode ? lLyricsInfoTop : lNormalInfoTop) : (isLyricsMode ? pLyricsInfoTop : pNormalInfoTop);
+        final targetInfoLeft = isLandscape ? (isLyricsMode ? lLyricsInfoLeft : lNormalInfoLeft) : (isLyricsMode ? pLyricsInfoLeft : pNormalInfoLeft);
+        final targetInfoWidth = isLandscape ? (isLyricsMode ? lLyricsInfoWidth : lNormalInfoWidth) : (isLyricsMode ? pLyricsInfoWidth : pNormalInfoWidth);
+        final targetInfoHeight = isLandscape ? (isLyricsMode ? lLyricsInfoHeight : lNormalInfoHeight) : (isLyricsMode ? pLyricsInfoHeight : pNormalInfoHeight);
+        final targetInfoAlign = isLandscape ? (isLyricsMode ? lLyricsInfoAlign : lNormalInfoAlign) : (isLyricsMode ? pLyricsInfoAlign : pNormalInfoAlign);
 
-        final targetControlsTop = isLandscape
-            ? (isLyricsMode ? lLyricsControlsTop : lNormalControlsTop)
-            : (isLyricsMode ? pLyricsControlsTop : pNormalControlsTop);
-        final targetControlsLeft = isLandscape
-            ? (isLyricsMode ? lLyricsControlsLeft : lNormalControlsLeft)
-            : (isLyricsMode ? pLyricsControlsLeft : pNormalControlsLeft);
-        final targetControlsWidth = isLandscape
-            ? (isLyricsMode ? lLyricsControlsWidth : lNormalControlsWidth)
-            : (isLyricsMode ? pLyricsControlsWidth : pNormalControlsWidth);
-        final targetControlsHeight = isLandscape
-            ? (isLyricsMode ? lLyricsControlsHeight : lNormalControlsHeight)
-            : (isLyricsMode ? pLyricsControlsHeight : pNormalControlsHeight);
-        final targetControlsOpacity = isLandscape
-            ? (isLyricsMode ? lLyricsControlsOpacity : lNormalControlsOpacity)
-            : (isLyricsMode ? pLyricsControlsOpacity : pNormalControlsOpacity);
+        final targetControlsTop = isLandscape ? (isLyricsMode ? lLyricsControlsTop : lNormalControlsTop) : (isLyricsMode ? pLyricsControlsTop : pNormalControlsTop);
+        final targetControlsLeft = isLandscape ? (isLyricsMode ? lLyricsControlsLeft : lNormalControlsLeft) : (isLyricsMode ? pLyricsControlsLeft : pNormalControlsLeft);
+        final targetControlsWidth = isLandscape ? (isLyricsMode ? lLyricsControlsWidth : lNormalControlsWidth) : (isLyricsMode ? pLyricsControlsWidth : pNormalControlsWidth);
+        final targetControlsHeight = isLandscape ? (isLyricsMode ? lLyricsControlsHeight : lNormalControlsHeight) : (isLyricsMode ? pLyricsControlsHeight : pNormalControlsHeight);
+        final targetControlsOpacity = isLandscape ? (isLyricsMode ? lLyricsControlsOpacity : lNormalControlsOpacity) : (isLyricsMode ? pLyricsControlsOpacity : pNormalControlsOpacity);
 
-        final targetLyricsTop = isLandscape
-            ? (isLyricsMode ? lLyricsLyricsTop : lNormalLyricsTop)
-            : (isLyricsMode ? pLyricsLyricsTop : pNormalLyricsTop);
-        final targetLyricsLeft = isLandscape
-            ? (isLyricsMode ? lLyricsLyricsLeft : lNormalLyricsLeft)
-            : (isLyricsMode ? pLyricsLyricsLeft : pNormalLyricsLeft);
-        final targetLyricsWidth = isLandscape
-            ? (isLyricsMode ? lLyricsLyricsWidth : lNormalLyricsWidth)
-            : (isLyricsMode ? pLyricsLyricsWidth : pNormalLyricsWidth);
-        final targetLyricsHeight = isLandscape
-            ? (isLyricsMode ? lLyricsLyricsHeight : lNormalLyricsHeight)
-            : (isLyricsMode ? pLyricsLyricsHeight : pNormalLyricsHeight);
-        final targetLyricsOpacity = isLandscape
-            ? (isLyricsMode ? lLyricsLyricsOpacity : lNormalLyricsOpacity)
-            : (isLyricsMode ? pLyricsLyricsOpacity : pNormalLyricsOpacity);
+        final targetLyricsTop = isLandscape ? (isLyricsMode ? lLyricsLyricsTop : lNormalLyricsTop) : (isLyricsMode ? pLyricsLyricsTop : pNormalLyricsTop);
+        final targetLyricsLeft = isLandscape ? (isLyricsMode ? lLyricsLyricsLeft : lNormalLyricsLeft) : (isLyricsMode ? pLyricsLyricsLeft : pNormalLyricsLeft);
+        final targetLyricsWidth = isLandscape ? (isLyricsMode ? lLyricsLyricsWidth : lNormalLyricsWidth) : (isLyricsMode ? pLyricsLyricsWidth : pNormalLyricsWidth);
+        final targetLyricsHeight = isLandscape ? (isLyricsMode ? lLyricsLyricsHeight : lNormalLyricsHeight) : (isLyricsMode ? pLyricsLyricsHeight : pNormalLyricsHeight);
+        final targetLyricsOpacity = isLandscape ? (isLyricsMode ? lLyricsLyricsOpacity : lNormalLyricsOpacity) : (isLyricsMode ? pLyricsLyricsOpacity : pNormalLyricsOpacity);
 
         const transitionDuration = Duration(milliseconds: 400);
         const transitionCurve = Curves.fastOutSlowIn;
@@ -406,9 +176,7 @@ class PlaybackHeroCard extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.topCenter,
                       child: SizedBox(
-                        width: isLandscape
-                            ? 450
-                            : math.max(targetControlsWidth, 380.0),
+                        width: isLandscape ? 450 : math.max(targetControlsWidth, 380.0),
                         child: _buildPlaybackControlsWidget(context),
                       ),
                     ),
@@ -498,29 +266,21 @@ class PlaybackHeroCard extends StatelessWidget {
       (AudioService a) => a.snapshot,
     );
     final l10n = AppLocalizations.of(context)!;
-    final title =
-        snapshot.currentLyricsTitle ??
-        snapshot.currentFileName ??
-        l10n.notSelected;
+    final title = snapshot.currentLyricsTitle ?? snapshot.currentFileName ?? l10n.notSelected;
     final album = snapshot.currentAlbum;
     final artist = snapshot.currentArtist;
 
     String subtitle = '';
-    if (artist != null &&
-        artist != 'Unknown' &&
-        album != null &&
-        album != 'Unknown') {
-      subtitle = '$artist — $album';
+    if (artist != null && artist != 'Unknown' && album != null && album != 'Unknown') {
+        subtitle = '$artist — $album';
     } else if (artist != null && artist != 'Unknown') {
-      subtitle = artist;
+        subtitle = artist;
     } else if (album != null && album != 'Unknown') {
-      subtitle = album;
+        subtitle = album;
     }
 
     return Column(
-      crossAxisAlignment: align == TextAlign.left
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.center,
+      crossAxisAlignment: align == TextAlign.left ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         AnimatedDefaultTextStyle(
@@ -532,7 +292,11 @@ class PlaybackHeroCard extends StatelessWidget {
             fontSize: isLyrics && !isLandscape ? 18 : 22,
             fontWeight: FontWeight.bold,
           ),
-          child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+          child: Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         if (subtitle.isNotEmpty)
           Padding(
@@ -561,7 +325,7 @@ class PlaybackHeroCard extends StatelessWidget {
       (AudioService a) => a.snapshot,
     );
     final l10n = AppLocalizations.of(context)!;
-
+    
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -712,8 +476,7 @@ class PlaybackHeroCard extends StatelessWidget {
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
                   size: 40,
-                  color:
-                      snapshot.currentThemeColorsMap['darkVibrant'] ??
+                  color: snapshot.currentThemeColorsMap['darkVibrant'] ??
                       snapshot.currentThemeColorsMap['darkMuted'] ??
                       Colors.black,
                 ),
@@ -762,8 +525,7 @@ class PlaybackHeroCard extends StatelessWidget {
     final AudioSnapshot snapshot = context.select(
       (AudioService a) => a.snapshot,
     );
-    final accent =
-        snapshot.currentThemeColorsMap['darkVibrant'] ??
+    final accent = snapshot.currentThemeColorsMap['darkVibrant'] ??
         snapshot.currentThemeColorsMap['darkMuted'] ??
         Colors.white;
 
@@ -805,3 +567,9 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 }
+"""
+
+with codecs.open(file_path, 'w', 'utf-8') as f:
+    f.write(parts[0] + new_widgets)
+
+print("Successfully replaced layout code.")
