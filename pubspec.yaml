@@ -75,6 +75,7 @@ dependencies:
     path: ./plugin/audio_service/audio_service
   audio_metadata_reader: 
     path: ./plugin/audio_metadata_reader
+  dio: ^5.9.2
 
 
 dev_dependencies:
