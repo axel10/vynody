@@ -649,7 +649,7 @@ class PlaybackHeroCard extends StatelessWidget {
             fontSize: isLyrics && !isLandscape ? 18 : 22,
             fontWeight: FontWeight.bold,
           ),
-          child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+          child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
         if (subtitle.isNotEmpty)
           Padding(
