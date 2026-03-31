@@ -56,6 +56,12 @@ class AudioService extends ChangeNotifier {
   late final CurrentTrackAssetResolver _trackAssetResolver;
   late final LyricsService _lyricsService;
   int _lyricsRequestSerial = 0;
+  bool _isLyricsLoading = false;
+  bool _hasLyrics = false;
+  bool _isLyricsSynced = false;
+  List<LyricLine> _currentLyricsLines = const [];
+  String _currentLyricsText = '';
+  String? _currentLyricsTitle;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -73,6 +79,13 @@ class AudioService extends ChangeNotifier {
   Color? get dynamicStartColor => _dynamicStartColor;
   Color? get dynamicEndColor => _dynamicEndColor;
   Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
+  bool get isLyricsLoading => _isLyricsLoading;
+  bool get hasLyrics => _hasLyrics;
+  bool get isLyricsSynced => _isLyricsSynced;
+  List<LyricLine> get currentLyricsLines =>
+      List<LyricLine>.unmodifiable(_currentLyricsLines);
+  String get currentLyricsText => _currentLyricsText;
+  String? get currentLyricsTitle => _currentLyricsTitle;
 
   AudioService(this.settingsService) {
     _player = AudioCoreController(
@@ -93,7 +106,7 @@ class AudioService extends ChangeNotifier {
     );
     _waveformService = WaveformService(db: _db, player: _player);
     _trackAssetResolver = CurrentTrackAssetResolver(db: _db);
-    _lyricsService = LyricsService();
+    _lyricsService = LyricsService(db: _db);
     _windowsIntegration = Platform.isWindows
         ? WindowsIntegrationService(this)
         : null;
@@ -368,6 +381,12 @@ class AudioService extends ChangeNotifier {
     dynamicStartColor: _dynamicStartColor,
     dynamicEndColor: _dynamicEndColor,
     currentThemeColorsMap: _currentThemeColorsMap,
+    isLyricsLoading: _isLyricsLoading,
+    hasLyrics: _hasLyrics,
+    isLyricsSynced: _isLyricsSynced,
+    currentLyricsLines: _currentLyricsLines,
+    currentLyricsText: _currentLyricsText,
+    currentLyricsTitle: _currentLyricsTitle,
   );
 
   Uint8List? getCachedArtwork(String? path) =>
@@ -592,6 +611,7 @@ class AudioService extends ChangeNotifier {
     _currentArtworkPath = resolution.artworkPath ?? _currentArtworkPath;
     _artworkWidth = resolution.artworkWidth ?? _artworkWidth;
     _artworkHeight = resolution.artworkHeight ?? _artworkHeight;
+    _clearLyricsState();
 
     if (resolution.artworkBytes != null) {
       _hdArtworkCache[path] = resolution.artworkBytes!;
@@ -612,6 +632,18 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _clearLyricsState({bool notify = false}) {
+    _isLyricsLoading = true;
+    _hasLyrics = false;
+    _isLyricsSynced = false;
+    _currentLyricsLines = const [];
+    _currentLyricsText = '';
+    _currentLyricsTitle = null;
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
   Future<void> _fetchAndLogLyrics(MusicFile song) async {
     final requestId = ++_lyricsRequestSerial;
     final query = LyricsQuery(
@@ -627,6 +659,17 @@ class AudioService extends ChangeNotifier {
     if (requestId != _lyricsRequestSerial || _currentFilePath != song.path) {
       return;
     }
+
+    _isLyricsLoading = false;
+    _hasLyrics = result != null;
+    _isLyricsSynced = result?.isSynced ?? false;
+    _currentLyricsLines = result?.syncedLines ?? const [];
+    _currentLyricsText = result?.lyricsText ?? '';
+    final title = result?.track.displayTitle.trim();
+    _currentLyricsTitle = (title != null && title.isNotEmpty)
+        ? title
+        : _currentFileName;
+    notifyListeners();
 
     _lyricsService.debugPrintSelection(query, result);
   }

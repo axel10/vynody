@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import '../models/music_file.dart';
+import 'lyrics_service.dart';
 
 class AudioSnapshot {
   static final DeepCollectionEquality _deepEquality = DeepCollectionEquality();
@@ -38,6 +39,12 @@ class AudioSnapshot {
   final Color? dynamicStartColor;
   final Color? dynamicEndColor;
   final Map<String, Color> currentThemeColorsMap;
+  final bool isLyricsLoading;
+  final bool hasLyrics;
+  final bool isLyricsSynced;
+  final List<LyricLine> currentLyricsLines;
+  final String currentLyricsText;
+  final String? currentLyricsTitle;
   final double progress;
 
   AudioSnapshot({
@@ -70,8 +77,15 @@ class AudioSnapshot {
     required this.dynamicStartColor,
     required this.dynamicEndColor,
     required Map<String, Color> currentThemeColorsMap,
+    required this.isLyricsLoading,
+    required this.hasLyrics,
+    required this.isLyricsSynced,
+    required List<LyricLine> currentLyricsLines,
+    required this.currentLyricsText,
+    required this.currentLyricsTitle,
   }) : currentWaveform = List<double>.unmodifiable(currentWaveform),
        playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
+       currentLyricsLines = List<LyricLine>.unmodifiable(currentLyricsLines),
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
          currentThemeColorsMap,
        ),
@@ -117,6 +131,15 @@ class AudioSnapshot {
             isVisualizerEnabled == other.isVisualizerEnabled &&
             dynamicStartColor == other.dynamicStartColor &&
             dynamicEndColor == other.dynamicEndColor &&
+            isLyricsLoading == other.isLyricsLoading &&
+            hasLyrics == other.hasLyrics &&
+            isLyricsSynced == other.isLyricsSynced &&
+            _deepEquality.equals(
+              currentLyricsLines,
+              other.currentLyricsLines,
+            ) &&
+            currentLyricsText == other.currentLyricsText &&
+            currentLyricsTitle == other.currentLyricsTitle &&
             _deepEquality.equals(
               currentThemeColorsMap,
               other.currentThemeColorsMap,
@@ -153,6 +176,12 @@ class AudioSnapshot {
     isVisualizerEnabled,
     dynamicStartColor,
     dynamicEndColor,
+    isLyricsLoading,
+    hasLyrics,
+    isLyricsSynced,
+    _deepEquality.hash(currentLyricsLines),
+    currentLyricsText,
+    currentLyricsTitle,
     _deepEquality.hash(currentThemeColorsMap),
   ]);
 }

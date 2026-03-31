@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:path/path.dart' as p;
@@ -67,6 +68,102 @@ class SongMetadata {
   }
 }
 
+class LyricsCacheRecord {
+  final int? id;
+  final String cacheKey;
+  final String filePath;
+  final String title;
+  final String? artist;
+  final String? album;
+  final int? duration;
+  final String source;
+  final int? trackId;
+  final double score;
+  final bool isSynced;
+  final bool instrumental;
+  final String? plainLyrics;
+  final String? syncedLyrics;
+  final List<Map<String, dynamic>> syncedLines;
+  final Map<String, dynamic>? rawJson;
+  final int updatedAtMillis;
+
+  const LyricsCacheRecord({
+    this.id,
+    required this.cacheKey,
+    required this.filePath,
+    required this.title,
+    this.artist,
+    this.album,
+    this.duration,
+    required this.source,
+    this.trackId,
+    required this.score,
+    required this.isSynced,
+    required this.instrumental,
+    this.plainLyrics,
+    this.syncedLyrics,
+    required this.syncedLines,
+    this.rawJson,
+    required this.updatedAtMillis,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'cacheKey': cacheKey,
+      'filePath': filePath,
+      'title': title,
+      'artist': artist,
+      'album': album,
+      'duration': duration,
+      'source': source,
+      'trackId': trackId,
+      'score': score,
+      'isSynced': isSynced ? 1 : 0,
+      'instrumental': instrumental ? 1 : 0,
+      'plainLyrics': plainLyrics,
+      'syncedLyrics': syncedLyrics,
+      'syncedLinesJson': jsonEncode(syncedLines),
+      'rawJson': rawJson == null ? null : jsonEncode(rawJson),
+      'updatedAtMillis': updatedAtMillis,
+    };
+  }
+
+  factory LyricsCacheRecord.fromMap(Map<String, dynamic> map) {
+    final syncedLinesJson = map['syncedLinesJson'] as String?;
+    final rawJson = map['rawJson'] as String?;
+    final decodedLines = syncedLinesJson == null || syncedLinesJson.isEmpty
+        ? <Map<String, dynamic>>[]
+        : (jsonDecode(syncedLinesJson) as List)
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+
+    return LyricsCacheRecord(
+      id: map['id'] as int?,
+      cacheKey: map['cacheKey'] as String,
+      filePath: map['filePath'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      artist: map['artist'] as String?,
+      album: map['album'] as String?,
+      duration: map['duration'] as int?,
+      source: map['source'] as String? ?? 'search',
+      trackId: map['trackId'] as int?,
+      score: (map['score'] as num?)?.toDouble() ?? 0.0,
+      isSynced: (map['isSynced'] as int? ?? 0) == 1,
+      instrumental: (map['instrumental'] as int? ?? 0) == 1,
+      plainLyrics: map['plainLyrics'] as String?,
+      syncedLyrics: map['syncedLyrics'] as String?,
+      syncedLines: decodedLines,
+      rawJson: rawJson == null || rawJson.isEmpty
+          ? null
+          : Map<String, dynamic>.from(jsonDecode(rawJson) as Map),
+      updatedAtMillis:
+          (map['updatedAtMillis'] as int?) ??
+          DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+}
+
 class MetadataDatabase {
   static Database? _database;
   static final MetadataDatabase _instance = MetadataDatabase._internal();
@@ -92,7 +189,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -108,6 +205,27 @@ class MetadataDatabase {
             trackNumber INTEGER,
             themeColorsBlob BLOB,
             waveformBlob BLOB
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE lyrics_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cacheKey TEXT UNIQUE,
+            filePath TEXT,
+            title TEXT,
+            artist TEXT,
+            album TEXT,
+            duration INTEGER,
+            source TEXT,
+            trackId INTEGER,
+            score REAL,
+            isSynced INTEGER,
+            instrumental INTEGER,
+            plainLyrics TEXT,
+            syncedLyrics TEXT,
+            syncedLinesJson TEXT,
+            rawJson TEXT,
+            updatedAtMillis INTEGER
           )
         ''');
       },
@@ -143,6 +261,29 @@ class MetadataDatabase {
             await db.execute('ALTER TABLE songs ADD COLUMN waveformBlob BLOB');
           }
         }
+        if (oldVersion < 6) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS lyrics_cache (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              cacheKey TEXT UNIQUE,
+              filePath TEXT,
+              title TEXT,
+              artist TEXT,
+              album TEXT,
+              duration INTEGER,
+              source TEXT,
+              trackId INTEGER,
+              score REAL,
+              isSynced INTEGER,
+              instrumental INTEGER,
+              plainLyrics TEXT,
+              syncedLyrics TEXT,
+              syncedLinesJson TEXT,
+              rawJson TEXT,
+              updatedAtMillis INTEGER
+            )
+          ''');
+        }
       },
     );
   }
@@ -163,6 +304,30 @@ class MetadataDatabase {
       song.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  Future<void> insertOrUpdateLyricsCache(LyricsCacheRecord record) async {
+    final db = await database;
+    await db.insert(
+      'lyrics_cache',
+      record.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<LyricsCacheRecord?> getLyricsCache(String cacheKey) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'lyrics_cache',
+      where: 'cacheKey = ?',
+      whereArgs: [cacheKey],
+      limit: 1,
+    );
+
+    if (maps.isNotEmpty) {
+      return LyricsCacheRecord.fromMap(maps.first);
+    }
+    return null;
   }
 
   Future<SongMetadata?> getSongMetadata(String path) async {

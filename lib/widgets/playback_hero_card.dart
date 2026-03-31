@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +11,7 @@ import '../player/playlist_service.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
 import '../widgets/cover_carousel.dart';
+import '../widgets/lyrics_panel.dart';
 import '../widgets/mini_player_widgets.dart';
 import '../widgets/waveform_progress_bar.dart';
 
@@ -18,6 +21,7 @@ class PlaybackHeroCard extends StatelessWidget {
   const PlaybackHeroCard({
     super.key,
     required this.isMini,
+    this.isLyricsMode = false,
     this.isLandscape = false,
     this.screenWidth,
     this.screenHeight,
@@ -38,12 +42,14 @@ class PlaybackHeroCard extends StatelessWidget {
     this.onVolumeTap,
     this.onVolumeDrag,
     this.onVolumeScroll,
+    this.onCoverTap,
     this.overrideProgress,
     this.overridePosition,
     this.overrideWaveform,
   });
 
   final bool isMini;
+  final bool isLyricsMode;
   final bool isLandscape;
   final double? screenWidth;
   final double? screenHeight;
@@ -67,6 +73,7 @@ class PlaybackHeroCard extends StatelessWidget {
   final VoidCallback? onVolumeTap;
   final ValueChanged<double>? onVolumeDrag;
   final ValueChanged<double>? onVolumeScroll;
+  final VoidCallback? onCoverTap;
 
   @override
   Widget build(BuildContext context) {
@@ -200,6 +207,12 @@ class PlaybackHeroCard extends StatelessWidget {
     final width = screenWidth ?? MediaQuery.of(context).size.width;
     final height = screenHeight ?? MediaQuery.of(context).size.height;
 
+    if (isLyricsMode) {
+      return isLandscape
+          ? _buildLandscapeLyricsCard(context, width, height)
+          : _buildPortraitLyricsCard(context, width, height);
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxDisplaySize = isLandscape ? height : width;
@@ -209,7 +222,11 @@ class PlaybackHeroCard extends StatelessWidget {
                   const Spacer(flex: 1),
                   Expanded(
                     flex: 10,
-                    child: _buildAlbumArt(context, maxDisplaySize),
+                    child: _buildAlbumArt(
+                      context,
+                      maxDisplaySize,
+                      onTap: onCoverTap,
+                    ),
                   ),
                   const SizedBox(width: 48),
                   Expanded(
@@ -233,7 +250,11 @@ class PlaybackHeroCard extends StatelessWidget {
                     flex: 14,
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 24),
-                      child: _buildAlbumArt(context, maxDisplaySize),
+                      child: _buildAlbumArt(
+                        context,
+                        maxDisplaySize,
+                        onTap: onCoverTap,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -262,7 +283,11 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAlbumArt(BuildContext context, double maxDisplaySize) {
+  Widget _buildAlbumArt(
+    BuildContext context,
+    double maxDisplaySize, {
+    VoidCallback? onTap,
+  }) {
     return Center(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -279,7 +304,8 @@ class PlaybackHeroCard extends StatelessWidget {
           if (playlist.isEmpty) {
             return _buildArtworkPlaceholder();
           }
-          return SizedBox.square(
+
+          final cover = SizedBox.square(
             dimension: side,
             child: CoverCarousel(
               playlist: playlist,
@@ -297,7 +323,255 @@ class PlaybackHeroCard extends StatelessWidget {
               },
             ),
           );
+
+          if (onTap == null) {
+            return cover;
+          }
+
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: cover,
+          );
         },
+      ),
+    );
+  }
+
+  Widget _buildLandscapeLyricsCard(
+    BuildContext context,
+    double width,
+    double height,
+  ) {
+    final AudioSnapshot snapshot = context.select(
+      (AudioService a) => a.snapshot,
+    );
+    final accent =
+        snapshot.currentThemeColorsMap['darkVibrant'] ??
+        snapshot.currentThemeColorsMap['darkMuted'] ??
+        Colors.white;
+    final leftColumnWidth = (width * 0.34).clamp(240.0, 380.0);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              SizedBox(
+                width: leftColumnWidth,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    AnimatedScale(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      scale: 0.72,
+                      child: _buildAlbumArt(
+                        context,
+                        math.min(width, height) * 0.42,
+                        onTap: onCoverTap,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactTrackInfo(
+                      context,
+                      snapshot,
+                      maxWidth: leftColumnWidth - 24,
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: AnimatedOpacity(
+                        opacity: 1,
+                        duration: const Duration(milliseconds: 220),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: SizedBox(
+                            width: leftColumnWidth - 16,
+                            child: _buildControls(
+                              context,
+                              leftColumnWidth,
+                              showTrackInfo: false,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 280),
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOut,
+                      ),
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.05, 0),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: LyricsPanel(
+                    key: ValueKey(
+                      '${snapshot.currentFilePath}_${snapshot.currentLyricsLines.length}_${snapshot.isLyricsLoading}_${snapshot.hasLyrics}',
+                    ),
+                    lines: snapshot.currentLyricsLines,
+                    position: snapshot.position,
+                    isLoading: snapshot.isLyricsLoading,
+                    hasLyrics: snapshot.hasLyrics,
+                    isSynced: snapshot.isLyricsSynced,
+                    plainLyrics: snapshot.currentLyricsText,
+                    accentColor: accent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPortraitLyricsCard(
+    BuildContext context,
+    double width,
+    double height,
+  ) {
+    final AudioSnapshot snapshot = context.select(
+      (AudioService a) => a.snapshot,
+    );
+    final accent =
+        snapshot.currentThemeColorsMap['darkVibrant'] ??
+        snapshot.currentThemeColorsMap['darkMuted'] ??
+        Colors.white;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final headerHeight = math.min(120.0, math.max(100.0, height * 0.14));
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                height: headerHeight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    AnimatedScale(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      scale: 0.62,
+                      child: _buildAlbumArt(context, 104, onTap: onCoverTap),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _buildCompactTrackInfo(
+                        context,
+                        snapshot,
+                        maxWidth: math.max(0.0, width - 140),
+                        alignStart: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 280),
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOut,
+                      ),
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.04),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: LyricsPanel(
+                    key: ValueKey(
+                      '${snapshot.currentFilePath}_${snapshot.currentLyricsLines.length}_${snapshot.isLyricsLoading}_${snapshot.hasLyrics}',
+                    ),
+                    lines: snapshot.currentLyricsLines,
+                    position: snapshot.position,
+                    isLoading: snapshot.isLyricsLoading,
+                    hasLyrics: snapshot.hasLyrics,
+                    isSynced: snapshot.isLyricsSynced,
+                    plainLyrics: snapshot.currentLyricsText,
+                    accentColor: accent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCompactTrackInfo(
+    BuildContext context,
+    AudioSnapshot snapshot, {
+    required double maxWidth,
+    bool alignStart = false,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final title =
+        snapshot.currentLyricsTitle ??
+        snapshot.currentFileName ??
+        l10n.notSelected;
+    final album = snapshot.currentAlbum;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Column(
+        crossAxisAlignment: alignStart
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: alignStart ? TextAlign.left : TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (album != null && album.trim().isNotEmpty && album != 'Unknown')
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                album,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: alignStart ? TextAlign.left : TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -323,7 +597,11 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildControls(BuildContext context, double width) {
+  Widget _buildControls(
+    BuildContext context,
+    double width, {
+    bool showTrackInfo = true,
+  }) {
     final AudioSnapshot snapshot = context.select(
       (AudioService a) => a.snapshot,
     );
@@ -332,42 +610,44 @@ class PlaybackHeroCard extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: isLandscape ? 450 : width * 0.95,
-          ),
-          child: Text(
-            snapshot.currentFileName ?? l10n.notSelected,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+        if (showTrackInfo) ...[
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isLandscape ? 450 : width * 0.95,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if ((snapshot.currentArtist != null &&
-                snapshot.currentArtist != 'Unknown') ||
-            (snapshot.currentAlbum != null &&
-                snapshot.currentAlbum != 'Unknown'))
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isLandscape ? 400 : width * 0.9,
+            child: Text(
+              snapshot.currentFileName ?? l10n.notSelected,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
-              child: Text(
-                '${snapshot.currentArtist ?? l10n.unknown} — ${snapshot.currentAlbum ?? l10n.unknown}',
-                style: const TextStyle(fontSize: 16, color: Colors.white70),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-        SizedBox(height: isLandscape ? 16 : 12),
+          if ((snapshot.currentArtist != null &&
+                  snapshot.currentArtist != 'Unknown') ||
+              (snapshot.currentAlbum != null &&
+                  snapshot.currentAlbum != 'Unknown'))
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isLandscape ? 400 : width * 0.9,
+                ),
+                child: Text(
+                  '${snapshot.currentArtist ?? l10n.unknown} — ${snapshot.currentAlbum ?? l10n.unknown}',
+                  style: const TextStyle(fontSize: 16, color: Colors.white70),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          SizedBox(height: isLandscape ? 16 : 12),
+        ],
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

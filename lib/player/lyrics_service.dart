@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import 'metadata_database.dart';
+
 class LyricsQuery {
   final String filePath;
   final String fileName;
@@ -39,6 +41,28 @@ class LyricLine {
   final String text;
 
   const LyricLine({required this.timestamp, required this.text});
+
+  Map<String, dynamic> toJson() {
+    return {'timestampMs': timestamp.inMilliseconds, 'text': text};
+  }
+
+  factory LyricLine.fromJson(Map<String, dynamic> json) {
+    return LyricLine(
+      timestamp: Duration(milliseconds: (json['timestampMs'] as num).round()),
+      text: json['text'] as String? ?? '',
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is LyricLine &&
+            timestamp == other.timestamp &&
+            text == other.text;
+  }
+
+  @override
+  int get hashCode => Object.hash(timestamp, text);
 }
 
 class LyricTrack {
@@ -87,6 +111,20 @@ class LyricTrack {
       (syncedLyrics?.trim().isNotEmpty ?? false);
 
   bool get hasSyncedLyrics => syncedLyrics?.trim().isNotEmpty ?? false;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'trackName': trackName,
+      'artistName': artistName,
+      'albumName': albumName,
+      'duration': duration,
+      'instrumental': instrumental,
+      'plainLyrics': plainLyrics,
+      'syncedLyrics': syncedLyrics,
+    };
+  }
 }
 
 class LyricScoreBreakdown {
@@ -133,7 +171,7 @@ class LyricSelectionResult {
 }
 
 class LyricsService {
-  LyricsService({Dio? dio})
+  LyricsService({Dio? dio, MetadataDatabase? db})
     : _dio =
           dio ??
           Dio(
@@ -144,9 +182,11 @@ class LyricsService {
               sendTimeout: const Duration(seconds: 12),
               headers: const {'accept': 'application/json'},
             ),
-          );
+          ),
+      _db = db ?? MetadataDatabase();
 
   final Dio _dio;
+  final MetadataDatabase _db;
   final Map<String, Future<LyricSelectionResult?>> _inFlight = {};
   final Map<String, LyricSelectionResult?> _cache = {};
 
@@ -163,6 +203,15 @@ class LyricsService {
         debugPrintSelection(query, cached, source: 'cache');
       }
       return cached;
+    }
+
+    final cachedFromDb = await _loadFromDatabase(cacheKey);
+    if (cachedFromDb != null) {
+      _cache[cacheKey] = cachedFromDb;
+      if (debugLog) {
+        debugPrintSelection(query, cachedFromDb, source: 'sqlite');
+      }
+      return cachedFromDb;
     }
 
     final existing = _inFlight[cacheKey];
@@ -198,6 +247,7 @@ class LyricsService {
       if (direct != null) {
         final scored = _scoreCandidate(completeQuery, direct, fromGetApi: true);
         if (scored != null && scored.score >= _acceptThreshold) {
+          await _saveToDatabase(query: completeQuery, result: scored);
           return scored;
         }
       }
@@ -226,7 +276,19 @@ class LyricsService {
     if (best.score < _acceptThreshold) {
       return null;
     }
+    await _saveToDatabase(query: searchQuery, result: best);
     return best;
+  }
+
+  Future<LyricSelectionResult?> _loadFromDatabase(String cacheKey) async {
+    try {
+      final record = await _db.getLyricsCache(cacheKey);
+      if (record == null) return null;
+      return _selectionFromRecord(record);
+    } catch (e) {
+      debugPrint('[Lyrics] Failed to load cache for "$cacheKey": $e');
+      return null;
+    }
   }
 
   LyricsQuery? _buildCompleteQuery(LyricsQuery query) {
@@ -320,6 +382,72 @@ class LyricsService {
       debugPrint('[Lyrics] SEARCH error for "${query.title}": $e');
     }
     return const [];
+  }
+
+  Future<void> _saveToDatabase({
+    required LyricsQuery query,
+    required LyricSelectionResult result,
+  }) async {
+    try {
+      final record = LyricsCacheRecord(
+        cacheKey: query.cacheKey,
+        filePath: query.filePath,
+        title: query.title,
+        artist: query.artist,
+        album: query.album,
+        duration: query.duration?.inSeconds,
+        source: result.fromGetApi ? 'get' : 'search',
+        trackId: result.track.id,
+        score: result.score,
+        isSynced: result.isSynced,
+        instrumental: result.track.instrumental,
+        plainLyrics: result.track.plainLyrics,
+        syncedLyrics: result.track.syncedLyrics,
+        syncedLines: result.syncedLines.map((line) => line.toJson()).toList(),
+        rawJson: result.track.toJson(),
+        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+      );
+      await _db.insertOrUpdateLyricsCache(record);
+    } catch (e) {
+      debugPrint('[Lyrics] Failed to cache lyrics for "${query.title}": $e');
+    }
+  }
+
+  LyricSelectionResult _selectionFromRecord(LyricsCacheRecord record) {
+    final track = LyricTrack(
+      id: record.trackId,
+      name: record.title,
+      trackName: record.title,
+      artistName: record.artist,
+      albumName: record.album,
+      duration: record.duration?.toDouble(),
+      instrumental: record.instrumental,
+      plainLyrics: record.plainLyrics,
+      syncedLyrics: record.syncedLyrics,
+    );
+
+    final syncedLines = record.syncedLines
+        .map((item) => LyricLine.fromJson(item))
+        .toList(growable: false);
+
+    return LyricSelectionResult(
+      track: track,
+      fromGetApi: record.source == 'get',
+      score: record.score,
+      breakdown: LyricScoreBreakdown(
+        title: 0,
+        artist: 0,
+        album: 0,
+        duration: 0,
+        lyricsQuality: record.isSynced ? 5 : 3,
+        instrumentalPenalty: 0,
+      ),
+      durationDiffSeconds: record.duration == null ? (1 << 30) : 0,
+      syncedLines: syncedLines,
+      lyricsText: record.isSynced
+          ? (record.syncedLyrics ?? '')
+          : (record.plainLyrics ?? ''),
+    );
   }
 
   String _buildSearchText(LyricsQuery query) {

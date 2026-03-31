@@ -31,6 +31,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     with SingleTickerProviderStateMixin {
   bool _showVolumeSlider = false;
   bool _showVisualizer = true;
+  bool _isLyricsMode = false;
   bool _isScrubbingProgress = false;
   double _scrubProgress = 0.0; // Added missing declaration
   Orientation? _lastOrientation;
@@ -80,6 +81,12 @@ class _PlaybackPageState extends State<PlaybackPage>
 
   void _handleInteraction() {
     _startInactivityTimer();
+  }
+
+  void _toggleLyricsMode() {
+    setState(() {
+      _isLyricsMode = !_isLyricsMode;
+    });
   }
 
   void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
@@ -348,6 +355,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                           return PlaybackHeroCard(
                             isMini: false,
                             isLandscape: isLandscape,
+                            isLyricsMode: _isLyricsMode,
                             screenWidth: screenWidth,
                             screenHeight: screenHeight,
                             isNext: isNext,
@@ -393,6 +401,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                             },
                             onToggleVisualizer: () => _toggleVisualizer(audio),
                             onEqualizerTap: () => _showEqualizerPanel(context),
+                            onCoverTap: _toggleLyricsMode,
                             onPrevious: audio.previous,
                             onPlayPause: audio.togglePlay,
                             onNext: () => toNextMusic(audio),
@@ -536,7 +545,7 @@ class _PlaybackPageState extends State<PlaybackPage>
             return Selector<SettingsService, bool>(
               selector: (_, s) => s
                   .isAutoMode, // Just pick something so it rebuilds on auto mode change
-              builder: (context, _, __) {
+              builder: (context, value, child) {
                 // Re-read settings more cleanly or use the data tuple
                 final settings = context.read<SettingsService>();
                 final audio = context.read<AudioService>();
