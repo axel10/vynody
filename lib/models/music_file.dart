@@ -26,4 +26,24 @@ class MusicFile {
     // Remove extension from name using path package
     return p.basenameWithoutExtension(path);
   }
+
+  MusicFile copyWith({
+    String? path,
+    String? name,
+    String? title,
+    String? artist,
+    String? album,
+    int? trackNumber,
+    int? id,
+  }) {
+    return MusicFile(
+      path: path ?? this.path,
+      name: name ?? this.name,
+      title: title ?? this.title,
+      artist: artist ?? this.artist,
+      album: album ?? this.album,
+      trackNumber: trackNumber ?? this.trackNumber,
+      id: id ?? this.id,
+    );
+  }
 }

@@ -8,6 +8,8 @@ import '../l10n/app_localizations.dart';
 import '../player/audio_snapshot.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
+import '../player/scanner_service.dart';
+import '../player/musicbrainz_tag_completion_service.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/visualizer_painter.dart';
 import '../widgets/volume_controls.dart';
@@ -16,6 +18,7 @@ import '../utils/playback_utils.dart';
 import '../player/playlist_service.dart';
 import '../models/music_file.dart';
 import '../dialogs/visualizer_options_dialog.dart';
+import '../dialogs/song_tag_completion_dialog.dart';
 import '../widgets/equalizer_panel.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
@@ -119,6 +122,50 @@ class _PlaybackPageState extends State<PlaybackPage>
       isScrollControlled: true,
       builder: (context) => const EqualizerPanel(),
     );
+  }
+
+  Future<void> _showSongTagCompletionSheet(
+    BuildContext context,
+    AudioService audio,
+  ) async {
+    final snapshot = audio.snapshot;
+    final songPath = snapshot.currentFilePath;
+    if (songPath == null) return;
+
+    final result = await showModalBottomSheet<MusicBrainzTagSelectionResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SongTagCompletionSheet(
+        songPath: songPath,
+        currentTitle: snapshot.currentFileName,
+        currentArtist: snapshot.currentArtist,
+        currentAlbum: snapshot.currentAlbum,
+        durationMillis: snapshot.duration.inMilliseconds,
+      ),
+    );
+
+    if (result == null || !context.mounted) return;
+
+    final scanner = context.read<ScannerService>();
+    final playlistService = context.read<PlaylistService>();
+
+    await audio.applyUpdatedSongMetadata(
+      result.metadata,
+      artworkBytes: result.artworkBytes,
+    );
+    scanner.updateMetadataForPath(result.metadata);
+    await playlistService.updateSongMetadataByPath(result.metadata);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.artworkBytes != null ? '标签已补全并保存，封面已下载到临时目录' : '标签已补全并保存',
+          ),
+        ),
+      );
+    }
   }
 
   void _showRandomModeSelector(BuildContext context, AudioService audio) {
@@ -400,6 +447,12 @@ class _PlaybackPageState extends State<PlaybackPage>
                               audio.seek(target);
                             },
                             onToggleVisualizer: () => _toggleVisualizer(audio),
+                            onTagCompletionTap: snapshot.currentFilePath == null
+                                ? null
+                                : () => _showSongTagCompletionSheet(
+                                    context,
+                                    audio,
+                                  ),
                             onEqualizerTap: () => _showEqualizerPanel(context),
                             onCoverTap: _toggleLyricsMode,
                             onPrevious: audio.previous,

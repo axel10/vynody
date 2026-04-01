@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/music_file.dart';
+import 'metadata_database.dart';
 
 /// 播放列表模型
 class Playlist {
@@ -17,25 +18,28 @@ class Playlist {
     List<MusicFile>? songs,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : songs = songs ?? [],
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : songs = songs ?? [],
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   /// 从JSON创建播放列表
   factory Playlist.fromJson(Map<String, dynamic> json) {
     return Playlist(
       id: json['id'] as String,
       name: json['name'] as String,
-      songs: (json['songs'] as List<dynamic>?)
-              ?.map((s) => MusicFile(
-                    path: s['path'] as String,
-                    name: s['name'] as String,
-                    title: s['title'] as String?,
-                    artist: s['artist'] as String?,
-                    album: s['album'] as String?,
-                    trackNumber: s['trackNumber'] as int?,
-                    id: s['id'] as int?,
-                  ))
+      songs:
+          (json['songs'] as List<dynamic>?)
+              ?.map(
+                (s) => MusicFile(
+                  path: s['path'] as String,
+                  name: s['name'] as String,
+                  title: s['title'] as String?,
+                  artist: s['artist'] as String?,
+                  album: s['album'] as String?,
+                  trackNumber: s['trackNumber'] as int?,
+                  id: s['id'] as int?,
+                ),
+              )
               .toList() ??
           [],
       createdAt: json['createdAt'] != null
@@ -53,15 +57,17 @@ class Playlist {
       'id': id,
       'name': name,
       'songs': songs
-          .map((s) => {
-                'path': s.path,
-                'name': s.name,
-                'title': s.title,
-                'artist': s.artist,
-                'album': s.album,
-                'trackNumber': s.trackNumber,
-                'id': s.id,
-              })
+          .map(
+            (s) => {
+              'path': s.path,
+              'name': s.name,
+              'title': s.title,
+              'artist': s.artist,
+              'album': s.album,
+              'trackNumber': s.trackNumber,
+              'id': s.id,
+            },
+          )
           .toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -97,7 +103,9 @@ class PlaylistService extends ChangeNotifier {
   Playlist? get currentPlaylist => _currentPlaylistId != null
       ? _playlists.firstWhere(
           (p) => p.id == _currentPlaylistId,
-          orElse: () => _playlists.isNotEmpty ? _playlists.first : Playlist(id: 'default', name: '默认列表'),
+          orElse: () => _playlists.isNotEmpty
+              ? _playlists.first
+              : Playlist(id: 'default', name: '默认列表'),
         )
       : (_playlists.isNotEmpty ? _playlists.first : null);
 
@@ -110,10 +118,7 @@ class PlaylistService extends ChangeNotifier {
     await _loadPlaylists();
     // 如果没有播放列表，创建一个默认列表
     if (_playlists.isEmpty) {
-      _playlists.add(Playlist(
-        id: 'default',
-        name: '默认列表',
-      ));
+      _playlists.add(Playlist(id: 'default', name: '默认列表'));
       await _savePlaylists();
     }
     notifyListeners();
@@ -130,7 +135,9 @@ class PlaylistService extends ChangeNotifier {
         final List<dynamic> jsonList = json.decode(jsonString);
         _playlists.clear();
         _playlists.addAll(
-          jsonList.map((json) => Playlist.fromJson(json as Map<String, dynamic>)),
+          jsonList.map(
+            (json) => Playlist.fromJson(json as Map<String, dynamic>),
+          ),
         );
       }
 
@@ -144,7 +151,9 @@ class PlaylistService extends ChangeNotifier {
   Future<void> _savePlaylists() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonString = json.encode(_playlists.map((p) => p.toJson()).toList());
+      final jsonString = json.encode(
+        _playlists.map((p) => p.toJson()).toList(),
+      );
       await prefs.setString(_storageKey, jsonString);
       if (_currentPlaylistId != null) {
         await prefs.setString(_currentPlaylistKey, _currentPlaylistId!);
@@ -198,7 +207,10 @@ class PlaylistService extends ChangeNotifier {
   }
 
   /// 向播放列表添加歌曲
-  Future<void> addSongsToPlaylist(String playlistId, List<MusicFile> songs) async {
+  Future<void> addSongsToPlaylist(
+    String playlistId,
+    List<MusicFile> songs,
+  ) async {
     final index = _playlists.indexWhere((p) => p.id == playlistId);
     if (index != -1) {
       _playlists[index].songs.addAll(songs);
@@ -209,11 +221,15 @@ class PlaylistService extends ChangeNotifier {
   }
 
   /// 从播放列表移除歌曲
-  Future<void> removeSongsFromPlaylist(String playlistId, List<int> indices) async {
+  Future<void> removeSongsFromPlaylist(
+    String playlistId,
+    List<int> indices,
+  ) async {
     final index = _playlists.indexWhere((p) => p.id == playlistId);
     if (index != -1) {
       // 按索引降序排序后删除，避免索引错位
-      final sortedIndices = List<int>.from(indices)..sort((a, b) => b.compareTo(a));
+      final sortedIndices = List<int>.from(indices)
+        ..sort((a, b) => b.compareTo(a));
       for (final idx in sortedIndices) {
         if (idx >= 0 && idx < _playlists[index].songs.length) {
           _playlists[index].songs.removeAt(idx);
@@ -250,6 +266,31 @@ class PlaylistService extends ChangeNotifier {
     if (index != -1) {
       _playlists[index].songs.clear();
       _playlists[index].updatedAt = DateTime.now();
+      await _savePlaylists();
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateSongMetadataByPath(SongMetadata metadata) async {
+    bool changed = false;
+
+    for (final playlist in _playlists) {
+      for (var i = 0; i < playlist.songs.length; i++) {
+        final song = playlist.songs[i];
+        if (song.path != metadata.path) continue;
+
+        playlist.songs[i] = song.copyWith(
+          title: metadata.title,
+          artist: metadata.artist,
+          album: metadata.album,
+          trackNumber: metadata.trackNumber,
+        );
+        playlist.updatedAt = DateTime.now();
+        changed = true;
+      }
+    }
+
+    if (changed) {
       await _savePlaylists();
       notifyListeners();
     }

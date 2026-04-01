@@ -437,6 +437,51 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> applyUpdatedSongMetadata(
+    SongMetadata metadata, {
+    Uint8List? artworkBytes,
+  }) async {
+    bool queueChanged = false;
+    for (var i = 0; i < _playlist.length; i++) {
+      final song = _playlist[i];
+      if (song.path != metadata.path) continue;
+
+      _playlist[i] = song.copyWith(
+        title: metadata.title,
+        artist: metadata.artist,
+        album: metadata.album,
+        trackNumber: metadata.trackNumber,
+      );
+      queueChanged = true;
+    }
+
+    final isCurrentTrack = _currentFilePath == metadata.path;
+    if (isCurrentTrack) {
+      _currentFileName = metadata.title;
+      _currentArtist = metadata.artist;
+      _currentAlbum = metadata.album;
+      _currentArtworkPath = metadata.artworkPath;
+      _artworkWidth = metadata.artworkWidth;
+      _artworkHeight = metadata.artworkHeight;
+      _currentArtworkBytes = artworkBytes;
+      _currentBlurredArtworkBytes = null;
+      _blurredArtworkCache.remove(metadata.path);
+      if (artworkBytes != null) {
+        _hdArtworkCache[metadata.path] = artworkBytes;
+        unawaited(_processBlurForPath(metadata.path, artworkBytes));
+      }
+
+      _windowsIntegration?.updateMetadata(null);
+      _androidIntegration?.updateMetadata(null);
+    }
+
+    await _updatePalette(metadata: metadata);
+
+    if (queueChanged || isCurrentTrack) {
+      notifyListeners();
+    }
+  }
+
   Future<void> _refreshCurrentWaveform({bool notify = true}) async {
     final path = _currentFilePath;
     if (path == null) {

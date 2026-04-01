@@ -66,6 +66,36 @@ class SongMetadata {
       waveformBlob: map['waveformBlob'] as Uint8List?,
     );
   }
+
+  SongMetadata copyWith({
+    int? id,
+    String? path,
+    String? title,
+    String? album,
+    String? artist,
+    int? duration,
+    String? artworkPath,
+    int? artworkWidth,
+    int? artworkHeight,
+    int? trackNumber,
+    Uint8List? themeColorsBlob,
+    Uint8List? waveformBlob,
+  }) {
+    return SongMetadata(
+      id: id ?? this.id,
+      path: path ?? this.path,
+      title: title ?? this.title,
+      album: album ?? this.album,
+      artist: artist ?? this.artist,
+      duration: duration ?? this.duration,
+      artworkPath: artworkPath ?? this.artworkPath,
+      artworkWidth: artworkWidth ?? this.artworkWidth,
+      artworkHeight: artworkHeight ?? this.artworkHeight,
+      trackNumber: trackNumber ?? this.trackNumber,
+      themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
+      waveformBlob: waveformBlob ?? this.waveformBlob,
+    );
+  }
 }
 
 class LyricsCacheRecord {

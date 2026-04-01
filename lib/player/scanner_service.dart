@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:async';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path/path.dart' as p;
@@ -597,6 +596,11 @@ class ScannerService extends ChangeNotifier {
       _metadataMap[path] = metadata;
       notifyListeners();
     }
+  }
+
+  void updateMetadataForPath(SongMetadata metadata) {
+    _metadataMap[metadata.path] = metadata;
+    notifyListeners();
   }
 
   Future<MusicFolder?> _scanDirectory(String path) async {

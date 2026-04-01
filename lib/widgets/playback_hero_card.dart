@@ -37,6 +37,7 @@ class PlaybackHeroCard extends StatelessWidget {
     this.onScrubbing,
     this.onSeek,
     this.onToggleVisualizer,
+    this.onTagCompletionTap,
     this.onEqualizerTap,
     this.onPrevious,
     this.onPlayPause,
@@ -68,6 +69,7 @@ class PlaybackHeroCard extends StatelessWidget {
   final ValueChanged<double>? onScrubbing;
   final ValueChanged<double>? onSeek;
   final VoidCallback? onToggleVisualizer;
+  final VoidCallback? onTagCompletionTap;
   final VoidCallback? onEqualizerTap;
   final VoidCallback? onPrevious;
   final VoidCallback? onPlayPause;
@@ -734,6 +736,16 @@ class PlaybackHeroCard extends StatelessWidget {
                 },
                 tooltip: l10n.randomMode,
               ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(
+                Icons.auto_fix_high_rounded,
+                size: 28,
+                color: Colors.white70,
+              ),
+              onPressed: onTagCompletionTap,
+              tooltip: '歌曲标签补全',
             ),
             const SizedBox(width: 8),
             IconButton(
