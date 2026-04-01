@@ -150,11 +150,14 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
 
     _audioService = context.read<AudioService>();
     _audioService.addListener(_onAudioServiceChange);
-    windowManager.addListener(this);
 
-    windowManager.isFullScreen().then((value) {
-      if (mounted) setState(() => _isFullScreen = value);
-    });
+    final bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    if (isDesktop) {
+      windowManager.addListener(this);
+      windowManager.isFullScreen().then((value) {
+        if (mounted) setState(() => _isFullScreen = value);
+      });
+    }
 
     if (Platform.isWindows) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -165,7 +168,9 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.removeListener(this);
+    }
     _audioService.removeListener(_onAudioServiceChange);
     _hudTimer?.cancel();
     super.dispose();
@@ -460,8 +465,10 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
           ),
           ToggleFullScreenIntent: CallbackAction<ToggleFullScreenIntent>(
             onInvoke: (_) async {
-              final isFull = await windowManager.isFullScreen();
-              await windowManager.setFullScreen(!isFull);
+              if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+                final isFull = await windowManager.isFullScreen();
+                await windowManager.setFullScreen(!isFull);
+              }
               return null;
             },
           ),
@@ -566,10 +573,12 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                                             ? Brightness.dark
                                             : theme.brightness,
                                         onPressed: () async {
-                                          final isFull =
-                                              await windowManager.isFullScreen();
-                                          await windowManager
-                                              .setFullScreen(!isFull);
+                                          if (isDesktop) {
+                                            final isFull =
+                                                await windowManager.isFullScreen();
+                                            await windowManager
+                                                .setFullScreen(!isFull);
+                                          }
                                         },
                                       ),
                                     ),
