@@ -9,7 +9,6 @@ import '../models/music_file.dart';
 import 'audio_snapshot.dart';
 import 'current_track_asset_resolver.dart';
 import 'metadata_database.dart';
-import 'metadata_helper.dart';
 import 'lyrics_service.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
@@ -66,9 +65,7 @@ class AudioService extends ChangeNotifier {
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
 
-  Uint8List? _currentBlurredArtworkBytes;
-  final Map<String, Uint8List> _blurredArtworkCache = {};
-  static const int _maxBlurredCacheSize = 20;
+  Uint8List? _backgroundArtworkBytes;
 
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
@@ -346,7 +343,7 @@ class AudioService extends ChangeNotifier {
   int? get artworkWidth => _artworkWidth;
   int? get artworkHeight => _artworkHeight;
   String? get currentArtworkPath => _currentArtworkPath;
-  Uint8List? get currentBlurredArtworkBytes => _currentBlurredArtworkBytes;
+  Uint8List? get backgroundArtworkBytes => _backgroundArtworkBytes;
   List<MusicFile> get playbackQueue => List.unmodifiable(_playlist);
   List<MusicFile> get playlist => playbackQueue;
   int get currentIndex => _currentIndex;
@@ -363,7 +360,7 @@ class AudioService extends ChangeNotifier {
     currentWaveform: _currentWaveform,
     currentArtworkBytes: _currentArtworkBytes,
     currentArtworkPath: _currentArtworkPath,
-    currentBlurredArtworkBytes: _currentBlurredArtworkBytes,
+    backgroundArtworkBytes: _backgroundArtworkBytes,
     artworkWidth: _artworkWidth,
     artworkHeight: _artworkHeight,
     position: _position,
@@ -464,11 +461,9 @@ class AudioService extends ChangeNotifier {
       _artworkWidth = metadata.artworkWidth;
       _artworkHeight = metadata.artworkHeight;
       _currentArtworkBytes = artworkBytes;
-      _currentBlurredArtworkBytes = null;
-      _blurredArtworkCache.remove(metadata.path);
+      _backgroundArtworkBytes = null;
       if (artworkBytes != null) {
         _hdArtworkCache[metadata.path] = artworkBytes;
-        unawaited(_processBlurForPath(metadata.path, artworkBytes));
       }
 
       _windowsIntegration?.updateMetadata(null);
@@ -656,18 +651,11 @@ class AudioService extends ChangeNotifier {
     _currentArtworkPath = resolution.artworkPath ?? _currentArtworkPath;
     _artworkWidth = resolution.artworkWidth ?? _artworkWidth;
     _artworkHeight = resolution.artworkHeight ?? _artworkHeight;
+    // background artwork is now synced via CoverCarousel animation callback
     _clearLyricsState();
 
     if (resolution.artworkBytes != null) {
       _hdArtworkCache[path] = resolution.artworkBytes!;
-    }
-
-    // Check if blurred version is already cached
-    if (_blurredArtworkCache.containsKey(path)) {
-      _currentBlurredArtworkBytes = _blurredArtworkCache[path];
-    } else if (resolution.artworkBytes != null) {
-      // If not cached but we have bytes, trigger it (already done above but just in case)
-      unawaited(_processBlurForPath(path, resolution.artworkBytes!));
     }
 
     await _updatePalette(metadata: resolution.songMetadata);
@@ -871,7 +859,7 @@ class AudioService extends ChangeNotifier {
     _currentWaveform = const [];
     _currentArtworkBytes = null;
     _currentArtworkPath = null;
-    _currentBlurredArtworkBytes = null;
+    _backgroundArtworkBytes = null;
     await _player.playlist.clear();
     _duration = Duration.zero;
     _position = Duration.zero;
@@ -1049,19 +1037,10 @@ class AudioService extends ChangeNotifier {
     _startQueueBackgroundProcessing();
   }
 
-  Future<void> _processBlurForPath(String path, Uint8List bytes) async {
-    if (_blurredArtworkCache.containsKey(path)) return;
-
-    final blurred = await MetadataHelper.blurImage(bytes);
-    if (blurred != null) {
-      _blurredArtworkCache[path] = blurred;
-      if (_blurredArtworkCache.length > _maxBlurredCacheSize) {
-        _blurredArtworkCache.remove(_blurredArtworkCache.keys.first);
-      }
-      if (path == _currentFilePath) {
-        _currentBlurredArtworkBytes = blurred;
-        notifyListeners();
-      }
+  void syncBackgroundArtwork() {
+    if (_backgroundArtworkBytes != _currentArtworkBytes) {
+      _backgroundArtworkBytes = _currentArtworkBytes;
+      notifyListeners();
     }
   }
 
@@ -1091,14 +1070,14 @@ class AudioService extends ChangeNotifier {
           if (_hdArtworkCache.length > _maxHdCacheSize) {
             _hdArtworkCache.remove(_hdArtworkCache.keys.first);
           }
-          // If the song we just loaded HD art for is the current song, update immediately
+
+          // Pre-decode the image using Flutter's built-in image cache mechanism
+          final provider = MemoryImage(bytes);
+          provider.resolve(ImageConfiguration.empty);
+
           if (path == _currentFilePath && _currentArtworkBytes == null) {
             _currentArtworkBytes = bytes;
-            unawaited(_processBlurForPath(path, bytes));
             notifyListeners();
-          } else {
-            // Also blur it and cache it for upcoming songs
-            unawaited(_processBlurForPath(path, bytes));
           }
         },
       ),

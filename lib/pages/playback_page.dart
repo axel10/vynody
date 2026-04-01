@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_core/audio_core.dart';
@@ -532,7 +533,7 @@ class _PlaybackPageState extends State<PlaybackPage>
         child: Stack(
           children: [
             Selector<AudioService, Uint8List?>(
-              selector: (_, a) => a.currentBlurredArtworkBytes,
+              selector: (_, a) => a.backgroundArtworkBytes,
               builder: (context, blurredBytes, _) {
                 final Widget content;
                 if (blurredBytes == null) {
@@ -543,15 +544,19 @@ class _PlaybackPageState extends State<PlaybackPage>
                     height: double.infinity,
                   );
                 } else {
-                  content = Image.memory(
-                    blurredBytes,
+                  // Gaussian blur is now handled in UI layer using ImageFiltered
+                  content = ImageFiltered(
                     key: ValueKey(blurredBytes.hashCode),
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                    gaplessPlayback: true,
-                    excludeFromSemantics: true,
+                    imageFilter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                    child: Image.memory(
+                      blurredBytes,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.low,
+                      gaplessPlayback: true,
+                      excludeFromSemantics: true,
+                    ),
                   );
                 }
 
