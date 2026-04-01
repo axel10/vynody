@@ -119,6 +119,11 @@ class MusicBrainzTrackMatch {
     final seconds = totalSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
+
+  String? get thumbnailUrl {
+    if (releaseId == null || releaseId!.isEmpty) return null;
+    return 'https://coverartarchive.org/release/$releaseId/front-250';
+  }
 }
 
 class MusicBrainzTagSelectionResult {

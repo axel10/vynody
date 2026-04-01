@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import '../player/musicbrainz_tag_completion_service.dart';
+import '../player/metadata_helper.dart';
+import '../player/metadata_database.dart';
 
 class SongTagCompletionSheet extends StatefulWidget {
   const SongTagCompletionSheet({
@@ -32,14 +34,33 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   bool _isLoading = true;
   bool _isApplying = false;
   String? _errorMessage;
+  SongMetadata? _fileMetadata;
 
   @override
   void initState() {
     super.initState();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      _fileMetadata = await MetadataHelper.readMetadataFromFile(widget.songPath);
+    } catch (e) {
+      debugPrint('Error reading file tags: $e');
+    }
+
     _loadMatches();
   }
 
   String get _displayTitle {
+    final fileTitle = _fileMetadata?.title.trim();
+    if (fileTitle != null && fileTitle.isNotEmpty) {
+      return fileTitle;
+    }
     final title = widget.currentTitle?.trim();
     if (title != null && title.isNotEmpty) {
       return title;
@@ -56,10 +77,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     try {
       final results = await _service.searchMatches(
         songPath: widget.songPath,
-        title: widget.currentTitle,
-        artist: widget.currentArtist,
-        album: widget.currentAlbum,
-        durationMillis: widget.durationMillis,
+        title: _fileMetadata?.title ?? widget.currentTitle,
+        artist: _fileMetadata?.artist ?? widget.currentArtist,
+        album: _fileMetadata?.album ?? widget.currentAlbum,
+        durationMillis: _fileMetadata?.duration ?? widget.durationMillis,
       );
 
       if (!mounted) return;
@@ -149,16 +170,22 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
 
   Widget _buildSummary(BuildContext context) {
     final chips = <Widget>[
-      _InfoChip(label: '标题', value: _displayTitle),
-      if ((widget.currentArtist ?? '').trim().isNotEmpty)
-        _InfoChip(label: '艺术家', value: widget.currentArtist!.trim()),
-      if ((widget.currentAlbum ?? '').trim().isNotEmpty)
-        _InfoChip(label: '专辑', value: widget.currentAlbum!.trim()),
-      if (widget.durationMillis != null)
+      _InfoChip(label: '本地标题', value: _displayTitle),
+      if ((_fileMetadata?.artist ?? widget.currentArtist ?? '').trim().isNotEmpty)
+        _InfoChip(
+          label: '艺术家',
+          value: (_fileMetadata?.artist ?? widget.currentArtist!).trim(),
+        ),
+      if ((_fileMetadata?.album ?? widget.currentAlbum ?? '').trim().isNotEmpty)
+        _InfoChip(
+          label: '专辑',
+          value: (_fileMetadata?.album ?? widget.currentAlbum!).trim(),
+        ),
+      if (_fileMetadata?.duration != null || widget.durationMillis != null)
         _InfoChip(
           label: '时长',
           value:
-              '${(widget.durationMillis! ~/ 60000).toString().padLeft(2, '0')}:${((widget.durationMillis! ~/ 1000) % 60).toString().padLeft(2, '0')}',
+              '${((_fileMetadata?.duration ?? widget.durationMillis!) ~/ 60000).toString().padLeft(2, '0')}:${(((_fileMetadata?.duration ?? widget.durationMillis!) ~/ 1000) % 60).toString().padLeft(2, '0')}',
         ),
     ];
 
@@ -169,7 +196,6 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   }
 
   Widget _buildBody(BuildContext context) {
-    final theme = Theme.of(context);
 
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2.4));
@@ -217,18 +243,77 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: theme.colorScheme.primary.withValues(
-                      alpha: 0.18,
-                    ),
-                    child: Text(
-                      '${index + 1}',
-                      style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: match.thumbnailUrl != null
+                            ? Image.network(
+                                match.thumbnailUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                      Icons.music_note_rounded,
+                                      color: Colors.white24,
+                                      size: 24,
+                                    ),
+                                loadingBuilder: (
+                                  context,
+                                  child,
+                                  loadingProgress,
+                                ) {
+                                  if (loadingProgress == null) return child;
+                                  return const Center(
+                                    child: SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 1.5,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white24,
+                                            ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : const Icon(
+                                Icons.music_note_rounded,
+                                color: Colors.white24,
+                                size: 24,
+                              ),
                       ),
-                    ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(6),
+                              bottomRight: Radius.circular(10),
+                            ),
+                          ),
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 14),
                   Expanded(

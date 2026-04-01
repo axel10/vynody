@@ -207,6 +207,24 @@ class MetadataHelper {
     }
   }
 
+  /// 从文件直接读取原始标签，不请求网络，不存入数据库
+  static Future<SongMetadata?> readMetadataFromFile(String filePath) async {
+    try {
+      final metadata = await compute(_readMetadataIsolate, filePath);
+      return SongMetadata(
+        path: filePath,
+        title: metadata.title ?? p.basenameWithoutExtension(filePath),
+        album: metadata.album ?? 'Unknown Album',
+        artist: metadata.artist ?? 'Unknown Artist',
+        duration: metadata.duration?.inMilliseconds,
+        trackNumber: metadata.trackNumber,
+      );
+    } catch (e) {
+      debugPrint('Error reading metadata from file $filePath: $e');
+      return null;
+    }
+  }
+
 }
 
 AudioMetadata _readMetadataIsolate(String path) {
