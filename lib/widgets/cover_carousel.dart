@@ -254,7 +254,9 @@ class _CoverCarouselState extends State<CoverCarousel>
               _loadedCovers[index] = (bytes: bytes, path: path);
               // Only push to background if no animation is running and this is the center page
               if (!_animationController.isAnimating && index == _currentPage) {
-                _syncBackground(index);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) _syncBackground(index);
+                });
               }
             },
           );
