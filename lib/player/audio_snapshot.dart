@@ -22,6 +22,7 @@ class AudioSnapshot {
   final Uint8List? currentArtworkBytes;
   final String? currentArtworkPath;
   final Uint8List? backgroundArtworkBytes;
+  final String? backgroundArtworkPath;
   final int? artworkWidth;
   final int? artworkHeight;
   final Duration position;
@@ -60,6 +61,7 @@ class AudioSnapshot {
     required this.currentArtworkBytes,
     required this.currentArtworkPath,
     required this.backgroundArtworkBytes,
+    required this.backgroundArtworkPath,
     required this.artworkWidth,
     required this.artworkHeight,
     required this.position,
@@ -114,6 +116,7 @@ class AudioSnapshot {
               backgroundArtworkBytes,
               other.backgroundArtworkBytes,
             ) &&
+            backgroundArtworkPath == other.backgroundArtworkPath &&
             currentArtworkPath == other.currentArtworkPath &&
             artworkWidth == other.artworkWidth &&
             artworkHeight == other.artworkHeight &&
@@ -159,6 +162,7 @@ class AudioSnapshot {
     _deepEquality.hash(currentWaveform),
     _deepEquality.hash(currentArtworkBytes),
     _deepEquality.hash(backgroundArtworkBytes),
+    backgroundArtworkPath,
     currentArtworkPath,
     artworkWidth,
     artworkHeight,

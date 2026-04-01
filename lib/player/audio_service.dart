@@ -66,6 +66,7 @@ class AudioService extends ChangeNotifier {
   VisualizerOutputStream? _miniPlayerFftStream;
 
   Uint8List? _backgroundArtworkBytes;
+  String? _backgroundArtworkPath;
 
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
@@ -344,6 +345,7 @@ class AudioService extends ChangeNotifier {
   int? get artworkHeight => _artworkHeight;
   String? get currentArtworkPath => _currentArtworkPath;
   Uint8List? get backgroundArtworkBytes => _backgroundArtworkBytes;
+  String? get backgroundArtworkPath => _backgroundArtworkPath;
   List<MusicFile> get playbackQueue => List.unmodifiable(_playlist);
   List<MusicFile> get playlist => playbackQueue;
   int get currentIndex => _currentIndex;
@@ -361,6 +363,7 @@ class AudioService extends ChangeNotifier {
     currentArtworkBytes: _currentArtworkBytes,
     currentArtworkPath: _currentArtworkPath,
     backgroundArtworkBytes: _backgroundArtworkBytes,
+    backgroundArtworkPath: _backgroundArtworkPath,
     artworkWidth: _artworkWidth,
     artworkHeight: _artworkHeight,
     position: _position,
@@ -461,7 +464,6 @@ class AudioService extends ChangeNotifier {
       _artworkWidth = metadata.artworkWidth;
       _artworkHeight = metadata.artworkHeight;
       _currentArtworkBytes = artworkBytes;
-      _backgroundArtworkBytes = null;
       if (artworkBytes != null) {
         _hdArtworkCache[metadata.path] = artworkBytes;
       }
@@ -860,6 +862,7 @@ class AudioService extends ChangeNotifier {
     _currentArtworkBytes = null;
     _currentArtworkPath = null;
     _backgroundArtworkBytes = null;
+    _backgroundArtworkPath = null;
     await _player.playlist.clear();
     _duration = Duration.zero;
     _position = Duration.zero;
@@ -1037,9 +1040,10 @@ class AudioService extends ChangeNotifier {
     _startQueueBackgroundProcessing();
   }
 
-  void syncBackgroundArtwork() {
-    if (_backgroundArtworkBytes != _currentArtworkBytes) {
-      _backgroundArtworkBytes = _currentArtworkBytes;
+  void updateBackground({Uint8List? bytes, String? path}) {
+    if (_backgroundArtworkBytes != bytes || _backgroundArtworkPath != path) {
+      _backgroundArtworkBytes = bytes;
+      _backgroundArtworkPath = path;
       notifyListeners();
     }
   }

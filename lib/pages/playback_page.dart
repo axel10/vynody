@@ -532,11 +532,17 @@ class _PlaybackPageState extends State<PlaybackPage>
       child: RepaintBoundary(
         child: Stack(
           children: [
-            Selector<AudioService, Uint8List?>(
-              selector: (_, a) => a.backgroundArtworkBytes,
-              builder: (context, blurredBytes, _) {
+            Selector<AudioService, ({Uint8List? bytes, String? path})>(
+              selector: (_, a) => (
+                bytes: a.backgroundArtworkBytes,
+                path: a.backgroundArtworkPath,
+              ),
+              builder: (context, data, _) {
                 final Widget content;
-                if (blurredBytes == null) {
+                final bytes = data.bytes;
+                final path = data.path;
+
+                if (bytes == null && (path == null || path.isEmpty)) {
                   content = Container(
                     key: const ValueKey('bg_empty'),
                     color: Colors.black,
@@ -545,17 +551,32 @@ class _PlaybackPageState extends State<PlaybackPage>
                   );
                 } else {
                   // Gaussian blur is now handled in UI layer using ImageFiltered
+                  // We scale the image slightly (1.15) to prevent the blur from "leaking" 
+                  // the black background color at the edges.
                   content = ImageFiltered(
-                    key: ValueKey(blurredBytes.hashCode),
+                    key: ValueKey(bytes.hashCode ^ path.hashCode),
                     imageFilter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                    child: Image.memory(
-                      blurredBytes,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.low,
-                      gaplessPlayback: true,
-                      excludeFromSemantics: true,
+                    child: Transform.scale(
+                      scale: 1.15,
+                      child: bytes != null
+                          ? Image.memory(
+                              bytes,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              filterQuality: FilterQuality.low,
+                              gaplessPlayback: true,
+                              excludeFromSemantics: true,
+                            )
+                          : Image.file(
+                              File(path!),
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              filterQuality: FilterQuality.low,
+                              gaplessPlayback: true,
+                              excludeFromSemantics: true,
+                            ),
                     ),
                   );
                 }
