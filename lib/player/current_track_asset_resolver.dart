@@ -8,7 +8,6 @@ import 'package:path_provider/path_provider.dart';
 
 import '../models/music_file.dart';
 import 'metadata_database.dart';
-import 'metadata_helper.dart';
 
 class CurrentTrackAssetResolution {
   final SongMetadata? songMetadata;
@@ -35,128 +34,76 @@ class CurrentTrackAssetResolution {
 }
 
 class CurrentTrackAssetResolver {
-  final MetadataDatabase _db;
   final OnAudioQuery _audioQuery;
 
   CurrentTrackAssetResolver({MetadataDatabase? db, OnAudioQuery? audioQuery})
-    : _db = db ?? MetadataDatabase(),
-      _audioQuery = audioQuery ?? OnAudioQuery();
+    : _audioQuery = audioQuery ?? OnAudioQuery();
 
-  /// 解析当前曲目的静态资产（如封面图、波形图、元数据）
+  /// 直接读取文件元数据以简化流程，不再查库
   Future<CurrentTrackAssetResolution> resolve(
     MusicFile song, {
-    SongMetadata? songFromDb,
     Uint8List? cachedArtworkBytes,
   }) async {
     final path = song.path;
-    // 1. 获取本地数据库中已有的元数据（快速路径的基础）
-    songFromDb ??= await _db.getSongMetadata(path);
+    
+    // 1. 直接从文件读取标签和原始封面（使用 compute 避免阻塞 UI）
+    final metadata = await compute(_readMetadataIsolate, path);
 
-    String fileName = song.displayName;
-    String? artist = song.artist;
-    String? album = song.album;
-    List<double> waveform = const [];
-    SongMetadata? resolvedMetadata = songFromDb;
-    String? artworkPath = songFromDb?.artworkPath;
-    int? artworkWidth = songFromDb?.artworkWidth;
-    int? artworkHeight = songFromDb?.artworkHeight;
+    String fileName = metadata.title?.trim().isNotEmpty == true 
+        ? metadata.title! 
+        : song.displayName;
+    String? artist = metadata.artist?.trim().isNotEmpty == true 
+        ? metadata.artist 
+        : song.artist;
+    String? album = metadata.album?.trim().isNotEmpty == true 
+        ? metadata.album 
+        : song.album;
+        
     Uint8List? artworkBytes = cachedArtworkBytes;
+    int? artworkWidth;
+    int? artworkHeight;
 
-    // 如果内存中有缓存的封面字节，尝试解码其尺寸
-    if (cachedArtworkBytes != null) {
-      final dimensions = await _decodeArtworkDimensions(cachedArtworkBytes);
-      artworkWidth = dimensions.$1 ?? artworkWidth;
-      artworkHeight = dimensions.$2 ?? artworkHeight;
+    // 如果没有缓存的封面，则使用刚从文件读取的封面
+    if (artworkBytes == null && metadata.pictures.isNotEmpty) {
+      artworkBytes = metadata.pictures.first.bytes;
     }
 
-    if (songFromDb != null) {
-      // 从数据库加载波形和标签
-      waveform = _waveformFromBlob(songFromDb.waveformBlob);
-      if (songFromDb.title.trim().isNotEmpty && songFromDb.title != 'Unknown') {
-        fileName = songFromDb.title;
-      }
-      artist = songFromDb.artist;
-      album = songFromDb.album;
-    } else {
-      // 2. 如果数据库没有，启动“深度扫描”：解析文件 ID3 标签、提取并压缩封面存入本地缓存
-      final result = await MetadataHelper.processMetadata(path);
-      if (result != null) {
-        resolvedMetadata = result.$1;
-        final processed = result.$1;
-        final processedBytes = result.$2;
-
-        if (processed.title.trim().isNotEmpty && processed.title != 'Unknown') {
-          fileName = processed.title;
-        }
-        artist = processed.artist;
-        album = processed.album;
-        artworkPath = processed.artworkPath;
-        artworkWidth = processed.artworkWidth;
-        artworkHeight = processed.artworkHeight;
-        waveform = _waveformFromBlob(processed.waveformBlob);
-
-        if (processedBytes != null) {
-          artworkBytes = processedBytes;
-          final dimensions = await _decodeArtworkDimensions(processedBytes);
-          artworkWidth = dimensions.$1 ?? artworkWidth;
-          artworkHeight = dimensions.$2 ?? artworkHeight;
-        }
+    if (artworkBytes != null) {
+      final dimensions = await _decodeArtworkDimensions(artworkBytes);
+      artworkWidth = dimensions.$1;
+      artworkHeight = dimensions.$2;
+    } else if (Platform.isAndroid && song.id != null) {
+      // Android 平台特有：如果文件中没封面，尝试通过 MediaStore 查询
+      artworkBytes = await _queryAndroidArtwork(song.id!);
+      if (artworkBytes != null) {
+        final dimensions = await _decodeArtworkDimensions(artworkBytes);
+        artworkWidth = dimensions.$1;
+        artworkHeight = dimensions.$2;
       }
     }
 
-    // 3. 封面图兜底逻辑：如果前面的步骤都没拿到图片字节
-    if (artworkBytes == null) {
-      try {
-        // 尝试再次直接从文件中读取原始图片字节（高清显示需要）
-        final metadata = readMetadata(File(path), getImage: true);
-        final bytes = metadata.pictures.isNotEmpty
-            ? metadata.pictures.first.bytes
-            : null;
-        if (bytes != null) {
-          artworkBytes = bytes;
-          final dimensions = await _decodeArtworkDimensions(bytes);
-          artworkWidth = dimensions.$1 ?? artworkWidth;
-          artworkHeight = dimensions.$2 ?? artworkHeight;
-        } else if (Platform.isAndroid && song.id != null) {
-          // Android 平台特有：尝试通过 MediaStore 查询封面
-          artworkBytes = await _queryAndroidArtwork(song.id!);
-        }
-      } catch (e) {
-        debugPrint('Error reading high-res metadata for $path: $e');
-        if (Platform.isAndroid && song.id != null && artworkBytes == null) {
-          artworkBytes = await _queryAndroidArtwork(song.id!);
-        }
-      }
-    }
-
-    // 4. Android 锁屏/通知栏适配：需要将图片存为临时文件才能由系统读取
+    // 2. Android 锁屏/通知栏适配：需要将图片存为临时文件
+    String? artworkPath;
     if (Platform.isAndroid && artworkBytes != null) {
       artworkPath = await _saveAndroidArtwork(path, song.id, artworkBytes);
     }
 
     return CurrentTrackAssetResolution(
-      songMetadata: resolvedMetadata,
+      songMetadata: null, // 简化流程，不再传递完整的 SongMetadata 对象
       fileName: fileName,
       artist: artist,
       album: album,
-      waveform: waveform,
+      waveform: const [], // 简化流程，切换时暂不处理波形
       artworkBytes: artworkBytes,
       artworkPath: artworkPath,
       artworkWidth: artworkWidth,
       artworkHeight: artworkHeight,
     );
   }
-
-  List<double> _waveformFromBlob(Uint8List? blob) {
-    if (blob == null || blob.isEmpty) return const [];
-    final alignedBlob = (blob.offsetInBytes % 4 == 0)
-        ? blob
-        : Uint8List.fromList(blob);
-    final list = alignedBlob.buffer.asFloat32List(
-      alignedBlob.offsetInBytes,
-      alignedBlob.length ~/ 4,
-    );
-    return list.map((e) => e.toDouble()).toList();
+  
+  // 隔离函数，用于 compute 环境中读取元数据
+  static AudioMetadata _readMetadataIsolate(String path) {
+    return readMetadata(File(path), getImage: true);
   }
 
   Future<(int?, int?)> _decodeArtworkDimensions(Uint8List bytes) async {

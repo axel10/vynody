@@ -602,54 +602,32 @@ class AudioService extends ChangeNotifier {
     }
   }
 
-  /// 更新当前播放歌曲的完整元数据流程
-  /// 
-  /// 此流程分为“快速恢复”和“深度解析”两个阶段，以平衡响应速度和显示质量。
+  /// 更新当前播放歌曲的完整元数据流程 (已简化：直接读取文件，不再查库)
   Future<void> _updateCurrentMetadata(MusicFile song) async {
     final path = song.path;
     final id = song.id;
 
     if (_currentFilePath == path && _currentSongId == id) return;
 
-    // 清理旧的高亮图字节，避免在切歌间隙显示错误封面
+    // 清理旧状态
     _currentArtworkBytes = null;
     _currentFilePath = path;
     _currentFileName = song.displayName;
     _currentArtist = song.artist;
     _currentAlbum = song.album;
     _currentSongId = id;
+    _currentWaveform = const [];
+    _currentArtworkPath = null;
+    _artworkWidth = null;
+    _artworkHeight = null;
 
-    // --- 第一阶段：快速路径 (Fast Path) ---
-    // 1. 尝试立即从数据库获取已缓存的元数据（极快）
-    final songFromDb = await _db.getSongMetadata(path);
-    if (songFromDb != null) {
-      _currentWaveform = _waveformService.waveformFromBlob(
-        songFromDb.waveformBlob,
-      );
-      _currentArtworkPath = songFromDb.artworkPath;
-      _artworkWidth = songFromDb.artworkWidth;
-      _artworkHeight = songFromDb.artworkHeight;
-      if (songFromDb.title.trim().isNotEmpty && songFromDb.title != 'Unknown') {
-        _currentFileName = songFromDb.title;
-      }
-      _currentArtist = songFromDb.artist;
-      _currentAlbum = songFromDb.album;
-    } else {
-      _currentWaveform = const [];
-      _currentArtworkPath = null;
-      _artworkWidth = null;
-      _artworkHeight = null;
-    }
-
-    // 立即通知 UI：此时 UI 会显示缩略图（如果有的话）或占位图，确保切歌响应是瞬间的
+    // 立即通知 UI：此时显示文件基础信息或占位
     _windowsIntegration?.updateMetadata(null);
     notifyListeners();
 
-    // --- 第二阶段：深度解析 (Slow Path) ---
-    // 2. 调用 AssetResolver 解析高清图片和未缓存的信息（涉及 IO 和图像解码，相对较慢）
+    // 直接通过 Resolver 解析文件内嵌的元数据
     final resolution = await _trackAssetResolver.resolve(
       song,
-      songFromDb: songFromDb,
       cachedArtworkBytes: _hdArtworkCache[path],
     );
 
@@ -670,17 +648,17 @@ class AudioService extends ChangeNotifier {
       _hdArtworkCache[path] = resolution.artworkBytes!;
     }
 
-    // 3. 基于封面图片生成动态调色板（用于背景和 UI 主题色）
-    await _updatePalette(metadata: resolution.songMetadata);
+    // 基于解析内容更新调色板
+    await _updatePalette();
 
-    // 4. 同步更新系统层面的媒体控制器 (Windows GSMTC / Android Media Session)
+    // 同步更新系统层面的媒体控制器
     _windowsIntegration?.updateMetadata(null);
     _androidIntegration?.updateMetadata(null);
 
-    // 5. 异步获取歌词
+    // 异步获取歌词
     unawaited(_fetchAndLogLyrics(song));
 
-    // 流程结束，通知 UI 刷新最终状态
+    // 流程结束
     notifyListeners();
   }
 
