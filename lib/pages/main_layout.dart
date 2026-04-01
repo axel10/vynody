@@ -77,6 +77,10 @@ class SeekBackwardIntent extends Intent {
   const SeekBackwardIntent();
 }
 
+class ToggleFullScreenIntent extends Intent {
+  const ToggleFullScreenIntent();
+}
+
 class MainLayout extends StatefulWidget {
   final List<String> args;
   final int initialIndex;
@@ -87,12 +91,13 @@ class MainLayout extends StatefulWidget {
   State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends State<MainLayout> {
+class _MainLayoutState extends State<MainLayout> with WindowListener {
   late int _currentIndex;
   bool _showVolumeHUD = false;
   Timer? _hudTimer;
   double? _lastVolume;
   late AudioService _audioService;
+  bool _isFullScreen = false;
 
   void _handleDesktopPointerActivity(PointerEvent event) {
     if (event is PointerDownEvent) {
@@ -145,6 +150,11 @@ class _MainLayoutState extends State<MainLayout> {
 
     _audioService = context.read<AudioService>();
     _audioService.addListener(_onAudioServiceChange);
+    windowManager.addListener(this);
+
+    windowManager.isFullScreen().then((value) {
+      if (mounted) setState(() => _isFullScreen = value);
+    });
 
     if (Platform.isWindows) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -155,9 +165,20 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   void dispose() {
+    windowManager.removeListener(this);
     _audioService.removeListener(_onAudioServiceChange);
     _hudTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void onWindowEnterFullScreen() {
+    if (mounted) setState(() => _isFullScreen = true);
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    if (mounted) setState(() => _isFullScreen = false);
   }
 
   Future<void> _handleArgs() async {
@@ -406,10 +427,10 @@ class _MainLayoutState extends State<MainLayout> {
             const VolumeDownIntent(),
         const SingleActivator(LogicalKeyboardKey.keyM, control: true):
             const MuteIntent(),
-        const SingleActivator(LogicalKeyboardKey.arrowRight):
-            const SeekForwardIntent(),
         const SingleActivator(LogicalKeyboardKey.arrowLeft):
             const SeekBackwardIntent(),
+        const SingleActivator(LogicalKeyboardKey.f11):
+            const ToggleFullScreenIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -436,6 +457,13 @@ class _MainLayoutState extends State<MainLayout> {
           ),
           SeekBackwardIntent: CallbackAction<SeekBackwardIntent>(
             onInvoke: (_) => _audioService.seekRelative(const Duration(seconds: -5)),
+          ),
+          ToggleFullScreenIntent: CallbackAction<ToggleFullScreenIntent>(
+            onInvoke: (_) async {
+              final isFull = await windowManager.isFullScreen();
+              await windowManager.setFullScreen(!isFull);
+              return null;
+            },
           ),
         },
         child: Focus(
@@ -519,12 +547,33 @@ class _MainLayoutState extends State<MainLayout> {
                             DragToMoveArea(
                               child: SizedBox(
                                 height: 32,
-                                child: WindowCaption(
-                                  brightness: isPlayback
-                                      ? Brightness.dark
-                                      : theme.brightness,
-                                  backgroundColor: Colors.transparent,
-                                  title: const SizedBox(),
+                                child: Stack(
+                                  children: [
+                                    WindowCaption(
+                                      brightness: isPlayback
+                                          ? Brightness.dark
+                                          : theme.brightness,
+                                      backgroundColor: Colors.transparent,
+                                      title: const SizedBox(),
+                                    ),
+                                    Positioned(
+                                      right: 138,
+                                      top: 0,
+                                      bottom: 0,
+                                      child: _FullScreenButton(
+                                        isFullScreen: _isFullScreen,
+                                        brightness: isPlayback
+                                            ? Brightness.dark
+                                            : theme.brightness,
+                                        onPressed: () async {
+                                          final isFull =
+                                              await windowManager.isFullScreen();
+                                          await windowManager
+                                              .setFullScreen(!isFull);
+                                        },
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -598,6 +647,45 @@ class _MainLayoutState extends State<MainLayout> {
                       ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FullScreenButton extends StatelessWidget {
+  final bool isFullScreen;
+  final VoidCallback onPressed;
+  final Brightness brightness;
+
+  const _FullScreenButton({
+    required this.isFullScreen,
+    required this.onPressed,
+    required this.brightness,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color iconColor =
+        brightness == Brightness.dark ? Colors.white : Colors.black87;
+    final Color hoverColor = brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.black.withOpacity(0.05);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        hoverColor: hoverColor,
+        child: Container(
+          width: 46,
+          height: 32,
+          alignment: Alignment.center,
+          child: Icon(
+            isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+            size: 18,
+            color: iconColor,
           ),
         ),
       ),
