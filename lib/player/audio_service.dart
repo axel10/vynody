@@ -178,13 +178,15 @@ class AudioService extends ChangeNotifier {
 
     final int newIndex = _player.playlist.currentIndex ?? -1;
     if (newIndex != _currentIndex && !_isTransitioning) {
+      // 检测到歌曲切换
       if (_currentIndex >= 0) {
-        _lastActionNext = true; // Auto advance
+        _lastActionNext = true; // 记录为自动切歌
       }
       _currentIndex = newIndex;
       if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
         final song = _playlist[_currentIndex];
         unawaited(
+          // 发起完整的元数据更新流程
           _updateCurrentMetadata(song).then((_) {
             _refreshCurrentWaveform();
             _windowsIntegration?.updateMetadata(_playlist[newIndex]);
@@ -600,13 +602,16 @@ class AudioService extends ChangeNotifier {
     }
   }
 
+  /// 更新当前播放歌曲的完整元数据流程
+  /// 
+  /// 此流程分为“快速恢复”和“深度解析”两个阶段，以平衡响应速度和显示质量。
   Future<void> _updateCurrentMetadata(MusicFile song) async {
     final path = song.path;
     final id = song.id;
 
     if (_currentFilePath == path && _currentSongId == id) return;
 
-    // Clear previous high-res bytes to avoid showing wrong artwork during transition
+    // 清理旧的高亮图字节，避免在切歌间隙显示错误封面
     _currentArtworkBytes = null;
     _currentFilePath = path;
     _currentFileName = song.displayName;
@@ -614,7 +619,8 @@ class AudioService extends ChangeNotifier {
     _currentAlbum = song.album;
     _currentSongId = id;
 
-    // 1. Try to get metadata from database immediately (fast)
+    // --- 第一阶段：快速路径 (Fast Path) ---
+    // 1. 尝试立即从数据库获取已缓存的元数据（极快）
     final songFromDb = await _db.getSongMetadata(path);
     if (songFromDb != null) {
       _currentWaveform = _waveformService.waveformFromBlob(
@@ -635,16 +641,19 @@ class AudioService extends ChangeNotifier {
       _artworkHeight = null;
     }
 
-    // Notify listeners immediately so the UI can show the placeholder (thumbnail from DB)
+    // 立即通知 UI：此时 UI 会显示缩略图（如果有的话）或占位图，确保切歌响应是瞬间的
     _windowsIntegration?.updateMetadata(null);
     notifyListeners();
 
+    // --- 第二阶段：深度解析 (Slow Path) ---
+    // 2. 调用 AssetResolver 解析高清图片和未缓存的信息（涉及 IO 和图像解码，相对较慢）
     final resolution = await _trackAssetResolver.resolve(
       song,
       songFromDb: songFromDb,
       cachedArtworkBytes: _hdArtworkCache[path],
     );
 
+    // 更新更精确的信息
     _currentFileName = resolution.fileName;
     _currentArtist = resolution.artist;
     _currentAlbum = resolution.album;
@@ -653,17 +662,25 @@ class AudioService extends ChangeNotifier {
     _currentArtworkPath = resolution.artworkPath ?? _currentArtworkPath;
     _artworkWidth = resolution.artworkWidth ?? _artworkWidth;
     _artworkHeight = resolution.artworkHeight ?? _artworkHeight;
-    // background artwork is now synced via CoverCarousel animation callback
+    
     _clearLyricsState();
 
+    // 更新高清封面缓存
     if (resolution.artworkBytes != null) {
       _hdArtworkCache[path] = resolution.artworkBytes!;
     }
 
+    // 3. 基于封面图片生成动态调色板（用于背景和 UI 主题色）
     await _updatePalette(metadata: resolution.songMetadata);
+
+    // 4. 同步更新系统层面的媒体控制器 (Windows GSMTC / Android Media Session)
     _windowsIntegration?.updateMetadata(null);
     _androidIntegration?.updateMetadata(null);
+
+    // 5. 异步获取歌词
     unawaited(_fetchAndLogLyrics(song));
+
+    // 流程结束，通知 UI 刷新最终状态
     notifyListeners();
   }
 

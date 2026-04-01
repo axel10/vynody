@@ -12,13 +12,16 @@ import 'metadata_database.dart';
 import 'theme_color_helper.dart';
 
 class MetadataHelper {
+  /// 深度解析音频文件的元数据和封面信息
+  /// 
+  /// 该方法耗时较长，通常在后台线程（Isolate）中执行，结果会存入数据库以便下次秒开。
   static Future<(SongMetadata, Uint8List?)?> processMetadata(
     String filePath, {
     int? songId,
   }) async {
     final db = MetadataDatabase();
 
-    // Check if already in DB
+    // 1. 如果数据库已有记录，直接返回
     final existing = await db.getSongMetadata(filePath);
     if (existing != null) return (existing, null);
 
@@ -31,6 +34,7 @@ class MetadataHelper {
       int? trackNumber;
 
       try {
+        // 2. 在 Isolate 中读取文件 ID3 标签和原始封面字节，避免 UI 卡顿
         final metadata = await compute(_readMetadataIsolate, filePath);
         title = metadata.title;
         album = metadata.album;
@@ -50,6 +54,8 @@ class MetadataHelper {
       Uint8List? themeColorsBlob;
 
       if (artworkData != null) {
+        // 3. 处理封面图：压缩、调整尺寸并保存到本地 thumbnails 目录
+        // 缩略图用于列表显示和快速预览，原始大图则在播放页按需加载
         final artworkInfo = await _saveCompressedArtwork(filePath, artworkData);
         artworkPath = artworkInfo?['path'] as String?;
         artworkWidth = artworkInfo?['width'] as int?;
@@ -57,6 +63,7 @@ class MetadataHelper {
 
         if (artworkPath != null) {
           try {
+            // 4. 基于封面生成预置的主题颜色，存入数据库以备后用
             final imageProvider = FileImage(File(artworkPath));
             final palette = await PaletteGenerator.fromImageProvider(
               imageProvider,
@@ -82,6 +89,7 @@ class MetadataHelper {
         themeColorsBlob: themeColorsBlob,
       );
 
+      // 5. 将解析结果存入数据库
       await db.insertOrUpdateSong(song);
       return (song, artworkData);
     } catch (e) {

@@ -42,12 +42,14 @@ class CurrentTrackAssetResolver {
     : _db = db ?? MetadataDatabase(),
       _audioQuery = audioQuery ?? OnAudioQuery();
 
+  /// 解析当前曲目的静态资产（如封面图、波形图、元数据）
   Future<CurrentTrackAssetResolution> resolve(
     MusicFile song, {
     SongMetadata? songFromDb,
     Uint8List? cachedArtworkBytes,
   }) async {
     final path = song.path;
+    // 1. 获取本地数据库中已有的元数据（快速路径的基础）
     songFromDb ??= await _db.getSongMetadata(path);
 
     String fileName = song.displayName;
@@ -60,6 +62,7 @@ class CurrentTrackAssetResolver {
     int? artworkHeight = songFromDb?.artworkHeight;
     Uint8List? artworkBytes = cachedArtworkBytes;
 
+    // 如果内存中有缓存的封面字节，尝试解码其尺寸
     if (cachedArtworkBytes != null) {
       final dimensions = await _decodeArtworkDimensions(cachedArtworkBytes);
       artworkWidth = dimensions.$1 ?? artworkWidth;
@@ -67,6 +70,7 @@ class CurrentTrackAssetResolver {
     }
 
     if (songFromDb != null) {
+      // 从数据库加载波形和标签
       waveform = _waveformFromBlob(songFromDb.waveformBlob);
       if (songFromDb.title.trim().isNotEmpty && songFromDb.title != 'Unknown') {
         fileName = songFromDb.title;
@@ -74,6 +78,7 @@ class CurrentTrackAssetResolver {
       artist = songFromDb.artist;
       album = songFromDb.album;
     } else {
+      // 2. 如果数据库没有，启动“深度扫描”：解析文件 ID3 标签、提取并压缩封面存入本地缓存
       final result = await MetadataHelper.processMetadata(path);
       if (result != null) {
         resolvedMetadata = result.$1;
@@ -99,8 +104,10 @@ class CurrentTrackAssetResolver {
       }
     }
 
+    // 3. 封面图兜底逻辑：如果前面的步骤都没拿到图片字节
     if (artworkBytes == null) {
       try {
+        // 尝试再次直接从文件中读取原始图片字节（高清显示需要）
         final metadata = readMetadata(File(path), getImage: true);
         final bytes = metadata.pictures.isNotEmpty
             ? metadata.pictures.first.bytes
@@ -111,6 +118,7 @@ class CurrentTrackAssetResolver {
           artworkWidth = dimensions.$1 ?? artworkWidth;
           artworkHeight = dimensions.$2 ?? artworkHeight;
         } else if (Platform.isAndroid && song.id != null) {
+          // Android 平台特有：尝试通过 MediaStore 查询封面
           artworkBytes = await _queryAndroidArtwork(song.id!);
         }
       } catch (e) {
@@ -121,6 +129,7 @@ class CurrentTrackAssetResolver {
       }
     }
 
+    // 4. Android 锁屏/通知栏适配：需要将图片存为临时文件才能由系统读取
     if (Platform.isAndroid && artworkBytes != null) {
       artworkPath = await _saveAndroidArtwork(path, song.id, artworkBytes);
     }
