@@ -184,14 +184,16 @@ class _LyricsPanelState extends State<LyricsPanel> {
                 Expanded(
                   child: AnimatedDefaultTextStyle(
                     duration: const Duration(milliseconds: 220),
-                    style: TextStyle(
-                      color: isActive
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: isNear ? 0.72 : 0.46),
-                      fontSize: isActive ? 18 : 16,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                      height: 1.2,
-                    ),
+                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                          color: isActive
+                              ? Colors.white
+                              : Colors.white.withValues(
+                                  alpha: isNear ? 0.72 : 0.46,
+                                ),
+                          fontSize: isActive ? 18 : 16,
+                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                          height: 1.2,
+                        ),
                     child: Text(
                       line.text,
                       textAlign: TextAlign.center,

@@ -156,7 +156,7 @@ class PlaybackHeroCard extends StatelessWidget {
                                         AppLocalizations.of(
                                           context,
                                         )!.notSelected,
-                                    style: const TextStyle(
+                                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                                       color: Colors.white,
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -646,11 +646,12 @@ class PlaybackHeroCard extends StatelessWidget {
           duration: const Duration(milliseconds: 400),
           curve: Curves.fastOutSlowIn,
           textAlign: align,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: isLyrics && !isLandscape ? 18 : 22,
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                color: Colors.white,
+                fontSize: isLyrics && !isLandscape ? 18 : 22,
+                fontWeight: FontWeight.bold,
+                height: 1.2,
+              ),
           child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
         if (subtitle.isNotEmpty)
@@ -660,10 +661,11 @@ class PlaybackHeroCard extends StatelessWidget {
               duration: const Duration(milliseconds: 400),
               curve: Curves.fastOutSlowIn,
               textAlign: align,
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: isLyrics && !isLandscape ? 13 : 16,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    color: Colors.white70,
+                    fontSize: isLyrics && !isLandscape ? 13 : 16,
+                    height: 1.2,
+                  ),
               child: Text(
                 subtitle,
                 maxLines: 1,

@@ -104,7 +104,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const fontFallbacks = [
+      'SourceHanSansCN',
       'MiSans',
+      'Meiryo',
+      'Yu Gothic',
       'HarmonyOS Sans SC',
       'OPPOSans',
       'VivoSans',
@@ -124,7 +127,7 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
-        fontFamily: 'MiSans',
+        fontFamily: 'SourceHanSansCN',
         fontFamilyFallback: fontFallbacks,
       ),
       darkTheme: ThemeData(
@@ -133,7 +136,7 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
-        fontFamily: 'MiSans',
+        fontFamily: 'SourceHanSansCN',
         fontFamilyFallback: fontFallbacks,
       ),
       localizationsDelegates: const [
