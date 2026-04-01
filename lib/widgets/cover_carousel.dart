@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -458,9 +459,12 @@ class _CoverItemState extends State<_CoverItem> {
 
   Widget _buildCoverImage() {
     final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+    final int limit = isPc ? 1200 : 800;
+
     final int? cacheSize = widget.displaySize != null
-        ? (widget.displaySize! * devicePixelRatio).round()
-        : null;
+        ? math.min((widget.displaySize! * devicePixelRatio).round(), limit)
+        : limit;
 
     final cachedBytes = widget.audioService.getCachedArtwork(widget.musicFile.path);
     if (cachedBytes != null) {

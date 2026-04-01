@@ -152,9 +152,10 @@ class CurrentTrackAssetResolver {
 
   Future<(int?, int?)> _decodeArtworkDimensions(Uint8List bytes) async {
     try {
-      final codec = await ui.instantiateImageCodec(bytes);
-      final frameInfo = await codec.getNextFrame();
-      return (frameInfo.image.width, frameInfo.image.height);
+      // Faster: use ImmutableBuffer + ImageDescriptor to only read metadata without decoding pixels
+      final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+      final descriptor = await ui.ImageDescriptor.encoded(buffer);
+      return (descriptor.width, descriptor.height);
     } catch (e) {
       debugPrint('Error decoding artwork dimensions: $e');
       return (null, null);

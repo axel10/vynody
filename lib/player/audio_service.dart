@@ -1075,8 +1075,17 @@ class AudioService extends ChangeNotifier {
             _hdArtworkCache.remove(_hdArtworkCache.keys.first);
           }
 
-          // Pre-decode the image using Flutter's built-in image cache mechanism
-          final provider = MemoryImage(bytes);
+          // Pre-decode the image at a limited resolution to save memory and prevent stutter
+          // PC: 1200 * 1200, Mobile: 800 * 800
+          final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+          final int limit = isPc ? 1200 : 800;
+
+          final provider = ResizeImage(
+            MemoryImage(bytes),
+            width: limit,
+            height: limit,
+            allowUpscaling: false,
+          );
           provider.resolve(ImageConfiguration.empty);
 
           if (path == _currentFilePath && _currentArtworkBytes == null) {
