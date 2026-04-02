@@ -467,7 +467,9 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
             onInvoke: (_) async {
               if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
                 final isFull = await windowManager.isFullScreen();
-                await windowManager.setFullScreen(!isFull);
+                final nextValue = !isFull;
+                await windowManager.setFullScreen(nextValue);
+                if (mounted) setState(() => _isFullScreen = nextValue);
               }
               return null;
             },
@@ -576,8 +578,10 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                                           if (isDesktop) {
                                             final isFull =
                                                 await windowManager.isFullScreen();
+                                            final nextValue = !isFull;
                                             await windowManager
-                                                .setFullScreen(!isFull);
+                                                .setFullScreen(nextValue);
+                                            if (mounted) setState(() => _isFullScreen = nextValue);
                                           }
                                         },
                                       ),
