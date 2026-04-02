@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:audio_core/audio_core.dart';
 
 import '../models/music_file.dart';
+import '../models/lyric_line.dart';
+import '../models/music_lyric.dart';
 import 'audio_snapshot.dart';
 import 'metadata_database.dart';
 
@@ -240,16 +242,29 @@ class AudioService extends ChangeNotifier {
           }),
         );
       }
-      _windowsIntegration?.updatePlaybackStatus(_isPlaying);
-      _androidIntegration?.updatePlaybackStatus(_isPlaying);
       _notifyIfNeeded(force: true);
-    } else {
-      _windowsIntegration?.updateTimeline(_position, _duration);
-      _androidIntegration?.updateTimeline(_position, _duration);
-      _windowsIntegration?.updatePlaybackStatus(_isPlaying);
-      _androidIntegration?.updatePlaybackStatus(_isPlaying);
-      _notifyIfNeeded();
     }
+
+    _windowsIntegration?.updateTimeline(_position, _duration);
+    _androidIntegration?.updateTimeline(_position, _duration);
+    _windowsIntegration?.updatePlaybackStatus(_isPlaying);
+    _androidIntegration?.updatePlaybackStatus(_isPlaying);
+
+    // 如果当前开启了歌词模式，但因为切歌瞬间加载太快（时长 Duration 还没准备好）
+    // 导致 API 没匹配到或尚未开始加载，当时长变为有效正值时，自动触发补抓取。
+    if (_isLyricsActive &&
+        _duration > Duration.zero &&
+        !_hasLyrics &&
+        !_isLyricsLoading &&
+        _currentIndex >= 0 &&
+        _currentIndex < _queue.length) {
+      final song = _queue[_currentIndex];
+      if (song.path == _currentFilePath) {
+        unawaited(_fetchAndLogLyrics(song));
+      }
+    }
+
+    _notifyIfNeeded();
   }
 
   void _notifyIfNeeded({bool force = false}) {
@@ -438,9 +453,6 @@ class AudioService extends ChangeNotifier {
         currentThemeColorsMap: _currentThemeColorsMap,
         isLyricsLoading: _isLyricsLoading,
         hasLyrics: _hasLyrics,
-        isLyricsSynced: _isLyricsSynced,
-        currentLyricsLines: _currentLyricsLines,
-        currentLyricsText: _currentLyricsText,
         currentLyricsTitle: _currentLyricsTitle,
         isLyricsActive: _isLyricsActive,
       );
@@ -645,24 +657,36 @@ class AudioService extends ChangeNotifier {
       } catch (_) {}
     }
 
-    _clearLyricsState();
+    // 4. 如果歌曲对象已经持有了歌词，则直接应用，无需二次触发
+    final songLyrics = song.lyrics;
+    if (_isLyricsActive && songLyrics != null) {
+      _hasLyrics = true;
+      _isLyricsLoading = false;
+      _isLyricsSynced = songLyrics.isSynced;
+      _currentLyricsLines = songLyrics.syncedLines;
+      _currentLyricsText = songLyrics.plainText;
+      _currentLyricsTitle = song.displayName;
+    } else {
+      _clearLyricsState();
+    }
+
     notifyListeners();
 
-    // 4. 重算调色板（如果没缓存或元数据刚发生变化）
+    // 5. 重算调色板（如果没缓存或元数据刚发生变化）
     await _updatePalette();
 
-    // 5. 与系统底层接口对接，更新 Windows 的系统媒体控制弹窗/Android 通知栏的封面信息
+    // 6. 与系统底层接口对接，更新 Windows 的系统媒体控制弹窗/Android 通知栏的封面信息
     _windowsIntegration?.updateMetadata(song);
     _androidIntegration?.updateMetadata(song);
 
-    // 6. 异步启动歌词搜索或本地加载请求。
+    // 7. 异步启动歌词搜索或本地加载请求。
     // 现在仅在歌词模式激活时才自动触发加载。
     // 触发时机（当 isLyricsActive 为 true 时）：
     // - 自动切歌：当上一曲播放结束自动进入下一曲时。
     // - 手动切歌：用户点击“下一首”、“上一首”按钮时。
     // - 手动播放：用户从列表点击某首歌曲启动播放时。
     // - 列表流转：播放列表模式（顺序、随机、循环）导致的歌曲切换。
-    if (_isLyricsActive) {
+    if (_isLyricsActive && !_hasLyrics) {
       unawaited(_fetchAndLogLyrics(song));
     }
 
@@ -688,6 +712,12 @@ class AudioService extends ChangeNotifier {
   /// 2. 数据库缓存 (Database Cache)：若之前曾成功获取并保存至本地 SQLite，直接读取。
   /// 3. 网络获取 (Network Fetch)：若上述皆无，则通过 LRCLIB API 进行在线搜索与匹配。
   Future<void> _fetchAndLogLyrics(MusicFile song) async {
+    // 如果当前时长为 0，说明播放器尚未准备好元数据。
+    // 我们跳过此次抓取，等待 _handlePlayerChanges 在时长就绪后再次触发本方法。
+    if (_duration <= Duration.zero) {
+      return;
+    }
+
     final requestId = ++_lyricsRequestSerial;
     final query = LyricsQuery(
       filePath: song.path,
@@ -717,6 +747,20 @@ class AudioService extends ChangeNotifier {
       _currentLyricsTitle = (title != null && title.isNotEmpty)
           ? title
           : _currentFileName;
+
+      // 关键改动：将获取到的歌词挂载到内存中的歌曲对象上，作为内存级缓存。
+      if (_currentIndex >= 0 && _currentIndex < _queue.length) {
+        final currentSong = _queue[_currentIndex];
+        if (currentSong.path == song.path) {
+          _queue[_currentIndex] = currentSong.copyWith(
+            lyrics: MusicLyric(
+              syncedLines: _currentLyricsLines,
+              plainText: _currentLyricsText,
+            ),
+          );
+        }
+      }
+
       notifyListeners();
 
       _lyricsService.debugPrintSelection(query, result);

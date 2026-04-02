@@ -3,7 +3,6 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import '../models/music_file.dart';
-import 'lyrics_service.dart';
 
 class AudioSnapshot {
   static final DeepCollectionEquality _deepEquality = DeepCollectionEquality();
@@ -29,9 +28,6 @@ class AudioSnapshot {
   final Map<String, Color> currentThemeColorsMap;
   final bool isLyricsLoading;
   final bool hasLyrics;
-  final bool isLyricsSynced;
-  final List<LyricLine> currentLyricsLines;
-  final String currentLyricsText;
   final String? currentLyricsTitle;
   final bool isLyricsActive;
   final double progress;
@@ -58,13 +54,9 @@ class AudioSnapshot {
     required Map<String, Color> currentThemeColorsMap,
     required this.isLyricsLoading,
     required this.hasLyrics,
-    required this.isLyricsSynced,
-    required List<LyricLine> currentLyricsLines,
-    required this.currentLyricsText,
     required this.currentLyricsTitle,
     required this.isLyricsActive,
   }) : playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
-       currentLyricsLines = List<LyricLine>.unmodifiable(currentLyricsLines),
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
          currentThemeColorsMap,
        ),
@@ -96,12 +88,6 @@ class AudioSnapshot {
             dynamicEndColor == other.dynamicEndColor &&
             isLyricsLoading == other.isLyricsLoading &&
             hasLyrics == other.hasLyrics &&
-            isLyricsSynced == other.isLyricsSynced &&
-            _deepEquality.equals(
-              currentLyricsLines,
-              other.currentLyricsLines,
-            ) &&
-            currentLyricsText == other.currentLyricsText &&
             currentLyricsTitle == other.currentLyricsTitle &&
             isLyricsActive == other.isLyricsActive &&
             _deepEquality.equals(
@@ -132,9 +118,6 @@ class AudioSnapshot {
     dynamicEndColor,
     isLyricsLoading,
     hasLyrics,
-    isLyricsSynced,
-    _deepEquality.hash(currentLyricsLines),
-    currentLyricsText,
     currentLyricsTitle,
     isLyricsActive,
     _deepEquality.hash(currentThemeColorsMap),

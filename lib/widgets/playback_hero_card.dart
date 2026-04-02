@@ -917,16 +917,17 @@ class PlaybackHeroCard extends StatelessWidget {
         snapshot.currentThemeColorsMap['darkMuted'] ??
         Colors.white;
 
+    final lyrics = snapshot.currentMusic?.lyrics;
+
     return LyricsPanel(
       key: ValueKey(
-        '${snapshot.currentMusic?.path}_${snapshot.currentLyricsLines.length}_${snapshot.isLyricsLoading}_${snapshot.hasLyrics}',
+        '${snapshot.currentMusic?.path}_${lyrics?.syncedLines.length ?? 0}_${snapshot.isLyricsLoading}_${snapshot.hasLyrics}',
       ),
-      lines: snapshot.currentLyricsLines,
+      lines: lyrics?.syncedLines ?? const [],
       position: snapshot.position,
       isLoading: snapshot.isLyricsLoading,
       hasLyrics: snapshot.hasLyrics,
-      isSynced: snapshot.isLyricsSynced,
-      plainLyrics: snapshot.currentLyricsText,
+      plainLyrics: lyrics?.plainText ?? '',
       accentColor: accent,
     );
   }

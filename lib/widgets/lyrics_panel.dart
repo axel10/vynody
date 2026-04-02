@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../player/lyrics_service.dart';
+import '../models/lyric_line.dart';
 
 class LyricsPanel extends StatefulWidget {
   const LyricsPanel({
@@ -11,7 +11,6 @@ class LyricsPanel extends StatefulWidget {
     required this.position,
     required this.isLoading,
     required this.hasLyrics,
-    required this.isSynced,
     required this.plainLyrics,
     this.accentColor,
   });
@@ -20,7 +19,6 @@ class LyricsPanel extends StatefulWidget {
   final Duration position;
   final bool isLoading;
   final bool hasLyrics;
-  final bool isSynced;
   final String plainLyrics;
   final Color? accentColor;
 
@@ -54,7 +52,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
   }
 
   void _scheduleScrollIfNeeded({bool force = false}) {
-    if (!widget.isSynced || widget.lines.isEmpty) return;
+    if (widget.lines.isEmpty) return;
 
     final activeIndex = _activeLineIndex();
     if (!force && activeIndex == _lastActiveIndex) return;
@@ -121,7 +119,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
       );
     }
 
-    if (!widget.isSynced || widget.lines.isEmpty) {
+    if (widget.lines.isEmpty) {
       return ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: SingleChildScrollView(

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:path/path.dart' as p;
+import 'music_lyric.dart';
 
 class MusicFile {
   final String path;
@@ -16,6 +17,7 @@ class MusicFile {
   final Uint8List? themeColorsBlob;
   final Uint8List? waveformBlob;
   final Uint8List? artworkBytes;
+  final MusicLyric? lyrics;
 
   List<double> get waveform {
     final blob = waveformBlob;
@@ -44,6 +46,7 @@ class MusicFile {
     this.themeColorsBlob,
     this.waveformBlob,
     this.artworkBytes,
+    this.lyrics,
   });
 
   String get displayName {
@@ -68,6 +71,7 @@ class MusicFile {
     Uint8List? themeColorsBlob,
     Uint8List? waveformBlob,
     Uint8List? artworkBytes,
+    MusicLyric? lyrics,
   }) {
     return MusicFile(
       path: path ?? this.path,
@@ -84,6 +88,7 @@ class MusicFile {
       themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
       waveformBlob: waveformBlob ?? this.waveformBlob,
       artworkBytes: artworkBytes ?? this.artworkBytes,
+      lyrics: lyrics ?? this.lyrics,
     );
   }
   @override
@@ -100,7 +105,8 @@ class MusicFile {
         other.hdArtworkPath == hdArtworkPath &&
         other.thumbnailPath == thumbnailPath &&
         other.artworkWidth == artworkWidth &&
-        other.artworkHeight == artworkHeight;
+        other.artworkHeight == artworkHeight &&
+        other.lyrics == lyrics;
   }
 
   @override

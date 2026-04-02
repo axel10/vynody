@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../utils/network_client.dart';
+import '../models/lyric_line.dart';
 import 'metadata_database.dart';
 
 class LyricsQuery {
@@ -35,35 +36,6 @@ class LyricsQuery {
     ];
     return parts.join('|');
   }
-}
-
-class LyricLine {
-  final Duration timestamp;
-  final String text;
-
-  const LyricLine({required this.timestamp, required this.text});
-
-  Map<String, dynamic> toJson() {
-    return {'timestampMs': timestamp.inMilliseconds, 'text': text};
-  }
-
-  factory LyricLine.fromJson(Map<String, dynamic> json) {
-    return LyricLine(
-      timestamp: Duration(milliseconds: (json['timestampMs'] as num).round()),
-      text: json['text'] as String? ?? '',
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is LyricLine &&
-            timestamp == other.timestamp &&
-            text == other.text;
-  }
-
-  @override
-  int get hashCode => Object.hash(timestamp, text);
 }
 
 class LyricTrack {
@@ -186,7 +158,6 @@ class LyricsService {
   final NetworkClient _client;
   final MetadataDatabase _db;
   final Map<String, Future<LyricSelectionResult?>> _inFlight = {};
-  final Map<String, LyricSelectionResult?> _cache = {};
 
   static const double _acceptThreshold = 65.0;
 
@@ -196,23 +167,25 @@ class LyricsService {
     required LyricsQuery query,
     bool debugLog = false,
   }) async {
-    final cacheKey = query.cacheKey;
+    // 对原始查询进行统一清洗，确保“查询键”与“保存键”逻辑完全一致。
+    // 解决如“Song [Live]”与“Song”因为括号过滤逻辑不一导致的缓存不命中问题。
+    final normalizedQuery = LyricsQuery(
+      filePath: query.filePath,
+      fileName: query.fileName,
+      title: _cleanField(query.title) ?? _removeBrackets(p.basenameWithoutExtension(query.fileName)),
+      artist: _cleanField(query.artist),
+      album: _cleanField(query.album),
+      duration: query.duration,
+    );
 
-    // 1. 内存层：单次运行期间已成功解析的对象
-    final cached = _cache[cacheKey];
-    if (_cache.containsKey(cacheKey)) {
-      if (debugLog) {
-        debugPrintSelection(query, cached, source: 'cache');
-      }
-      return cached;
-    }
+    final cacheKey = normalizedQuery.cacheKey;
 
-    // 2. 数据库层：之前获取后存储于 SQLite 的持久化记录
+    // 不再使用内存层缓存，而是依赖 MusicFile 自身的持有和数据库持久化。
+    // 这里只保留数据库层的查找逻辑。
     final cachedFromDb = await _loadFromDatabase(cacheKey);
     if (cachedFromDb != null) {
-      _cache[cacheKey] = cachedFromDb;
       if (debugLog) {
-        debugPrintSelection(query, cachedFromDb, source: 'sqlite');
+        debugPrintSelection(normalizedQuery, cachedFromDb, source: 'sqlite');
       }
       return cachedFromDb;
     }
@@ -228,16 +201,15 @@ class LyricsService {
     }
 
     // 4. 发起异步网络搜索任务
-    final future = _fetchBestLyricsInternal(query).whenComplete(() {
+    final future = _fetchBestLyricsInternal(normalizedQuery).whenComplete(() {
       _inFlight.remove(cacheKey);
     });
     _inFlight[cacheKey] = future;
 
     final result = await future;
-    _cache[cacheKey] = result;
 
     if (debugLog) {
-      debugPrintSelection(query, result);
+      debugPrintSelection(normalizedQuery, result);
     }
 
     return result;
