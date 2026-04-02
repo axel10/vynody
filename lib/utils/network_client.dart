@@ -38,7 +38,12 @@ class NetworkClient {
 
     // 默认开启日志拦截器，仅在调试环境下生效（可选）
     if (kDebugMode) {
-      // _dio.interceptors.add(LogInterceptor(requestHeader: true, responseHeader: false, responseBody: false));
+      _dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          debugPrint('Network Request: [${options.method}] ${options.uri}');
+          return handler.next(options);
+        },
+      ));
     }
   }
 
