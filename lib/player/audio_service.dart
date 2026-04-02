@@ -64,6 +64,7 @@ class AudioService extends ChangeNotifier {
   int _lyricsRequestSerial = 0;
   bool _isLyricsLoading = false;
   bool _hasLyrics = false;
+  bool _lyricsSearchAttempted = false;
   bool _isLyricsSynced = false;
   List<LyricLine> _currentLyricsLines = const [];
   String _currentLyricsText = '';
@@ -256,6 +257,7 @@ class AudioService extends ChangeNotifier {
         _duration > Duration.zero &&
         !_hasLyrics &&
         !_isLyricsLoading &&
+        !_lyricsSearchAttempted &&
         _currentIndex >= 0 &&
         _currentIndex < _queue.length) {
       final song = _queue[_currentIndex];
@@ -666,6 +668,7 @@ class AudioService extends ChangeNotifier {
       _currentLyricsLines = songLyrics.syncedLines;
       _currentLyricsText = songLyrics.plainText;
       _currentLyricsTitle = song.displayName;
+      _lyricsSearchAttempted = true;
     } else {
       _clearLyricsState();
     }
@@ -700,6 +703,7 @@ class AudioService extends ChangeNotifier {
     _currentLyricsLines = const [];
     _currentLyricsText = '';
     _currentLyricsTitle = null;
+    _lyricsSearchAttempted = false;
     if (notify) {
       notifyListeners();
     }
@@ -739,7 +743,8 @@ class AudioService extends ChangeNotifier {
       }
 
       _isLyricsLoading = false;
-      _hasLyrics = result != null;
+      _lyricsSearchAttempted = true;
+      _hasLyrics = result != null && result.track.hasLyrics;
       _isLyricsSynced = result?.isSynced ?? false;
       _currentLyricsLines = result?.syncedLines ?? const [];
       _currentLyricsText = result?.lyricsText ?? '';
@@ -768,6 +773,7 @@ class AudioService extends ChangeNotifier {
       debugPrint('[AudioService] Failed to fetch lyrics: $e');
       if (requestId == _lyricsRequestSerial && _currentFilePath == song.path) {
         _isLyricsLoading = false;
+        _lyricsSearchAttempted = true;
         notifyListeners();
       }
     }

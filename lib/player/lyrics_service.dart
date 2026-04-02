@@ -240,6 +240,7 @@ class LyricsService {
     final searchQuery = _buildSearchQuery(query);
     final searchResults = await _search(searchQuery);
     if (searchResults.isEmpty) {
+      await _saveEmptyToDatabase(query);
       return null;
     }
 
@@ -252,6 +253,7 @@ class LyricsService {
     }
 
     if (scoredResults.isEmpty) {
+      await _saveEmptyToDatabase(query);
       return null;
     }
 
@@ -275,6 +277,7 @@ class LyricsService {
         });
         bestCandidate = fallbackCandidates.first;
       } else {
+        await _saveEmptyToDatabase(query);
         return null;
       }
     }
@@ -386,6 +389,32 @@ class LyricsService {
       debugPrint('[Lyrics] SEARCH error for "${query.title}": $e');
     }
     return const [];
+  }
+
+  Future<void> _saveEmptyToDatabase(LyricsQuery query) async {
+    try {
+      final record = LyricsCacheRecord(
+        cacheKey: query.cacheKey,
+        filePath: query.filePath,
+        title: query.title,
+        artist: query.artist,
+        album: query.album,
+        duration: query.duration?.inSeconds,
+        source: 'none',
+        trackId: null,
+        score: 0.0,
+        isSynced: false,
+        instrumental: false,
+        plainLyrics: null,
+        syncedLyrics: null,
+        syncedLines: const [],
+        rawJson: null,
+        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+      );
+      await _db.insertOrUpdateLyricsCache(record);
+    } catch (e) {
+      debugPrint('[Lyrics] Failed to cache empty result for "${query.title}": $e');
+    }
   }
 
   Future<void> _saveToDatabase({
