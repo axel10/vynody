@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
+import '../utils/clean_helper.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
@@ -65,7 +65,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     if (title != null && title.isNotEmpty) {
       return title;
     }
-    return _cleanFallbackTitle(widget.songPath);
+    return CleanHelper.deriveCleanTitleFromFileName(widget.songPath);
   }
 
   Future<void> _loadMatches() async {
@@ -403,12 +403,6 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   }
 }
 
-String _cleanFallbackTitle(String songPath) {
-  final base = p.basenameWithoutExtension(songPath).trim();
-  final stripped = base.replaceFirst(RegExp(r'^\s*(?:\d{1,3}[\s._-]*)+'), '');
-  final candidate = stripped.trim();
-  return candidate.isEmpty ? base : candidate;
-}
 
 class _ScoreBadge extends StatelessWidget {
   const _ScoreBadge({required this.score});

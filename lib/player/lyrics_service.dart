@@ -3,9 +3,9 @@ import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
 
 import '../utils/network_client.dart';
+import '../utils/clean_helper.dart';
 import '../models/lyric_line.dart';
 import 'metadata_database.dart';
 
@@ -172,7 +172,7 @@ class LyricsService {
     final normalizedQuery = LyricsQuery(
       filePath: query.filePath,
       fileName: query.fileName,
-      title: _cleanField(query.title) ?? _removeBrackets(p.basenameWithoutExtension(query.fileName)),
+      title: _cleanField(query.title) ?? CleanHelper.deriveCleanTitleFromFileName(query.fileName),
       artist: _cleanField(query.artist),
       album: _cleanField(query.album),
       duration: query.duration,
@@ -320,8 +320,7 @@ class LyricsService {
   }
 
   LyricsQuery _buildSearchQuery(LyricsQuery query) {
-    final rawFallback = p.basenameWithoutExtension(query.fileName).trim();
-    final fallbackTitle = _removeBrackets(rawFallback);
+    final fallbackTitle = CleanHelper.deriveCleanTitleFromFileName(query.fileName);
     final title = _cleanField(query.title) ?? fallbackTitle;
     return LyricsQuery(
       filePath: query.filePath,
@@ -792,7 +791,8 @@ String? _cleanField(String? value) {
   var text = value?.trim();
   if (text == null || text.isEmpty) return null;
 
-  text = _removeBrackets(text);
+  text = CleanHelper.removeBrackets(text);
+  text = CleanHelper.stripSequenceNumber(text); // 增加：对不完美的 Tag 也尝试进行序号擦除
   if (text.isEmpty) return null;
 
   final lower = text.toLowerCase();
@@ -802,13 +802,6 @@ String? _cleanField(String? value) {
     return null;
   }
   return text;
-}
-
-String _removeBrackets(String text) {
-  return text
-      .replaceAll(RegExp(r'[\[【][^\]】]*[\]】]'), ' ')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
 }
 
 String _normalizeForKey(String? value) {

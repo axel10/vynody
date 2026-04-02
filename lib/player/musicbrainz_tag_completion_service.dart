@@ -5,9 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:palette_generator/palette_generator.dart';
-
-
 import '../utils/network_client.dart';
+import '../utils/clean_helper.dart';
 import 'metadata_database.dart';
 import 'theme_color_helper.dart';
 import 'metadata_helper.dart';
@@ -209,7 +208,7 @@ class MusicBrainzTagCompletionService {
       titleCandidates.add(title!.trim());
     }
 
-    final fallbackTitle = _deriveFallbackTitle(songPath);
+    final fallbackTitle = CleanHelper.deriveCleanTitleFromFileName(songPath);
     if (_hasMeaningfulText(fallbackTitle) &&
         !titleCandidates.any(
           (candidate) => _sameText(candidate, fallbackTitle),
@@ -580,13 +579,6 @@ String _escapeLucene(String value) {
   return buffer.toString();
 }
 
-String _deriveFallbackTitle(String songPath) {
-
-  final base = p.basenameWithoutExtension(songPath).trim();
-  final stripped = base.replaceFirst(RegExp(r'^\s*(?:\d{1,3}[\s._-]*)+'), '');
-  final candidate = stripped.trim();
-  return candidate.isEmpty ? base : candidate;
-}
 
 String _normalizeField(String? value) {
   if (!_hasMeaningfulText(value)) return '';
