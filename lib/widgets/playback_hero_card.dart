@@ -587,20 +587,22 @@ class PlaybackHeroCard extends StatelessWidget {
       );
     }
 
-    final cover = CoverCarousel(
-      playlist: playlist,
-      currentIndex: snapshot.currentIndex,
-      audioService: context.read<AudioService>(),
-      isNext: isNext,
-      displaySize: currentSize,
-      onPageChanged: (page) {
-        final audio = context.read<AudioService>();
-        if (page >= 0 &&
-            page < playlist.length &&
-            page != snapshot.currentIndex) {
-          audio.playAtIndex(page);
-        }
-      },
+    final cover = ExcludeSemantics(
+      child: CoverCarousel(
+        playlist: playlist,
+        currentIndex: snapshot.currentIndex,
+        audioService: context.read<AudioService>(),
+        isNext: isNext,
+        displaySize: currentSize,
+        onPageChanged: (page) {
+          final audio = context.read<AudioService>();
+          if (page >= 0 &&
+              page < playlist.length &&
+              page != snapshot.currentIndex) {
+            audio.playAtIndex(page);
+          }
+        },
+      ),
     );
 
     if (onCoverTap == null) return cover;

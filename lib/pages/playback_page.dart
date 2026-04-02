@@ -633,25 +633,27 @@ class _PlaybackPageState extends State<PlaybackPage>
                     ? settings.landscapeGap
                     : settings.portraitGap;
 
-                return CustomPaint(
-                  painter: FftPainter(
-                    values: frame.values,
-                    gap: gap,
-                    color: settings.isVisualizerDynamicColor
-                        ? (audio.dynamicStartColor ?? settings.visualizerColor)
-                        : settings.visualizerColor,
-                    opacity: settings.visualizerOpacity,
-                    useGradient: settings.isVisualizerGradientEnabled,
-                    startColor: settings.isVisualizerDynamicStartColor
-                        ? (audio.dynamicStartColor ??
-                              settings.visualizerStartColor)
-                        : settings.visualizerStartColor,
-                    endColor: settings.isVisualizerDynamicEndColor
-                        ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
-                        : settings.visualizerEndColor,
-                    gradientStop1: settings.visualizerGradientStop1,
-                    gradientStop2: settings.visualizerGradientStop2,
-                    gradientTileMode: settings.visualizerGradientTileMode,
+                return ExcludeSemantics(
+                  child: CustomPaint(
+                    painter: FftPainter(
+                      values: frame.values,
+                      gap: gap,
+                      color: settings.isVisualizerDynamicColor
+                          ? (audio.dynamicStartColor ?? settings.visualizerColor)
+                          : settings.visualizerColor,
+                      opacity: settings.visualizerOpacity,
+                      useGradient: settings.isVisualizerGradientEnabled,
+                      startColor: settings.isVisualizerDynamicStartColor
+                          ? (audio.dynamicStartColor ??
+                                settings.visualizerStartColor)
+                          : settings.visualizerStartColor,
+                      endColor: settings.isVisualizerDynamicEndColor
+                          ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
+                          : settings.visualizerEndColor,
+                      gradientStop1: settings.visualizerGradientStop1,
+                      gradientStop2: settings.visualizerGradientStop2,
+                      gradientTileMode: settings.visualizerGradientTileMode,
+                    ),
                   ),
                 );
               },
