@@ -97,31 +97,30 @@ class PlaybackQueueProcessor {
 
         try {
           final existing = await db.getSongMetadata(song.path);
+          final bool showWaveform = settingsService.isWaveformProgressBarEnabled;
 
-          // We check if basic metadata/thumbnail is missing
-          bool needsWaveform =
-              existing == null || existing.waveformBlob == null;
-          bool needsThemeColor =
+          // Decide what needs to be done
+          final bool needsWaveform =
+              showWaveform && (existing == null || existing.waveformBlob == null);
+          final bool needsThemeColor =
               existing == null || existing.themeColorsBlob == null;
 
-          // HD PRE-FETCH: If this song is near the current song, pre-fetch HD artwork
+          // 1. HD PRE-FETCH & PRE-DECODE (Priority 1: For visual smoothness)
+          // Pre-fetch for current, next 3, and previous 1
           if (onHdArtworkLoaded != null && currentIndex != -1) {
             final int songIndex = playlist.indexWhere(
               (s) => s.path == song.path,
             );
             final int distance =
                 (songIndex - currentIndex + playlist.length) % playlist.length;
-
-            // Pre-fetch for current, next 3, and previous 1
             bool isNear = distance <= 3 || distance == playlist.length - 1;
 
             if (isNear) {
               try {
-                // Read from file stream directly
+                // Read from file stream directly to get HD artwork
                 final m = readMetadata(File(song.path), getImage: true);
-                final bytes = m.pictures.isNotEmpty
-                    ? m.pictures.first.bytes
-                    : null;
+                final bytes =
+                    m.pictures.isNotEmpty ? m.pictures.first.bytes : null;
                 if (bytes != null) {
                   onHdArtworkLoaded(song.path, bytes);
                 }
@@ -131,20 +130,25 @@ class PlaybackQueueProcessor {
             }
           }
 
+          // 2. Heavy Processing: Colors and Waveform
           if (needsWaveform || needsThemeColor) {
-            debugPrint('Background processing: ${song.path}');
+            debugPrint('Background processing (Colors/Waveform): ${song.path}');
 
-            // 1. Process basic metadata & thumbnail
-            final result = await MetadataHelper.processMetadata(song.path);
-            final SongMetadata? initialMetadata = result?.$1;
+            // We need a metadata object (either from DB or a quick scan) to get the artwork path
+            SongMetadata? m = existing;
+            if (m == null) {
+              final result = await MetadataHelper.processMetadata(song.path);
+              m = result?.$1;
+            }
 
-            if (initialMetadata != null) {
-              SongMetadata m = initialMetadata;
+            if (m != null) {
+              // Use a non-nullable reference
+              SongMetadata meta = m;
 
-              // If theme colors are missing but artwork exists, extract them
-              if (m.themeColorsBlob == null && m.artworkPath != null) {
+              // Extract theme colors if missing
+              if (meta.themeColorsBlob == null && meta.artworkPath != null) {
                 try {
-                  final imageProvider = FileImage(File(m.artworkPath!));
+                  final imageProvider = FileImage(File(meta.artworkPath!));
                   final palette = await PaletteGenerator.fromImageProvider(
                     imageProvider,
                     maximumColorCount: 20,
@@ -153,23 +157,9 @@ class PlaybackQueueProcessor {
                     palette,
                   );
 
-                  m = SongMetadata(
-                    id: m.id,
-                    path: m.path,
-                    title: m.title,
-                    album: m.album,
-                    artist: m.artist,
-                    duration: m.duration,
-                    artworkPath: m.artworkPath,
-                    artworkWidth: m.artworkWidth,
-                    artworkHeight: m.artworkHeight,
-                    trackNumber: m.trackNumber,
-                    themeColorsBlob: themeColorsBlob,
-                    waveformBlob: m.waveformBlob,
-                  );
-                  await db.insertOrUpdateSong(m);
+                  meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
+                  await db.insertOrUpdateSong(meta);
 
-                  // Notify caller about color update
                   onUpdate(song.path, {
                     'themeColors': ThemeColorHelper.blobToColors(
                       themeColorsBlob,
@@ -182,8 +172,8 @@ class PlaybackQueueProcessor {
                 }
               }
 
-              // 2. Process waveform if still missing
-              if (m.waveformBlob == null) {
+              // Extract waveform if missing AND enabled in settings
+              if (showWaveform && meta.waveformBlob == null) {
                 try {
                   final waveform = await player.getWaveform(
                     expectedChunks: settingsService.waveformChunks,
@@ -197,23 +187,9 @@ class PlaybackQueueProcessor {
                     );
                     final blob = float32List.buffer.asUint8List();
 
-                    final updated = SongMetadata(
-                      id: m.id,
-                      path: m.path,
-                      title: m.title,
-                      album: m.album,
-                      artist: m.artist,
-                      duration: m.duration,
-                      artworkPath: m.artworkPath,
-                      artworkWidth: m.artworkWidth,
-                      artworkHeight: m.artworkHeight,
-                      trackNumber: m.trackNumber,
-                      themeColorsBlob: m.themeColorsBlob,
-                      waveformBlob: blob,
-                    );
-                    await db.insertOrUpdateSong(updated);
+                    meta = meta.copyWith(waveformBlob: blob);
+                    await db.insertOrUpdateSong(meta);
 
-                    // Notify caller about waveform update
                     onUpdate(song.path, {'waveform': waveform});
                   }
                 } catch (e) {
@@ -222,7 +198,7 @@ class PlaybackQueueProcessor {
               }
             }
 
-            // Small delay between songs to avoid heavy load
+            // Small delay between songs to keep main thread snappy
             await Future.delayed(const Duration(milliseconds: 300));
           }
         } catch (e) {
