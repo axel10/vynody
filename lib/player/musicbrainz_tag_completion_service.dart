@@ -1,16 +1,18 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:palette_generator/palette_generator.dart';
+
 
 import '../utils/network_client.dart';
 import 'metadata_database.dart';
 import 'theme_color_helper.dart';
+import 'metadata_helper.dart';
+
+
 
 class MusicBrainzTrackMatch {
   final String recordingId;
@@ -150,11 +152,13 @@ class ResolvedCover {
 class MusicBrainzTagSelectionResult {
   final SongMetadata metadata;
   final Uint8List? artworkBytes;
+  final String? thumbnailPath;
   final MusicBrainzTrackMatch match;
 
   const MusicBrainzTagSelectionResult({
     required this.metadata,
     required this.artworkBytes,
+    this.thumbnailPath,
     required this.match,
   });
 }
@@ -174,6 +178,9 @@ class MusicBrainzTagCompletionService {
 
   final NetworkClient _client;
   final MetadataDatabase _db = MetadataDatabase();
+  // No need to import MetadataHelper if it's in the same package, but wait.
+  // I need to import it.
+
 
   static final Map<String, List<MusicBrainzTrackMatch>> _searchCache = {};
   static final Map<String, _CoverArtResult> _coverCache = {};
@@ -289,39 +296,36 @@ class MusicBrainzTagCompletionService {
       themeColorsBlob = current?.themeColorsBlob;
     }
 
-    final updated = SongMetadata(
-      id: current?.id,
+    final updated = (current ?? SongMetadata(
       path: songPath,
-      title: match.title.trim().isNotEmpty
-          ? match.title.trim()
-          : current?.title ?? p.basenameWithoutExtension(songPath),
-      album: _preferText(
-        match.album,
-        current?.album,
-        fallback: 'Unknown Album',
-      ),
-      artist: _preferText(
-        match.artist,
-        current?.artist,
-        fallback: 'Unknown Artist',
-      ),
-      duration:
-          current?.duration ?? fallbackDurationMillis ?? match.durationMillis,
-      artworkPath: cover?.path ?? current?.artworkPath,
-      artworkWidth: cover?.width ?? current?.artworkWidth,
-      artworkHeight: cover?.height ?? current?.artworkHeight,
-      trackNumber: match.trackNumber ?? current?.trackNumber,
+      title: p.basenameWithoutExtension(songPath),
+      album: 'Unknown Album',
+      artist: 'Unknown Artist',
+    )).copyWith(
+
+
+      title: match.title.trim().isNotEmpty ? match.title.trim() : null,
+      album: _hasMeaningfulText(match.album) ? match.album : null,
+      artist: _hasMeaningfulText(match.artist) ? match.artist : null,
+      duration: fallbackDurationMillis ?? match.durationMillis,
+      artworkPath: cover?.path,
+      thumbnailPath: cover?.thumbnailPath,
+      artworkWidth: cover?.width,
+      artworkHeight: cover?.height,
+      trackNumber: match.trackNumber,
       themeColorsBlob: themeColorsBlob,
-      waveformBlob: current?.waveformBlob,
     );
+
 
     await _db.insertOrUpdateSong(updated);
 
     return MusicBrainzTagSelectionResult(
       metadata: updated,
       artworkBytes: cover?.bytes,
+      thumbnailPath: cover?.thumbnailPath,
       match: match,
     );
+
   }
 
   Future<List<MusicBrainzTrackMatch>> _searchWithCache(String query) async {
@@ -474,23 +478,22 @@ class MusicBrainzTagCompletionService {
       final bytes = Uint8List.fromList(bytesResponse.data ?? const <int>[]);
       if (bytes.isEmpty) return null;
 
-      final tempDir = await getTemporaryDirectory();
-      final coversDir = Directory(p.join(tempDir.path, 'musicbrainz_covers'));
-      if (!await coversDir.exists()) {
-        await coversDir.create(recursive: true);
-      }
+      // 1. Process and save both large image and thumbnail
+      final artworkInfo = await MetadataHelper.saveArtworkAndThumbnail(
+        resolved.id, // Using resolving ID as part of name
+        bytes,
+      );
 
-      final fileName =
-          '${_sanitizeFileName('${resolved.endpoint}_${resolved.id}')}_${DateTime.now().microsecondsSinceEpoch}.jpg';
-      final filePath = p.join(coversDir.path, fileName);
-      await File(filePath).writeAsBytes(bytes, flush: true);
+      if (artworkInfo == null) return null;
 
       return _CoverArtResult(
-        path: filePath,
+        path: artworkInfo['artworkPath'] as String,
+        thumbnailPath: artworkInfo['thumbnailPath'] as String,
         bytes: bytes,
-        width: 1200,
-        height: 1200,
+        width: artworkInfo['width'] as int? ?? 1200,
+        height: artworkInfo['height'] as int? ?? 1200,
       );
+
     } catch (e) {
       debugPrint('MusicBrainz cover download failed: $e');
       return null;
@@ -500,17 +503,20 @@ class MusicBrainzTagCompletionService {
 
 class _CoverArtResult {
   final String path;
+  final String thumbnailPath;
   final Uint8List bytes;
   final int width;
   final int height;
 
   const _CoverArtResult({
     required this.path,
+    required this.thumbnailPath,
     required this.bytes,
     required this.width,
     required this.height,
   });
 }
+
 
 List<String> _buildQueries({
   required String title,
@@ -574,11 +580,8 @@ String _escapeLucene(String value) {
   return buffer.toString();
 }
 
-String _sanitizeFileName(String value) {
-  return value.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
-}
-
 String _deriveFallbackTitle(String songPath) {
+
   final base = p.basenameWithoutExtension(songPath).trim();
   final stripped = base.replaceFirst(RegExp(r'^\s*(?:\d{1,3}[\s._-]*)+'), '');
   final candidate = stripped.trim();
@@ -588,16 +591,6 @@ String _deriveFallbackTitle(String songPath) {
 String _normalizeField(String? value) {
   if (!_hasMeaningfulText(value)) return '';
   return value!.trim();
-}
-
-String _preferText(
-  String? preferred,
-  String? fallbackValue, {
-  required String fallback,
-}) {
-  if (_hasMeaningfulText(preferred)) return preferred!.trim();
-  if (_hasMeaningfulText(fallbackValue)) return fallbackValue!.trim();
-  return fallback;
 }
 
 bool _hasMeaningfulText(String? value) {

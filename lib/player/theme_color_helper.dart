@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
@@ -55,4 +57,81 @@ class ThemeColorHelper {
       return {};
     }
   }
+  static Future<CustomPalette> generatePalette({
+    Uint8List? bytes,
+    String? path,
+  }) async {
+    ImageProvider? imageProvider;
+    if (bytes != null) {
+      imageProvider = MemoryImage(bytes);
+    } else if (path != null && path.isNotEmpty) {
+      imageProvider = FileImage(File(path));
+    }
+
+    if (imageProvider == null) {
+      return CustomPalette(
+        startColor: Colors.blue,
+        endColor: Colors.deepPurple,
+        colorsMap: {
+          'dominant': Colors.blue,
+          'vibrant': Colors.deepPurple,
+          'muted': Colors.indigo,
+        },
+      );
+    }
+
+    try {
+      final resizeProvider = ResizeImage(
+        imageProvider,
+        width: 200,
+        height: 200,
+      );
+      final palette = await PaletteGenerator.fromImageProvider(
+        resizeProvider,
+        maximumColorCount: 20,
+      );
+
+      final dominant = palette.dominantColor?.color ?? Colors.blue;
+      final vibrant = palette.vibrantColor?.color ?? Colors.deepPurple;
+      final muted = palette.mutedColor?.color ?? Colors.indigo;
+
+      return CustomPalette(
+        startColor: dominant,
+        endColor: (palette.vibrantColor?.color.withValues(alpha: 0.8)) ?? muted,
+        colorsMap: {
+          'dominant': dominant,
+          'vibrant': vibrant,
+          'muted': muted,
+          'lightVibrant': palette.lightVibrantColor?.color ?? dominant,
+          'darkVibrant': palette.darkVibrantColor?.color ?? dominant,
+          'lightMuted': palette.lightMutedColor?.color ?? muted,
+          'darkMuted': palette.darkMutedColor?.color ?? muted,
+        },
+      );
+    } catch (e) {
+      debugPrint('Error generating palette: $e');
+      return CustomPalette(
+        startColor: Colors.blue,
+        endColor: Colors.deepPurple,
+        colorsMap: {
+          'dominant': Colors.blue,
+          'vibrant': Colors.deepPurple,
+          'muted': Colors.indigo,
+        },
+      );
+    }
+  }
 }
+
+class CustomPalette {
+  final Color startColor;
+  final Color endColor;
+  final Map<String, Color> colorsMap;
+
+  CustomPalette({
+    required this.startColor,
+    required this.endColor,
+    required this.colorsMap,
+  });
+}
+

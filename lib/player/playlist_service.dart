@@ -27,8 +27,7 @@ class Playlist {
     return Playlist(
       id: json['id'] as String,
       name: json['name'] as String,
-      songs:
-          (json['songs'] as List<dynamic>?)
+      songs: (json['songs'] as List<dynamic>?)
               ?.map(
                 (s) => MusicFile(
                   path: s['path'] as String,
@@ -38,6 +37,16 @@ class Playlist {
                   album: s['album'] as String?,
                   trackNumber: s['trackNumber'] as int?,
                   id: s['id'] as int?,
+                  hdArtworkPath: s['artworkPath'] as String?,
+                  thumbnailPath: s['thumbnailPath'] as String?,
+                  artworkWidth: s['artworkWidth'] as int?,
+                  artworkHeight: s['artworkHeight'] as int?,
+                  themeColorsBlob: s['themeColorsBlob'] != null
+                      ? base64Decode(s['themeColorsBlob'] as String)
+                      : null,
+                  waveformBlob: s['waveformBlob'] != null
+                      ? base64Decode(s['waveformBlob'] as String)
+                      : null,
                 ),
               )
               .toList() ??
@@ -66,6 +75,16 @@ class Playlist {
               'album': s.album,
               'trackNumber': s.trackNumber,
               'id': s.id,
+              'artworkPath': s.hdArtworkPath,
+              'thumbnailPath': s.thumbnailPath,
+              'artworkWidth': s.artworkWidth,
+              'artworkHeight': s.artworkHeight,
+              'themeColorsBlob': s.themeColorsBlob != null
+                  ? base64Encode(s.themeColorsBlob!)
+                  : null,
+              'waveformBlob': s.waveformBlob != null
+                  ? base64Encode(s.waveformBlob!)
+                  : null,
             },
           )
           .toList(),
@@ -284,7 +303,14 @@ class PlaylistService extends ChangeNotifier {
           artist: metadata.artist,
           album: metadata.album,
           trackNumber: metadata.trackNumber,
+          artworkPath: metadata.artworkPath,
+          thumbnailPath: metadata.thumbnailPath,
+          artworkWidth: metadata.artworkWidth,
+          artworkHeight: metadata.artworkHeight,
+          themeColorsBlob: metadata.themeColorsBlob,
+          waveformBlob: metadata.waveformBlob,
         );
+
         playlist.updatedAt = DateTime.now();
         changed = true;
       }

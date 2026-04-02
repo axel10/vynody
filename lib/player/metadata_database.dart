@@ -13,6 +13,7 @@ class SongMetadata {
   final String artist;
   final int? duration;
   final String? artworkPath;
+  final String? thumbnailPath;
   final int? artworkWidth;
   final int? artworkHeight;
   final int? trackNumber;
@@ -27,6 +28,7 @@ class SongMetadata {
     required this.artist,
     this.duration,
     this.artworkPath,
+    this.thumbnailPath,
     this.artworkWidth,
     this.artworkHeight,
     this.trackNumber,
@@ -42,6 +44,7 @@ class SongMetadata {
       'artist': artist,
       'duration': duration,
       'artworkPath': artworkPath,
+      'thumbnailPath': thumbnailPath,
       'artworkWidth': artworkWidth,
       'artworkHeight': artworkHeight,
       'trackNumber': trackNumber,
@@ -59,6 +62,7 @@ class SongMetadata {
       artist: map['artist'] ?? 'Unknown',
       duration: map['duration'],
       artworkPath: map['artworkPath'],
+      thumbnailPath: map['thumbnailPath'],
       artworkWidth: map['artworkWidth'],
       artworkHeight: map['artworkHeight'],
       trackNumber: map['trackNumber'],
@@ -75,6 +79,7 @@ class SongMetadata {
     String? artist,
     int? duration,
     String? artworkPath,
+    String? thumbnailPath,
     int? artworkWidth,
     int? artworkHeight,
     int? trackNumber,
@@ -89,6 +94,7 @@ class SongMetadata {
       artist: artist ?? this.artist,
       duration: duration ?? this.duration,
       artworkPath: artworkPath ?? this.artworkPath,
+      thumbnailPath: thumbnailPath ?? this.thumbnailPath,
       artworkWidth: artworkWidth ?? this.artworkWidth,
       artworkHeight: artworkHeight ?? this.artworkHeight,
       trackNumber: trackNumber ?? this.trackNumber,
@@ -97,6 +103,7 @@ class SongMetadata {
     );
   }
 }
+
 
 class LyricsCacheRecord {
   final int? id;
@@ -219,7 +226,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -230,6 +237,7 @@ class MetadataDatabase {
             artist TEXT,
             duration INTEGER,
             artworkPath TEXT,
+            thumbnailPath TEXT,
             artworkWidth INTEGER,
             artworkHeight INTEGER,
             trackNumber INTEGER,
@@ -237,6 +245,7 @@ class MetadataDatabase {
             waveformBlob BLOB
           )
         ''');
+
         await db.execute('''
           CREATE TABLE lyrics_cache (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -314,9 +323,18 @@ class MetadataDatabase {
             )
           ''');
         }
+        if (oldVersion < 7) {
+          if (!await _columnExists(db, 'songs', 'thumbnailPath')) {
+            await db.execute(
+              'ALTER TABLE songs ADD COLUMN thumbnailPath TEXT',
+            );
+          }
+        }
       },
     );
+
   }
+
 
   Future<bool> _columnExists(
     DatabaseExecutor db,

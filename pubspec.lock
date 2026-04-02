@@ -548,16 +548,18 @@ packages:
   on_audio_query:
     dependency: "direct main"
     description:
-      path: "plugin/on_audio_query/packages/on_audio_query"
-      relative: true
-    source: path
+      name: on_audio_query
+      sha256: "28d7a247f8a0580b5d1befba15c8d8fd7e1cf3cd8e0449d54a66fc2ef27adf10"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
     version: "2.9.0"
   on_audio_query_android:
     dependency: transitive
     description:
-      path: "plugin/on_audio_query/packages/on_audio_query_android"
-      relative: true
-    source: path
+      name: on_audio_query_android
+      sha256: c0b946011ee7aa8ec76b21837f0cb0007120ac291202ed6c6fb4c498ba2ff6fe
+      url: "https://pub.flutter-io.cn"
+    source: hosted
     version: "1.1.0"
   on_audio_query_ios:
     dependency: transitive

@@ -43,22 +43,10 @@ class WaveformService {
       );
       final blob = float32List.buffer.asUint8List();
 
-      final updated = SongMetadata(
-        id: songMetadata.id,
-        path: songMetadata.path,
-        title: songMetadata.title,
-        album: songMetadata.album,
-        artist: songMetadata.artist,
-        duration: songMetadata.duration,
-        artworkPath: songMetadata.artworkPath,
-        artworkWidth: songMetadata.artworkWidth,
-        artworkHeight: songMetadata.artworkHeight,
-        trackNumber: songMetadata.trackNumber,
-        themeColorsBlob: songMetadata.themeColorsBlob,
-        waveformBlob: blob,
-      );
+      final updated = songMetadata.copyWith(waveformBlob: blob);
       await db.insertOrUpdateSong(updated);
     }
+
 
     return waveform;
   }

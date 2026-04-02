@@ -21,6 +21,7 @@ class AudioSnapshot {
   final List<double> currentWaveform;
   final Uint8List? currentArtworkBytes;
   final String? currentArtworkPath;
+  final String? thumbnailPath;
   final Uint8List? backgroundArtworkBytes;
   final String? backgroundArtworkPath;
   final int? artworkWidth;
@@ -60,6 +61,7 @@ class AudioSnapshot {
     required List<double> currentWaveform,
     required this.currentArtworkBytes,
     required this.currentArtworkPath,
+    required this.thumbnailPath,
     required this.backgroundArtworkBytes,
     required this.backgroundArtworkPath,
     required this.artworkWidth,

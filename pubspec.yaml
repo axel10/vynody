@@ -32,8 +32,7 @@ dependencies:
     sdk: flutter
   flutter_localizations: # 核心插件
     sdk: flutter
-  on_audio_query:
-    path: ./plugin/on_audio_query/packages/on_audio_query
+  on_audio_query: ^2.9.0
   media_scanner: ^2.2.0
   # (metadata_god removed)
   file_picker: ^8.0.0

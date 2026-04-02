@@ -1,14 +1,16 @@
 import 'dart:async';
+import 'package:collection/collection.dart';
+
 import 'dart:io';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:palette_generator/palette_generator.dart';
 import 'package:audio_core/audio_core.dart';
+
 import '../models/music_file.dart';
 import 'audio_snapshot.dart';
-import 'current_track_asset_resolver.dart';
 import 'metadata_database.dart';
+
 import 'lyrics_service.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
@@ -17,6 +19,8 @@ import 'playback_queue_processor.dart';
 import 'waveform_service.dart';
 import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
+import 'scanner_service.dart';
+
 
 class AudioService extends ChangeNotifier {
   late final AudioCoreController _player;
@@ -29,6 +33,8 @@ class AudioService extends ChangeNotifier {
   List<double> _currentWaveform = const [];
   Uint8List? _currentArtworkBytes;
   String? _currentArtworkPath;
+  String? _thumbnailPath;
+
   int? _artworkWidth;
   int? _artworkHeight;
   Duration _position = Duration.zero;
@@ -38,7 +44,8 @@ class AudioService extends ChangeNotifier {
   bool _isMuted = false;
   final MetadataDatabase _db = MetadataDatabase();
 
-  final List<MusicFile> _playlist = [];
+  final List<MusicFile> _queue = [];
+
   int _currentIndex = -1;
   bool? _lastActionNext;
   bool _isTransitioning = false;
@@ -52,8 +59,10 @@ class AudioService extends ChangeNotifier {
   late final VisualizerOptionsService _visualizerOptions;
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
-  late final CurrentTrackAssetResolver _trackAssetResolver;
   late final LyricsService _lyricsService;
+  ScannerService? _scannerService;
+
+
   int _lyricsRequestSerial = 0;
   bool _isLyricsLoading = false;
   bool _hasLyrics = false;
@@ -65,8 +74,7 @@ class AudioService extends ChangeNotifier {
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
 
-  Uint8List? _backgroundArtworkBytes;
-  String? _backgroundArtworkPath;
+
 
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
@@ -103,8 +111,8 @@ class AudioService extends ChangeNotifier {
       settingsService: settingsService,
     );
     _waveformService = WaveformService(db: _db, player: _player);
-    _trackAssetResolver = CurrentTrackAssetResolver(db: _db);
     _lyricsService = LyricsService(db: _db);
+
     _windowsIntegration = Platform.isWindows
         ? WindowsIntegrationService(this)
         : null;
@@ -112,6 +120,9 @@ class AudioService extends ChangeNotifier {
         ? AndroidIntegrationService(this)
         : null;
     _player.addListener(_handlePlayerChanges);
+    settingsService.addListener(() {
+      unawaited(_refreshCurrentWaveform());
+    });
     unawaited(
       _player.initialize().then((_) {
         _visualizerOptions.loadOptions().then((_) => notifyListeners());
@@ -156,6 +167,40 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setScannerService(ScannerService scanner) {
+    _scannerService = scanner;
+  }
+
+  /// 核心逻辑：确保当前即将播放或正在播放的歌曲数据已完备。
+  /// 如果数据未就绪，则临时暂停耗时的后台扫描和非优先级的预处理任务，
+  /// 并全力优先处理当前歌曲。处理完成后恢复后台任务。
+  Future<void> _ensureCurrentSongDataReady(MusicFile song) async {
+    final bool isReady = await _queueProcessor.isSongReady(song.path);
+    if (isReady) return;
+
+    debugPrint('AudioService: Song data not ready for ${song.path}. Prioritizing...');
+
+    try {
+      // 1. 暂停后台扫描
+      _scannerService?.pauseBackgroundTasks();
+      // 2. 暂停预处理队列的普通流转逻辑（其实是触发重排并优先处理）
+      _startQueueBackgroundProcessing();
+
+      // 我们在这里增加一个短暂的同步等待点，直到 isReady 为真或超时
+      int retry = 0;
+      while (retry < 10) { // 最多等 2 秒 (10 * 200ms)
+        if (await _queueProcessor.isSongReady(song.path)) break;
+        await Future.delayed(const Duration(milliseconds: 200));
+        retry++;
+      }
+    } finally {
+      // 3. 恢复后台扫描
+      _scannerService?.resumeBackgroundTasks();
+      debugPrint('AudioService: Data ready (or timeout) for ${song.path}. Resuming background tasks.');
+    }
+  }
+
+
   Future<List<double>> getWaveform({
     int expectedChunks = 80,
     int sampleStride = 3,
@@ -183,14 +228,14 @@ class AudioService extends ChangeNotifier {
         _lastActionNext = true; // 记录为自动切歌
       }
       _currentIndex = newIndex;
-      if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
-        final song = _playlist[_currentIndex];
+      if (_currentIndex >= 0 && _currentIndex < _queue.length) {
+        final song = _queue[_currentIndex];
         unawaited(
           // 发起完整的元数据更新流程
           _updateCurrentMetadata(song).then((_) {
             _refreshCurrentWaveform();
-            _windowsIntegration?.updateMetadata(_playlist[newIndex]);
-            _androidIntegration?.updateMetadata(_playlist[newIndex]);
+            _windowsIntegration?.updateMetadata(_queue[newIndex]);
+            _androidIntegration?.updateMetadata(_queue[newIndex]);
             _startQueueBackgroundProcessing();
           }),
         );
@@ -270,19 +315,19 @@ class AudioService extends ChangeNotifier {
 
   void moveQueueTrack(int oldIndex, int newIndex) {
     if (oldIndex < 0 ||
-        oldIndex >= _playlist.length ||
+        oldIndex >= _queue.length ||
         newIndex < 0 ||
-        newIndex >= _playlist.length ||
+        newIndex >= _queue.length ||
         oldIndex == newIndex) {
       return;
     }
 
-    final movedSong = _playlist.removeAt(oldIndex);
-    _playlist.insert(newIndex, movedSong);
+    final movedSong = _queue.removeAt(oldIndex);
+    _queue.insert(newIndex, movedSong);
     _player.playlist.moveTrack(oldIndex, newIndex);
 
     if (_currentFilePath != null) {
-      final updatedIndex = _playlist.indexWhere(
+      final updatedIndex = _queue.indexWhere(
         (song) => song.path == _currentFilePath,
       );
       if (updatedIndex != -1) {
@@ -346,11 +391,11 @@ class AudioService extends ChangeNotifier {
   int? get artworkWidth => _artworkWidth;
   int? get artworkHeight => _artworkHeight;
   String? get currentArtworkPath => _currentArtworkPath;
-  Uint8List? get backgroundArtworkBytes => _backgroundArtworkBytes;
-  String? get backgroundArtworkPath => _backgroundArtworkPath;
-  List<MusicFile> get playbackQueue => List.unmodifiable(_playlist);
-  List<MusicFile> get playlist => playbackQueue;
+
+  List<MusicFile> get playbackQueue => List.unmodifiable(_queue);
+
   int get currentIndex => _currentIndex;
+
   bool get isRandomMode => _player.playlist.randomPolicy != null;
   AudioSnapshot get snapshot => AudioSnapshot(
     isPlaying: _isPlaying,
@@ -364,15 +409,16 @@ class AudioService extends ChangeNotifier {
     currentWaveform: _currentWaveform,
     currentArtworkBytes: _currentArtworkBytes,
     currentArtworkPath: _currentArtworkPath,
-    backgroundArtworkBytes: _backgroundArtworkBytes,
-    backgroundArtworkPath: _backgroundArtworkPath,
+    thumbnailPath: _thumbnailPath,
+    backgroundArtworkBytes: null,
+    backgroundArtworkPath: null,
     artworkWidth: _artworkWidth,
     artworkHeight: _artworkHeight,
     position: _position,
     duration: _duration,
     volume: _volume,
     isMuted: _isMuted,
-    playbackQueue: _playlist,
+    playbackQueue: _queue,
     currentIndex: _currentIndex,
     isRandomMode: isRandomMode,
     isShuffleRandomMode: isShuffleRandomMode,
@@ -391,10 +437,12 @@ class AudioService extends ChangeNotifier {
     currentLyricsTitle: _currentLyricsTitle,
   );
 
-  Uint8List? getCachedArtwork(String? path) =>
-      path != null ? _hdArtworkCache[path] : null;
+  Uint8List? getCachedArtwork(String? path) {
+    if (path == null) return null;
+    final song = _queue.firstWhereOrNull((s) => s.path == path);
+    return song?.artworkBytes;
+  }
 
-  int get maxHdCacheSize => _maxHdCacheSize;
 
   bool get isShuffleRandomMode =>
       _player.playlist.randomPolicy?.label == 'shuffleRandom';
@@ -404,8 +452,8 @@ class AudioService extends ChangeNotifier {
   List<MusicFile> get randomHistory {
     final history = _player.playlist.randomHistory;
     return history.map((entry) {
-      if (entry.trackIndex >= 0 && entry.trackIndex < _playlist.length) {
-        return _playlist[entry.trackIndex];
+      if (entry.trackIndex >= 0 && entry.trackIndex < _queue.length) {
+        return _queue[entry.trackIndex];
       }
       return MusicFile(
         path: entry.trackId, // Fallback if index invalid
@@ -418,8 +466,8 @@ class AudioService extends ChangeNotifier {
     final deck = _player.playlist.currentDeck;
     return deck.map((id) {
       final index = int.tryParse(id) ?? -1;
-      if (index >= 0 && index < _playlist.length) {
-        return _playlist[index];
+      if (index >= 0 && index < _queue.length) {
+        return _queue[index];
       }
       return MusicFile(
         path: id, // Fallback
@@ -444,16 +492,25 @@ class AudioService extends ChangeNotifier {
     Uint8List? artworkBytes,
   }) async {
     bool queueChanged = false;
-    for (var i = 0; i < _playlist.length; i++) {
-      final song = _playlist[i];
+    for (var i = 0; i < _queue.length; i++) {
+      final song = _queue[i];
       if (song.path != metadata.path) continue;
 
-      _playlist[i] = song.copyWith(
+      _queue[i] = song.copyWith(
         title: metadata.title,
         artist: metadata.artist,
         album: metadata.album,
+        artworkPath: metadata.artworkPath,
+        thumbnailPath: metadata.thumbnailPath,
+        artworkWidth: metadata.artworkWidth,
+        artworkHeight: metadata.artworkHeight,
+        themeColorsBlob: metadata.themeColorsBlob,
+        waveformBlob: metadata.waveformBlob,
         trackNumber: metadata.trackNumber,
+
+
       );
+
       queueChanged = true;
     }
 
@@ -463,18 +520,18 @@ class AudioService extends ChangeNotifier {
       _currentArtist = metadata.artist;
       _currentAlbum = metadata.album;
       _currentArtworkPath = metadata.artworkPath;
+      _thumbnailPath = metadata.thumbnailPath; // Ensure thumbnail path is also updated
       _artworkWidth = metadata.artworkWidth;
       _artworkHeight = metadata.artworkHeight;
       _currentArtworkBytes = artworkBytes;
-      if (artworkBytes != null) {
-        _hdArtworkCache[metadata.path] = artworkBytes;
-      }
 
       _windowsIntegration?.updateMetadata(null);
+
       _androidIntegration?.updateMetadata(null);
     }
 
-    await _updatePalette(metadata: metadata);
+    await _updatePalette();
+
 
     if (queueChanged || isCurrentTrack) {
       notifyListeners();
@@ -483,7 +540,7 @@ class AudioService extends ChangeNotifier {
 
   Future<void> _refreshCurrentWaveform({bool notify = true}) async {
     final path = _currentFilePath;
-    if (path == null) {
+    if (path == null || !settingsService.isWaveformProgressBarEnabled) {
       if (_currentWaveform.isNotEmpty) {
         _currentWaveform = const [];
         if (notify) {
@@ -513,154 +570,89 @@ class AudioService extends ChangeNotifier {
         (colors['vibrant']?.withValues(alpha: 0.8)) ?? colors['muted'];
   }
 
-  Future<void> _updatePalette({SongMetadata? metadata}) async {
-    if (!settingsService.isVisualizerDynamicColor &&
-        !settingsService.isVisualizerDynamicStartColor &&
-        !settingsService.isVisualizerDynamicEndColor &&
-        settingsService.playbackBackgroundType != 1) {
+  Future<void> _updatePalette() async {
+    final artworkBytes = _currentArtworkBytes;
+    final artworkPath = _currentArtworkPath;
+
+    if (artworkBytes == null && artworkPath == null) {
       _dynamicStartColor = null;
       _dynamicEndColor = null;
+      _currentThemeColorsMap = const {};
+      notifyListeners();
       return;
     }
 
-    if (_currentFilePath != null) {
-      final songMetadata =
-          metadata ?? await _db.getSongMetadata(_currentFilePath!);
-      if (songMetadata != null && songMetadata.themeColorsBlob != null) {
-        final colorsMap = ThemeColorHelper.blobToColors(
-          songMetadata.themeColorsBlob!,
-        );
-        if (colorsMap.isNotEmpty) {
-          _applyThemeColors(colorsMap);
-          return;
-        }
-      }
-    }
 
-    _dynamicStartColor = Colors.black;
-    _dynamicEndColor = Colors.white;
+    
+    // Use the ThemeColorHelper which wraps the PaletteGenerator
+    final palette = await ThemeColorHelper.generatePalette(
+      bytes: artworkBytes,
+      path: artworkPath,
+    );
 
-    ImageProvider? imageProvider;
-    if (_currentArtworkBytes != null) {
-      imageProvider = MemoryImage(_currentArtworkBytes!);
-    } else if (_currentArtworkPath != null && _currentArtworkPath!.isNotEmpty) {
-      imageProvider = FileImage(File(_currentArtworkPath!));
-    }
-
-    if (imageProvider != null && _currentFilePath != null) {
-      final String pathToUpdate = _currentFilePath!;
-
-      unawaited(() async {
-        try {
-          final resizeProvider = ResizeImage(
-            imageProvider!,
-            width: 200,
-            height: 200,
-          );
-          final palette = await PaletteGenerator.fromImageProvider(
-            resizeProvider,
-            maximumColorCount: 20,
-          );
-
-          final blob = ThemeColorHelper.paletteToBlob(palette);
-          final songMetadata = await _db.getSongMetadata(pathToUpdate);
-          if (songMetadata != null) {
-            final updated = SongMetadata(
-              id: songMetadata.id,
-              path: songMetadata.path,
-              title: songMetadata.title,
-              album: songMetadata.album,
-              artist: songMetadata.artist,
-              duration: songMetadata.duration,
-              artworkPath: songMetadata.artworkPath,
-              artworkWidth: songMetadata.artworkWidth,
-              artworkHeight: songMetadata.artworkHeight,
-              trackNumber: songMetadata.trackNumber,
-              themeColorsBlob: blob,
-              waveformBlob: songMetadata.waveformBlob,
-            );
-            await _db.insertOrUpdateSong(updated);
-          }
-
-          if (pathToUpdate == _currentFilePath) {
-            final colorsMap = ThemeColorHelper.blobToColors(blob);
-            _applyThemeColors(colorsMap);
-            notifyListeners();
-          }
-        } catch (e) {
-          debugPrint('Error generating palette async: $e');
-        }
-      }());
-    } else {
-      _dynamicStartColor = Colors.blue;
-      _dynamicEndColor = Colors.deepPurple;
-      _currentThemeColorsMap = {
-        'dominant': Colors.blue,
-        'vibrant': Colors.deepPurple,
-        'muted': Colors.indigo,
-      };
-    }
+    _applyThemeColors(palette.colorsMap);
+    _dynamicStartColor = palette.startColor;
+    _dynamicEndColor = palette.endColor;
+    notifyListeners();
   }
 
-  /// 更新当前播放歌曲的完整元数据流程 (已简化：直接读取文件，不再查库)
+
+  /// 更新当前正在播放歌曲的元数据流程（从给定的 MusicFile 提取完整播放信息）
   Future<void> _updateCurrentMetadata(MusicFile song) async {
     final path = song.path;
     final id = song.id;
 
     if (_currentFilePath == path && _currentSongId == id) return;
 
-    // 清理旧状态
-    _currentArtworkBytes = null;
+    // 1. 更新内部状态（文件名、路径、艺术家、专辑及封面的 HD 路径）
     _currentFilePath = path;
     _currentFileName = song.displayName;
     _currentArtist = song.artist;
     _currentAlbum = song.album;
     _currentSongId = id;
-    _currentWaveform = const [];
-    _currentArtworkPath = null;
-    _artworkWidth = null;
-    _artworkHeight = null;
+    _currentArtworkPath = song.hdArtworkPath;
+    _thumbnailPath = song.thumbnailPath;
+    _artworkWidth = song.artworkWidth;
+    _artworkHeight = song.artworkHeight;
+    _currentWaveform = (song.waveformBlob != null && settingsService.isWaveformProgressBarEnabled)
+        ? _waveformService.waveformFromBlob(song.waveformBlob!)
+        : const [];
 
-    // 立即通知 UI：此时显示文件基础信息或占位
-    _windowsIntegration?.updateMetadata(null);
-    notifyListeners();
-
-    // 直接通过 Resolver 解析文件内嵌的元数据
-    final resolution = await _trackAssetResolver.resolve(
-      song,
-      cachedArtworkBytes: _hdArtworkCache[path],
-    );
-
-    // 更新更精确的信息
-    _currentFileName = resolution.fileName;
-    _currentArtist = resolution.artist;
-    _currentAlbum = resolution.album;
-    _currentWaveform = resolution.waveform;
-    _currentArtworkBytes = resolution.artworkBytes;
-    _currentArtworkPath = resolution.artworkPath ?? _currentArtworkPath;
-    _artworkWidth = resolution.artworkWidth ?? _artworkWidth;
-    _artworkHeight = resolution.artworkHeight ?? _artworkHeight;
+    _currentArtworkBytes = song.artworkBytes;
     
-    _clearLyricsState();
-
-    // 更新高清封面缓存
-    if (resolution.artworkBytes != null) {
-      _hdArtworkCache[path] = resolution.artworkBytes!;
+    // 2. 如果之前已缓存了主题色彩信息，此时直接应用（这样 UI 界面背景色即刻更新，无需等待重绘）
+    if (song.themeColorsBlob != null) {
+      final colorsMap = ThemeColorHelper.blobToColors(song.themeColorsBlob!);
+      _applyThemeColors(colorsMap);
     }
 
-    // 基于解析内容更新调色板
+    // 3. 如果内存中没有封面字节，但有本地路径，静默载入内存供调色板生成使用
+    if (_currentArtworkBytes == null && song.hdArtworkPath != null) {
+      try {
+        final bytes = await File(song.hdArtworkPath!).readAsBytes();
+        if (path == _currentFilePath) {
+          _currentArtworkBytes = bytes;
+        }
+      } catch (_) {}
+    }
+
+
+    _clearLyricsState();
+    notifyListeners();
+
+    // 4. 重算调色板（如果没缓存或元数据刚发生变化）
     await _updatePalette();
 
-    // 同步更新系统层面的媒体控制器
-    _windowsIntegration?.updateMetadata(null);
-    _androidIntegration?.updateMetadata(null);
+    // 5. 与系统底层接口对接，更新 Windows 的系统媒体控制弹窗/Android 通知栏的封面信息
+    _windowsIntegration?.updateMetadata(song);
+    _androidIntegration?.updateMetadata(song);
 
-    // 异步获取歌词
+    // 6. 异步启动歌词搜索或本地加载请求
     unawaited(_fetchAndLogLyrics(song));
 
-    // 流程结束
     notifyListeners();
   }
+
 
   void _clearLyricsState({bool notify = false}) {
     _isLyricsLoading = true;
@@ -746,12 +738,12 @@ class AudioService extends ChangeNotifier {
   }) async {
     final song = MusicFile(path: path, name: name, id: id);
     if (!append) {
-      _playlist.clear();
+      _queue.clear();
       await _player.playlist.clear();
     }
 
-    final int index = _playlist.length;
-    _playlist.add(song);
+    final int index = _queue.length;
+    _queue.add(song);
     await _player.playlist.addTracks([
       AudioTrack(id: index.toString(), uri: path),
     ]);
@@ -760,6 +752,7 @@ class AudioService extends ChangeNotifier {
     await playAtIndex(index);
   }
 
+  /// 播放选定的一组歌曲（歌单），由 UI 触发（如点击文件夹中的一首歌）。
   Future<void> playPlaylist(
     List<MusicFile> songs, {
     int initialIndex = 0,
@@ -767,24 +760,27 @@ class AudioService extends ChangeNotifier {
     if (songs.isEmpty) return;
     final safeIndex = initialIndex.clamp(0, songs.length - 1);
 
+    // 1. 设置正在切换状态并通知 UI
     _isTransitioning = true;
     notifyListeners();
 
     try {
-      _playlist.clear();
-      _playlist.addAll(songs);
+      // 2. 清除并重新填充本地播放队列
+      _queue.clear();
+      _queue.addAll(songs);
       _currentIndex = safeIndex;
       notifyListeners();
 
+      // 3. 将歌曲转换为底层播放器（AudioCore）可识别的 Track 格式
       final tracks = songs.asMap().entries.map((e) {
         return AudioTrack(id: e.key.toString(), uri: e.value.path);
       }).toList();
 
-      // Clear existing playlist and add all tracks
+      // 4. 清除底层播放器的旧内容并加载新 Track
       await _player.playlist.clear();
       await _player.playlist.addTracks(tracks);
 
-      // Play the selected track
+      // 5. 设置当前活跃的播放列表并开启播放（从指定索引开始）
       if (_player.playlist.activePlaylistId != null) {
         await _player.playlist.setActivePlaylist(
           _player.playlist.activePlaylistId!,
@@ -793,13 +789,22 @@ class AudioService extends ChangeNotifier {
         );
       }
 
+      // 6. 确认即将播放歌曲的数据就绪（如果没好，则暂停扫描，优先处理）
       final current = songs[safeIndex];
+      await _ensureCurrentSongDataReady(current);
+
+      // 7. 更新当前播放歌曲的元数据
       await _updateCurrentMetadata(current);
+
+      // 8. 设置音量并更新当前波形显示
 
       await _player.player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
+
+      // 8. 启动后台线程来预加载队列中后续歌曲的元数据或波形字节，提升切换时的平滑度
       _startQueueBackgroundProcessing();
     } finally {
+      // 9. 结束切换过程
       _isTransitioning = false;
       notifyListeners();
     }
@@ -808,8 +813,8 @@ class AudioService extends ChangeNotifier {
   Future<void> addToPlaylist(List<MusicFile> songs) async {
     if (songs.isEmpty) return;
 
-    final bool wasEmpty = _playlist.isEmpty;
-    _playlist.addAll(songs);
+    final bool wasEmpty = _queue.isEmpty;
+    _queue.addAll(songs);
 
     final startIndex = _player.playlist.items.length;
     final tracks = songs.asMap().entries.map((e) {
@@ -829,11 +834,11 @@ class AudioService extends ChangeNotifier {
   }
 
   Future<void> removeFromPlaylist(int index) async {
-    if (index >= 0 && index < _playlist.length) {
-      _playlist.removeAt(index);
+    if (index >= 0 && index < _queue.length) {
+      _queue.removeAt(index);
       await _player.playlist.removeTrackAt(index);
       if (_currentFilePath != null) {
-        final updatedIndex = _playlist.indexWhere(
+        final updatedIndex = _queue.indexWhere(
           (song) => song.path == _currentFilePath,
         );
         if (updatedIndex != -1) {
@@ -845,8 +850,10 @@ class AudioService extends ChangeNotifier {
     }
   }
 
+
+
   Future<void> clearPlaylist() async {
-    _playlist.clear();
+    _queue.clear();
     _currentIndex = -1;
     _currentFilePath = null;
     _currentFileName = null;
@@ -856,8 +863,7 @@ class AudioService extends ChangeNotifier {
     _currentWaveform = const [];
     _currentArtworkBytes = null;
     _currentArtworkPath = null;
-    _backgroundArtworkBytes = null;
-    _backgroundArtworkPath = null;
+
     await _player.playlist.clear();
     _duration = Duration.zero;
     _position = Duration.zero;
@@ -873,11 +879,13 @@ class AudioService extends ChangeNotifier {
       final success = await _player.playlist.playNext();
       if (success) {
         final newIndex = _player.playlist.currentIndex ?? -1;
-        if (newIndex >= 0 && newIndex < _playlist.length) {
+        if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
-          final song = _playlist[_currentIndex];
+          final song = _queue[_currentIndex];
+          await _ensureCurrentSongDataReady(song);
           await _updateCurrentMetadata(song);
           await _refreshCurrentWaveform(notify: false);
+
         }
       }
     } finally {
@@ -887,7 +895,7 @@ class AudioService extends ChangeNotifier {
   }
 
   Future<void> playAtIndex(int index) async {
-    if (index < 0 || index >= _playlist.length) return;
+    if (index < 0 || index >= _queue.length) return;
     if (_isTransitioning) return;
     if (index == _currentIndex && _isPlaying) return;
 
@@ -902,10 +910,12 @@ class AudioService extends ChangeNotifier {
         );
       }
       _currentIndex = index;
-      final song = _playlist[_currentIndex];
+      final song = _queue[_currentIndex];
+      await _ensureCurrentSongDataReady(song);
       await _updateCurrentMetadata(song);
       await _refreshCurrentWaveform(notify: false);
     } finally {
+
       _isTransitioning = false;
       notifyListeners();
     }
@@ -919,12 +929,14 @@ class AudioService extends ChangeNotifier {
       final success = await _player.playlist.playPrevious();
       if (success) {
         final newIndex = _player.playlist.currentIndex ?? -1;
-        if (newIndex >= 0 && newIndex < _playlist.length) {
+        if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
-          final song = _playlist[_currentIndex];
+          final song = _queue[_currentIndex];
+          await _ensureCurrentSongDataReady(song);
           await _updateCurrentMetadata(song);
           await _refreshCurrentWaveform(notify: false);
         }
+
       }
     } finally {
       _isTransitioning = false;
@@ -1016,15 +1028,15 @@ class AudioService extends ChangeNotifier {
 
   void _expandPlaylistToGlobal(List<MusicFile> globalSongs) {
     // Merge current playlist with global songs, deduplicate by path
-    final existingPaths = _playlist.map((s) => s.path).toSet();
+    final existingPaths = _queue.map((s) => s.path).toSet();
     final newSongs = globalSongs
         .where((s) => !existingPaths.contains(s.path))
         .toList();
 
     if (newSongs.isEmpty) return;
 
-    final startIndex = _playlist.length;
-    _playlist.addAll(newSongs);
+    final startIndex = _queue.length;
+    _queue.addAll(newSongs);
 
     final tracks = newSongs.asMap().entries.map((e) {
       return AudioTrack(id: (startIndex + e.key).toString(), uri: e.value.path);
@@ -1035,25 +1047,29 @@ class AudioService extends ChangeNotifier {
     _startQueueBackgroundProcessing();
   }
 
-  void updateBackground({Uint8List? bytes, String? path}) {
-    if (_backgroundArtworkBytes != bytes || _backgroundArtworkPath != path) {
-      _backgroundArtworkBytes = bytes;
-      _backgroundArtworkPath = path;
-      notifyListeners();
-    }
-  }
 
-  final Map<String, Uint8List> _hdArtworkCache = {};
-  static const int _maxHdCacheSize = 8;
+
+
 
   void _startQueueBackgroundProcessing() {
-    if (_playlist.isEmpty) return;
+    if (_queue.isEmpty) return;
 
     unawaited(
       _queueProcessor.processQueue(
-        playlist: List.from(_playlist),
+        playlist: List.from(_queue),
         currentFilePath: _currentFilePath,
         onUpdate: (path, updates) {
+          // 1. 同步更新播放队列中的 MusicFile 对象
+          for (int i = 0; i < _queue.length; i++) {
+            if (_queue[i].path == path) {
+              _queue[i] = _queue[i].copyWith(
+                themeColorsBlob: updates['themeColorsBlob'] as Uint8List?,
+                waveformBlob: updates['waveformBlob'] as Uint8List?,
+              );
+            }
+          }
+
+          // 2. 如果是当前播放，立即反馈到 UI
           if (path == _currentFilePath) {
             if (updates.containsKey('themeColors')) {
               _applyThemeColors(updates['themeColors'] as Map<String, Color>);
@@ -1064,14 +1080,26 @@ class AudioService extends ChangeNotifier {
             notifyListeners();
           }
         },
+
         onHdArtworkLoaded: (path, bytes) {
-          _hdArtworkCache[path] = bytes;
-          if (_hdArtworkCache.length > _maxHdCacheSize) {
-            _hdArtworkCache.remove(_hdArtworkCache.keys.first);
+          // 1. 同步到队列记录中：由于 MusicFile 是不可变的，我们通过 copyWith 更新对应项的字节
+          // 这样当滑动播放列表或重新加载该项 UI 时，可以直接从内存读取封面字节
+          for (int i = 0; i < _queue.length; i++) {
+            if (_queue[i].path == path) {
+              _queue[i] = _queue[i].copyWith(artworkBytes: bytes);
+            }
           }
 
-          // Pre-decode the image at a limited resolution to save memory and prevent stutter
-          // PC: 1200 * 1200, Mobile: 800 * 800
+          // 2. 实时更新当前播放页：如果预解码的正好是当前正在播放的歌曲，立即通知 UI 更新背景
+          if (path == _currentFilePath) {
+            _currentArtworkBytes = bytes;
+            notifyListeners();
+          }
+
+          // 3. 核心方案：提前触发解码并载入 Flutter 图像缓存
+          // 如果在播放页使用 Image.memory 载入数 MB 的原始字节，主线程在解码瞬间会出现掉帧。
+          // 这里通过 ResizeImage 并在后台调用 resolve 来提前完成图片的异步解码工作并放入内存缓存。
+          // 限制最大尺寸：PC端 1200, 移动端 800, 既能保证背景清晰度，也能极大降低内存开销。
           final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
           final int limit = isPc ? 1200 : 800;
 
@@ -1082,12 +1110,9 @@ class AudioService extends ChangeNotifier {
             allowUpscaling: false,
           );
           provider.resolve(ImageConfiguration.empty);
-
-          if (path == _currentFilePath && _currentArtworkBytes == null) {
-            _currentArtworkBytes = bytes;
-            notifyListeners();
-          }
         },
+
+
       ),
     );
   }

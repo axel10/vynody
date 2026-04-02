@@ -49,22 +49,24 @@ class MetadataHelper {
       }
 
       String? artworkPath;
+      String? thumbnailPath;
       int? artworkWidth;
       int? artworkHeight;
       Uint8List? themeColorsBlob;
 
       if (artworkData != null) {
-        // 3. 处理封面图：压缩、调整尺寸并保存到本地 thumbnails 目录
-        // 缩略图用于列表显示和快速预览，原始大图则在播放页按需加载
-        final artworkInfo = await _saveCompressedArtwork(filePath, artworkData);
-        artworkPath = artworkInfo?['path'] as String?;
+        // 3. 处理封面图：保存原始大图并生成缩略图
+        final artworkInfo = await saveArtworkAndThumbnail(filePath, artworkData);
+
+        artworkPath = artworkInfo?['artworkPath'] as String?;
+        thumbnailPath = artworkInfo?['thumbnailPath'] as String?;
         artworkWidth = artworkInfo?['width'] as int?;
         artworkHeight = artworkInfo?['height'] as int?;
 
-        if (artworkPath != null) {
+        if (thumbnailPath != null) {
           try {
-            // 4. 基于封面生成预置的主题颜色，存入数据库以备后用
-            final imageProvider = FileImage(File(artworkPath));
+            // 4. 基于缩略图生成预置的主题颜色，存入数据库以备后用
+            final imageProvider = FileImage(File(thumbnailPath));
             final palette = await PaletteGenerator.fromImageProvider(
               imageProvider,
               maximumColorCount: 20,
@@ -83,6 +85,7 @@ class MetadataHelper {
         artist: artist ?? 'Unknown Artist',
         duration: duration,
         artworkPath: artworkPath,
+        thumbnailPath: thumbnailPath,
         artworkWidth: artworkWidth,
         artworkHeight: artworkHeight,
         trackNumber: trackNumber,
@@ -92,54 +95,49 @@ class MetadataHelper {
       // 5. 将解析结果存入数据库
       await db.insertOrUpdateSong(song);
       return (song, artworkData);
+
     } catch (e) {
       debugPrint('Error processing metadata for $filePath: $e');
       return null;
     }
   }
 
-  static Future<Map<String, dynamic>?> _saveCompressedArtwork(
+  static Future<Map<String, dynamic>?> saveArtworkAndThumbnail(
     String songPath,
     Uint8List data,
   ) async {
+
     try {
       final supportDir = await getApplicationSupportDirectory();
+      final artworkDir = Directory(p.join(supportDir.path, 'artworks'));
       final thumbnailsDir = Directory(p.join(supportDir.path, 'thumbnails'));
-      if (!await thumbnailsDir.exists()) {
-        await thumbnailsDir.create(recursive: true);
-      }
+      
+      if (!await artworkDir.exists()) await artworkDir.create(recursive: true);
+      if (!await thumbnailsDir.exists()) await thumbnailsDir.create(recursive: true);
 
-      final fileName =
-          '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}.jpg';
-      final targetPath = p.join(thumbnailsDir.path, fileName);
+      final baseName = '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}';
+      final largePath = p.join(artworkDir.path, '$baseName.jpg');
+      final thumbPath = p.join(thumbnailsDir.path, '${baseName}_thumb.jpg');
 
-      int width;
-      int height;
-      Uint8List compressedData;
+      int width = 0;
+      int height = 0;
+      Uint8List thumbnailData;
 
       if (Platform.isWindows || Platform.isLinux) {
-        // Use 'image' package on Windows/Linux but in an ISOLATE to avoid blocking UI
         final result = await compute(_processImageWindowsIsolate, data);
         if (result == null) return null;
-        compressedData = result['data'] as Uint8List;
+        thumbnailData = result['thumbnail'] as Uint8List;
         width = result['width'] as int;
         height = result['height'] as int;
       } else {
-        // Use flutter_image_compress on supported platforms (Android, iOS, macOS)
-        // But first get dimensions FAST using native bridge instead of slow Dart image package
         try {
-          // This is much faster than img.decodeImage
           final buffer = await ui.ImmutableBuffer.fromUint8List(data);
           final descriptor = await ui.ImageDescriptor.encoded(buffer);
           width = descriptor.width;
           height = descriptor.height;
-        } catch (e) {
-          // Fallback if needed
-          width = 0;
-          height = 0;
-        }
+        } catch (_) {}
 
-        compressedData = await FlutterImageCompress.compressWithList(
+        thumbnailData = await FlutterImageCompress.compressWithList(
           data,
           minWidth: 200,
           minHeight: 200,
@@ -148,10 +146,17 @@ class MetadataHelper {
         );
       }
 
-      final file = File(targetPath);
-      await file.writeAsBytes(compressedData);
+      // Save high-res original
+      await File(largePath).writeAsBytes(data);
+      // Save thumbnail
+      await File(thumbPath).writeAsBytes(thumbnailData);
 
-      return {'path': targetPath, 'width': width, 'height': height};
+      return {
+        'artworkPath': largePath,
+        'thumbnailPath': thumbPath,
+        'width': width,
+        'height': height,
+      };
     } catch (e) {
       debugPrint('Error saving artwork: $e');
       return null;
@@ -185,7 +190,7 @@ class MetadataHelper {
       );
 
       return {
-        'data': Uint8List.fromList(img.encodeJpg(resized, quality: 80)),
+        'thumbnail': Uint8List.fromList(img.encodeJpg(resized, quality: 80)),
         'width': originalImage.width,
         'height': originalImage.height,
       };
@@ -193,6 +198,7 @@ class MetadataHelper {
       return null;
     }
   }
+
 
   static Future<void> clearThumbnails() async {
     try {

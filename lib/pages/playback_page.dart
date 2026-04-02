@@ -534,10 +534,11 @@ class _PlaybackPageState extends State<PlaybackPage>
           children: [
             Selector<AudioService, ({Uint8List? bytes, String? path})>(
               selector: (_, a) => (
-                bytes: a.backgroundArtworkBytes,
-                path: a.backgroundArtworkPath,
+                bytes: a.currentArtworkBytes,
+                path: a.currentArtworkPath,
               ),
               builder: (context, data, _) {
+
                 final Widget content;
                 final bytes = data.bytes;
                 final path = data.path;

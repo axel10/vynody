@@ -14,18 +14,18 @@ import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
-import 'settings_service.dart';
 
 enum SortCriteria { title, filename, trackNumber }
 
 enum SortOrder { ascending, descending }
 
 class ScannerService extends ChangeNotifier {
-  final SettingsService? _settingsService;
   AudioCoreController? _playerController;
   final List<String> _rootPaths = [];
   final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
+  bool _isBackgroundTaskPaused = false;
+
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -40,6 +40,8 @@ class ScannerService extends ChangeNotifier {
   List<String> get rootPaths => List.unmodifiable(_rootPaths);
   List<MusicFolder> get rootFolders => List.unmodifiable(_rootFolders);
   bool get isScanning => _isScanning;
+  bool get isBackgroundTaskPaused => _isBackgroundTaskPaused;
+
 
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
   bool get hasPermission => _hasPermission;
@@ -56,7 +58,7 @@ class ScannerService extends ChangeNotifier {
     '.ogg',
   ];
 
-  ScannerService([this._settingsService]) {
+  ScannerService() {
     _init();
     _setupMediaObserver();
   }
@@ -267,8 +269,11 @@ class ScannerService extends ChangeNotifier {
           album: song.album ?? '',
           artist: song.artist ?? '',
           duration: song.duration,
+          artworkPath: null, // Android system artwork is queried on demand
+          thumbnailPath: null,
           trackNumber: song.track,
         );
+
       }
 
       _systemMediaFolder = _organizeSongsIntoFolders(songs);
@@ -278,6 +283,28 @@ class ScannerService extends ChangeNotifier {
       unawaited(_processAndSaveAndroidSongsBackground(songs));
     } catch (e) {
       debugPrint('Error scanning system media: $e');
+    }
+  }
+
+  void pauseBackgroundTasks() {
+    if (!_isBackgroundTaskPaused) {
+      _isBackgroundTaskPaused = true;
+      debugPrint('ScannerService: Background tasks paused.');
+      notifyListeners();
+    }
+  }
+
+  void resumeBackgroundTasks() {
+    if (_isBackgroundTaskPaused) {
+      _isBackgroundTaskPaused = false;
+      debugPrint('ScannerService: Background tasks resumed.');
+      notifyListeners();
+    }
+  }
+
+  Future<void> _waitUntilResumed() async {
+    while (_isBackgroundTaskPaused) {
+      await Future.delayed(const Duration(milliseconds: 500));
     }
   }
 
@@ -302,52 +329,17 @@ class ScannerService extends ChangeNotifier {
 
     try {
       for (var song in songs) {
+        await _waitUntilResumed();
         try {
+
           // Use the unified MetadataHelper to process metadata.
           // This will extract tags, save thumbnails, and generate theme colors.
-          final result = await MetadataHelper.processMetadata(
+          await MetadataHelper.processMetadata(
             song.data,
             songId: song.id,
           );
-          final metadata = result?.$1;
 
-          if (metadata != null) {
-            // After common metadata is processed, check if waveform is needed.
-            if (metadata.waveformBlob == null) {
-              try {
-                final waveform = await player.getWaveform(
-                  expectedChunks: _settingsService?.waveformChunks ?? 80,
-                  sampleStride: _settingsService?.sampleStride ?? 4,
-                  filePath: song.data,
-                );
-                if (waveform.isNotEmpty) {
-                  final float32List = Float32List.fromList(
-                    waveform.map((e) => e.toDouble()).toList(),
-                  );
-                  final waveformBlob = float32List.buffer.asUint8List();
-
-                  // Update the DB with the waveform
-                  final updatedMetadata = SongMetadata(
-                    id: metadata.id,
-                    path: metadata.path,
-                    title: metadata.title,
-                    album: metadata.album,
-                    artist: metadata.artist,
-                    duration: metadata.duration,
-                    artworkPath: metadata.artworkPath,
-                    artworkWidth: metadata.artworkWidth,
-                    artworkHeight: metadata.artworkHeight,
-                    trackNumber: metadata.trackNumber,
-                    themeColorsBlob: metadata.themeColorsBlob,
-                    waveformBlob: waveformBlob,
-                  );
-                  await MetadataDatabase().insertOrUpdateSong(updatedMetadata);
-                }
-              } catch (e) {
-                debugPrint('Waveform extraction failed for scan: $e');
-              }
-            }
-          }
+          // Metadata processing finishes here. No waveform extraction during initial scan.
         } catch (e) {
           debugPrint('Background processing error for ${song.data}: $e');
         }
@@ -525,48 +517,13 @@ class ScannerService extends ChangeNotifier {
 
     // Process in batches or one by one
     for (final path in allFilePaths) {
+      await _waitUntilResumed();
       try {
+
         final result = await MetadataHelper.processMetadata(path);
         SongMetadata? metadata = result?.$1;
 
-        // Extract waveform if missing
-        if (metadata != null &&
-            metadata.waveformBlob == null &&
-            _playerController != null) {
-          try {
-            final waveform = await _playerController!.getWaveform(
-              expectedChunks: _settingsService?.waveformChunks ?? 80,
-              sampleStride: _settingsService?.sampleStride ?? 4,
-              filePath: path,
-            );
-            if (waveform.isNotEmpty) {
-              final float32List = Float32List.fromList(
-                waveform.map((e) => e.toDouble()).toList(),
-              );
-              final waveformBlob = float32List.buffer.asUint8List();
-
-              metadata = SongMetadata(
-                id: metadata.id,
-                path: metadata.path,
-                title: metadata.title,
-                album: metadata.album,
-                artist: metadata.artist,
-                duration: metadata.duration,
-                artworkPath: metadata.artworkPath,
-                artworkWidth: metadata.artworkWidth,
-                artworkHeight: metadata.artworkHeight,
-                trackNumber: metadata.trackNumber,
-                themeColorsBlob: metadata.themeColorsBlob,
-                waveformBlob: waveformBlob,
-              );
-              await MetadataDatabase().insertOrUpdateSong(metadata);
-            }
-          } catch (e) {
-            debugPrint('Waveform extraction failed for background rebuild: $e');
-          }
-        }
-
-        // To update UI immediately if user is looking at it:
+        // Metadata update (to update UI metadataMap)
         if (metadata != null) {
           _metadataMap[path] = metadata;
           notifyListeners();
@@ -637,6 +594,12 @@ class ScannerService extends ChangeNotifier {
             String? artist;
             String? album;
             int? trackNumber;
+            String? artworkPath;
+            String? thumbnailPath;
+            int? artworkWidth;
+            int? artworkHeight;
+            Uint8List? themeColorsBlob;
+            Uint8List? waveformBlob;
 
             if (Platform.isWindows) {
               // Avoid expensive per-file parsing during directory crawl.
@@ -650,6 +613,12 @@ class ScannerService extends ChangeNotifier {
                 artist = metadata.artist;
                 album = metadata.album;
                 trackNumber = metadata.trackNumber;
+                artworkPath = metadata.artworkPath;
+                thumbnailPath = metadata.thumbnailPath;
+                artworkWidth = metadata.artworkWidth;
+                artworkHeight = metadata.artworkHeight;
+                themeColorsBlob = metadata.themeColorsBlob;
+                waveformBlob = metadata.waveformBlob;
               }
             }
 
@@ -661,6 +630,12 @@ class ScannerService extends ChangeNotifier {
                 artist: artist,
                 album: album,
                 trackNumber: trackNumber,
+                hdArtworkPath: artworkPath,
+                thumbnailPath: thumbnailPath,
+                artworkWidth: artworkWidth,
+                artworkHeight: artworkHeight,
+                themeColorsBlob: themeColorsBlob,
+                waveformBlob: waveformBlob,
                 id: id,
               ),
             );

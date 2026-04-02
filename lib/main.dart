@@ -85,9 +85,12 @@ void main(List<String> args) async {
       providers: [
         ChangeNotifierProvider(create: (_) => AudioService(settingsService)),
         ChangeNotifierProxyProvider<AudioService, ScannerService>(
-          create: (_) => ScannerService(settingsService),
-          update: (_, audio, scanner) =>
-              scanner!..setPlayerController(audio.playbackController),
+          create: (_) => ScannerService(),
+          update: (_, audio, scanner) {
+            scanner!.setPlayerController(audio.playbackController);
+            audio.setScannerService(scanner);
+            return scanner;
+          },
         ),
         ChangeNotifierProvider(create: (_) => PlaylistService()),
         ChangeNotifierProvider.value(value: settingsService),

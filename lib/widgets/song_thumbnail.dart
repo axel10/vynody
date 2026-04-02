@@ -94,8 +94,9 @@ class _SongThumbnailState extends State<SongThumbnail> {
       final scanner = context.watch<ScannerService>();
       final metadata = scanner.metadataMap[widget.path];
 
-      if (metadata?.artworkPath != null) {
-        final file = File(metadata!.artworkPath!);
+      final imagePath = metadata?.thumbnailPath ?? metadata?.artworkPath;
+      if (imagePath != null) {
+        final file = File(imagePath);
         if (file.existsSync()) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(4),
@@ -104,11 +105,14 @@ class _SongThumbnailState extends State<SongThumbnail> {
               width: widget.size,
               height: widget.size,
               fit: BoxFit.cover,
+              cacheWidth: (widget.size * 2).toInt(),
+              cacheHeight: (widget.size * 2).toInt(),
               errorBuilder: (_, _, _) => _fallbackIcon(),
             ),
           );
         }
       }
+
 
       // Metadata not yet in map — trigger a one-shot load from DB/file.
       if (metadata == null) {

@@ -24,13 +24,46 @@ class PlaybackQueueProcessor {
 
   int _currentProcessId = 0;
   bool _isProcessing = false;
+  bool _isPaused = false;
   bool get isProcessing => _isProcessing;
+  bool get isPaused => _isPaused;
+
 
   PlaybackQueueProcessor({
     required this.db,
     required this.player,
     required this.settingsService,
   });
+
+  void pause() {
+    _isPaused = true;
+    debugPrint('PlaybackQueueProcessor: Paused background processing.');
+  }
+
+  void resume() {
+    _isPaused = false;
+    debugPrint('PlaybackQueueProcessor: Resumed background processing.');
+  }
+
+  Future<void> _waitUntilResumed() async {
+    while (_isPaused) {
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
+  /// Checks if a song already has all required background data (waveform, colors).
+  Future<bool> isSongReady(String path) async {
+    final existing = await db.getSongMetadata(path);
+    if (existing == null) return false;
+
+    final bool showWaveform = settingsService.isWaveformProgressBarEnabled;
+    final bool needsWaveform =
+        showWaveform && (existing.waveformBlob == null);
+    final bool needsThemeColor = existing.themeColorsBlob == null;
+
+    return !needsWaveform && !needsThemeColor;
+  }
+
 
   Future<void> processQueue({
     required List<MusicFile> playlist,
@@ -95,7 +128,10 @@ class PlaybackQueueProcessor {
           return;
         }
 
+        await _waitUntilResumed();
+
         try {
+
           final existing = await db.getSongMetadata(song.path);
           final bool showWaveform = settingsService.isWaveformProgressBarEnabled;
 
@@ -105,30 +141,46 @@ class PlaybackQueueProcessor {
           final bool needsThemeColor =
               existing == null || existing.themeColorsBlob == null;
 
-          // 1. HD PRE-FETCH & PRE-DECODE (Priority 1: For visual smoothness)
-          // Pre-fetch for current, next 3, and previous 1
+          // 1. 高清封面预取与预处理 (优先级最高)
+          // 策略：优先从数据库记录的路径读取大图文件，避免重复解析音频嵌入封面。
+          // 理由：数据库里的大图（通常是通过在线匹配获取的）质量通常更高。
           if (onHdArtworkLoaded != null && currentIndex != -1) {
-            final int songIndex = playlist.indexWhere(
-              (s) => s.path == song.path,
-            );
-            final int distance =
-                (songIndex - currentIndex + playlist.length) % playlist.length;
+            final int songIndex = playlist.indexWhere((s) => s.path == song.path);
+            final int distance = (songIndex - currentIndex + playlist.length) % playlist.length;
             bool isNear = distance <= 3 || distance == playlist.length - 1;
 
             if (isNear) {
-              try {
-                // Read from file stream directly to get HD artwork
-                final m = readMetadata(File(song.path), getImage: true);
-                final bytes =
-                    m.pictures.isNotEmpty ? m.pictures.first.bytes : null;
-                if (bytes != null) {
-                  onHdArtworkLoaded(song.path, bytes);
+              Uint8List? finalBytes;
+              
+              // 优先尝试从数据库的大图路径加载
+              if (existing?.artworkPath != null && existing!.artworkPath!.isNotEmpty) {
+                try {
+                  final coverFile = File(existing.artworkPath!);
+                  if (await coverFile.exists()) {
+                    finalBytes = await coverFile.readAsBytes();
+                  }
+                } catch (e) {
+                  debugPrint('Failed to read external artwork for ${song.path}: $e');
                 }
-              } catch (e) {
-                // Ignore errors for pre-fetch
+              }
+
+              // 如果没有外部大图路径，则回退到歌曲内嵌封面
+              if (finalBytes == null) {
+                try {
+                  final m = readMetadata(File(song.path), getImage: true);
+                  finalBytes = m.pictures.isNotEmpty ? m.pictures.first.bytes : null;
+                } catch (e) {
+                  // 回退也失败时，不做任何操作
+                }
+              }
+
+              if (finalBytes != null) {
+                onHdArtworkLoaded(song.path, finalBytes);
               }
             }
           }
+
+
 
           // 2. Heavy Processing: Colors and Waveform
           if (needsWaveform || needsThemeColor) {
@@ -164,6 +216,7 @@ class PlaybackQueueProcessor {
                     'themeColors': ThemeColorHelper.blobToColors(
                       themeColorsBlob,
                     ),
+                    'themeColorsBlob': themeColorsBlob,
                   });
                 } catch (e) {
                   debugPrint(
@@ -190,7 +243,10 @@ class PlaybackQueueProcessor {
                     meta = meta.copyWith(waveformBlob: blob);
                     await db.insertOrUpdateSong(meta);
 
-                    onUpdate(song.path, {'waveform': waveform});
+                    onUpdate(song.path, {
+                      'waveform': waveform,
+                      'waveformBlob': blob,
+                    });
                   }
                 } catch (e) {
                   debugPrint('Waveform extraction error for ${song.path}: $e');
