@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:audio_core/audio_core.dart';
 import 'package:collection/collection.dart';
@@ -13,19 +12,7 @@ class AudioSnapshot {
   final bool isPlaying;
   final bool isTransitioning;
   final bool? isLastActionNext;
-  final String? currentFilePath;
-  final String? currentFileName;
-  final String? currentArtist;
-  final String? currentAlbum;
-  final int? currentSongId;
-  final List<double> currentWaveform;
-  final Uint8List? currentArtworkBytes;
-  final String? currentArtworkPath;
-  final String? thumbnailPath;
-  final Uint8List? backgroundArtworkBytes;
-  final String? backgroundArtworkPath;
-  final int? artworkWidth;
-  final int? artworkHeight;
+  final MusicFile? currentMusic;
   final Duration position;
   final Duration duration;
   final double volume;
@@ -53,19 +40,7 @@ class AudioSnapshot {
     required this.isPlaying,
     required this.isTransitioning,
     required this.isLastActionNext,
-    required this.currentFilePath,
-    required this.currentFileName,
-    required this.currentArtist,
-    required this.currentAlbum,
-    required this.currentSongId,
-    required List<double> currentWaveform,
-    required this.currentArtworkBytes,
-    required this.currentArtworkPath,
-    required this.thumbnailPath,
-    required this.backgroundArtworkBytes,
-    required this.backgroundArtworkPath,
-    required this.artworkWidth,
-    required this.artworkHeight,
+    required this.currentMusic,
     required this.position,
     required this.duration,
     required this.volume,
@@ -87,8 +62,7 @@ class AudioSnapshot {
     required List<LyricLine> currentLyricsLines,
     required this.currentLyricsText,
     required this.currentLyricsTitle,
-  }) : currentWaveform = List<double>.unmodifiable(currentWaveform),
-       playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
+  }) : playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
        currentLyricsLines = List<LyricLine>.unmodifiable(currentLyricsLines),
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
          currentThemeColorsMap,
@@ -104,24 +78,7 @@ class AudioSnapshot {
             isPlaying == other.isPlaying &&
             isTransitioning == other.isTransitioning &&
             isLastActionNext == other.isLastActionNext &&
-            currentFilePath == other.currentFilePath &&
-            currentFileName == other.currentFileName &&
-            currentArtist == other.currentArtist &&
-            currentAlbum == other.currentAlbum &&
-            currentSongId == other.currentSongId &&
-            _deepEquality.equals(currentWaveform, other.currentWaveform) &&
-            _deepEquality.equals(
-              currentArtworkBytes,
-              other.currentArtworkBytes,
-            ) &&
-            _deepEquality.equals(
-              backgroundArtworkBytes,
-              other.backgroundArtworkBytes,
-            ) &&
-            backgroundArtworkPath == other.backgroundArtworkPath &&
-            currentArtworkPath == other.currentArtworkPath &&
-            artworkWidth == other.artworkWidth &&
-            artworkHeight == other.artworkHeight &&
+            currentMusic == other.currentMusic &&
             position == other.position &&
             duration == other.duration &&
             volume == other.volume &&
@@ -153,41 +110,30 @@ class AudioSnapshot {
 
   @override
   int get hashCode => Object.hashAll([
-    isPlaying,
-    isTransitioning,
-    isLastActionNext,
-    currentFilePath,
-    currentFileName,
-    currentArtist,
-    currentAlbum,
-    currentSongId,
-    _deepEquality.hash(currentWaveform),
-    _deepEquality.hash(currentArtworkBytes),
-    _deepEquality.hash(backgroundArtworkBytes),
-    backgroundArtworkPath,
-    currentArtworkPath,
-    artworkWidth,
-    artworkHeight,
-    position,
-    duration,
-    volume,
-    isMuted,
-    _deepEquality.hash(playbackQueue),
-    currentIndex,
-    isRandomMode,
-    isShuffleRandomMode,
-    playbackMode,
-    historyCursor,
-    deckCursor,
-    isVisualizerEnabled,
-    dynamicStartColor,
-    dynamicEndColor,
-    isLyricsLoading,
-    hasLyrics,
-    isLyricsSynced,
-    _deepEquality.hash(currentLyricsLines),
-    currentLyricsText,
-    currentLyricsTitle,
-    _deepEquality.hash(currentThemeColorsMap),
-  ]);
+        isPlaying,
+        isTransitioning,
+        isLastActionNext,
+        currentMusic,
+        position,
+        duration,
+        volume,
+        isMuted,
+        _deepEquality.hash(playbackQueue),
+        currentIndex,
+        isRandomMode,
+        isShuffleRandomMode,
+        playbackMode,
+        historyCursor,
+        deckCursor,
+        isVisualizerEnabled,
+        dynamicStartColor,
+        dynamicEndColor,
+        isLyricsLoading,
+        hasLyrics,
+        isLyricsSynced,
+        _deepEquality.hash(currentLyricsLines),
+        currentLyricsText,
+        currentLyricsTitle,
+        _deepEquality.hash(currentThemeColorsMap),
+      ]);
 }

@@ -130,18 +130,18 @@ class _PlaybackPageState extends State<PlaybackPage>
     AudioService audio,
   ) async {
     final snapshot = audio.snapshot;
-    final songPath = snapshot.currentFilePath;
-    if (songPath == null) return;
+    final song = snapshot.currentMusic;
+    if (song == null) return;
 
     final result = await showModalBottomSheet<MusicBrainzTagSelectionResult>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => SongTagCompletionSheet(
-        songPath: songPath,
-        currentTitle: snapshot.currentFileName,
-        currentArtist: snapshot.currentArtist,
-        currentAlbum: snapshot.currentAlbum,
+        songPath: song.path,
+        currentTitle: song.displayName,
+        currentArtist: song.artist,
+        currentAlbum: song.album,
         durationMillis: snapshot.duration.inMilliseconds,
       ),
     );
@@ -448,7 +448,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                               audio.seek(target);
                             },
                             onToggleVisualizer: () => _toggleVisualizer(audio),
-                            onTagCompletionTap: snapshot.currentFilePath == null
+                            onTagCompletionTap: snapshot.currentMusic == null
                                 ? null
                                 : () => _showSongTagCompletionSheet(
                                     context,
@@ -533,12 +533,9 @@ class _PlaybackPageState extends State<PlaybackPage>
         child: Stack(
           children: [
             Selector<AudioService, ({Uint8List? bytes, String? path})>(
-              selector: (_, a) => (
-                bytes: a.currentArtworkBytes,
-                path: a.currentArtworkPath,
-              ),
+              selector: (_, a) =>
+                  (bytes: a.currentArtworkBytes, path: a.currentArtworkPath),
               builder: (context, data, _) {
-
                 final Widget content;
                 final bytes = data.bytes;
                 final path = data.path;
@@ -552,7 +549,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                   );
                 } else {
                   // Gaussian blur is now handled in UI layer using ImageFiltered
-                  // We scale the image slightly (1.15) to prevent the blur from "leaking" 
+                  // We scale the image slightly (1.15) to prevent the blur from "leaking"
                   // the black background color at the edges.
                   content = ImageFiltered(
                     key: ValueKey(bytes.hashCode ^ path.hashCode),
@@ -640,7 +637,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                       values: frame.values,
                       gap: gap,
                       color: settings.isVisualizerDynamicColor
-                          ? (audio.dynamicStartColor ?? settings.visualizerColor)
+                          ? (audio.dynamicStartColor ??
+                                settings.visualizerColor)
                           : settings.visualizerColor,
                       opacity: settings.visualizerOpacity,
                       useGradient: settings.isVisualizerGradientEnabled,
@@ -649,7 +647,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                                 settings.visualizerStartColor)
                           : settings.visualizerStartColor,
                       endColor: settings.isVisualizerDynamicEndColor
-                          ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
+                          ? (audio.dynamicEndColor ??
+                                settings.visualizerEndColor)
                           : settings.visualizerEndColor,
                       gradientStop1: settings.visualizerGradientStop1,
                       gradientStop2: settings.visualizerGradientStop2,

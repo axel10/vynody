@@ -152,15 +152,18 @@ class PlaybackHeroCard extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    snapshot.currentFileName ??
+                                    snapshot.currentMusic?.displayName ??
                                         AppLocalizations.of(
                                           context,
                                         )!.notSelected,
-                                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall!
+                                        .copyWith(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -621,10 +624,10 @@ class PlaybackHeroCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final title =
         snapshot.currentLyricsTitle ??
-        snapshot.currentFileName ??
+        snapshot.currentMusic?.displayName ??
         l10n.notSelected;
-    final album = snapshot.currentAlbum;
-    final artist = snapshot.currentArtist;
+    final album = snapshot.currentMusic?.album;
+    final artist = snapshot.currentMusic?.artist;
 
     String subtitle = '';
     if (artist != null &&
@@ -649,11 +652,11 @@ class PlaybackHeroCard extends StatelessWidget {
           curve: Curves.fastOutSlowIn,
           textAlign: align,
           style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                color: Colors.white,
-                fontSize: isLyrics && !isLandscape ? 18 : 22,
-                fontWeight: FontWeight.bold,
-                height: 1.2,
-              ),
+            color: Colors.white,
+            fontSize: isLyrics && !isLandscape ? 18 : 22,
+            fontWeight: FontWeight.bold,
+            height: 1.2,
+          ),
           child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
         if (subtitle.isNotEmpty)
@@ -664,10 +667,10 @@ class PlaybackHeroCard extends StatelessWidget {
               curve: Curves.fastOutSlowIn,
               textAlign: align,
               style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    color: Colors.white70,
-                    fontSize: isLyrics && !isLandscape ? 13 : 16,
-                    height: 1.2,
-                  ),
+                color: Colors.white70,
+                fontSize: isLyrics && !isLandscape ? 13 : 16,
+                height: 1.2,
+              ),
               child: Text(
                 subtitle,
                 maxLines: 1,
@@ -768,7 +771,8 @@ class PlaybackHeroCard extends StatelessWidget {
           selector: (_, s) => s.isWaveformProgressBarEnabled,
           builder: (context, enabled, _) {
             final duration = snapshot.duration;
-            final waveform = overrideWaveform ?? snapshot.currentWaveform;
+            final waveform =
+                overrideWaveform ?? snapshot.currentMusic?.waveform ?? const [];
             final displayProgress =
                 overrideProgress ?? snapshot.progress.clamp(0.0, 1.0);
 
@@ -902,7 +906,7 @@ class PlaybackHeroCard extends StatelessWidget {
 
     return LyricsPanel(
       key: ValueKey(
-        '${snapshot.currentFilePath}_${snapshot.currentLyricsLines.length}_${snapshot.isLyricsLoading}_${snapshot.hasLyrics}',
+        '${snapshot.currentMusic?.path}_${snapshot.currentLyricsLines.length}_${snapshot.isLyricsLoading}_${snapshot.hasLyrics}',
       ),
       lines: snapshot.currentLyricsLines,
       position: snapshot.position,

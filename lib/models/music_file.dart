@@ -17,6 +17,18 @@ class MusicFile {
   final Uint8List? waveformBlob;
   final Uint8List? artworkBytes;
 
+  List<double> get waveform {
+    final blob = waveformBlob;
+    if (blob == null || blob.isEmpty) return const [];
+    final alignedBlob =
+        (blob.offsetInBytes % 4 == 0) ? blob : Uint8List.fromList(blob);
+    final list = alignedBlob.buffer.asFloat32List(
+      alignedBlob.offsetInBytes,
+      alignedBlob.length ~/ 4,
+    );
+    return list.map((e) => e.toDouble()).toList();
+  }
+
   MusicFile({
     required this.path,
     required this.name,
@@ -74,4 +86,35 @@ class MusicFile {
       artworkBytes: artworkBytes ?? this.artworkBytes,
     );
   }
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is MusicFile &&
+        other.path == path &&
+        other.name == name &&
+        other.title == title &&
+        other.artist == artist &&
+        other.album == album &&
+        other.trackNumber == trackNumber &&
+        other.id == id &&
+        other.hdArtworkPath == hdArtworkPath &&
+        other.thumbnailPath == thumbnailPath &&
+        other.artworkWidth == artworkWidth &&
+        other.artworkHeight == artworkHeight;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        path,
+        name,
+        title,
+        artist,
+        album,
+        trackNumber,
+        id,
+        hdArtworkPath,
+        thumbnailPath,
+        artworkWidth,
+        artworkHeight,
+      );
 }
