@@ -97,7 +97,10 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
   Timer? _hudTimer;
   double? _lastVolume;
   late AudioService _audioService;
+  // _isFullScreen 决定了标题栏全屏按钮的图标状态（全屏 vs 窗口化）
+  // 该状态通过 _syncWindowState() 与原生窗口状态保持同步
   bool _isFullScreen = false;
+  bool _isMaximized = false;
 
   void _handleDesktopPointerActivity(PointerEvent event) {
     if (event is PointerDownEvent) {
@@ -137,10 +140,27 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
 
   void _onAudioServiceChange() {
     if (!mounted) return;
-    if (_lastVolume != null && (_lastVolume! - _audioService.volume).abs() > 0.1) {
+    if (_lastVolume != null &&
+        (_lastVolume! - _audioService.volume).abs() > 0.1) {
       _triggerHUD();
     }
     _lastVolume = _audioService.volume;
+  }
+
+  // 同步当前原生窗口状态到 Flutter UI 状态
+  Future<void> _syncWindowState() async {
+    if (!mounted) return;
+
+    final isFull = await windowManager.isFullScreen();
+    final isMax = await windowManager.isMaximized();
+    if (mounted) {
+      if (_isFullScreen != isFull || _isMaximized != isMax) {
+        setState(() {
+          _isFullScreen = isFull;
+          _isMaximized = isMax;
+        });
+      }
+    }
   }
 
   @override
@@ -151,12 +171,11 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     _audioService = context.read<AudioService>();
     _audioService.addListener(_onAudioServiceChange);
 
-    final bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     if (isDesktop) {
       windowManager.addListener(this);
-      windowManager.isFullScreen().then((value) {
-        if (mounted) setState(() => _isFullScreen = value);
-      });
+      _syncWindowState();
     }
 
     if (Platform.isWindows) {
@@ -178,12 +197,59 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
 
   @override
   void onWindowEnterFullScreen() {
-    if (mounted) setState(() => _isFullScreen = true);
+    // 系统触发进入全屏时同步状态
+    unawaited(_syncWindowState());
   }
 
   @override
   void onWindowLeaveFullScreen() {
-    if (mounted) setState(() => _isFullScreen = false);
+    // 系统触发退出全屏时同步状态
+
+    windowManager.setFullScreen(false);
+    // Future.delayed(Duration(milliseconds: 100));
+    unawaited(_syncWindowState());
+  }
+
+  @override
+  void onWindowMinimize() {
+    unawaited(_syncWindowState());
+  }
+
+  @override
+  void onWindowRestore() {
+    // 窗口从最小化恢复或从最大化恢复时都会触发
+    Future.delayed(const Duration(milliseconds: 50), () {
+      unawaited(_syncWindowState());
+    });
+  }
+
+  @override
+  void onWindowMaximize() {
+    unawaited(_syncWindowState());
+  }
+
+  @override
+  void onWindowUnmaximize() {
+    // 监听窗口取消最大化
+    debugPrint("--- 监听到取消最大化 ---");
+    // 强制执行状态同步，且略微延迟以等待原生 API 状态位翻转
+    Future.delayed(const Duration(milliseconds: 50), () {
+      unawaited(_syncWindowState());
+    });
+  }
+
+  Future<void> _setFullScreen(bool enable) async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      if (enable) {
+        await windowManager.maximize();
+        await windowManager.setFullScreen(true);
+      } else {
+        await windowManager.setFullScreen(false);
+        // 等待原生窗口状态同步，确保 unmaximize 能够正确执行
+        // await Future.delayed(const Duration(milliseconds: 100));
+        await windowManager.unmaximize();
+      }
+    }
   }
 
   Future<void> _handleArgs() async {
@@ -242,7 +308,10 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
       items: [
         PopupMenuItem(
           value: 'settings',
-          child: ListTile(leading: Icon(Icons.settings), title: Text(AppLocalizations.of(context)!.settings)),
+          child: ListTile(
+            leading: Icon(Icons.settings),
+            title: Text(AppLocalizations.of(context)!.settings),
+          ),
         ),
       ],
     );
@@ -282,7 +351,10 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     }
   }
 
-  List<NavigationDestination> _buildBottomDestinations(BuildContext context, bool isPlayback) {
+  List<NavigationDestination> _buildBottomDestinations(
+    BuildContext context,
+    bool isPlayback,
+  ) {
     return [
       NavigationDestination(
         icon: Icon(
@@ -342,7 +414,10 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     ];
   }
 
-  List<NavigationRailDestination> _buildRailDestinations(BuildContext context, bool isPlayback) {
+  List<NavigationRailDestination> _buildRailDestinations(
+    BuildContext context,
+    bool isPlayback,
+  ) {
     return [
       NavigationRailDestination(
         icon: Icon(
@@ -416,12 +491,14 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
         theme.colorScheme.secondaryContainer;
     final navBgOpacityTarget = isPlayback ? 0.0 : 1.0;
 
-    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final bool isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     final bool useSidebar = isLandscape;
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
-        const SingleActivator(LogicalKeyboardKey.space): const PlayPauseIntent(),
+        const SingleActivator(LogicalKeyboardKey.space):
+            const PlayPauseIntent(),
         const SingleActivator(LogicalKeyboardKey.arrowRight, control: true):
             const NextIntent(),
         const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true):
@@ -449,28 +526,29 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
             onInvoke: (_) => _audioService.previous(),
           ),
           VolumeUpIntent: CallbackAction<VolumeUpIntent>(
-            onInvoke: (_) => _audioService.setVolume((_audioService.volume + 5).roundToDouble()),
+            onInvoke: (_) => _audioService.setVolume(
+              (_audioService.volume + 5).roundToDouble(),
+            ),
           ),
           VolumeDownIntent: CallbackAction<VolumeDownIntent>(
-            onInvoke: (_) => _audioService.setVolume((_audioService.volume - 5).roundToDouble()),
+            onInvoke: (_) => _audioService.setVolume(
+              (_audioService.volume - 5).roundToDouble(),
+            ),
           ),
           MuteIntent: CallbackAction<MuteIntent>(
             onInvoke: (_) => _audioService.toggleMute(),
           ),
           SeekForwardIntent: CallbackAction<SeekForwardIntent>(
-            onInvoke: (_) => _audioService.seekRelative(const Duration(seconds: 5)),
+            onInvoke: (_) =>
+                _audioService.seekRelative(const Duration(seconds: 5)),
           ),
           SeekBackwardIntent: CallbackAction<SeekBackwardIntent>(
-            onInvoke: (_) => _audioService.seekRelative(const Duration(seconds: -5)),
+            onInvoke: (_) =>
+                _audioService.seekRelative(const Duration(seconds: -5)),
           ),
           ToggleFullScreenIntent: CallbackAction<ToggleFullScreenIntent>(
             onInvoke: (_) async {
-              if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-                final isFull = await windowManager.isFullScreen();
-                final nextValue = !isFull;
-                await windowManager.setFullScreen(nextValue);
-                if (mounted) setState(() => _isFullScreen = nextValue);
-              }
+              await _setFullScreen(!_isFullScreen);
               return null;
             },
           ),
@@ -498,7 +576,8 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
-                          width: (isPlayback &&
+                          width:
+                              (isPlayback &&
                                   settings.isImmersiveTabBarEnabled &&
                                   settings.isUserInactive)
                               ? 0.0
@@ -510,7 +589,8 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                               width: 80,
                               child: AnimatedOpacity(
                                 duration: const Duration(milliseconds: 500),
-                                opacity: (isPlayback &&
+                                opacity:
+                                    (isPlayback &&
                                         settings.isImmersiveTabBarEnabled &&
                                         settings.isUserInactive)
                                     ? 0.0
@@ -518,7 +598,10 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                                 child: TweenAnimationBuilder<double>(
                                   duration: const Duration(milliseconds: 120),
                                   curve: Curves.easeOut,
-                                  tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
+                                  tween: Tween<double>(
+                                    begin: 1.0,
+                                    end: navBgOpacityTarget,
+                                  ),
                                   builder: (context, animatedOpacity, child) {
                                     return NavigationRail(
                                       leading: isDesktop
@@ -530,14 +613,18 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                                         animatedOpacity,
                                       ),
                                       selectedIndex: _currentIndex,
-                                      onDestinationSelected: _onDestinationSelected,
+                                      onDestinationSelected:
+                                          _onDestinationSelected,
                                       labelType: NavigationRailLabelType.none,
                                       indicatorColor: Color.lerp(
                                         Colors.transparent,
                                         navIndicatorBaseColor,
                                         animatedOpacity,
                                       ),
-                                      destinations: _buildRailDestinations(context, isPlayback),
+                                      destinations: _buildRailDestinations(
+                                        context,
+                                        isPlayback,
+                                      ),
                                     );
                                   },
                                 ),
@@ -556,35 +643,62 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                             DragToMoveArea(
                               child: SizedBox(
                                 height: 32,
-                                child: Stack(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    WindowCaption(
-                                      brightness: isPlayback
-                                          ? Brightness.dark
-                                          : theme.brightness,
-                                      backgroundColor: Colors.transparent,
-                                      title: const SizedBox(),
+                                    _WindowButton(
+                                      icon:
+                                          _isFullScreen
+                                              ? Icons.fullscreen_exit
+                                              : Icons.fullscreen,
+                                      brightness:
+                                          isPlayback
+                                              ? Brightness.dark
+                                              : theme.brightness,
+                                      onPressed:
+                                          () => _setFullScreen(!_isFullScreen),
                                     ),
-                                    Positioned(
-                                      right: 138,
-                                      top: 0,
-                                      bottom: 0,
-                                      child: _FullScreenButton(
-                                        isFullScreen: _isFullScreen,
-                                        brightness: isPlayback
-                                            ? Brightness.dark
-                                            : theme.brightness,
-                                        onPressed: () async {
-                                          if (isDesktop) {
-                                            final isFull =
-                                                await windowManager.isFullScreen();
-                                            final nextValue = !isFull;
-                                            await windowManager
-                                                .setFullScreen(nextValue);
-                                            if (mounted) setState(() => _isFullScreen = nextValue);
-                                          }
-                                        },
-                                      ),
+                                    _WindowButton(
+                                      icon: Icons.remove,
+                                      brightness:
+                                          isPlayback
+                                              ? Brightness.dark
+                                              : theme.brightness,
+                                      onPressed: () async {
+                                        if (_isFullScreen) {
+                                          await _setFullScreen(false);
+                                        }
+                                        await windowManager.minimize();
+                                      },
+                                    ),
+                                    _WindowButton(
+                                      icon:
+                                          _isMaximized
+                                              ? Icons.filter_none
+                                              : Icons.crop_square,
+                                      iconSize: 14,
+                                      brightness:
+                                          isPlayback
+                                              ? Brightness.dark
+                                              : theme.brightness,
+                                      onPressed: () async {
+                                        if (_isFullScreen) {
+                                          await _setFullScreen(false);
+                                        } else if (_isMaximized) {
+                                          await windowManager.unmaximize();
+                                        } else {
+                                          await windowManager.maximize();
+                                        }
+                                      },
+                                    ),
+                                    _WindowButton(
+                                      icon: Icons.close,
+                                      isClose: true,
+                                      brightness:
+                                          isPlayback
+                                              ? Brightness.dark
+                                              : theme.brightness,
+                                      onPressed: windowManager.close,
                                     ),
                                   ],
                                 ),
@@ -605,11 +719,14 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                                   return Container(
                                     key: const ValueKey('dynamic-island'),
                                     constraints: BoxConstraints(
-                                      maxWidth: MediaQuery.of(context).size.width * 0.9,
+                                      maxWidth:
+                                          MediaQuery.of(context).size.width *
+                                          0.9,
                                     ),
                                     child: PlaybackHeroCard(
                                       isMini: true,
-                                      onMiniTap: () => _onDestinationSelected(1),
+                                      onMiniTap: () =>
+                                          _onDestinationSelected(1),
                                       onPrevious: audio.previous,
                                       onPlayPause: audio.togglePlay,
                                       onNext: audio.next,
@@ -617,7 +734,9 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                                   );
                                 },
                               )
-                            : const SizedBox.shrink(key: ValueKey('empty-island')),
+                            : const SizedBox.shrink(
+                                key: ValueKey('empty-island'),
+                              ),
                       ),
                     ),
                     if (_showVolumeHUD) VolumeHUD(volume: _audioService.volume),
@@ -627,7 +746,8 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                     ? null
                     : AnimatedOpacity(
                         duration: const Duration(milliseconds: 500),
-                        opacity: (isPlayback &&
+                        opacity:
+                            (isPlayback &&
                                 settings.isImmersiveTabBarEnabled &&
                                 settings.isUserInactive)
                             ? 0.0
@@ -635,11 +755,15 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                         child: TweenAnimationBuilder<double>(
                           duration: const Duration(milliseconds: 120),
                           curve: Curves.easeOut,
-                          tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
+                          tween: Tween<double>(
+                            begin: 1.0,
+                            end: navBgOpacityTarget,
+                          ),
                           builder: (context, animatedOpacity, child) {
                             return NavigationBar(
                               height: 60,
-                              labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+                              labelBehavior:
+                                  NavigationDestinationLabelBehavior.alwaysHide,
                               selectedIndex: _currentIndex,
                               backgroundColor: Color.lerp(
                                 Colors.transparent,
@@ -653,7 +777,10 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                                 animatedOpacity,
                               ),
                               onDestinationSelected: _onDestinationSelected,
-                              destinations: _buildBottomDestinations(context, isPlayback),
+                              destinations: _buildBottomDestinations(
+                                context,
+                                isPlayback,
+                              ),
                             );
                           },
                         ),
@@ -667,24 +794,35 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
   }
 }
 
-class _FullScreenButton extends StatelessWidget {
-  final bool isFullScreen;
+class _WindowButton extends StatelessWidget {
+  final IconData icon;
   final VoidCallback onPressed;
   final Brightness brightness;
+  final bool isClose;
+  final double iconSize;
 
-  const _FullScreenButton({
-    required this.isFullScreen,
+  const _WindowButton({
+    required this.icon,
     required this.onPressed,
     required this.brightness,
+    this.isClose = false,
+    this.iconSize = 18,
   });
 
   @override
   Widget build(BuildContext context) {
     final Color iconColor =
         brightness == Brightness.dark ? Colors.white : Colors.black87;
-    final Color hoverColor = brightness == Brightness.dark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.black.withOpacity(0.05);
+
+    Color? hoverColor;
+    if (isClose) {
+      hoverColor = Colors.red.withValues(alpha: 0.8);
+    } else {
+      hoverColor =
+          brightness == Brightness.dark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.05);
+    }
 
     return Material(
       color: Colors.transparent,
@@ -696,9 +834,9 @@ class _FullScreenButton extends StatelessWidget {
           height: 32,
           alignment: Alignment.center,
           child: Icon(
-            isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-            size: 18,
-            color: iconColor,
+            icon,
+            size: iconSize,
+            color: isClose ? null : iconColor,
           ),
         ),
       ),
