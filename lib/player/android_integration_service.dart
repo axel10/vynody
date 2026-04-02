@@ -34,7 +34,7 @@ class AndroidIntegrationService {
           androidNotificationChannelName: 'Vibe Flow Playback',
           androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
-          androidStopForegroundOnPause: true,
+          androidStopForegroundOnPause: false,
         ),
       );
       _initialized = true;
