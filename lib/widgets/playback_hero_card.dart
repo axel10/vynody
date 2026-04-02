@@ -227,6 +227,11 @@ class PlaybackHeroCard extends StatelessWidget {
     const animDuration = Duration(milliseconds: 400);
     const animCurve = Curves.fastOutSlowIn;
 
+    // 核心动画容器：使用 TweenAnimationBuilder 对 2D 平面上的多个布局变量（尺寸、位置、不透明度）进行线性插值处理。
+    // 这使得点击封面切换 `isLyricsMode` 后，UI 元素能平滑移动/缩放，例如：
+    // - 封面从大变小并挪到角落
+    // - 歌词面板从下而上“浮现”
+    // - 播放控制按键在手机竖屏时向下滑出屏幕
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(
         begin: isLandscape ? 1.0 : 0.0,
@@ -237,6 +242,7 @@ class PlaybackHeroCard extends StatelessWidget {
       builder: (context, tLand, _) {
         return TweenAnimationBuilder<double>(
           tween: Tween<double>(
+            // tLyrics 即为 0.0（普通模式）到 1.0（歌词模式）的动画插值因子
             begin: isLyricsMode ? 1.0 : 0.0,
             end: isLyricsMode ? 1.0 : 0.0,
           ),
@@ -349,7 +355,11 @@ class PlaybackHeroCard extends StatelessWidget {
                 final lLyricsLyricsHeight = height - 32.0;
                 final lLyricsLyricsOpacity = 1.0;
 
-                // ---------------- Execute 2D Interpolation ----------------
+                // ---------------- 执行 2D 线性插值 (Execute 2D Interpolation) ----------------
+                // 核心思路：通过 _lerp2D(A, B, C, D, tLyrics, tLand) 计算
+                // UI 元素在 [竖屏普通, 竖屏歌词, 横屏普通, 横屏歌词] 四种具体布局配置下的合成坐标。
+                // 这实现了点击封面后跨越多种状态的极其平等的变幻。
+
                 final coverSide = _lerp2D(
                   pNormalCoverSide,
                   pLyricsCoverSide,
@@ -490,6 +500,9 @@ class PlaybackHeroCard extends StatelessWidget {
                   tLand,
                 );
 
+                // 界面渲染层 (Rendering Layer)：
+                // 使用 Stack + Positioned 承载各个 UI 组件。Positioned 的物理属性（top/left/width/height）
+                // 均为上述插值计算所得，从而实现了流畅的一键切换体验。
                 final targetInfoAlign = isLandscape
                     ? TextAlign.center
                     : (isLyricsMode ? TextAlign.left : TextAlign.center);

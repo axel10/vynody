@@ -1,4 +1,3 @@
-
 import 'package:audio_core/audio_core.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +33,7 @@ class AudioSnapshot {
   final List<LyricLine> currentLyricsLines;
   final String currentLyricsText;
   final String? currentLyricsTitle;
+  final bool isLyricsActive;
   final double progress;
 
   AudioSnapshot({
@@ -62,6 +62,7 @@ class AudioSnapshot {
     required List<LyricLine> currentLyricsLines,
     required this.currentLyricsText,
     required this.currentLyricsTitle,
+    required this.isLyricsActive,
   }) : playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
        currentLyricsLines = List<LyricLine>.unmodifiable(currentLyricsLines),
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
@@ -102,6 +103,7 @@ class AudioSnapshot {
             ) &&
             currentLyricsText == other.currentLyricsText &&
             currentLyricsTitle == other.currentLyricsTitle &&
+            isLyricsActive == other.isLyricsActive &&
             _deepEquality.equals(
               currentThemeColorsMap,
               other.currentThemeColorsMap,
@@ -110,30 +112,31 @@ class AudioSnapshot {
 
   @override
   int get hashCode => Object.hashAll([
-        isPlaying,
-        isTransitioning,
-        isLastActionNext,
-        currentMusic,
-        position,
-        duration,
-        volume,
-        isMuted,
-        _deepEquality.hash(playbackQueue),
-        currentIndex,
-        isRandomMode,
-        isShuffleRandomMode,
-        playbackMode,
-        historyCursor,
-        deckCursor,
-        isVisualizerEnabled,
-        dynamicStartColor,
-        dynamicEndColor,
-        isLyricsLoading,
-        hasLyrics,
-        isLyricsSynced,
-        _deepEquality.hash(currentLyricsLines),
-        currentLyricsText,
-        currentLyricsTitle,
-        _deepEquality.hash(currentThemeColorsMap),
-      ]);
+    isPlaying,
+    isTransitioning,
+    isLastActionNext,
+    currentMusic,
+    position,
+    duration,
+    volume,
+    isMuted,
+    _deepEquality.hash(playbackQueue),
+    currentIndex,
+    isRandomMode,
+    isShuffleRandomMode,
+    playbackMode,
+    historyCursor,
+    deckCursor,
+    isVisualizerEnabled,
+    dynamicStartColor,
+    dynamicEndColor,
+    isLyricsLoading,
+    hasLyrics,
+    isLyricsSynced,
+    _deepEquality.hash(currentLyricsLines),
+    currentLyricsText,
+    currentLyricsTitle,
+    isLyricsActive,
+    _deepEquality.hash(currentThemeColorsMap),
+  ]);
 }

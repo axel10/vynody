@@ -73,12 +73,14 @@ class AudioService extends ChangeNotifier {
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
   Map<String, Color> _currentThemeColorsMap = const {};
+  bool _isLyricsActive = false; // 用户是否开启了歌词模式
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
 
   Color? get dynamicStartColor => _dynamicStartColor;
   Color? get dynamicEndColor => _dynamicEndColor;
   Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
+  bool get isLyricsActive => _isLyricsActive;
   bool get isLyricsLoading => _isLyricsLoading;
   bool get hasLyrics => _hasLyrics;
   bool get isLyricsSynced => _isLyricsSynced;
@@ -311,6 +313,23 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 设置歌词模式是否激活。
+  /// 当激活时，如果当前歌曲尚未加载歌词，则立即触发加载。
+  void setLyricsActive(bool active) {
+    if (_isLyricsActive == active) return;
+    _isLyricsActive = active;
+
+    if (_isLyricsActive && _currentFilePath != null && !_hasLyrics && !_isLyricsLoading) {
+      final song = (_currentIndex >= 0 && _currentIndex < _queue.length)
+          ? _queue[_currentIndex]
+          : null;
+      if (song != null) {
+        unawaited(_fetchAndLogLyrics(song));
+      }
+    }
+    notifyListeners();
+  }
+
   void moveQueueTrack(int oldIndex, int newIndex) {
     if (oldIndex < 0 ||
         oldIndex >= _queue.length ||
@@ -423,6 +442,7 @@ class AudioService extends ChangeNotifier {
         currentLyricsLines: _currentLyricsLines,
         currentLyricsText: _currentLyricsText,
         currentLyricsTitle: _currentLyricsTitle,
+        isLyricsActive: _isLyricsActive,
       );
 
   Uint8List? getCachedArtwork(String? path) {
@@ -517,6 +537,14 @@ class AudioService extends ChangeNotifier {
     await _updatePalette();
 
     if (queueChanged || isCurrentTrack) {
+      if (isCurrentTrack && _isLyricsActive) {
+        final currentMusic = (_currentIndex >= 0 && _currentIndex < _queue.length)
+            ? _queue[_currentIndex]
+            : null;
+        if (currentMusic != null) {
+          unawaited(_fetchAndLogLyrics(currentMusic));
+        }
+      }
       notifyListeners();
     }
   }
@@ -627,14 +655,22 @@ class AudioService extends ChangeNotifier {
     _windowsIntegration?.updateMetadata(song);
     _androidIntegration?.updateMetadata(song);
 
-    // 6. 异步启动歌词搜索或本地加载请求
-    unawaited(_fetchAndLogLyrics(song));
+    // 6. 异步启动歌词搜索或本地加载请求。
+    // 现在仅在歌词模式激活时才自动触发加载。
+    // 触发时机（当 isLyricsActive 为 true 时）：
+    // - 自动切歌：当上一曲播放结束自动进入下一曲时。
+    // - 手动切歌：用户点击“下一首”、“上一首”按钮时。
+    // - 手动播放：用户从列表点击某首歌曲启动播放时。
+    // - 列表流转：播放列表模式（顺序、随机、循环）导致的歌曲切换。
+    if (_isLyricsActive) {
+      unawaited(_fetchAndLogLyrics(song));
+    }
 
     notifyListeners();
   }
 
   void _clearLyricsState({bool notify = false}) {
-    _isLyricsLoading = true;
+    _isLyricsLoading = _isLyricsActive;
     _hasLyrics = false;
     _isLyricsSynced = false;
     _currentLyricsLines = const [];
@@ -645,6 +681,12 @@ class AudioService extends ChangeNotifier {
     }
   }
 
+  /// 发起歌词获取请求并同步状态至 UI。
+  /// 
+  /// 获取逻辑遵循以下优先级：
+  /// 1. 内存缓存 (Memory Cache)：若本会话已获取过该曲歌词，直接返回。
+  /// 2. 数据库缓存 (Database Cache)：若之前曾成功获取并保存至本地 SQLite，直接读取。
+  /// 3. 网络获取 (Network Fetch)：若上述皆无，则通过 LRCLIB API 进行在线搜索与匹配。
   Future<void> _fetchAndLogLyrics(MusicFile song) async {
     final requestId = ++_lyricsRequestSerial;
     final query = LyricsQuery(
@@ -656,23 +698,35 @@ class AudioService extends ChangeNotifier {
       duration: _duration,
     );
 
-    final result = await _lyricsService.fetchBestLyrics(query: query);
-    if (requestId != _lyricsRequestSerial || _currentFilePath != song.path) {
-      return;
-    }
-
-    _isLyricsLoading = false;
-    _hasLyrics = result != null;
-    _isLyricsSynced = result?.isSynced ?? false;
-    _currentLyricsLines = result?.syncedLines ?? const [];
-    _currentLyricsText = result?.lyricsText ?? '';
-    final title = result?.track.displayTitle.trim();
-    _currentLyricsTitle = (title != null && title.isNotEmpty)
-        ? title
-        : _currentFileName;
+    _isLyricsLoading = true;
     notifyListeners();
 
-    _lyricsService.debugPrintSelection(query, result);
+    try {
+      final result = await _lyricsService.fetchBestLyrics(query: query);
+      // 竞态检查：确保请求返回时，用户没有切换到另一首歌
+      if (requestId != _lyricsRequestSerial || _currentFilePath != song.path) {
+        return;
+      }
+
+      _isLyricsLoading = false;
+      _hasLyrics = result != null;
+      _isLyricsSynced = result?.isSynced ?? false;
+      _currentLyricsLines = result?.syncedLines ?? const [];
+      _currentLyricsText = result?.lyricsText ?? '';
+      final title = result?.track.displayTitle.trim();
+      _currentLyricsTitle = (title != null && title.isNotEmpty)
+          ? title
+          : _currentFileName;
+      notifyListeners();
+
+      _lyricsService.debugPrintSelection(query, result);
+    } catch (e) {
+      debugPrint('[AudioService] Failed to fetch lyrics: $e');
+      if (requestId == _lyricsRequestSerial && _currentFilePath == song.path) {
+        _isLyricsLoading = false;
+        notifyListeners();
+      }
+    }
   }
 
   String _lyricsTitleForQuery(MusicFile song) {

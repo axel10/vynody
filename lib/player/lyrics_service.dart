@@ -190,11 +190,15 @@ class LyricsService {
 
   static const double _acceptThreshold = 65.0;
 
+  /// 核心歌词获取入口。
+  /// 实现了一个分层的查找策略：内存 -> SQLite 数据库 -> 在线 API。
   Future<LyricSelectionResult?> fetchBestLyrics({
     required LyricsQuery query,
     bool debugLog = false,
   }) async {
     final cacheKey = query.cacheKey;
+
+    // 1. 内存层：单次运行期间已成功解析的对象
     final cached = _cache[cacheKey];
     if (_cache.containsKey(cacheKey)) {
       if (debugLog) {
@@ -203,6 +207,7 @@ class LyricsService {
       return cached;
     }
 
+    // 2. 数据库层：之前获取后存储于 SQLite 的持久化记录
     final cachedFromDb = await _loadFromDatabase(cacheKey);
     if (cachedFromDb != null) {
       _cache[cacheKey] = cachedFromDb;
@@ -212,6 +217,7 @@ class LyricsService {
       return cachedFromDb;
     }
 
+    // 3. 合并正在进行的相同请求：防止同一首歌短时间内多次发起网络搜索请求
     final existing = _inFlight[cacheKey];
     if (existing != null) {
       final result = await existing;
@@ -221,6 +227,7 @@ class LyricsService {
       return result;
     }
 
+    // 4. 发起异步网络搜索任务
     final future = _fetchBestLyricsInternal(query).whenComplete(() {
       _inFlight.remove(cacheKey);
     });
@@ -236,6 +243,13 @@ class LyricsService {
     return result;
   }
 
+  /// 在线搜索逻辑：包含精准匹配与模糊评分两个阶段。
+  /// 
+  /// 逻辑概述：
+  /// - 首先尝试 /get API 进行精准匹配（通过标题/艺术家/专辑/时长作为唯一标识）。
+  /// - 若无精准结果，则通过 /search API 发起全文检索，并对所有候选结果进行加权评分（相似度/时长偏差）。
+  /// - 评分系统综合考虑：标题相似度(45%)、歌手(25%)、专辑(15%)、时长(10%)、同步性(5%)。
+  /// - 只有综合评分高于阈值（默认 65 分）或时长偏差极小（3秒内）的结果才会作为最佳候选项保存至本地数据库并返回。
   Future<LyricSelectionResult?> _fetchBestLyricsInternal(
     LyricsQuery query,
   ) async {

@@ -41,12 +41,17 @@ class _PlaybackPageState extends State<PlaybackPage>
   Orientation? _lastOrientation;
   Timer? _inactivityTimer; // Added missing declaration
 
+  SettingsService? _settingsService;
+  AudioService? _audioService;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final audio = context.read<AudioService>();
       _showVisualizer = audio.isVisualizerEnabled;
+      _isLyricsMode = audio.isLyricsActive;
       context.read<SettingsService>().resetInactivity();
       if (mounted) {
         setState(() {});
@@ -54,12 +59,11 @@ class _PlaybackPageState extends State<PlaybackPage>
     });
   }
 
-  SettingsService? _settingsService;
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _settingsService ??= context.read<SettingsService>();
+    _audioService ??= context.read<AudioService>();
   }
 
   @override
@@ -72,6 +76,10 @@ class _PlaybackPageState extends State<PlaybackPage>
         settings.isUserInactive = false;
       });
     }
+    // 离开播放页时，显式关闭 AudioService 的歌词激活标记。
+    // 这将停止在歌曲切换时自动从网络抓取歌词，从而节省网络资源。
+    // 使用已缓存的服务实例，避免在 dispose 时查找 context
+    _audioService?.setLyricsActive(false);
     super.dispose();
   }
 
@@ -87,10 +95,21 @@ class _PlaybackPageState extends State<PlaybackPage>
     _startInactivityTimer();
   }
 
+  /// 当用户点击专辑封面时触发，切换歌词模式显示状态。
+  /// 
+  /// 此函数的执行流程如下：
+  /// 1. 切换当前的 `_isLyricsMode` 布尔值（true -> false 或 false -> true）。
+  /// 2. 调用 `setState()` 触发 UI 重绘。
+  /// 3. 重绘过程中，`PlaybackHeroCard` 会接收到新的 `isLyricsMode` 状态。
+  /// 4. `PlaybackHeroCard` 内部的 `TweenAnimationBuilder` 会启动一个 400ms 的动画。
+  /// 5. 动画根据 `isLyricsMode` 线性插值计算封面、歌曲信息、控制栏及歌词面板的位置和尺寸，
+  ///    实现从“普通模式”到“歌词模式”的平滑过渡效果（封面缩小并移至左上角，歌词面板从屏幕下方滑入并变亮）。
   void _toggleLyricsMode() {
+    final nextLyricsMode = !_isLyricsMode;
     setState(() {
-      _isLyricsMode = !_isLyricsMode;
+      _isLyricsMode = nextLyricsMode;
     });
+    context.read<AudioService>().setLyricsActive(nextLyricsMode);
   }
 
   void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
@@ -376,6 +395,7 @@ class _PlaybackPageState extends State<PlaybackPage>
           if (_lastOrientation != orientation) {
             _lastOrientation = orientation;
             WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
               context.read<AudioService>().applyVisualizerSettings(
                 orientation: orientation,
               );
