@@ -183,8 +183,8 @@ class AudioService extends ChangeNotifier {
     try {
       // 1. 暂停后台扫描
       _scannerService?.pauseBackgroundTasks();
-      // 2. 暂停预处理队列的普通流转逻辑（其实是触发重排并优先处理）
-      _startQueueBackgroundProcessing();
+      // 2. 暂停预处理队列的普通流转逻辑，并全力优先处理当前歌曲
+      _startQueueBackgroundProcessing(priorityPath: song.path);
 
       // 我们在这里增加一个短暂的同步等待点，直到 isReady 为真或超时
       int retry = 0;
@@ -736,20 +736,33 @@ class AudioService extends ChangeNotifier {
     int? id,
     bool append = false,
   }) async {
-    final song = MusicFile(path: path, name: name, id: id);
-    if (!append) {
-      _queue.clear();
-      await _player.playlist.clear();
+    // 1. 设置正在切换状态
+    _isTransitioning = true;
+    notifyListeners();
+
+    try {
+      final song = MusicFile(path: path, name: name, id: id);
+      if (!append) {
+        _queue.clear();
+        await _player.playlist.clear();
+      }
+
+      final int index = _queue.length;
+      _queue.add(song);
+      await _player.playlist.addTracks([
+        AudioTrack(id: index.toString(), uri: path),
+      ]);
+
+      // 2. 确保数据就绪
+      await _ensureCurrentSongDataReady(song);
+
+      // 3. 启动后台处理并开始播放
+      _startQueueBackgroundProcessing(priorityPath: path);
+      await playAtIndex(index);
+    } finally {
+      _isTransitioning = false;
+      notifyListeners();
     }
-
-    final int index = _queue.length;
-    _queue.add(song);
-    await _player.playlist.addTracks([
-      AudioTrack(id: index.toString(), uri: path),
-    ]);
-
-    _startQueueBackgroundProcessing();
-    await playAtIndex(index);
   }
 
   /// 播放选定的一组歌曲（歌单），由 UI 触发（如点击文件夹中的一首歌）。
@@ -825,6 +838,7 @@ class AudioService extends ChangeNotifier {
     if (wasEmpty) {
       _currentIndex = 0;
       final current = songs[0];
+      await _ensureCurrentSongDataReady(current);
       await _updateCurrentMetadata(current);
       await _player.player.setVolume(_volume / 100.0);
       await _refreshCurrentWaveform(notify: false);
@@ -1051,13 +1065,13 @@ class AudioService extends ChangeNotifier {
 
 
 
-  void _startQueueBackgroundProcessing() {
+  void _startQueueBackgroundProcessing({String? priorityPath}) {
     if (_queue.isEmpty) return;
 
     unawaited(
       _queueProcessor.processQueue(
         playlist: List.from(_queue),
-        currentFilePath: _currentFilePath,
+        currentFilePath: priorityPath ?? _currentFilePath,
         onUpdate: (path, updates) {
           // 1. 同步更新播放队列中的 MusicFile 对象
           for (int i = 0; i < _queue.length; i++) {
