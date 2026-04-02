@@ -333,7 +333,8 @@ class LyricsService {
   }
 
   LyricsQuery _buildSearchQuery(LyricsQuery query) {
-    final fallbackTitle = p.basenameWithoutExtension(query.fileName).trim();
+    final rawFallback = p.basenameWithoutExtension(query.fileName).trim();
+    final fallbackTitle = _removeBrackets(rawFallback);
     final title = _cleanField(query.title) ?? fallbackTitle;
     return LyricsQuery(
       filePath: query.filePath,
@@ -775,8 +776,11 @@ class LyricsService {
 }
 
 String? _cleanField(String? value) {
-  final text = value?.trim();
+  var text = value?.trim();
   if (text == null || text.isEmpty) return null;
+
+  text = _removeBrackets(text);
+  if (text.isEmpty) return null;
 
   final lower = text.toLowerCase();
   if (lower == 'unknown' ||
@@ -785,6 +789,13 @@ String? _cleanField(String? value) {
     return null;
   }
   return text;
+}
+
+String _removeBrackets(String text) {
+  return text
+      .replaceAll(RegExp(r'[\[【][^\]】]*[\]】]'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
 }
 
 String _normalizeForKey(String? value) {
