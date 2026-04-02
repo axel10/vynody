@@ -254,42 +254,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: match.thumbnailUrl != null
-                            ? Image.network(
-                                match.thumbnailUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(
-                                      Icons.music_note_rounded,
-                                      color: Colors.white24,
-                                      size: 24,
-                                    ),
-                                loadingBuilder: (
-                                  context,
-                                  child,
-                                  loadingProgress,
-                                ) {
-                                  if (loadingProgress == null) return child;
-                                  return const Center(
-                                    child: SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 1.5,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white24,
-                                            ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )
-                            : const Icon(
-                                Icons.music_note_rounded,
-                                color: Colors.white24,
-                                size: 24,
-                              ),
+                        child: _MatchCoverImage(
+                          match: match,
+                          service: _service,
+                        ),
                       ),
                       Positioned(
                         right: 0,
@@ -551,6 +519,84 @@ class _EmptyState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+class _MatchCoverImage extends StatefulWidget {
+  const _MatchCoverImage({required this.match, required this.service});
+
+  final MusicBrainzTrackMatch match;
+  final MusicBrainzTagCompletionService service;
+
+  @override
+  State<_MatchCoverImage> createState() => _MatchCoverImageState();
+}
+
+class _MatchCoverImageState extends State<_MatchCoverImage> {
+  bool _isResolving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.match.resolvedCover == null) {
+      _resolve();
+    }
+  }
+
+  Future<void> _resolve() async {
+    if (_isResolving) return;
+    setState(() => _isResolving = true);
+    try {
+      await widget.service.resolveCover(widget.match);
+    } finally {
+      if (mounted) setState(() => _isResolving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final url = widget.match.thumbnailUrl;
+    if (url == null) {
+      return const Icon(
+        Icons.music_note_rounded,
+        color: Colors.white24,
+        size: 24,
+      );
+    }
+
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded) return child;
+        return AnimatedOpacity(
+          opacity: frame == null ? 0 : 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          child: child,
+        );
+      },
+      errorBuilder: (context, error, stackTrace) =>
+          const Icon(
+            Icons.music_note_rounded,
+            color: Colors.white24,
+            size: 24,
+          ),
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null && !_isResolving) return child;
+        return Center(
+          child: SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(
+              strokeWidth: 1.5,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

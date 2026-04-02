@@ -27,7 +27,7 @@ class MusicBrainzTrackMatch {
   final String? disambiguation;
   final Map<String, dynamic> raw;
 
-  const MusicBrainzTrackMatch({
+  MusicBrainzTrackMatch({
     required this.recordingId,
     required this.title,
     required this.artist,
@@ -41,7 +41,10 @@ class MusicBrainzTrackMatch {
     required this.score,
     required this.disambiguation,
     required this.raw,
+    this.resolvedCover,
   });
+
+  ResolvedCover? resolvedCover;
 
   factory MusicBrainzTrackMatch.fromJson(Map<String, dynamic> json) {
     final releases = (json['releases'] as List<dynamic>? ?? const [])
@@ -122,9 +125,26 @@ class MusicBrainzTrackMatch {
   }
 
   String? get thumbnailUrl {
+    if (resolvedCover != null) {
+      return resolvedCover!.thumbnailUrl;
+    }
     if (releaseId == null || releaseId!.isEmpty) return null;
     return 'https://coverartarchive.org/release/$releaseId/front-250';
   }
+}
+
+class ResolvedCover {
+  final String endpoint;
+  final String id;
+  final String? largeUrl;
+  final String? thumbnailUrl;
+
+  const ResolvedCover({
+    required this.endpoint,
+    required this.id,
+    this.largeUrl,
+    this.thumbnailUrl,
+  });
 }
 
 class MusicBrainzTagSelectionResult {
@@ -332,14 +352,8 @@ class MusicBrainzTagCompletionService {
     }
   }
 
-  Future<_CoverArtResult?> _downloadCoverArt(
-    MusicBrainzTrackMatch match,
-  ) async {
-    final cacheKey =
-        match.releaseId ?? match.releaseGroupId ?? match.recordingId;
-    if (_coverCache.containsKey(cacheKey)) {
-      return _coverCache[cacheKey];
-    }
+  Future<ResolvedCover?> resolveCover(MusicBrainzTrackMatch match) async {
+    if (match.resolvedCover != null) return match.resolvedCover;
 
     final candidates = <({String endpoint, String id})>[];
     if (_hasMeaningfulText(match.releaseId)) {
@@ -350,20 +364,20 @@ class MusicBrainzTagCompletionService {
     }
 
     for (final candidate in candidates) {
-      final cover = await _downloadCoverArtFromEndpoint(
+      final metadata = await _resolveCoverMetadataFromEndpoint(
         endpoint: candidate.endpoint,
         id: candidate.id,
       );
-      if (cover != null) {
-        _coverCache[cacheKey] = cover;
-        return cover;
+      if (metadata != null) {
+        match.resolvedCover = metadata;
+        return metadata;
       }
     }
 
     return null;
   }
 
-  Future<_CoverArtResult?> _downloadCoverArtFromEndpoint({
+  Future<ResolvedCover?> _resolveCoverMetadataFromEndpoint({
     required String endpoint,
     required String id,
   }) async {
@@ -383,29 +397,78 @@ class MusicBrainzTagCompletionService {
           .toList();
       if (images.isEmpty) return null;
 
-      String? imageUrl;
-      for (final image in images) {
-        final thumbnails = image['thumbnails'];
-        if (thumbnails is Map<String, dynamic>) {
-          imageUrl =
-              thumbnails['1200'] as String? ??
-              thumbnails['large'] as String? ??
-              image['image'] as String?;
-          if (_hasMeaningfulText(imageUrl)) break;
-        } else {
-          imageUrl = image['image'] as String?;
-          if (_hasMeaningfulText(imageUrl)) break;
-        }
+      Map<String, dynamic>? selectedImage;
+      // 1. Try to find the front cover image
+      selectedImage = images.firstWhere(
+        (img) => img['front'] == true,
+        orElse: () => <String, dynamic>{},
+      );
+
+      // 2. Fallback to the first available image if no front image was found
+      if (selectedImage.isEmpty) {
+        selectedImage = images.isNotEmpty ? images.first : null;
       }
 
-      if (!_hasMeaningfulText(imageUrl)) {
-        return null;
+      if (selectedImage == null || selectedImage.isEmpty) return null;
+
+      final thumbnails = selectedImage['thumbnails'];
+      String? largeUrl;
+      String? thumbnailUrl;
+
+      if (thumbnails is Map<String, dynamic>) {
+        largeUrl = thumbnails['1200'] as String? ??
+            thumbnails['large'] as String? ??
+            selectedImage['image'] as String?;
+        thumbnailUrl = thumbnails['small'] as String? ??
+            thumbnails['250'] as String? ??
+            thumbnails['large'] as String?;
+      } else {
+        largeUrl = selectedImage['image'] as String?;
+        thumbnailUrl = largeUrl;
       }
 
+      if (!_hasMeaningfulText(largeUrl)) return null;
+
+      return ResolvedCover(
+        endpoint: endpoint,
+        id: id,
+        largeUrl: largeUrl,
+        thumbnailUrl: thumbnailUrl,
+      );
+    } catch (e) {
+      debugPrint('MusicBrainz metadata resolution failed: $e');
+      return null;
+    }
+  }
+
+  Future<_CoverArtResult?> _downloadCoverArt(
+    MusicBrainzTrackMatch match,
+  ) async {
+    final cacheKey =
+        match.releaseId ?? match.releaseGroupId ?? match.recordingId;
+    if (_coverCache.containsKey(cacheKey)) {
+      return _coverCache[cacheKey];
+    }
+
+    final resolved = await resolveCover(match);
+    if (resolved == null || resolved.largeUrl == null) return null;
+
+    final cover = await _downloadResolvedCover(resolved);
+    if (cover != null) {
+      _coverCache[cacheKey] = cover;
+      return cover;
+    }
+
+    return null;
+  }
+
+  Future<_CoverArtResult?> _downloadResolvedCover(ResolvedCover resolved) async {
+    try {
+      final imageUrl = resolved.largeUrl!;
       await _rateLimit();
-      debugPrint('MusicBrainz cover image URL: $imageUrl');
+      debugPrint('MusicBrainz cover image download: $imageUrl');
       final bytesResponse = await _client.get<List<int>>(
-        imageUrl!,
+        imageUrl,
         options: Options(responseType: ResponseType.bytes),
       );
       final bytes = Uint8List.fromList(bytesResponse.data ?? const <int>[]);
@@ -418,7 +481,7 @@ class MusicBrainzTagCompletionService {
       }
 
       final fileName =
-          '${_sanitizeFileName('${endpoint}_$id')}_${DateTime.now().microsecondsSinceEpoch}.jpg';
+          '${_sanitizeFileName('${resolved.endpoint}_${resolved.id}')}_${DateTime.now().microsecondsSinceEpoch}.jpg';
       final filePath = p.join(coversDir.path, fileName);
       await File(filePath).writeAsBytes(bytes, flush: true);
 
@@ -429,7 +492,7 @@ class MusicBrainzTagCompletionService {
         height: 1200,
       );
     } catch (e) {
-      debugPrint('MusicBrainz cover download failed for $endpoint/$id: $e');
+      debugPrint('MusicBrainz cover download failed: $e');
       return null;
     }
   }
