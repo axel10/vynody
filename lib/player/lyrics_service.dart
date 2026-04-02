@@ -339,7 +339,6 @@ class LyricsService {
         queryParameters: {
           'track_name': query.title,
           'artist_name': query.artist,
-          'album_name': query.album,
           'duration': query.duration?.inSeconds,
         }..removeWhere((_, value) => value == null),
       );
@@ -365,7 +364,6 @@ class LyricsService {
           <String, dynamic>{
             'track_name': query.title,
             'artist_name': query.artist,
-            'album_name': query.album,
             'q': _buildSearchText(query),
           }..removeWhere(
             (_, value) =>
@@ -487,7 +485,6 @@ class LyricsService {
       query.title,
       if (query.artist != null && query.artist!.trim().isNotEmpty)
         query.artist!,
-      if (query.album != null && query.album!.trim().isNotEmpty) query.album!,
     ];
     return parts.join(' ').trim();
   }
