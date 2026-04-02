@@ -290,7 +290,10 @@ class PlaylistService extends ChangeNotifier {
     }
   }
 
-  Future<void> updateSongMetadataByPath(SongMetadata metadata) async {
+  Future<void> updateSongMetadataByPath(
+    SongMetadata metadata, {
+    Uint8List? artworkBytes,
+  }) async {
     bool changed = false;
 
     for (final playlist in _playlists) {
@@ -309,6 +312,7 @@ class PlaylistService extends ChangeNotifier {
           artworkHeight: metadata.artworkHeight,
           themeColorsBlob: metadata.themeColorsBlob,
           waveformBlob: metadata.waveformBlob,
+          artworkBytes: artworkBytes,
         );
 
         playlist.updatedAt = DateTime.now();

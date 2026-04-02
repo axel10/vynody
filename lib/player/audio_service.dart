@@ -528,6 +528,7 @@ class AudioService extends ChangeNotifier {
         themeColorsBlob: metadata.themeColorsBlob,
         waveformBlob: metadata.waveformBlob,
         trackNumber: metadata.trackNumber,
+        artworkBytes: artworkBytes,
       );
 
       queueChanged = true;

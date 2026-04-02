@@ -557,7 +557,39 @@ class ScannerService extends ChangeNotifier {
 
   void updateMetadataForPath(SongMetadata metadata) {
     _metadataMap[metadata.path] = metadata;
+
+    // Update MusicFile objects in the tree if they exist
+    for (final root in _rootFolders) {
+      _updateMusicFileInFolder(root, metadata);
+    }
+    if (_systemMediaFolder != null) {
+      _updateMusicFileInFolder(_systemMediaFolder!, metadata);
+    }
+
     notifyListeners();
+  }
+
+  void _updateMusicFileInFolder(MusicFolder folder, SongMetadata metadata) {
+    for (var i = 0; i < folder.files.length; i++) {
+      final file = folder.files[i];
+      if (file.path == metadata.path) {
+        folder.files[i] = file.copyWith(
+          title: metadata.title,
+          artist: metadata.artist,
+          album: metadata.album,
+          trackNumber: metadata.trackNumber,
+          artworkPath: metadata.artworkPath,
+          thumbnailPath: metadata.thumbnailPath,
+          artworkWidth: metadata.artworkWidth,
+          artworkHeight: metadata.artworkHeight,
+          themeColorsBlob: metadata.themeColorsBlob,
+          waveformBlob: metadata.waveformBlob,
+        );
+      }
+    }
+    for (final subFolder in folder.subFolders) {
+      _updateMusicFileInFolder(subFolder, metadata);
+    }
   }
 
   Future<MusicFolder?> _scanDirectory(String path) async {

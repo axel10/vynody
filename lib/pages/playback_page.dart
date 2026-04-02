@@ -175,7 +175,10 @@ class _PlaybackPageState extends State<PlaybackPage>
       artworkBytes: result.artworkBytes,
     );
     scanner.updateMetadataForPath(result.metadata);
-    await playlistService.updateSongMetadataByPath(result.metadata);
+    await playlistService.updateSongMetadataByPath(
+      result.metadata,
+      artworkBytes: result.artworkBytes,
+    );
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
