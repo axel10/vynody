@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:palette_generator/palette_generator.dart';
 
+import '../utils/network_client.dart';
 import 'metadata_database.dart';
 import 'theme_color_helper.dart';
 
@@ -139,22 +140,19 @@ class MusicBrainzTagSelectionResult {
 }
 
 class MusicBrainzTagCompletionService {
-  MusicBrainzTagCompletionService({Dio? dio})
-    : _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: 'https://musicbrainz.org',
-              connectTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 20),
-              headers: {
-                'User-Agent': 'PurePlayer/1.0 (Codex desktop)',
-                'Accept': 'application/json',
-              },
-            ),
+  MusicBrainzTagCompletionService({NetworkClient? client})
+    : _client =
+          client ??
+          NetworkClient(
+            baseUrl: 'https://musicbrainz.org',
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 20),
+            headers: {
+              'User-Agent': 'PurePlayer/1.0 (Codex desktop)',
+            },
           );
 
-  final Dio _dio;
+  final NetworkClient _client;
   final MetadataDatabase _db = MetadataDatabase();
 
   static final Map<String, List<MusicBrainzTrackMatch>> _searchCache = {};
@@ -314,7 +312,7 @@ class MusicBrainzTagCompletionService {
 
     try {
       await _rateLimit();
-      final response = await _dio.get(
+      final response = await _client.get(
         '/ws/2/recording/',
         queryParameters: {'query': query, 'fmt': 'json', 'limit': '20'},
       );
@@ -373,7 +371,7 @@ class MusicBrainzTagCompletionService {
       await _rateLimit();
       final apiUrl = Uri.https('coverartarchive.org', '/$endpoint/$id');
       debugPrint('MusicBrainz cover metadata URL: $apiUrl');
-      final response = await _dio.get(
+      final response = await _client.get(
         apiUrl.toString(),
         options: Options(responseType: ResponseType.json),
       );
@@ -406,7 +404,7 @@ class MusicBrainzTagCompletionService {
 
       await _rateLimit();
       debugPrint('MusicBrainz cover image URL: $imageUrl');
-      final bytesResponse = await _dio.get<List<int>>(
+      final bytesResponse = await _client.get<List<int>>(
         imageUrl!,
         options: Options(responseType: ResponseType.bytes),
       );

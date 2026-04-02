@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import '../utils/network_client.dart';
 import 'metadata_database.dart';
 
 class LyricsQuery {
@@ -171,21 +172,18 @@ class LyricSelectionResult {
 }
 
 class LyricsService {
-  LyricsService({Dio? dio, MetadataDatabase? db})
-    : _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: 'https://lrclib.net/api',
-              connectTimeout: const Duration(seconds: 12),
-              receiveTimeout: const Duration(seconds: 12),
-              sendTimeout: const Duration(seconds: 12),
-              headers: const {'accept': 'application/json'},
-            ),
+  LyricsService({NetworkClient? client, MetadataDatabase? db})
+    : _client =
+          client ??
+          NetworkClient(
+            baseUrl: 'https://lrclib.net/api',
+            connectTimeout: const Duration(seconds: 12),
+            receiveTimeout: const Duration(seconds: 12),
+            sendTimeout: const Duration(seconds: 12),
           ),
       _db = db ?? MetadataDatabase();
 
-  final Dio _dio;
+  final NetworkClient _client;
   final MetadataDatabase _db;
   final Map<String, Future<LyricSelectionResult?>> _inFlight = {};
   final Map<String, LyricSelectionResult?> _cache = {};
@@ -348,7 +346,7 @@ class LyricsService {
 
   Future<LyricTrack?> _fetchGet(LyricsQuery query) async {
     try {
-      final response = await _dio.get(
+      final response = await _client.get(
         '/get',
         queryParameters: {
           'track_name': query.title,
@@ -386,7 +384,7 @@ class LyricsService {
                 value == null || (value is String && value.trim().isEmpty),
           );
 
-      final response = await _dio.get('/search', queryParameters: params);
+      final response = await _client.get('/search', queryParameters: params);
 
       final data = response.data;
       if (data is List) {
