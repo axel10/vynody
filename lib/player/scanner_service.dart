@@ -42,6 +42,32 @@ class ScannerService extends ChangeNotifier {
   bool get isScanning => _isScanning;
   bool get isBackgroundTaskPaused => _isBackgroundTaskPaused;
 
+  // Navigation state for FoldersPage
+  MusicFolder? _navigationCurrentFolder;
+  final List<MusicFolder> _navigationHistory = [];
+
+  MusicFolder? get navigationCurrentFolder => _navigationCurrentFolder;
+  List<MusicFolder> get navigationHistory => List.unmodifiable(_navigationHistory);
+
+  void setNavigationState(MusicFolder? current, List<MusicFolder> history) {
+    _navigationCurrentFolder = current;
+    _navigationHistory.clear();
+    _navigationHistory.addAll(history);
+    notifyListeners();
+  }
+
+  void pushNavigationHistory(MusicFolder folder) {
+    _navigationHistory.add(folder);
+    notifyListeners();
+  }
+
+  MusicFolder? popNavigationHistory() {
+    if (_navigationHistory.isEmpty) return null;
+    final folder = _navigationHistory.removeLast();
+    notifyListeners();
+    return folder;
+  }
+
 
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
   bool get hasPermission => _hasPermission;

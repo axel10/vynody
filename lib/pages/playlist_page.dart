@@ -384,11 +384,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                       Expanded(
                         child: ReorderableListView.builder(
                           buildDefaultDragHandles: false,
-                          padding: EdgeInsets.only(
-                            bottom: _isSelectionMode
-                                ? 80
-                                : (Platform.isWindows ? 84 : 0),
-                          ),
+                          padding: const EdgeInsets.only(bottom: 160),
                           itemCount: currentPlaylist.songs.length,
                           onReorder: (oldIndex, newIndex) {
                             if (newIndex > oldIndex) newIndex--;

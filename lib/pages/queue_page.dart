@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
@@ -205,11 +204,7 @@ class _QueuePageState extends State<QueuePage> {
               Expanded(
                 child: ReorderableListView.builder(
                   buildDefaultDragHandles: false,
-                  padding: EdgeInsets.only(
-                    bottom: _isSelectionMode
-                        ? 80
-                        : (Platform.isWindows ? 84 : 0),
-                  ),
+                  padding: const EdgeInsets.only(bottom: 160),
                   itemCount: _viewIndex == 1
                       ? audio.randomHistory.length
                       : _viewIndex == 2

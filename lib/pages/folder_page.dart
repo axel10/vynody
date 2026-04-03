@@ -19,28 +19,44 @@ class FoldersPage extends StatefulWidget {
 }
 
 class _FoldersPageState extends State<FoldersPage> {
-  MusicFolder? _currentFolder;
-  final List<MusicFolder> _history = [];
+  final ScrollController _scrollController = ScrollController();
 
-  void _navigateTo(MusicFolder folder) {
-    if (_currentFolder != null) {
-      _history.add(_currentFolder!);
+  void _navigateTo(MusicFolder folder, ScannerService scanner) {
+    final history = List<MusicFolder>.from(scanner.navigationHistory);
+    if (scanner.navigationCurrentFolder != null) {
+      history.add(scanner.navigationCurrentFolder!);
     }
-    setState(() {
-      _currentFolder = folder;
+    scanner.setNavigationState(folder, history);
+    _scrollToTop();
+  }
+
+  void _goBack(ScannerService scanner) {
+    if (scanner.navigationHistory.isEmpty) {
+      scanner.setNavigationState(null, []);
+    } else {
+      final history = List<MusicFolder>.from(scanner.navigationHistory);
+      final folder = history.removeLast();
+      scanner.setNavigationState(folder, history);
+    }
+    _scrollToTop();
+  }
+
+  void _scrollToTop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
-  void _goBack() {
-    if (_history.isNotEmpty) {
-      setState(() {
-        _currentFolder = _history.removeLast();
-      });
-    } else {
-      setState(() {
-        _currentFolder = null;
-      });
-    }
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _pickFolder(ScannerService scanner) async {
@@ -67,20 +83,20 @@ class _FoldersPageState extends State<FoldersPage> {
     final audio = context.read<AudioService>();
 
     // Sync _currentFolder if it's the system root and data has been loaded
-    if (_currentFolder?.path == 'system' &&
+    if (scanner.navigationCurrentFolder?.path == 'system' &&
         scanner.systemMediaFolder != null &&
-        _currentFolder != scanner.systemMediaFolder) {
+        scanner.navigationCurrentFolder != scanner.systemMediaFolder) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          setState(() {
-            _currentFolder = scanner.systemMediaFolder;
-          });
+          scanner.setNavigationState(scanner.systemMediaFolder, List.from(scanner.navigationHistory));
         }
       });
     }
 
+    final currentFolder = scanner.navigationCurrentFolder;
+
     Widget currentBody;
-    if (_currentFolder == null) {
+    if (currentFolder == null) {
       currentBody = Column(
         children: [
           Container(
@@ -103,7 +119,8 @@ class _FoldersPageState extends State<FoldersPage> {
           ),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.only(bottom: Platform.isWindows ? 84 : 0),
+              controller: _scrollController,
+              padding: const EdgeInsets.only(bottom: 160),
               children: [
                 // System Media Library Item
                 if (!Platform.isWindows)
@@ -124,6 +141,7 @@ class _FoldersPageState extends State<FoldersPage> {
                       _navigateTo(
                         scanner.systemMediaFolder ??
                             MusicFolder(path: 'system', name: AppLocalizations.of(context)!.systemMediaLibrary),
+                        scanner,
                       );
                     },
                   ),
@@ -150,7 +168,7 @@ class _FoldersPageState extends State<FoldersPage> {
                       folder.path,
                       style: const TextStyle(fontSize: 11),
                     ),
-                    onTap: () => _navigateTo(folder),
+                    onTap: () => _navigateTo(folder, scanner),
                     trailing: IconButton(
                       icon: const Icon(
                         Icons.remove_circle_outline,
@@ -170,26 +188,27 @@ class _FoldersPageState extends State<FoldersPage> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
-          if (_history.isNotEmpty || _currentFolder != null) {
-            _goBack();
+          if (scanner.navigationHistory.isNotEmpty || scanner.navigationCurrentFolder != null) {
+            _goBack(scanner);
           }
         },
         child: Column(
           children: [
             if (Platform.isWindows) const SizedBox(height: 32),
-            _buildBreadcrumbs(_currentFolder!, scanner),
+            _buildBreadcrumbs(currentFolder, scanner),
             Expanded(
               child: ListView(
-                padding: EdgeInsets.only(bottom: Platform.isWindows ? 84 : 0),
+                controller: _scrollController,
+                padding: const EdgeInsets.only(bottom: 160),
                 children: [
                   ListTile(
                     leading: const Icon(Icons.arrow_back),
                     title: Text(AppLocalizations.of(context)!.goBack),
-                    onTap: _goBack,
+                    onTap: () => _goBack(scanner),
                   ),
 
                   // Show Permission Button if in system folder and no permission
-                  if (_currentFolder!.path == 'system' &&
+                  if (currentFolder.path == 'system' &&
                       !scanner.hasPermission)
                     Padding(
                       padding: const EdgeInsets.all(32.0),
@@ -214,26 +233,26 @@ class _FoldersPageState extends State<FoldersPage> {
                       ),
                     ),
 
-                  ..._currentFolder!.subFolders.map(
+                  ...currentFolder.subFolders.map(
                     (folder) => ListTile(
                       leading: const Icon(Icons.folder, color: Colors.amber),
                       title: Text(folder.name),
-                      onTap: () => _navigateTo(folder),
+                      onTap: () => _navigateTo(folder, scanner),
                     ),
                   ),
-                  ..._currentFolder!.files.map(
+                  ...currentFolder.files.map(
                     (file) => ListTile(
                       leading: SongThumbnail(path: file.path, id: file.id),
                       title: Text(file.displayName),
                       onTap: () async {
                         // 当用户点击文件页中的一首歌时：
                         // 1. 获取该歌曲在当前文件夹文件列表中的索引
-                        final index = _currentFolder!.files.indexOf(file);
+                        final index = currentFolder.files.indexOf(file);
 
                         // 2. 调用音频服务播放整个文件夹的歌单，并从点击的索引处开始播放
                         // 这会清除当前队列，并将文件夹内的所有歌曲加载进播放队列
                         await audio.playPlaylist(
-                          _currentFolder!.files,
+                          currentFolder.files,
                           initialIndex: index,
                         );
 
@@ -368,10 +387,8 @@ class _FoldersPageState extends State<FoldersPage> {
     breadcrumbItems.add(
       InkWell(
         onTap: () {
-          setState(() {
-            _currentFolder = null;
-            _history.clear();
-          });
+          scanner.setNavigationState(null, []);
+          _scrollToTop();
         },
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -381,8 +398,8 @@ class _FoldersPageState extends State<FoldersPage> {
     );
 
     // 历史路径段
-    for (int i = 0; i < _history.length; i++) {
-      final folder = _history[i];
+    for (int i = 0; i < scanner.navigationHistory.length; i++) {
+      final folder = scanner.navigationHistory[i];
       breadcrumbItems.add(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -396,10 +413,8 @@ class _FoldersPageState extends State<FoldersPage> {
       breadcrumbItems.add(
         InkWell(
           onTap: () {
-            setState(() {
-              _currentFolder = folder;
-              _history.removeRange(i, _history.length);
-            });
+            scanner.setNavigationState(folder, scanner.navigationHistory.take(i).toList());
+            _scrollToTop();
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
