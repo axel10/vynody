@@ -7,7 +7,6 @@ import '../player/audio_service.dart';
 import '../player/metadata_helper.dart';
 import '../models/music_file.dart';
 
-
 class CoverCarousel extends StatefulWidget {
   const CoverCarousel({
     super.key,
@@ -15,20 +14,20 @@ class CoverCarousel extends StatefulWidget {
     required this.currentIndex,
     required this.audioService,
     this.onPageChanged,
+    this.onAnimationComplete,
     this.isLandscape = false,
     this.isNext,
     this.displaySize,
   });
 
-
   final List<MusicFile> playlist;
   final int currentIndex;
   final AudioService audioService;
   final Function(int)? onPageChanged;
+  final VoidCallback? onAnimationComplete;
   final bool isLandscape;
   final bool? isNext;
   final double? displaySize;
-
 
   @override
   State<CoverCarousel> createState() => _CoverCarouselState();
@@ -106,6 +105,7 @@ class _CoverCarouselState extends State<CoverCarousel>
                 });
                 widget.onPageChanged?.call(targetPage);
               }
+              widget.onAnimationComplete?.call();
             }
           });
     } else {
@@ -127,11 +127,11 @@ class _CoverCarouselState extends State<CoverCarousel>
                 });
                 widget.onPageChanged?.call(page);
               }
+              widget.onAnimationComplete?.call();
             }
           });
     }
   }
-
 
   @override
   void dispose() {
@@ -245,7 +245,6 @@ class _CoverCarouselState extends State<CoverCarousel>
           );
         })
         .toList();
-
   }
 }
 
@@ -277,7 +276,6 @@ class _CoverItemState extends State<_CoverItem> {
   Uint8List? _artworkBytes;
   bool _isLoaded = false;
 
-
   @override
   void initState() {
     super.initState();
@@ -291,22 +289,23 @@ class _CoverItemState extends State<_CoverItem> {
     if (oldWidget.musicFile.path != widget.musicFile.path) {
       _artworkBytes = null;
       _loadArtwork();
-    } 
+    }
     // If the path is the same but artworkBytes or artworkPath appeared, we should update.
     // This happens when background processing completes.
-    else if (widget.musicFile.artworkBytes != oldWidget.musicFile.artworkBytes ||
-             widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath) {
+    else if (widget.musicFile.artworkBytes !=
+            oldWidget.musicFile.artworkBytes ||
+        widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath) {
       _loadArtwork();
     }
   }
 
-
   Future<void> _loadArtwork() async {
     _isLoaded = true;
 
-    
     // If we have original HD bytes in cache, use them.
-    final cachedBytes = widget.audioService.getCachedArtwork(widget.musicFile.path);
+    final cachedBytes = widget.audioService.getCachedArtwork(
+      widget.musicFile.path,
+    );
     if (cachedBytes != null) {
       if (mounted) setState(() => _artworkBytes = cachedBytes);
       widget.onArtworkLoaded?.call(cachedBytes, null);
@@ -315,11 +314,16 @@ class _CoverItemState extends State<_CoverItem> {
 
     if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
         widget.audioService.currentMusic?.artworkBytes != null) {
-      if (mounted) setState(() => _artworkBytes = widget.audioService.currentMusic!.artworkBytes);
-      widget.onArtworkLoaded?.call(widget.audioService.currentMusic!.artworkBytes, null);
+      if (mounted)
+        setState(
+          () => _artworkBytes = widget.audioService.currentMusic!.artworkBytes,
+        );
+      widget.onArtworkLoaded?.call(
+        widget.audioService.currentMusic!.artworkBytes,
+        null,
+      );
       return;
     }
-
 
     // 3. Try artworkPath if it exists (high res local)
     final highResPath = widget.musicFile.artworkPath;
@@ -360,8 +364,9 @@ class _CoverItemState extends State<_CoverItem> {
     }
 
     // 5. Try extracting embedded artwork as last resort
-    final embeddedBytes =
-        await MetadataHelper.decodeEmbeddedArtwork(widget.musicFile.path);
+    final embeddedBytes = await MetadataHelper.decodeEmbeddedArtwork(
+      widget.musicFile.path,
+    );
     if (embeddedBytes != null) {
       if (mounted) {
         setState(() {
@@ -372,9 +377,6 @@ class _CoverItemState extends State<_CoverItem> {
       return;
     }
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -436,7 +438,9 @@ class _CoverItemState extends State<_CoverItem> {
         ? math.min((widget.displaySize! * devicePixelRatio).round(), limit)
         : limit;
 
-    final cachedBytes = widget.audioService.getCachedArtwork(widget.musicFile.path);
+    final cachedBytes = widget.audioService.getCachedArtwork(
+      widget.musicFile.path,
+    );
     if (cachedBytes != null) {
       return Image.memory(
         cachedBytes,
@@ -491,9 +495,10 @@ class _CoverItemState extends State<_CoverItem> {
       }
     }
 
-
     if (!_isLoaded) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24));
+      return const Center(
+        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
+      );
     }
 
     return Center(

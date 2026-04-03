@@ -40,6 +40,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   double _scrubProgress = 0.0; // Added missing declaration
   Orientation? _lastOrientation;
   Timer? _inactivityTimer; // Added missing declaration
+  Uint8List? _pendingArtworkBytes;
 
   SettingsService? _settingsService;
   AudioService? _audioService;
@@ -52,6 +53,7 @@ class _PlaybackPageState extends State<PlaybackPage>
       final audio = context.read<AudioService>();
       _showVisualizer = audio.isVisualizerEnabled;
       _isLyricsMode = audio.isLyricsActive;
+      _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
       context.read<SettingsService>().resetInactivity();
       if (mounted) {
         setState(() {});
@@ -93,6 +95,13 @@ class _PlaybackPageState extends State<PlaybackPage>
 
   void _handleInteraction() {
     _startInactivityTimer();
+  }
+
+  void _onCarouselAnimationComplete() {
+    final audio = context.read<AudioService>();
+    setState(() {
+      _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
+    });
   }
 
   /// 当用户点击专辑封面时触发，切换歌词模式显示状态。
@@ -496,6 +505,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                               _handleInteraction();
                               _adjustVolumeFromScroll(audio, deltaY);
                             },
+                            onCarouselAnimationComplete:
+                                _onCarouselAnimationComplete,
                           );
                         },
                       ),
@@ -553,18 +564,18 @@ class _PlaybackPageState extends State<PlaybackPage>
   /// 构建毛玻璃背景组件。
   ///
   /// 该组件实现了当音乐切换或封面更新时，背景图的平滑过渡效果。
-  /// 仅监听当前播放歌曲的高清封面字节流 (artworkBytes)，并利用 Image.memory 的 cacheWidth 在解码时缩小图片。
+  /// 使用 _pendingArtworkBytes，在轮播动画完成后才更新背景。
   Widget _buildBlurredBackground(BuildContext context) {
     return Positioned.fill(
       child: RepaintBoundary(
         child: Stack(
           children: [
-            // 简化后的背景渲染逻辑：仅监听当前播放歌曲的高清封面字节流 (artworkBytes)。
+            // 简化后的背景渲染逻辑：在轮播动画完成后才更新背景。
             // 拿到原始大图后，利用 Image.memory 的 cacheWidth/cacheHeight 属性
             // 在解码阶段即完成缩小，从而替代之前手动生成的低清图逻辑。
-            Selector<AudioService, Uint8List?>(
-              selector: (_, a) => a.currentMusic?.artworkBytes,
-              builder: (context, bytes, _) {
+            Builder(
+              builder: (context) {
+                final bytes = _pendingArtworkBytes;
                 final Widget content;
 
                 if (bytes == null) {
@@ -607,10 +618,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                   switchInCurve: Curves.easeOut,
                   switchOutCurve: Curves.easeIn,
                   transitionBuilder: (child, animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    );
+                    return FadeTransition(opacity: animation, child: child);
                   },
                   child: content,
                 );
@@ -723,8 +731,8 @@ class _PlaybackPageState extends State<PlaybackPage>
   //           end: Alignment.topCenter,
   //           colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
   //         ),
-//       ),
-//     ),
-//   );
-// }
+  //       ),
+  //     ),
+  //   );
+  // }
 }

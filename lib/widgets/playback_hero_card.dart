@@ -46,6 +46,7 @@ class PlaybackHeroCard extends StatelessWidget {
     this.onVolumeDrag,
     this.onVolumeScroll,
     this.onCoverTap,
+    this.onCarouselAnimationComplete,
     this.overrideProgress,
     this.overridePosition,
     this.overrideWaveform,
@@ -78,6 +79,7 @@ class PlaybackHeroCard extends StatelessWidget {
   final ValueChanged<double>? onVolumeDrag;
   final ValueChanged<double>? onVolumeScroll;
   final VoidCallback? onCoverTap;
+  final VoidCallback? onCarouselAnimationComplete;
 
   double _lerp2D(
     double pN,
@@ -618,6 +620,7 @@ class PlaybackHeroCard extends StatelessWidget {
             audio.playAtIndex(page);
           }
         },
+        onAnimationComplete: onCarouselAnimationComplete,
       ),
     );
 
@@ -643,7 +646,9 @@ class PlaybackHeroCard extends StatelessWidget {
     bool isUnknown(String val) {
       if (val.isEmpty) return true;
       final lower = val.toLowerCase();
-      return lower == 'unknown' || lower == 'unknown artist' || lower == 'unknown album';
+      return lower == 'unknown' ||
+          lower == 'unknown artist' ||
+          lower == 'unknown album';
     }
 
     final bool hasArtist = !isUnknown(rawArtist);
