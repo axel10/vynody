@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../utils/network_client.dart';

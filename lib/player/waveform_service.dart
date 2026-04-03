@@ -1,6 +1,7 @@
 /// 波形数据服务
 ///
 /// 提供歌曲波形图的获取、计算、缓存同步以及 BLOB 数据的序列化与反序列化。
+library;
 import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
 import 'metadata_database.dart';

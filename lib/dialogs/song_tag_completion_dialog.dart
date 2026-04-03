@@ -1,8 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import '../utils/clean_helper.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
+import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
 
@@ -35,11 +38,14 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   bool _isApplying = false;
   String? _errorMessage;
   SongMetadata? _fileMetadata;
+  AcoustIDResult? _acoustidResult;
+  bool _isAcoustIDLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
+    _loadAcoustIDResult();
   }
 
   Future<void> _loadInitialData() async {
@@ -48,7 +54,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     });
 
     try {
-      _fileMetadata = await MetadataHelper.readMetadataFromFile(widget.songPath);
+      _fileMetadata = await MetadataHelper.readMetadataFromFile(
+        widget.songPath,
+      );
     } catch (e) {
       debugPrint('Error reading file tags: $e');
     }
@@ -93,6 +101,95 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadAcoustIDResult() async {
+    try {
+      final apiKeyFile = File('api_keys.json');
+      String apiKey;
+      if (await apiKeyFile.exists()) {
+        final content = await apiKeyFile.readAsString();
+        final json = jsonDecode(content) as Map<String, dynamic>;
+        apiKey = json['AcoustID_API_KEY'] as String? ?? '';
+      } else {
+        debugPrint('AcoustID: api_keys.json not found');
+        if (!mounted) return;
+        setState(() => _isAcoustIDLoading = false);
+        return;
+      }
+
+      if (apiKey.isEmpty) {
+        debugPrint('AcoustID: API key is empty');
+        if (!mounted) return;
+        setState(() => _isAcoustIDLoading = false);
+        return;
+      }
+
+      final acoustidService = AcoustIDService(apiKey: apiKey);
+      final durationSec = (_fileMetadata?.duration ?? widget.durationMillis ?? 0) ~/ 1000;
+      final result = await acoustidService.lookupByFingerprint(
+        filePath: widget.songPath,
+        durationSeconds: durationSec,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _acoustidResult = result;
+        _isAcoustIDLoading = false;
+      });
+    } catch (e) {
+      debugPrint('AcoustID: Failed to load result: $e');
+      if (!mounted) return;
+      setState(() => _isAcoustIDLoading = false);
+    }
+  }
+
+  Future<void> _applyAcoustIDMatch(AcoustIDResult result) async {
+    if (_isApplying) return;
+
+    setState(() {
+      _isApplying = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final updated = SongMetadata(
+        path: widget.songPath,
+        title: result.title.trim().isNotEmpty ? result.title.trim() : _displayTitle,
+        artist: result.artist.isNotEmpty ? result.artist : 'Unknown Artist',
+        album: result.album?.trim().isNotEmpty == true ? result.album!.trim() : 'Unknown Album',
+        duration: result.durationMillis ?? widget.durationMillis,
+      );
+
+      await MetadataDatabase().insertOrUpdateSong(updated);
+
+      if (!mounted) return;
+      Navigator.of(context).pop(MusicBrainzTagSelectionResult(
+        metadata: updated,
+        artworkBytes: null,
+        match: MusicBrainzTrackMatch(
+          recordingId: result.recordingId,
+          title: result.title,
+          artist: result.artist,
+          album: result.album,
+          releaseId: null,
+          releaseGroupId: null,
+          releaseDate: null,
+          country: null,
+          durationMillis: result.durationMillis,
+          trackNumber: null,
+          score: (result.score * 100).round().clamp(0, 100),
+          disambiguation: 'AcoustID',
+          raw: result.raw,
+        ),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isApplying = false;
+        _errorMessage = '保存失败：$e';
       });
     }
   }
@@ -143,7 +240,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '根据当前时长和已有标签检索 MusicBrainz，然后选择最接近的结果。',
+                  '根据音频指纹检索 AcoustID，并根据当前时长和已有标签检索 MusicBrainz，然后选择最接近的结果。',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
@@ -171,7 +268,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   Widget _buildSummary(BuildContext context) {
     final chips = <Widget>[
       _InfoChip(label: '本地标题', value: _displayTitle),
-      if ((_fileMetadata?.artist ?? widget.currentArtist ?? '').trim().isNotEmpty)
+      if ((_fileMetadata?.artist ?? widget.currentArtist ?? '')
+          .trim()
+          .isNotEmpty)
         _InfoChip(
           label: '艺术家',
           value: (_fileMetadata?.artist ?? widget.currentArtist!).trim(),
@@ -196,164 +295,307 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   }
 
   Widget _buildBody(BuildContext context) {
-
-    if (_isLoading) {
+    if (_isLoading && _isAcoustIDLoading) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2.4));
     }
 
-    if (_errorMessage != null) {
+    if (_errorMessage != null && _acoustidResult == null && _matches.isEmpty) {
       return _EmptyState(
         icon: Icons.wifi_off_rounded,
         title: '检索失败',
         subtitle: _errorMessage!,
         actionLabel: '重试',
-        onAction: _loadMatches,
+        onAction: () {
+          _loadMatches();
+          _loadAcoustIDResult();
+        },
       );
     }
 
-    if (_matches.isEmpty) {
-      return _EmptyState(
-        icon: Icons.search_off_rounded,
-        title: '没有找到匹配结果',
-        subtitle: '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。',
-        actionLabel: '重新搜索',
-        onAction: _loadMatches,
+    final items = <Widget>[];
+
+    if (_isAcoustIDLoading) {
+      items.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white.withValues(alpha: 0.5)),
+            ),
+          ),
+        ),
+      );
+    } else if (_acoustidResult != null) {
+      final result = _acoustidResult!;
+      items.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Material(
+            color: const Color(0xFF46D27A).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: _isApplying ? null : () => _applyAcoustIDMatch(result),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF46D27A).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.fingerprint_rounded,
+                          color: Color(0xFF46D27A),
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  result.title.isNotEmpty ? result.title : _displayTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF46D27A).withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: const Color(0xFF46D27A).withValues(alpha: 0.4)),
+                                ),
+                                child: const Text(
+                                  'AcoustID',
+                                  style: TextStyle(
+                                    color: Color(0xFF46D27A),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            [
+                              if (result.artist.isNotEmpty) result.artist,
+                              if (result.album != null && result.album!.isNotEmpty) result.album!,
+                            ].join(' · '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 12,
+                              height: 1.3,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            [
+                              result.durationLabel,
+                              '匹配度 ${(result.score * 100).round()}%',
+                            ].join(' · '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.45),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: const Color(0xFF46D27A).withValues(alpha: 0.6),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-      itemCount: _matches.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final match = _matches[index];
+    if (!_isLoading && _matches.isEmpty && _acoustidResult == null) {
+      items.add(
+        Expanded(
+          child: _EmptyState(
+            icon: Icons.search_off_rounded,
+            title: '没有找到匹配结果',
+            subtitle: '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。',
+            actionLabel: '重新搜索',
+            onAction: () {
+              _loadMatches();
+              _loadAcoustIDResult();
+            },
+          ),
+        ),
+      );
+    } else if (!_isLoading) {
+      for (var i = 0; i < _matches.length; i++) {
+        final match = _matches[i];
         final durationText = match.durationLabel;
         final trackLabel = match.trackNumber != null
             ? 'Track ${match.trackNumber}'
             : 'Track --';
 
-        return Material(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(18),
-          child: InkWell(
+        items.add(
+          Material(
+            color: Colors.white.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(18),
-            onTap: _isApplying ? null : () => _applyMatch(match),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: _MatchCoverImage(
-                          match: match,
-                          service: _service,
-                        ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(6),
-                              bottomRight: Radius.circular(10),
-                            ),
-                          ),
-                          child: Text(
-                            '${index + 1}',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: _isApplying ? null : () => _applyMatch(match),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Text(
-                          match.title.isNotEmpty ? match.title : _displayTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: _MatchCoverImage(
+                            match: match,
+                            service: _service,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          [
-                            if (match.artist.isNotEmpty) match.artist,
-                            if (match.album != null && match.album!.isNotEmpty)
-                              match.album!,
-                          ].join(' · '),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 12,
-                            height: 1.3,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          [
-                            trackLabel,
-                            durationText,
-                            '评分 ${match.score}',
-                            if (match.releaseDate != null &&
-                                match.releaseDate!.isNotEmpty)
-                              match.releaseDate!,
-                            if (match.disambiguation != null &&
-                                match.disambiguation!.isNotEmpty)
-                              match.disambiguation!,
-                          ].join(' · '),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45),
-                            fontSize: 11,
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(6),
+                                bottomRight: Radius.circular(10),
+                              ),
+                            ),
+                            child: Text(
+                              '${_acoustidResult != null ? i + 1 : i + 1}',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _ScoreBadge(score: match.score),
-                      const SizedBox(height: 10),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: Colors.white.withValues(alpha: 0.45),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            match.title.isNotEmpty ? match.title : _displayTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            [
+                              if (match.artist.isNotEmpty) match.artist,
+                              if (match.album != null && match.album!.isNotEmpty)
+                                match.album!,
+                            ].join(' · '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 12,
+                              height: 1.3,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            [
+                              trackLabel,
+                              durationText,
+                              '评分 ${match.score}',
+                              if (match.releaseDate != null &&
+                                  match.releaseDate!.isNotEmpty)
+                                match.releaseDate!,
+                              if (match.disambiguation != null &&
+                                  match.disambiguation!.isNotEmpty)
+                                match.disambiguation!,
+                            ].join(' · '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.45),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _ScoreBadge(score: match.score),
+                        const SizedBox(height: 10),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white.withValues(alpha: 0.45),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         );
-      },
+
+        if (i < _matches.length - 1) {
+          items.add(const SizedBox(height: 8));
+        }
+      }
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+      children: items,
     );
   }
 
@@ -402,7 +644,6 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     );
   }
 }
-
 
 class _ScoreBadge extends StatelessWidget {
   const _ScoreBadge({required this.score});
@@ -516,6 +757,7 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
 class _MatchCoverImage extends StatefulWidget {
   const _MatchCoverImage({required this.match, required this.service});
 
@@ -571,11 +813,7 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
         );
       },
       errorBuilder: (context, error, stackTrace) =>
-          const Icon(
-            Icons.music_note_rounded,
-            color: Colors.white24,
-            size: 24,
-          ),
+          const Icon(Icons.music_note_rounded, color: Colors.white24, size: 24),
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null && !_isResolving) return child;
         return Center(

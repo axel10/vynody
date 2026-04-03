@@ -51,7 +51,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
                         ),
                         Switch(
                           value: isAuto,
-                          activeColor: Colors.blueAccent,
+                          activeThumbColor: Colors.blueAccent,
                           onChanged: (val) {
                             settings.isAutoMode = val;
                             if (val) {

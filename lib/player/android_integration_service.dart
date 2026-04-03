@@ -127,7 +127,7 @@ class AndroidIntegrationService {
 
 class MyAudioHandler extends BaseAudioHandler with SeekHandler {
   final app.AudioService appAudio;
-  MyAudioHandler(this.appAudio) {}
+  MyAudioHandler(this.appAudio);
 
   void onMetadataChanged() {
     final music = appAudio.currentMusic;

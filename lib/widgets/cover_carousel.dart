@@ -314,10 +314,11 @@ class _CoverItemState extends State<_CoverItem> {
 
     if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
         widget.audioService.currentMusic?.artworkBytes != null) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => _artworkBytes = widget.audioService.currentMusic!.artworkBytes,
         );
+      }
       widget.onArtworkLoaded?.call(
         widget.audioService.currentMusic!.artworkBytes,
         null,
@@ -434,7 +435,7 @@ class _CoverItemState extends State<_CoverItem> {
     final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
     final int limit = isPc ? 1200 : 800;
 
-    final int? cacheSize = widget.displaySize != null
+    final int cacheSize = widget.displaySize != null
         ? math.min((widget.displaySize! * devicePixelRatio).round(), limit)
         : limit;
 

@@ -5,7 +5,6 @@ import 'dart:math' as math;
 /// 包括：解析元数据、从封面提取配色方案、生成全曲波形图等耗时操作，不干扰主线程播放。
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:palette_generator/palette_generator.dart';
