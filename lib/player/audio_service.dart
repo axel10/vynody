@@ -593,9 +593,8 @@ class AudioService extends ChangeNotifier {
 
   Future<void> _updateCurrentMetadata(MusicFile song) async {
     final path = song.path;
-    final id = song.id;
-
-    if (currentMusic?.path == path && currentMusic?.id == id) return;
+    // Removed buggy guard that compared against currentMusic which was already updated to the new song.
+    // The callers (like _handlePlayerChanges or next()) already ensure this is only called when needed.
 
     // 1. 更新内部状态：如果路径或 ID 与当前项不匹配，则可能发生了异步竞态。
     if (_currentIndex >= 0 && _currentIndex < _queue.length && _queue[_currentIndex].path == path) {
