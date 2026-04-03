@@ -38,7 +38,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   bool _isApplying = false;
   String? _errorMessage;
   SongMetadata? _fileMetadata;
-  AcoustIDResult? _acoustidResult;
+  List<AcoustIDResult> _acoustidResults = const [];
   bool _isAcoustIDLoading = true;
 
   @override
@@ -129,14 +129,14 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
 
       final acoustidService = AcoustIDService(apiKey: apiKey);
       final durationSec = (_fileMetadata?.duration ?? widget.durationMillis ?? 0) ~/ 1000;
-      final result = await acoustidService.lookupByFingerprint(
+      final results = await acoustidService.lookupByFingerprint(
         filePath: widget.songPath,
         durationSeconds: durationSec,
       );
 
       if (!mounted) return;
       setState(() {
-        _acoustidResult = result;
+        _acoustidResults = results;
         _isAcoustIDLoading = false;
       });
     } catch (e) {
@@ -299,7 +299,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2.4));
     }
 
-    if (_errorMessage != null && _acoustidResult == null && _matches.isEmpty) {
+    if (_errorMessage != null && _acoustidResults.isEmpty && _matches.isEmpty) {
       return _EmptyState(
         icon: Icons.wifi_off_rounded,
         title: '检索失败',
@@ -327,120 +327,117 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
           ),
         ),
       );
-    } else if (_acoustidResult != null) {
-      final result = _acoustidResult!;
-      items.add(
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Material(
-            color: const Color(0xFF46D27A).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
+    } else if (_acoustidResults.isNotEmpty) {
+      for (var i = 0; i < _acoustidResults.length; i++) {
+        final result = _acoustidResults[i];
+        items.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Material(
+              color: const Color(0xFF46D27A).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(18),
-              onTap: _isApplying ? null : () => _applyAcoustIDMatch(result),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF46D27A).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: _isApplying ? null : () => _applyAcoustIDMatch(result),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF46D27A).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: _AcoustIDCoverImage(result: result),
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.fingerprint_rounded,
-                          color: Color(0xFF46D27A),
-                          size: 28,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    result.title.isNotEmpty ? result.title : _displayTitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF46D27A).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFF46D27A).withValues(alpha: 0.4)),
+                                  ),
+                                  child: const Text(
+                                    'AcoustID',
+                                    style: TextStyle(
+                                      color: Color(0xFF46D27A),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              [
+                                if (result.artist.isNotEmpty) result.artist,
+                                if (result.album != null && result.album!.isNotEmpty) result.album!,
+                              ].join(' · '),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 12,
+                                height: 1.3,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              [
+                                result.durationLabel,
+                                '匹配度 ${(result.score * 100).round()}%',
+                              ].join(' · '),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.45),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  result.title.isNotEmpty ? result.title : _displayTitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                margin: const EdgeInsets.only(left: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF46D27A).withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: const Color(0xFF46D27A).withValues(alpha: 0.4)),
-                                ),
-                                child: const Text(
-                                  'AcoustID',
-                                  style: TextStyle(
-                                    color: Color(0xFF46D27A),
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            [
-                              if (result.artist.isNotEmpty) result.artist,
-                              if (result.album != null && result.album!.isNotEmpty) result.album!,
-                            ].join(' · '),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 12,
-                              height: 1.3,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            [
-                              result.durationLabel,
-                              '匹配度 ${(result.score * 100).round()}%',
-                            ].join(' · '),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.45),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: const Color(0xFF46D27A).withValues(alpha: 0.6),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: const Color(0xFF46D27A).withValues(alpha: 0.6),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      );
+        );
+      }
     }
 
-    if (!_isLoading && _matches.isEmpty && _acoustidResult == null) {
+    if (!_isLoading && _matches.isEmpty && _acoustidResults.isEmpty) {
       items.add(
         Expanded(
           child: _EmptyState(
@@ -504,7 +501,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                               ),
                             ),
                             child: Text(
-                              '${_acoustidResult != null ? i + 1 : i + 1}',
+                              '${_acoustidResults.isNotEmpty ? i + 1 : i + 1}',
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 9,
@@ -824,6 +821,60 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
               strokeWidth: 1.5,
               valueColor: AlwaysStoppedAnimation<Color>(
                 Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AcoustIDCoverImage extends StatefulWidget {
+  const _AcoustIDCoverImage({required this.result});
+
+  final AcoustIDResult result;
+
+  @override
+  State<_AcoustIDCoverImage> createState() => _AcoustIDCoverImageState();
+}
+
+class _AcoustIDCoverImageState extends State<_AcoustIDCoverImage> {
+  @override
+  Widget build(BuildContext context) {
+    final url = widget.result.thumbnailUrl;
+    if (url == null) {
+      return const Icon(
+        Icons.fingerprint_rounded,
+        color: Color(0xFF46D27A),
+        size: 28,
+      );
+    }
+
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded) return child;
+        return AnimatedOpacity(
+          opacity: frame == null ? 0 : 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          child: child,
+        );
+      },
+      errorBuilder: (context, error, stackTrace) =>
+          const Icon(Icons.fingerprint_rounded, color: Color(0xFF46D27A), size: 28),
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Center(
+          child: SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(
+              strokeWidth: 1.5,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                const Color(0xFF46D27A).withValues(alpha: 0.5),
               ),
             ),
           ),

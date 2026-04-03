@@ -9,6 +9,7 @@ class AcoustIDResult {
   final String title;
   final String artist;
   final String? album;
+  final String? releaseId;
   final int? durationMillis;
   final double score;
   final List<String> acoustIds;
@@ -19,11 +20,17 @@ class AcoustIDResult {
     required this.title,
     required this.artist,
     this.album,
+    this.releaseId,
     this.durationMillis,
     required this.score,
     required this.acoustIds,
     required this.raw,
   });
+
+  String? get thumbnailUrl {
+    if (releaseId == null || releaseId!.isEmpty) return null;
+    return 'https://coverartarchive.org/release/$releaseId/front-250';
+  }
 
   factory AcoustIDResult.fromJson(Map<String, dynamic> json) {
     final recordings =
@@ -34,6 +41,7 @@ class AcoustIDResult {
     String title = '';
     String artist = '';
     String? album;
+    String? releaseId;
     int? durationMillis;
     final acoustIds = <String>[];
 
@@ -57,6 +65,9 @@ class AcoustIDResult {
       if (album == null && releases.isNotEmpty) {
         album = releases.first['title'] as String?;
       }
+      if (releaseId == null && releases.isNotEmpty) {
+        releaseId = releases.first['id'] as String?;
+      }
 
       durationMillis ??= (recording['length'] as num?)?.toInt();
 
@@ -73,6 +84,7 @@ class AcoustIDResult {
       title: title,
       artist: artist.isEmpty ? 'Unknown Artist' : artist,
       album: album,
+      releaseId: releaseId,
       durationMillis: durationMillis,
       score: (json['score'] as num?)?.toDouble() ?? 0.0,
       acoustIds: acoustIds,
@@ -104,7 +116,7 @@ class AcoustIDService {
   final String apiKey;
   final NetworkClient _client;
 
-  Future<AcoustIDResult?> lookupByFingerprint({
+  Future<List<AcoustIDResult>> lookupByFingerprint({
     required String filePath,
     required int durationSeconds,
   }) async {
@@ -113,12 +125,12 @@ class AcoustIDService {
       fingerprint = await getAudioFingerprint(path: filePath);
     } catch (e) {
       debugPrint('AcoustID: Failed to get fingerprint: $e');
-      return null;
+      return const [];
     }
 
     if (fingerprint.isEmpty) {
       debugPrint('AcoustID: Empty fingerprint');
-      return null;
+      return const [];
     }
 
     try {
@@ -128,18 +140,18 @@ class AcoustIDService {
           'client': apiKey,
           'fingerprint': fingerprint,
           'duration': durationSeconds.toString(),
-          'meta': 'recordings releasegroups',
+          'meta': 'recordings releases',
         },
       );
 
       final data = response.data;
-      if (data is! Map<String, dynamic>) return null;
+      if (data is! Map<String, dynamic>) return const [];
 
       final status = data['status'] as String?;
       if (status != 'ok') {
         final error = data['error']?['message'] as String?;
         debugPrint('AcoustID API error: $error');
-        return null;
+        return const [];
       }
 
       final results =
@@ -147,13 +159,12 @@ class AcoustIDService {
               .whereType<Map<String, dynamic>>()
               .toList();
 
-      if (results.isEmpty) return null;
+      if (results.isEmpty) return const [];
 
-      final best = results.first;
-      return AcoustIDResult.fromJson(best);
+      return results.map((e) => AcoustIDResult.fromJson(e)).toList();
     } catch (e) {
       debugPrint('AcoustID lookup failed: $e');
-      return null;
+      return const [];
     }
   }
 }
