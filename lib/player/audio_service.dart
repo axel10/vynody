@@ -657,8 +657,11 @@ class AudioService extends ChangeNotifier {
 
     notifyListeners();
 
-    // 5. 重算调色板（如果没缓存或元数据刚发生变化）
-    await _updatePalette();
+    // 5. 仅在封面数据尚未加载时重算调色板（避免重复计算）
+    // 注意：第640行的 _updatePalette() 已在封面加载完成后调用，这里只在封面未加载时兜底
+    if (currentMusic?.artworkBytes == null && currentMusic?.artworkPath == null) {
+      await _updatePalette();
+    }
 
     // 6. 与系统底层接口对接，更新 Windows 的系统媒体控制弹窗/Android 通知栏的封面信息
     _windowsIntegration?.updateMetadata(song);

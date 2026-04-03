@@ -470,10 +470,6 @@ class ScannerService extends ChangeNotifier {
   Future<void> scan() async {
     if (_rootPaths.isEmpty) return;
 
-    if (_pathIdMap.isEmpty && _hasPermission) {
-      await scanSystemMedia();
-    }
-
     _isScanning = true;
     _rootFolders.clear();
     notifyListeners();

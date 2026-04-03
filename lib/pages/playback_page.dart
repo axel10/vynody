@@ -579,11 +579,12 @@ class _PlaybackPageState extends State<PlaybackPage>
                   // 使用 Image.memory 的高性能解码缩放：
                   // 通过设置 cacheWidth 或 cacheHeight (200px)，Flutter 会在解码图片时
                   // 就直接生成小尺寸的内存 Buffer，极大降低了内存占用并加速了后续的毛玻璃滤镜运算。
+                  // 提高解码分辨率以减少边缘模糊导致的暗角问题
                   final imageProvider = Image.memory(
                     bytes,
                     width: double.infinity,
                     height: double.infinity,
-                    cacheWidth: 200, // 高性能解码缩放：解码到 200 宽
+                    cacheWidth: 300, // 提高解码分辨率以减少边缘暗角
                     fit: BoxFit.cover,
                     filterQuality: FilterQuality.low,
                     gaplessPlayback: true,
@@ -593,30 +594,21 @@ class _PlaybackPageState extends State<PlaybackPage>
                   content = ImageFiltered(
                     // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
                     key: ValueKey(bytes.hashCode),
-                    imageFilter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                    child: Transform.scale(scale: 1.15, child: imageProvider),
+                    // 减小模糊强度并增加缩放以更好地覆盖边缘
+                    imageFilter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                    child: Transform.scale(scale: 1.2, child: imageProvider),
                   );
                 }
 
                 // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
                 // 这种方式避免了传统的“双向淡入淡出（Cross-fade）”可能导致的背景短暂变暗或跳动。
                 return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 1200),
+                  duration: const Duration(milliseconds: 1000),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
                   transitionBuilder: (child, animation) {
-                    // 判断是否为新入场的子组件。
-                    // 在 AnimatedSwitcher 中，离场组件的 animation.status 为 reverse。
-                    final isIncoming =
-                        animation.status != AnimationStatus.reverse;
-
                     return FadeTransition(
-                      // 对新入场组件应用淡入动画，离场组件则保持 1.0 不透明度，
-                      // 确保背景在切换瞬间始终是坚实的，直到新封全覆盖旧封面。
-                      opacity: isIncoming
-                          ? CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOut,
-                            )
-                          : const AlwaysStoppedAnimation(1.0),
+                      opacity: animation,
                       child: child,
                     );
                   },
@@ -624,12 +616,18 @@ class _PlaybackPageState extends State<PlaybackPage>
                 );
               },
             ),
-            // 静态暗化遮罩：避免在动画每一帧进行复杂的 BlendMode 计算
+            // 径向渐变暗化遮罩：从中心向边缘逐渐变暗，消除边缘暗角
             Positioned.fill(
               child: IgnorePointer(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.25),
+                      ],
+                      stops: const [0.4, 1.0],
+                    ),
                   ),
                 ),
               ),
@@ -725,8 +723,8 @@ class _PlaybackPageState extends State<PlaybackPage>
   //           end: Alignment.topCenter,
   //           colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
   //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
+//       ),
+//     ),
+//   );
+// }
 }

@@ -139,8 +139,11 @@ class WindowsIntegrationService {
     if (!Platform.isWindows || _disposed || _taskbarInitScheduled) return;
     _taskbarInitScheduled = true;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_retrySetThumbnailToolbar());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _retrySetThumbnailToolbar();
+      // 无论成功与否，都重置标志以便下次可以重新尝试
+      // （例如窗口重新显示时）
+      _taskbarInitScheduled = false;
     });
   }
 
