@@ -315,7 +315,7 @@ class _CoverItemState extends State<_CoverItem> {
 
     // Last resort: if we have NO paths but are on mobile, try system query.
     if (Platform.isAndroid || Platform.isIOS) {
-      if (widget.musicFile.hdArtworkPath == null && widget.musicFile.id != null) {
+      if (widget.musicFile.id != null) {
         final bytes = await OnAudioQuery().queryArtwork(
           widget.musicFile.id!,
           ArtworkType.AUDIO,
@@ -431,7 +431,7 @@ class _CoverItemState extends State<_CoverItem> {
         cacheHeight: cacheSize,
       );
     } else {
-      final imagePath = widget.musicFile.hdArtworkPath ?? widget.musicFile.thumbnailPath;
+      final imagePath = widget.musicFile.thumbnailPath;
       if (imagePath != null) {
         final file = File(imagePath);
         if (file.existsSync()) {

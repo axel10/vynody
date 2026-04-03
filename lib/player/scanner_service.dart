@@ -363,6 +363,7 @@ class ScannerService extends ChangeNotifier {
           await MetadataHelper.processMetadata(
             song.data,
             songId: song.id,
+            generateThumbnail: false,
           );
 
           // Metadata processing finishes here. No waveform extraction during initial scan.
@@ -546,7 +547,10 @@ class ScannerService extends ChangeNotifier {
       await _waitUntilResumed();
       try {
 
-        final result = await MetadataHelper.processMetadata(path);
+        final result = await MetadataHelper.processMetadata(
+          path,
+          generateThumbnail: false,
+        );
         SongMetadata? metadata = result?.$1;
 
         // Metadata update (to update UI metadataMap)
@@ -571,7 +575,7 @@ class ScannerService extends ChangeNotifier {
     // Try DB first (cheapest); fall back to full processing if not found.
     SongMetadata? metadata = await db.getSongMetadata(path);
     final result = metadata == null
-        ? await MetadataHelper.processMetadata(path)
+        ? await MetadataHelper.processMetadata(path, generateThumbnail: false)
         : null;
     metadata ??= result?.$1;
 
@@ -599,18 +603,18 @@ class ScannerService extends ChangeNotifier {
     for (var i = 0; i < folder.files.length; i++) {
       final file = folder.files[i];
       if (file.path == metadata.path) {
-        folder.files[i] = file.copyWith(
-          title: metadata.title,
-          artist: metadata.artist,
-          album: metadata.album,
-          trackNumber: metadata.trackNumber,
-          artworkPath: metadata.artworkPath,
-          thumbnailPath: metadata.thumbnailPath,
-          artworkWidth: metadata.artworkWidth,
-          artworkHeight: metadata.artworkHeight,
-          themeColorsBlob: metadata.themeColorsBlob,
-          waveformBlob: metadata.waveformBlob,
-        );
+          folder.files[i] = file.copyWith(
+            title: metadata.title,
+            artist: metadata.artist,
+            album: metadata.album,
+            trackNumber: metadata.trackNumber,
+            thumbnailPath: metadata.thumbnailPath,
+            artworkWidth: metadata.artworkWidth,
+            artworkHeight: metadata.artworkHeight,
+            themeColorsBlob: metadata.themeColorsBlob,
+            waveformBlob: metadata.waveformBlob,
+            lastModifiedTime: metadata.lastModifiedTime,
+          );
       }
     }
     for (final subFolder in folder.subFolders) {
@@ -652,12 +656,12 @@ class ScannerService extends ChangeNotifier {
             String? artist;
             String? album;
             int? trackNumber;
-            String? artworkPath;
             String? thumbnailPath;
             int? artworkWidth;
             int? artworkHeight;
             Uint8List? themeColorsBlob;
             Uint8List? waveformBlob;
+            int? lastModifiedTime;
 
             if (Platform.isWindows) {
               // Avoid expensive per-file parsing during directory crawl.
@@ -671,12 +675,12 @@ class ScannerService extends ChangeNotifier {
                 artist = metadata.artist;
                 album = metadata.album;
                 trackNumber = metadata.trackNumber;
-                artworkPath = metadata.artworkPath;
                 thumbnailPath = metadata.thumbnailPath;
                 artworkWidth = metadata.artworkWidth;
                 artworkHeight = metadata.artworkHeight;
                 themeColorsBlob = metadata.themeColorsBlob;
                 waveformBlob = metadata.waveformBlob;
+                lastModifiedTime = metadata.lastModifiedTime;
               }
             }
 
@@ -688,12 +692,12 @@ class ScannerService extends ChangeNotifier {
                 artist: artist,
                 album: album,
                 trackNumber: trackNumber,
-                hdArtworkPath: artworkPath,
                 thumbnailPath: thumbnailPath,
                 artworkWidth: artworkWidth,
                 artworkHeight: artworkHeight,
                 themeColorsBlob: themeColorsBlob,
                 waveformBlob: waveformBlob,
+                lastModifiedTime: lastModifiedTime,
                 id: id,
               ),
             );

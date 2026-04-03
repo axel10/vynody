@@ -10,13 +10,13 @@ class MusicFile {
   final String? album;
   final int? trackNumber;
   final int? id; // System Media Library ID
-  final String? hdArtworkPath;
   final String? thumbnailPath;
   final int? artworkWidth;
   final int? artworkHeight;
   final Uint8List? themeColorsBlob;
   final Uint8List? waveformBlob;
   final Uint8List? artworkBytes;
+  final int? lastModifiedTime;
   final MusicLyric? lyrics;
 
   List<double> get waveform {
@@ -39,13 +39,13 @@ class MusicFile {
     this.album,
     this.trackNumber,
     this.id,
-    this.hdArtworkPath,
     this.thumbnailPath,
     this.artworkWidth,
     this.artworkHeight,
     this.themeColorsBlob,
     this.waveformBlob,
     this.artworkBytes,
+    this.lastModifiedTime,
     this.lyrics,
   });
 
@@ -64,13 +64,13 @@ class MusicFile {
     String? album,
     int? trackNumber,
     int? id,
-    String? artworkPath,
     String? thumbnailPath,
     int? artworkWidth,
     int? artworkHeight,
     Uint8List? themeColorsBlob,
     Uint8List? waveformBlob,
     Uint8List? artworkBytes,
+    int? lastModifiedTime,
     MusicLyric? lyrics,
   }) {
     return MusicFile(
@@ -81,13 +81,13 @@ class MusicFile {
       album: album ?? this.album,
       trackNumber: trackNumber ?? this.trackNumber,
       id: id ?? this.id,
-      hdArtworkPath: artworkPath ?? this.hdArtworkPath,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
       artworkWidth: artworkWidth ?? this.artworkWidth,
       artworkHeight: artworkHeight ?? this.artworkHeight,
       themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
       waveformBlob: waveformBlob ?? this.waveformBlob,
       artworkBytes: artworkBytes ?? this.artworkBytes,
+      lastModifiedTime: lastModifiedTime ?? this.lastModifiedTime,
       lyrics: lyrics ?? this.lyrics,
     );
   }
@@ -102,10 +102,10 @@ class MusicFile {
         other.album == album &&
         other.trackNumber == trackNumber &&
         other.id == id &&
-        other.hdArtworkPath == hdArtworkPath &&
         other.thumbnailPath == thumbnailPath &&
         other.artworkWidth == artworkWidth &&
         other.artworkHeight == artworkHeight &&
+        other.lastModifiedTime == lastModifiedTime &&
         other.lyrics == lyrics;
   }
 
@@ -118,9 +118,9 @@ class MusicFile {
         album,
         trackNumber,
         id,
-        hdArtworkPath,
         thumbnailPath,
         artworkWidth,
         artworkHeight,
+        lastModifiedTime,
       );
 }

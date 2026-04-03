@@ -94,7 +94,9 @@ class _SongThumbnailState extends State<SongThumbnail> {
       final scanner = context.watch<ScannerService>();
       final metadata = scanner.metadataMap[widget.path];
 
-      final imagePath = metadata?.thumbnailPath ?? metadata?.artworkPath;
+
+
+      final imagePath = metadata?.thumbnailPath;
       if (imagePath != null) {
         final file = File(imagePath);
         if (file.existsSync()) {

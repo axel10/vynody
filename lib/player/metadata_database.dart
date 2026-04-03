@@ -19,6 +19,7 @@ class SongMetadata {
   final int? trackNumber;
   final Uint8List? themeColorsBlob;
   final Uint8List? waveformBlob;
+  final int? lastModifiedTime;
 
   SongMetadata({
     this.id,
@@ -34,6 +35,7 @@ class SongMetadata {
     this.trackNumber,
     this.themeColorsBlob,
     this.waveformBlob,
+    this.lastModifiedTime,
   });
 
   Map<String, dynamic> toMap() {
@@ -50,6 +52,7 @@ class SongMetadata {
       'trackNumber': trackNumber,
       'themeColorsBlob': themeColorsBlob,
       'waveformBlob': waveformBlob,
+      'lastModifiedTime': lastModifiedTime,
     };
   }
 
@@ -68,6 +71,7 @@ class SongMetadata {
       trackNumber: map['trackNumber'],
       themeColorsBlob: map['themeColorsBlob'] as Uint8List?,
       waveformBlob: map['waveformBlob'] as Uint8List?,
+      lastModifiedTime: map['lastModifiedTime'],
     );
   }
 
@@ -85,6 +89,7 @@ class SongMetadata {
     int? trackNumber,
     Uint8List? themeColorsBlob,
     Uint8List? waveformBlob,
+    int? lastModifiedTime,
   }) {
     return SongMetadata(
       id: id ?? this.id,
@@ -100,6 +105,7 @@ class SongMetadata {
       trackNumber: trackNumber ?? this.trackNumber,
       themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
       waveformBlob: waveformBlob ?? this.waveformBlob,
+      lastModifiedTime: lastModifiedTime ?? this.lastModifiedTime,
     );
   }
 }
@@ -226,7 +232,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -242,7 +248,8 @@ class MetadataDatabase {
             artworkHeight INTEGER,
             trackNumber INTEGER,
             themeColorsBlob BLOB,
-            waveformBlob BLOB
+            waveformBlob BLOB,
+            lastModifiedTime INTEGER
           )
         ''');
 
@@ -327,6 +334,13 @@ class MetadataDatabase {
           if (!await _columnExists(db, 'songs', 'thumbnailPath')) {
             await db.execute(
               'ALTER TABLE songs ADD COLUMN thumbnailPath TEXT',
+            );
+          }
+        }
+        if (oldVersion < 8) {
+          if (!await _columnExists(db, 'songs', 'lastModifiedTime')) {
+            await db.execute(
+              'ALTER TABLE songs ADD COLUMN lastModifiedTime INTEGER',
             );
           }
         }

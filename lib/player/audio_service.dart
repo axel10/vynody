@@ -22,6 +22,7 @@ import 'waveform_service.dart';
 import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
 import 'scanner_service.dart';
+import 'metadata_helper.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioCoreController _player;
@@ -33,6 +34,7 @@ class AudioService extends ChangeNotifier {
   int? _currentSongId;
   List<double> _currentWaveform = const [];
   Uint8List? _currentArtworkBytes;
+  Uint8List? _lowResArtworkBytes;
   String? _currentArtworkPath;
   int? _artworkWidth;
   int? _artworkHeight;
@@ -425,6 +427,7 @@ class AudioService extends ChangeNotifier {
   int? get artworkWidth => _artworkWidth;
   int? get artworkHeight => _artworkHeight;
   String? get currentArtworkPath => _currentArtworkPath;
+  Uint8List? get lowResArtworkBytes => _lowResArtworkBytes;
 
   List<MusicFile> get playbackQueue => List.unmodifiable(_queue);
 
@@ -457,6 +460,7 @@ class AudioService extends ChangeNotifier {
         hasLyrics: _hasLyrics,
         currentLyricsTitle: _currentLyricsTitle,
         isLyricsActive: _isLyricsActive,
+        lowResArtworkBytes: _lowResArtworkBytes,
       );
 
   Uint8List? getCachedArtwork(String? path) {
@@ -521,7 +525,6 @@ class AudioService extends ChangeNotifier {
         title: metadata.title,
         artist: metadata.artist,
         album: metadata.album,
-        artworkPath: metadata.artworkPath,
         thumbnailPath: metadata.thumbnailPath,
         artworkWidth: metadata.artworkWidth,
         artworkHeight: metadata.artworkHeight,
@@ -529,6 +532,7 @@ class AudioService extends ChangeNotifier {
         waveformBlob: metadata.waveformBlob,
         trackNumber: metadata.trackNumber,
         artworkBytes: artworkBytes,
+        lastModifiedTime: metadata.lastModifiedTime,
       );
 
       queueChanged = true;
@@ -633,7 +637,7 @@ class AudioService extends ChangeNotifier {
     _currentArtist = song.artist;
     _currentAlbum = song.album;
     _currentSongId = id;
-    _currentArtworkPath = song.hdArtworkPath;
+    _currentArtworkPath = null; // We'll look it up from DB or file
     _artworkWidth = song.artworkWidth;
     _artworkHeight = song.artworkHeight;
     _currentWaveform =
@@ -643,6 +647,7 @@ class AudioService extends ChangeNotifier {
         : const [];
 
     _currentArtworkBytes = song.artworkBytes;
+    _lowResArtworkBytes = null;
 
     // 2. 如果之前已缓存了主题色彩信息，此时直接应用（这样 UI 界面背景色即刻更新，无需等待重绘）
     if (song.themeColorsBlob != null) {
@@ -650,15 +655,38 @@ class AudioService extends ChangeNotifier {
       _applyThemeColors(colorsMap);
     }
 
-    // 3. 如果内存中没有封面字节，但有本地路径，静默载入内存供调色板生成使用
-    if (_currentArtworkBytes == null && song.hdArtworkPath != null) {
-      try {
-        final bytes = await File(song.hdArtworkPath!).readAsBytes();
-        if (path == _currentFilePath) {
-          _currentArtworkBytes = bytes;
+    // 3. 核心封面试加载逻辑：先查数据库路径，没有则查内嵌封面
+    unawaited(() async {
+      Uint8List? highResBytes;
+      String? highResPath;
+
+      final dbMetadata = await _db.getSongMetadata(path);
+      if (dbMetadata != null && dbMetadata.artworkPath != null) {
+        highResPath = dbMetadata.artworkPath;
+        try {
+          highResBytes = await File(highResPath!).readAsBytes();
+        } catch (_) {}
+      }
+
+      if (highResBytes == null) {
+        // 解码嵌入封面，限 1000*1000
+        highResBytes = await MetadataHelper.decodeEmbeddedArtwork(path);
+      }
+
+      if (path == _currentFilePath) {
+        _currentArtworkBytes = highResBytes;
+        _currentArtworkPath = highResPath;
+        
+        // 4. 获得高清封面后生成 200*200 低清图（供 UI 层 ImageFiltered 高斯模糊背景使用）
+        if (highResBytes != null) {
+          _lowResArtworkBytes = await MetadataHelper.generateLowResArtwork(highResBytes);
         }
-      } catch (_) {}
-    }
+        
+        notifyListeners();
+        // 重算调色板（如果元数据刚发生变化）
+        await _updatePalette();
+      }
+    }());
 
     // 4. 如果歌曲对象已经持有了歌词，则直接应用，无需二次触发
     final songLyrics = song.lyrics;
@@ -1152,8 +1180,16 @@ class AudioService extends ChangeNotifier {
           for (int i = 0; i < _queue.length; i++) {
             if (_queue[i].path == path) {
               _queue[i] = _queue[i].copyWith(
-                themeColorsBlob: updates['themeColorsBlob'] as Uint8List?,
-                waveformBlob: updates['waveformBlob'] as Uint8List?,
+                themeColorsBlob: updates['themeColorsBlob'] as Uint8List? ??
+                    _queue[i].themeColorsBlob,
+                waveformBlob:
+                    updates['waveformBlob'] as Uint8List? ?? _queue[i].waveformBlob,
+                thumbnailPath:
+                    updates['thumbnailPath'] as String? ?? _queue[i].thumbnailPath,
+                artworkWidth:
+                    updates['artworkWidth'] as int? ?? _queue[i].artworkWidth,
+                artworkHeight:
+                    updates['artworkHeight'] as int? ?? _queue[i].artworkHeight,
               );
             }
           }
@@ -1182,6 +1218,14 @@ class AudioService extends ChangeNotifier {
           // 2. 实时更新当前播放页：如果预解码的正好是当前正在播放的歌曲，立即通知 UI 更新背景
           if (path == _currentFilePath) {
             _currentArtworkBytes = bytes;
+            // 同步生成低清背景图，确保背景模糊效率
+            unawaited(() async {
+               final lowRes = await MetadataHelper.generateLowResArtwork(bytes);
+               if (path == _currentFilePath) {
+                 _lowResArtworkBytes = lowRes;
+                 notifyListeners();
+               }
+            }());
             notifyListeners();
           }
 

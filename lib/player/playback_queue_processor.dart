@@ -182,14 +182,17 @@ class PlaybackQueueProcessor {
 
 
 
-          // 2. Heavy Processing: Colors and Waveform
-          if (needsWaveform || needsThemeColor) {
-            debugPrint('Background processing (Colors/Waveform): ${song.path}');
+          // 2. Heavy Processing: Thumbnails, Colors and Waveform
+          if (needsWaveform || needsThemeColor || existing.thumbnailPath == null) {
+            debugPrint('Background processing (Thumbnail/Colors/Waveform): ${song.path}');
 
             // We need a metadata object (either from DB or a quick scan) to get the artwork path
             SongMetadata? m = existing;
             if (m == null) {
-              final result = await MetadataHelper.processMetadata(song.path);
+              final result = await MetadataHelper.processMetadata(
+                song.path,
+                generateThumbnail: false,
+              );
               m = result?.$1;
             }
 
@@ -197,27 +200,72 @@ class PlaybackQueueProcessor {
               // Use a non-nullable reference
               SongMetadata meta = m;
 
-              // Extract theme colors if missing
-              if (meta.themeColorsBlob == null && meta.artworkPath != null) {
+              // Extract thumbnail if missing
+              if (meta.thumbnailPath == null) {
                 try {
-                  final imageProvider = FileImage(File(meta.artworkPath!));
-                  final palette = await PaletteGenerator.fromImageProvider(
-                    imageProvider,
-                    maximumColorCount: 20,
+                  // Extract raw artwork data first
+                  final rawMetadata = await compute(
+                    MetadataHelper.readMetadataIsolate,
+                    song.path,
                   );
-                  final themeColorsBlob = ThemeColorHelper.paletteToBlob(
-                    palette,
-                  );
+                  final artworkData = rawMetadata.pictures.isNotEmpty
+                      ? rawMetadata.pictures.first.bytes
+                      : null;
 
-                  meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
-                  await db.insertOrUpdateSong(meta);
+                  if (artworkData != null) {
+                    final artworkInfo = await MetadataHelper.saveArtworkAndThumbnail(
+                      song.path,
+                      artworkData,
+                      saveLarge: !Platform.isWindows,
+                    );
 
-                  onUpdate(song.path, {
-                    'themeColors': ThemeColorHelper.blobToColors(
-                      themeColorsBlob,
-                    ),
-                    'themeColorsBlob': themeColorsBlob,
-                  });
+                    if (artworkInfo != null) {
+                      final thumbPath = artworkInfo['thumbnailPath'] as String?;
+
+                      meta = meta.copyWith(
+                        thumbnailPath: thumbPath,
+                        artworkPath: artworkInfo['artworkPath'] as String?,
+                        artworkWidth: artworkInfo['width'] as int?,
+                        artworkHeight: artworkInfo['height'] as int?,
+                      );
+                      await db.insertOrUpdateSong(meta);
+
+                      onUpdate(song.path, {
+                        'thumbnailPath': thumbPath,
+                        'artworkWidth': meta.artworkWidth,
+                        'artworkHeight': meta.artworkHeight,
+                      });
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Thumbnail extraction error for ${song.path}: $e');
+                }
+              }
+
+              // Extract theme colors if missing
+              if (meta.themeColorsBlob == null) {
+                try {
+                  final colorSourcePath = meta.thumbnailPath ?? meta.artworkPath;
+                  if (colorSourcePath != null) {
+                    final imageProvider = FileImage(File(colorSourcePath));
+                    final palette = await PaletteGenerator.fromImageProvider(
+                      imageProvider,
+                      maximumColorCount: 20,
+                    );
+                    final themeColorsBlob = ThemeColorHelper.paletteToBlob(
+                      palette,
+                    );
+
+                    meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
+                    await db.insertOrUpdateSong(meta);
+
+                    onUpdate(song.path, {
+                      'themeColors': ThemeColorHelper.blobToColors(
+                        themeColorsBlob,
+                      ),
+                      'themeColorsBlob': themeColorsBlob,
+                    });
+                  }
                 } catch (e) {
                   debugPrint(
                     'Theme color extraction error for ${song.path}: $e',

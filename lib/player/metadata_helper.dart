@@ -18,12 +18,17 @@ class MetadataHelper {
   static Future<(SongMetadata, Uint8List?)?> processMetadata(
     String filePath, {
     int? songId,
+    bool generateThumbnail = true,
   }) async {
     final db = MetadataDatabase();
+    final file = File(filePath);
+    final lastModified = (await file.lastModified()).millisecondsSinceEpoch;
 
-    // 1. 如果数据库已有记录，直接返回
+    // 1. 如果数据库已有记录且修改时间相同，直接返回
     final existing = await db.getSongMetadata(filePath);
-    if (existing != null) return (existing, null);
+    if (existing != null && existing.lastModifiedTime == lastModified) {
+      return (existing, null);
+    }
 
     try {
       Uint8List? artworkData;
@@ -34,8 +39,8 @@ class MetadataHelper {
       int? trackNumber;
 
       try {
-        // 2. 在 Isolate 中读取文件 ID3 标签和原始封面字节，避免 UI 卡顿
-        final metadata = await compute(_readMetadataIsolate, filePath);
+        // 2. 在 Isolate 中读取文件 ID3 标签 and 原始封面字节，避免 UI 卡顿
+        final metadata = await compute(readMetadataIsolate, filePath);
         title = metadata.title;
         album = metadata.album;
         artist = metadata.artist;
@@ -54,9 +59,14 @@ class MetadataHelper {
       int? artworkHeight;
       Uint8List? themeColorsBlob;
 
-      if (artworkData != null) {
+      if (artworkData != null && generateThumbnail) {
         // 3. 处理封面图：保存原始大图并生成缩略图
-        final artworkInfo = await saveArtworkAndThumbnail(filePath, artworkData);
+        // Windows 下仅生成缩略图，不存大图
+        final artworkInfo = await saveArtworkAndThumbnail(
+          filePath,
+          artworkData,
+          saveLarge: !Platform.isWindows,
+        );
 
         artworkPath = artworkInfo?['artworkPath'] as String?;
         thumbnailPath = artworkInfo?['thumbnailPath'] as String?;
@@ -90,6 +100,7 @@ class MetadataHelper {
         artworkHeight: artworkHeight,
         trackNumber: trackNumber,
         themeColorsBlob: themeColorsBlob,
+        lastModifiedTime: lastModified,
       );
 
       // 5. 将解析结果存入数据库
@@ -102,10 +113,12 @@ class MetadataHelper {
     }
   }
 
+
   static Future<Map<String, dynamic>?> saveArtworkAndThumbnail(
     String songPath,
-    Uint8List data,
-  ) async {
+    Uint8List data, {
+    bool saveLarge = true,
+  }) async {
 
     try {
       final supportDir = await getApplicationSupportDirectory();
@@ -146,13 +159,16 @@ class MetadataHelper {
         );
       }
 
-      // Save high-res original
-      await File(largePath).writeAsBytes(data);
+      // Save high-res original if requested
+      if (saveLarge) {
+        await File(largePath).writeAsBytes(data);
+      }
+      
       // Save thumbnail
       await File(thumbPath).writeAsBytes(thumbnailData);
 
       return {
-        'artworkPath': largePath,
+        'artworkPath': saveLarge ? largePath : null,
         'thumbnailPath': thumbPath,
         'width': width,
         'height': height,
@@ -216,7 +232,7 @@ class MetadataHelper {
   /// 从文件直接读取原始标签，不请求网络，不存入数据库
   static Future<SongMetadata?> readMetadataFromFile(String filePath) async {
     try {
-      final metadata = await compute(_readMetadataIsolate, filePath);
+      final metadata = await compute(readMetadataIsolate, filePath);
       return SongMetadata(
         path: filePath,
         title: metadata.title ?? p.basenameWithoutExtension(filePath),
@@ -231,8 +247,81 @@ class MetadataHelper {
     }
   }
 
-}
+  /// 解码文件内嵌封面，分辨率限制在 [maxWidth] * [maxHeight]
+  static Future<Uint8List?> decodeEmbeddedArtwork(
+    String filePath, {
+    int maxWidth = 1000,
+    int maxHeight = 1000,
+  }) async {
+    try {
+      final metadata = await compute(readMetadataIsolate, filePath);
+      if (metadata.pictures.isEmpty) return null;
 
-AudioMetadata _readMetadataIsolate(String path) {
-  return readMetadata(File(path), getImage: true);
+      final rawData = metadata.pictures.first.bytes;
+      
+      // 使用 Isolate 进行解码和缩放，避免 UI 卡顿
+      return await compute(processAndResizeImageIsolate, {
+        'data': rawData,
+        'maxWidth': maxWidth,
+        'maxHeight': maxHeight,
+      });
+    } catch (e) {
+      debugPrint('Error decoding embedded artwork for $filePath: $e');
+      return null;
+    }
+  }
+
+  static Uint8List? processAndResizeImageIsolate(Map<String, dynamic> params) {
+    try {
+      final data = params['data'] as Uint8List;
+      final maxWidth = params['maxWidth'] as int;
+      final maxHeight = params['maxHeight'] as int;
+
+      final originalImage = img.decodeImage(data);
+      if (originalImage == null) return null;
+
+      if (originalImage.width <= maxWidth && originalImage.height <= maxHeight) {
+        return data; // 不需要缩放
+      }
+
+      final resized = img.copyResize(
+        originalImage,
+        width: originalImage.width > originalImage.height ? maxWidth : null,
+        height: originalImage.width <= originalImage.height ? maxHeight : null,
+        interpolation: img.Interpolation.average,
+      );
+
+      return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static AudioMetadata readMetadataIsolate(String path) {
+    return readMetadata(File(path), getImage: true);
+  }
+
+  /// 生成高清封面的低清版本 (200*200) 用于背景模糊 (UI 层 ImageFiltered 处理)
+  static Future<Uint8List?> generateLowResArtwork(Uint8List artworkData) async {
+    return await compute(_generateLowResArtworkIsolate, artworkData);
+  }
+
+  static Uint8List? _generateLowResArtworkIsolate(Uint8List data) {
+    try {
+      final image = img.decodeImage(data);
+      if (image == null) return null;
+
+      // 缩放到 200*200
+      final resized = img.copyResize(
+        image,
+        width: 200,
+        height: 200,
+        interpolation: img.Interpolation.average,
+      );
+
+      return Uint8List.fromList(img.encodeJpg(resized, quality: 70));
+    } catch (e) {
+      return null;
+    }
+  }
 }

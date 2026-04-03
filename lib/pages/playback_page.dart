@@ -555,52 +555,71 @@ class _PlaybackPageState extends State<PlaybackPage>
       child: RepaintBoundary(
         child: Stack(
           children: [
-            Selector<AudioService, ({Uint8List? bytes, String? path})>(
-              selector: (_, a) =>
-                  (bytes: a.currentArtworkBytes, path: a.currentArtworkPath),
-              builder: (context, data, _) {
-                final Widget content;
-                final bytes = data.bytes;
-                final path = data.path;
+      Selector<AudioService, ({Uint8List? bytes, Uint8List? lowRes, String? path})>(
+        selector: (_, a) => (
+          bytes: a.currentArtworkBytes,
+          lowRes: a.lowResArtworkBytes,
+          path: a.currentArtworkPath
+        ),
+        builder: (context, data, _) {
+          final Widget content;
+          final bytes = data.bytes;
+          final lowRes = data.lowRes;
+          final path = data.path;
 
-                if (bytes == null && (path == null || path.isEmpty)) {
-                  content = Container(
-                    key: const ValueKey('bg_empty'),
-                    color: Colors.black,
+          if (bytes == null &&
+              lowRes == null &&
+              (path == null || path.isEmpty)) {
+            content = Container(
+              key: const ValueKey('bg_empty'),
+              color: Colors.black,
+              width: double.infinity,
+              height: double.infinity,
+            );
+          } else {
+            // 我们优先使用 200x200 的 lowRes 字节流进行高斯模糊，以提高渲染效率。
+            // 如果 lowRes 还没准备好，则回退到原始 bytes 或本地文件。
+            final imageProvider = lowRes != null
+                ? Image.memory(
+                    lowRes,
                     width: double.infinity,
                     height: double.infinity,
-                  );
-                } else {
-                  // Gaussian blur is now handled in UI layer using ImageFiltered
-                  // We scale the image slightly (1.15) to prevent the blur from "leaking"
-                  // the black background color at the edges.
-                  content = ImageFiltered(
-                    key: ValueKey(bytes.hashCode ^ path.hashCode),
-                    imageFilter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                    child: Transform.scale(
-                      scale: 1.15,
-                      child: bytes != null
-                          ? Image.memory(
-                              bytes,
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                              filterQuality: FilterQuality.low,
-                              gaplessPlayback: true,
-                              excludeFromSemantics: true,
-                            )
-                          : Image.file(
-                              File(path!),
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                              filterQuality: FilterQuality.low,
-                              gaplessPlayback: true,
-                              excludeFromSemantics: true,
-                            ),
-                    ),
-                  );
-                }
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
+                    gaplessPlayback: true,
+                    excludeFromSemantics: true,
+                  )
+                : (bytes != null
+                    ? Image.memory(
+                        bytes,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.low,
+                        gaplessPlayback: true,
+                        excludeFromSemantics: true,
+                      )
+                    : Image.file(
+                        File(path!),
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.low,
+                        gaplessPlayback: true,
+                        excludeFromSemantics: true,
+                      ));
+
+            content = ImageFiltered(
+              key: ValueKey(
+                (lowRes?.hashCode ?? 0) ^ (bytes?.hashCode ?? 0) ^ (path?.hashCode ?? 0),
+              ),
+              imageFilter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              child: Transform.scale(
+                scale: 1.15,
+                child: imageProvider,
+              ),
+            );
+          }
 
                 return AnimatedSwitcher(
                   duration: const Duration(milliseconds: 1200),

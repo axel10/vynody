@@ -37,7 +37,6 @@ class Playlist {
                   album: s['album'] as String?,
                   trackNumber: s['trackNumber'] as int?,
                   id: s['id'] as int?,
-                  hdArtworkPath: s['artworkPath'] as String?,
                   thumbnailPath: s['thumbnailPath'] as String?,
                   artworkWidth: s['artworkWidth'] as int?,
                   artworkHeight: s['artworkHeight'] as int?,
@@ -75,7 +74,6 @@ class Playlist {
               'album': s.album,
               'trackNumber': s.trackNumber,
               'id': s.id,
-              'artworkPath': s.hdArtworkPath,
               'thumbnailPath': s.thumbnailPath,
               'artworkWidth': s.artworkWidth,
               'artworkHeight': s.artworkHeight,
@@ -306,13 +304,13 @@ class PlaylistService extends ChangeNotifier {
           artist: metadata.artist,
           album: metadata.album,
           trackNumber: metadata.trackNumber,
-          artworkPath: metadata.artworkPath,
           thumbnailPath: metadata.thumbnailPath,
           artworkWidth: metadata.artworkWidth,
           artworkHeight: metadata.artworkHeight,
           themeColorsBlob: metadata.themeColorsBlob,
           waveformBlob: metadata.waveformBlob,
           artworkBytes: artworkBytes,
+          lastModifiedTime: metadata.lastModifiedTime,
         );
 
         playlist.updatedAt = DateTime.now();
