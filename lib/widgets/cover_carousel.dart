@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import '../player/audio_service.dart';
+import '../player/metadata_helper.dart';
 import '../models/music_file.dart';
 
 
@@ -286,8 +287,15 @@ class _CoverItemState extends State<_CoverItem> {
   @override
   void didUpdateWidget(_CoverItem oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // If the path changed, we must reset everything
     if (oldWidget.musicFile.path != widget.musicFile.path) {
       _artworkBytes = null;
+      _loadArtwork();
+    } 
+    // If the path is the same but artworkBytes or artworkPath appeared, we should update.
+    // This happens when background processing completes.
+    else if (widget.musicFile.artworkBytes != oldWidget.musicFile.artworkBytes ||
+             widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath) {
       _loadArtwork();
     }
   }
@@ -313,21 +321,55 @@ class _CoverItemState extends State<_CoverItem> {
     }
 
 
-    // Last resort: if we have NO paths but are on mobile, try system query.
+    // 3. Try artworkPath if it exists (high res local)
+    final highResPath = widget.musicFile.artworkPath;
+    if (highResPath != null) {
+      try {
+        final file = File(highResPath);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          if (mounted) {
+            setState(() {
+              _artworkBytes = bytes;
+            });
+          }
+          widget.onArtworkLoaded?.call(bytes, null);
+          return;
+        }
+      } catch (e) {
+        debugPrint('Error loading high res artwork from $highResPath: $e');
+      }
+    }
+
+    // 4. Try system query (on_audio_query)
     if (Platform.isAndroid || Platform.isIOS) {
       if (widget.musicFile.id != null) {
         final bytes = await OnAudioQuery().queryArtwork(
           widget.musicFile.id!,
           ArtworkType.AUDIO,
-          size: 500,
+          size: 800,
         );
         if (mounted && bytes != null) {
           setState(() {
             _artworkBytes = bytes;
           });
           widget.onArtworkLoaded?.call(bytes, null);
+          return;
         }
       }
+    }
+
+    // 5. Try extracting embedded artwork as last resort
+    final embeddedBytes =
+        await MetadataHelper.decodeEmbeddedArtwork(widget.musicFile.path);
+    if (embeddedBytes != null) {
+      if (mounted) {
+        setState(() {
+          _artworkBytes = embeddedBytes;
+        });
+      }
+      widget.onArtworkLoaded?.call(embeddedBytes, null);
+      return;
     }
   }
 
@@ -431,7 +473,8 @@ class _CoverItemState extends State<_CoverItem> {
         cacheHeight: cacheSize,
       );
     } else {
-      final imagePath = widget.musicFile.thumbnailPath;
+      // Prioritize high-res artwork path, NEVER use thumbnailPath here
+      final imagePath = widget.musicFile.artworkPath;
       if (imagePath != null) {
         final file = File(imagePath);
         if (file.existsSync()) {

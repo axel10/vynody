@@ -249,22 +249,13 @@ class MetadataHelper {
 
   /// 解码文件内嵌封面，分辨率限制在 [maxWidth] * [maxHeight]
   static Future<Uint8List?> decodeEmbeddedArtwork(
-    String filePath, {
-    int maxWidth = 1000,
-    int maxHeight = 1000,
-  }) async {
+    String filePath,
+  ) async {
     try {
       final metadata = await compute(readMetadataIsolate, filePath);
       if (metadata.pictures.isEmpty) return null;
 
-      final rawData = metadata.pictures.first.bytes;
-      
-      // 使用 Isolate 进行解码和缩放，避免 UI 卡顿
-      return await compute(processAndResizeImageIsolate, {
-        'data': rawData,
-        'maxWidth': maxWidth,
-        'maxHeight': maxHeight,
-      });
+      return metadata.pictures.first.bytes;
     } catch (e) {
       debugPrint('Error decoding embedded artwork for $filePath: $e');
       return null;

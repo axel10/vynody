@@ -605,13 +605,17 @@ class _PlaybackPageState extends State<PlaybackPage>
                   transitionBuilder: (child, animation) {
                     // 判断是否为新入场的子组件。
                     // 在 AnimatedSwitcher 中，离场组件的 animation.status 为 reverse。
-                    final isIncoming = animation.status != AnimationStatus.reverse;
-                    
+                    final isIncoming =
+                        animation.status != AnimationStatus.reverse;
+
                     return FadeTransition(
                       // 对新入场组件应用淡入动画，离场组件则保持 1.0 不透明度，
                       // 确保背景在切换瞬间始终是坚实的，直到新封全覆盖旧封面。
                       opacity: isIncoming
-                          ? CurvedAnimation(parent: animation, curve: Curves.easeOut)
+                          ? CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOut,
+                            )
                           : const AlwaysStoppedAnimation(1.0),
                       child: child,
                     );

@@ -609,6 +609,7 @@ class ScannerService extends ChangeNotifier {
             album: metadata.album,
             trackNumber: metadata.trackNumber,
             thumbnailPath: metadata.thumbnailPath,
+            artworkPath: metadata.artworkPath,
             artworkWidth: metadata.artworkWidth,
             artworkHeight: metadata.artworkHeight,
             themeColorsBlob: metadata.themeColorsBlob,
@@ -657,6 +658,7 @@ class ScannerService extends ChangeNotifier {
             String? album;
             int? trackNumber;
             String? thumbnailPath;
+            String? artworkPath;
             int? artworkWidth;
             int? artworkHeight;
             Uint8List? themeColorsBlob;
@@ -676,6 +678,7 @@ class ScannerService extends ChangeNotifier {
                 album = metadata.album;
                 trackNumber = metadata.trackNumber;
                 thumbnailPath = metadata.thumbnailPath;
+                artworkPath = metadata.artworkPath;
                 artworkWidth = metadata.artworkWidth;
                 artworkHeight = metadata.artworkHeight;
                 themeColorsBlob = metadata.themeColorsBlob;
@@ -693,6 +696,7 @@ class ScannerService extends ChangeNotifier {
                 album: album,
                 trackNumber: trackNumber,
                 thumbnailPath: thumbnailPath,
+                artworkPath: artworkPath,
                 artworkWidth: artworkWidth,
                 artworkHeight: artworkHeight,
                 themeColorsBlob: themeColorsBlob,

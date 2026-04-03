@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 /// 播放队列后台处理器
 ///
 /// 负责在后台异步处理播放列表中的歌曲。
@@ -119,6 +120,56 @@ class PlaybackQueueProcessor {
         }
       }
 
+      // Phase 1: FAST PASS - Immediately load HD artwork for prioritized songs
+      // This ensures that when skipping fast, covers are already in memory.
+      // We look at the top 15 songs from our sorted list (which includes current and upcoming).
+      final int topCount = math.min(15, sortedList.length);
+      for (int i = 0; i < topCount; i++) {
+        if (myId != _currentProcessId) return;
+        final song = sortedList[i];
+        
+        // Skip if already has artwork bytes in memory
+        if (song.artworkBytes != null) continue;
+
+        try {
+          final existing = await db.getSongMetadata(song.path);
+          Uint8List? finalBytes;
+
+          // Try external artwork path first (usually higher quality from online match)
+          if (existing?.artworkPath != null &&
+              existing!.artworkPath!.isNotEmpty) {
+            try {
+              final coverFile = File(existing.artworkPath!);
+              if (await coverFile.exists()) {
+                finalBytes = await coverFile.readAsBytes();
+              }
+            } catch (e) {
+              debugPrint(
+                'Failed to read external artwork for ${song.path}: $e',
+              );
+            }
+          }
+
+          // Fallback to embedded artwork
+          if (finalBytes == null) {
+            try {
+              final m = readMetadata(File(song.path), getImage: true);
+              finalBytes =
+                  m.pictures.isNotEmpty ? m.pictures.first.bytes : null;
+            } catch (e) {
+              // Ignore failure
+            }
+          }
+
+          if (finalBytes != null && onHdArtworkLoaded != null) {
+            onHdArtworkLoaded(song.path, finalBytes);
+          }
+        } catch (e) {
+          debugPrint('Error loading HD artwork in fast pass: $e');
+        }
+      }
+
+      // Phase 2: SLOW PASS - Process thumbnails, colors and waveforms
       for (final song in sortedList) {
         // Check if we've been superseded by a newer request
         if (myId != _currentProcessId) {
@@ -131,60 +182,25 @@ class PlaybackQueueProcessor {
         await _waitUntilResumed();
 
         try {
-
           final existing = await db.getSongMetadata(song.path);
-          final bool showWaveform = settingsService.isWaveformProgressBarEnabled;
+          final bool showWaveform =
+              settingsService.isWaveformProgressBarEnabled;
 
           // Decide what needs to be done
           final bool needsWaveform =
-              showWaveform && (existing == null || existing.waveformBlob == null);
+              showWaveform &&
+              (existing == null || existing.waveformBlob == null);
           final bool needsThemeColor =
               existing == null || existing.themeColorsBlob == null;
 
-          // 1. 高清封面预取与预处理 (优先级最高)
-          // 策略：优先从数据库记录的路径读取大图文件，避免重复解析音频嵌入封面。
-          // 理由：数据库里的大图（通常是通过在线匹配获取的）质量通常更高。
-          if (onHdArtworkLoaded != null && currentIndex != -1) {
-            final int songIndex = playlist.indexWhere((s) => s.path == song.path);
-            final int distance = (songIndex - currentIndex + playlist.length) % playlist.length;
-            bool isNear = distance <= 3 || distance == playlist.length - 1;
-
-            if (isNear) {
-              Uint8List? finalBytes;
-              
-              // 优先尝试从数据库的大图路径加载
-              if (existing?.artworkPath != null && existing!.artworkPath!.isNotEmpty) {
-                try {
-                  final coverFile = File(existing.artworkPath!);
-                  if (await coverFile.exists()) {
-                    finalBytes = await coverFile.readAsBytes();
-                  }
-                } catch (e) {
-                  debugPrint('Failed to read external artwork for ${song.path}: $e');
-                }
-              }
-
-              // 如果没有外部大图路径，则回退到歌曲内嵌封面
-              if (finalBytes == null) {
-                try {
-                  final m = readMetadata(File(song.path), getImage: true);
-                  finalBytes = m.pictures.isNotEmpty ? m.pictures.first.bytes : null;
-                } catch (e) {
-                  // 回退也失败时，不做任何操作
-                }
-              }
-
-              if (finalBytes != null) {
-                onHdArtworkLoaded(song.path, finalBytes);
-              }
-            }
-          }
-
-
-
-          // 2. Heavy Processing: Thumbnails, Colors and Waveform
-          if (needsWaveform || needsThemeColor || existing.thumbnailPath == null) {
-            debugPrint('Background processing (Thumbnail/Colors/Waveform): ${song.path}');
+          // Heavy Processing: Thumbnails, Colors and Waveform
+          if (needsWaveform ||
+              needsThemeColor ||
+              existing.thumbnailPath == null) {
+            
+            debugPrint(
+              'Background processing (Thumbnail/Colors/Waveform): ${song.path}',
+            );
 
             // We need a metadata object (either from DB or a quick scan) to get the artwork path
             SongMetadata? m = existing;
@@ -208,19 +224,22 @@ class PlaybackQueueProcessor {
                     MetadataHelper.readMetadataIsolate,
                     song.path,
                   );
-                  final artworkData = rawMetadata.pictures.isNotEmpty
-                      ? rawMetadata.pictures.first.bytes
-                      : null;
+                  final artworkData =
+                      rawMetadata.pictures.isNotEmpty
+                          ? rawMetadata.pictures.first.bytes
+                          : null;
 
                   if (artworkData != null) {
-                    final artworkInfo = await MetadataHelper.saveArtworkAndThumbnail(
-                      song.path,
-                      artworkData,
-                      saveLarge: !Platform.isWindows,
-                    );
+                    final artworkInfo =
+                        await MetadataHelper.saveArtworkAndThumbnail(
+                          song.path,
+                          artworkData,
+                          saveLarge: !Platform.isWindows,
+                        );
 
                     if (artworkInfo != null) {
-                      final thumbPath = artworkInfo['thumbnailPath'] as String?;
+                      final thumbPath =
+                          artworkInfo['thumbnailPath'] as String?;
 
                       meta = meta.copyWith(
                         thumbnailPath: thumbPath,
@@ -245,7 +264,8 @@ class PlaybackQueueProcessor {
               // Extract theme colors if missing
               if (meta.themeColorsBlob == null) {
                 try {
-                  final colorSourcePath = meta.thumbnailPath ?? meta.artworkPath;
+                  final colorSourcePath =
+                      meta.thumbnailPath ?? meta.artworkPath;
                   if (colorSourcePath != null) {
                     final imageProvider = FileImage(File(colorSourcePath));
                     final palette = await PaletteGenerator.fromImageProvider(

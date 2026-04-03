@@ -635,23 +635,29 @@ class PlaybackHeroCard extends StatelessWidget {
       (AudioService a) => a.snapshot,
     );
     final l10n = AppLocalizations.of(context)!;
-    final title =
-        snapshot.currentLyricsTitle ??
-        snapshot.currentMusic?.displayName ??
-        l10n.notSelected;
-    final album = snapshot.currentMusic?.album;
-    final artist = snapshot.currentMusic?.artist;
+    final title = snapshot.currentMusic?.displayName ?? l10n.notSelected;
+
+    final rawAlbum = snapshot.currentMusic?.album?.trim() ?? '';
+    final rawArtist = snapshot.currentMusic?.artist?.trim() ?? '';
+
+    bool isUnknown(String val) {
+      if (val.isEmpty) return true;
+      final lower = val.toLowerCase();
+      return lower == 'unknown' || lower == 'unknown artist' || lower == 'unknown album';
+    }
+
+    final bool hasArtist = !isUnknown(rawArtist);
+    final bool hasAlbum = !isUnknown(rawAlbum);
 
     String subtitle = '';
-    if (artist != null &&
-        artist != 'Unknown' &&
-        album != null &&
-        album != 'Unknown') {
-      subtitle = '$artist — $album';
-    } else if (artist != null && artist != 'Unknown') {
-      subtitle = artist;
-    } else if (album != null && album != 'Unknown') {
-      subtitle = album;
+    if (hasArtist && hasAlbum) {
+      subtitle = '$rawArtist — $rawAlbum';
+    } else if (hasArtist) {
+      subtitle = rawArtist;
+    } else if (hasAlbum) {
+      subtitle = rawAlbum;
+    } else {
+      subtitle = 'Unknown';
     }
 
     return Column(
