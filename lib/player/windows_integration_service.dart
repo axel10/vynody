@@ -64,12 +64,12 @@ class WindowsIntegrationService {
 
     _smtc?.updateMetadata(
       MusicMetadata(
-        title: audioService.currentFileName ?? 'Unknown',
-        artist: audioService.currentArtist ?? 'Unknown',
-        album: audioService.currentAlbum ?? 'Unknown',
-        albumArtist: audioService.currentArtist ?? 'Unknown',
-        thumbnail: audioService.currentArtworkPath != null && File(audioService.currentArtworkPath!).existsSync()
-            ? audioService.currentArtworkPath
+        title: audioService.currentMusic?.displayName ?? 'Unknown',
+        artist: audioService.currentMusic?.artist ?? 'Unknown',
+        album: audioService.currentMusic?.album ?? 'Unknown',
+        albumArtist: audioService.currentMusic?.artist ?? 'Unknown',
+        thumbnail: audioService.currentMusic?.artworkPath != null && File(audioService.currentMusic!.artworkPath!).existsSync()
+            ? audioService.currentMusic?.artworkPath
             : null,
       ),
     );

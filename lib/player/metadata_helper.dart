@@ -301,27 +301,4 @@ class MetadataHelper {
     return readMetadata(File(path), getImage: true);
   }
 
-  /// 生成高清封面的低清版本 (200*200) 用于背景模糊 (UI 层 ImageFiltered 处理)
-  static Future<Uint8List?> generateLowResArtwork(Uint8List artworkData) async {
-    return await compute(_generateLowResArtworkIsolate, artworkData);
-  }
-
-  static Uint8List? _generateLowResArtworkIsolate(Uint8List data) {
-    try {
-      final image = img.decodeImage(data);
-      if (image == null) return null;
-
-      // 缩放到 200*200
-      final resized = img.copyResize(
-        image,
-        width: 200,
-        height: 200,
-        interpolation: img.Interpolation.average,
-      );
-
-      return Uint8List.fromList(img.encodeJpg(resized, quality: 70));
-    } catch (e) {
-      return null;
-    }
-  }
 }

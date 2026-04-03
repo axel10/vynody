@@ -305,10 +305,10 @@ class _CoverItemState extends State<_CoverItem> {
       return;
     }
 
-    if (widget.audioService.currentFilePath == widget.musicFile.path &&
-        widget.audioService.currentArtworkBytes != null) {
-      if (mounted) setState(() => _artworkBytes = widget.audioService.currentArtworkBytes);
-      widget.onArtworkLoaded?.call(widget.audioService.currentArtworkBytes, null);
+    if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
+        widget.audioService.currentMusic?.artworkBytes != null) {
+      if (mounted) setState(() => _artworkBytes = widget.audioService.currentMusic!.artworkBytes);
+      widget.onArtworkLoaded?.call(widget.audioService.currentMusic!.artworkBytes, null);
       return;
     }
 
@@ -407,10 +407,10 @@ class _CoverItemState extends State<_CoverItem> {
       );
     }
 
-    if (widget.audioService.currentFilePath == widget.musicFile.path &&
-        widget.audioService.currentArtworkBytes != null) {
+    if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
+        widget.audioService.currentMusic?.artworkBytes != null) {
       return Image.memory(
-        widget.audioService.currentArtworkBytes!,
+        widget.audioService.currentMusic!.artworkBytes!,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,

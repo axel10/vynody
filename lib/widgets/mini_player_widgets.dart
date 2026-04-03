@@ -15,22 +15,22 @@ class MiniArtwork extends StatelessWidget {
       height: 36,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        image: audio.currentArtworkBytes != null
+        image: audio.currentMusic?.artworkBytes != null
             ? DecorationImage(
-                image: MemoryImage(audio.currentArtworkBytes!),
+                image: MemoryImage(audio.currentMusic!.artworkBytes!),
                 fit: BoxFit.cover,
               )
-            : audio.currentArtworkPath != null
+            : audio.currentMusic?.artworkPath != null
             ? DecorationImage(
-                image: FileImage(File(audio.currentArtworkPath!)),
+                image: FileImage(File(audio.currentMusic!.artworkPath!)),
                 fit: BoxFit.cover,
               )
             : null,
         color: Colors.grey[900],
       ),
       child:
-          (audio.currentArtworkBytes == null &&
-              audio.currentArtworkPath == null)
+          (audio.currentMusic?.artworkBytes == null &&
+              audio.currentMusic?.artworkPath == null)
           ? const Icon(Icons.music_note, color: Colors.white, size: 20)
           : null,
     );

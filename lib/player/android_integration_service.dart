@@ -68,11 +68,11 @@ class AndroidIntegrationService {
     if (!Platform.isAndroid || !_initialized) return;
 
     final metadataKey = [
-      song?.path ?? audioService.currentFilePath,
-      audioService.currentFileName,
-      audioService.currentArtist,
-      audioService.currentAlbum,
-      audioService.currentArtworkPath,
+      song?.path ?? audioService.currentMusic?.path,
+      audioService.currentMusic?.displayName,
+      audioService.currentMusic?.artist,
+      audioService.currentMusic?.album,
+      audioService.currentMusic?.artworkPath,
       audioService.duration.inMilliseconds.toString(),
     ].join('|');
     if (_lastMetadataKey == metadataKey) return;
@@ -183,14 +183,14 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
   void onMetadataChanged() {
     mediaItem.add(
       MediaItem(
-        id: appAudio.currentFilePath ?? 'unknown',
-        album: appAudio.currentAlbum ?? 'Unknown',
-        title: appAudio.currentFileName ?? 'Unknown',
-        artist: appAudio.currentArtist ?? 'Unknown',
+        id: appAudio.currentMusic?.path ?? 'unknown',
+        album: appAudio.currentMusic?.album ?? 'Unknown',
+        title: appAudio.currentMusic?.displayName ?? 'Unknown',
+        artist: appAudio.currentMusic?.artist ?? 'Unknown',
         duration: appAudio.duration,
-        artUri: appAudio.currentArtworkPath != null &&
-                File(appAudio.currentArtworkPath!).existsSync()
-            ? Uri.file(appAudio.currentArtworkPath!)
+        artUri: appAudio.currentMusic?.artworkPath != null &&
+                File(appAudio.currentMusic!.artworkPath!).existsSync()
+            ? Uri.file(appAudio.currentMusic!.artworkPath!)
           : null,
       ),
     );

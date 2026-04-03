@@ -398,7 +398,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                             final song = currentPlaylist.songs[index];
                             final isCurrent =
                                 audio.currentIndex == index &&
-                                audio.currentFilePath == song.path;
+                                audio.currentMusic?.path == song.path;
                             final isSelected = _selectedIndices.contains(index);
 
                             return GestureDetector(

@@ -11,6 +11,7 @@ class MusicFile {
   final int? trackNumber;
   final int? id; // System Media Library ID
   final String? thumbnailPath;
+  final String? artworkPath;
   final int? artworkWidth;
   final int? artworkHeight;
   final Uint8List? themeColorsBlob;
@@ -40,6 +41,7 @@ class MusicFile {
     this.trackNumber,
     this.id,
     this.thumbnailPath,
+    this.artworkPath,
     this.artworkWidth,
     this.artworkHeight,
     this.themeColorsBlob,
@@ -65,6 +67,7 @@ class MusicFile {
     int? trackNumber,
     int? id,
     String? thumbnailPath,
+    String? artworkPath,
     int? artworkWidth,
     int? artworkHeight,
     Uint8List? themeColorsBlob,
@@ -82,6 +85,7 @@ class MusicFile {
       trackNumber: trackNumber ?? this.trackNumber,
       id: id ?? this.id,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+      artworkPath: artworkPath ?? this.artworkPath,
       artworkWidth: artworkWidth ?? this.artworkWidth,
       artworkHeight: artworkHeight ?? this.artworkHeight,
       themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
@@ -103,6 +107,7 @@ class MusicFile {
         other.trackNumber == trackNumber &&
         other.id == id &&
         other.thumbnailPath == thumbnailPath &&
+        other.artworkPath == artworkPath &&
         other.artworkWidth == artworkWidth &&
         other.artworkHeight == artworkHeight &&
         other.lastModifiedTime == lastModifiedTime &&
@@ -119,6 +124,7 @@ class MusicFile {
         trackNumber,
         id,
         thumbnailPath,
+        artworkPath,
         artworkWidth,
         artworkHeight,
         lastModifiedTime,

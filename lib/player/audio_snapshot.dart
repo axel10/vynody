@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +30,6 @@ class AudioSnapshot {
   final bool hasLyrics;
   final String? currentLyricsTitle;
   final bool isLyricsActive;
-  final Uint8List? lowResArtworkBytes;
   final double progress;
 
   AudioSnapshot({
@@ -58,7 +56,6 @@ class AudioSnapshot {
     required this.hasLyrics,
     required this.currentLyricsTitle,
     required this.isLyricsActive,
-    this.lowResArtworkBytes,
   }) : playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
          currentThemeColorsMap,
@@ -93,7 +90,6 @@ class AudioSnapshot {
             hasLyrics == other.hasLyrics &&
             currentLyricsTitle == other.currentLyricsTitle &&
             isLyricsActive == other.isLyricsActive &&
-            lowResArtworkBytes == other.lowResArtworkBytes &&
             _deepEquality.equals(
               currentThemeColorsMap,
               other.currentThemeColorsMap,
@@ -124,7 +120,6 @@ class AudioSnapshot {
     hasLyrics,
     currentLyricsTitle,
     isLyricsActive,
-    lowResArtworkBytes,
     _deepEquality.hash(currentThemeColorsMap),
   ]);
 }
