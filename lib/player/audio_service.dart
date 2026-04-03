@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 
 import 'dart:io';
-import 'package:audio_session/audio_session.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audio_core/audio_core.dart';
@@ -1018,12 +1018,6 @@ class AudioService extends ChangeNotifier {
   }
 
   Future<void> togglePlay() async {
-    if (Platform.isAndroid && !_isPlaying) {
-      final session = await AudioSession.instance;
-      if (!await session.setActive(true)) {
-        return; // Failed to get focus
-      }
-    }
     await _player.player.togglePlayPause();
   }
 

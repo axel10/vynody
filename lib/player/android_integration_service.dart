@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:audio_service/audio_service.dart';
-import 'package:audio_session/audio_session.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'audio_service.dart' as app; // To distinguish from package:audio_service
@@ -32,9 +32,9 @@ class AndroidIntegrationService {
           androidNotificationChannelId:
               'com.pure_player.vibe_flow.channel.audio',
           androidNotificationChannelName: 'Vibe Flow Playback',
-          androidNotificationOngoing: true,
-          androidShowNotificationBadge: true,
-          androidStopForegroundOnPause: false,
+          androidNotificationOngoing: false,
+          androidShowNotificationBadge: false,
+          // androidStopForegroundOnPause: false,
         ),
       );
       _initialized = true;
@@ -114,6 +114,9 @@ class AndroidIntegrationService {
     _lastTimelinePosition = position;
     _lastTimelineDuration = duration;
 
+    if (durationChanged) {
+      updateMetadata(null);
+    }
     _handler.onPositionChanged(position, duration);
   }
 
@@ -124,73 +127,20 @@ class AndroidIntegrationService {
 
 class MyAudioHandler extends BaseAudioHandler with SeekHandler {
   final app.AudioService appAudio;
-  double? _preDuckingVolume;
-
-  MyAudioHandler(this.appAudio) {
-    _initSession();
-  }
-
-  Future<void> _initSession() async {
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.music());
-
-    // Handle interruptions (like calls)
-    session.interruptionEventStream.listen((event) {
-      if (event.begin) {
-        switch (event.type) {
-          case AudioInterruptionType.duck:
-            // Optional: Lower volume
-            if (appAudio.isPlaying) {
-              _preDuckingVolume = appAudio.volume;
-              appAudio.setVolume(_preDuckingVolume! * 0.3);
-            }
-            break;
-          case AudioInterruptionType.pause:
-          case AudioInterruptionType.unknown:
-            if (appAudio.isPlaying) {
-              pause();
-            }
-            break;
-        }
-      } else {
-        // Interruption ended
-        switch (event.type) {
-          case AudioInterruptionType.duck:
-            // Restore volume
-            if (_preDuckingVolume != null) {
-              appAudio.setVolume(_preDuckingVolume!);
-              _preDuckingVolume = null;
-            }
-            break;
-          case AudioInterruptionType.pause:
-            // Option: resume if it was interrupted
-            // We can decide whether to resume or not.
-            break;
-          case AudioInterruptionType.unknown:
-            break;
-        }
-      }
-    });
-
-    // Handle being "Becoming Noisy" (headphones unplugged)
-    session.becomingNoisyEventStream.listen((_) {
-      if (appAudio.isPlaying) {
-        pause();
-      }
-    });
-  }
+  MyAudioHandler(this.appAudio) {}
 
   void onMetadataChanged() {
+    final music = appAudio.currentMusic;
     mediaItem.add(
       MediaItem(
-        id: appAudio.currentMusic?.path ?? 'unknown',
-        album: appAudio.currentMusic?.album ?? 'Unknown',
-        title: appAudio.currentMusic?.displayName ?? 'Unknown',
-        artist: appAudio.currentMusic?.artist ?? 'Unknown',
+        id: music?.path ?? 'unknown',
+        album: music?.album ?? 'Unknown',
+        title: music?.displayName ?? music?.name ?? 'Unknown',
+        artist: music?.artist ?? 'Unknown',
         duration: appAudio.duration,
-        artUri: appAudio.currentMusic?.artworkPath != null &&
-                File(appAudio.currentMusic!.artworkPath!).existsSync()
-            ? Uri.file(appAudio.currentMusic!.artworkPath!)
+        artUri: music?.artworkPath != null &&
+                File(music!.artworkPath!).existsSync()
+            ? Uri.file(music.artworkPath!)
           : null,
       ),
     );
@@ -215,6 +165,11 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
           MediaAction.seek,
           MediaAction.seekForward,
           MediaAction.seekBackward,
+          MediaAction.play,
+          MediaAction.pause,
+          MediaAction.skipToNext,
+          MediaAction.skipToPrevious,
+          MediaAction.stop,
         },
         processingState: AudioProcessingState.ready,
       ),
@@ -225,12 +180,9 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
   Duration _lastPositionValue = Duration.zero;
 
   void onPositionChanged(Duration position, Duration duration) {
-    // Only update if there is a significant jump (seek) or if it's been a while (e.g. 10 seconds)
-    // to keep the clocks in sync, though usually interpolation is enough.
     final now = DateTime.now();
     final timeSinceLastUpdate = now.difference(_lastPositionUpdateTime);
 
-    // If it's a seek (difference between actual and expected > 1s)
     final expectedPosition = _lastPositionValue +
         (appAudio.isPlaying
             ? timeSinceLastUpdate
@@ -251,17 +203,12 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> play() async {
-    final session = await AudioSession.instance;
-    if (await session.setActive(true)) {
-      await appAudio.togglePlay();
-    }
+    await appAudio.playbackController.player.play();
   }
 
   @override
   Future<void> pause() async {
-    if (appAudio.isPlaying) {
-      await appAudio.togglePlay();
-    }
+    await appAudio.playbackController.player.pause();
   }
 
   @override
@@ -275,7 +222,7 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> stop() async {
-    if (appAudio.isPlaying) await appAudio.togglePlay();
+    await appAudio.playbackController.player.pause();
     playbackState.add(
       playbackState.value.copyWith(
         playing: false,
