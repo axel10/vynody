@@ -131,7 +131,8 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       }
 
       final acoustidService = AcoustIDService(apiKey: apiKey);
-      final durationSec = (_fileMetadata?.duration ?? widget.durationMillis ?? 0) ~/ 1000;
+      final durationSec =
+          (_fileMetadata?.duration ?? widget.durationMillis ?? 0) ~/ 1000;
       final results = await acoustidService.lookupByFingerprint(
         filePath: widget.songPath,
         durationSeconds: durationSec,
@@ -190,7 +191,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         );
         if (resp.data != null && resp.data!.isNotEmpty) {
           coverArtBytes = Uint8List.fromList(resp.data!);
-          debugPrint('AcoustID: Downloaded ${coverArtBytes.length} bytes of cover art for release ${result.releaseId}');
+          debugPrint(
+            'AcoustID: Downloaded ${coverArtBytes.length} bytes of cover art for release ${result.releaseId}',
+          );
         } else {
           debugPrint('AcoustID: Cover art response is empty');
         }
@@ -209,9 +212,13 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
 
       final updated = SongMetadata(
         path: widget.songPath,
-        title: result.title.trim().isNotEmpty ? result.title.trim() : _displayTitle,
+        title: result.title.trim().isNotEmpty
+            ? result.title.trim()
+            : _displayTitle,
         artist: result.artist.isNotEmpty ? result.artist : 'Unknown Artist',
-        album: result.album?.trim().isNotEmpty == true ? result.album!.trim() : 'Unknown Album',
+        album: result.album?.trim().isNotEmpty == true
+            ? result.album!.trim()
+            : 'Unknown Album',
         duration: result.durationMillis ?? widget.durationMillis,
         lastModifiedTime: lastModifiedTime,
       );
@@ -219,25 +226,27 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       await MetadataDatabase().insertOrUpdateSong(updated);
 
       if (!mounted) return;
-      Navigator.of(context).pop(MusicBrainzTagSelectionResult(
-        metadata: updated,
-        artworkBytes: coverArtBytes,
-        match: MusicBrainzTrackMatch(
-          recordingId: result.recordingId,
-          title: result.title,
-          artist: result.artist,
-          album: result.album,
-          releaseId: null,
-          releaseGroupId: null,
-          releaseDate: null,
-          country: null,
-          durationMillis: result.durationMillis,
-          trackNumber: null,
-          score: (result.score * 100).round().clamp(0, 100),
-          disambiguation: 'AcoustID',
-          raw: result.raw,
+      Navigator.of(context).pop(
+        MusicBrainzTagSelectionResult(
+          metadata: updated,
+          artworkBytes: coverArtBytes,
+          match: MusicBrainzTrackMatch(
+            recordingId: result.recordingId,
+            title: result.title,
+            artist: result.artist,
+            album: result.album,
+            releaseId: null,
+            releaseGroupId: null,
+            releaseDate: null,
+            country: null,
+            durationMillis: result.durationMillis,
+            trackNumber: null,
+            score: (result.score * 100).round().clamp(0, 100),
+            disambiguation: 'AcoustID',
+            raw: result.raw,
+          ),
         ),
-      ));
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -375,7 +384,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
             child: SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white.withValues(alpha: 0.5)),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white.withValues(alpha: 0.5),
+              ),
             ),
           ),
         ),
@@ -416,7 +428,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    result.title.isNotEmpty ? result.title : _displayTitle,
+                                    result.title.isNotEmpty
+                                        ? result.title
+                                        : _displayTitle,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -428,11 +442,20 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                                 ),
                                 Container(
                                   margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF46D27A).withValues(alpha: 0.2),
+                                    color: const Color(
+                                      0xFF46D27A,
+                                    ).withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: const Color(0xFF46D27A).withValues(alpha: 0.4)),
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFF46D27A,
+                                      ).withValues(alpha: 0.4),
+                                    ),
                                   ),
                                   child: const Text(
                                     'AcoustID',
@@ -449,7 +472,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                             Text(
                               [
                                 if (result.artist.isNotEmpty) result.artist,
-                                if (result.album != null && result.album!.isNotEmpty) result.album!,
+                                if (result.album != null &&
+                                    result.album!.isNotEmpty)
+                                  result.album!,
                               ].join(' · '),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -571,7 +596,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            match.title.isNotEmpty ? match.title : _displayTitle,
+                            match.title.isNotEmpty
+                                ? match.title
+                                : _displayTitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -584,7 +611,8 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                           Text(
                             [
                               if (match.artist.isNotEmpty) match.artist,
-                              if (match.album != null && match.album!.isNotEmpty)
+                              if (match.album != null &&
+                                  match.album!.isNotEmpty)
                                 match.album!,
                             ].join(' · '),
                             maxLines: 2,
@@ -820,12 +848,15 @@ class _MatchCoverImage extends StatefulWidget {
 
 class _MatchCoverImageState extends State<_MatchCoverImage> {
   bool _isResolving = false;
+  bool _hasResolved = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.match.resolvedCover == null) {
       _resolve();
+    } else {
+      _hasResolved = true;
     }
   }
 
@@ -835,12 +866,32 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
     try {
       await widget.service.resolveCover(widget.match);
     } finally {
-      if (mounted) setState(() => _isResolving = false);
+      if (mounted) {
+        setState(() {
+          _isResolving = false;
+          _hasResolved = true;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_hasResolved) {
+      return Center(
+        child: SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.5,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Colors.white.withValues(alpha: 0.15),
+            ),
+          ),
+        ),
+      );
+    }
+
     final url = widget.match.thumbnailUrl;
     if (url == null) {
       return const Icon(
@@ -916,8 +967,11 @@ class _AcoustIDCoverImageState extends State<_AcoustIDCoverImage> {
           child: child,
         );
       },
-      errorBuilder: (context, error, stackTrace) =>
-          const Icon(Icons.fingerprint_rounded, color: Color(0xFF46D27A), size: 28),
+      errorBuilder: (context, error, stackTrace) => const Icon(
+        Icons.fingerprint_rounded,
+        color: Color(0xFF46D27A),
+        size: 28,
+      ),
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
         return Center(
