@@ -869,8 +869,14 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
     if (_isResolving) return;
     setState(() => _isResolving = true);
     try {
-      await widget.service.resolveCover(widget.match);
-    } finally {
+      final resolved = await widget.service.resolveCover(widget.match);
+      if (mounted) {
+        setState(() {
+          _isResolving = false;
+          _hasResolved = true;
+        });
+      }
+    } catch (e) {
       if (mounted) {
         setState(() {
           _isResolving = false;
@@ -897,44 +903,45 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
       );
     }
 
-    final url = widget.match.thumbnailUrl;
-    if (url == null) {
-      return const Icon(
-        Icons.music_note_rounded,
-        color: Colors.white24,
-        size: 24,
+    final resolvedCover = widget.match.resolvedCover;
+    if (resolvedCover != null && resolvedCover.thumbnailUrl != null) {
+      final url = resolvedCover.thumbnailUrl!;
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded) return child;
+          return AnimatedOpacity(
+            opacity: frame == null ? 0 : 1,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            child: child,
+          );
+        },
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.music_note_rounded, color: Colors.white24, size: 24),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.white.withValues(alpha: 0.15),
+                ),
+              ),
+            ),
+          );
+        },
       );
     }
 
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded) return child;
-        return AnimatedOpacity(
-          opacity: frame == null ? 0 : 1,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          child: child,
-        );
-      },
-      errorBuilder: (context, error, stackTrace) =>
-          const Icon(Icons.music_note_rounded, color: Colors.white24, size: 24),
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null && !_isResolving) return child;
-        return Center(
-          child: SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(
-              strokeWidth: 1.5,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Colors.white.withValues(alpha: 0.15),
-              ),
-            ),
-          ),
-        );
-      },
+    return const Icon(
+      Icons.music_note_rounded,
+      color: Colors.white24,
+      size: 24,
     );
   }
 }
