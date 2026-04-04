@@ -43,6 +43,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   SongMetadata? _fileMetadata;
   List<AcoustIDResult> _acoustidResults = const [];
   bool _isAcoustIDLoading = true;
+  AcoustIDService? _acoustidService;
 
   @override
   void initState() {
@@ -131,6 +132,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       }
 
       final acoustidService = AcoustIDService(apiKey: apiKey);
+      _acoustidService = acoustidService;
       final durationSec =
           (_fileMetadata?.duration ?? widget.durationMillis ?? 0) ~/ 1000;
       final results = await acoustidService.lookupByFingerprint(
@@ -417,7 +419,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: _AcoustIDCoverImage(result: result),
+                        child: _AcoustIDCoverImage(
+                          result: result,
+                          service: _acoustidService,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -935,55 +940,110 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
 }
 
 class _AcoustIDCoverImage extends StatefulWidget {
-  const _AcoustIDCoverImage({required this.result});
+  const _AcoustIDCoverImage({required this.result, required this.service});
 
   final AcoustIDResult result;
+  final AcoustIDService? service;
 
   @override
   State<_AcoustIDCoverImage> createState() => _AcoustIDCoverImageState();
 }
 
 class _AcoustIDCoverImageState extends State<_AcoustIDCoverImage> {
+  late Future<String?> _thumbnailResolutionFuture;
+
   @override
-  Widget build(BuildContext context) {
-    final url = widget.result.thumbnailUrl;
-    if (url == null) {
-      return const Icon(
-        Icons.fingerprint_rounded,
-        color: Color(0xFF46D27A),
-        size: 28,
-      );
+  void initState() {
+    super.initState();
+    _thumbnailResolutionFuture = _resolveThumbnailUrl();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AcoustIDCoverImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.result.releaseId != widget.result.releaseId ||
+        oldWidget.result.resolvedThumbnailUrl !=
+            widget.result.resolvedThumbnailUrl) {
+      _thumbnailResolutionFuture = _resolveThumbnailUrl();
+    }
+  }
+
+  Future<String?> _resolveThumbnailUrl() {
+    final releaseId = widget.result.releaseId;
+    if (releaseId == null || releaseId.isEmpty) {
+      return Future.value(null);
     }
 
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded) return child;
-        return AnimatedOpacity(
-          opacity: frame == null ? 0 : 1,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          child: child,
-        );
-      },
-      errorBuilder: (context, error, stackTrace) => const Icon(
-        Icons.fingerprint_rounded,
-        color: Color(0xFF46D27A),
-        size: 28,
-      ),
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Center(
-          child: SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(
-              strokeWidth: 1.5,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                const Color(0xFF46D27A).withValues(alpha: 0.5),
+    final service = widget.service;
+    if (service == null) {
+      return Future.value(null);
+    }
+
+    return service.resolveCoverThumbnailUrl(widget.result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: _thumbnailResolutionFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Center(
+            child: SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  const Color(0xFF46D27A).withValues(alpha: 0.5),
+                ),
               ),
             ),
+          );
+        }
+
+        final url = widget.result.thumbnailUrl;
+        if (url == null) {
+          return const Icon(
+            Icons.fingerprint_rounded,
+            color: Color(0xFF46D27A),
+            size: 28,
+          );
+        }
+
+        return Center(
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+              if (wasSynchronouslyLoaded) return child;
+              return AnimatedOpacity(
+                opacity: frame == null ? 0 : 1,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+                child: child,
+              );
+            },
+            errorBuilder: (context, error, stackTrace) => const Icon(
+              Icons.fingerprint_rounded,
+              color: Color(0xFF46D27A),
+              size: 28,
+            ),
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Center(
+                child: SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      const Color(0xFF46D27A).withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         );
       },

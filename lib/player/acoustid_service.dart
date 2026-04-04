@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:audio_core/audio_core.dart';
 import '../utils/network_client.dart';
@@ -16,6 +17,7 @@ class AcoustIDResult {
   final double score;
   final List<String> acoustIds;
   final Map<String, dynamic> raw;
+  String? resolvedThumbnailUrl;
 
   AcoustIDResult({
     required this.recordingId,
@@ -30,6 +32,9 @@ class AcoustIDResult {
   });
 
   String? get thumbnailUrl {
+    if (resolvedThumbnailUrl != null && resolvedThumbnailUrl!.isNotEmpty) {
+      return resolvedThumbnailUrl;
+    }
     if (releaseId == null || releaseId!.isEmpty) return null;
     return 'https://coverartarchive.org/release/$releaseId/front-250';
   }
@@ -158,6 +163,8 @@ class AcoustIDService {
   final NetworkClient _client;
   final MetadataDatabase _db;
   final Map<String, Future<List<AcoustIDResult>>> _inFlight = {};
+  final Map<String, String?> _coverUrlCache = {};
+  final Map<String, Future<String?>> _coverResolutionInFlight = {};
 
   Future<List<AcoustIDResult>> lookupByFingerprint({
     required String filePath,
@@ -197,6 +204,39 @@ class AcoustIDService {
     _inFlight[fingerprint] = future;
 
     return future;
+  }
+
+  Future<String?> resolveCoverThumbnailUrl(AcoustIDResult result) async {
+    final releaseId = result.releaseId;
+    if (releaseId == null || releaseId.isEmpty) return null;
+
+    if (result.resolvedThumbnailUrl != null &&
+        result.resolvedThumbnailUrl!.isNotEmpty) {
+      return result.resolvedThumbnailUrl;
+    }
+
+    final cached = _coverUrlCache[releaseId];
+    if (cached != null) {
+      result.resolvedThumbnailUrl = cached;
+      return cached;
+    }
+
+    final inFlight = _coverResolutionInFlight[releaseId];
+    if (inFlight != null) {
+      final resolved = await inFlight;
+      result.resolvedThumbnailUrl = resolved;
+      return resolved;
+    }
+
+    final future = _resolveCoverThumbnailUrl(releaseId).whenComplete(() {
+      _coverResolutionInFlight.remove(releaseId);
+    });
+    _coverResolutionInFlight[releaseId] = future;
+
+    final resolved = await future;
+    _coverUrlCache[releaseId] = resolved;
+    result.resolvedThumbnailUrl = resolved;
+    return resolved;
   }
 
   Future<List<AcoustIDResult>?> _loadFromDatabase(String fingerprint) async {
@@ -284,6 +324,47 @@ class AcoustIDService {
       debugPrint(
         'AcoustID: Failed to cache results for fingerprint $fingerprint: $e',
       );
+    }
+  }
+
+  Future<String?> _resolveCoverThumbnailUrl(String releaseId) async {
+    try {
+      final apiUrl = Uri.https('coverartarchive.org', '/release/$releaseId');
+      final response = await _client.get(
+        apiUrl.toString(),
+        options: Options(responseType: ResponseType.json),
+      );
+      final data = response.data;
+      if (data is! Map<String, dynamic>) return null;
+
+      final images = (data['images'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      if (images.isEmpty) return null;
+
+      Map<String, dynamic>? selectedImage;
+      selectedImage = images.firstWhere(
+        (img) => img['front'] == true,
+        orElse: () => <String, dynamic>{},
+      );
+      if (selectedImage.isEmpty) {
+        selectedImage = images.isNotEmpty ? images.first : null;
+      }
+
+      if (selectedImage == null || selectedImage.isEmpty) return null;
+
+      final thumbnails = selectedImage['thumbnails'];
+      if (thumbnails is Map<String, dynamic>) {
+        return thumbnails['250'] as String? ??
+            thumbnails['small'] as String? ??
+            thumbnails['large'] as String? ??
+            selectedImage['image'] as String?;
+      }
+
+      return selectedImage['image'] as String?;
+    } catch (e) {
+      debugPrint('AcoustID cover resolution failed for $releaseId: $e');
+      return null;
     }
   }
 }
