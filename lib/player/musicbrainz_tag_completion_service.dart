@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -279,6 +280,10 @@ class MusicBrainzTagCompletionService {
   }) async {
     final current = existingMetadata ?? await _db.getSongMetadata(songPath);
     final cover = await _downloadCoverArt(match);
+    final lastModifiedTime = await File(songPath).lastModified().then(
+      (value) => value.millisecondsSinceEpoch,
+      onError: (_) => DateTime.now().millisecondsSinceEpoch,
+    );
 
     Uint8List? themeColorsBlob;
     if (cover?.bytes != null) {
@@ -313,6 +318,7 @@ class MusicBrainzTagCompletionService {
       artworkHeight: cover?.height,
       trackNumber: match.trackNumber,
       themeColorsBlob: themeColorsBlob,
+      lastModifiedTime: lastModifiedTime,
     );
 
 
