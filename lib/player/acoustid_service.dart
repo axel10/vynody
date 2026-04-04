@@ -215,10 +215,18 @@ class AcoustIDService {
       return result.resolvedThumbnailUrl;
     }
 
-    final cached = _coverUrlCache[releaseId];
-    if (cached != null) {
-      result.resolvedThumbnailUrl = cached;
-      return cached;
+    // Try database cache first
+    final cached = await _db.getReleaseCoverCache(releaseId);
+    if (cached != null && _hasMeaningfulText(cached.thumbnailUrl)) {
+      result.resolvedThumbnailUrl = cached.thumbnailUrl;
+      return cached.thumbnailUrl;
+    }
+
+    // Check in-memory cache
+    final memoryCached = _coverUrlCache[releaseId];
+    if (memoryCached != null) {
+      result.resolvedThumbnailUrl = memoryCached;
+      return memoryCached;
     }
 
     final inFlight = _coverResolutionInFlight[releaseId];
@@ -236,7 +244,23 @@ class AcoustIDService {
     final resolved = await future;
     _coverUrlCache[releaseId] = resolved;
     result.resolvedThumbnailUrl = resolved;
+
+    // Save to database cache
+    if (resolved != null) {
+      await _db.insertOrUpdateReleaseCoverCache(ReleaseCoverCacheRecord(
+        releaseId: releaseId,
+        thumbnailUrl: resolved,
+        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+      ));
+    }
+
     return resolved;
+  }
+
+  bool _hasMeaningfulText(String? value) {
+    if (value == null) return false;
+    final trimmed = value.trim();
+    return trimmed.isNotEmpty;
   }
 
   Future<List<AcoustIDResult>?> _loadFromDatabase(String fingerprint) async {

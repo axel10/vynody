@@ -177,6 +177,7 @@ class MusicBrainzTagCompletionService {
 
   static final Map<String, List<MusicBrainzTrackMatch>> _searchCache = {};
   static final Map<String, _CoverArtResult> _coverCache = {};
+  static final Map<String, Future<ResolvedCover?>> _coverResolutionInFlight = {};
 
   static Future<void> _rateLimit() async {
     final now = DateTime.now();
@@ -407,7 +408,7 @@ class MusicBrainzTagCompletionService {
     }
 
     for (final candidate in candidates) {
-      final metadata = await _resolveCoverMetadataFromEndpoint(
+      final metadata = await _resolveCoverMetadataWithCache(
         endpoint: candidate.endpoint,
         id: candidate.id,
       );
@@ -418,6 +419,52 @@ class MusicBrainzTagCompletionService {
     }
 
     return null;
+  }
+
+  Future<ResolvedCover?> _resolveCoverMetadataWithCache({
+    required String endpoint,
+    required String id,
+  }) async {
+    // Try database cache first
+    if (endpoint == 'release') {
+      final cached = await _db.getReleaseCoverCache(id);
+      if (cached != null && _hasMeaningfulText(cached.largeUrl)) {
+        return ResolvedCover(
+          endpoint: endpoint,
+          id: id,
+          largeUrl: cached.largeUrl,
+          thumbnailUrl: cached.thumbnailUrl,
+        );
+      }
+    }
+
+    // Check in-flight requests
+    final cacheKey = '$endpoint|$id';
+    final inFlight = _coverResolutionInFlight[cacheKey];
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _resolveCoverMetadataFromEndpoint(
+      endpoint: endpoint,
+      id: id,
+    ).whenComplete(() {
+      _coverResolutionInFlight.remove(cacheKey);
+    });
+    _coverResolutionInFlight[cacheKey] = future;
+
+    final resolved = await future;
+    if (resolved != null && endpoint == 'release') {
+      // Save to database cache
+      await _db.insertOrUpdateReleaseCoverCache(ReleaseCoverCacheRecord(
+        releaseId: id,
+        largeUrl: resolved.largeUrl,
+        thumbnailUrl: resolved.thumbnailUrl,
+        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+      ));
+    }
+
+    return resolved;
   }
 
   Future<ResolvedCover?> _resolveCoverMetadataFromEndpoint({

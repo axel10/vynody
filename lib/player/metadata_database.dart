@@ -243,6 +243,43 @@ class AcoustIDCacheRecord {
   }
 }
 
+class ReleaseCoverCacheRecord {
+  final int? id;
+  final String releaseId;
+  final String? largeUrl;
+  final String? thumbnailUrl;
+  final int updatedAtMillis;
+
+  const ReleaseCoverCacheRecord({
+    this.id,
+    required this.releaseId,
+    this.largeUrl,
+    this.thumbnailUrl,
+    required this.updatedAtMillis,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'releaseId': releaseId,
+      'largeUrl': largeUrl,
+      'thumbnailUrl': thumbnailUrl,
+      'updatedAtMillis': updatedAtMillis,
+    };
+  }
+
+  factory ReleaseCoverCacheRecord.fromMap(Map<String, dynamic> map) {
+    return ReleaseCoverCacheRecord(
+      id: map['id'] as int?,
+      releaseId: map['releaseId'] as String? ?? '',
+      largeUrl: map['largeUrl'] as String?,
+      thumbnailUrl: map['thumbnailUrl'] as String?,
+      updatedAtMillis:
+          (map['updatedAtMillis'] as int?) ??
+          DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+}
+
 class MetadataDatabase {
   static Database? _database;
   static final MetadataDatabase _instance = MetadataDatabase._internal();
@@ -268,7 +305,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -317,6 +354,16 @@ class MetadataDatabase {
             fingerprint TEXT UNIQUE,
             durationSeconds INTEGER,
             resultsJson TEXT,
+            updatedAtMillis INTEGER
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE release_cover_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            releaseId TEXT UNIQUE,
+            largeUrl TEXT,
+            thumbnailUrl TEXT,
             updatedAtMillis INTEGER
           )
         ''');
@@ -399,6 +446,17 @@ class MetadataDatabase {
             )
           ''');
         }
+        if (oldVersion < 10) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS release_cover_cache (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              releaseId TEXT UNIQUE,
+              largeUrl TEXT,
+              thumbnailUrl TEXT,
+              updatedAtMillis INTEGER
+            )
+          ''');
+        }
       },
     );
   }
@@ -465,6 +523,30 @@ class MetadataDatabase {
 
     if (maps.isNotEmpty) {
       return AcoustIDCacheRecord.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<void> insertOrUpdateReleaseCoverCache(ReleaseCoverCacheRecord record) async {
+    final db = await database;
+    await db.insert(
+      'release_cover_cache',
+      record.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<ReleaseCoverCacheRecord?> getReleaseCoverCache(String releaseId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'release_cover_cache',
+      where: 'releaseId = ?',
+      whereArgs: [releaseId],
+      limit: 1,
+    );
+
+    if (maps.isNotEmpty) {
+      return ReleaseCoverCacheRecord.fromMap(maps.first);
     }
     return null;
   }
