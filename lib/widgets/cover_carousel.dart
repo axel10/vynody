@@ -241,6 +241,10 @@ class _CoverCarouselState extends State<CoverCarousel>
             displaySize: widget.displaySize,
             onArtworkLoaded: (bytes, path) {
               _loadedCovers[index] = (bytes: bytes, path: path);
+              // 如果是当前播放曲目的封面加载完成，通知背景更新
+              if (actualIndex == widget.currentIndex && bytes != null) {
+                widget.onAnimationComplete?.call();
+              }
             },
           );
         })

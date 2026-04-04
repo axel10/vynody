@@ -99,8 +99,12 @@ class _PlaybackPageState extends State<PlaybackPage>
 
   void _onCarouselAnimationComplete() {
     final audio = context.read<AudioService>();
-    setState(() {
-      _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
+        });
+      }
     });
   }
 
