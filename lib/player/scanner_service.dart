@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -581,21 +582,28 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  void updateMetadataForPath(SongMetadata metadata) {
+  void updateMetadataForPath(
+    SongMetadata metadata, {
+    Uint8List? artworkBytes,
+  }) {
     _metadataMap[metadata.path] = metadata;
 
     // Update MusicFile objects in the tree if they exist
     for (final root in _rootFolders) {
-      _updateMusicFileInFolder(root, metadata);
+      _updateMusicFileInFolder(root, metadata, artworkBytes: artworkBytes);
     }
     if (_systemMediaFolder != null) {
-      _updateMusicFileInFolder(_systemMediaFolder!, metadata);
+      _updateMusicFileInFolder(_systemMediaFolder!, metadata, artworkBytes: artworkBytes);
     }
 
     notifyListeners();
   }
 
-  void _updateMusicFileInFolder(MusicFolder folder, SongMetadata metadata) {
+  void _updateMusicFileInFolder(
+    MusicFolder folder,
+    SongMetadata metadata, {
+    Uint8List? artworkBytes,
+  }) {
     for (var i = 0; i < folder.files.length; i++) {
       final file = folder.files[i];
       if (file.path == metadata.path) {
@@ -610,12 +618,13 @@ class ScannerService extends ChangeNotifier {
             artworkHeight: metadata.artworkHeight,
             themeColorsBlob: metadata.themeColorsBlob,
             waveformBlob: metadata.waveformBlob,
+            artworkBytes: artworkBytes,
             lastModifiedTime: metadata.lastModifiedTime,
           );
       }
     }
     for (final subFolder in folder.subFolders) {
-      _updateMusicFileInFolder(subFolder, metadata);
+      _updateMusicFileInFolder(subFolder, metadata, artworkBytes: artworkBytes);
     }
   }
 

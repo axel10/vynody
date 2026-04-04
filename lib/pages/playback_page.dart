@@ -187,7 +187,10 @@ class _PlaybackPageState extends State<PlaybackPage>
       result.metadata,
       artworkBytes: result.artworkBytes,
     );
-    scanner.updateMetadataForPath(result.metadata);
+    scanner.updateMetadataForPath(
+      result.metadata,
+      artworkBytes: result.artworkBytes,
+    );
     await playlistService.updateSongMetadataByPath(
       result.metadata,
       artworkBytes: result.artworkBytes,
