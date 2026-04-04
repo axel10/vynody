@@ -1,13 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart' show Options, ResponseType;
 import '../utils/clean_helper.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
 import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
+import '../utils/network_client.dart';
 
 class SongTagCompletionSheet extends StatefulWidget {
   const SongTagCompletionSheet({
@@ -135,8 +138,24 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       );
 
       if (!mounted) return;
+      final knownDuration = _fileMetadata?.duration ?? widget.durationMillis;
       setState(() {
-        _acoustidResults = results;
+        _acoustidResults = results.map((r) {
+          if (r.durationMillis == null || r.durationMillis! <= 0) {
+            return AcoustIDResult(
+              recordingId: r.recordingId,
+              title: r.title,
+              artist: r.artist,
+              album: r.album,
+              releaseId: r.releaseId,
+              durationMillis: knownDuration,
+              score: r.score,
+              acoustIds: r.acoustIds,
+              raw: r.raw,
+            );
+          }
+          return r;
+        }).toList();
         _isAcoustIDLoading = false;
       });
     } catch (e) {
@@ -154,6 +173,34 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       _errorMessage = null;
     });
 
+    Uint8List? coverArtBytes;
+    if (result.releaseId != null && result.releaseId!.isNotEmpty) {
+      try {
+        final coverClient = NetworkClient(
+          baseUrl: 'https://coverartarchive.org',
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+        );
+        final resp = await coverClient.get<List<int>>(
+          '/release/${result.releaseId}/front-500',
+          options: Options(
+            responseType: ResponseType.bytes,
+            headers: {'Accept': 'image/jpeg, image/png, image/*, */*'},
+          ),
+        );
+        if (resp.data != null && resp.data!.isNotEmpty) {
+          coverArtBytes = Uint8List.fromList(resp.data!);
+          debugPrint('AcoustID: Downloaded ${coverArtBytes.length} bytes of cover art for release ${result.releaseId}');
+        } else {
+          debugPrint('AcoustID: Cover art response is empty');
+        }
+      } catch (e) {
+        debugPrint('AcoustID: Failed to download cover art: $e');
+      }
+    } else {
+      debugPrint('AcoustID: No releaseId available for cover art download');
+    }
+
     try {
       final updated = SongMetadata(
         path: widget.songPath,
@@ -168,7 +215,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       if (!mounted) return;
       Navigator.of(context).pop(MusicBrainzTagSelectionResult(
         metadata: updated,
-        artworkBytes: null,
+        artworkBytes: coverArtBytes,
         match: MusicBrainzTrackMatch(
           recordingId: result.recordingId,
           title: result.title,

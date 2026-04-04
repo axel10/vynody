@@ -111,7 +111,8 @@ class MusicFile {
         other.artworkWidth == artworkWidth &&
         other.artworkHeight == artworkHeight &&
         other.lastModifiedTime == lastModifiedTime &&
-        other.lyrics == lyrics;
+        other.lyrics == lyrics &&
+        identical(other.artworkBytes, artworkBytes);
   }
 
   @override
@@ -128,5 +129,6 @@ class MusicFile {
         artworkWidth,
         artworkHeight,
         lastModifiedTime,
+        artworkBytes?.length ?? 0,
       );
 }

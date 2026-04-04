@@ -189,6 +189,22 @@ class _PlaybackPageState extends State<PlaybackPage>
       artworkBytes: result.artworkBytes,
     );
 
+    if (context.mounted && result.artworkBytes != null) {
+      setState(() {
+        _pendingArtworkBytes = result.artworkBytes;
+      });
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.artworkBytes != null ? '标签已补全并保存，封面已下载到临时目录' : '标签已补全并保存',
+          ),
+        ),
+      );
+    }
+
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
