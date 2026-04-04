@@ -35,60 +35,89 @@ class AcoustIDResult {
   }
 
   factory AcoustIDResult.fromJson(Map<String, dynamic> json) {
+    // Accept cached, already-flattened records.
+    if (!json.containsKey('recordings')) {
+      return AcoustIDResult(
+        recordingId: json['recordingId'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        artist: json['artist'] as String? ?? 'Unknown Artist',
+        album: json['album'] as String?,
+        releaseId: json['releaseId'] as String?,
+        durationMillis: (json['durationMillis'] as num?)?.toInt(),
+        score: (json['score'] as num?)?.toDouble() ?? 0.0,
+        acoustIds: (json['acoustIds'] as List<dynamic>? ?? const [])
+            .whereType<String>()
+            .toList(growable: false),
+        raw: json['raw'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(json['raw'] as Map)
+            : json,
+      );
+    }
+
+    final results = AcoustIDResult.fromLookupResult(json);
+    if (results.isEmpty) {
+      return AcoustIDResult(
+        recordingId: '',
+        title: '',
+        artist: 'Unknown Artist',
+        score: (json['score'] as num?)?.toDouble() ?? 0.0,
+        acoustIds: const [],
+        raw: json,
+      );
+    }
+
+    return results.first;
+  }
+
+  static List<AcoustIDResult> fromLookupResult(Map<String, dynamic> json) {
     final recordings = (json['recordings'] as List<dynamic>? ?? const [])
         .whereType<Map<String, dynamic>>()
         .toList();
 
-    String title = '';
-    String artist = '';
-    String? album;
-    String? releaseId;
-    int? durationMillis;
-    final acoustIds = <String>[];
+    return recordings
+        .map((recording) {
+          final title = recording['title'] as String? ?? '';
+          final artists = (recording['artists'] as List<dynamic>? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .toList();
+          final artist = artists
+              .map((a) => a['name'] as String? ?? '')
+              .join(', ');
 
-    for (final recording in recordings) {
-      if (title.isEmpty) {
-        title = recording['title'] as String? ?? '';
-      }
+          final releases = (recording['releases'] as List<dynamic>? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .toList();
+          final album = releases.isNotEmpty
+              ? releases.first['title'] as String?
+              : null;
+          final releaseId = releases.isNotEmpty
+              ? releases.first['id'] as String?
+              : null;
+          final recordingId = recording['id'] as String? ?? '';
+          final durationMillis = (recording['length'] as num?)?.toInt();
 
-      final artists = (recording['artists'] as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      if (artist.isEmpty && artists.isNotEmpty) {
-        artist = artists.map((a) => a['name'] as String? ?? '').join(', ');
-      }
+          final acoustIds = <String>[];
+          if (recordingId.isNotEmpty) {
+            acoustIds.add(recordingId);
+          }
 
-      final releases = (recording['releases'] as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      if (album == null && releases.isNotEmpty) {
-        album = releases.first['title'] as String?;
-      }
-      if (releaseId == null && releases.isNotEmpty) {
-        releaseId = releases.first['id'] as String?;
-      }
-
-      durationMillis ??= (recording['length'] as num?)?.toInt();
-
-      final id = recording['id'] as String?;
-      if (id != null && id.isNotEmpty) {
-        acoustIds.add(id);
-      }
-    }
-
-    return AcoustIDResult(
-      recordingId: recordings.isNotEmpty
-          ? (recordings.first['id'] as String? ?? '')
-          : '',
-      title: title,
-      artist: artist.isEmpty ? 'Unknown Artist' : artist,
-      album: album,
-      releaseId: releaseId,
-      durationMillis: durationMillis,
-      score: (json['score'] as num?)?.toDouble() ?? 0.0,
-      acoustIds: acoustIds,
-      raw: json,
-    );
+          return AcoustIDResult(
+            recordingId: recordingId,
+            title: title,
+            artist: artist.isEmpty ? 'Unknown Artist' : artist,
+            album: album,
+            releaseId: releaseId,
+            durationMillis: durationMillis,
+            score: (json['score'] as num?)?.toDouble() ?? 0.0,
+            acoustIds: acoustIds,
+            raw: {
+              'lookupId': json['id'],
+              'score': json['score'],
+              'recording': recording,
+            },
+          );
+        })
+        .toList(growable: false);
   }
 
   Map<String, dynamic> toJson() {
@@ -221,7 +250,9 @@ class AcoustIDService {
           .whereType<Map<String, dynamic>>()
           .toList();
 
-      final parsed = results.map((e) => AcoustIDResult.fromJson(e)).toList();
+      final parsed = results
+          .expand((e) => AcoustIDResult.fromLookupResult(e))
+          .toList();
       await _saveToDatabase(
         fingerprint: fingerprint,
         durationSeconds: durationSeconds,
