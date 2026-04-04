@@ -131,5 +131,16 @@
   "completeRandom": "Complete Random",
   "shuffleRandom": "Shuffle Random",
   "randomQueue": "Random Queue",
-  "notSelected": "No Music Selected"
+  "notSelected": "No Music Selected",
+  "saveTagsToFile": "Save Tags to File",
+  "saveCurrentTagsToFile": "Save current song tags to file",
+  "saveQueueTagsToFile": "Save all queue tags to file",
+  "tagsSaved": "Tags saved successfully",
+  "tagsSavedCount": "Tags saved ({count} songs)",
+  "tagsSaveFailed": "Failed to save tags",
+  "tagsSaveFailedCount": "Failed to save {count} songs",
+  "unsupportedFormat": "{count} songs have unsupported formats (OGG/Opus cannot be saved)",
+  "unsupportedFormatSingle": "This format (OGG/Opus) does not support saving tags",
+  "savingTags": "Saving tags...",
+  "noModifiedTagsToSave": "No modified tags to save"
 }

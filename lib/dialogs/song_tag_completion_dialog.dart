@@ -207,10 +207,12 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     }
 
     try {
-      final lastModifiedTime = await File(widget.songPath).lastModified().then(
-        (value) => value.millisecondsSinceEpoch,
-        onError: (_) => DateTime.now().millisecondsSinceEpoch,
-      );
+      // Get existing metadata to preserve createdAt
+      final existingMetadata = await MetadataDatabase().getSongMetadata(widget.songPath);
+      final createdAt = existingMetadata?.createdAt ?? DateTime.now().millisecondsSinceEpoch;
+      
+      // Update lastModifiedTime to current time to mark as modified
+      final lastModifiedTime = DateTime.now().millisecondsSinceEpoch;
 
       final updated = SongMetadata(
         path: widget.songPath,
@@ -223,6 +225,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
             : 'Unknown Album',
         duration: result.durationMillis ?? widget.durationMillis,
         lastModifiedTime: lastModifiedTime,
+        createdAt: createdAt,
       );
 
       await MetadataDatabase().insertOrUpdateSong(updated);

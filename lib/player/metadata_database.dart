@@ -20,6 +20,8 @@ class SongMetadata {
   final Uint8List? themeColorsBlob;
   final Uint8List? waveformBlob;
   final int? lastModifiedTime;
+  final int? createdAt;
+  final List<String>? genres;
 
   SongMetadata({
     this.id,
@@ -36,7 +38,15 @@ class SongMetadata {
     this.themeColorsBlob,
     this.waveformBlob,
     this.lastModifiedTime,
+    this.createdAt,
+    this.genres,
   });
+
+  /// Check if this metadata has been modified since creation
+  bool get isModified {
+    if (createdAt == null || lastModifiedTime == null) return false;
+    return lastModifiedTime! > createdAt!;
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -53,10 +63,19 @@ class SongMetadata {
       'themeColorsBlob': themeColorsBlob,
       'waveformBlob': waveformBlob,
       'lastModifiedTime': lastModifiedTime,
+      'createdAt': createdAt,
+      'genres': genres != null ? jsonEncode(genres) : null,
     };
   }
 
   factory SongMetadata.fromMap(Map<String, dynamic> map) {
+    List<String>? genres;
+    if (map['genres'] != null) {
+      final decoded = jsonDecode(map['genres'] as String);
+      if (decoded is List) {
+        genres = decoded.cast<String>();
+      }
+    }
     return SongMetadata(
       id: map['id'],
       path: map['path'],
@@ -72,6 +91,8 @@ class SongMetadata {
       themeColorsBlob: map['themeColorsBlob'] as Uint8List?,
       waveformBlob: map['waveformBlob'] as Uint8List?,
       lastModifiedTime: map['lastModifiedTime'],
+      createdAt: map['createdAt'],
+      genres: genres,
     );
   }
 
@@ -90,6 +111,8 @@ class SongMetadata {
     Uint8List? themeColorsBlob,
     Uint8List? waveformBlob,
     int? lastModifiedTime,
+    int? createdAt,
+    List<String>? genres,
   }) {
     return SongMetadata(
       id: id ?? this.id,
@@ -106,6 +129,8 @@ class SongMetadata {
       themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
       waveformBlob: waveformBlob ?? this.waveformBlob,
       lastModifiedTime: lastModifiedTime ?? this.lastModifiedTime,
+      createdAt: createdAt ?? this.createdAt,
+      genres: genres ?? this.genres,
     );
   }
 }
@@ -305,7 +330,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 10,
+      version: 12,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -322,7 +347,9 @@ class MetadataDatabase {
             trackNumber INTEGER,
             themeColorsBlob BLOB,
             waveformBlob BLOB,
-            lastModifiedTime INTEGER
+            lastModifiedTime INTEGER,
+            createdAt INTEGER,
+            genres TEXT
           )
         ''');
 
@@ -456,6 +483,16 @@ class MetadataDatabase {
               updatedAtMillis INTEGER
             )
           ''');
+        }
+        if (oldVersion < 11) {
+          if (!await _columnExists(db, 'songs', 'genres')) {
+            await db.execute('ALTER TABLE songs ADD COLUMN genres TEXT');
+          }
+        }
+        if (oldVersion < 12) {
+          if (!await _columnExists(db, 'songs', 'createdAt')) {
+            await db.execute('ALTER TABLE songs ADD COLUMN createdAt INTEGER');
+          }
         }
       },
     );

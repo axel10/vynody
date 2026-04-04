@@ -889,6 +889,72 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'未选择音乐'**
   String get notSelected;
+
+  /// No description provided for @saveTagsToFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存标签到文件'**
+  String get saveTagsToFile;
+
+  /// No description provided for @saveCurrentTagsToFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存当前歌曲标签到文件'**
+  String get saveCurrentTagsToFile;
+
+  /// No description provided for @saveQueueTagsToFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存队列中所有标签到文件'**
+  String get saveQueueTagsToFile;
+
+  /// No description provided for @tagsSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签保存成功'**
+  String get tagsSaved;
+
+  /// No description provided for @tagsSavedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签已保存 ({count} 首)'**
+  String tagsSavedCount(Object count);
+
+  /// No description provided for @tagsSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存标签失败'**
+  String get tagsSaveFailed;
+
+  /// No description provided for @tagsSaveFailedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 首保存失败'**
+  String tagsSaveFailedCount(Object count);
+
+  /// No description provided for @unsupportedFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 首歌曲格式不支持保存标签 (OGG/Opus)'**
+  String unsupportedFormat(Object count);
+
+  /// No description provided for @unsupportedFormatSingle.
+  ///
+  /// In zh, this message translates to:
+  /// **'此格式 (OGG/Opus) 不支持保存标签'**
+  String get unsupportedFormatSingle;
+
+  /// No description provided for @savingTags.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在保存标签...'**
+  String get savingTags;
+
+  /// No description provided for @noModifiedTagsToSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有需要保存的已修改标签'**
+  String get noModifiedTagsToSave;
 }
 
 class _AppLocalizationsDelegate

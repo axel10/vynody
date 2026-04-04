@@ -325,7 +325,10 @@ class AudioService extends ChangeNotifier {
     if (_isLyricsActive == active) return;
     _isLyricsActive = active;
 
-    if (_isLyricsActive && currentMusic?.path != null && !_hasLyrics && !_isLyricsLoading) {
+    if (_isLyricsActive &&
+        currentMusic?.path != null &&
+        !_hasLyrics &&
+        !_isLyricsLoading) {
       final song = (_currentIndex >= 0 && _currentIndex < _queue.length)
           ? _queue[_currentIndex]
           : null;
@@ -402,8 +405,8 @@ class AudioService extends ChangeNotifier {
   bool get isPlaying => _isPlaying;
   MusicFile? get currentMusic =>
       (_currentIndex >= 0 && _currentIndex < _queue.length)
-          ? _queue[_currentIndex]
-          : null;
+      ? _queue[_currentIndex]
+      : null;
   Duration get position => _position;
   Duration get duration => _duration;
   double get volume => _volume;
@@ -415,30 +418,30 @@ class AudioService extends ChangeNotifier {
 
   bool get isRandomMode => _player.playlist.randomPolicy != null;
   AudioSnapshot get snapshot => AudioSnapshot(
-        isPlaying: _isPlaying,
-        isTransitioning: _isTransitioning,
-        isLastActionNext: _lastActionNext,
-        currentMusic: currentMusic,
-        position: _position,
-        duration: _duration,
-        volume: _volume,
-        isMuted: _isMuted,
-        playbackQueue: _queue,
-        currentIndex: _currentIndex,
-        isRandomMode: isRandomMode,
-        isShuffleRandomMode: isShuffleRandomMode,
-        playbackMode: playbackMode,
-        historyCursor: historyCursor,
-        deckCursor: deckCursor,
-        isVisualizerEnabled: isVisualizerEnabled,
-        dynamicStartColor: _dynamicStartColor,
-        dynamicEndColor: _dynamicEndColor,
-        currentThemeColorsMap: _currentThemeColorsMap,
-        isLyricsLoading: _isLyricsLoading,
-        hasLyrics: _hasLyrics,
-        currentLyricsTitle: _currentLyricsTitle,
-        isLyricsActive: _isLyricsActive,
-      );
+    isPlaying: _isPlaying,
+    isTransitioning: _isTransitioning,
+    isLastActionNext: _lastActionNext,
+    currentMusic: currentMusic,
+    position: _position,
+    duration: _duration,
+    volume: _volume,
+    isMuted: _isMuted,
+    playbackQueue: _queue,
+    currentIndex: _currentIndex,
+    isRandomMode: isRandomMode,
+    isShuffleRandomMode: isShuffleRandomMode,
+    playbackMode: playbackMode,
+    historyCursor: historyCursor,
+    deckCursor: deckCursor,
+    isVisualizerEnabled: isVisualizerEnabled,
+    dynamicStartColor: _dynamicStartColor,
+    dynamicEndColor: _dynamicEndColor,
+    currentThemeColorsMap: _currentThemeColorsMap,
+    isLyricsLoading: _isLyricsLoading,
+    hasLyrics: _hasLyrics,
+    currentLyricsTitle: _currentLyricsTitle,
+    isLyricsActive: _isLyricsActive,
+  );
 
   Uint8List? getCachedArtwork(String? path) {
     if (path == null) return null;
@@ -545,7 +548,9 @@ class AudioService extends ChangeNotifier {
       sampleStride: settingsService.sampleStride,
     );
     if (path == currentMusic?.path && waveform.isNotEmpty) {
-      if (_currentIndex >= 0 && _currentIndex < _queue.length && _queue[_currentIndex].path == path) {
+      if (_currentIndex >= 0 &&
+          _currentIndex < _queue.length &&
+          _queue[_currentIndex].path == path) {
         final float32List = Float32List.fromList(
           waveform.map((e) => e.toDouble()).toList(),
         );
@@ -597,13 +602,15 @@ class AudioService extends ChangeNotifier {
     // The callers (like _handlePlayerChanges or next()) already ensure this is only called when needed.
 
     // 1. 更新内部状态：如果路径或 ID 与当前项不匹配，则可能发生了异步竞态。
-    if (_currentIndex >= 0 && _currentIndex < _queue.length && _queue[_currentIndex].path == path) {
+    if (_currentIndex >= 0 &&
+        _currentIndex < _queue.length &&
+        _queue[_currentIndex].path == path) {
       _queue[_currentIndex] = song;
     }
     // 如果设置开启了波形且对象中已有波形 blob，则不需要额外操作，MusicFile.waveform getter 会处理。
     // 但如果我们需要在 UI 变化时强制更新 _currentMusic (比如 settingsService.isWaveformProgressBarEnabled 变化)，
     // 我们的 _refreshCurrentWaveform (已更新) 会处理。
-    
+
     // We already have song.artworkBytes if it was passed in.
     // However, we might want to ensure it has the blob if it's there.
     // The current MusicFile object is copied as is.
@@ -629,12 +636,14 @@ class AudioService extends ChangeNotifier {
 
       highResBytes ??= await MetadataHelper.decodeEmbeddedArtwork(path);
 
-      if (_currentIndex >= 0 && _currentIndex < _queue.length && _queue[_currentIndex].path == path) {
+      if (_currentIndex >= 0 &&
+          _currentIndex < _queue.length &&
+          _queue[_currentIndex].path == path) {
         _queue[_currentIndex] = _queue[_currentIndex].copyWith(
           artworkBytes: highResBytes,
           artworkPath: highResPath,
         );
-        
+
         notifyListeners();
         // 重算调色板（如果元数据刚发生变化）
         await _updatePalette();
@@ -659,7 +668,8 @@ class AudioService extends ChangeNotifier {
 
     // 5. 仅在封面数据尚未加载时重算调色板（避免重复计算）
     // 注意：第640行的 _updatePalette() 已在封面加载完成后调用，这里只在封面未加载时兜底
-    if (currentMusic?.artworkBytes == null && currentMusic?.artworkPath == null) {
+    if (currentMusic?.artworkBytes == null &&
+        currentMusic?.artworkPath == null) {
       await _updatePalette();
     }
 
@@ -695,7 +705,7 @@ class AudioService extends ChangeNotifier {
   }
 
   /// 发起歌词获取请求并同步状态至 UI。
-  /// 
+  ///
   /// 获取逻辑遵循以下优先级：
   /// 1. 内存缓存 (Memory Cache)：若本会话已获取过该曲歌词，直接返回。
   /// 2. 数据库缓存 (Database Cache)：若之前曾成功获取并保存至本地 SQLite，直接读取。
@@ -723,7 +733,8 @@ class AudioService extends ChangeNotifier {
     try {
       final result = await _lyricsService.fetchBestLyrics(query: query);
       // 竞态检查：确保请求返回时，用户没有切换到另一首歌
-      if (requestId != _lyricsRequestSerial || currentMusic?.path != song.path) {
+      if (requestId != _lyricsRequestSerial ||
+          currentMusic?.path != song.path) {
         return;
       }
 
@@ -749,7 +760,7 @@ class AudioService extends ChangeNotifier {
             ),
           );
           _queue[_currentIndex] = updatedSong;
-          
+
           notifyListeners();
         }
       }
@@ -759,7 +770,8 @@ class AudioService extends ChangeNotifier {
       _lyricsService.debugPrintSelection(query, result);
     } catch (e) {
       debugPrint('[AudioService] Failed to fetch lyrics: $e');
-      if (requestId == _lyricsRequestSerial && currentMusic?.path == song.path) {
+      if (requestId == _lyricsRequestSerial &&
+          currentMusic?.path == song.path) {
         _isLyricsLoading = false;
         _lyricsSearchAttempted = true;
         notifyListeners();
@@ -1129,12 +1141,15 @@ class AudioService extends ChangeNotifier {
           for (int i = 0; i < _queue.length; i++) {
             if (_queue[i].path == path) {
               _queue[i] = _queue[i].copyWith(
-                themeColorsBlob: updates['themeColorsBlob'] as Uint8List? ??
+                themeColorsBlob:
+                    updates['themeColorsBlob'] as Uint8List? ??
                     _queue[i].themeColorsBlob,
                 waveformBlob:
-                    updates['waveformBlob'] as Uint8List? ?? _queue[i].waveformBlob,
+                    updates['waveformBlob'] as Uint8List? ??
+                    _queue[i].waveformBlob,
                 thumbnailPath:
-                    updates['thumbnailPath'] as String? ?? _queue[i].thumbnailPath,
+                    updates['thumbnailPath'] as String? ??
+                    _queue[i].thumbnailPath,
                 artworkPath:
                     updates['artworkPath'] as String? ?? _queue[i].artworkPath,
                 artworkWidth:

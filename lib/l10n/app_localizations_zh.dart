@@ -416,4 +416,43 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notSelected => '未选择音乐';
+
+  @override
+  String get saveTagsToFile => '保存标签到文件';
+
+  @override
+  String get saveCurrentTagsToFile => '保存当前歌曲标签到文件';
+
+  @override
+  String get saveQueueTagsToFile => '保存队列中所有标签到文件';
+
+  @override
+  String get tagsSaved => '标签保存成功';
+
+  @override
+  String tagsSavedCount(Object count) {
+    return '标签已保存 ($count 首)';
+  }
+
+  @override
+  String get tagsSaveFailed => '保存标签失败';
+
+  @override
+  String tagsSaveFailedCount(Object count) {
+    return '$count 首保存失败';
+  }
+
+  @override
+  String unsupportedFormat(Object count) {
+    return '$count 首歌曲格式不支持保存标签 (OGG/Opus)';
+  }
+
+  @override
+  String get unsupportedFormatSingle => '此格式 (OGG/Opus) 不支持保存标签';
+
+  @override
+  String get savingTags => '正在保存标签...';
+
+  @override
+  String get noModifiedTagsToSave => '没有需要保存的已修改标签';
 }

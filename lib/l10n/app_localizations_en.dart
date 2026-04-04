@@ -422,4 +422,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notSelected => 'No Music Selected';
+
+  @override
+  String get saveTagsToFile => 'Save Tags to File';
+
+  @override
+  String get saveCurrentTagsToFile => 'Save current song tags to file';
+
+  @override
+  String get saveQueueTagsToFile => 'Save all queue tags to file';
+
+  @override
+  String get tagsSaved => 'Tags saved successfully';
+
+  @override
+  String tagsSavedCount(Object count) {
+    return 'Tags saved ($count songs)';
+  }
+
+  @override
+  String get tagsSaveFailed => 'Failed to save tags';
+
+  @override
+  String tagsSaveFailedCount(Object count) {
+    return 'Failed to save $count songs';
+  }
+
+  @override
+  String unsupportedFormat(Object count) {
+    return '$count songs have unsupported formats (OGG/Opus cannot be saved)';
+  }
+
+  @override
+  String get unsupportedFormatSingle =>
+      'This format (OGG/Opus) does not support saving tags';
+
+  @override
+  String get savingTags => 'Saving tags...';
+
+  @override
+  String get noModifiedTagsToSave => 'No modified tags to save';
 }

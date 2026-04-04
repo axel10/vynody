@@ -449,5 +449,16 @@
   "completeRandom": "完全随机",
   "shuffleRandom": "洗牌随机",
   "randomQueue": "随机队列",
-  "notSelected": "未选择音乐"
+  "notSelected": "未选择音乐",
+  "saveTagsToFile": "保存标签到文件",
+  "saveCurrentTagsToFile": "保存当前歌曲标签到文件",
+  "saveQueueTagsToFile": "保存队列中所有标签到文件",
+  "tagsSaved": "标签保存成功",
+  "tagsSavedCount": "标签已保存 ({count} 首)",
+  "tagsSaveFailed": "保存标签失败",
+  "tagsSaveFailedCount": "{count} 首保存失败",
+  "unsupportedFormat": "{count} 首歌曲格式不支持保存标签 (OGG/Opus)",
+  "unsupportedFormatSingle": "此格式 (OGG/Opus) 不支持保存标签",
+  "savingTags": "正在保存标签...",
+  "noModifiedTagsToSave": "没有需要保存的已修改标签"
 }

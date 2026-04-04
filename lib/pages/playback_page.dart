@@ -5,12 +5,15 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_core/audio_core.dart';
+import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_snapshot.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../player/scanner_service.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
+import '../player/metadata_helper.dart';
+import '../player/metadata_database.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/visualizer_painter.dart';
 import '../widgets/volume_controls.dart';
@@ -211,14 +214,251 @@ class _PlaybackPageState extends State<PlaybackPage>
         ),
       );
     }
+  }
 
+  void _showTagSaveMenu(BuildContext context, AudioService audio) {
+    final l10n = AppLocalizations.of(context)!;
+    final snapshot = audio.snapshot;
+    final currentSong = snapshot.currentMusic;
+    final queue = snapshot.playbackQueue;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text(
+          l10n.saveTagsToFile,
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.music_note, color: Colors.blueAccent),
+              title: Text(
+                l10n.saveCurrentTagsToFile,
+                style: const TextStyle(color: Colors.white),
+              ),
+              enabled: currentSong != null && isMetadataWritable(currentSong.path),
+              onTap: () {
+                Navigator.pop(dialogContext);
+                _saveCurrentSongTags(context, audio);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.queue_music, color: Colors.greenAccent),
+              title: Text(
+                l10n.saveQueueTagsToFile,
+                style: const TextStyle(color: Colors.white),
+              ),
+              enabled: queue.isNotEmpty,
+              onTap: () {
+                Navigator.pop(dialogContext);
+                _saveQueueTags(context, audio);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveCurrentSongTags(BuildContext context, AudioService audio) async {
+    final l10n = AppLocalizations.of(context)!;
+    final snapshot = audio.snapshot;
+    final song = snapshot.currentMusic;
+    if (song == null) return;
+
+    // Check if format is supported
+    if (!isMetadataWritable(song.path)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.unsupportedFormatSingle)),
+        );
+      }
+      return;
+    }
+
+    // Show loading
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.artworkBytes != null ? '标签已补全并保存，封面已下载到临时目录' : '标签已补全并保存',
+        SnackBar(content: Text(l10n.savingTags)),
+      );
+    }
+
+    try {
+      // Get artwork bytes if available
+      List<Picture>? pictures;
+      if (song.artworkBytes != null) {
+        pictures = [
+          Picture(song.artworkBytes!, 'image/jpeg', PictureType.coverFront),
+        ];
+      }
+
+      final success = await MetadataHelper.saveMetadataToFile(
+        song.path,
+        title: song.displayName,
+        artist: song.artist,
+        album: song.album,
+        trackNumber: song.trackNumber,
+        pictures: pictures,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? l10n.tagsSaved : l10n.tagsSaveFailed),
           ),
-        ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.tagsSaveFailed)),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveQueueTags(BuildContext context, AudioService audio) async {
+    final l10n = AppLocalizations.of(context)!;
+    final queue = audio.playbackQueue;
+    if (queue.isEmpty) return;
+
+    // Show initial loading message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.savingTags),
+        duration: const Duration(seconds: 5),
+      ),
+    );
+
+    // First, get metadata from database for each song
+    final db = MetadataDatabase();
+    final queuePaths = queue.map((s) => s.path).toList();
+    final metadataMap = <String, SongMetadata>{};
+    
+    for (final path in queuePaths) {
+      final metadata = await db.getSongMetadata(path);
+      if (metadata != null) {
+        metadataMap[path] = metadata;
+      }
+    }
+
+    // Filter songs that are modified and have writable format
+    final modifiedSongs = <SongMetadata>[];
+    final artworkBytesMap = <String, Uint8List?>{};
+    
+    for (final song in queue) {
+      if (!isMetadataWritable(song.path)) continue;
+      
+      final metadata = metadataMap[song.path];
+      if (metadata != null && metadata.isModified) {
+        modifiedSongs.add(metadata);
+        artworkBytesMap[song.path] = song.artworkBytes;
+      }
+    }
+
+    if (modifiedSongs.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.noModifiedTagsToSave),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show initial snackbar with progress
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${l10n.savingTags} 0/${modifiedSongs.length}'),
+        duration: Duration(seconds: modifiedSongs.length + 2),
+      ),
+    );
+
+    // Start background saving task
+    _runBackgroundSaveTask(modifiedSongs, artworkBytesMap, context, l10n);
+  }
+
+  void _runBackgroundSaveTask(
+    List<SongMetadata> songs,
+    Map<String, Uint8List?> artworkBytesMap,
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
+    int savedCount = 0;
+    int unsupportedCount = 0;
+    int failedCount = 0;
+
+    for (int i = 0; i < songs.length; i++) {
+      final song = songs[i];
+      final artworkBytes = artworkBytesMap[song.path];
+
+      List<Picture>? pictures;
+      if (artworkBytes != null) {
+        pictures = [
+          Picture(artworkBytes, 'image/jpeg', PictureType.coverFront),
+        ];
+      }
+
+      final success = await MetadataHelper.saveMetadataToFile(
+        song.path,
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        trackNumber: song.trackNumber,
+        genres: song.genres,
+        pictures: pictures,
+      );
+
+      if (success) {
+        savedCount++;
+      } else {
+        if (isMetadataWritable(song.path)) {
+          failedCount++;
+        } else {
+          unsupportedCount++;
+        }
+      }
+
+      // Update progress snackbar
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.savingTags} ${i + 1}/${songs.length}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+
+    // Show final result
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      final messages = <String>[];
+      if (savedCount > 0) {
+        messages.add(l10n.tagsSavedCount(savedCount));
+      }
+      if (failedCount > 0) {
+        messages.add(l10n.tagsSaveFailedCount(failedCount));
+      }
+      if (unsupportedCount > 0) {
+        messages.add(l10n.unsupportedFormat(unsupportedCount));
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(messages.join(' '))),
       );
     }
   }
@@ -509,6 +749,9 @@ class _PlaybackPageState extends State<PlaybackPage>
                                     context,
                                     audio,
                                   ),
+                            onTagCompletionLongPress: snapshot.currentMusic == null
+                                ? null
+                                : () => _showTagSaveMenu(context, audio),
                             onEqualizerTap: () => _showEqualizerPanel(context),
                             onCoverTap: _toggleLyricsMode,
                             onPrevious: audio.previous,

@@ -11,6 +11,48 @@ import 'package:path_provider/path_provider.dart';
 import 'metadata_database.dart';
 import 'theme_color_helper.dart';
 
+/// Supported file extensions for writing metadata
+const Set<String> writableMetadataExtensions = {'.mp3', '.m4a', '.mp4', '.flac', '.wav'};
+
+/// Unsupported file extensions (OGG, Opus, etc.)
+const Set<String> unsupportedMetadataExtensions = {'.ogg', '.opus'};
+
+/// Checks if a file extension supports writing metadata
+bool isMetadataWritable(String filePath) {
+  final ext = p.extension(filePath).toLowerCase();
+  return writableMetadataExtensions.contains(ext);
+}
+
+/// Returns a human-readable format name for unsupported files
+String getUnsupportedFormatName(String filePath) {
+  final ext = p.extension(filePath).toLowerCase();
+  switch (ext) {
+    case '.ogg':
+      return 'OGG';
+    case '.opus':
+      return 'Opus';
+    default:
+      return ext.isEmpty ? 'Unknown' : ext.toUpperCase().replaceFirst('.', '');
+  }
+}
+
+/// Result of saving metadata to file
+class SaveMetadataResult {
+  final bool success;
+  final String? error;
+  final int unsupportedCount;
+  final int savedCount;
+  final List<String> unsupportedFiles;
+
+  SaveMetadataResult({
+    required this.success,
+    this.error,
+    this.unsupportedCount = 0,
+    this.savedCount = 0,
+    this.unsupportedFiles = const [],
+  });
+}
+
 class MetadataHelper {
   /// 深度解析音频文件的元数据和封面信息
   /// 
@@ -88,6 +130,9 @@ class MetadataHelper {
         }
       }
 
+      // 如果是更新现有记录，保留原有的 createdAt；否则使用当前时间
+      final createdAt = existing?.createdAt ?? DateTime.now().millisecondsSinceEpoch;
+
       final song = SongMetadata(
         path: filePath,
         title: title ?? p.basenameWithoutExtension(filePath),
@@ -101,6 +146,7 @@ class MetadataHelper {
         trackNumber: trackNumber,
         themeColorsBlob: themeColorsBlob,
         lastModifiedTime: lastModified,
+        createdAt: createdAt,
       );
 
       // 5. 将解析结果存入数据库
@@ -292,4 +338,126 @@ class MetadataHelper {
     return readMetadata(File(path), getImage: true);
   }
 
+  /// Saves metadata to a single audio file.
+  /// Returns true if successful, false if the format is not supported or an error occurred.
+  static Future<bool> saveMetadataToFile(
+    String filePath, {
+    String? title,
+    String? artist,
+    String? album,
+    int? trackNumber,
+    List<String>? genres,
+    String? o3ics,
+    List<Picture>? pictures,
+  }) async {
+    if (!isMetadataWritable(filePath)) {
+      return false;
+    }
+
+    try {
+      final file = File(filePath);
+      _saveMetadataToFileSync(
+        file,
+        title: title,
+        artist: artist,
+        album: album,
+        trackNumber: trackNumber,
+        genres: genres,
+        o3ics: o3ics,
+        pictures: pictures,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Error saving metadata to $filePath: $e');
+      return false;
+    }
+  }
+
+  /// Internal implementation of metadata saving (synchronous)
+  static void _saveMetadataToFileSync(
+    File file, {
+    String? title,
+    String? artist,
+    String? album,
+    int? trackNumber,
+    List<String>? genres,
+    String? o3ics,
+    List<Picture>? pictures,
+  }) {
+    updateMetadata(
+      file,
+      (metadata) {
+        metadata.setTitle(title);
+        metadata.setArtist(artist);
+        metadata.setAlbum(album);
+        metadata.setTrackNumber(trackNumber);
+
+        if (genres != null && genres.isNotEmpty) {
+          metadata.setGenres(genres);
+        }
+
+        if (o3ics != null && o3ics.isNotEmpty) {
+          metadata.setLyrics(o3ics);
+        }
+
+        if (pictures != null && pictures.isNotEmpty) {
+          metadata.setPictures(pictures);
+        }
+      },
+    );
+  }
+
+  /// Saves metadata for multiple songs.
+  /// Returns a result indicating success count, unsupported count, and errors.
+  static Future<SaveMetadataResult> saveMetadataToMultipleFiles(
+    List<SongMetadata> songs, {
+    List<String>? o3icsList,
+    List<Uint8List?>? artworkBytesList,
+  }) async {
+    int savedCount = 0;
+    int unsupportedCount = 0;
+    final unsupportedFiles = <String>[];
+
+    for (int i = 0; i < songs.length; i++) {
+      final song = songs[i];
+      final o3ics = o3icsList != null && i < o3icsList.length ? o3icsList[i] : null;
+      final artworkBytes = artworkBytesList != null && i < artworkBytesList.length ? artworkBytesList[i] : null;
+
+      List<Picture>? pictures;
+      if (artworkBytes != null) {
+        pictures = [
+          Picture(artworkBytes, 'image/jpeg', PictureType.coverFront),
+        ];
+      }
+
+      final success = await saveMetadataToFile(
+        song.path,
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        trackNumber: song.trackNumber,
+        genres: song.genres,
+        o3ics: o3ics,
+        pictures: pictures,
+      );
+
+      if (success) {
+        savedCount++;
+      } else {
+        if (isMetadataWritable(song.path)) {
+          debugPrint('Failed to save metadata to ${song.path}');
+        } else {
+          unsupportedCount++;
+          unsupportedFiles.add(song.path);
+        }
+      }
+    }
+
+    return SaveMetadataResult(
+      success: unsupportedCount == 0,
+      unsupportedCount: unsupportedCount,
+      savedCount: savedCount,
+      unsupportedFiles: unsupportedFiles,
+    );
+  }
 }
