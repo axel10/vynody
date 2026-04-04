@@ -654,17 +654,6 @@ class PlaybackHeroCard extends StatelessWidget {
     final bool hasArtist = !isUnknown(rawArtist);
     final bool hasAlbum = !isUnknown(rawAlbum);
 
-    String subtitle = '';
-    if (hasArtist && hasAlbum) {
-      subtitle = '$rawArtist — $rawAlbum';
-    } else if (hasArtist) {
-      subtitle = rawArtist;
-    } else if (hasAlbum) {
-      subtitle = rawAlbum;
-    } else {
-      subtitle = 'Unknown';
-    }
-
     return Column(
       crossAxisAlignment: align == TextAlign.left
           ? CrossAxisAlignment.start
@@ -683,25 +672,26 @@ class PlaybackHeroCard extends StatelessWidget {
           ),
           child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
-        if (subtitle.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.fastOutSlowIn,
-              textAlign: align,
-              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                color: Colors.white70,
-                fontSize: isLyrics && !isLandscape ? 13 : 16,
-                height: 1.2,
-              ),
-              child: Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.fastOutSlowIn,
+            textAlign: align,
+            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+              color: Colors.white70,
+              fontSize: isLyrics && !isLandscape ? 13 : 15,
+              height: 1.3,
+            ),
+            child: Text(
+              hasArtist && hasAlbum
+                  ? '$rawArtist — $rawAlbum'
+                  : (hasArtist ? rawArtist : (hasAlbum ? rawAlbum : 'Unknown')),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+        ),
       ],
     );
   }
