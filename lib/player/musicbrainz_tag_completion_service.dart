@@ -12,8 +12,6 @@ import 'metadata_database.dart';
 import 'theme_color_helper.dart';
 import 'metadata_helper.dart';
 
-
-
 class MusicBrainzTrackMatch {
   final String recordingId;
   final String title;
@@ -171,16 +169,11 @@ class MusicBrainzTagCompletionService {
             baseUrl: 'https://musicbrainz.org',
             connectTimeout: const Duration(seconds: 10),
             receiveTimeout: const Duration(seconds: 20),
-            headers: {
-              'User-Agent': 'PurePlayer/1.0 (Codex desktop)',
-            },
+            headers: {'User-Agent': 'PurePlayer/1.0 (Codex desktop)'},
           );
 
   final NetworkClient _client;
   final MetadataDatabase _db = MetadataDatabase();
-  // No need to import MetadataHelper if it's in the same package, but wait.
-  // I need to import it.
-
 
   static final Map<String, List<MusicBrainzTrackMatch>> _searchCache = {};
   static final Map<String, _CoverArtResult> _coverCache = {};
@@ -225,6 +218,9 @@ class MusicBrainzTagCompletionService {
     final normalizedAlbum = _normalizeField(album);
 
     final collected = <String, MusicBrainzTrackMatch>{};
+    final desiredCount = limit.clamp(1, 50).toInt();
+    const pageSize = 20;
+    const maxFetchedPerQuery = 100;
 
     for (final candidateTitle in titleCandidates) {
       final queries = _buildQueries(
@@ -235,19 +231,42 @@ class MusicBrainzTagCompletionService {
       );
 
       for (final query in queries) {
-        final matches = await _searchWithCache(query);
-        for (final match in matches) {
-          final key = match.recordingId.isNotEmpty
-              ? match.recordingId
-              : '${match.title}|${match.artist}|${match.album ?? ''}';
-          collected[key] ??= match;
+        var offset = 0;
+        while (offset < maxFetchedPerQuery) {
+          final page = await _searchWithCache(
+            query,
+            limit: pageSize,
+            offset: offset,
+          );
+
+          final matches = page.matches;
+          if (matches.isEmpty) break;
+
+          for (final match in matches) {
+            final key = match.recordingId.isNotEmpty
+                ? match.recordingId
+                : '${match.title}|${match.artist}|${match.album ?? ''}';
+            collected[key] ??= match;
+          }
+
+          if (collected.length >= desiredCount) {
+            break;
+          }
+
+          final nextOffset = offset + matches.length;
+          final totalCount = page.count;
+          if (matches.length < pageSize ||
+              (totalCount != null && nextOffset >= totalCount)) {
+            break;
+          }
+
+          offset = nextOffset;
         }
-        if (collected.isNotEmpty) {
-          break;
-        }
+
+        if (collected.length >= desiredCount) break;
       }
 
-      if (collected.isNotEmpty) break;
+      if (collected.length >= desiredCount) break;
     }
 
     final results = collected.values.toList()
@@ -269,7 +288,7 @@ class MusicBrainzTagCompletionService {
         return a.title.compareTo(b.title);
       });
 
-    return results.take(limit).toList();
+    return results.take(desiredCount).toList();
   }
 
   Future<MusicBrainzTagSelectionResult> applySelection({
@@ -300,27 +319,27 @@ class MusicBrainzTagCompletionService {
       themeColorsBlob = current?.themeColorsBlob;
     }
 
-    final updated = (current ?? SongMetadata(
-      path: songPath,
-      title: p.basenameWithoutExtension(songPath),
-      album: 'Unknown Album',
-      artist: 'Unknown Artist',
-    )).copyWith(
-
-
-      title: match.title.trim().isNotEmpty ? match.title.trim() : null,
-      album: _hasMeaningfulText(match.album) ? match.album : null,
-      artist: _hasMeaningfulText(match.artist) ? match.artist : null,
-      duration: fallbackDurationMillis ?? match.durationMillis,
-      artworkPath: cover?.path,
-      thumbnailPath: cover?.thumbnailPath,
-      artworkWidth: cover?.width,
-      artworkHeight: cover?.height,
-      trackNumber: match.trackNumber,
-      themeColorsBlob: themeColorsBlob,
-      lastModifiedTime: lastModifiedTime,
-    );
-
+    final updated =
+        (current ??
+                SongMetadata(
+                  path: songPath,
+                  title: p.basenameWithoutExtension(songPath),
+                  album: 'Unknown Album',
+                  artist: 'Unknown Artist',
+                ))
+            .copyWith(
+              title: match.title.trim().isNotEmpty ? match.title.trim() : null,
+              album: _hasMeaningfulText(match.album) ? match.album : null,
+              artist: _hasMeaningfulText(match.artist) ? match.artist : null,
+              duration: fallbackDurationMillis ?? match.durationMillis,
+              artworkPath: cover?.path,
+              thumbnailPath: cover?.thumbnailPath,
+              artworkWidth: cover?.width,
+              artworkHeight: cover?.height,
+              trackNumber: match.trackNumber,
+              themeColorsBlob: themeColorsBlob,
+              lastModifiedTime: lastModifiedTime,
+            );
 
     await _db.insertOrUpdateSong(updated);
 
@@ -330,22 +349,37 @@ class MusicBrainzTagCompletionService {
       thumbnailPath: cover?.thumbnailPath,
       match: match,
     );
-
   }
 
-  Future<List<MusicBrainzTrackMatch>> _searchWithCache(String query) async {
-    final cacheKey = query.trim();
+  Future<_SearchPage> _searchWithCache(
+    String query, {
+    required int limit,
+    required int offset,
+  }) async {
+    final cacheKey = '${query.trim()}|limit=$limit|offset=$offset';
     if (_searchCache.containsKey(cacheKey)) {
-      return _searchCache[cacheKey]!;
+      return _SearchPage(
+        matches: _searchCache[cacheKey]!,
+        count: null,
+        offset: offset,
+      );
     }
 
     try {
       await _rateLimit();
       final response = await _client.get(
         '/ws/2/recording/',
-        queryParameters: {'query': query, 'fmt': 'json', 'limit': '20'},
+        queryParameters: {
+          'query': query,
+          'fmt': 'json',
+          'limit': '$limit',
+          'offset': '$offset',
+        },
       );
       final data = response.data;
+      final count = data is Map<String, dynamic>
+          ? (data['count'] as num?)?.toInt()
+          : null;
       final recordings = data is Map<String, dynamic>
           ? (data['recordings'] as List<dynamic>? ?? const [])
           : const [];
@@ -354,10 +388,10 @@ class MusicBrainzTagCompletionService {
           .map(MusicBrainzTrackMatch.fromJson)
           .toList();
       _searchCache[cacheKey] = matches;
-      return matches;
+      return _SearchPage(matches: matches, count: count, offset: offset);
     } catch (e) {
       debugPrint('MusicBrainz search failed for "$query": $e');
-      return const [];
+      return _SearchPage(matches: const [], count: null, offset: offset);
     }
   }
 
@@ -425,10 +459,12 @@ class MusicBrainzTagCompletionService {
       String? thumbnailUrl;
 
       if (thumbnails is Map<String, dynamic>) {
-        largeUrl = thumbnails['1200'] as String? ??
+        largeUrl =
+            thumbnails['1200'] as String? ??
             thumbnails['large'] as String? ??
             selectedImage['image'] as String?;
-        thumbnailUrl = thumbnails['small'] as String? ??
+        thumbnailUrl =
+            thumbnails['small'] as String? ??
             thumbnails['250'] as String? ??
             thumbnails['large'] as String?;
       } else {
@@ -471,7 +507,9 @@ class MusicBrainzTagCompletionService {
     return null;
   }
 
-  Future<_CoverArtResult?> _downloadResolvedCover(ResolvedCover resolved) async {
+  Future<_CoverArtResult?> _downloadResolvedCover(
+    ResolvedCover resolved,
+  ) async {
     try {
       final imageUrl = resolved.largeUrl!;
       await _rateLimit();
@@ -498,12 +536,23 @@ class MusicBrainzTagCompletionService {
         width: artworkInfo['width'] as int? ?? 1200,
         height: artworkInfo['height'] as int? ?? 1200,
       );
-
     } catch (e) {
       debugPrint('MusicBrainz cover download failed: $e');
       return null;
     }
   }
+}
+
+class _SearchPage {
+  final List<MusicBrainzTrackMatch> matches;
+  final int? count;
+  final int offset;
+
+  const _SearchPage({
+    required this.matches,
+    required this.count,
+    required this.offset,
+  });
 }
 
 class _CoverArtResult {
@@ -521,7 +570,6 @@ class _CoverArtResult {
     required this.height,
   });
 }
-
 
 List<String> _buildQueries({
   required String title,
@@ -584,7 +632,6 @@ String _escapeLucene(String value) {
   }
   return buffer.toString();
 }
-
 
 String _normalizeField(String? value) {
   if (!_hasMeaningfulText(value)) return '';

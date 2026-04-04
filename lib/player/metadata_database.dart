@@ -110,7 +110,6 @@ class SongMetadata {
   }
 }
 
-
 class LyricsCacheRecord {
   final int? id;
   final String cacheKey;
@@ -207,6 +206,43 @@ class LyricsCacheRecord {
   }
 }
 
+class AcoustIDCacheRecord {
+  final int? id;
+  final String fingerprint;
+  final int durationSeconds;
+  final String resultsJson;
+  final int updatedAtMillis;
+
+  const AcoustIDCacheRecord({
+    this.id,
+    required this.fingerprint,
+    required this.durationSeconds,
+    required this.resultsJson,
+    required this.updatedAtMillis,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'fingerprint': fingerprint,
+      'durationSeconds': durationSeconds,
+      'resultsJson': resultsJson,
+      'updatedAtMillis': updatedAtMillis,
+    };
+  }
+
+  factory AcoustIDCacheRecord.fromMap(Map<String, dynamic> map) {
+    return AcoustIDCacheRecord(
+      id: map['id'] as int?,
+      fingerprint: map['fingerprint'] as String? ?? '',
+      durationSeconds: (map['durationSeconds'] as int?) ?? 0,
+      resultsJson: map['resultsJson'] as String? ?? '[]',
+      updatedAtMillis:
+          (map['updatedAtMillis'] as int?) ??
+          DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+}
+
 class MetadataDatabase {
   static Database? _database;
   static final MetadataDatabase _instance = MetadataDatabase._internal();
@@ -232,7 +268,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -271,6 +307,16 @@ class MetadataDatabase {
             syncedLyrics TEXT,
             syncedLinesJson TEXT,
             rawJson TEXT,
+            updatedAtMillis INTEGER
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE acoustid_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fingerprint TEXT UNIQUE,
+            durationSeconds INTEGER,
+            resultsJson TEXT,
             updatedAtMillis INTEGER
           )
         ''');
@@ -332,9 +378,7 @@ class MetadataDatabase {
         }
         if (oldVersion < 7) {
           if (!await _columnExists(db, 'songs', 'thumbnailPath')) {
-            await db.execute(
-              'ALTER TABLE songs ADD COLUMN thumbnailPath TEXT',
-            );
+            await db.execute('ALTER TABLE songs ADD COLUMN thumbnailPath TEXT');
           }
         }
         if (oldVersion < 8) {
@@ -344,11 +388,20 @@ class MetadataDatabase {
             );
           }
         }
+        if (oldVersion < 9) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS acoustid_cache (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              fingerprint TEXT UNIQUE,
+              durationSeconds INTEGER,
+              resultsJson TEXT,
+              updatedAtMillis INTEGER
+            )
+          ''');
+        }
       },
     );
-
   }
-
 
   Future<bool> _columnExists(
     DatabaseExecutor db,
@@ -388,6 +441,30 @@ class MetadataDatabase {
 
     if (maps.isNotEmpty) {
       return LyricsCacheRecord.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<void> insertOrUpdateAcoustIDCache(AcoustIDCacheRecord record) async {
+    final db = await database;
+    await db.insert(
+      'acoustid_cache',
+      record.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<AcoustIDCacheRecord?> getAcoustIDCache(String fingerprint) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'acoustid_cache',
+      where: 'fingerprint = ?',
+      whereArgs: [fingerprint],
+      limit: 1,
+    );
+
+    if (maps.isNotEmpty) {
+      return AcoustIDCacheRecord.fromMap(maps.first);
     }
     return null;
   }
