@@ -59,29 +59,34 @@ class _GlobalDropTargetState extends State<GlobalDropTarget> {
   @override
   Widget build(BuildContext context) {
     return DropTarget(
+      // 处理拖放完成事件
       onDragDone: (details) async {
+        final audio = context.read<AudioService>();
         final List<MusicFile> allFiles = [];
+
+        // 1. 递归扫描拖入的所有路径（支持拖入单个文件或整个文件夹）
         for (final file in details.files) {
+          // 获取路径下符合音频扩展名的文件列表
           final files = await _getFilesFromPath(file.path);
           allFiles.addAll(files);
         }
 
+        // 2. 如果找到了音频文件，执行播放逻辑
         if (allFiles.isNotEmpty && mounted) {
-          final audio = context.read<AudioService>();
-          
-          // Use the established pattern: play the first file and add others
-          // playFile(append: true) adds to end and plays it.
-          await audio.playFile(allFiles[0].path, allFiles[0].name, append: true);
-          
+          // 逻辑设计：拖入多个时，播放其中的第一个，剩下的添加到队列
+          // audio.playFile(append: true) 的特性是移动到队列末尾并切换
+          await audio.playFile(
+            allFiles[0].path,
+            allFiles[0].name,
+            append: true,
+          );
+
+          // 3. 将后续文件全部补充到播放队列中（不切歌，静默添加）
           if (allFiles.length > 1) {
             await audio.addToPlaylist(allFiles.sublist(1));
           }
-          
-          // Optional: navigate to playback page to show it's playing
-          // This is often expected when dragging files in
-          // But I'll leave it to the user or see if they requested it.
-          // They said "原地播放", which usually implies stay where you are but start playing.
-          // However, MainLayout handleFileOpen navigates to tab 1.
+
+          // 注意：此处并未像双击那样切换 Tab，是为了尽量不打扰用户的当前浏览操作
         }
       },
       child: widget.child,

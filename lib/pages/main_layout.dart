@@ -252,7 +252,9 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     }
   }
 
+  /// 处理启动时的命令行参数 (初次启动，例如双击打开应用)
   Future<void> _handleArgs() async {
+    // 无参数直接返回
     if (widget.args.isEmpty) {
       return;
     }
@@ -267,14 +269,26 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     ];
 
     for (var arg in widget.args) {
+      // 预处理路径字符串
       final path = arg.replaceAll('"', '').trim();
       if (path.isEmpty) continue;
+      
+      // 文件存在性校验
       if (File(path).existsSync()) {
         final ext = p.extension(path).toLowerCase();
+        
+        // 匹配后缀
         if (audioExtensions.contains(ext)) {
+          // 调用播放服务读取音频并播放
+          // append: true 确保该文件插入到底部立刻切歌
           audio.playFile(path, p.basename(path), append: true);
+          
           if (!mounted) return;
+          
+          // 切换到播放详情视图 (索引 1)
           await navigateToMainTab(context, index: 1);
+          
+          // 处理完一个核心音频文件后停止（通常双击只打开一个文件）
           break;
         }
       }

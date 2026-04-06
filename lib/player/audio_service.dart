@@ -847,7 +847,17 @@ class AudioService extends ChangeNotifier {
 
       // 3. 启动后台处理并开始播放
       _startQueueBackgroundProcessing(priorityPath: path);
-      await playAtIndex(index);
+
+      // 这里不能再走 playAtIndex()，因为当前方法已经把 _isTransitioning
+      // 设为 true 了，而 playAtIndex() 会直接因为这个状态提前返回。
+      // 直接切换到活动播放列表并显式 autoPlay，才能真正触发播放。
+      final activePlaylistId =
+          _player.playlist.activePlaylistId ?? _player.playlist.queuePlaylistId;
+      await _player.playlist.setActivePlaylist(
+        activePlaylistId,
+        startIndex: index,
+        autoPlay: true,
+      );
     } finally {
       _isTransitioning = false;
       notifyListeners();

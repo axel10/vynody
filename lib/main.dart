@@ -16,12 +16,15 @@ import 'package:smtc_windows/smtc_windows.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+/// 处理从外部（如双击、命令行）打开的文件列表
+/// [args] 是外部传入的路径参数列表
 void handleFileOpen(List<String> args) {
   if (args.isEmpty) return;
-  final context = navigatorKey.currentContext;
+  final context = navigatorKey.currentContext; // 获取全局导航上下文以访问 Provider
   if (context == null) return;
 
   final audio = context.read<AudioService>();
+  // 支持的音频格式列表
   final List<String> audioExtensions = [
     '.mp3',
     '.m4a',
@@ -31,13 +34,23 @@ void handleFileOpen(List<String> args) {
   ];
 
   for (var arg in args) {
+    // 处理路径中可能的双引号和两端空格
     final path = arg.replaceAll('"', '').trim();
     if (path.isEmpty) continue;
+    
+    // 检查文件是否存在
     if (File(path).existsSync()) {
       final ext = p.extension(path).toLowerCase();
+      // 如果是支持的音频文件
       if (audioExtensions.contains(ext)) {
+        // 将文件添加到播放队列并开始播放
+        // append: true 表示将其添加到队列末尾并切换到该歌曲播放
         audio.playFile(path, p.basename(path), append: true);
+        
+        // 自动跳转到播放详情界面（索引为1的 Tab）
         navigateToMainTab(context, index: 1);
+        
+        // 逻辑：匹配到第一个支持的文件即处理并跳出，避免一次打开大量文件导致界面混乱
         break;
       }
     }
