@@ -53,6 +53,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   }
 
   Future<void> _loadInitialData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -65,6 +66,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       debugPrint('Error reading file tags: $e');
     }
 
+    if (!mounted) return;
     _loadMatches();
   }
 
@@ -81,6 +83,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   }
 
   Future<void> _loadMatches() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -171,6 +174,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   Future<void> _applyAcoustIDMatch(AcoustIDResult result) async {
     if (_isApplying) return;
 
+    if (!mounted) return;
     setState(() {
       _isApplying = true;
       _errorMessage = null;
@@ -256,6 +260,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   Future<void> _applyMatch(MusicBrainzTrackMatch match) async {
     if (_isApplying) return;
 
+    if (!mounted) return;
     setState(() {
       _isApplying = true;
       _errorMessage = null;
@@ -862,6 +867,7 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
 
   Future<void> _resolve() async {
     if (_isResolving) return;
+    if (!mounted) return;
     setState(() => _isResolving = true);
     try {
       await widget.service.resolveCover(widget.match);
