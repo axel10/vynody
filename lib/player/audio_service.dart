@@ -813,6 +813,25 @@ class AudioService extends ChangeNotifier {
     return text;
   }
 
+  Future<MusicFile> _buildMusicFileFromPath(
+    String path, {
+    required String name,
+    int? id,
+    String? mediaUri,
+  }) async {
+    final fileMetadata = await MetadataHelper.readMetadataFromFile(path);
+    return MusicFile(
+      path: path,
+      name: name,
+      title: fileMetadata?.title,
+      artist: fileMetadata?.artist,
+      album: fileMetadata?.album,
+      trackNumber: fileMetadata?.trackNumber,
+      id: id,
+      mediaUri: mediaUri,
+    );
+  }
+
   Future<void> playFile(
     String path,
     String name, {
@@ -825,8 +844,8 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final song = MusicFile(
-        path: path,
+      final song = await _buildMusicFileFromPath(
+        path,
         name: name,
         id: id,
         mediaUri: mediaUri,
