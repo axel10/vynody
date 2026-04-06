@@ -34,7 +34,7 @@ class GeminiLyricsTranslationService {
     final prompt =
         '将以下歌词翻译成中文，仅输出结果不输出其他内容。'
         '请保持原有分行顺序，每一行对应原歌词的一行。'
-        '不要输出时间轴，不要输出解释，不要输出编号。\n'
+        '不要输出时间轴，不要输出解释，不要输出编号。务必不要省略任何一行。\n'
         '$sourceLyrics';
     final requestData = {
       'contents': [

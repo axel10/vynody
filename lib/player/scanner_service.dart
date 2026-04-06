@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -513,6 +512,7 @@ class ScannerService extends ChangeNotifier {
         artist: song.artist,
         album: song.album,
         trackNumber: song.track,
+        durationMillis: song.duration,
         id: song.id,
       );
       final dirPath = p.dirname(path);
@@ -590,6 +590,7 @@ class ScannerService extends ChangeNotifier {
       artist: entry.artist,
       album: entry.album,
       trackNumber: null,
+      durationMillis: entry.duration.inMilliseconds,
       id: parsedId,
       mediaUri: entry.uri,
     );

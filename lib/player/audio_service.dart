@@ -55,6 +55,7 @@ class AudioService extends ChangeNotifier {
   int _lyricsRequestSerial = 0;
   final Set<String> _translatedLyricsKeys = <String>{};
   final Set<String> _translationInFlightKeys = <String>{};
+  int _lyricsRetrySerial = 0;
   bool _isLyricsLoading = false;
   bool _isLyricsTranslating = false;
   bool _hasLyrics = false;
@@ -229,6 +230,10 @@ class AudioService extends ChangeNotifier {
       _currentIndex = newIndex;
       if (_currentIndex >= 0 && _currentIndex < _queue.length) {
         final song = _queue[_currentIndex];
+        _logLyricsDebug(
+          'track changed -> index=$_currentIndex title="${song.displayName}" '
+          'path="${song.path}" duration=$_duration active=$_isLyricsActive',
+        );
         unawaited(
           // 发起完整的元数据更新流程
           _updateCurrentMetadata(song).then((_) {
@@ -258,6 +263,11 @@ class AudioService extends ChangeNotifier {
         _currentIndex < _queue.length) {
       final song = _queue[_currentIndex];
       if (song.path == currentMusic?.path) {
+        _logLyricsDebug(
+          'auto retry trigger -> index=$_currentIndex title="${song.displayName}" '
+          'duration=$_duration hasLyrics=$_hasLyrics loading=$_isLyricsLoading '
+          'searched=$_lyricsSearchAttempted',
+        );
         unawaited(_fetchAndLogLyrics(song));
       }
     }
@@ -331,6 +341,11 @@ class AudioService extends ChangeNotifier {
   void setLyricsActive(bool active) {
     if (_isLyricsActive == active) return;
     _isLyricsActive = active;
+    _logLyricsDebug(
+      'lyrics mode ${active ? 'enabled' : 'disabled'} -> '
+      'currentIndex=$_currentIndex duration=$_duration hasLyrics=$_hasLyrics '
+      'loading=$_isLyricsLoading searched=$_lyricsSearchAttempted',
+    );
 
     if (_isLyricsActive &&
         currentMusic?.path != null &&
@@ -340,7 +355,12 @@ class AudioService extends ChangeNotifier {
           ? _queue[_currentIndex]
           : null;
       if (song != null) {
+        _logLyricsDebug(
+          'lyrics mode immediate fetch -> index=$_currentIndex '
+          'title="${song.displayName}" duration=$_duration',
+        );
         unawaited(_fetchAndLogLyrics(song));
+        unawaited(_retryLyricsFetchUntilReady(song));
       }
     }
     notifyListeners();
@@ -668,7 +688,15 @@ class AudioService extends ChangeNotifier {
       _currentLyricsText = songLyrics.plainText;
       _currentLyricsTitle = song.displayName;
       _lyricsSearchAttempted = true;
+      _logLyricsDebug(
+        'lyrics restored from cache -> title="${song.displayName}" '
+        'lines=${songLyrics.syncedLines.length} synced=${songLyrics.isSynced}',
+      );
     } else {
+      _logLyricsDebug(
+        'lyrics state cleared -> title="${song.displayName}" '
+        'mode=$_isLyricsActive hasCache=${songLyrics != null}',
+      );
       _clearLyricsState();
     }
 
@@ -693,14 +721,21 @@ class AudioService extends ChangeNotifier {
     // - 手动播放：用户从列表点击某首歌曲启动播放时。
     // - 列表流转：播放列表模式（顺序、随机、循环）导致的歌曲切换。
     if (_isLyricsActive && !_hasLyrics) {
+      _logLyricsDebug(
+        'post-metadata fetch -> title="${song.displayName}" '
+        'duration=$_duration hasLyrics=$_hasLyrics loading=$_isLyricsLoading',
+      );
       unawaited(_fetchAndLogLyrics(song));
+      unawaited(_retryLyricsFetchUntilReady(song));
     }
 
     notifyListeners();
   }
 
   void _clearLyricsState({bool notify = false}) {
-    _isLyricsLoading = _isLyricsActive;
+    // 只有真正发起网络/缓存抓取时才置为 loading。
+    // 切歌时先清空状态，但不要把“等待后续补抓”的阶段卡死在 loading=true。
+    _isLyricsLoading = false;
     _isLyricsTranslating = false;
     _hasLyrics = false;
     _isLyricsSynced = false;
@@ -720,9 +755,16 @@ class AudioService extends ChangeNotifier {
   /// 2. 数据库缓存 (Database Cache)：若之前曾成功获取并保存至本地 SQLite，直接读取。
   /// 3. 网络获取 (Network Fetch)：若上述皆无，则通过 LRCLIB API 进行在线搜索与匹配。
   Future<void> _fetchAndLogLyrics(MusicFile song) async {
-    // 如果当前时长为 0，说明播放器尚未准备好元数据。
-    // 我们跳过此次抓取，等待 _handlePlayerChanges 在时长就绪后再次触发本方法。
-    if (_duration <= Duration.zero) {
+    final queryDuration = await _resolveLyricsDuration(song);
+    // 如果没有任何可用时长，说明播放器和本地元数据都还没准备好。
+    // 这时先跳过，等待后续重试。
+    if (queryDuration == null) {
+      _logLyricsDebug(
+        'fetch skipped, duration not ready -> title="${song.displayName}" '
+        'path="${song.path}" playerDuration=$_duration '
+        'songDuration=${song.durationMillis}',
+      );
+      _isLyricsLoading = false;
       return;
     }
 
@@ -731,12 +773,17 @@ class AudioService extends ChangeNotifier {
       filePath: song.path,
       fileName: song.name,
       title: _lyricsTitleForQuery(song),
-      artist: _lyricsArtistForQuery(),
-      album: _lyricsAlbumForQuery(),
-      duration: _duration,
+      artist: _lyricsArtistForQuery(song),
+      album: _lyricsAlbumForQuery(song),
+      duration: queryDuration,
     );
 
     _isLyricsLoading = true;
+    _logLyricsDebug(
+      'fetch start -> title="${song.displayName}" path="${song.path}" '
+      'queryDuration=$queryDuration playerDuration=$_duration '
+      'requestId=$requestId',
+    );
     notifyListeners();
 
     try {
@@ -744,6 +791,11 @@ class AudioService extends ChangeNotifier {
       // 竞态检查：确保请求返回时，用户没有切换到另一首歌
       if (requestId != _lyricsRequestSerial ||
           currentMusic?.path != song.path) {
+        _logLyricsDebug(
+          'fetch ignored due to stale request -> title="${song.displayName}" '
+          'requestId=$requestId latest=$_lyricsRequestSerial '
+          'currentPath="${currentMusic?.path}"',
+        );
         return;
       }
 
@@ -760,6 +812,12 @@ class AudioService extends ChangeNotifier {
       _currentLyricsTitle = (title != null && title.isNotEmpty)
           ? title
           : currentMusic?.displayName;
+
+      _logLyricsDebug(
+        'fetch done -> title="${song.displayName}" hasLyrics=$_hasLyrics '
+        'synced=$_isLyricsSynced lines=${_currentLyricsLines.length} '
+        'textLen=${_currentLyricsText.length}',
+      );
 
       // 关键改动：将获取到的歌词挂载到内存中的歌曲对象上，作为内存级缓存。
       if (_currentIndex >= 0 && _currentIndex < _queue.length) {
@@ -782,6 +840,10 @@ class AudioService extends ChangeNotifier {
       _lyricsService.debugPrintSelection(query, result);
     } catch (e) {
       debugPrint('[AudioService] Failed to fetch lyrics: $e');
+      _logLyricsDebug(
+        'fetch failed -> title="${song.displayName}" path="${song.path}" '
+        'error=$e requestId=$requestId',
+      );
       if (requestId == _lyricsRequestSerial &&
           currentMusic?.path == song.path) {
         _isLyricsLoading = false;
@@ -789,6 +851,50 @@ class AudioService extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  Future<void> _retryLyricsFetchUntilReady(MusicFile song) async {
+    final retryId = ++_lyricsRetrySerial;
+    _logLyricsDebug(
+      'retry loop start -> title="${song.displayName}" path="${song.path}" '
+      'retryId=$retryId',
+    );
+    for (var attempt = 0; attempt < 12; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+
+      if (retryId != _lyricsRetrySerial) return;
+      if (!_isLyricsActive || currentMusic?.path != song.path) {
+        _logLyricsDebug(
+          'retry loop stop -> title="${song.displayName}" '
+          'reason=track_changed_or_inactive attempt=$attempt',
+        );
+        return;
+      }
+      if (_hasLyrics || _isLyricsLoading || _lyricsSearchAttempted) {
+        _logLyricsDebug(
+          'retry loop stop -> title="${song.displayName}" '
+          'reason=state_resolved attempt=$attempt hasLyrics=$_hasLyrics '
+          'loading=$_isLyricsLoading searched=$_lyricsSearchAttempted',
+        );
+        return;
+      }
+
+      if (await _resolveLyricsDuration(song) != null) {
+        _logLyricsDebug(
+          'retry loop trigger fetch -> title="${song.displayName}" '
+          'attempt=$attempt playerDuration=$_duration '
+          'songDuration=${song.durationMillis}',
+        );
+        unawaited(_fetchAndLogLyrics(song));
+        return;
+      }
+    }
+
+    _logLyricsDebug(
+      'retry loop exhausted -> title="${song.displayName}" '
+      'path="${song.path}" playerDuration=$_duration '
+      'songDuration=${song.durationMillis}',
+    );
   }
 
   Future<void> translateLyricsForCurrentSong() async {
@@ -908,21 +1014,61 @@ class AudioService extends ChangeNotifier {
   }
 
   String _lyricsTitleForQuery(MusicFile song) {
-    final currentTitle = _normalizedLyricsField(currentMusic?.displayName);
-    if (currentTitle != null) {
-      return currentTitle;
-    }
-
     final displayName = song.displayName.trim();
     return displayName.isNotEmpty ? displayName : song.name.trim();
   }
 
-  String? _lyricsArtistForQuery() {
-    return _normalizedLyricsField(currentMusic?.artist);
+  Duration? _lyricsDurationForQuery(MusicFile song) {
+    final durationMillis = song.durationMillis;
+    if (durationMillis != null && durationMillis > 0) {
+      return Duration(milliseconds: durationMillis);
+    }
+    return null;
   }
 
-  String? _lyricsAlbumForQuery() {
-    return _normalizedLyricsField(currentMusic?.album);
+  Future<Duration?> _resolveLyricsDuration(MusicFile song) async {
+    final direct = _lyricsDurationForQuery(song);
+    if (direct != null && song.durationMillis != null && song.durationMillis! > 0) {
+      return direct;
+    }
+
+    final dbMetadata = await _db.getSongMetadata(song.path);
+    final dbDuration = dbMetadata?.duration;
+    if (dbDuration != null && dbDuration > 0) {
+      _cacheSongDuration(song.path, dbDuration);
+      return Duration(milliseconds: dbDuration);
+    }
+
+    final fileMetadata = await MetadataHelper.readMetadataFromFile(song.path);
+    final fileDuration = fileMetadata?.duration;
+    if (fileDuration != null && fileDuration > 0) {
+      _cacheSongDuration(song.path, fileDuration);
+      return Duration(milliseconds: fileDuration);
+    }
+
+    if (_duration > Duration.zero) {
+      return _duration;
+    }
+
+    return direct;
+  }
+
+  void _cacheSongDuration(String path, int durationMillis) {
+    if (_currentIndex < 0 || _currentIndex >= _queue.length) return;
+    final currentSong = _queue[_currentIndex];
+    if (currentSong.path != path) return;
+    if (currentSong.durationMillis == durationMillis) return;
+
+    _queue[_currentIndex] = currentSong.copyWith(durationMillis: durationMillis);
+    notifyListeners();
+  }
+
+  String? _lyricsArtistForQuery(MusicFile song) {
+    return _normalizedLyricsField(song.artist);
+  }
+
+  String? _lyricsAlbumForQuery(MusicFile song) {
+    return _normalizedLyricsField(song.album);
   }
 
   String? _normalizedLyricsField(String? value) {
@@ -941,6 +1087,11 @@ class AudioService extends ChangeNotifier {
     return text;
   }
 
+  void _logLyricsDebug(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[AudioService][Lyrics] $message');
+  }
+
   Future<MusicFile> _buildMusicFileFromPath(
     String path, {
     required String name,
@@ -955,6 +1106,7 @@ class AudioService extends ChangeNotifier {
       artist: fileMetadata?.artist,
       album: fileMetadata?.album,
       trackNumber: fileMetadata?.trackNumber,
+      durationMillis: fileMetadata?.duration,
       id: id,
       mediaUri: mediaUri,
     );

@@ -15,6 +15,7 @@ class MusicFile {
   final String? artworkPath;
   final int? artworkWidth;
   final int? artworkHeight;
+  final int? durationMillis;
   final Uint8List? themeColorsBlob;
   final Uint8List? waveformBlob;
   final Uint8List? artworkBytes;
@@ -47,6 +48,7 @@ class MusicFile {
     this.artworkPath,
     this.artworkWidth,
     this.artworkHeight,
+    this.durationMillis,
     this.themeColorsBlob,
     this.waveformBlob,
     this.artworkBytes,
@@ -74,6 +76,7 @@ class MusicFile {
     String? artworkPath,
     int? artworkWidth,
     int? artworkHeight,
+    int? durationMillis,
     Uint8List? themeColorsBlob,
     Uint8List? waveformBlob,
     Uint8List? artworkBytes,
@@ -93,6 +96,7 @@ class MusicFile {
       artworkPath: artworkPath ?? this.artworkPath,
       artworkWidth: artworkWidth ?? this.artworkWidth,
       artworkHeight: artworkHeight ?? this.artworkHeight,
+      durationMillis: durationMillis ?? this.durationMillis,
       themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
       waveformBlob: waveformBlob ?? this.waveformBlob,
       artworkBytes: artworkBytes ?? this.artworkBytes,
@@ -117,6 +121,7 @@ class MusicFile {
         other.artworkPath == artworkPath &&
         other.artworkWidth == artworkWidth &&
         other.artworkHeight == artworkHeight &&
+        other.durationMillis == durationMillis &&
         other.lastModifiedTime == lastModifiedTime &&
         other.lyrics == lyrics &&
         identical(other.artworkBytes, artworkBytes);
@@ -136,6 +141,7 @@ class MusicFile {
     artworkPath,
     artworkWidth,
     artworkHeight,
+    durationMillis,
     lastModifiedTime,
     artworkBytes?.length ?? 0,
   );
