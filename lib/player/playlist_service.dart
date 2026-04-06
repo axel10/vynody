@@ -27,7 +27,8 @@ class Playlist {
     return Playlist(
       id: json['id'] as String,
       name: json['name'] as String,
-      songs: (json['songs'] as List<dynamic>?)
+      songs:
+          (json['songs'] as List<dynamic>?)
               ?.map(
                 (s) => MusicFile(
                   path: s['path'] as String,
@@ -37,6 +38,7 @@ class Playlist {
                   album: s['album'] as String?,
                   trackNumber: s['trackNumber'] as int?,
                   id: s['id'] as int?,
+                  mediaUri: s['mediaUri'] as String?,
                   thumbnailPath: s['thumbnailPath'] as String?,
                   artworkWidth: s['artworkWidth'] as int?,
                   artworkHeight: s['artworkHeight'] as int?,
@@ -74,6 +76,7 @@ class Playlist {
               'album': s.album,
               'trackNumber': s.trackNumber,
               'id': s.id,
+              'mediaUri': s.mediaUri,
               'thumbnailPath': s.thumbnailPath,
               'artworkWidth': s.artworkWidth,
               'artworkHeight': s.artworkHeight,

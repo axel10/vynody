@@ -10,6 +10,7 @@ class MusicFile {
   final String? album;
   final int? trackNumber;
   final int? id; // System Media Library ID
+  final String? mediaUri;
   final String? thumbnailPath;
   final String? artworkPath;
   final int? artworkWidth;
@@ -23,8 +24,9 @@ class MusicFile {
   List<double> get waveform {
     final blob = waveformBlob;
     if (blob == null || blob.isEmpty) return const [];
-    final alignedBlob =
-        (blob.offsetInBytes % 4 == 0) ? blob : Uint8List.fromList(blob);
+    final alignedBlob = (blob.offsetInBytes % 4 == 0)
+        ? blob
+        : Uint8List.fromList(blob);
     final list = alignedBlob.buffer.asFloat32List(
       alignedBlob.offsetInBytes,
       alignedBlob.length ~/ 4,
@@ -40,6 +42,7 @@ class MusicFile {
     this.album,
     this.trackNumber,
     this.id,
+    this.mediaUri,
     this.thumbnailPath,
     this.artworkPath,
     this.artworkWidth,
@@ -66,6 +69,7 @@ class MusicFile {
     String? album,
     int? trackNumber,
     int? id,
+    String? mediaUri,
     String? thumbnailPath,
     String? artworkPath,
     int? artworkWidth,
@@ -84,6 +88,7 @@ class MusicFile {
       album: album ?? this.album,
       trackNumber: trackNumber ?? this.trackNumber,
       id: id ?? this.id,
+      mediaUri: mediaUri ?? this.mediaUri,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
       artworkPath: artworkPath ?? this.artworkPath,
       artworkWidth: artworkWidth ?? this.artworkWidth,
@@ -95,6 +100,7 @@ class MusicFile {
       lyrics: lyrics ?? this.lyrics,
     );
   }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -106,6 +112,7 @@ class MusicFile {
         other.album == album &&
         other.trackNumber == trackNumber &&
         other.id == id &&
+        other.mediaUri == mediaUri &&
         other.thumbnailPath == thumbnailPath &&
         other.artworkPath == artworkPath &&
         other.artworkWidth == artworkWidth &&
@@ -117,18 +124,19 @@ class MusicFile {
 
   @override
   int get hashCode => Object.hash(
-        path,
-        name,
-        title,
-        artist,
-        album,
-        trackNumber,
-        id,
-        thumbnailPath,
-        artworkPath,
-        artworkWidth,
-        artworkHeight,
-        lastModifiedTime,
-        artworkBytes?.length ?? 0,
-      );
+    path,
+    name,
+    title,
+    artist,
+    album,
+    trackNumber,
+    id,
+    mediaUri,
+    thumbnailPath,
+    artworkPath,
+    artworkWidth,
+    artworkHeight,
+    lastModifiedTime,
+    artworkBytes?.length ?? 0,
+  );
 }

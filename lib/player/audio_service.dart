@@ -817,6 +817,7 @@ class AudioService extends ChangeNotifier {
     String path,
     String name, {
     int? id,
+    String? mediaUri,
     bool append = false,
   }) async {
     // 1. 设置正在切换状态
@@ -824,7 +825,12 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final song = MusicFile(path: path, name: name, id: id);
+      final song = MusicFile(
+        path: path,
+        name: name,
+        id: id,
+        mediaUri: mediaUri,
+      );
       if (!append) {
         _queue.clear();
         await _player.playlist.clear();
@@ -833,7 +839,7 @@ class AudioService extends ChangeNotifier {
       final int index = _queue.length;
       _queue.add(song);
       await _player.playlist.addTracks([
-        AudioTrack(id: index.toString(), uri: path),
+        _audioTrackForSong(song, index.toString()),
       ]);
 
       // 2. 确保数据就绪
@@ -869,7 +875,7 @@ class AudioService extends ChangeNotifier {
 
       // 3. 将歌曲转换为底层播放器（AudioCore）可识别的 Track 格式
       final tracks = songs.asMap().entries.map((e) {
-        return AudioTrack(id: e.key.toString(), uri: e.value.path);
+        return _audioTrackForSong(e.value, e.key.toString());
       }).toList();
 
       // 4. 清除底层播放器的旧内容并加载新 Track
@@ -914,7 +920,7 @@ class AudioService extends ChangeNotifier {
 
     final startIndex = _player.playlist.items.length;
     final tracks = songs.asMap().entries.map((e) {
-      return AudioTrack(id: (startIndex + e.key).toString(), uri: e.value.path);
+      return _audioTrackForSong(e.value, (startIndex + e.key).toString());
     }).toList();
     await _player.playlist.addTracks(tracks);
 
@@ -1121,12 +1127,26 @@ class AudioService extends ChangeNotifier {
     _queue.addAll(newSongs);
 
     final tracks = newSongs.asMap().entries.map((e) {
-      return AudioTrack(id: (startIndex + e.key).toString(), uri: e.value.path);
+      return _audioTrackForSong(e.value, (startIndex + e.key).toString());
     }).toList();
 
     // We don't use await here to keep it synchronous for the toggle
     unawaited(_player.playlist.addTracks(tracks));
     _startQueueBackgroundProcessing();
+  }
+
+  AudioTrack _audioTrackForSong(MusicFile song, String id) {
+    return AudioTrack(
+      id: id,
+      uri: song.path,
+      title: song.title ?? song.displayName,
+      artist: song.artist,
+      album: song.album,
+      metadata: <String, Object?>{
+        'filePath': song.path,
+        if (song.mediaUri != null) 'mediaUri': song.mediaUri,
+      },
+    );
   }
 
   void _startQueueBackgroundProcessing({String? priorityPath}) {

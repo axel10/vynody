@@ -27,10 +27,8 @@ class ScannerService extends ChangeNotifier {
   bool _isScanning = false;
   bool _isBackgroundTaskPaused = false;
 
-
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
-  final OnAudioQuery _audioQuery = OnAudioQuery();
 
   SortCriteria _sortCriteria = SortCriteria.filename;
   SortOrder _sortOrder = SortOrder.ascending;
@@ -48,7 +46,8 @@ class ScannerService extends ChangeNotifier {
   final List<MusicFolder> _navigationHistory = [];
 
   MusicFolder? get navigationCurrentFolder => _navigationCurrentFolder;
-  List<MusicFolder> get navigationHistory => List.unmodifiable(_navigationHistory);
+  List<MusicFolder> get navigationHistory =>
+      List.unmodifiable(_navigationHistory);
 
   void setNavigationState(MusicFolder? current, List<MusicFolder> history) {
     _navigationCurrentFolder = current;
@@ -69,10 +68,8 @@ class ScannerService extends ChangeNotifier {
     return folder;
   }
 
-
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
   bool get hasPermission => _hasPermission;
-  final Map<String, int> _pathIdMap = {};
   final Map<String, SongMetadata> _metadataMap = {};
 
   Map<String, SongMetadata> get metadataMap => _metadataMap;
@@ -91,7 +88,11 @@ class ScannerService extends ChangeNotifier {
   }
 
   void setPlayerController(AudioCoreController controller) {
+    final changed = !identical(_playerController, controller);
     _playerController = controller;
+    if (changed && Platform.isAndroid) {
+      unawaited(checkAndRequestPermissions());
+    }
   }
 
   void setSortCriteria(SortCriteria criteria) {
@@ -252,6 +253,11 @@ class ScannerService extends ChangeNotifier {
 
   Future<bool> _checkPermissions() async {
     if (Platform.isAndroid) {
+      final controller = _playerController;
+      if (controller != null) {
+        return await controller.ensureAndroidMediaLibraryPermission();
+      }
+
       final deviceInfo = DeviceInfoPlugin();
       final androidInfo = await deviceInfo.androidInfo;
 
@@ -276,38 +282,81 @@ class ScannerService extends ChangeNotifier {
 
   Future<void> scanSystemMedia() async {
     if (!_hasPermission) return;
-    if (!Platform.isAndroid && !Platform.isIOS) return;
 
     try {
-      final List<SongModel> songs = await _audioQuery.querySongs(
-        sortType: null,
-        orderType: OrderType.ASC_OR_SMALLER,
-        uriType: UriType.EXTERNAL,
-        ignoreCase: true,
-      );
+      if (Platform.isAndroid) {
+        final controller = _playerController;
+        if (controller == null) {
+          debugPrint(
+            'scanSystemMedia skipped: AudioCoreController is not available yet.',
+          );
+          return;
+        }
 
-      _pathIdMap.clear();
-      _metadataMap.clear();
-      for (var song in songs) {
-        _pathIdMap[song.data] = song.id;
-        _metadataMap[song.data] = SongMetadata(
-          path: song.data,
-          title: song.title,
-          album: song.album ?? '',
-          artist: song.artist ?? '',
-          duration: song.duration,
-          artworkPath: null, // Android system artwork is queried on demand
-          thumbnailPath: null,
-          trackNumber: song.track,
-        );
+        final scanResult = await controller.scanAndroidMediaLibrary();
+        _hasPermission = scanResult.permissionGranted;
+        if (!scanResult.permissionGranted) {
+          _systemMediaFolder = null;
+          notifyListeners();
+          return;
+        }
 
+        _metadataMap.clear();
+        for (final entry in scanResult.entries) {
+          final filePath = _androidEntryFilePath(entry);
+          if (filePath == null) continue;
+          _metadataMap[filePath] = SongMetadata(
+            path: filePath,
+            title: entry.label,
+            album: entry.album ?? '',
+            artist: entry.artist ?? '',
+            duration: entry.duration.inMilliseconds,
+            artworkPath: null,
+            thumbnailPath: null,
+            trackNumber: null,
+          );
+        }
+
+        _systemMediaFolder = _organizeAndroidMediaLibrary(scanResult.entries);
+        if (_systemMediaFolder != null) {
+          _sortFolderRecursive(_systemMediaFolder!);
+        }
+        notifyListeners();
+
+        unawaited(_processAndSaveAndroidSongsBackground(scanResult.entries));
+        return;
       }
 
-      _systemMediaFolder = _organizeSongsIntoFolders(songs);
-      _sortFolderRecursive(_systemMediaFolder!);
-      notifyListeners();
+      if (Platform.isIOS) {
+        final songs = await OnAudioQuery().querySongs(
+          sortType: null,
+          orderType: OrderType.ASC_OR_SMALLER,
+          uriType: UriType.EXTERNAL,
+          ignoreCase: true,
+        );
 
-      unawaited(_processAndSaveAndroidSongsBackground(songs));
+        _metadataMap.clear();
+        for (final song in songs) {
+          _metadataMap[song.data] = SongMetadata(
+            path: song.data,
+            title: song.title,
+            album: song.album ?? '',
+            artist: song.artist ?? '',
+            duration: song.duration,
+            artworkPath: null,
+            thumbnailPath: null,
+            trackNumber: song.track,
+          );
+        }
+
+        _systemMediaFolder = _organizeSongsIntoFolders(songs);
+        if (_systemMediaFolder != null) {
+          _sortFolderRecursive(_systemMediaFolder!);
+        }
+        notifyListeners();
+
+        unawaited(_processAndSaveIosSongsBackground(songs));
+      }
     } catch (e) {
       debugPrint('Error scanning system media: $e');
     }
@@ -336,7 +385,7 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> _processAndSaveAndroidSongsBackground(
-    List<SongModel> songs,
+    List<AndroidMediaLibraryEntry> entries,
   ) async {
     final player = _playerController;
     if (player == null) {
@@ -355,21 +404,22 @@ class ScannerService extends ChangeNotifier {
     }
 
     try {
-      for (var song in songs) {
+      for (final entry in entries) {
         await _waitUntilResumed();
+        final path = _androidEntryFilePath(entry);
+        if (path == null) continue;
         try {
-
           // Use the unified MetadataHelper to process metadata.
           // This will extract tags, save thumbnails, and generate theme colors.
           await MetadataHelper.processMetadata(
-            song.data,
-            songId: song.id,
+            path,
+            songId: int.tryParse(entry.id),
             generateThumbnail: false,
           );
 
           // Metadata processing finishes here. No waveform extraction during initial scan.
         } catch (e) {
-          debugPrint('Background processing error for ${song.data}: $e');
+          debugPrint('Background processing error for $path: $e');
         }
 
         // Yield to event loop to avoid UI jank
@@ -380,12 +430,81 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
+  Future<void> _processAndSaveIosSongsBackground(List<SongModel> songs) async {
+    final player = _playerController;
+    if (player == null) {
+      debugPrint('Player controller not set for background scanning');
+      return;
+    }
+
+    try {
+      await player.initialize();
+    } catch (e) {
+      debugPrint(
+        'Failed to initialize shared player for background scanning: $e',
+      );
+      return;
+    }
+
+    for (final song in songs) {
+      await _waitUntilResumed();
+      try {
+        await MetadataHelper.processMetadata(
+          song.data,
+          songId: song.id,
+          generateThumbnail: false,
+        );
+      } catch (e) {
+        debugPrint('Background processing error for ${song.data}: $e');
+      }
+
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
+  MusicFolder _organizeAndroidMediaLibrary(
+    List<AndroidMediaLibraryEntry> entries,
+  ) {
+    final root = MusicFolder(path: 'system', name: '系统媒体库');
+    final nodes = <String, MusicFolder>{'': root};
+
+    for (final entry in entries) {
+      final filePath = _androidEntryFilePath(entry);
+      if (filePath == null) continue;
+
+      final file = _musicFileFromAndroidEntry(entry, path: filePath);
+      final folderPath = _normalizeAndroidFolderPath(entry.folderPath);
+      if (folderPath.isEmpty) {
+        root.files.add(file);
+        continue;
+      }
+
+      var currentPath = '';
+      var currentFolder = root;
+      for (final segment in folderPath.split('/').where((s) => s.isNotEmpty)) {
+        currentPath = currentPath.isEmpty ? segment : '$currentPath/$segment';
+        final nextFolder = nodes.putIfAbsent(
+          currentPath,
+          () => MusicFolder(path: currentPath, name: segment),
+        );
+        if (!currentFolder.subFolders.contains(nextFolder)) {
+          currentFolder.subFolders.add(nextFolder);
+        }
+        currentFolder = nextFolder;
+      }
+
+      currentFolder.files.add(file);
+    }
+
+    _sortFolderRecursive(root);
+    return root;
+  }
+
   MusicFolder _organizeSongsIntoFolders(List<SongModel> songs) {
-    // Map to keep track of folder paths to MusicFolder objects
     final Map<String, List<MusicFile>> folderFiles = {};
     final Set<String> allPaths = {};
 
-    for (var song in songs) {
+    for (final song in songs) {
       final path = song.data;
       final file = MusicFile(
         path: path,
@@ -400,8 +519,7 @@ class ScannerService extends ChangeNotifier {
 
       folderFiles.putIfAbsent(dirPath, () => []).add(file);
 
-      // Collect all parent directories
-      String current = dirPath;
+      var current = dirPath;
       while (current.isNotEmpty && current != '/' && current != '.') {
         allPaths.add(current);
         final parent = p.dirname(current);
@@ -409,14 +527,6 @@ class ScannerService extends ChangeNotifier {
         current = parent;
       }
     }
-
-    // Now build the tree. We need a root. For system media, we can use a virtual root.
-    // Or find the common ancestor. Let's just create a virtual root "系统媒体库"
-
-    // Refined tree building:
-    // 1. Identify all directories that contain songs.
-    // 2. Identify all intermediate directories.
-    // 3. Find the entry points (directories whose parents are not in the set).
 
     final List<String> entryPoints = allPaths.where((path) {
       final parent = p.dirname(path);
@@ -427,9 +537,6 @@ class ScannerService extends ChangeNotifier {
       return MusicFolder(path: 'system', name: '系统媒体库');
     }
 
-    // If there's only one entry point and no files in higher levels, we could collapse it,
-    // but usually there are multiple entry points (SD card vs Internal).
-
     final List<MusicFolder> topFolders = entryPoints
         .map((path) => _recursiveBuild(path, allPaths, folderFiles))
         .toList();
@@ -439,7 +546,7 @@ class ScannerService extends ChangeNotifier {
       name: '系统媒体库',
       subFolders: topFolders
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
-      files: [], // Usually songs are in subfolders
+      files: [],
     );
   }
 
@@ -466,6 +573,42 @@ class ScannerService extends ChangeNotifier {
       files: files
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
     );
+  }
+
+  MusicFile _musicFileFromAndroidEntry(
+    AndroidMediaLibraryEntry entry, {
+    required String path,
+  }) {
+    final parsedId = int.tryParse(entry.id);
+    final displayName = entry.displayName?.trim();
+    return MusicFile(
+      path: path,
+      name: displayName != null && displayName.isNotEmpty
+          ? displayName
+          : p.basename(path),
+      title: entry.title.trim().isEmpty ? null : entry.title,
+      artist: entry.artist,
+      album: entry.album,
+      trackNumber: null,
+      id: parsedId,
+      mediaUri: entry.uri,
+    );
+  }
+
+  String? _androidEntryFilePath(AndroidMediaLibraryEntry entry) {
+    final path = entry.filePath?.trim();
+    if (path != null && path.isNotEmpty) return _normalizePath(path);
+    final uri = entry.uri.trim();
+    if (uri.isNotEmpty) return uri;
+    return null;
+  }
+
+  String _normalizeAndroidFolderPath(String path) {
+    final cleaned = path.replaceAll('\\', '/').trim();
+    if (cleaned.isEmpty) return '';
+    return cleaned.endsWith('/')
+        ? cleaned.substring(0, cleaned.length - 1)
+        : cleaned;
   }
 
   Future<void> scan() async {
@@ -543,7 +686,6 @@ class ScannerService extends ChangeNotifier {
     for (final path in allFilePaths) {
       await _waitUntilResumed();
       try {
-
         final result = await MetadataHelper.processMetadata(
           path,
           generateThumbnail: false,
@@ -582,10 +724,7 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  void updateMetadataForPath(
-    SongMetadata metadata, {
-    Uint8List? artworkBytes,
-  }) {
+  void updateMetadataForPath(SongMetadata metadata, {Uint8List? artworkBytes}) {
     _metadataMap[metadata.path] = metadata;
 
     // Update MusicFile objects in the tree if they exist
@@ -593,7 +732,11 @@ class ScannerService extends ChangeNotifier {
       _updateMusicFileInFolder(root, metadata, artworkBytes: artworkBytes);
     }
     if (_systemMediaFolder != null) {
-      _updateMusicFileInFolder(_systemMediaFolder!, metadata, artworkBytes: artworkBytes);
+      _updateMusicFileInFolder(
+        _systemMediaFolder!,
+        metadata,
+        artworkBytes: artworkBytes,
+      );
     }
 
     notifyListeners();
@@ -607,20 +750,20 @@ class ScannerService extends ChangeNotifier {
     for (var i = 0; i < folder.files.length; i++) {
       final file = folder.files[i];
       if (file.path == metadata.path) {
-          folder.files[i] = file.copyWith(
-            title: metadata.title,
-            artist: metadata.artist,
-            album: metadata.album,
-            trackNumber: metadata.trackNumber,
-            thumbnailPath: metadata.thumbnailPath,
-            artworkPath: metadata.artworkPath,
-            artworkWidth: metadata.artworkWidth,
-            artworkHeight: metadata.artworkHeight,
-            themeColorsBlob: metadata.themeColorsBlob,
-            waveformBlob: metadata.waveformBlob,
-            artworkBytes: artworkBytes,
-            lastModifiedTime: metadata.lastModifiedTime,
-          );
+        folder.files[i] = file.copyWith(
+          title: metadata.title,
+          artist: metadata.artist,
+          album: metadata.album,
+          trackNumber: metadata.trackNumber,
+          thumbnailPath: metadata.thumbnailPath,
+          artworkPath: metadata.artworkPath,
+          artworkWidth: metadata.artworkWidth,
+          artworkHeight: metadata.artworkHeight,
+          themeColorsBlob: metadata.themeColorsBlob,
+          waveformBlob: metadata.waveformBlob,
+          artworkBytes: artworkBytes,
+          lastModifiedTime: metadata.lastModifiedTime,
+        );
       }
     }
     for (final subFolder in folder.subFolders) {
@@ -656,8 +799,6 @@ class ScannerService extends ChangeNotifier {
         } else if (entity is File) {
           final ext = p.extension(entity.path).toLowerCase();
           if (_audioExtensions.contains(ext)) {
-            final id = _pathIdMap[entity.path];
-
             String? title;
             String? artist;
             String? album;
@@ -707,7 +848,7 @@ class ScannerService extends ChangeNotifier {
                 themeColorsBlob: themeColorsBlob,
                 waveformBlob: waveformBlob,
                 lastModifiedTime: lastModifiedTime,
-                id: id,
+                id: null,
               ),
             );
           }
