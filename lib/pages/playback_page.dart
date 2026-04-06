@@ -84,7 +84,9 @@ class _PlaybackPageState extends State<PlaybackPage>
     // 离开播放页时，显式关闭 AudioService 的歌词激活标记。
     // 这将停止在歌曲切换时自动从网络抓取歌词，从而节省网络资源。
     // 使用已缓存的服务实例，避免在 dispose 时查找 context
-    _audioService?.setLyricsActive(false);
+    Future.microtask(() {
+      _audioService?.setLyricsActive(false);
+    });
     super.dispose();
   }
 
@@ -125,7 +127,11 @@ class _PlaybackPageState extends State<PlaybackPage>
     setState(() {
       _isLyricsMode = nextLyricsMode;
     });
-    context.read<AudioService>().setLyricsActive(nextLyricsMode);
+    // 延后一帧再通知 Provider，避免和本次切换动画的重建过程抢占同一帧。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<AudioService>().setLyricsActive(nextLyricsMode);
+    });
   }
 
   void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
