@@ -171,7 +171,9 @@ class LyricsService {
     final normalizedQuery = LyricsQuery(
       filePath: query.filePath,
       fileName: query.fileName,
-      title: _cleanField(query.title) ?? CleanHelper.deriveCleanTitleFromFileName(query.fileName),
+      title:
+          _cleanField(query.title) ??
+          CleanHelper.deriveCleanTitleFromFileName(query.fileName),
       artist: _cleanField(query.artist),
       album: _cleanField(query.album),
       duration: query.duration,
@@ -215,7 +217,7 @@ class LyricsService {
   }
 
   /// 在线搜索逻辑：包含精准匹配与模糊评分两个阶段。
-  /// 
+  ///
   /// 逻辑概述：
   /// - 首先尝试 /get API 进行精准匹配（通过标题/艺术家/专辑/时长作为唯一标识）。
   /// - 若无精准结果，则通过 /search API 发起全文检索，并对所有候选结果进行加权评分（相似度/时长偏差）。
@@ -261,8 +263,9 @@ class LyricsService {
 
     if (bestCandidate.score < _acceptThreshold) {
       // 检查是否有时间极其接近的（3秒内）作为兜底
-      final fallbackCandidates =
-          scoredResults.where((r) => r.durationDiffSeconds <= 3).toList();
+      final fallbackCandidates = scoredResults
+          .where((r) => r.durationDiffSeconds <= 3)
+          .toList();
 
       if (fallbackCandidates.isNotEmpty) {
         // 在3秒以内的候选中，优先选择时长差距最小的
@@ -319,7 +322,9 @@ class LyricsService {
   }
 
   LyricsQuery _buildSearchQuery(LyricsQuery query) {
-    final fallbackTitle = CleanHelper.deriveCleanTitleFromFileName(query.fileName);
+    final fallbackTitle = CleanHelper.deriveCleanTitleFromFileName(
+      query.fileName,
+    );
     final title = _cleanField(query.title) ?? fallbackTitle;
     return LyricsQuery(
       filePath: query.filePath,
@@ -409,7 +414,9 @@ class LyricsService {
       );
       await _db.insertOrUpdateLyricsCache(record);
     } catch (e) {
-      debugPrint('[Lyrics] Failed to cache empty result for "${query.title}": $e');
+      debugPrint(
+        '[Lyrics] Failed to cache empty result for "${query.title}": $e',
+      );
     }
   }
 
@@ -710,7 +717,7 @@ class LyricsService {
       }
 
       for (final timestamp in timestamps) {
-        lines.add(LyricLine(timestamp: timestamp, text: text));
+        lines.add(LyricLine(timestamp: timestamp, text: text, isTimed: true));
       }
     }
 

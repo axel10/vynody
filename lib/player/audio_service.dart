@@ -751,7 +751,10 @@ class AudioService extends ChangeNotifier {
       _lyricsSearchAttempted = true;
       _hasLyrics = result != null && result.track.hasLyrics;
       _isLyricsSynced = result?.isSynced ?? false;
-      _currentLyricsLines = result?.syncedLines ?? const [];
+      _currentLyricsLines = _buildLyricsLines(
+        result?.syncedLines ?? const [],
+        result?.lyricsText ?? '',
+      );
       _currentLyricsText = result?.lyricsText ?? '';
       final title = result?.track.displayTitle.trim();
       _currentLyricsTitle = (title != null && title.isNotEmpty)
@@ -766,7 +769,6 @@ class AudioService extends ChangeNotifier {
             lyrics: MusicLyric(
               syncedLines: _currentLyricsLines,
               plainText: _currentLyricsText,
-              translatedLines: currentSong.lyrics?.translatedLines ?? const [],
             ),
           );
           _queue[_currentIndex] = updatedSong;
@@ -793,8 +795,9 @@ class AudioService extends ChangeNotifier {
     final song = currentMusic;
     if (song == null) return;
 
-    final sourceLyrics =
-        song.lyrics?.plainText.trim() ?? _currentLyricsText.trim();
+    final sourceLyrics = song.lyrics?.syncedLines.isNotEmpty == true
+        ? song.lyrics!.syncedLines.map((line) => line.text).join('\n').trim()
+        : _currentLyricsText.trim();
     if (sourceLyrics.isEmpty) return;
 
     if (_translationInFlightKeys.contains(song.path)) return;
@@ -842,19 +845,66 @@ class AudioService extends ChangeNotifier {
     if (currentSong.path != songPath) return;
 
     final existingLyrics = currentSong.lyrics ?? const MusicLyric();
-    final existingTranslatedLines = existingLyrics.translatedLines;
-    if (listEquals(existingTranslatedLines, translatedLines)) {
+    final mergedLines = _mergeTranslatedLyrics(
+      existingLyrics.syncedLines,
+      translatedLines,
+    );
+    if (listEquals(existingLyrics.syncedLines, mergedLines)) {
       return;
     }
 
     _queue[_currentIndex] = currentSong.copyWith(
-      lyrics: existingLyrics.copyWith(translatedLines: translatedLines),
+      lyrics: existingLyrics.copyWith(syncedLines: mergedLines),
     );
 
     notifyListeners();
     debugPrint(
       '[AudioService] translated lyrics updated for ${currentSong.displayName}: ${translatedText.length} chars',
     );
+  }
+
+  List<LyricLine> _mergeTranslatedLyrics(
+    List<LyricLine> sourceLines,
+    List<String> translatedLines,
+  ) {
+    if (sourceLines.isEmpty) return sourceLines;
+
+    final merged = <LyricLine>[];
+    for (var i = 0; i < sourceLines.length; i++) {
+      final source = sourceLines[i];
+      final translated = i < translatedLines.length
+          ? translatedLines[i].trim()
+          : '';
+      if (source.translation == translated) {
+        merged.add(source);
+      } else {
+        merged.add(source.copyWith(translation: translated));
+      }
+    }
+    return merged;
+  }
+
+  List<LyricLine> _buildLyricsLines(
+    List<LyricLine> syncedLines,
+    String fallbackPlainLyrics,
+  ) {
+    if (syncedLines.isNotEmpty) {
+      return syncedLines;
+    }
+
+    if (fallbackPlainLyrics.trim().isEmpty) {
+      return const [];
+    }
+
+    final lines = fallbackPlainLyrics.split(RegExp(r'\r?\n'));
+    if (lines.isEmpty) return const [];
+
+    return lines
+        .map(
+          (line) =>
+              LyricLine(timestamp: Duration.zero, text: line, isTimed: false),
+        )
+        .toList(growable: false);
   }
 
   String _lyricsTitleForQuery(MusicFile song) {

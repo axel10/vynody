@@ -13,7 +13,6 @@ class LyricsPanel extends StatefulWidget {
     required this.isTranslating,
     required this.hasLyrics,
     required this.plainLyrics,
-    required this.translatedLines,
     this.onTranslateLyrics,
     this.accentColor,
   });
@@ -24,7 +23,6 @@ class LyricsPanel extends StatefulWidget {
   final bool isTranslating;
   final bool hasLyrics;
   final String plainLyrics;
-  final List<String> translatedLines;
   final VoidCallback? onTranslateLyrics;
   final Color? accentColor;
 
@@ -86,7 +84,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
   }
 
   void _scheduleScrollIfNeeded({bool force = false}) {
-    if (widget.lines.isEmpty) return;
+    if (widget.lines.isEmpty || !_hasTimedLyrics) return;
 
     final activeIndex = _activeLineIndex();
     if (!force && activeIndex == _lastActiveIndex) return;
@@ -112,7 +110,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
   }
 
   int _activeLineIndex() {
-    if (widget.lines.isEmpty) return -1;
+    if (widget.lines.isEmpty || !_hasTimedLyrics) return -1;
 
     final current = widget.position.inMilliseconds;
     int low = 0;
@@ -131,6 +129,10 @@ class _LyricsPanelState extends State<LyricsPanel> {
     }
 
     return answer;
+  }
+
+  bool get _hasTimedLyrics {
+    return widget.lines.any((line) => line.isTimed);
   }
 
   @override
@@ -168,7 +170,6 @@ class _LyricsPanelState extends State<LyricsPanel> {
     }
 
     if (widget.lines.isEmpty) {
-      final translatedText = widget.translatedLines.join('\n').trim();
       return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onSecondaryTapDown: (details) {
@@ -198,18 +199,6 @@ class _LyricsPanelState extends State<LyricsPanel> {
                         height: 1.6,
                       ),
                     ),
-                    if (translatedText.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      SelectableText(
-                        translatedText,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 17,
-                          height: 1.6,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -250,13 +239,11 @@ class _LyricsPanelState extends State<LyricsPanel> {
               itemCount: widget.lines.length,
               itemBuilder: (context, index) {
                 final line = widget.lines[index];
-                final translated = index < widget.translatedLines.length
-                    ? widget.translatedLines[index].trim()
-                    : '';
+                final translated = line.translation.trim();
                 final activeIndex = _activeLineIndex();
                 final distance = (index - activeIndex).abs();
-                final isActive = index == activeIndex;
-                final isNear = distance <= 1;
+                final isActive = _hasTimedLyrics && index == activeIndex;
+                final isNear = _hasTimedLyrics && distance <= 1;
 
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
