@@ -1023,15 +1023,21 @@ class AudioService extends ChangeNotifier {
     required List<String> translatedLines,
     required String translatedText,
   }) {
+    final cleanedLines = _filterEmptyTranslationLines(translatedLines);
     return MusicLyricTranslation(
       languageCode: languageCode,
       translatedText: translatedText.trim(),
-      translatedLines: translatedLines
-          .map((line) => line.trim())
-          .toList(growable: false),
+      translatedLines: cleanedLines,
       provider: 'gemini',
       updatedAt: DateTime.now(),
     );
+  }
+
+  List<String> _filterEmptyTranslationLines(List<String> translatedLines) {
+    return translatedLines
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
   }
 
   String _lyricsTranslationCacheKey(String songPath, String languageCode) {

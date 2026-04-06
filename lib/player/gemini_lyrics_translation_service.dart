@@ -185,17 +185,13 @@ class GeminiLyricsTranslationService {
   }
 
   List<String> _normalizeTranslationLines(String text, int targetLineCount) {
-    final lines = _splitTranslationLines(text);
+    final lines = _splitTranslationLines(text)
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
     if (targetLineCount <= 0) return lines;
-    if (lines.length >= targetLineCount) {
-      return lines.take(targetLineCount).toList(growable: false);
-    }
-
-    final normalized = List<String>.from(lines);
-    while (normalized.length < targetLineCount) {
-      normalized.add('');
-    }
-    return normalized;
+    if (lines.length <= targetLineCount) return lines;
+    return lines.take(targetLineCount).toList(growable: false);
   }
 
   Future<String?> _loadApiKey() async {

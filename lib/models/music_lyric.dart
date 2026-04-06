@@ -24,7 +24,13 @@ class MusicLyric {
   }
 
   List<String> translatedLinesOf(String languageCode) {
-    return translations[languageCode]?.translatedLines ?? const [];
+    final translatedLines = translations[languageCode]?.translatedLines;
+    if (translatedLines == null || translatedLines.isEmpty) return const [];
+
+    return translatedLines
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
   }
 
   String translatedTextOf(String languageCode) {

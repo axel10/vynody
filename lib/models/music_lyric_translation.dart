@@ -20,8 +20,15 @@ class MusicLyricTranslation {
       translatedLines.any((line) => line.trim().isNotEmpty);
 
   String translatedLineAt(int index) {
-    if (index < 0 || index >= translatedLines.length) return '';
-    return translatedLines[index].trim();
+    if (index < 0) return '';
+
+    final nonEmptyLines = translatedLines
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
+
+    if (index >= nonEmptyLines.length) return '';
+    return nonEmptyLines[index];
   }
 
   MusicLyricTranslation copyWith({
