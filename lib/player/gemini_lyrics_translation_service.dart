@@ -14,6 +14,7 @@ class GeminiLyricsTranslationService {
 
   Future<bool> translateLyricsStream({
     required String lyrics,
+    String targetLanguageCode = 'zh',
     void Function(List<String> translatedLines, String translatedText)?
     onProgress,
     String modelId = 'gemma-4-31b-it',
@@ -31,10 +32,12 @@ class GeminiLyricsTranslationService {
       debugPrint('[GeminiLyrics] no usable lyrics after stripping timestamps.');
       return false;
     }
+    final targetLanguageName = _targetLanguageName(targetLanguageCode);
     final prompt =
-        '将以下歌词翻译成中文，仅输出结果不输出其他内容。'
-        '请保持原有分行顺序，每一行对应原歌词的一行。'
-        '不要输出时间轴，不要输出解释，不要输出编号。务必不要省略任何一行。\n'
+        '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
+        '总整首歌的意境，尽量意译。'
+        '请保持原有分行顺序，每一行对应原歌词的一行。请严格保持原歌词结构。'
+        '不要输出时间轴，不要输出解释，不要输出编号。不要省略任何一行，包括标题。\n'
         '$sourceLyrics';
     final requestData = {
       'contents': [
@@ -133,6 +136,36 @@ class GeminiLyricsTranslationService {
       debugPrint('[GeminiLyrics] translation failed: $e');
     }
     return false;
+  }
+
+  String _targetLanguageName(String languageCode) {
+    switch (languageCode.toLowerCase().trim()) {
+      case 'zh':
+      case 'zh-cn':
+      case 'zh-hans':
+        return '中文';
+      case 'zh-tw':
+      case 'zh-hant':
+        return '繁体中文';
+      case 'en':
+        return '英文';
+      case 'ja':
+        return '日文';
+      case 'ko':
+        return '韩文';
+      case 'fr':
+        return '法文';
+      case 'de':
+        return '德文';
+      case 'es':
+        return '西班牙文';
+      case 'pt':
+        return '葡萄牙文';
+      case 'ru':
+        return '俄文';
+      default:
+        return languageCode.trim().isEmpty ? '目标语言' : languageCode;
+    }
   }
 
   String _stripTimestamps(String lyrics) {

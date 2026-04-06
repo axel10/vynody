@@ -926,11 +926,13 @@ class PlaybackHeroCard extends StatelessWidget {
     return LyricsPanel(
       key: ValueKey(snapshot.currentMusic?.path ?? 'no-track'),
       lines: lyrics?.syncedLines ?? const [],
+      lyrics: lyrics,
       position: snapshot.position,
       isLoading: snapshot.isLyricsLoading,
       isTranslating: snapshot.isLyricsTranslating,
       hasLyrics: snapshot.hasLyrics,
       plainLyrics: lyrics?.plainText ?? '',
+      translationLanguageCode: snapshot.lyricsTranslationLanguageCode,
       onTranslateLyrics: () =>
           context.read<AudioService>().translateLyricsForCurrentSong(),
       accentColor: accent,

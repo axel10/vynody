@@ -1,25 +1,49 @@
 import 'package:flutter/foundation.dart';
+
 import 'lyric_line.dart';
+import 'music_lyric_translation.dart';
 
 class MusicLyric {
   final List<LyricLine> syncedLines;
   final String plainText;
+  final Map<String, MusicLyricTranslation> translations;
 
   bool get isSynced => syncedLines.any((line) => line.isTimed);
+
   bool get hasTranslatedLyrics =>
-      syncedLines.any((line) => line.translation.trim().isNotEmpty);
-  String get translatedText => syncedLines
-      .map((line) => line.translation.trim())
-      .where((line) => line.isNotEmpty)
-      .join('\n')
-      .trim();
+      translations.values.any((translation) => translation.hasContent);
 
-  const MusicLyric({this.syncedLines = const [], this.plainText = ''});
+  const MusicLyric({
+    this.syncedLines = const [],
+    this.plainText = '',
+    this.translations = const {},
+  });
 
-  MusicLyric copyWith({List<LyricLine>? syncedLines, String? plainText}) {
+  MusicLyricTranslation? translationFor(String languageCode) {
+    return translations[languageCode];
+  }
+
+  List<String> translatedLinesOf(String languageCode) {
+    return translations[languageCode]?.translatedLines ?? const [];
+  }
+
+  String translatedTextOf(String languageCode) {
+    return translations[languageCode]?.translatedText.trim() ?? '';
+  }
+
+  String translatedLineAt(int index, String languageCode) {
+    return translations[languageCode]?.translatedLineAt(index) ?? '';
+  }
+
+  MusicLyric copyWith({
+    List<LyricLine>? syncedLines,
+    String? plainText,
+    Map<String, MusicLyricTranslation>? translations,
+  }) {
     return MusicLyric(
       syncedLines: syncedLines ?? this.syncedLines,
       plainText: plainText ?? this.plainText,
+      translations: translations ?? this.translations,
     );
   }
 
@@ -28,9 +52,16 @@ class MusicLyric {
     if (identical(this, other)) return true;
     return other is MusicLyric &&
         listEquals(other.syncedLines, syncedLines) &&
-        other.plainText == plainText;
+        other.plainText == plainText &&
+        mapEquals(other.translations, translations);
   }
 
   @override
-  int get hashCode => Object.hash(Object.hashAll(syncedLines), plainText);
+  int get hashCode => Object.hash(
+    Object.hashAll(syncedLines),
+    plainText,
+    Object.hashAllUnordered(
+      translations.entries.map((entry) => Object.hash(entry.key, entry.value)),
+    ),
+  );
 }

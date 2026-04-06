@@ -3,26 +3,31 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../models/lyric_line.dart';
+import '../models/music_lyric.dart';
 
 class LyricsPanel extends StatefulWidget {
   const LyricsPanel({
     super.key,
     required this.lines,
+    required this.lyrics,
     required this.position,
     required this.isLoading,
     required this.isTranslating,
     required this.hasLyrics,
     required this.plainLyrics,
+    required this.translationLanguageCode,
     this.onTranslateLyrics,
     this.accentColor,
   });
 
   final List<LyricLine> lines;
+  final MusicLyric? lyrics;
   final Duration position;
   final bool isLoading;
   final bool isTranslating;
   final bool hasLyrics;
   final String plainLyrics;
+  final String translationLanguageCode;
   final VoidCallback? onTranslateLyrics;
   final Color? accentColor;
 
@@ -239,7 +244,14 @@ class _LyricsPanelState extends State<LyricsPanel> {
               itemCount: widget.lines.length,
               itemBuilder: (context, index) {
                 final line = widget.lines[index];
-                final translated = line.translation.trim();
+                final translated =
+                    widget.lyrics
+                        ?.translatedLineAt(
+                          index,
+                          widget.translationLanguageCode,
+                        )
+                        .trim() ??
+                    '';
                 final activeIndex = _activeLineIndex();
                 final distance = (index - activeIndex).abs();
                 final isActive = _hasTimedLyrics && index == activeIndex;

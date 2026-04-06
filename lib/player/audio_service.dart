@@ -10,6 +10,7 @@ import 'package:audio_core/audio_core.dart';
 import '../models/music_file.dart';
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
+import '../models/music_lyric_translation.dart';
 import 'audio_snapshot.dart';
 import 'metadata_database.dart';
 
@@ -72,6 +73,7 @@ class AudioService extends ChangeNotifier {
   Color? _dynamicEndColor;
   Map<String, Color> _currentThemeColorsMap = const {};
   bool _isLyricsActive = false; // 用户是否开启了歌词模式
+  String _lyricsTranslationLanguageCode = 'zh';
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
 
@@ -79,6 +81,7 @@ class AudioService extends ChangeNotifier {
   Color? get dynamicEndColor => _dynamicEndColor;
   Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
   bool get isLyricsActive => _isLyricsActive;
+  String get lyricsTranslationLanguageCode => _lyricsTranslationLanguageCode;
   bool get isLyricsLoading => _isLyricsLoading;
   bool get isLyricsTranslating => _isLyricsTranslating;
   bool get hasLyrics => _hasLyrics;
@@ -366,6 +369,15 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setLyricsTranslationLanguageCode(String languageCode) {
+    final normalized = languageCode.trim().toLowerCase();
+    if (normalized.isEmpty || normalized == _lyricsTranslationLanguageCode) {
+      return;
+    }
+    _lyricsTranslationLanguageCode = normalized;
+    notifyListeners();
+  }
+
   void moveQueueTrack(int oldIndex, int newIndex) {
     if (oldIndex < 0 ||
         oldIndex >= _queue.length ||
@@ -469,6 +481,7 @@ class AudioService extends ChangeNotifier {
     hasLyrics: _hasLyrics,
     currentLyricsTitle: _currentLyricsTitle,
     isLyricsActive: _isLyricsActive,
+    lyricsTranslationLanguageCode: _lyricsTranslationLanguageCode,
   );
 
   Uint8List? getCachedArtwork(String? path) {
@@ -897,24 +910,50 @@ class AudioService extends ChangeNotifier {
     );
   }
 
-  Future<void> translateLyricsForCurrentSong() async {
+  Future<void> translateLyricsForCurrentSong({
+    String? targetLanguageCode,
+  }) async {
     final song = currentMusic;
     if (song == null) return;
+
+    final normalizedLanguageCode =
+        (targetLanguageCode ?? _lyricsTranslationLanguageCode)
+            .trim()
+            .toLowerCase();
+    if (normalizedLanguageCode.isEmpty) return;
+    if (_lyricsTranslationLanguageCode != normalizedLanguageCode) {
+      _lyricsTranslationLanguageCode = normalizedLanguageCode;
+      notifyListeners();
+    }
 
     final sourceLyrics = song.lyrics?.syncedLines.isNotEmpty == true
         ? song.lyrics!.syncedLines.map((line) => line.text).join('\n').trim()
         : _currentLyricsText.trim();
     if (sourceLyrics.isEmpty) return;
 
-    if (_translationInFlightKeys.contains(song.path)) return;
-    if (_translatedLyricsKeys.contains(song.path)) {
+    final translationKey = _lyricsTranslationCacheKey(
+      song.path,
+      normalizedLanguageCode,
+    );
+
+    if (_translationInFlightKeys.contains(translationKey)) return;
+    if (song.lyrics?.translationFor(normalizedLanguageCode)?.hasContent ==
+        true) {
       debugPrint(
-        '[AudioService] lyrics already translated for ${song.displayName}',
+        '[AudioService] lyrics already translated for ${song.displayName} '
+        'language=$normalizedLanguageCode',
+      );
+      return;
+    }
+    if (_translatedLyricsKeys.contains(translationKey)) {
+      debugPrint(
+        '[AudioService] lyrics already translated for ${song.displayName} '
+        'language=$normalizedLanguageCode',
       );
       return;
     }
 
-    _translationInFlightKeys.add(song.path);
+    _translationInFlightKeys.add(translationKey);
     _isLyricsTranslating = true;
     notifyListeners();
 
@@ -922,19 +961,21 @@ class AudioService extends ChangeNotifier {
       final success = await _geminiLyricsTranslationService
           .translateLyricsStream(
             lyrics: sourceLyrics,
+            targetLanguageCode: normalizedLanguageCode,
             onProgress: (translatedLines, translatedText) {
               _syncTranslatedLyricsToCurrentSong(
                 song.path,
+                normalizedLanguageCode,
                 translatedLines,
                 translatedText,
               );
             },
           );
       if (success) {
-        _translatedLyricsKeys.add(song.path);
+        _translatedLyricsKeys.add(translationKey);
       }
     } finally {
-      _translationInFlightKeys.remove(song.path);
+      _translationInFlightKeys.remove(translationKey);
       _isLyricsTranslating = false;
       notifyListeners();
     }
@@ -942,6 +983,7 @@ class AudioService extends ChangeNotifier {
 
   void _syncTranslatedLyricsToCurrentSong(
     String songPath,
+    String languageCode,
     List<String> translatedLines,
     String translatedText,
   ) {
@@ -951,43 +993,49 @@ class AudioService extends ChangeNotifier {
     if (currentSong.path != songPath) return;
 
     final existingLyrics = currentSong.lyrics ?? const MusicLyric();
-    final mergedLines = _mergeTranslatedLyrics(
-      existingLyrics.syncedLines,
-      translatedLines,
+    final existingTranslation = existingLyrics.translationFor(languageCode);
+    final updatedTranslation = _buildLyricsTranslation(
+      languageCode: languageCode,
+      translatedLines: translatedLines,
+      translatedText: translatedText,
     );
-    if (listEquals(existingLyrics.syncedLines, mergedLines)) {
+    if (existingTranslation == updatedTranslation) {
       return;
     }
 
+    final updatedTranslations = Map<String, MusicLyricTranslation>.from(
+      existingLyrics.translations,
+    )..[languageCode] = updatedTranslation;
+
     _queue[_currentIndex] = currentSong.copyWith(
-      lyrics: existingLyrics.copyWith(syncedLines: mergedLines),
+      lyrics: existingLyrics.copyWith(translations: updatedTranslations),
     );
 
     notifyListeners();
     debugPrint(
-      '[AudioService] translated lyrics updated for ${currentSong.displayName}: ${translatedText.length} chars',
+      '[AudioService] translated lyrics updated for ${currentSong.displayName}: '
+      '${translatedText.length} chars language=$languageCode',
     );
   }
 
-  List<LyricLine> _mergeTranslatedLyrics(
-    List<LyricLine> sourceLines,
-    List<String> translatedLines,
-  ) {
-    if (sourceLines.isEmpty) return sourceLines;
+  MusicLyricTranslation _buildLyricsTranslation({
+    required String languageCode,
+    required List<String> translatedLines,
+    required String translatedText,
+  }) {
+    return MusicLyricTranslation(
+      languageCode: languageCode,
+      translatedText: translatedText.trim(),
+      translatedLines: translatedLines
+          .map((line) => line.trim())
+          .toList(growable: false),
+      provider: 'gemini',
+      updatedAt: DateTime.now(),
+    );
+  }
 
-    final merged = <LyricLine>[];
-    for (var i = 0; i < sourceLines.length; i++) {
-      final source = sourceLines[i];
-      final translated = i < translatedLines.length
-          ? translatedLines[i].trim()
-          : '';
-      if (source.translation == translated) {
-        merged.add(source);
-      } else {
-        merged.add(source.copyWith(translation: translated));
-      }
-    }
-    return merged;
+  String _lyricsTranslationCacheKey(String songPath, String languageCode) {
+    return '$songPath|$languageCode';
   }
 
   List<LyricLine> _buildLyricsLines(
@@ -1028,7 +1076,9 @@ class AudioService extends ChangeNotifier {
 
   Future<Duration?> _resolveLyricsDuration(MusicFile song) async {
     final direct = _lyricsDurationForQuery(song);
-    if (direct != null && song.durationMillis != null && song.durationMillis! > 0) {
+    if (direct != null &&
+        song.durationMillis != null &&
+        song.durationMillis! > 0) {
       return direct;
     }
 
@@ -1059,7 +1109,9 @@ class AudioService extends ChangeNotifier {
     if (currentSong.path != path) return;
     if (currentSong.durationMillis == durationMillis) return;
 
-    _queue[_currentIndex] = currentSong.copyWith(durationMillis: durationMillis);
+    _queue[_currentIndex] = currentSong.copyWith(
+      durationMillis: durationMillis,
+    );
     notifyListeners();
   }
 

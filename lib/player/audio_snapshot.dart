@@ -31,6 +31,7 @@ class AudioSnapshot {
   final bool hasLyrics;
   final String? currentLyricsTitle;
   final bool isLyricsActive;
+  final String lyricsTranslationLanguageCode;
   final double progress;
 
   AudioSnapshot({
@@ -58,6 +59,7 @@ class AudioSnapshot {
     required this.hasLyrics,
     required this.currentLyricsTitle,
     required this.isLyricsActive,
+    required this.lyricsTranslationLanguageCode,
   }) : playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
          currentThemeColorsMap,
@@ -93,6 +95,8 @@ class AudioSnapshot {
             hasLyrics == other.hasLyrics &&
             currentLyricsTitle == other.currentLyricsTitle &&
             isLyricsActive == other.isLyricsActive &&
+            lyricsTranslationLanguageCode ==
+                other.lyricsTranslationLanguageCode &&
             _deepEquality.equals(
               currentThemeColorsMap,
               other.currentThemeColorsMap,
@@ -124,6 +128,7 @@ class AudioSnapshot {
     hasLyrics,
     currentLyricsTitle,
     isLyricsActive,
+    lyricsTranslationLanguageCode,
     _deepEquality.hash(currentThemeColorsMap),
   ]);
 }
