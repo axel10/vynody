@@ -14,6 +14,7 @@ import 'audio_snapshot.dart';
 import 'metadata_database.dart';
 
 import 'lyrics_service.dart';
+import 'gemini_lyrics_translation_service.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
 import 'visualizer_options_service.dart';
@@ -48,9 +49,12 @@ class AudioService extends ChangeNotifier {
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
   late final LyricsService _lyricsService;
+  late final GeminiLyricsTranslationService _geminiLyricsTranslationService;
   ScannerService? _scannerService;
 
   int _lyricsRequestSerial = 0;
+  final Set<String> _translatedLyricsKeys = <String>{};
+  final Set<String> _translationInFlightKeys = <String>{};
   bool _isLyricsLoading = false;
   bool _hasLyrics = false;
   bool _lyricsSearchAttempted = false;
@@ -100,6 +104,7 @@ class AudioService extends ChangeNotifier {
     );
     _waveformService = WaveformService(db: _db, player: _player);
     _lyricsService = LyricsService(db: _db);
+    _geminiLyricsTranslationService = GeminiLyricsTranslationService();
 
     _windowsIntegration = Platform.isWindows
         ? WindowsIntegrationService(this)
@@ -763,6 +768,25 @@ class AudioService extends ChangeNotifier {
 
           notifyListeners();
         }
+      }
+
+      if (_isLyricsActive &&
+          _hasLyrics &&
+          _currentLyricsText.trim().isNotEmpty &&
+          !_translatedLyricsKeys.contains(song.path) &&
+          !_translationInFlightKeys.contains(song.path)) {
+        _translationInFlightKeys.add(song.path);
+        unawaited(() async {
+          try {
+            final success = await _geminiLyricsTranslationService
+                .translateLyricsStream(lyrics: _currentLyricsText.trim());
+            if (success) {
+              _translatedLyricsKeys.add(song.path);
+            }
+          } finally {
+            _translationInFlightKeys.remove(song.path);
+          }
+        }());
       }
 
       notifyListeners();
