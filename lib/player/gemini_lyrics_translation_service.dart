@@ -14,6 +14,8 @@ class GeminiLyricsTranslationService {
 
   Future<bool> translateLyricsStream({
     required String lyrics,
+    void Function(List<String> translatedLines, String translatedText)?
+    onProgress,
     String modelId = 'gemma-4-31b-it',
   }) async {
     final apiKey = await _loadApiKey();
@@ -22,7 +24,18 @@ class GeminiLyricsTranslationService {
       return false;
     }
 
-    final prompt = '将以下歌词翻译成中文，仅输出结果不输出其他内容。$lyrics';
+    final sourceLyrics = _stripTimestamps(lyrics);
+    final sourceLines = sourceLyrics.split(RegExp(r'\r?\n'));
+    final targetLineCount = sourceLines.isEmpty ? 0 : sourceLines.length;
+    if (targetLineCount == 0) {
+      debugPrint('[GeminiLyrics] no usable lyrics after stripping timestamps.');
+      return false;
+    }
+    final prompt =
+        '将以下歌词翻译成中文，仅输出结果不输出其他内容。'
+        '请保持原有分行顺序，每一行对应原歌词的一行。'
+        '不要输出时间轴，不要输出解释，不要输出编号。\n'
+        '$sourceLyrics';
     final requestData = {
       'contents': [
         {
@@ -66,18 +79,25 @@ class GeminiLyricsTranslationService {
       debugPrint('[GeminiLyrics] stream connected');
       final translatedBuffer = StringBuffer();
       var lastPrintedLength = -1;
+      var lastProgressSnapshot = '';
       Timer? printTimer;
 
-      void printBuffer({bool force = false}) {
+      void emitProgress({bool force = false}) {
         final current = translatedBuffer.toString().trim();
         if (current.isEmpty) return;
         if (!force && current.length == lastPrintedLength) return;
         lastPrintedLength = current.length;
+        final lines = _normalizeTranslationLines(current, targetLineCount);
+        final snapshot = lines.join('\n');
+        if (onProgress != null && (force || snapshot != lastProgressSnapshot)) {
+          lastProgressSnapshot = snapshot;
+          onProgress(lines, snapshot);
+        }
         debugPrint('[GeminiLyrics] translated: $current');
       }
 
       printTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-        printBuffer();
+        emitProgress();
       });
 
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
@@ -99,12 +119,13 @@ class GeminiLyricsTranslationService {
             continue;
           }
           translatedBuffer.write(chunk);
+          emitProgress();
         }
       } finally {
         printTimer.cancel();
       }
 
-      printBuffer(force: true);
+      emitProgress(force: true);
       return true;
     } on DioException catch (e) {
       debugPrint('[GeminiLyrics] request failed: ${e.message}');
@@ -112,6 +133,36 @@ class GeminiLyricsTranslationService {
       debugPrint('[GeminiLyrics] translation failed: $e');
     }
     return false;
+  }
+
+  String _stripTimestamps(String lyrics) {
+    final lines = lyrics.split(RegExp(r'\r?\n'));
+    final stripped = lines.map((line) {
+      final withoutTimestamps = line.replaceAll(
+        RegExp(r'\[(?:\d{2}:\d{2}(?:\.\d{1,3})?)\]'),
+        '',
+      );
+      return withoutTimestamps.trimRight();
+    }).toList();
+    return stripped.join('\n').trim();
+  }
+
+  List<String> _splitTranslationLines(String text) {
+    return text.split(RegExp(r'\r?\n'));
+  }
+
+  List<String> _normalizeTranslationLines(String text, int targetLineCount) {
+    final lines = _splitTranslationLines(text);
+    if (targetLineCount <= 0) return lines;
+    if (lines.length >= targetLineCount) {
+      return lines.take(targetLineCount).toList(growable: false);
+    }
+
+    final normalized = List<String>.from(lines);
+    while (normalized.length < targetLineCount) {
+      normalized.add('');
+    }
+    return normalized;
   }
 
   Future<String?> _loadApiKey() async {

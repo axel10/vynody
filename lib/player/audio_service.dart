@@ -56,6 +56,7 @@ class AudioService extends ChangeNotifier {
   final Set<String> _translatedLyricsKeys = <String>{};
   final Set<String> _translationInFlightKeys = <String>{};
   bool _isLyricsLoading = false;
+  bool _isLyricsTranslating = false;
   bool _hasLyrics = false;
   bool _lyricsSearchAttempted = false;
   bool _isLyricsSynced = false;
@@ -78,6 +79,7 @@ class AudioService extends ChangeNotifier {
   Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
   bool get isLyricsActive => _isLyricsActive;
   bool get isLyricsLoading => _isLyricsLoading;
+  bool get isLyricsTranslating => _isLyricsTranslating;
   bool get hasLyrics => _hasLyrics;
   bool get isLyricsSynced => _isLyricsSynced;
   List<LyricLine> get currentLyricsLines =>
@@ -443,6 +445,7 @@ class AudioService extends ChangeNotifier {
     dynamicEndColor: _dynamicEndColor,
     currentThemeColorsMap: _currentThemeColorsMap,
     isLyricsLoading: _isLyricsLoading,
+    isLyricsTranslating: _isLyricsTranslating,
     hasLyrics: _hasLyrics,
     currentLyricsTitle: _currentLyricsTitle,
     isLyricsActive: _isLyricsActive,
@@ -698,6 +701,7 @@ class AudioService extends ChangeNotifier {
 
   void _clearLyricsState({bool notify = false}) {
     _isLyricsLoading = _isLyricsActive;
+    _isLyricsTranslating = false;
     _hasLyrics = false;
     _isLyricsSynced = false;
     _currentLyricsLines = const [];
@@ -762,31 +766,13 @@ class AudioService extends ChangeNotifier {
             lyrics: MusicLyric(
               syncedLines: _currentLyricsLines,
               plainText: _currentLyricsText,
+              translatedLines: currentSong.lyrics?.translatedLines ?? const [],
             ),
           );
           _queue[_currentIndex] = updatedSong;
 
           notifyListeners();
         }
-      }
-
-      if (_isLyricsActive &&
-          _hasLyrics &&
-          _currentLyricsText.trim().isNotEmpty &&
-          !_translatedLyricsKeys.contains(song.path) &&
-          !_translationInFlightKeys.contains(song.path)) {
-        _translationInFlightKeys.add(song.path);
-        unawaited(() async {
-          try {
-            final success = await _geminiLyricsTranslationService
-                .translateLyricsStream(lyrics: _currentLyricsText.trim());
-            if (success) {
-              _translatedLyricsKeys.add(song.path);
-            }
-          } finally {
-            _translationInFlightKeys.remove(song.path);
-          }
-        }());
       }
 
       notifyListeners();
@@ -801,6 +787,74 @@ class AudioService extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  Future<void> translateLyricsForCurrentSong() async {
+    final song = currentMusic;
+    if (song == null) return;
+
+    final sourceLyrics =
+        song.lyrics?.plainText.trim() ?? _currentLyricsText.trim();
+    if (sourceLyrics.isEmpty) return;
+
+    if (_translationInFlightKeys.contains(song.path)) return;
+    if (_translatedLyricsKeys.contains(song.path)) {
+      debugPrint(
+        '[AudioService] lyrics already translated for ${song.displayName}',
+      );
+      return;
+    }
+
+    _translationInFlightKeys.add(song.path);
+    _isLyricsTranslating = true;
+    notifyListeners();
+
+    try {
+      final success = await _geminiLyricsTranslationService
+          .translateLyricsStream(
+            lyrics: sourceLyrics,
+            onProgress: (translatedLines, translatedText) {
+              _syncTranslatedLyricsToCurrentSong(
+                song.path,
+                translatedLines,
+                translatedText,
+              );
+            },
+          );
+      if (success) {
+        _translatedLyricsKeys.add(song.path);
+      }
+    } finally {
+      _translationInFlightKeys.remove(song.path);
+      _isLyricsTranslating = false;
+      notifyListeners();
+    }
+  }
+
+  void _syncTranslatedLyricsToCurrentSong(
+    String songPath,
+    List<String> translatedLines,
+    String translatedText,
+  ) {
+    if (_currentIndex < 0 || _currentIndex >= _queue.length) return;
+
+    final currentSong = _queue[_currentIndex];
+    if (currentSong.path != songPath) return;
+
+    final existingLyrics = currentSong.lyrics ?? const MusicLyric();
+    final existingTranslatedLines = existingLyrics.translatedLines;
+    if (listEquals(existingTranslatedLines, translatedLines)) {
+      return;
+    }
+
+    _queue[_currentIndex] = currentSong.copyWith(
+      lyrics: existingLyrics.copyWith(translatedLines: translatedLines),
+    );
+
+    notifyListeners();
+    debugPrint(
+      '[AudioService] translated lyrics updated for ${currentSong.displayName}: ${translatedText.length} chars',
+    );
   }
 
   String _lyricsTitleForQuery(MusicFile song) {

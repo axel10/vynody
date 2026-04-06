@@ -27,6 +27,7 @@ class AudioSnapshot {
   final Color? dynamicEndColor;
   final Map<String, Color> currentThemeColorsMap;
   final bool isLyricsLoading;
+  final bool isLyricsTranslating;
   final bool hasLyrics;
   final String? currentLyricsTitle;
   final bool isLyricsActive;
@@ -53,6 +54,7 @@ class AudioSnapshot {
     required this.dynamicEndColor,
     required Map<String, Color> currentThemeColorsMap,
     required this.isLyricsLoading,
+    required this.isLyricsTranslating,
     required this.hasLyrics,
     required this.currentLyricsTitle,
     required this.isLyricsActive,
@@ -87,6 +89,7 @@ class AudioSnapshot {
             dynamicStartColor == other.dynamicStartColor &&
             dynamicEndColor == other.dynamicEndColor &&
             isLyricsLoading == other.isLyricsLoading &&
+            isLyricsTranslating == other.isLyricsTranslating &&
             hasLyrics == other.hasLyrics &&
             currentLyricsTitle == other.currentLyricsTitle &&
             isLyricsActive == other.isLyricsActive &&
@@ -117,6 +120,7 @@ class AudioSnapshot {
     dynamicStartColor,
     dynamicEndColor,
     isLyricsLoading,
+    isLyricsTranslating,
     hasLyrics,
     currentLyricsTitle,
     isLyricsActive,

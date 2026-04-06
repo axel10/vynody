@@ -10,16 +10,22 @@ class LyricsPanel extends StatefulWidget {
     required this.lines,
     required this.position,
     required this.isLoading,
+    required this.isTranslating,
     required this.hasLyrics,
     required this.plainLyrics,
+    required this.translatedLines,
+    this.onTranslateLyrics,
     this.accentColor,
   });
 
   final List<LyricLine> lines;
   final Duration position;
   final bool isLoading;
+  final bool isTranslating;
   final bool hasLyrics;
   final String plainLyrics;
+  final List<String> translatedLines;
+  final VoidCallback? onTranslateLyrics;
   final Color? accentColor;
 
   @override
@@ -27,7 +33,7 @@ class LyricsPanel extends StatefulWidget {
 }
 
 class _LyricsPanelState extends State<LyricsPanel> {
-  static const double _itemExtent = 48.0;
+  static const double _itemExtent = 72.0;
   final ScrollController _scrollController = ScrollController();
   int _lastActiveIndex = -1;
 
@@ -49,6 +55,34 @@ class _LyricsPanelState extends State<LyricsPanel> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduleScrollIfNeeded(force: true);
     });
+  }
+
+  Future<void> _showContextMenu(
+    BuildContext context,
+    Offset globalPosition,
+  ) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromPoints(globalPosition, globalPosition),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem<String>(
+          value: 'translate',
+          enabled: widget.onTranslateLyrics != null && !widget.isTranslating,
+          child: const Text('翻译歌词'),
+        ),
+      ],
+    );
+
+    if (selected == 'translate') {
+      await Future<void>.microtask(() => widget.onTranslateLyrics?.call());
+    }
   }
 
   void _scheduleScrollIfNeeded({bool force = false}) {
@@ -108,102 +142,212 @@ class _LyricsPanelState extends State<LyricsPanel> {
     }
 
     if (!widget.hasLyrics) {
-      return Center(
-        child: Text(
-          '暂无歌词',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
-            fontSize: 16,
+      return Stack(
+        children: [
+          Center(
+            child: Text(
+              '暂无歌词',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 16,
+              ),
+            ),
           ),
-        ),
+          if (widget.isTranslating)
+            const Positioned(
+              top: 12,
+              right: 12,
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+        ],
       );
     }
 
     if (widget.lines.isEmpty) {
-      return ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: SelectableText(
-            widget.plainLyrics,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.92),
-              fontSize: 18,
-              height: 1.6,
+      final translatedText = widget.translatedLines.join('\n').trim();
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onSecondaryTapDown: (details) {
+          _showContextMenu(context, details.globalPosition);
+        },
+        child: Stack(
+          children: [
+            ScrollConfiguration(
+              behavior: ScrollConfiguration.of(
+                context,
+              ).copyWith(scrollbars: false),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SelectableText(
+                      widget.plainLyrics,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 18,
+                        height: 1.6,
+                      ),
+                    ),
+                    if (translatedText.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      SelectableText(
+                        translatedText,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 17,
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
-          ),
+            if (widget.isTranslating)
+              const Positioned(
+                top: 12,
+                right: 12,
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+          ],
         ),
       );
     }
 
     _scheduleScrollIfNeeded();
 
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: ListView.builder(
-        controller: _scrollController,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 40),
-        itemExtent: _itemExtent,
-        itemCount: widget.lines.length,
-        itemBuilder: (context, index) {
-          final line = widget.lines[index];
-          final activeIndex = _activeLineIndex();
-          final distance = (index - activeIndex).abs();
-          final isActive = index == activeIndex;
-          final isNear = distance <= 1;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onSecondaryTapDown: (details) {
+        _showContextMenu(context, details.globalPosition);
+      },
+      child: Stack(
+        children: [
+          ScrollConfiguration(
+            behavior: ScrollConfiguration.of(
+              context,
+            ).copyWith(scrollbars: false),
+            child: ListView.builder(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 32),
+              itemExtent: _itemExtent,
+              itemCount: widget.lines.length,
+              itemBuilder: (context, index) {
+                final line = widget.lines[index];
+                final translated = index < widget.translatedLines.length
+                    ? widget.translatedLines[index].trim()
+                    : '';
+                final activeIndex = _activeLineIndex();
+                final distance = (index - activeIndex).abs();
+                final isActive = index == activeIndex;
+                final isNear = distance <= 1;
 
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? accent.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedContainer(
+                return AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
-                  width: isActive ? 6 : 0,
-                  height: 28,
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(999),
+                    color: isActive
+                        ? accent.withValues(alpha: 0.12)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                ),
-                if (isActive) const SizedBox(width: 8),
-                Expanded(
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 220),
-                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                          color: isActive
-                              ? Colors.white
-                              : Colors.white.withValues(
-                                  alpha: isNear ? 0.72 : 0.46,
-                                ),
-                          fontSize: isActive ? 18 : 16,
-                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                          height: 1.2,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            width: isActive ? 6 : 0,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: accent,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                          if (isActive) const SizedBox(width: 8),
+                          Expanded(
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 220),
+                              style: Theme.of(context).textTheme.bodyLarge!
+                                  .copyWith(
+                                    color: isActive
+                                        ? Colors.white
+                                        : Colors.white.withValues(
+                                            alpha: isNear ? 0.72 : 0.46,
+                                          ),
+                                    fontSize: isActive ? 18 : 16,
+                                    fontWeight: isActive
+                                        ? FontWeight.w700
+                                        : FontWeight.w400,
+                                    height: 1.2,
+                                  ),
+                              child: Text(
+                                line.text,
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (translated.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            translated,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.62),
+                              fontSize: 13,
+                              height: 1.1,
+                            ),
+                          ),
                         ),
-                    child: Text(
-                      line.text,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      ],
+                    ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
-          );
-        },
+          ),
+          if (widget.isTranslating)
+            const Positioned(
+              top: 12,
+              right: 12,
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+        ],
       ),
     );
   }
