@@ -207,28 +207,20 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     }
 
     try {
-      // Get existing metadata to preserve createdAt
-      final existingMetadata = await MetadataDatabase().getSongMetadata(widget.songPath);
-      final createdAt = existingMetadata?.createdAt ?? DateTime.now().millisecondsSinceEpoch;
-      
-      // Update lastModifiedTime to current time to mark as modified
-      final lastModifiedTime = DateTime.now().millisecondsSinceEpoch;
-
-      final updated = SongMetadata(
-        path: widget.songPath,
-        title: result.title.trim().isNotEmpty
-            ? result.title.trim()
-            : _displayTitle,
-        artist: result.artist.isNotEmpty ? result.artist : 'Unknown Artist',
-        album: result.album?.trim().isNotEmpty == true
-            ? result.album!.trim()
-            : 'Unknown Album',
+      final saved = await MetadataHelper.saveSelectedSongMetadata(
+        filePath: widget.songPath,
+        title: result.title,
+        artist: result.artist,
+        album: result.album ?? 'Unknown Album',
         duration: result.durationMillis ?? widget.durationMillis,
-        lastModifiedTime: lastModifiedTime,
-        createdAt: createdAt,
+        artworkBytes: coverArtBytes,
       );
 
-      await MetadataDatabase().insertOrUpdateSong(updated);
+      if (saved == null) {
+        throw StateError('写入标签和文件同步失败');
+      }
+
+      final updated = saved.$1;
 
       if (!mounted) return;
       Navigator.of(context).pop(
@@ -237,14 +229,14 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
           artworkBytes: coverArtBytes,
           match: MusicBrainzTrackMatch(
             recordingId: result.recordingId,
-            title: result.title,
-            artist: result.artist,
-            album: result.album,
+            title: updated.title,
+            artist: updated.artist,
+            album: updated.album,
             releaseId: null,
             releaseGroupId: null,
             releaseDate: null,
             country: null,
-            durationMillis: result.durationMillis,
+            durationMillis: updated.duration,
             trackNumber: null,
             score: (result.score * 100).round().clamp(0, 100),
             disambiguation: 'AcoustID',
@@ -872,7 +864,7 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
     if (_isResolving) return;
     setState(() => _isResolving = true);
     try {
-      final resolved = await widget.service.resolveCover(widget.match);
+      await widget.service.resolveCover(widget.match);
       if (mounted) {
         setState(() {
           _isResolving = false;
@@ -921,8 +913,11 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
             child: child,
           );
         },
-        errorBuilder: (context, error, stackTrace) =>
-            const Icon(Icons.music_note_rounded, color: Colors.white24, size: 24),
+        errorBuilder: (context, error, stackTrace) => const Icon(
+          Icons.music_note_rounded,
+          color: Colors.white24,
+          size: 24,
+        ),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Center(

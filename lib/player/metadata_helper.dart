@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
+import 'package:audio_core/audio_core.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
@@ -12,7 +13,13 @@ import 'metadata_database.dart';
 import 'theme_color_helper.dart';
 
 /// Supported file extensions for writing metadata
-const Set<String> writableMetadataExtensions = {'.mp3', '.m4a', '.mp4', '.flac', '.wav'};
+const Set<String> writableMetadataExtensions = {
+  '.mp3',
+  '.m4a',
+  '.mp4',
+  '.flac',
+  '.wav',
+};
 
 /// Unsupported file extensions (OGG, Opus, etc.)
 const Set<String> unsupportedMetadataExtensions = {'.ogg', '.opus'};
@@ -54,8 +61,192 @@ class SaveMetadataResult {
 }
 
 class MetadataHelper {
+  static String _resolveText(String? value, String fallback) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return fallback;
+    return trimmed;
+  }
+
+  static String _pictureTypeToAndroidLabel(PictureType type) {
+    switch (type) {
+      case PictureType.coverFront:
+        return 'Front Cover';
+      case PictureType.coverBack:
+        return 'Back Cover';
+      case PictureType.leafletPage:
+        return 'Leaflet Page';
+      case PictureType.mediaLabelCD:
+        return 'Media Label CD';
+      case PictureType.artistPerformer:
+        return 'Artist / Performer';
+      case PictureType.bandArtistLogotype:
+        return 'Band Logo';
+      default:
+        return 'Other';
+    }
+  }
+
+  static Future<bool> _writeSelectionMetadataToFile({
+    required String filePath,
+    required SongMetadata metadata,
+    Uint8List? artworkBytes,
+    String? lyrics,
+    List<AndroidTrackPicture>? pictures,
+  }) async {
+    if (!isMetadataWritable(filePath)) {
+      return false;
+    }
+
+    final controller = AudioCoreController();
+    if (!controller.isInitialized) {
+      try {
+        await controller.initialize();
+      } catch (e) {
+        debugPrint('Failed to initialize audio core for metadata write: $e');
+      }
+    }
+
+    final update = AndroidTrackMetadataUpdate(
+      title: metadata.title,
+      artist: metadata.artist,
+      album: metadata.album,
+      trackNumber: metadata.trackNumber,
+      genres: metadata.genres ?? const <String>[],
+      lyrics: lyrics,
+      pictures:
+          pictures ??
+          (artworkBytes == null || artworkBytes.isEmpty
+              ? const <AndroidTrackPicture>[]
+              : <AndroidTrackPicture>[
+                  AndroidTrackPicture(
+                    bytes: artworkBytes,
+                    mimeType: 'image/jpeg',
+                    pictureType: 'Front Cover',
+                  ),
+                ]),
+    );
+
+    try {
+      final results = await controller.updateMetadataBatch([
+        AndroidTrackMetadataUpdateRequest(path: filePath, metadata: update),
+      ]);
+      return results.isNotEmpty && results.first;
+    } catch (e) {
+      debugPrint('Failed to write selection metadata to file $filePath: $e');
+      return false;
+    }
+  }
+
+  static Future<(SongMetadata, Uint8List?)?> saveSelectedSongMetadata({
+    required String filePath,
+    required String title,
+    required String artist,
+    required String album,
+    int? duration,
+    int? trackNumber,
+    List<String>? genres,
+    Uint8List? artworkBytes,
+    String? artworkPath,
+    String? thumbnailPath,
+    int? artworkWidth,
+    int? artworkHeight,
+    SongMetadata? existingMetadata,
+  }) async {
+    try {
+      final db = MetadataDatabase();
+      final existing = existingMetadata ?? await db.getSongMetadata(filePath);
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      var resolvedArtworkPath = artworkPath ?? existing?.artworkPath;
+      var resolvedThumbnailPath = thumbnailPath ?? existing?.thumbnailPath;
+      var resolvedArtworkWidth = artworkWidth ?? existing?.artworkWidth;
+      var resolvedArtworkHeight = artworkHeight ?? existing?.artworkHeight;
+      Uint8List? themeColorsBlob = existing?.themeColorsBlob;
+
+      final needsArtworkSave =
+          artworkBytes != null &&
+          artworkBytes.isNotEmpty &&
+          artworkPath == null &&
+          thumbnailPath == null &&
+          artworkWidth == null &&
+          artworkHeight == null;
+
+      if (needsArtworkSave) {
+        final artworkInfo = await saveArtworkAndThumbnail(
+          filePath,
+          artworkBytes,
+          saveLarge: !Platform.isWindows,
+        );
+
+        if (artworkInfo != null) {
+          resolvedArtworkPath = artworkInfo['artworkPath'] as String?;
+          resolvedThumbnailPath = artworkInfo['thumbnailPath'] as String?;
+          resolvedArtworkWidth = artworkInfo['width'] as int?;
+          resolvedArtworkHeight = artworkInfo['height'] as int?;
+        } else {
+          debugPrint('Failed to save artwork for selected metadata $filePath');
+        }
+      }
+
+      if (artworkBytes != null && artworkBytes.isNotEmpty) {
+        try {
+          final palette = await PaletteGenerator.fromImageProvider(
+            MemoryImage(artworkBytes),
+            maximumColorCount: 20,
+          );
+          themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
+        } catch (e) {
+          debugPrint(
+            'Error generating theme color for selected metadata $filePath: $e',
+          );
+        }
+      }
+
+      final base =
+          existing ??
+          SongMetadata(
+            path: filePath,
+            title: p.basenameWithoutExtension(filePath),
+            album: 'Unknown Album',
+            artist: 'Unknown Artist',
+          );
+
+      final updated = base.copyWith(
+        title: _resolveText(title, base.title),
+        artist: _resolveText(artist, base.artist),
+        album: _resolveText(album, base.album),
+        duration: duration ?? base.duration,
+        trackNumber: trackNumber ?? base.trackNumber,
+        artworkPath: resolvedArtworkPath,
+        thumbnailPath: resolvedThumbnailPath,
+        artworkWidth: resolvedArtworkWidth,
+        artworkHeight: resolvedArtworkHeight,
+        themeColorsBlob: themeColorsBlob,
+        lastModifiedTime: now,
+        createdAt: base.createdAt ?? now,
+        genres: genres ?? base.genres,
+      );
+
+      final fileUpdated = await _writeSelectionMetadataToFile(
+        filePath: filePath,
+        metadata: updated,
+        artworkBytes: artworkBytes,
+      );
+
+      if (!fileUpdated) {
+        return null;
+      }
+
+      await db.insertOrUpdateSong(updated);
+      return (updated, artworkBytes);
+    } catch (e) {
+      debugPrint('Error saving selected metadata for $filePath: $e');
+      return null;
+    }
+  }
+
   /// 深度解析音频文件的元数据和封面信息
-  /// 
+  ///
   /// 该方法耗时较长，通常在后台线程（Isolate）中执行，结果会存入数据库以便下次秒开。
   static Future<(SongMetadata, Uint8List?)?> processMetadata(
     String filePath, {
@@ -131,7 +322,8 @@ class MetadataHelper {
       }
 
       // 如果是更新现有记录，保留原有的 createdAt；否则使用当前时间
-      final createdAt = existing?.createdAt ?? DateTime.now().millisecondsSinceEpoch;
+      final createdAt =
+          existing?.createdAt ?? DateTime.now().millisecondsSinceEpoch;
 
       final song = SongMetadata(
         path: filePath,
@@ -152,29 +344,31 @@ class MetadataHelper {
       // 5. 将解析结果存入数据库
       await db.insertOrUpdateSong(song);
       return (song, artworkData);
-
     } catch (e) {
       debugPrint('Error processing metadata for $filePath: $e');
       return null;
     }
   }
 
-
   static Future<Map<String, dynamic>?> saveArtworkAndThumbnail(
     String songPath,
     Uint8List data, {
     bool saveLarge = true,
   }) async {
-
     try {
       final supportDir = await getApplicationSupportDirectory();
       final artworkDir = Directory(p.join(supportDir.path, 'artworks'));
       final thumbnailsDir = Directory(p.join(supportDir.path, 'thumbnails'));
-      
-      if (!await artworkDir.exists()) await artworkDir.create(recursive: true);
-      if (!await thumbnailsDir.exists()) await thumbnailsDir.create(recursive: true);
 
-      final baseName = '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}';
+      if (!await artworkDir.exists()) {
+        await artworkDir.create(recursive: true);
+      }
+      if (!await thumbnailsDir.exists()) {
+        await thumbnailsDir.create(recursive: true);
+      }
+
+      final baseName =
+          '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}';
       final largePath = p.join(artworkDir.path, '$baseName.jpg');
       final thumbPath = p.join(thumbnailsDir.path, '${baseName}_thumb.jpg');
 
@@ -209,7 +403,7 @@ class MetadataHelper {
       if (saveLarge) {
         await File(largePath).writeAsBytes(data);
       }
-      
+
       // Save thumbnail
       await File(thumbPath).writeAsBytes(thumbnailData);
 
@@ -261,7 +455,6 @@ class MetadataHelper {
     }
   }
 
-
   static Future<void> clearThumbnails() async {
     try {
       final supportDir = await getApplicationSupportDirectory();
@@ -294,9 +487,7 @@ class MetadataHelper {
   }
 
   /// 解码文件内嵌封面，分辨率限制在 [maxWidth] * [maxHeight]
-  static Future<Uint8List?> decodeEmbeddedArtwork(
-    String filePath,
-  ) async {
+  static Future<Uint8List?> decodeEmbeddedArtwork(String filePath) async {
     try {
       final metadata = await compute(readMetadataIsolate, filePath);
       if (metadata.pictures.isEmpty) return null;
@@ -317,7 +508,8 @@ class MetadataHelper {
       final originalImage = img.decodeImage(data);
       if (originalImage == null) return null;
 
-      if (originalImage.width <= maxWidth && originalImage.height <= maxHeight) {
+      if (originalImage.width <= maxWidth &&
+          originalImage.height <= maxHeight) {
         return data; // 不需要缩放
       }
 
@@ -355,56 +547,33 @@ class MetadataHelper {
     }
 
     try {
-      final file = File(filePath);
-      _saveMetadataToFileSync(
-        file,
-        title: title,
-        artist: artist,
-        album: album,
-        trackNumber: trackNumber,
-        genres: genres,
-        o3ics: o3ics,
-        pictures: pictures,
+      final firstPictureBytes =
+          (pictures?.isNotEmpty ?? false) ? pictures!.first.bytes : null;
+      final success = await _writeSelectionMetadataToFile(
+        filePath: filePath,
+        metadata: SongMetadata(
+          path: filePath,
+          title: title ?? p.basenameWithoutExtension(filePath),
+          album: album ?? 'Unknown Album',
+          artist: artist ?? 'Unknown Artist',
+          trackNumber: trackNumber,
+          genres: genres,
+        ),
+        artworkBytes: firstPictureBytes,
+        lyrics: o3ics,
+        pictures: pictures?.map(
+          (picture) => AndroidTrackPicture(
+            bytes: picture.bytes,
+            mimeType: picture.mimetype,
+            pictureType: _pictureTypeToAndroidLabel(picture.pictureType),
+          ),
+        ).toList(),
       );
-      return true;
+      return success;
     } catch (e) {
       debugPrint('Error saving metadata to $filePath: $e');
       return false;
     }
-  }
-
-  /// Internal implementation of metadata saving (synchronous)
-  static void _saveMetadataToFileSync(
-    File file, {
-    String? title,
-    String? artist,
-    String? album,
-    int? trackNumber,
-    List<String>? genres,
-    String? o3ics,
-    List<Picture>? pictures,
-  }) {
-    updateMetadata(
-      file,
-      (metadata) {
-        metadata.setTitle(title);
-        metadata.setArtist(artist);
-        metadata.setAlbum(album);
-        metadata.setTrackNumber(trackNumber);
-
-        if (genres != null && genres.isNotEmpty) {
-          metadata.setGenres(genres);
-        }
-
-        if (o3ics != null && o3ics.isNotEmpty) {
-          metadata.setLyrics(o3ics);
-        }
-
-        if (pictures != null && pictures.isNotEmpty) {
-          metadata.setPictures(pictures);
-        }
-      },
-    );
   }
 
   /// Saves metadata for multiple songs.
@@ -420,8 +589,13 @@ class MetadataHelper {
 
     for (int i = 0; i < songs.length; i++) {
       final song = songs[i];
-      final o3ics = o3icsList != null && i < o3icsList.length ? o3icsList[i] : null;
-      final artworkBytes = artworkBytesList != null && i < artworkBytesList.length ? artworkBytesList[i] : null;
+      final o3ics = o3icsList != null && i < o3icsList.length
+          ? o3icsList[i]
+          : null;
+      final artworkBytes =
+          artworkBytesList != null && i < artworkBytesList.length
+          ? artworkBytesList[i]
+          : null;
 
       List<Picture>? pictures;
       if (artworkBytes != null) {

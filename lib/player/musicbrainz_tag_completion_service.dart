@@ -1,15 +1,12 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
-import 'package:palette_generator/palette_generator.dart';
 import '../utils/network_client.dart';
 import '../utils/clean_helper.dart';
 import 'metadata_database.dart';
-import 'theme_color_helper.dart';
 import 'metadata_helper.dart';
 
 class MusicBrainzTrackMatch {
@@ -177,7 +174,8 @@ class MusicBrainzTagCompletionService {
 
   static final Map<String, List<MusicBrainzTrackMatch>> _searchCache = {};
   static final Map<String, _CoverArtResult> _coverCache = {};
-  static final Map<String, Future<ResolvedCover?>> _coverResolutionInFlight = {};
+  static final Map<String, Future<ResolvedCover?>> _coverResolutionInFlight =
+      {};
 
   static Future<void> _rateLimit() async {
     final now = DateTime.now();
@@ -298,56 +296,32 @@ class MusicBrainzTagCompletionService {
     SongMetadata? existingMetadata,
     int? fallbackDurationMillis,
   }) async {
-    final current = existingMetadata ?? await _db.getSongMetadata(songPath);
     final cover = await _downloadCoverArt(match);
-    final lastModifiedTime = await File(songPath).lastModified().then(
-      (value) => value.millisecondsSinceEpoch,
-      onError: (_) => DateTime.now().millisecondsSinceEpoch,
+    final saved = await MetadataHelper.saveSelectedSongMetadata(
+      filePath: songPath,
+      title: match.title,
+      artist: match.artist,
+      album: match.album ?? 'Unknown Album',
+      duration: fallbackDurationMillis ?? match.durationMillis,
+      trackNumber: match.trackNumber,
+      artworkBytes: cover?.bytes,
+      artworkPath: cover?.path,
+      thumbnailPath: cover?.thumbnailPath,
+      artworkWidth: cover?.width,
+      artworkHeight: cover?.height,
+      existingMetadata: existingMetadata,
     );
 
-    Uint8List? themeColorsBlob;
-    if (cover?.bytes != null) {
-      try {
-        final palette = await PaletteGenerator.fromImageProvider(
-          MemoryImage(cover!.bytes),
-          maximumColorCount: 20,
-        );
-        themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
-      } catch (e) {
-        debugPrint('Error generating MusicBrainz palette for $songPath: $e');
-      }
-    } else {
-      themeColorsBlob = current?.themeColorsBlob;
+    if (saved == null) {
+      throw StateError('Failed to save selected MusicBrainz metadata.');
     }
 
-    final updated =
-        (current ??
-                SongMetadata(
-                  path: songPath,
-                  title: p.basenameWithoutExtension(songPath),
-                  album: 'Unknown Album',
-                  artist: 'Unknown Artist',
-                ))
-            .copyWith(
-              title: match.title.trim().isNotEmpty ? match.title.trim() : null,
-              album: _hasMeaningfulText(match.album) ? match.album : null,
-              artist: _hasMeaningfulText(match.artist) ? match.artist : null,
-              duration: fallbackDurationMillis ?? match.durationMillis,
-              artworkPath: cover?.path,
-              thumbnailPath: cover?.thumbnailPath,
-              artworkWidth: cover?.width,
-              artworkHeight: cover?.height,
-              trackNumber: match.trackNumber,
-              themeColorsBlob: themeColorsBlob,
-              lastModifiedTime: lastModifiedTime,
-            );
-
-    await _db.insertOrUpdateSong(updated);
+    final updated = saved.$1;
 
     return MusicBrainzTagSelectionResult(
       metadata: updated,
       artworkBytes: cover?.bytes,
-      thumbnailPath: cover?.thumbnailPath,
+      thumbnailPath: updated.thumbnailPath,
       match: match,
     );
   }
@@ -445,23 +419,23 @@ class MusicBrainzTagCompletionService {
       return inFlight;
     }
 
-    final future = _resolveCoverMetadataFromEndpoint(
-      endpoint: endpoint,
-      id: id,
-    ).whenComplete(() {
-      _coverResolutionInFlight.remove(cacheKey);
-    });
+    final future = _resolveCoverMetadataFromEndpoint(endpoint: endpoint, id: id)
+        .whenComplete(() {
+          _coverResolutionInFlight.remove(cacheKey);
+        });
     _coverResolutionInFlight[cacheKey] = future;
 
     final resolved = await future;
     if (resolved != null && endpoint == 'release') {
       // Save to database cache
-      await _db.insertOrUpdateReleaseCoverCache(ReleaseCoverCacheRecord(
-        releaseId: id,
-        largeUrl: resolved.largeUrl,
-        thumbnailUrl: resolved.thumbnailUrl,
-        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-      ));
+      await _db.insertOrUpdateReleaseCoverCache(
+        ReleaseCoverCacheRecord(
+          releaseId: id,
+          largeUrl: resolved.largeUrl,
+          thumbnailUrl: resolved.thumbnailUrl,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
     }
 
     return resolved;
