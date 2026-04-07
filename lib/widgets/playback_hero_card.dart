@@ -945,6 +945,7 @@ class PlaybackHeroCard extends StatelessWidget {
       isLoading: snapshot.isLyricsLoading,
       isTranslating: snapshot.isLyricsTranslating,
       isGeneratingLyrics: snapshot.isLyricsGenerating,
+      lyricsTranslationStatus: snapshot.lyricsTranslationStatus,
       lyricsGenerationPhase: snapshot.lyricsGenerationPhase,
       lyricsGenerationProgress: snapshot.lyricsGenerationProgress,
       hasLyrics: snapshot.hasLyrics,

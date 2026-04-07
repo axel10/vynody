@@ -31,6 +31,7 @@ class AudioSnapshot {
   final bool isLyricsLoading;
   final bool isLyricsTranslating;
   final bool isLyricsGenerating;
+  final String lyricsTranslationStatus;
   final LyricsGenerationPhase lyricsGenerationPhase;
   final double lyricsGenerationProgress;
   final List<LyricLine> currentLyricsLines;
@@ -65,6 +66,7 @@ class AudioSnapshot {
     required this.isLyricsLoading,
     required this.isLyricsTranslating,
     required this.isLyricsGenerating,
+    required this.lyricsTranslationStatus,
     required this.lyricsGenerationPhase,
     required this.lyricsGenerationProgress,
     required List<LyricLine> currentLyricsLines,
@@ -108,6 +110,7 @@ class AudioSnapshot {
             isLyricsLoading == other.isLyricsLoading &&
             isLyricsTranslating == other.isLyricsTranslating &&
             isLyricsGenerating == other.isLyricsGenerating &&
+            lyricsTranslationStatus == other.lyricsTranslationStatus &&
             lyricsGenerationPhase == other.lyricsGenerationPhase &&
             lyricsGenerationProgress == other.lyricsGenerationProgress &&
             _deepEquality.equals(
@@ -150,6 +153,7 @@ class AudioSnapshot {
     isLyricsLoading,
     isLyricsTranslating,
     isLyricsGenerating,
+    lyricsTranslationStatus,
     lyricsGenerationPhase,
     lyricsGenerationProgress,
     _deepEquality.hash(currentLyricsLines),

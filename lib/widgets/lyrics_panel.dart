@@ -15,6 +15,7 @@ class LyricsPanel extends StatefulWidget {
     required this.isLoading,
     required this.isTranslating,
     required this.isGeneratingLyrics,
+    required this.lyricsTranslationStatus,
     required this.lyricsGenerationPhase,
     required this.lyricsGenerationProgress,
     required this.hasLyrics,
@@ -34,6 +35,7 @@ class LyricsPanel extends StatefulWidget {
   final bool isLoading;
   final bool isTranslating;
   final bool isGeneratingLyrics;
+  final String lyricsTranslationStatus;
   final LyricsGenerationPhase lyricsGenerationPhase;
   final double lyricsGenerationProgress;
   final bool hasLyrics;
@@ -59,6 +61,45 @@ class _LyricsPanelState extends State<LyricsPanel> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Widget _buildTranslationIndicator(Color accent) {
+    if (!widget.isTranslating) return const SizedBox.shrink();
+
+    final status = widget.lyricsTranslationStatus.trim();
+    return Positioned(
+      top: 12,
+      right: 12,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(accent),
+            ),
+          ),
+          if (status.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 180),
+              child: Text(
+                status,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  fontSize: 12,
+                  height: 1.0,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -252,16 +293,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
               ),
             ),
           ),
-          if (widget.isTranslating && !widget.isGeneratingLyrics)
-            const Positioned(
-              top: 12,
-              right: 12,
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
+          if (widget.isTranslating) _buildTranslationIndicator(accent),
         ],
       );
     }
@@ -300,16 +332,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
                 ),
               ),
             ),
-            if (widget.isTranslating)
-              const Positioned(
-                top: 12,
-                right: 12,
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
+            if (widget.isTranslating) _buildTranslationIndicator(accent),
           ],
         ),
       );
@@ -428,16 +451,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
               },
             ),
           ),
-          if (widget.isTranslating)
-            const Positioned(
-              top: 12,
-              right: 12,
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
+          if (widget.isTranslating) _buildTranslationIndicator(accent),
         ],
       ),
     );
