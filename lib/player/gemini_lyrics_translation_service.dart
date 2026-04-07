@@ -403,6 +403,7 @@ class GeminiLyricsTranslationService {
           'X-Goog-Upload-Command': 'upload, finalize',
           'X-Goog-Upload-Offset': 0,
         },
+        contentType: mimeType,
       ),
       data: file.openRead(),
       onSendProgress: (sent, total) {
