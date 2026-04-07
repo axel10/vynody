@@ -930,11 +930,15 @@ class PlaybackHeroCard extends StatelessWidget {
       position: snapshot.position,
       isLoading: snapshot.isLyricsLoading,
       isTranslating: snapshot.isLyricsTranslating,
+      isGeneratingLyrics: snapshot.isLyricsGenerating,
       hasLyrics: snapshot.hasLyrics,
+      lyricsSearchAttempted: snapshot.lyricsSearchAttempted,
       plainLyrics: lyrics?.plainText ?? '',
       translationLanguageCode: snapshot.lyricsTranslationLanguageCode,
       onTranslateLyrics: () =>
           context.read<AudioService>().translateLyricsForCurrentSong(),
+      onGenerateLyrics: () =>
+          context.read<AudioService>().generateLyricsForCurrentSong(),
       accentColor: accent,
     );
   }

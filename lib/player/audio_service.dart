@@ -59,9 +59,11 @@ class AudioService extends ChangeNotifier {
   int _lyricsRetrySerial = 0;
   bool _isLyricsLoading = false;
   bool _isLyricsTranslating = false;
+  bool _isLyricsGenerating = false;
   bool _hasLyrics = false;
   bool _lyricsSearchAttempted = false;
   bool _isLyricsSynced = false;
+  int _lyricsGenerationSerial = 0;
   List<LyricLine> _currentLyricsLines = const [];
   String _currentLyricsText = '';
   String? _currentLyricsTitle;
@@ -84,7 +86,9 @@ class AudioService extends ChangeNotifier {
   String get lyricsTranslationLanguageCode => _lyricsTranslationLanguageCode;
   bool get isLyricsLoading => _isLyricsLoading;
   bool get isLyricsTranslating => _isLyricsTranslating;
+  bool get isLyricsGenerating => _isLyricsGenerating;
   bool get hasLyrics => _hasLyrics;
+  bool get lyricsSearchAttempted => _lyricsSearchAttempted;
   bool get isLyricsSynced => _isLyricsSynced;
   List<LyricLine> get currentLyricsLines =>
       List<LyricLine>.unmodifiable(_currentLyricsLines);
@@ -478,7 +482,9 @@ class AudioService extends ChangeNotifier {
     currentThemeColorsMap: _currentThemeColorsMap,
     isLyricsLoading: _isLyricsLoading,
     isLyricsTranslating: _isLyricsTranslating,
+    isLyricsGenerating: _isLyricsGenerating,
     hasLyrics: _hasLyrics,
+    lyricsSearchAttempted: _lyricsSearchAttempted,
     currentLyricsTitle: _currentLyricsTitle,
     isLyricsActive: _isLyricsActive,
     lyricsTranslationLanguageCode: _lyricsTranslationLanguageCode,
@@ -750,6 +756,7 @@ class AudioService extends ChangeNotifier {
     // 切歌时先清空状态，但不要把“等待后续补抓”的阶段卡死在 loading=true。
     _isLyricsLoading = false;
     _isLyricsTranslating = false;
+    _isLyricsGenerating = false;
     _hasLyrics = false;
     _isLyricsSynced = false;
     _currentLyricsLines = const [];
@@ -981,6 +988,80 @@ class AudioService extends ChangeNotifier {
     }
   }
 
+  Future<void> generateLyricsForCurrentSong() async {
+    final song = currentMusic;
+    if (song == null) return;
+    if (_isLyricsGenerating) return;
+
+    final generationId = ++_lyricsGenerationSerial;
+    _isLyricsGenerating = true;
+    notifyListeners();
+
+    try {
+      final generatedLyrics = await _geminiLyricsTranslationService
+          .generateLyricsFromFile(filePath: song.path);
+
+      if (generationId != _lyricsGenerationSerial ||
+          currentMusic?.path != song.path) {
+        _logLyricsDebug(
+          'generation ignored due to stale request -> title="${song.displayName}" '
+          'generationId=$generationId latest=$_lyricsGenerationSerial '
+          'currentPath="${currentMusic?.path}"',
+        );
+        return;
+      }
+
+      if (generatedLyrics == null || generatedLyrics.trim().isEmpty) {
+        _logLyricsDebug(
+          'generation returned empty lyrics -> title="${song.displayName}" '
+          'path="${song.path}"',
+        );
+        return;
+      }
+
+      final generatedLines = _parseGeneratedLyrics(generatedLyrics);
+      final lyrics = MusicLyric(
+        syncedLines: generatedLines.isNotEmpty
+            ? generatedLines
+            : _buildLyricsLines(const [], generatedLyrics),
+        plainText: generatedLyrics.trim(),
+      );
+
+      _hasLyrics = true;
+      _isLyricsLoading = false;
+      _isLyricsSynced = lyrics.syncedLines.any((line) => line.isTimed);
+      _lyricsSearchAttempted = true;
+      _currentLyricsLines = lyrics.syncedLines;
+      _currentLyricsText = lyrics.plainText;
+      _currentLyricsTitle = song.displayName;
+
+      if (_currentIndex >= 0 && _currentIndex < _queue.length) {
+        final currentSong = _queue[_currentIndex];
+        if (currentSong.path == song.path) {
+          _queue[_currentIndex] = currentSong.copyWith(lyrics: lyrics);
+        }
+      }
+
+      notifyListeners();
+      _logLyricsDebug(
+        'generation done -> title="${song.displayName}" '
+        'lines=${_currentLyricsLines.length} synced=$_isLyricsSynced '
+        'textLen=${_currentLyricsText.length}',
+      );
+    } catch (e) {
+      debugPrint('[AudioService] Failed to generate lyrics: $e');
+      _logLyricsDebug(
+        'generation failed -> title="${song.displayName}" path="${song.path}" '
+        'error=$e generationId=$generationId',
+      );
+    } finally {
+      if (generationId == _lyricsGenerationSerial) {
+        _isLyricsGenerating = false;
+        notifyListeners();
+      }
+    }
+  }
+
   void _syncTranslatedLyricsToCurrentSong(
     String songPath,
     String languageCode,
@@ -1038,6 +1119,65 @@ class AudioService extends ChangeNotifier {
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty)
         .toList(growable: false);
+  }
+
+  List<LyricLine> _parseGeneratedLyrics(String? lyrics) {
+    if (lyrics == null || lyrics.trim().isEmpty) {
+      return const [];
+    }
+
+    final lines = <LyricLine>[];
+    for (final rawLine in lyrics.split(RegExp(r'\r?\n'))) {
+      final line = rawLine.trim();
+      if (line.isEmpty) continue;
+
+      final timestamps = <Duration>[];
+      var index = 0;
+      while (index < line.length) {
+        final end = line.indexOf(']', index);
+        if (index >= line.length || line[index] != '[' || end == -1) {
+          break;
+        }
+        final token = line.substring(index + 1, end);
+        final parsed = _parseLrcTimestampToken(token);
+        if (parsed == null) {
+          break;
+        }
+        timestamps.add(parsed);
+        index = end + 1;
+      }
+
+      final text = line.substring(index).trim();
+      if (timestamps.isEmpty || text.isEmpty) {
+        continue;
+      }
+
+      for (final timestamp in timestamps) {
+        lines.add(LyricLine(timestamp: timestamp, text: text, isTimed: true));
+      }
+    }
+
+    lines.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    return lines;
+  }
+
+  Duration? _parseLrcTimestampToken(String token) {
+    final match = RegExp(
+      r'^(\d{2}):(\d{2})(?:\.(\d{1,3}))?$',
+    ).firstMatch(token);
+    if (match == null) return null;
+
+    final minutes = int.tryParse(match.group(1)!);
+    final seconds = int.tryParse(match.group(2)!);
+    final fractionText = match.group(3) ?? '0';
+    if (minutes == null || seconds == null) return null;
+
+    final fraction = int.tryParse(
+      fractionText.padRight(3, '0').substring(0, 3),
+    );
+    if (fraction == null) return null;
+
+    return Duration(minutes: minutes, seconds: seconds, milliseconds: fraction);
   }
 
   String _lyricsTranslationCacheKey(String songPath, String languageCode) {

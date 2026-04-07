@@ -13,10 +13,13 @@ class LyricsPanel extends StatefulWidget {
     required this.position,
     required this.isLoading,
     required this.isTranslating,
+    required this.isGeneratingLyrics,
     required this.hasLyrics,
+    required this.lyricsSearchAttempted,
     required this.plainLyrics,
     required this.translationLanguageCode,
     this.onTranslateLyrics,
+    this.onGenerateLyrics,
     this.accentColor,
   });
 
@@ -25,10 +28,13 @@ class LyricsPanel extends StatefulWidget {
   final Duration position;
   final bool isLoading;
   final bool isTranslating;
+  final bool isGeneratingLyrics;
   final bool hasLyrics;
+  final bool lyricsSearchAttempted;
   final String plainLyrics;
   final String translationLanguageCode;
   final VoidCallback? onTranslateLyrics;
+  final VoidCallback? onGenerateLyrics;
   final Color? accentColor;
 
   @override
@@ -149,18 +155,57 @@ class _LyricsPanelState extends State<LyricsPanel> {
     }
 
     if (!widget.hasLyrics) {
+      final canGenerateLyrics =
+          widget.lyricsSearchAttempted && widget.onGenerateLyrics != null;
       return Stack(
         children: [
           Center(
-            child: Text(
-              '暂无歌词',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 16,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '暂无歌词',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 16,
+                    ),
+                  ),
+                  if (canGenerateLyrics) ...[
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      height: 42,
+                      child: FilledButton.icon(
+                        onPressed: widget.isGeneratingLyrics
+                            ? null
+                            : widget.onGenerateLyrics,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: accent.withValues(alpha: 0.95),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                        ),
+                        icon: widget.isGeneratingLyrics
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              )
+                            : const Icon(Icons.auto_awesome, size: 18),
+                        label: Text(
+                          widget.isGeneratingLyrics ? '生成中...' : '生成歌词',
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
-          if (widget.isTranslating)
+          if (widget.isTranslating && !widget.isGeneratingLyrics)
             const Positioned(
               top: 12,
               right: 12,

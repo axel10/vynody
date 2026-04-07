@@ -6,6 +6,18 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+class _GeminiFileUploadResult {
+  final String name;
+  final String uri;
+  final String? state;
+
+  const _GeminiFileUploadResult({
+    required this.name,
+    required this.uri,
+    this.state,
+  });
+}
+
 class GeminiLyricsTranslationService {
   GeminiLyricsTranslationService({Dio? dio}) : _dio = dio ?? Dio();
 
@@ -35,7 +47,7 @@ class GeminiLyricsTranslationService {
     final targetLanguageName = _targetLanguageName(targetLanguageCode);
     final prompt =
         '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
-        '总整首歌的意境，尽量意译。'
+        '总结整首歌的意境并结合上下文尽量意译。'
         '请保持原有分行顺序，每一行对应原歌词的一行。请严格保持原歌词结构。'
         '不要输出时间轴，不要输出解释，不要输出编号。不要省略任何一行，包括标题。\n'
         '$sourceLyrics';
@@ -136,6 +148,112 @@ class GeminiLyricsTranslationService {
       debugPrint('[GeminiLyrics] translation failed: $e');
     }
     return false;
+  }
+
+  Future<String?> generateLyricsFromFile({
+    required String filePath,
+    String modelId = 'gemini-3.1-flash-lite-preview',
+  }) async {
+    final apiKey = await _loadApiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip generation.');
+      return null;
+    }
+
+    final file = File(filePath);
+    if (!await file.exists()) {
+      debugPrint('[GeminiLyrics] file not found for generation: $filePath');
+      return null;
+    }
+
+    final mimeType = _mimeTypeForFilePath(filePath);
+
+    try {
+      final uploadedFile = await _uploadFile(
+        file: file,
+        apiKey: apiKey,
+        mimeType: mimeType,
+      );
+      if (uploadedFile == null) {
+        return null;
+      }
+
+      final fileName = uploadedFile.name;
+      final fileUri = uploadedFile.uri;
+      final isActive = await _waitForGeminiFileActive(
+        fileName: fileName,
+        apiKey: apiKey,
+        initialState: uploadedFile.state,
+      );
+      if (!isActive) {
+        debugPrint(
+          '[GeminiLyrics] file never became ACTIVE after upload: '
+          'name=$fileName uri=$fileUri',
+        );
+        return null;
+      }
+
+      final prompt =
+          '输出这首歌的完整的带时间轴的标准LRC格式歌词，尝试对整首歌的意境进行理解，并结合上下文修复识别出来的明显不合理的语句。仅输出结果不输出其他内容。';
+      final requestData = {
+        'contents': [
+          {
+            'role': 'user',
+            'parts': [
+              {'text': prompt},
+              {
+                'file_data': {'mime_type': mimeType, 'file_uri': fileUri},
+              },
+            ],
+          },
+        ],
+      };
+
+      debugPrint('[GeminiLyrics] generation request model=$modelId');
+      debugPrint('[GeminiLyrics] generation request filePath=$filePath');
+      debugPrint('[GeminiLyrics] generation request fileName=$fileName');
+      debugPrint('[GeminiLyrics] generation request mimeType=$mimeType');
+      debugPrint('[GeminiLyrics] generation request fileUri=$fileUri');
+      debugPrint(
+        '[GeminiLyrics] generation request payload=${jsonEncode(requestData)}',
+      );
+
+      final response = await _dio.post(
+        'https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent',
+        queryParameters: {'key': apiKey},
+        data: requestData,
+      );
+
+      final generatedText = _extractText(response.data);
+      final cleanedText = _cleanGeneratedLyricsText(generatedText);
+      if (cleanedText.isEmpty) {
+        debugPrint('[GeminiLyrics] empty lyrics response.');
+        debugPrint('[GeminiLyrics] raw generate response: ${response.data}');
+        return null;
+      }
+
+      return cleanedText;
+    } on DioException catch (e) {
+      debugPrint('[GeminiLyrics] generation failed: ${e.message}');
+      debugPrint('[GeminiLyrics] generation status: ${e.response?.statusCode}');
+      debugPrint('[GeminiLyrics] generation response: ${e.response?.data}');
+      debugPrint(
+        '[GeminiLyrics] generation request path: ${e.requestOptions.path}',
+      );
+      debugPrint(
+        '[GeminiLyrics] generation request query: ${e.requestOptions.queryParameters}',
+      );
+      debugPrint(
+        '[GeminiLyrics] generation request headers: ${e.requestOptions.headers}',
+      );
+      debugPrint(
+        '[GeminiLyrics] generation request data: ${e.requestOptions.data}',
+      );
+    } catch (e) {
+      debugPrint('[GeminiLyrics] generation error: $e');
+    }
+
+    return null;
   }
 
   String _targetLanguageName(String languageCode) {
@@ -241,7 +359,191 @@ class GeminiLyricsTranslationService {
     return null;
   }
 
-  String? _extractText(String raw) {
+  Future<_GeminiFileUploadResult?> _uploadFile({
+    required File file,
+    required String apiKey,
+    required String mimeType,
+  }) async {
+    final fileSize = await file.length();
+    final fileName = p.basename(file.path);
+
+    final initResponse = await _dio.post(
+      'https://generativelanguage.googleapis.com/upload/v1beta/files',
+      queryParameters: {'key': apiKey},
+      options: Options(
+        headers: {
+          'X-Goog-Upload-Protocol': 'resumable',
+          'X-Goog-Upload-Command': 'start',
+          'X-Goog-Upload-Header-Content-Length': fileSize,
+          'X-Goog-Upload-Header-Content-Type': mimeType,
+          'Content-Type': 'application/json',
+        },
+      ),
+      data: {
+        'file': {'display_name': fileName},
+      },
+    );
+
+    debugPrint('[GeminiLyrics] upload init fileName=$fileName');
+    debugPrint('[GeminiLyrics] upload init mimeType=$mimeType');
+    debugPrint('[GeminiLyrics] upload init fileSize=$fileSize');
+
+    final uploadUrl = initResponse.headers.value('X-Goog-Upload-URL');
+    if (uploadUrl == null || uploadUrl.isEmpty) {
+      throw Exception('未能获取 Gemini 上传 URL');
+    }
+
+    debugPrint('[GeminiLyrics] upload session url=$uploadUrl');
+
+    final uploadResponse = await _dio.post(
+      uploadUrl,
+      options: Options(
+        headers: {
+          'X-Goog-Upload-Protocol': 'resumable',
+          'X-Goog-Upload-Command': 'upload, finalize',
+          'X-Goog-Upload-Offset': 0,
+        },
+      ),
+      data: file.openRead(),
+      onSendProgress: (sent, total) {
+        if (total <= 0) return;
+        final progress = (sent / total * 100).toStringAsFixed(2);
+        debugPrint('[GeminiLyrics] upload progress: $progress%');
+      },
+    );
+
+    debugPrint(
+      '[GeminiLyrics] upload response status=${uploadResponse.statusCode}',
+    );
+    debugPrint('[GeminiLyrics] upload response data=${uploadResponse.data}');
+
+    final uploadedFile = _parseUploadedFile(uploadResponse.data);
+    if (uploadedFile == null) {
+      throw Exception('未能从 Gemini 上传响应中解析文件信息');
+    }
+
+    return uploadedFile;
+  }
+
+  Future<bool> _waitForGeminiFileActive({
+    required String fileName,
+    required String apiKey,
+    String? initialState,
+  }) async {
+    final normalizedInitialState = initialState?.trim().toUpperCase();
+    if (normalizedInitialState == null || normalizedInitialState.isEmpty) {
+      return true;
+    }
+    if (normalizedInitialState == 'ACTIVE') {
+      return true;
+    }
+
+    for (var attempt = 0; attempt < 20; attempt++) {
+      await Future<void>.delayed(const Duration(seconds: 1));
+
+      final info = await _fetchGeminiFileInfo(fileName, apiKey);
+      final state = info?.state?.trim().toUpperCase();
+      if (state == null || state == 'ACTIVE') {
+        return true;
+      }
+      if (state == 'FAILED') {
+        throw Exception('Gemini 文件处理失败: $fileName');
+      }
+    }
+
+    return false;
+  }
+
+  Future<_GeminiFileUploadResult?> _fetchGeminiFileInfo(
+    String fileName,
+    String apiKey,
+  ) async {
+    final response = await _dio.get(
+      'https://generativelanguage.googleapis.com/v1beta/$fileName',
+      queryParameters: {'key': apiKey},
+    );
+    return _parseUploadedFile(response.data);
+  }
+
+  _GeminiFileUploadResult? _parseUploadedFile(dynamic data) {
+    if (data is! Map) return null;
+
+    final root = data['file'];
+    final fileMap = root is Map ? root : data;
+    final name = fileMap['name']?.toString().trim();
+    final uri = fileMap['uri']?.toString().trim();
+    if (name == null || name.isEmpty || uri == null || uri.isEmpty) {
+      return null;
+    }
+
+    final state = fileMap['state']?.toString();
+    return _GeminiFileUploadResult(name: name, uri: uri, state: state);
+  }
+
+  String _mimeTypeForFilePath(String filePath) {
+    switch (p.extension(filePath).toLowerCase()) {
+      case '.mp3':
+        return 'audio/mpeg';
+      case '.m4a':
+      case '.mp4':
+      case '.m4b':
+        return 'audio/mp4';
+      case '.flac':
+        return 'audio/flac';
+      case '.wav':
+        return 'audio/wav';
+      case '.aac':
+        return 'audio/aac';
+      case '.ogg':
+        return 'audio/ogg';
+      case '.opus':
+        return 'audio/opus';
+      case '.webm':
+        return 'audio/webm';
+      case '.wma':
+        return 'audio/x-ms-wma';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  String _cleanGeneratedLyricsText(String? text) {
+    final trimmed = text?.trim();
+    if (trimmed == null || trimmed.isEmpty) return '';
+
+    final fenceMatch = RegExp(
+      r'```(?:lrc|lyrics)?\s*([\s\S]*?)```',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+    final unwrapped = fenceMatch?.group(1)?.trim() ?? trimmed;
+
+    final lines = unwrapped.split(RegExp(r'\r?\n'));
+    final timestampPattern = RegExp(r'^\s*(?:\[\d{2}:\d{2}(?:\.\d{1,3})?\])+');
+    final lrcLikeLines = lines
+        .map((line) => line.trimRight())
+        .where((line) => line.trim().startsWith('['))
+        .toList(growable: false);
+
+    if (lrcLikeLines.any(timestampPattern.hasMatch)) {
+      return lrcLikeLines.join('\n').trim();
+    }
+
+    return unwrapped.trim();
+  }
+
+  String? _extractText(dynamic raw) {
+    if (raw is Map || raw is List) {
+      final extracted = _extractTextFromDecoded(raw);
+      if (extracted != null && extracted.isNotEmpty) {
+        return extracted;
+      }
+      return null;
+    }
+
+    if (raw is! String) {
+      return null;
+    }
+
     try {
       final decoded = jsonDecode(raw);
       final extracted = _extractTextFromDecoded(decoded);
