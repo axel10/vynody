@@ -175,6 +175,8 @@ class GeminiLyricsTranslationService {
   Future<String?> generateLyricsFromFile({
     required String filePath,
     String modelId = 'gemini-3.1-flash-lite-preview',
+    void Function(double progress)? onUploadProgress,
+    void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
     final apiKey = await _loadApiKey();
@@ -192,6 +194,7 @@ class GeminiLyricsTranslationService {
     final mimeType = _mimeTypeForFilePath(filePath);
 
     try {
+      onStageChanged?.call('uploading');
       // 先把本地音频文件上传到 Gemini 文件服务，后续生成请求只引用文件 URI。
       // 这样模型可以直接“看见”整首歌，而不是只靠标题或歌词文本猜测。
       debugPrint('[GeminiLyrics] 开始上传文件: $filePath');
@@ -199,11 +202,14 @@ class GeminiLyricsTranslationService {
         file: file,
         apiKey: apiKey,
         mimeType: mimeType,
+        onUploadProgress: onUploadProgress,
       );
       if (uploadedFile == null) {
         debugPrint('[GeminiLyrics] 文件上传失败: $filePath');
         return null;
       }
+
+      onStageChanged?.call('processing');
 
       final fileName = uploadedFile.name;
       final fileUri = uploadedFile.uri;
@@ -264,12 +270,15 @@ class GeminiLyricsTranslationService {
       }
 
       debugPrint('[GeminiLyrics] generation stream connected');
+      onStageChanged?.call('generating');
 
       final generatedBuffer = StringBuffer();
       String lastEmitted = '';
 
       void emitProgress({bool force = false}) {
-        final current = LrcUtils.cleanGeneratedLyricsText(generatedBuffer.toString());
+        final current = LrcUtils.cleanGeneratedLyricsText(
+          generatedBuffer.toString(),
+        );
         if (current.isEmpty) return;
         if (!force && current == lastEmitted) return;
         lastEmitted = current;
@@ -414,10 +423,13 @@ class GeminiLyricsTranslationService {
   }
 
   List<String> _stripTimestampsPreservingBlankLines(String lyrics) {
-    return lyrics.split(_lineSplitPattern).map((line) {
-      final withoutTimestamps = line.replaceAll(_timestampLinePattern, '');
-      return withoutTimestamps.trimRight();
-    }).toList(growable: false);
+    return lyrics
+        .split(_lineSplitPattern)
+        .map((line) {
+          final withoutTimestamps = line.replaceAll(_timestampLinePattern, '');
+          return withoutTimestamps.trimRight();
+        })
+        .toList(growable: false);
   }
 
   Future<String?> _loadApiKey() async {
@@ -471,9 +483,11 @@ class GeminiLyricsTranslationService {
     required File file,
     required String apiKey,
     required String mimeType,
+    void Function(double progress)? onUploadProgress,
   }) async {
     final fileSize = await file.length();
     final fileName = p.basename(file.path);
+    final fileBytes = await file.readAsBytes();
 
     final initResponse = await _dio.post(
       'https://generativelanguage.googleapis.com/upload/v1beta/files',
@@ -510,14 +524,16 @@ class GeminiLyricsTranslationService {
           'X-Goog-Upload-Protocol': 'resumable',
           'X-Goog-Upload-Command': 'upload, finalize',
           'X-Goog-Upload-Offset': 0,
+          Headers.contentLengthHeader: fileBytes.length,
         },
         contentType: mimeType,
       ),
-      data: file.openRead(),
+      data: fileBytes,
       onSendProgress: (sent, total) {
         if (total <= 0) return;
         final progress = (sent / total * 100).toStringAsFixed(2);
         debugPrint('[GeminiLyrics] upload progress: $progress%');
+        onUploadProgress?.call(sent / total);
       },
     );
 

@@ -2,7 +2,9 @@ import 'package:audio_core/audio_core.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
+import '../models/lyric_line.dart';
 import '../models/music_file.dart';
+import 'lyrics_generation_phase.dart';
 
 class AudioSnapshot {
   static final DeepCollectionEquality _deepEquality = DeepCollectionEquality();
@@ -29,6 +31,10 @@ class AudioSnapshot {
   final bool isLyricsLoading;
   final bool isLyricsTranslating;
   final bool isLyricsGenerating;
+  final LyricsGenerationPhase lyricsGenerationPhase;
+  final double lyricsGenerationProgress;
+  final List<LyricLine> currentLyricsLines;
+  final String currentLyricsText;
   final bool hasLyrics;
   final bool lyricsSearchAttempted;
   final String? currentLyricsTitle;
@@ -59,6 +65,10 @@ class AudioSnapshot {
     required this.isLyricsLoading,
     required this.isLyricsTranslating,
     required this.isLyricsGenerating,
+    required this.lyricsGenerationPhase,
+    required this.lyricsGenerationProgress,
+    required List<LyricLine> currentLyricsLines,
+    required this.currentLyricsText,
     required this.hasLyrics,
     required this.lyricsSearchAttempted,
     required this.currentLyricsTitle,
@@ -68,6 +78,7 @@ class AudioSnapshot {
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
          currentThemeColorsMap,
        ),
+       currentLyricsLines = List<LyricLine>.unmodifiable(currentLyricsLines),
        progress = duration.inMilliseconds > 0
            ? position.inMilliseconds / duration.inMilliseconds
            : 0.0;
@@ -97,6 +108,13 @@ class AudioSnapshot {
             isLyricsLoading == other.isLyricsLoading &&
             isLyricsTranslating == other.isLyricsTranslating &&
             isLyricsGenerating == other.isLyricsGenerating &&
+            lyricsGenerationPhase == other.lyricsGenerationPhase &&
+            lyricsGenerationProgress == other.lyricsGenerationProgress &&
+            _deepEquality.equals(
+              currentLyricsLines,
+              other.currentLyricsLines,
+            ) &&
+            currentLyricsText == other.currentLyricsText &&
             hasLyrics == other.hasLyrics &&
             lyricsSearchAttempted == other.lyricsSearchAttempted &&
             currentLyricsTitle == other.currentLyricsTitle &&
@@ -132,6 +150,10 @@ class AudioSnapshot {
     isLyricsLoading,
     isLyricsTranslating,
     isLyricsGenerating,
+    lyricsGenerationPhase,
+    lyricsGenerationProgress,
+    _deepEquality.hash(currentLyricsLines),
+    currentLyricsText,
     hasLyrics,
     lyricsSearchAttempted,
     currentLyricsTitle,

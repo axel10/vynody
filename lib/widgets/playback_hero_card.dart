@@ -10,6 +10,8 @@ import '../player/audio_snapshot.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../player/playlist_service.dart';
+import '../models/music_lyric.dart';
+import '../models/music_lyric_translation.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
 import '../widgets/cover_carousel.dart';
@@ -921,7 +923,19 @@ class PlaybackHeroCard extends StatelessWidget {
         snapshot.currentThemeColorsMap['darkMuted'] ??
         Colors.white;
 
-    final lyrics = snapshot.currentMusic?.lyrics;
+    final currentLyrics = snapshot.currentMusic?.lyrics;
+    final liveLyricsText = snapshot.currentLyricsText.trim();
+    final liveLyricsLines = snapshot.currentLyricsLines;
+    final lyrics = liveLyricsText.isNotEmpty
+        ? MusicLyric(
+            id: currentLyrics?.id ?? '',
+            syncedLines: liveLyricsLines,
+            plainText: liveLyricsText,
+            translations:
+                currentLyrics?.translations ??
+                const <String, MusicLyricTranslation>{},
+          )
+        : currentLyrics;
 
     return LyricsPanel(
       key: ValueKey(snapshot.currentMusic?.path ?? 'no-track'),
@@ -931,6 +945,8 @@ class PlaybackHeroCard extends StatelessWidget {
       isLoading: snapshot.isLyricsLoading,
       isTranslating: snapshot.isLyricsTranslating,
       isGeneratingLyrics: snapshot.isLyricsGenerating,
+      lyricsGenerationPhase: snapshot.lyricsGenerationPhase,
+      lyricsGenerationProgress: snapshot.lyricsGenerationProgress,
       hasLyrics: snapshot.hasLyrics,
       lyricsSearchAttempted: snapshot.lyricsSearchAttempted,
       plainLyrics: lyrics?.plainText ?? '',

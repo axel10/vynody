@@ -28,6 +28,7 @@ import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
 import 'scanner_service.dart';
 import 'metadata_helper.dart';
+import 'lyrics_generation_phase.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioCoreController _player;
@@ -67,6 +68,8 @@ class AudioService extends ChangeNotifier {
   bool _lyricsSearchAttempted = false;
   bool _isLyricsSynced = false;
   int _lyricsGenerationSerial = 0;
+  LyricsGenerationPhase _lyricsGenerationPhase = LyricsGenerationPhase.idle;
+  double _lyricsGenerationProgress = 0.0;
   List<LyricLine> _currentLyricsLines = const [];
   String _currentLyricsText = '';
   String? _currentLyricsTitle;
@@ -91,6 +94,8 @@ class AudioService extends ChangeNotifier {
   bool get isLyricsLoading => _isLyricsLoading;
   bool get isLyricsTranslating => _isLyricsTranslating;
   bool get isLyricsGenerating => _isLyricsGenerating;
+  LyricsGenerationPhase get lyricsGenerationPhase => _lyricsGenerationPhase;
+  double get lyricsGenerationProgress => _lyricsGenerationProgress;
   bool get hasLyrics => _hasLyrics;
   bool get lyricsSearchAttempted => _lyricsSearchAttempted;
   bool get isLyricsSynced => _isLyricsSynced;
@@ -581,6 +586,10 @@ class AudioService extends ChangeNotifier {
     isLyricsLoading: _isLyricsLoading,
     isLyricsTranslating: _isLyricsTranslating,
     isLyricsGenerating: _isLyricsGenerating,
+    lyricsGenerationPhase: _lyricsGenerationPhase,
+    lyricsGenerationProgress: _lyricsGenerationProgress,
+    currentLyricsLines: _currentLyricsLines,
+    currentLyricsText: _currentLyricsText,
     hasLyrics: _hasLyrics,
     lyricsSearchAttempted: _lyricsSearchAttempted,
     currentLyricsTitle: _currentLyricsTitle,
@@ -1198,6 +1207,8 @@ class AudioService extends ChangeNotifier {
     final generationId = ++_lyricsGenerationSerial;
     _isLyricsGenerating = true;
     _isLyricsLoading = false;
+    _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
+    _lyricsGenerationProgress = 0.0;
     debugPrint(
       '[AudioService] generate lyrics start: '
       'title="${song.displayName}" path="${song.path}" '
@@ -1212,6 +1223,42 @@ class AudioService extends ChangeNotifier {
       final generatedLyrics = await _geminiLyricsTranslationService
           .generateLyricsFromFile(
             filePath: song.path,
+            onUploadProgress: (progress) {
+              if (generationId != _lyricsGenerationSerial ||
+                  currentMusic?.path != song.path) {
+                return;
+              }
+
+              _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
+              _lyricsGenerationProgress = progress.clamp(0.0, 1.0);
+              notifyListeners();
+            },
+            onStageChanged: (stage) {
+              if (generationId != _lyricsGenerationSerial ||
+                  currentMusic?.path != song.path) {
+                return;
+              }
+
+              switch (stage) {
+                case 'uploading':
+                  _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
+                  _lyricsGenerationProgress = 0.0;
+                  break;
+                case 'processing':
+                  _lyricsGenerationPhase = LyricsGenerationPhase.processing;
+                  _lyricsGenerationProgress = 1.0;
+                  break;
+                case 'generating':
+                  _lyricsGenerationPhase = LyricsGenerationPhase.generating;
+                  _lyricsGenerationProgress = 1.0;
+                  break;
+                default:
+                  _lyricsGenerationPhase = LyricsGenerationPhase.idle;
+                  _lyricsGenerationProgress = 0.0;
+                  break;
+              }
+              notifyListeners();
+            },
             onProgress: (partialText, isFinal) {
               // 这里处理的是“增量结果”，不是最终结果。
               // 每次收到新文本，都先确认它仍然属于当前歌曲和当前请求。
@@ -1235,6 +1282,8 @@ class AudioService extends ChangeNotifier {
 
               _hasLyrics = true;
               _isLyricsLoading = false;
+              _lyricsGenerationPhase = LyricsGenerationPhase.generating;
+              _lyricsGenerationProgress = 1.0;
               _isLyricsSynced = progressLyrics.syncedLines.any(
                 (line) => line.isTimed,
               );
@@ -1317,6 +1366,8 @@ class AudioService extends ChangeNotifier {
 
       _hasLyrics = true;
       _isLyricsLoading = false;
+      _lyricsGenerationPhase = LyricsGenerationPhase.idle;
+      _lyricsGenerationProgress = 0.0;
       _isLyricsSynced = lyrics.syncedLines.any((line) => line.isTimed);
       _lyricsSearchAttempted = true;
       _currentLyricsLines = lyrics.syncedLines;
@@ -1359,6 +1410,8 @@ class AudioService extends ChangeNotifier {
       // 只有当前这次请求仍然是最新的一次，才结束“生成中”状态。
       if (generationId == _lyricsGenerationSerial) {
         _isLyricsGenerating = false;
+        _lyricsGenerationPhase = LyricsGenerationPhase.idle;
+        _lyricsGenerationProgress = 0.0;
         notifyListeners();
         debugPrint(
           '[AudioService] generate lyrics finish: '

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
+import '../player/lyrics_generation_phase.dart';
 
 class LyricsPanel extends StatefulWidget {
   const LyricsPanel({
@@ -14,6 +15,8 @@ class LyricsPanel extends StatefulWidget {
     required this.isLoading,
     required this.isTranslating,
     required this.isGeneratingLyrics,
+    required this.lyricsGenerationPhase,
+    required this.lyricsGenerationProgress,
     required this.hasLyrics,
     required this.lyricsSearchAttempted,
     required this.plainLyrics,
@@ -31,6 +34,8 @@ class LyricsPanel extends StatefulWidget {
   final bool isLoading;
   final bool isTranslating;
   final bool isGeneratingLyrics;
+  final LyricsGenerationPhase lyricsGenerationPhase;
+  final double lyricsGenerationProgress;
   final bool hasLyrics;
   final bool lyricsSearchAttempted;
   final String plainLyrics;
@@ -112,6 +117,24 @@ class _LyricsPanelState extends State<LyricsPanel> {
         () => widget.onClearTranslationCache?.call(),
       );
     }
+  }
+
+  String _buildGenerateButtonLabel() {
+    final progress = widget.lyricsGenerationProgress.clamp(0.0, 1.0);
+    final percent = (progress * 100).round();
+
+    switch (widget.lyricsGenerationPhase) {
+      case LyricsGenerationPhase.uploading:
+        return '上传中 $percent%';
+      case LyricsGenerationPhase.processing:
+        return '处理中...';
+      case LyricsGenerationPhase.generating:
+        return '生成中...';
+      case LyricsGenerationPhase.idle:
+        break;
+    }
+
+    return widget.isGeneratingLyrics ? '生成中...' : '生成歌词';
   }
 
   void _scheduleScrollIfNeeded({bool force = false}) {
@@ -221,9 +244,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
                                 ),
                               )
                             : const Icon(Icons.auto_awesome, size: 18),
-                        label: Text(
-                          widget.isGeneratingLyrics ? '生成中...' : '生成歌词',
-                        ),
+                        label: Text(_buildGenerateButtonLabel()),
                       ),
                     ),
                   ],
