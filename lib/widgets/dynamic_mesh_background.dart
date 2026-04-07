@@ -154,8 +154,6 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
               ),
             ),
           ),
-          // Dark overlay to improve text readability
-          Container(color: Colors.black.withValues(alpha: 0.15)),
         ],
       ),
     );

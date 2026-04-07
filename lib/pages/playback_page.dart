@@ -800,6 +800,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                   )
                 else
                   _buildBlurredBackground(context),
+                _buildBackgroundScrim(),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
                 content,
@@ -829,6 +830,34 @@ class _PlaybackPageState extends State<PlaybackPage>
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildBackgroundScrim() {
+    if (_isLyricsMode) {
+      return Positioned.fill(
+        child: IgnorePointer(
+          child: ColoredBox(
+            color: Colors.black.withValues(alpha: 0.28),
+          ),
+        ),
+      );
+    }
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              colors: [
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.20),
+              ],
+              stops: const [0.1, 1.0],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -896,22 +925,6 @@ class _PlaybackPageState extends State<PlaybackPage>
                 );
               },
             ),
-            // 径向渐变暗化遮罩：从中心向边缘逐渐变暗，消除边缘暗角
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.25),
-                      ],
-                      stops: const [0.4, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -972,39 +985,4 @@ class _PlaybackPageState extends State<PlaybackPage>
     );
   }
 
-  // Widget _buildTopGradient() {
-  //   return Positioned(
-  //     top: 0,
-  //     left: 0,
-  //     right: 0,
-  //     height: 120,
-  //     child: Container(
-  //       decoration: BoxDecoration(
-  //         gradient: LinearGradient(
-  //           begin: Alignment.topCenter,
-  //           end: Alignment.bottomCenter,
-  //           colors: [Colors.black.withValues(alpha: 0.7), Colors.transparent],
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  // Widget _buildBottomGradient() {
-  //   return Positioned(
-  //     bottom: 0,
-  //     left: 0,
-  //     right: 0,
-  //     height: 160,
-  //     child: Container(
-  //       decoration: BoxDecoration(
-  //         gradient: LinearGradient(
-  //           begin: Alignment.bottomCenter,
-  //           end: Alignment.topCenter,
-  //           colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
 }
