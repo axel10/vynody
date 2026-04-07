@@ -800,9 +800,10 @@ class _PlaybackPageState extends State<PlaybackPage>
                   )
                 else
                   _buildBlurredBackground(context),
-                _buildBackgroundScrim(),
+                if (!_isLyricsMode) _buildBackgroundScrim(),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
+                if (_isLyricsMode) _buildLyricsModeScrim(),
                 content,
                 if (_showVolumeSlider)
                   Selector<AudioService, double>(
@@ -835,16 +836,6 @@ class _PlaybackPageState extends State<PlaybackPage>
   }
 
   Widget _buildBackgroundScrim() {
-    if (_isLyricsMode) {
-      return Positioned.fill(
-        child: IgnorePointer(
-          child: ColoredBox(
-            color: Colors.black.withValues(alpha: 0.28),
-          ),
-        ),
-      );
-    }
-
     return Positioned.fill(
       child: IgnorePointer(
         child: DecoratedBox(
@@ -857,6 +848,16 @@ class _PlaybackPageState extends State<PlaybackPage>
               stops: const [0.1, 1.0],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLyricsModeScrim() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: ColoredBox(
+          color: Colors.black.withValues(alpha: 0.28),
         ),
       ),
     );
