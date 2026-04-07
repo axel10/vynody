@@ -481,13 +481,14 @@ class MusicBrainzTagCompletionService {
 
       if (thumbnails is Map<String, dynamic>) {
         largeUrl =
+            selectedImage['image'] as String? ??
             thumbnails['1200'] as String? ??
-            thumbnails['large'] as String? ??
-            selectedImage['image'] as String?;
+            thumbnails['large'] as String?;
         thumbnailUrl =
             thumbnails['small'] as String? ??
             thumbnails['250'] as String? ??
-            thumbnails['large'] as String?;
+            thumbnails['large'] as String? ??
+            largeUrl;
       } else {
         largeUrl = selectedImage['image'] as String?;
         thumbnailUrl = largeUrl;
@@ -532,15 +533,33 @@ class MusicBrainzTagCompletionService {
     ResolvedCover resolved,
   ) async {
     try {
-      final imageUrl = resolved.largeUrl!;
-      await _rateLimit();
-      debugPrint('MusicBrainz cover image download: $imageUrl');
-      final bytesResponse = await _client.get<List<int>>(
-        imageUrl,
-        options: Options(responseType: ResponseType.bytes),
-      );
-      final bytes = Uint8List.fromList(bytesResponse.data ?? const <int>[]);
-      if (bytes.isEmpty) return null;
+      final candidateUrls = <String>[
+        if (_hasMeaningfulText(resolved.largeUrl)) resolved.largeUrl!,
+        if (_hasMeaningfulText(resolved.thumbnailUrl) &&
+            resolved.thumbnailUrl != resolved.largeUrl)
+          resolved.thumbnailUrl!,
+      ];
+
+      Uint8List? bytes;
+      for (final imageUrl in candidateUrls) {
+        try {
+          await _rateLimit();
+          debugPrint('MusicBrainz cover image download: $imageUrl');
+          final bytesResponse = await _client.get<List<int>>(
+            imageUrl,
+            options: Options(responseType: ResponseType.bytes),
+          );
+          final data = bytesResponse.data ?? const <int>[];
+          if (data.isNotEmpty) {
+            bytes = Uint8List.fromList(data);
+            break;
+          }
+        } catch (e) {
+          debugPrint('MusicBrainz cover image candidate failed: $e');
+        }
+      }
+
+      if (bytes == null || bytes.isEmpty) return null;
 
       // 1. Process and save both large image and thumbnail
       final artworkInfo = await MetadataHelper.saveArtworkAndThumbnail(

@@ -149,6 +149,18 @@ class AcoustIDResult {
   }
 }
 
+class ResolvedAcoustIDCover {
+  final String releaseId;
+  final String? largeUrl;
+  final String? thumbnailUrl;
+
+  const ResolvedAcoustIDCover({
+    required this.releaseId,
+    this.largeUrl,
+    this.thumbnailUrl,
+  });
+}
+
 class AcoustIDService {
   AcoustIDService({required this.apiKey, MetadataDatabase? db})
     : _client = NetworkClient(
@@ -163,8 +175,9 @@ class AcoustIDService {
   final NetworkClient _client;
   final MetadataDatabase _db;
   final Map<String, Future<List<AcoustIDResult>>> _inFlight = {};
-  final Map<String, String?> _coverUrlCache = {};
-  final Map<String, Future<String?>> _coverResolutionInFlight = {};
+  final Map<String, ResolvedAcoustIDCover?> _coverUrlCache = {};
+  final Map<String, Future<ResolvedAcoustIDCover?>> _coverResolutionInFlight =
+      {};
 
   Future<List<AcoustIDResult>> lookupByFingerprint({
     required String filePath,
@@ -206,55 +219,73 @@ class AcoustIDService {
     return future;
   }
 
-  Future<String?> resolveCoverThumbnailUrl(AcoustIDResult result) async {
+  Future<ResolvedAcoustIDCover?> resolveCoverUrls(AcoustIDResult result) async {
     final releaseId = result.releaseId;
     if (releaseId == null || releaseId.isEmpty) return null;
 
     if (result.resolvedThumbnailUrl != null &&
         result.resolvedThumbnailUrl!.isNotEmpty) {
-      return result.resolvedThumbnailUrl;
+      return ResolvedAcoustIDCover(
+        releaseId: releaseId,
+        thumbnailUrl: result.resolvedThumbnailUrl,
+      );
     }
 
     // Try database cache first
     final cached = await _db.getReleaseCoverCache(releaseId);
-    if (cached != null && _hasMeaningfulText(cached.thumbnailUrl)) {
-      result.resolvedThumbnailUrl = cached.thumbnailUrl;
-      return cached.thumbnailUrl;
+    if (cached != null &&
+        (_hasMeaningfulText(cached.largeUrl) ||
+            _hasMeaningfulText(cached.thumbnailUrl))) {
+      final resolved = ResolvedAcoustIDCover(
+        releaseId: releaseId,
+        largeUrl: cached.largeUrl,
+        thumbnailUrl: cached.thumbnailUrl,
+      );
+      result.resolvedThumbnailUrl = resolved.thumbnailUrl;
+      return resolved;
     }
 
     // Check in-memory cache
     final memoryCached = _coverUrlCache[releaseId];
     if (memoryCached != null) {
-      result.resolvedThumbnailUrl = memoryCached;
+      result.resolvedThumbnailUrl = memoryCached.thumbnailUrl;
       return memoryCached;
     }
 
     final inFlight = _coverResolutionInFlight[releaseId];
     if (inFlight != null) {
       final resolved = await inFlight;
-      result.resolvedThumbnailUrl = resolved;
+      result.resolvedThumbnailUrl = resolved?.thumbnailUrl;
       return resolved;
     }
 
-    final future = _resolveCoverThumbnailUrl(releaseId).whenComplete(() {
+    final future = _resolveCoverUrls(releaseId).whenComplete(() {
       _coverResolutionInFlight.remove(releaseId);
     });
     _coverResolutionInFlight[releaseId] = future;
 
     final resolved = await future;
     _coverUrlCache[releaseId] = resolved;
-    result.resolvedThumbnailUrl = resolved;
+    result.resolvedThumbnailUrl = resolved?.thumbnailUrl;
 
     // Save to database cache
     if (resolved != null) {
-      await _db.insertOrUpdateReleaseCoverCache(ReleaseCoverCacheRecord(
-        releaseId: releaseId,
-        thumbnailUrl: resolved,
-        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-      ));
+      await _db.insertOrUpdateReleaseCoverCache(
+        ReleaseCoverCacheRecord(
+          releaseId: releaseId,
+          largeUrl: resolved.largeUrl,
+          thumbnailUrl: resolved.thumbnailUrl,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
     }
 
     return resolved;
+  }
+
+  Future<String?> resolveCoverThumbnailUrl(AcoustIDResult result) async {
+    final resolved = await resolveCoverUrls(result);
+    return resolved?.thumbnailUrl;
   }
 
   bool _hasMeaningfulText(String? value) {
@@ -351,7 +382,7 @@ class AcoustIDService {
     }
   }
 
-  Future<String?> _resolveCoverThumbnailUrl(String releaseId) async {
+  Future<ResolvedAcoustIDCover?> _resolveCoverUrls(String releaseId) async {
     try {
       final apiUrl = Uri.https('coverartarchive.org', '/release/$releaseId');
       final response = await _client.get(
@@ -378,14 +409,32 @@ class AcoustIDService {
       if (selectedImage == null || selectedImage.isEmpty) return null;
 
       final thumbnails = selectedImage['thumbnails'];
+      String? largeUrl;
+      String? thumbnailUrl;
       if (thumbnails is Map<String, dynamic>) {
-        return thumbnails['250'] as String? ??
+        largeUrl =
+            selectedImage['image'] as String? ??
+            thumbnails['1200'] as String? ??
+            thumbnails['large'] as String?;
+        thumbnailUrl =
+            thumbnails['250'] as String? ??
             thumbnails['small'] as String? ??
             thumbnails['large'] as String? ??
-            selectedImage['image'] as String?;
+            largeUrl;
+      } else {
+        largeUrl = selectedImage['image'] as String?;
+        thumbnailUrl = largeUrl;
       }
 
-      return selectedImage['image'] as String?;
+      if (!_hasMeaningfulText(largeUrl) && !_hasMeaningfulText(thumbnailUrl)) {
+        return null;
+      }
+
+      return ResolvedAcoustIDCover(
+        releaseId: releaseId,
+        largeUrl: largeUrl,
+        thumbnailUrl: thumbnailUrl,
+      );
     } catch (e) {
       debugPrint('AcoustID cover resolution failed for $releaseId: $e');
       return null;

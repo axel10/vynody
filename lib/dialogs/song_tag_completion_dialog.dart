@@ -183,24 +183,46 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     Uint8List? coverArtBytes;
     if (result.releaseId != null && result.releaseId!.isNotEmpty) {
       try {
+        final resolvedCover = _acoustidService != null
+            ? await _acoustidService!.resolveCoverUrls(result)
+            : null;
+        final resolvedLargeUrl = resolvedCover?.largeUrl;
+        final resolvedThumbnailUrl = resolvedCover?.thumbnailUrl;
+        final hasThumbnail = resolvedThumbnailUrl?.isNotEmpty ?? false;
+        final coverCandidates = <String>[
+          if (resolvedLargeUrl?.isNotEmpty ?? false) resolvedLargeUrl!,
+          if (hasThumbnail && resolvedThumbnailUrl != resolvedLargeUrl)
+            resolvedThumbnailUrl!,
+          '/release/${result.releaseId}/front-500',
+        ];
+
         final coverClient = NetworkClient(
           baseUrl: 'https://coverartarchive.org',
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 15),
         );
-        final resp = await coverClient.get<List<int>>(
-          '/release/${result.releaseId}/front-500',
-          options: Options(
-            responseType: ResponseType.bytes,
-            headers: {'Accept': 'image/jpeg, image/png, image/*, */*'},
-          ),
-        );
-        if (resp.data != null && resp.data!.isNotEmpty) {
-          coverArtBytes = Uint8List.fromList(resp.data!);
-          debugPrint(
-            'AcoustID: Downloaded ${coverArtBytes.length} bytes of cover art for release ${result.releaseId}',
-          );
-        } else {
+
+        for (final coverUrl in coverCandidates) {
+          try {
+            final resp = await coverClient.get<List<int>>(
+              coverUrl,
+              options: Options(
+                responseType: ResponseType.bytes,
+                headers: {'Accept': 'image/jpeg, image/png, image/*, */*'},
+              ),
+            );
+            if (resp.data != null && resp.data!.isNotEmpty) {
+              coverArtBytes = Uint8List.fromList(resp.data!);
+              debugPrint(
+                'AcoustID: Downloaded ${coverArtBytes.length} bytes of cover art for release ${result.releaseId}',
+              );
+              break;
+            }
+          } catch (e) {
+            debugPrint('AcoustID: Cover art candidate failed: $e');
+          }
+        }
+        if (coverArtBytes == null) {
           debugPrint('AcoustID: Cover art response is empty');
         }
       } catch (e) {
