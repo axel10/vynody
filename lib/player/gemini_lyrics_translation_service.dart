@@ -221,7 +221,7 @@ class GeminiLyricsTranslationService {
       }
 
       final prompt =
-          '输出这首歌的完整的带时间轴的标准LRC格式歌词，对识别结果进行整理，不要每行过于零散。仅输出结果不输出其他内容。';
+          '输出这首歌的完整的带时间轴的标准LRC格式歌词，仅输出结果不输出其他内容。';
       final requestData = {
         'contents': [
           {
