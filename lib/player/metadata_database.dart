@@ -136,68 +136,44 @@ class SongMetadata {
 }
 
 class LyricsCacheRecord {
+  // SQLite 自增主键，只用于数据库内部标识。
   final int? id;
+  // 本次歌词查询的缓存键，由歌曲路径、标题、歌手、专辑、时长组合生成。
   final String cacheKey;
-  final String filePath;
-  final String title;
-  final String? artist;
-  final String? album;
-  final int? duration;
+  // 缓存来源，例如 get、search、none、gemini_generate。
   final String source;
-  final int? trackId;
-  final double score;
+  // 是否为同步歌词。
   final bool isSynced;
-  final bool instrumental;
-  final String? plainLyrics;
+  // 原始带时间轴歌词文本。
   final String? syncedLyrics;
+  // 已解析好的逐行时间轴数据，便于直接恢复渲染。
   final List<Map<String, dynamic>> syncedLines;
-  final Map<String, dynamic>? rawJson;
+  // 最近更新时间，毫秒时间戳。
   final int updatedAtMillis;
 
   const LyricsCacheRecord({
     this.id,
     required this.cacheKey,
-    required this.filePath,
-    required this.title,
-    this.artist,
-    this.album,
-    this.duration,
     required this.source,
-    this.trackId,
-    required this.score,
     required this.isSynced,
-    required this.instrumental,
-    this.plainLyrics,
     this.syncedLyrics,
     required this.syncedLines,
-    this.rawJson,
     required this.updatedAtMillis,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'cacheKey': cacheKey,
-      'filePath': filePath,
-      'title': title,
-      'artist': artist,
-      'album': album,
-      'duration': duration,
       'source': source,
-      'trackId': trackId,
-      'score': score,
       'isSynced': isSynced ? 1 : 0,
-      'instrumental': instrumental ? 1 : 0,
-      'plainLyrics': plainLyrics,
       'syncedLyrics': syncedLyrics,
       'syncedLinesJson': jsonEncode(syncedLines),
-      'rawJson': rawJson == null ? null : jsonEncode(rawJson),
       'updatedAtMillis': updatedAtMillis,
     };
   }
 
   factory LyricsCacheRecord.fromMap(Map<String, dynamic> map) {
     final syncedLinesJson = map['syncedLinesJson'] as String?;
-    final rawJson = map['rawJson'] as String?;
     final decodedLines = syncedLinesJson == null || syncedLinesJson.isEmpty
         ? <Map<String, dynamic>>[]
         : (jsonDecode(syncedLinesJson) as List)
@@ -208,22 +184,62 @@ class LyricsCacheRecord {
     return LyricsCacheRecord(
       id: map['id'] as int?,
       cacheKey: map['cacheKey'] as String,
-      filePath: map['filePath'] as String? ?? '',
-      title: map['title'] as String? ?? '',
-      artist: map['artist'] as String?,
-      album: map['album'] as String?,
-      duration: map['duration'] as int?,
       source: map['source'] as String? ?? 'search',
-      trackId: map['trackId'] as int?,
-      score: (map['score'] as num?)?.toDouble() ?? 0.0,
       isSynced: (map['isSynced'] as int? ?? 0) == 1,
-      instrumental: (map['instrumental'] as int? ?? 0) == 1,
-      plainLyrics: map['plainLyrics'] as String?,
       syncedLyrics: map['syncedLyrics'] as String?,
       syncedLines: decodedLines,
-      rawJson: rawJson == null || rawJson.isEmpty
-          ? null
-          : Map<String, dynamic>.from(jsonDecode(rawJson) as Map),
+      updatedAtMillis:
+          (map['updatedAtMillis'] as int?) ??
+          DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+}
+
+class LyricsTranslationCacheRecord {
+  final int? id;
+  final String cacheKey;
+  final String languageCode;
+  final String translatedText;
+  final List<String> translatedLines;
+  final String? provider;
+  final int updatedAtMillis;
+
+  const LyricsTranslationCacheRecord({
+    this.id,
+    required this.cacheKey,
+    required this.languageCode,
+    required this.translatedText,
+    required this.translatedLines,
+    this.provider,
+    required this.updatedAtMillis,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'cacheKey': cacheKey,
+      'languageCode': languageCode,
+      'translatedText': translatedText,
+      'translatedLinesJson': jsonEncode(translatedLines),
+      'provider': provider,
+      'updatedAtMillis': updatedAtMillis,
+    };
+  }
+
+  factory LyricsTranslationCacheRecord.fromMap(Map<String, dynamic> map) {
+    final rawLines = map['translatedLinesJson'] as String?;
+    final decodedLines = rawLines == null || rawLines.isEmpty
+        ? <String>[]
+        : (jsonDecode(rawLines) as List)
+              .map((item) => item?.toString() ?? '')
+              .toList(growable: false);
+
+    return LyricsTranslationCacheRecord(
+      id: map['id'] as int?,
+      cacheKey: map['cacheKey'] as String? ?? '',
+      languageCode: map['languageCode'] as String? ?? 'zh',
+      translatedText: map['translatedText'] as String? ?? '',
+      translatedLines: decodedLines,
+      provider: map['provider'] as String?,
       updatedAtMillis:
           (map['updatedAtMillis'] as int?) ??
           DateTime.now().millisecondsSinceEpoch,
@@ -330,7 +346,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 12,
+      version: 15,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -357,20 +373,10 @@ class MetadataDatabase {
           CREATE TABLE lyrics_cache (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cacheKey TEXT UNIQUE,
-            filePath TEXT,
-            title TEXT,
-            artist TEXT,
-            album TEXT,
-            duration INTEGER,
             source TEXT,
-            trackId INTEGER,
-            score REAL,
             isSynced INTEGER,
-            instrumental INTEGER,
-            plainLyrics TEXT,
             syncedLyrics TEXT,
             syncedLinesJson TEXT,
-            rawJson TEXT,
             updatedAtMillis INTEGER
           )
         ''');
@@ -392,6 +398,19 @@ class MetadataDatabase {
             largeUrl TEXT,
             thumbnailUrl TEXT,
             updatedAtMillis INTEGER
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE lyrics_translation_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cacheKey TEXT,
+            languageCode TEXT,
+            translatedText TEXT,
+            translatedLinesJson TEXT,
+            provider TEXT,
+            updatedAtMillis INTEGER,
+            UNIQUE(cacheKey, languageCode)
           )
         ''');
       },
@@ -494,6 +513,42 @@ class MetadataDatabase {
             await db.execute('ALTER TABLE songs ADD COLUMN createdAt INTEGER');
           }
         }
+        if (oldVersion < 13) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS lyrics_translation_cache (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              cacheKey TEXT,
+              languageCode TEXT,
+              translatedText TEXT,
+              translatedLinesJson TEXT,
+              provider TEXT,
+              updatedAtMillis INTEGER,
+              UNIQUE(cacheKey, languageCode)
+            )
+          ''');
+        }
+        if (oldVersion < 14) {
+          if (!await _columnExists(db, 'lyrics_cache', 'cacheKey')) {
+            await db.execute(
+              'ALTER TABLE lyrics_cache ADD COLUMN cacheKey TEXT',
+            );
+          }
+        }
+        if (oldVersion < 15) {
+          await db.execute('DROP TABLE IF EXISTS lyrics_translation_cache');
+          await db.execute('''
+            CREATE TABLE lyrics_translation_cache (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              cacheKey TEXT,
+              languageCode TEXT,
+              translatedText TEXT,
+              translatedLinesJson TEXT,
+              provider TEXT,
+              updatedAtMillis INTEGER,
+              UNIQUE(cacheKey, languageCode)
+            )
+          ''');
+        }
       },
     );
   }
@@ -540,6 +595,38 @@ class MetadataDatabase {
     return null;
   }
 
+  Future<void> insertOrUpdateLyricsTranslationCache(
+    LyricsTranslationCacheRecord record,
+  ) async {
+    final db = await database;
+    final normalizedCacheKey = record.cacheKey.trim();
+    if (normalizedCacheKey.isNotEmpty) {
+      await db.delete(
+        'lyrics_translation_cache',
+        where: 'cacheKey = ? AND languageCode = ?',
+        whereArgs: [normalizedCacheKey, record.languageCode],
+      );
+    }
+    await db.insert(
+      'lyrics_translation_cache',
+      record.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<LyricsTranslationCacheRecord>> getLyricsTranslationCaches(
+    String cacheKey,
+  ) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'lyrics_translation_cache',
+      where: 'cacheKey = ?',
+      whereArgs: [cacheKey],
+      orderBy: 'updatedAtMillis DESC',
+    );
+    return maps.map(LyricsTranslationCacheRecord.fromMap).toList();
+  }
+
   Future<void> insertOrUpdateAcoustIDCache(AcoustIDCacheRecord record) async {
     final db = await database;
     await db.insert(
@@ -564,7 +651,9 @@ class MetadataDatabase {
     return null;
   }
 
-  Future<void> insertOrUpdateReleaseCoverCache(ReleaseCoverCacheRecord record) async {
+  Future<void> insertOrUpdateReleaseCoverCache(
+    ReleaseCoverCacheRecord record,
+  ) async {
     final db = await database;
     await db.insert(
       'release_cover_cache',
@@ -573,7 +662,9 @@ class MetadataDatabase {
     );
   }
 
-  Future<ReleaseCoverCacheRecord?> getReleaseCoverCache(String releaseId) async {
+  Future<ReleaseCoverCacheRecord?> getReleaseCoverCache(
+    String releaseId,
+  ) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'release_cover_cache',
@@ -605,5 +696,15 @@ class MetadataDatabase {
   Future<void> clearAll() async {
     final db = await database;
     await db.delete('songs');
+  }
+
+  Future<void> clearLyricsCache() async {
+    final db = await database;
+    await db.delete('lyrics_cache');
+  }
+
+  Future<void> clearLyricsTranslationCache() async {
+    final db = await database;
+    await db.delete('lyrics_translation_cache');
   }
 }

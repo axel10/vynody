@@ -935,10 +935,16 @@ class PlaybackHeroCard extends StatelessWidget {
       lyricsSearchAttempted: snapshot.lyricsSearchAttempted,
       plainLyrics: lyrics?.plainText ?? '',
       translationLanguageCode: snapshot.lyricsTranslationLanguageCode,
+      // 面板里的“生成歌词”按钮最终会回调到 AudioService，
+      // 这样 UI 只负责展示状态，具体生成逻辑统一放在播放器服务层。
       onTranslateLyrics: () =>
           context.read<AudioService>().translateLyricsForCurrentSong(),
       onGenerateLyrics: () =>
           context.read<AudioService>().generateLyricsForCurrentSong(),
+      onClearLyricsCache: () =>
+          context.read<AudioService>().clearAllLyricsCache(),
+      onClearTranslationCache: () =>
+          context.read<AudioService>().clearTranslationCache(),
       accentColor: accent,
     );
   }

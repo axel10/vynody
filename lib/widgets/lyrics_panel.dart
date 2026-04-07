@@ -20,6 +20,8 @@ class LyricsPanel extends StatefulWidget {
     required this.translationLanguageCode,
     this.onTranslateLyrics,
     this.onGenerateLyrics,
+    this.onClearLyricsCache,
+    this.onClearTranslationCache,
     this.accentColor,
   });
 
@@ -35,6 +37,8 @@ class LyricsPanel extends StatefulWidget {
   final String translationLanguageCode;
   final VoidCallback? onTranslateLyrics;
   final VoidCallback? onGenerateLyrics;
+  final VoidCallback? onClearLyricsCache;
+  final VoidCallback? onClearTranslationCache;
   final Color? accentColor;
 
   @override
@@ -86,11 +90,27 @@ class _LyricsPanelState extends State<LyricsPanel> {
           enabled: widget.onTranslateLyrics != null && !widget.isTranslating,
           child: const Text('翻译歌词'),
         ),
+        PopupMenuItem<String>(
+          value: 'clear_lyrics_cache',
+          enabled: widget.onClearLyricsCache != null,
+          child: const Text('清除所有歌词缓存'),
+        ),
+        PopupMenuItem<String>(
+          value: 'clear_translation_cache',
+          enabled: widget.onClearTranslationCache != null,
+          child: const Text('清除翻译缓存'),
+        ),
       ],
     );
 
     if (selected == 'translate') {
       await Future<void>.microtask(() => widget.onTranslateLyrics?.call());
+    } else if (selected == 'clear_lyrics_cache') {
+      await Future<void>.microtask(() => widget.onClearLyricsCache?.call());
+    } else if (selected == 'clear_translation_cache') {
+      await Future<void>.microtask(
+        () => widget.onClearTranslationCache?.call(),
+      );
     }
   }
 
@@ -149,12 +169,17 @@ class _LyricsPanelState extends State<LyricsPanel> {
   @override
   Widget build(BuildContext context) {
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
+    final hasRenderableLyrics =
+        widget.hasLyrics &&
+        (widget.lines.isNotEmpty || widget.plainLyrics.trim().isNotEmpty);
 
     if (widget.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (!widget.hasLyrics) {
+    if (!hasRenderableLyrics) {
+      // 只有在已经尝试过联网找歌词、但仍然没有结果时，才显示“生成歌词”按钮。
+      // 这样避免用户在歌词还在加载中时误以为可以直接生成。
       final canGenerateLyrics =
           widget.lyricsSearchAttempted && widget.onGenerateLyrics != null;
       return Stack(
@@ -177,6 +202,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
                     SizedBox(
                       height: 42,
                       child: FilledButton.icon(
+                        // 点击后只触发外部传入的回调，真正的生成流程由 AudioService 处理。
                         onPressed: widget.isGeneratingLyrics
                             ? null
                             : widget.onGenerateLyrics,

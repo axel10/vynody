@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import '../utils/lrc_utils.dart';
+
 class _GeminiFileUploadResult {
   final String name;
   final String uri;
@@ -37,7 +39,7 @@ class GeminiLyricsTranslationService {
       return false;
     }
 
-    final sourceLyrics = _stripTimestamps(lyrics);
+    final sourceLyrics = LrcUtils.stripTimestamps(lyrics);
     final sourceLines = sourceLyrics.split(RegExp(r'\r?\n'));
     final targetLineCount = sourceLines.isEmpty ? 0 : sourceLines.length;
     if (targetLineCount == 0) {
@@ -48,8 +50,8 @@ class GeminiLyricsTranslationService {
     final prompt =
         '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
         '总结整首歌的意境并结合上下文尽量意译。'
-        '请保持原有分行顺序，每一行对应原歌词的一行。请严格保持原歌词结构。'
-        '不要输出时间轴，不要输出解释，不要输出编号。不要省略任何一行，包括标题。\n'
+        '请保持原有分行顺序，每一行对应原歌词的一行。'
+        '不要输出时间轴，不要输出解释，不要输出编号。不要省略任何一行，包括标题。如果无标题不要自行生成标题。\n'
         '$sourceLyrics';
     final requestData = {
       'contents': [
@@ -153,6 +155,7 @@ class GeminiLyricsTranslationService {
   Future<String?> generateLyricsFromFile({
     required String filePath,
     String modelId = 'gemini-3.1-flash-lite-preview',
+    void Function(String partialText, bool isFinal)? onProgress,
   }) async {
     final apiKey = await _loadApiKey();
     if (apiKey == null || apiKey.isEmpty) {
@@ -169,12 +172,16 @@ class GeminiLyricsTranslationService {
     final mimeType = _mimeTypeForFilePath(filePath);
 
     try {
+      // 先把本地音频文件上传到 Gemini 文件服务，后续生成请求只引用文件 URI。
+      // 这样模型可以直接“看见”整首歌，而不是只靠标题或歌词文本猜测。
+      debugPrint('[GeminiLyrics] 开始上传文件: $filePath');
       final uploadedFile = await _uploadFile(
         file: file,
         apiKey: apiKey,
         mimeType: mimeType,
       );
       if (uploadedFile == null) {
+        debugPrint('[GeminiLyrics] 文件上传失败: $filePath');
         return null;
       }
 
@@ -209,6 +216,7 @@ class GeminiLyricsTranslationService {
         ],
       };
 
+      // 这里使用 streamGenerateContent，是为了让歌词在模型生成时就能逐步回传给界面。
       debugPrint('[GeminiLyrics] generation request model=$modelId');
       debugPrint('[GeminiLyrics] generation request filePath=$filePath');
       debugPrint('[GeminiLyrics] generation request fileName=$fileName');
@@ -219,19 +227,73 @@ class GeminiLyricsTranslationService {
       );
 
       final response = await _dio.post(
-        'https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent',
         queryParameters: {'key': apiKey},
         data: requestData,
+        options: Options(
+          responseType: ResponseType.stream,
+          contentType: Headers.jsonContentType,
+        ),
       );
 
-      final generatedText = _extractText(response.data);
-      final cleanedText = _cleanGeneratedLyricsText(generatedText);
-      if (cleanedText.isEmpty) {
-        debugPrint('[GeminiLyrics] empty lyrics response.');
-        debugPrint('[GeminiLyrics] raw generate response: ${response.data}');
+      final body = response.data;
+      if (body == null || body.stream == null) {
+        debugPrint('[GeminiLyrics] Empty streaming body.');
         return null;
       }
 
+      debugPrint('[GeminiLyrics] generation stream connected');
+
+      final generatedBuffer = StringBuffer();
+      String lastEmitted = '';
+
+      void emitProgress({bool force = false}) {
+        final current = LrcUtils.cleanGeneratedLyricsText(generatedBuffer.toString());
+        if (current.isEmpty) return;
+        if (!force && current == lastEmitted) return;
+        lastEmitted = current;
+        onProgress?.call(current, false);
+      }
+
+      final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
+      try {
+        await for (final line in textStream.transform(const LineSplitter())) {
+          final trimmed = line.trim();
+          if (trimmed.isEmpty) continue;
+
+          final data = trimmed.startsWith('data:')
+              ? trimmed.substring(5).trim()
+              : trimmed;
+          if (data.isEmpty || data == '[DONE]') {
+            if (data == '[DONE]') break;
+            continue;
+          }
+
+          final chunk = _extractText(data);
+          if (chunk == null || chunk.isEmpty) continue;
+          generatedBuffer.write(chunk);
+          emitProgress();
+        }
+      } finally {
+        emitProgress(force: true);
+      }
+
+      final generatedText = _extractText(generatedBuffer.toString());
+      final cleanedText = LrcUtils.cleanGeneratedLyricsText(
+        generatedText ?? generatedBuffer.toString(),
+      );
+      if (cleanedText.isEmpty) {
+        debugPrint('[GeminiLyrics] empty lyrics response.');
+        debugPrint(
+          '[GeminiLyrics] raw generate response: ${generatedBuffer.toString()}',
+        );
+        return null;
+      }
+
+      // 最终结果会再做一次清洗，去掉代码块、杂项前缀和非 LRC 内容。
+      debugPrint('[GeminiLyrics] final generated lyrics:');
+      debugPrint(cleanedText);
+      onProgress?.call(cleanedText, true);
       return cleanedText;
     } on DioException catch (e) {
       debugPrint('[GeminiLyrics] generation failed: ${e.message}');
@@ -248,6 +310,9 @@ class GeminiLyricsTranslationService {
       );
       debugPrint(
         '[GeminiLyrics] generation request data: ${e.requestOptions.data}',
+      );
+      debugPrint(
+        '[GeminiLyrics] generation response data: ${e.response?.data}',
       );
     } catch (e) {
       debugPrint('[GeminiLyrics] generation error: $e');
@@ -284,18 +349,6 @@ class GeminiLyricsTranslationService {
       default:
         return languageCode.trim().isEmpty ? '目标语言' : languageCode;
     }
-  }
-
-  String _stripTimestamps(String lyrics) {
-    final lines = lyrics.split(RegExp(r'\r?\n'));
-    final stripped = lines.map((line) {
-      final withoutTimestamps = line.replaceAll(
-        RegExp(r'\[(?:\d{2}:\d{2}(?:\.\d{1,3})?)\]'),
-        '',
-      );
-      return withoutTimestamps.trimRight();
-    }).toList();
-    return stripped.join('\n').trim();
   }
 
   List<String> _splitTranslationLines(String text) {
@@ -506,30 +559,6 @@ class GeminiLyricsTranslationService {
       default:
         return 'application/octet-stream';
     }
-  }
-
-  String _cleanGeneratedLyricsText(String? text) {
-    final trimmed = text?.trim();
-    if (trimmed == null || trimmed.isEmpty) return '';
-
-    final fenceMatch = RegExp(
-      r'```(?:lrc|lyrics)?\s*([\s\S]*?)```',
-      caseSensitive: false,
-    ).firstMatch(trimmed);
-    final unwrapped = fenceMatch?.group(1)?.trim() ?? trimmed;
-
-    final lines = unwrapped.split(RegExp(r'\r?\n'));
-    final timestampPattern = RegExp(r'^\s*(?:\[\d{2}:\d{2}(?:\.\d{1,3})?\])+');
-    final lrcLikeLines = lines
-        .map((line) => line.trimRight())
-        .where((line) => line.trim().startsWith('['))
-        .toList(growable: false);
-
-    if (lrcLikeLines.any(timestampPattern.hasMatch)) {
-      return lrcLikeLines.join('\n').trim();
-    }
-
-    return unwrapped.trim();
   }
 
   String? _extractText(dynamic raw) {

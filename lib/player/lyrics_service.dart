@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 
 import '../utils/network_client.dart';
 import '../utils/clean_helper.dart';
+import '../utils/lyrics_id_utils.dart';
+import '../utils/lrc_utils.dart';
 import '../models/lyric_line.dart';
 import 'metadata_database.dart';
 
@@ -39,6 +41,7 @@ class LyricsQuery {
 
 class LyricTrack {
   final int? id;
+  final String? lyricsId;
   final String? name;
   final String? trackName;
   final String? artistName;
@@ -50,6 +53,7 @@ class LyricTrack {
 
   const LyricTrack({
     this.id,
+    this.lyricsId,
     this.name,
     this.trackName,
     this.artistName,
@@ -63,6 +67,7 @@ class LyricTrack {
   factory LyricTrack.fromJson(Map<String, dynamic> json) {
     return LyricTrack(
       id: json['id'] as int?,
+      lyricsId: json['lyricsId'] as String?,
       name: json['name'] as String?,
       trackName: json['trackName'] as String?,
       artistName: json['artistName'] as String?,
@@ -87,6 +92,7 @@ class LyricTrack {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'lyricsId': lyricsId,
       'name': name,
       'trackName': trackName,
       'artistName': artistName,
@@ -96,6 +102,32 @@ class LyricTrack {
       'plainLyrics': plainLyrics,
       'syncedLyrics': syncedLyrics,
     };
+  }
+
+  LyricTrack copyWith({
+    int? id,
+    String? lyricsId,
+    String? name,
+    String? trackName,
+    String? artistName,
+    String? albumName,
+    double? duration,
+    bool? instrumental,
+    String? plainLyrics,
+    String? syncedLyrics,
+  }) {
+    return LyricTrack(
+      id: id ?? this.id,
+      lyricsId: lyricsId ?? this.lyricsId,
+      name: name ?? this.name,
+      trackName: trackName ?? this.trackName,
+      artistName: artistName ?? this.artistName,
+      albumName: albumName ?? this.albumName,
+      duration: duration ?? this.duration,
+      instrumental: instrumental ?? this.instrumental,
+      plainLyrics: plainLyrics ?? this.plainLyrics,
+      syncedLyrics: syncedLyrics ?? this.syncedLyrics,
+    );
   }
 }
 
@@ -183,7 +215,7 @@ class LyricsService {
 
     // 不再使用内存层缓存，而是依赖 MusicFile 自身的持有和数据库持久化。
     // 这里只保留数据库层的查找逻辑。
-    final cachedFromDb = await _loadFromDatabase(cacheKey);
+    final cachedFromDb = await _loadFromDatabase(normalizedQuery);
     if (cachedFromDb != null) {
       if (debugLog) {
         debugPrintSelection(normalizedQuery, cachedFromDb, source: 'sqlite');
@@ -288,13 +320,13 @@ class LyricsService {
     return bestCandidate;
   }
 
-  Future<LyricSelectionResult?> _loadFromDatabase(String cacheKey) async {
+  Future<LyricSelectionResult?> _loadFromDatabase(LyricsQuery query) async {
     try {
-      final record = await _db.getLyricsCache(cacheKey);
+      final record = await _db.getLyricsCache(query.cacheKey);
       if (record == null) return null;
-      return _selectionFromRecord(record);
+      return _selectionFromRecord(query, record);
     } catch (e) {
-      debugPrint('[Lyrics] Failed to load cache for "$cacheKey": $e');
+      debugPrint('[Lyrics] Failed to load cache for "${query.cacheKey}": $e');
       return null;
     }
   }
@@ -396,20 +428,10 @@ class LyricsService {
     try {
       final record = LyricsCacheRecord(
         cacheKey: query.cacheKey,
-        filePath: query.filePath,
-        title: query.title,
-        artist: query.artist,
-        album: query.album,
-        duration: query.duration?.inSeconds,
         source: 'none',
-        trackId: null,
-        score: 0.0,
         isSynced: false,
-        instrumental: false,
-        plainLyrics: null,
         syncedLyrics: null,
         syncedLines: const [],
-        rawJson: null,
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
       await _db.insertOrUpdateLyricsCache(record);
@@ -425,22 +447,13 @@ class LyricsService {
     required LyricSelectionResult result,
   }) async {
     try {
+      final lyricsText = result.lyricsText.trim();
       final record = LyricsCacheRecord(
         cacheKey: query.cacheKey,
-        filePath: query.filePath,
-        title: query.title,
-        artist: query.artist,
-        album: query.album,
-        duration: query.duration?.inSeconds,
         source: result.fromGetApi ? 'get' : 'search',
-        trackId: result.track.id,
-        score: result.score,
         isSynced: result.isSynced,
-        instrumental: result.track.instrumental,
-        plainLyrics: result.track.plainLyrics,
-        syncedLyrics: result.track.syncedLyrics,
+        syncedLyrics: result.track.syncedLyrics ?? lyricsText,
         syncedLines: result.syncedLines.map((line) => line.toJson()).toList(),
-        rawJson: result.track.toJson(),
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
       await _db.insertOrUpdateLyricsCache(record);
@@ -449,16 +462,22 @@ class LyricsService {
     }
   }
 
-  LyricSelectionResult _selectionFromRecord(LyricsCacheRecord record) {
+  LyricSelectionResult _selectionFromRecord(
+    LyricsQuery query,
+    LyricsCacheRecord record,
+  ) {
+    final lyricsText = _lyricsTextFromRecord(record);
+    final lyricsId = LyricsIdUtils.fromLyricsText(lyricsText);
     final track = LyricTrack(
-      id: record.trackId,
-      name: record.title,
-      trackName: record.title,
-      artistName: record.artist,
-      albumName: record.album,
-      duration: record.duration?.toDouble(),
-      instrumental: record.instrumental,
-      plainLyrics: record.plainLyrics,
+      id: null,
+      lyricsId: lyricsId,
+      name: query.title,
+      trackName: query.title,
+      artistName: query.artist,
+      albumName: query.album,
+      duration: query.duration?.inSeconds.toDouble(),
+      instrumental: false,
+      plainLyrics: lyricsText,
       syncedLyrics: record.syncedLyrics,
     );
 
@@ -469,7 +488,7 @@ class LyricsService {
     return LyricSelectionResult(
       track: track,
       fromGetApi: record.source == 'get',
-      score: record.score,
+      score: 100.0,
       breakdown: LyricScoreBreakdown(
         title: 0,
         artist: 0,
@@ -478,11 +497,9 @@ class LyricsService {
         lyricsQuality: record.isSynced ? 5 : 3,
         instrumentalPenalty: 0,
       ),
-      durationDiffSeconds: record.duration == null ? (1 << 30) : 0,
+      durationDiffSeconds: 0,
       syncedLines: syncedLines,
-      lyricsText: record.isSynced
-          ? (record.syncedLyrics ?? '')
-          : (record.plainLyrics ?? ''),
+      lyricsText: lyricsText,
     );
   }
 
@@ -493,6 +510,21 @@ class LyricsService {
         query.artist!,
     ];
     return parts.join(' ').trim();
+  }
+
+  String _lyricsTextFromRecord(LyricsCacheRecord record) {
+    final syncedLyrics = record.syncedLyrics?.trim();
+    if (syncedLyrics != null && syncedLyrics.isNotEmpty) {
+      return syncedLyrics;
+    }
+
+    if (record.syncedLines.isEmpty) return '';
+
+    return record.syncedLines
+        .map((line) => line['text']?.toString() ?? '')
+        .where((line) => line.trim().isNotEmpty)
+        .join('\n')
+        .trim();
   }
 
   LyricSelectionResult? _scoreCandidate(
@@ -571,9 +603,10 @@ class LyricsService {
     final lyricsText = candidate.hasSyncedLyrics
         ? candidate.syncedLyrics!.trim()
         : candidate.plainLyrics!.trim();
+    final lyricsId = LyricsIdUtils.fromLyricsText(lyricsText);
 
     return LyricSelectionResult(
-      track: candidate,
+      track: candidate.copyWith(lyricsId: lyricsId),
       fromGetApi: fromGetApi,
       score: total,
       breakdown: LyricScoreBreakdown(
@@ -686,62 +719,7 @@ class LyricsService {
   }
 
   List<LyricLine> _parseSyncedLyrics(String? syncedLyrics) {
-    if (syncedLyrics == null || syncedLyrics.trim().isEmpty) {
-      return const [];
-    }
-
-    final lines = <LyricLine>[];
-    for (final rawLine in syncedLyrics.split(RegExp(r'\r?\n'))) {
-      final line = rawLine.trim();
-      if (line.isEmpty) continue;
-
-      final timestamps = <Duration>[];
-      var index = 0;
-      while (index < line.length) {
-        final end = line.indexOf(']', index);
-        if (index >= line.length || line[index] != '[' || end == -1) {
-          break;
-        }
-        final token = line.substring(index + 1, end);
-        final parsed = _parseTimestampToken(token);
-        if (parsed == null) {
-          break;
-        }
-        timestamps.add(parsed);
-        index = end + 1;
-      }
-
-      final text = line.substring(index).trim();
-      if (timestamps.isEmpty || text.isEmpty) {
-        continue;
-      }
-
-      for (final timestamp in timestamps) {
-        lines.add(LyricLine(timestamp: timestamp, text: text, isTimed: true));
-      }
-    }
-
-    lines.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-    return lines;
-  }
-
-  Duration? _parseTimestampToken(String token) {
-    final match = RegExp(
-      r'^(\d{2}):(\d{2})(?:\.(\d{1,3}))?$',
-    ).firstMatch(token);
-    if (match == null) return null;
-
-    final minutes = int.tryParse(match.group(1)!);
-    final seconds = int.tryParse(match.group(2)!);
-    final fractionText = match.group(3) ?? '0';
-    if (minutes == null || seconds == null) return null;
-
-    final fraction = int.tryParse(
-      fractionText.padRight(3, '0').substring(0, 3),
-    );
-    if (fraction == null) return null;
-
-    return Duration(minutes: minutes, seconds: seconds, milliseconds: fraction);
+    return LrcUtils.parseTimedLyrics(syncedLyrics);
   }
 
   void debugPrintSelection(
