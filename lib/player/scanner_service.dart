@@ -687,10 +687,7 @@ class ScannerService extends ChangeNotifier {
     for (final path in allFilePaths) {
       await _waitUntilResumed();
       try {
-        final result = await MetadataHelper.processMetadata(
-          path,
-          generateThumbnail: false,
-        );
+        final result = await MetadataHelper.processMetadata(path);
         SongMetadata? metadata = result?.$1;
 
         // Metadata update (to update UI metadataMap)
@@ -709,15 +706,26 @@ class ScannerService extends ChangeNotifier {
   /// caches it in [metadataMap]. Safe to call multiple times — exits early if
   /// the path is already in the map or if the platform is not Windows.
   Future<void> loadMetadataForPath(String path) async {
-    if (_metadataMap.containsKey(path)) return;
+    final cached = _metadataMap[path];
+    if (cached != null && (cached.thumbnailPath?.isNotEmpty ?? false)) {
+      return;
+    }
 
     final db = MetadataDatabase();
     // Try DB first (cheapest); fall back to full processing if not found.
     SongMetadata? metadata = await db.getSongMetadata(path);
     final result = metadata == null
-        ? await MetadataHelper.processMetadata(path, generateThumbnail: false)
+        ? await MetadataHelper.processMetadata(path, generateThumbnail: true)
         : null;
     metadata ??= result?.$1;
+
+    if (metadata != null && !(metadata.thumbnailPath?.isNotEmpty ?? false)) {
+      final refreshed = await MetadataHelper.processMetadata(
+        path,
+        generateThumbnail: true,
+      );
+      metadata = refreshed?.$1 ?? metadata;
+    }
 
     if (metadata != null) {
       _metadataMap[path] = metadata;

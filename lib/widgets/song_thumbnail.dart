@@ -94,8 +94,6 @@ class _SongThumbnailState extends State<SongThumbnail> {
       final scanner = context.watch<ScannerService>();
       final metadata = scanner.metadataMap[widget.path];
 
-
-
       final imagePath = metadata?.thumbnailPath;
       if (imagePath != null) {
         final file = File(imagePath);
@@ -115,9 +113,8 @@ class _SongThumbnailState extends State<SongThumbnail> {
         }
       }
 
-
-      // Metadata not yet in map — trigger a one-shot load from DB/file.
-      if (metadata == null) {
+      // Metadata not yet in map, or the cached entry still lacks a thumbnail.
+      if (metadata == null || metadata.thumbnailPath == null) {
         _triggerLoad(scanner);
       }
     }

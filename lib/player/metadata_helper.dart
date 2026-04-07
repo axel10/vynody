@@ -260,7 +260,11 @@ class MetadataHelper {
     // 1. 如果数据库已有记录且修改时间相同，直接返回
     final existing = await db.getSongMetadata(filePath);
     if (existing != null && existing.lastModifiedTime == lastModified) {
-      return (existing, null);
+      final hasArtwork = (existing.artworkPath?.isNotEmpty ?? false) ||
+          (existing.thumbnailPath?.isNotEmpty ?? false);
+      if (!generateThumbnail || hasArtwork) {
+        return (existing, null);
+      }
     }
 
     try {
