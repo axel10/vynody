@@ -32,12 +32,11 @@ class MusicLyric {
 
     return translatedLines
         .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
         .toList(growable: false);
   }
 
   String translatedTextOf(String languageCode) {
-    return translations[languageCode]?.translatedText.trim() ?? '';
+    return translations[languageCode]?.translatedText ?? '';
   }
 
   String translatedLineAt(int index, String languageCode) {

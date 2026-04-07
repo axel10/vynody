@@ -1434,7 +1434,7 @@ class AudioService extends ChangeNotifier {
       final record = LyricsTranslationCacheRecord(
         cacheKey: cacheKey,
         languageCode: languageCode,
-        translatedText: translation.translatedText.trim(),
+        translatedText: translation.translatedText,
         translatedLines: translation.translatedLines,
         provider: translation.provider,
         updatedAtMillis:
@@ -1570,21 +1570,16 @@ class AudioService extends ChangeNotifier {
     required List<String> translatedLines,
     required String translatedText,
   }) {
-    final cleanedLines = _filterEmptyTranslationLines(translatedLines);
+    final normalizedLines = translatedLines
+        .map((line) => line.trim())
+        .toList(growable: false);
     return MusicLyricTranslation(
       languageCode: languageCode,
-      translatedText: translatedText.trim(),
-      translatedLines: cleanedLines,
+      translatedText: translatedText,
+      translatedLines: normalizedLines,
       provider: 'gemini',
       updatedAt: DateTime.now(),
     );
-  }
-
-  List<String> _filterEmptyTranslationLines(List<String> translatedLines) {
-    return translatedLines
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList(growable: false);
   }
 
   Future<void> _saveGeneratedLyricsToDatabase({

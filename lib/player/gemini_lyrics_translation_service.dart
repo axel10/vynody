@@ -25,6 +25,10 @@ class GeminiLyricsTranslationService {
 
   final Dio _dio;
   String? _cachedApiKey;
+  static final RegExp _lineSplitPattern = RegExp(r'\r?\n');
+  static final RegExp _timestampLinePattern = RegExp(
+    r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
+  );
 
   Future<bool> translateLyricsStream({
     required String lyrics,
@@ -39,20 +43,31 @@ class GeminiLyricsTranslationService {
       return false;
     }
 
-    final sourceLyrics = LrcUtils.stripTimestamps(lyrics);
-    final sourceLines = sourceLyrics.split(RegExp(r'\r?\n'));
-    final targetLineCount = sourceLines.isEmpty ? 0 : sourceLines.length;
+    final sourceLines = _stripTimestampsPreservingBlankLines(lyrics);
+    final blankLineIndexes = <int>[];
+    final compactSourceLines = <String>[];
+    for (var i = 0; i < sourceLines.length; i++) {
+      final line = sourceLines[i].trim();
+      if (line.isEmpty) {
+        blankLineIndexes.add(i);
+      } else {
+        compactSourceLines.add(line);
+      }
+    }
+
+    final targetLineCount = compactSourceLines.length;
     if (targetLineCount == 0) {
       debugPrint('[GeminiLyrics] no usable lyrics after stripping timestamps.');
       return false;
     }
     final targetLanguageName = _targetLanguageName(targetLanguageCode);
+    final sourceLyricsForModel = compactSourceLines.join('\n');
     final prompt =
         '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
         '总结整首歌的意境并结合上下文尽量意译。'
-        '请保持原有分行顺序，每一行对应原歌词的一行。'
-        '不要输出时间轴，不要输出解释，不要输出编号。不要省略任何一行，包括标题。如果无标题不要自行生成标题。\n'
-        '$sourceLyrics';
+        '请保持有内容歌词的分行顺序，每一行对应一行译文。'
+        '原文中的空行已由程序单独处理，请不要自行补充空行、编号或时间轴。如果无标题不要自行生成标题。\n'
+        '$sourceLyricsForModel';
     final requestData = {
       'contents': [
         {
@@ -105,10 +120,15 @@ class GeminiLyricsTranslationService {
         if (!force && current.length == lastPrintedLength) return;
         lastPrintedLength = current.length;
         final lines = _normalizeTranslationLines(current, targetLineCount);
-        final snapshot = lines.join('\n');
+        final restoredLines = _restoreBlankLines(
+          lines,
+          blankLineIndexes,
+          sourceLines.length,
+        );
+        final snapshot = restoredLines.join('\n');
         if (onProgress != null && (force || snapshot != lastProgressSnapshot)) {
           lastProgressSnapshot = snapshot;
-          onProgress(lines, snapshot);
+          onProgress(restoredLines, snapshot);
         }
         debugPrint('[GeminiLyrics] translated: $current');
       }
@@ -201,7 +221,7 @@ class GeminiLyricsTranslationService {
       }
 
       final prompt =
-          '输出这首歌的完整的带时间轴的标准LRC格式歌词，尝试对整首歌的意境进行理解，并结合上下文修复识别出来的明显不合理的语句。仅输出结果不输出其他内容。';
+          '输出这首歌的完整的带时间轴的标准LRC格式歌词，对识别结果进行整理，不要每行过于零散。仅输出结果不输出其他内容。';
       final requestData = {
         'contents': [
           {
@@ -352,7 +372,7 @@ class GeminiLyricsTranslationService {
   }
 
   List<String> _splitTranslationLines(String text) {
-    return text.split(RegExp(r'\r?\n'));
+    return text.split(_lineSplitPattern);
   }
 
   List<String> _normalizeTranslationLines(String text, int targetLineCount) {
@@ -363,6 +383,40 @@ class GeminiLyricsTranslationService {
     if (targetLineCount <= 0) return lines;
     if (lines.length <= targetLineCount) return lines;
     return lines.take(targetLineCount).toList(growable: false);
+  }
+
+  List<String> _restoreBlankLines(
+    List<String> translatedLines,
+    List<int> blankLineIndexes,
+    int originalLineCount,
+  ) {
+    if (originalLineCount <= 0) return const [];
+    if (translatedLines.isEmpty && blankLineIndexes.isEmpty) {
+      return List<String>.filled(originalLineCount, '', growable: false);
+    }
+
+    final blankLineIndexSet = blankLineIndexes.toSet();
+    final restoredLines = List<String>.filled(
+      originalLineCount,
+      '',
+      growable: false,
+    );
+    var translatedIndex = 0;
+
+    for (var i = 0; i < originalLineCount; i++) {
+      if (blankLineIndexSet.contains(i)) continue;
+      if (translatedIndex >= translatedLines.length) break;
+      restoredLines[i] = translatedLines[translatedIndex++];
+    }
+
+    return restoredLines;
+  }
+
+  List<String> _stripTimestampsPreservingBlankLines(String lyrics) {
+    return lyrics.split(_lineSplitPattern).map((line) {
+      final withoutTimestamps = line.replaceAll(_timestampLinePattern, '');
+      return withoutTimestamps.trimRight();
+    }).toList(growable: false);
   }
 
   Future<String?> _loadApiKey() async {
