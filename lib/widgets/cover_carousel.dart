@@ -311,18 +311,18 @@ class _CoverItemState extends State<_CoverItem> {
       widget.musicFile.path,
     );
     if (cachedBytes != null) {
-      if (mounted) setState(() => _artworkBytes = cachedBytes);
+      if (!mounted) return;
+      setState(() => _artworkBytes = cachedBytes);
       widget.onArtworkLoaded?.call(cachedBytes, null);
       return;
     }
 
     if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
         widget.audioService.currentMusic?.artworkBytes != null) {
-      if (mounted) {
-        setState(
-          () => _artworkBytes = widget.audioService.currentMusic!.artworkBytes,
-        );
-      }
+      if (!mounted) return;
+      setState(
+        () => _artworkBytes = widget.audioService.currentMusic!.artworkBytes,
+      );
       widget.onArtworkLoaded?.call(
         widget.audioService.currentMusic!.artworkBytes,
         null,
@@ -337,11 +337,10 @@ class _CoverItemState extends State<_CoverItem> {
         final file = File(highResPath);
         if (await file.exists()) {
           final bytes = await file.readAsBytes();
-          if (mounted) {
-            setState(() {
-              _artworkBytes = bytes;
-            });
-          }
+          if (!mounted) return;
+          setState(() {
+            _artworkBytes = bytes;
+          });
           widget.onArtworkLoaded?.call(bytes, null);
           return;
         }
@@ -358,13 +357,12 @@ class _CoverItemState extends State<_CoverItem> {
           ArtworkType.AUDIO,
           size: 800,
         );
-        if (mounted && bytes != null) {
-          setState(() {
-            _artworkBytes = bytes;
-          });
-          widget.onArtworkLoaded?.call(bytes, null);
-          return;
-        }
+        if (!mounted || bytes == null) return;
+        setState(() {
+          _artworkBytes = bytes;
+        });
+        widget.onArtworkLoaded?.call(bytes, null);
+        return;
       }
     }
 
@@ -373,11 +371,10 @@ class _CoverItemState extends State<_CoverItem> {
       widget.musicFile.path,
     );
     if (embeddedBytes != null) {
-      if (mounted) {
-        setState(() {
-          _artworkBytes = embeddedBytes;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _artworkBytes = embeddedBytes;
+      });
       widget.onArtworkLoaded?.call(embeddedBytes, null);
       return;
     }

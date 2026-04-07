@@ -9,16 +9,9 @@ import 'package:audio_core/audio_core.dart';
 
 import '../models/music_file.dart';
 import '../models/lyric_line.dart';
-import '../models/music_lyric.dart';
-import '../models/music_lyric_translation.dart';
 import 'audio_snapshot.dart';
 import 'metadata_database.dart';
-import '../utils/lrc_utils.dart';
-import '../utils/lyrics_id_utils.dart';
-import '../utils/language_code_utils.dart';
 
-import 'lyrics_service.dart';
-import 'gemini_lyrics_translation_service.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
 import 'visualizer_options_service.dart';
@@ -29,6 +22,7 @@ import 'android_integration_service.dart';
 import 'scanner_service.dart';
 import 'metadata_helper.dart';
 import 'lyrics_generation_phase.dart';
+import 'lyrics_controller.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioCoreController _player;
@@ -53,28 +47,8 @@ class AudioService extends ChangeNotifier {
   late final VisualizerOptionsService _visualizerOptions;
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
-  late final LyricsService _lyricsService;
-  late final GeminiLyricsTranslationService _geminiLyricsTranslationService;
+  late final LyricsController _lyricsController;
   ScannerService? _scannerService;
-
-  int _lyricsRequestSerial = 0;
-  final Set<String> _translatedLyricsKeys = <String>{};
-  final Set<String> _translationInFlightKeys = <String>{};
-  Completer<void>? _lyricsGenerationCompleter;
-  int _lyricsRetrySerial = 0;
-  bool _isLyricsLoading = false;
-  bool _isLyricsTranslating = false;
-  bool _isLyricsGenerating = false;
-  String _lyricsTranslationStatus = '';
-  bool _hasLyrics = false;
-  bool _lyricsSearchAttempted = false;
-  bool _isLyricsSynced = false;
-  int _lyricsGenerationSerial = 0;
-  LyricsGenerationPhase _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-  double _lyricsGenerationProgress = 0.0;
-  List<LyricLine> _currentLyricsLines = const [];
-  String _currentLyricsText = '';
-  String? _currentLyricsTitle;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -83,8 +57,6 @@ class AudioService extends ChangeNotifier {
   Color? _dynamicEndColor;
   Map<String, Color> _currentThemeColorsMap = const {};
   bool _isLyricsActive = false; // 用户是否开启了歌词模式
-  String _lyricsTranslationLanguageCode =
-      LanguageCodeUtils.currentSystemLanguageCode();
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
 
@@ -92,20 +64,24 @@ class AudioService extends ChangeNotifier {
   Color? get dynamicEndColor => _dynamicEndColor;
   Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
   bool get isLyricsActive => _isLyricsActive;
-  String get lyricsTranslationLanguageCode => _lyricsTranslationLanguageCode;
-  bool get isLyricsLoading => _isLyricsLoading;
-  bool get isLyricsTranslating => _isLyricsTranslating;
-  bool get isLyricsGenerating => _isLyricsGenerating;
-  String get lyricsTranslationStatus => _lyricsTranslationStatus;
-  LyricsGenerationPhase get lyricsGenerationPhase => _lyricsGenerationPhase;
-  double get lyricsGenerationProgress => _lyricsGenerationProgress;
-  bool get hasLyrics => _hasLyrics;
-  bool get lyricsSearchAttempted => _lyricsSearchAttempted;
-  bool get isLyricsSynced => _isLyricsSynced;
+  String get lyricsTranslationLanguageCode =>
+      _lyricsController.lyricsTranslationLanguageCode;
+  bool get isLyricsLoading => _lyricsController.isLyricsLoading;
+  bool get isLyricsTranslating => _lyricsController.isLyricsTranslating;
+  bool get isLyricsGenerating => _lyricsController.isLyricsGenerating;
+  String get lyricsTranslationStatus =>
+      _lyricsController.lyricsTranslationStatus;
+  LyricsGenerationPhase get lyricsGenerationPhase =>
+      _lyricsController.lyricsGenerationPhase;
+  double get lyricsGenerationProgress =>
+      _lyricsController.lyricsGenerationProgress;
+  bool get hasLyrics => _lyricsController.hasLyrics;
+  bool get lyricsSearchAttempted => _lyricsController.lyricsSearchAttempted;
+  bool get isLyricsSynced => _lyricsController.isLyricsSynced;
   List<LyricLine> get currentLyricsLines =>
-      List<LyricLine>.unmodifiable(_currentLyricsLines);
-  String get currentLyricsText => _currentLyricsText;
-  String? get currentLyricsTitle => _currentLyricsTitle;
+      _lyricsController.currentLyricsLines;
+  String get currentLyricsText => _lyricsController.currentLyricsText;
+  String? get currentLyricsTitle => _lyricsController.currentLyricsTitle;
 
   AudioService(this.settingsService) {
     _player = AudioCoreController(
@@ -125,8 +101,16 @@ class AudioService extends ChangeNotifier {
       settingsService: settingsService,
     );
     _waveformService = WaveformService(db: _db, player: _player);
-    _lyricsService = LyricsService(db: _db);
-    _geminiLyricsTranslationService = GeminiLyricsTranslationService();
+    _lyricsController = LyricsController(
+      db: _db,
+      currentMusic: () => currentMusic,
+      queue: () => _queue,
+      currentIndex: () => _currentIndex,
+      playerDuration: () => _duration,
+      isLyricsActive: () => _isLyricsActive,
+      cacheSongDuration: _cacheSongDuration,
+    );
+    _lyricsController.addListener(notifyListeners);
 
     _windowsIntegration = Platform.isWindows
         ? WindowsIntegrationService(this)
@@ -369,19 +353,19 @@ class AudioService extends ChangeNotifier {
     // 导致 API 没匹配到或尚未开始加载，当时长变为有效正值时，自动触发补抓取。
     if (_isLyricsActive &&
         _duration > Duration.zero &&
-        !_hasLyrics &&
-        !_isLyricsLoading &&
-        !_lyricsSearchAttempted &&
+        !hasLyrics &&
+        !isLyricsLoading &&
+        !lyricsSearchAttempted &&
         _currentIndex >= 0 &&
         _currentIndex < _queue.length) {
       final song = _queue[_currentIndex];
       if (song.path == currentMusic?.path) {
         _logLyricsDebug(
           'auto retry trigger -> index=$_currentIndex title="${song.displayName}" '
-          'duration=$_duration hasLyrics=$_hasLyrics loading=$_isLyricsLoading '
-          'searched=$_lyricsSearchAttempted',
+          'duration=$_duration hasLyrics=$hasLyrics loading=$isLyricsLoading '
+          'searched=$lyricsSearchAttempted',
         );
-        unawaited(_fetchAndLogLyrics(song));
+        unawaited(_lyricsController.fetchAndLog(song));
       }
     }
 
@@ -456,14 +440,14 @@ class AudioService extends ChangeNotifier {
     _isLyricsActive = active;
     _logLyricsDebug(
       'lyrics mode ${active ? 'enabled' : 'disabled'} -> '
-      'currentIndex=$_currentIndex duration=$_duration hasLyrics=$_hasLyrics '
-      'loading=$_isLyricsLoading searched=$_lyricsSearchAttempted',
+      'currentIndex=$_currentIndex duration=$_duration hasLyrics=$hasLyrics '
+      'loading=$isLyricsLoading searched=$lyricsSearchAttempted',
     );
 
     if (_isLyricsActive &&
         currentMusic?.path != null &&
-        !_hasLyrics &&
-        !_isLyricsLoading) {
+        !hasLyrics &&
+        !isLyricsLoading) {
       final song = (_currentIndex >= 0 && _currentIndex < _queue.length)
           ? _queue[_currentIndex]
           : null;
@@ -472,20 +456,14 @@ class AudioService extends ChangeNotifier {
           'lyrics mode immediate fetch -> index=$_currentIndex '
           'title="${song.displayName}" duration=$_duration',
         );
-        unawaited(_fetchAndLogLyrics(song));
-        unawaited(_retryLyricsFetchUntilReady(song));
+        _lyricsController.scheduleFetch(song);
       }
     }
     notifyListeners();
   }
 
   void setLyricsTranslationLanguageCode(String languageCode) {
-    final normalized = LanguageCodeUtils.normalizeLanguageCode(languageCode);
-    if (normalized.isEmpty || normalized == _lyricsTranslationLanguageCode) {
-      return;
-    }
-    _lyricsTranslationLanguageCode = normalized;
-    notifyListeners();
+    _lyricsController.setTranslationLanguageCode(languageCode);
   }
 
   void moveQueueTrack(int oldIndex, int newIndex) {
@@ -586,19 +564,19 @@ class AudioService extends ChangeNotifier {
     dynamicStartColor: _dynamicStartColor,
     dynamicEndColor: _dynamicEndColor,
     currentThemeColorsMap: _currentThemeColorsMap,
-    isLyricsLoading: _isLyricsLoading,
-    isLyricsTranslating: _isLyricsTranslating,
-    isLyricsGenerating: _isLyricsGenerating,
-    lyricsTranslationStatus: _lyricsTranslationStatus,
-    lyricsGenerationPhase: _lyricsGenerationPhase,
-    lyricsGenerationProgress: _lyricsGenerationProgress,
-    currentLyricsLines: _currentLyricsLines,
-    currentLyricsText: _currentLyricsText,
-    hasLyrics: _hasLyrics,
-    lyricsSearchAttempted: _lyricsSearchAttempted,
-    currentLyricsTitle: _currentLyricsTitle,
+    isLyricsLoading: isLyricsLoading,
+    isLyricsTranslating: isLyricsTranslating,
+    isLyricsGenerating: isLyricsGenerating,
+    lyricsTranslationStatus: lyricsTranslationStatus,
+    lyricsGenerationPhase: lyricsGenerationPhase,
+    lyricsGenerationProgress: lyricsGenerationProgress,
+    currentLyricsLines: currentLyricsLines,
+    currentLyricsText: currentLyricsText,
+    hasLyrics: hasLyrics,
+    lyricsSearchAttempted: lyricsSearchAttempted,
+    currentLyricsTitle: currentLyricsTitle,
     isLyricsActive: _isLyricsActive,
-    lyricsTranslationLanguageCode: _lyricsTranslationLanguageCode,
+    lyricsTranslationLanguageCode: lyricsTranslationLanguageCode,
   );
 
   Uint8List? getCachedArtwork(String? path) {
@@ -672,7 +650,7 @@ class AudioService extends ChangeNotifier {
       if (isCurrentTrack && _isLyricsActive) {
         final current = currentMusic;
         if (current != null) {
-          unawaited(_fetchAndLogLyrics(current));
+          unawaited(_lyricsController.fetchAndLog(current));
         }
       }
       notifyListeners();
@@ -820,24 +798,13 @@ class AudioService extends ChangeNotifier {
     // whether anything should be loaded.
     final songLyrics = song.lyrics;
     if (_isLyricsActive && songLyrics != null) {
-      _hasLyrics = true;
-      _isLyricsLoading = false;
-      _isLyricsSynced = songLyrics.isSynced;
-      _currentLyricsLines = songLyrics.syncedLines;
-      _currentLyricsText = songLyrics.plainText;
-      _currentLyricsTitle = song.displayName;
-      _lyricsSearchAttempted = true;
-      unawaited(_restoreCachedLyricsTranslations(song));
-      _logLyricsDebug(
-        'lyrics restored from cache -> title="${song.displayName}" '
-        'lines=${songLyrics.syncedLines.length} synced=${songLyrics.isSynced}',
-      );
+      _lyricsController.restoreFromSongLyrics(song);
     } else {
       _logLyricsDebug(
         'lyrics state cleared -> title="${song.displayName}" '
         'mode=$_isLyricsActive hasCache=${songLyrics != null}',
       );
-      _clearLyricsState();
+      _lyricsController.clearState();
     }
 
     notifyListeners();
@@ -857,995 +824,29 @@ class AudioService extends ChangeNotifier {
 
     // Trigger lyric loading only when lyric mode is active and we still do not
     // have lyrics for this track.
-    if (_isLyricsActive && !_hasLyrics) {
+    if (_isLyricsActive && !hasLyrics) {
       _logLyricsDebug(
         'post-metadata fetch -> title="${song.displayName}" '
-        'duration=$_duration hasLyrics=$_hasLyrics loading=$_isLyricsLoading',
+        'duration=$_duration hasLyrics=$hasLyrics loading=$isLyricsLoading',
       );
-      unawaited(_fetchAndLogLyrics(song));
-      unawaited(_retryLyricsFetchUntilReady(song));
+      _lyricsController.scheduleFetch(song);
     }
 
     notifyListeners();
   }
 
-  void _clearLyricsState({bool notify = false}) {
-    // 只有真正发起网络/缓存抓取时才置为 loading。
-    // 切歌时先清空状态，但不要把“等待后续补抓”的阶段卡死在 loading=true。
-    _isLyricsLoading = false;
-    _isLyricsTranslating = false;
-    _isLyricsGenerating = false;
-    _hasLyrics = false;
-    _isLyricsSynced = false;
-    _currentLyricsLines = const [];
-    _currentLyricsText = '';
-    _currentLyricsTitle = null;
-    _lyricsSearchAttempted = false;
-    if (notify) {
-      notifyListeners();
-    }
-  }
-
-  /// 发起歌词获取请求并同步状态至 UI。
-  ///
-  /// 获取逻辑遵循以下优先级：
-  /// 1. 内存缓存 (Memory Cache)：若本会话已获取过该曲歌词，直接返回。
-  /// 2. 数据库缓存 (Database Cache)：若之前曾成功获取并保存至本地 SQLite，直接读取。
-  /// 3. 网络获取 (Network Fetch)：若上述皆无，则通过 LRCLIB API 进行在线搜索与匹配。
-  Future<void> _fetchAndLogLyrics(MusicFile song) async {
-    final queryDuration = await _resolveLyricsDuration(song);
-    // 如果没有任何可用时长，说明播放器和本地元数据都还没准备好。
-    // 这时先跳过，等待后续重试。
-    if (queryDuration == null) {
-      _logLyricsDebug(
-        'fetch skipped, duration not ready -> title="${song.displayName}" '
-        'path="${song.path}" playerDuration=$_duration '
-        'songDuration=${song.durationMillis}',
-      );
-      _isLyricsLoading = false;
-      return;
-    }
-
-    final requestId = ++_lyricsRequestSerial;
-    final query = LyricsQuery(
-      filePath: song.path,
-      fileName: song.name,
-      title: _lyricsTitleForQuery(song),
-      artist: _lyricsArtistForQuery(song),
-      album: _lyricsAlbumForQuery(song),
-      duration: queryDuration,
-    );
-
-    _isLyricsLoading = true;
-    _logLyricsDebug(
-      'fetch start -> title="${song.displayName}" path="${song.path}" '
-      'queryDuration=$queryDuration playerDuration=$_duration '
-      'requestId=$requestId',
-    );
-    notifyListeners();
-
-    try {
-      final result = await _lyricsService.fetchBestLyrics(query: query);
-      // 竞态检查：确保请求返回时，用户没有切换到另一首歌
-      if (requestId != _lyricsRequestSerial ||
-          currentMusic?.path != song.path) {
-        _logLyricsDebug(
-          'fetch ignored due to stale request -> title="${song.displayName}" '
-          'requestId=$requestId latest=$_lyricsRequestSerial '
-          'currentPath="${currentMusic?.path}"',
-        );
-        return;
-      }
-
-      _isLyricsLoading = false;
-      _lyricsSearchAttempted = true;
-      _hasLyrics = result != null && result.track.hasLyrics;
-      _isLyricsSynced = result?.isSynced ?? false;
-      _currentLyricsLines = _buildLyricsLines(
-        result?.syncedLines ?? const [],
-        result?.lyricsText ?? '',
-      );
-      _currentLyricsText = result?.lyricsText ?? '';
-      final title = result?.track.displayTitle.trim();
-      _currentLyricsTitle = (title != null && title.isNotEmpty)
-          ? title
-          : currentMusic?.displayName;
-
-      _logLyricsDebug(
-        'fetch done -> title="${song.displayName}" hasLyrics=$_hasLyrics '
-        'synced=$_isLyricsSynced lines=${_currentLyricsLines.length} '
-        'textLen=${_currentLyricsText.length}',
+  Future<void> translateLyricsForCurrentSong({String? targetLanguageCode}) =>
+      _lyricsController.translateLyricsForCurrentSong(
+        targetLanguageCode: targetLanguageCode,
       );
 
-      // 关键改动：将获取到的歌词挂载到内存中的歌曲对象上，作为内存级缓存。
-      if (_currentIndex >= 0 && _currentIndex < _queue.length) {
-        final currentSong = _queue[_currentIndex];
-        if (currentSong.path == song.path) {
-          final updatedSong = currentSong.copyWith(
-            lyrics: MusicLyric(
-              id:
-                  result?.track.lyricsId ??
-                  LyricsIdUtils.fromLyricsText(_currentLyricsText),
-              syncedLines: _currentLyricsLines,
-              plainText: _currentLyricsText,
-            ),
-          );
-          _queue[_currentIndex] = updatedSong;
+  Future<void> clearAllLyricsCache() => _lyricsController.clearAllLyricsCache();
 
-          unawaited(_restoreCachedLyricsTranslations(updatedSong));
-          notifyListeners();
-        }
-      }
+  Future<void> clearTranslationCache() =>
+      _lyricsController.clearTranslationCache();
 
-      notifyListeners();
-
-      _lyricsService.debugPrintSelection(query, result);
-    } catch (e) {
-      debugPrint('[AudioService] Failed to fetch lyrics: $e');
-      _logLyricsDebug(
-        'fetch failed -> title="${song.displayName}" path="${song.path}" '
-        'error=$e requestId=$requestId',
-      );
-      if (requestId == _lyricsRequestSerial &&
-          currentMusic?.path == song.path) {
-        _isLyricsLoading = false;
-        _lyricsSearchAttempted = true;
-        notifyListeners();
-      }
-    }
-  }
-
-  Future<void> _retryLyricsFetchUntilReady(MusicFile song) async {
-    final retryId = ++_lyricsRetrySerial;
-    _logLyricsDebug(
-      'retry loop start -> title="${song.displayName}" path="${song.path}" '
-      'retryId=$retryId',
-    );
-    for (var attempt = 0; attempt < 12; attempt++) {
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-
-      if (retryId != _lyricsRetrySerial) return;
-      if (!_isLyricsActive || currentMusic?.path != song.path) {
-        _logLyricsDebug(
-          'retry loop stop -> title="${song.displayName}" '
-          'reason=track_changed_or_inactive attempt=$attempt',
-        );
-        return;
-      }
-      if (_hasLyrics || _isLyricsLoading || _lyricsSearchAttempted) {
-        _logLyricsDebug(
-          'retry loop stop -> title="${song.displayName}" '
-          'reason=state_resolved attempt=$attempt hasLyrics=$_hasLyrics '
-          'loading=$_isLyricsLoading searched=$_lyricsSearchAttempted',
-        );
-        return;
-      }
-
-      if (await _resolveLyricsDuration(song) != null) {
-        _logLyricsDebug(
-          'retry loop trigger fetch -> title="${song.displayName}" '
-          'attempt=$attempt playerDuration=$_duration '
-          'songDuration=${song.durationMillis}',
-        );
-        unawaited(_fetchAndLogLyrics(song));
-        return;
-      }
-    }
-
-    _logLyricsDebug(
-      'retry loop exhausted -> title="${song.displayName}" '
-      'path="${song.path}" playerDuration=$_duration '
-      'songDuration=${song.durationMillis}',
-    );
-  }
-
-  Future<void> translateLyricsForCurrentSong({
-    String? targetLanguageCode,
-  }) async {
-    final song = currentMusic;
-    if (song == null) return;
-
-    if (_isLyricsTranslating) {
-      return;
-    }
-
-    final normalizedLanguageCode = LanguageCodeUtils.normalizeLanguageCode(
-      targetLanguageCode ?? _lyricsTranslationLanguageCode,
-    );
-    if (normalizedLanguageCode.isEmpty) return;
-    if (_lyricsTranslationLanguageCode != normalizedLanguageCode) {
-      _lyricsTranslationLanguageCode = normalizedLanguageCode;
-      notifyListeners();
-    }
-
-    if (_isLyricsGenerating && currentMusic?.path == song.path) {
-      _isLyricsTranslating = true;
-      _lyricsTranslationStatus = '等待歌词生成完毕';
-      notifyListeners();
-      await _waitForLyricsGenerationToFinish(song.path);
-    }
-
-    String? translationKey;
-    try {
-      final currentSong = currentMusic;
-      if (currentSong == null || currentSong.path != song.path) {
-        return;
-      }
-
-      final sourceLyrics = currentSong.lyrics?.syncedLines.isNotEmpty == true
-          ? currentSong.lyrics!.syncedLines
-                .map((line) => line.text)
-                .join('\n')
-                .trim()
-          : _currentLyricsText.trim();
-      if (sourceLyrics.isEmpty) return;
-
-      final query = await _buildLyricsQueryForSong(currentSong);
-      if (query == null) return;
-
-      final lyricsId = _lyricsIdForSong(
-        currentSong,
-        sourceLyrics: sourceLyrics,
-      );
-      if (lyricsId.isEmpty) return;
-
-      final String activeTranslationKey = _lyricsTranslationCacheKey(
-        query.cacheKey,
-        normalizedLanguageCode,
-      );
-      translationKey = activeTranslationKey;
-
-      _logLyricsDebug(
-        'translate request -> title="${currentSong.displayName}" '
-        'path="${currentSong.path}" language=$normalizedLanguageCode '
-        'cacheKey=${query.cacheKey} sourceLen=${sourceLyrics.length} '
-        'hasLyrics=${currentSong.lyrics != null}',
-      );
-
-      final currentLyrics = currentSong.lyrics;
-      if (currentLyrics != null && !currentLyrics.hasId) {
-        final updatedLyrics = currentLyrics.copyWith(id: lyricsId);
-        if (_currentIndex >= 0 && _currentIndex < _queue.length) {
-          final queueSong = _queue[_currentIndex];
-          if (queueSong.path == currentSong.path) {
-            _queue[_currentIndex] = queueSong.copyWith(lyrics: updatedLyrics);
-          }
-        }
-      }
-
-      if (_translationInFlightKeys.contains(activeTranslationKey)) return;
-      if ((currentSong.lyrics ?? currentLyrics)
-              ?.translationFor(normalizedLanguageCode)
-              ?.hasContent ==
-          true) {
-        debugPrint(
-          '[AudioService] lyrics already translated for ${currentSong.displayName} '
-          'language=$normalizedLanguageCode',
-        );
-        return;
-      }
-      if (_translatedLyricsKeys.contains(activeTranslationKey)) {
-        debugPrint(
-          '[AudioService] lyrics already translated for ${currentSong.displayName} '
-          'language=$normalizedLanguageCode',
-        );
-        return;
-      }
-
-      _translationInFlightKeys.add(activeTranslationKey);
-      _isLyricsTranslating = true;
-      _lyricsTranslationStatus = '正在处理';
-      notifyListeners();
-
-      final success = await _geminiLyricsTranslationService
-          .translateLyricsStream(
-            lyrics: sourceLyrics,
-            targetLanguageCode: normalizedLanguageCode,
-            onProgress: (translatedLines, translatedText) {
-              _syncTranslatedLyricsToCurrentSong(
-                currentSong.path,
-                lyricsId,
-                normalizedLanguageCode,
-                translatedLines,
-                translatedText,
-              );
-            },
-          );
-      if (success) {
-        _translatedLyricsKeys.add(activeTranslationKey);
-        await _saveTranslatedLyricsToDatabase(
-          songPath: currentSong.path,
-          cacheKey: query.cacheKey,
-          languageCode: normalizedLanguageCode,
-        );
-      }
-    } finally {
-      if (translationKey != null) {
-        _translationInFlightKeys.remove(translationKey);
-      }
-      _isLyricsTranslating = false;
-      _lyricsTranslationStatus = '';
-      notifyListeners();
-    }
-  }
-
-  Future<void> clearAllLyricsCache() async {
-    await _db.clearLyricsCache();
-    await _db.clearLyricsTranslationCache();
-
-    for (var i = 0; i < _queue.length; i++) {
-      final song = _queue[i];
-      if (song.lyrics == null) continue;
-      _queue[i] = song.copyWith(lyrics: null);
-    }
-
-    _translatedLyricsKeys.clear();
-    _translationInFlightKeys.clear();
-    _lyricsTranslationStatus = '';
-    _hasLyrics = false;
-    _isLyricsLoading = false;
-    _isLyricsTranslating = false;
-    _isLyricsGenerating = false;
-    _isLyricsSynced = false;
-    _lyricsSearchAttempted = false;
-    _currentLyricsLines = const [];
-    _currentLyricsText = '';
-    _currentLyricsTitle = currentMusic?.displayName;
-
-    notifyListeners();
-
-    final current = currentMusic;
-    if (_isLyricsActive && current != null) {
-      unawaited(_fetchAndLogLyrics(current));
-      unawaited(_retryLyricsFetchUntilReady(current));
-    }
-  }
-
-  Future<void> clearTranslationCache() async {
-    await _db.clearLyricsTranslationCache();
-
-    _translatedLyricsKeys.clear();
-    _translationInFlightKeys.clear();
-    _lyricsTranslationStatus = '';
-
-    for (var i = 0; i < _queue.length; i++) {
-      final song = _queue[i];
-      final lyrics = song.lyrics;
-      if (lyrics == null || lyrics.translations.isEmpty) continue;
-
-      _queue[i] = song.copyWith(
-        lyrics: lyrics.copyWith(
-          translations: const <String, MusicLyricTranslation>{},
-        ),
-      );
-    }
-
-    notifyListeners();
-  }
-
-  Future<void> generateLyricsForCurrentSong() async {
-    final song = currentMusic;
-    if (song == null) {
-      debugPrint('[AudioService] generate lyrics skipped: no current song');
-      return;
-    }
-    // 如果当前已经有一轮生成在跑，就直接返回，避免重复上传同一首歌。
-    if (_isLyricsGenerating) {
-      debugPrint(
-        '[AudioService] generate lyrics skipped: already generating '
-        'path=${song.path}',
-      );
-      return;
-    }
-
-    final generationId = ++_lyricsGenerationSerial;
-    final generationCompleter = Completer<void>();
-    _lyricsGenerationCompleter = generationCompleter;
-    _isLyricsGenerating = true;
-    _isLyricsLoading = false;
-    _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-    _lyricsGenerationProgress = 0.0;
-    debugPrint(
-      '[AudioService] generate lyrics start: '
-      'title="${song.displayName}" path="${song.path}" '
-      'generationId=$generationId',
-    );
-    notifyListeners();
-
-    try {
-      // 1. 把当前歌曲文件交给 Gemini，让模型基于音频内容生成 LRC 歌词。
-      // 2. 生成过程中会持续收到流式回调，所以界面可以一边显示“生成中”
-      //    一边把已经产出的歌词片段展示出来。
-      final generatedLyrics = await _geminiLyricsTranslationService
-          .generateLyricsFromFile(
-            filePath: song.path,
-            onUploadProgress: (progress) {
-              if (generationId != _lyricsGenerationSerial ||
-                  currentMusic?.path != song.path) {
-                return;
-              }
-
-              _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-              _lyricsGenerationProgress = progress.clamp(0.0, 1.0);
-              notifyListeners();
-            },
-            onStageChanged: (stage) {
-              if (generationId != _lyricsGenerationSerial ||
-                  currentMusic?.path != song.path) {
-                return;
-              }
-
-              switch (stage) {
-                case 'uploading':
-                  _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-                  _lyricsGenerationProgress = 0.0;
-                  break;
-                case 'processing':
-                  _lyricsGenerationPhase = LyricsGenerationPhase.processing;
-                  _lyricsGenerationProgress = 1.0;
-                  break;
-                case 'generating':
-                  _lyricsGenerationPhase = LyricsGenerationPhase.generating;
-                  _lyricsGenerationProgress = 1.0;
-                  break;
-                default:
-                  _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-                  _lyricsGenerationProgress = 0.0;
-                  break;
-              }
-              notifyListeners();
-            },
-            onProgress: (partialText, isFinal) {
-              // 这里处理的是“增量结果”，不是最终结果。
-              // 每次收到新文本，都先确认它仍然属于当前歌曲和当前请求。
-              if (generationId != _lyricsGenerationSerial ||
-                  currentMusic?.path != song.path) {
-                return;
-              }
-
-              final progressText = partialText.trim();
-              if (progressText.isEmpty) return;
-              final progressLyricsId = LyricsIdUtils.fromLyricsText(
-                progressText,
-              );
-
-              final progressLines = _parseGeneratedLyrics(progressText);
-              final progressLyrics = MusicLyric(
-                id: progressLyricsId,
-                syncedLines: progressLines,
-                plainText: progressText,
-              );
-
-              _hasLyrics = true;
-              _isLyricsLoading = false;
-              _lyricsGenerationPhase = LyricsGenerationPhase.generating;
-              _lyricsGenerationProgress = 1.0;
-              _isLyricsSynced = progressLyrics.syncedLines.any(
-                (line) => line.isTimed,
-              );
-              _lyricsSearchAttempted = true;
-              _currentLyricsLines = progressLyrics.syncedLines;
-              _currentLyricsText = progressLyrics.plainText;
-              _currentLyricsTitle = song.displayName;
-
-              if (_currentIndex >= 0 && _currentIndex < _queue.length) {
-                // 把进度歌词先写回当前队列项，这样 UI 切歌/刷新时能立即看到最新内容。
-                final currentSong = _queue[_currentIndex];
-                if (currentSong.path == song.path) {
-                  _queue[_currentIndex] = currentSong.copyWith(
-                    lyrics: progressLyrics,
-                  );
-                  unawaited(
-                    _restoreCachedLyricsTranslations(_queue[_currentIndex]),
-                  );
-                }
-              }
-
-              notifyListeners();
-
-              if (isFinal) {
-                _logLyricsDebug(
-                  'generation stream final chunk -> title="${song.displayName}" '
-                  'lines=${progressLyrics.syncedLines.length} '
-                  'synced=${progressLyrics.syncedLines.any((line) => line.isTimed)}',
-                );
-              }
-            },
-          );
-
-      if (generationId != _lyricsGenerationSerial ||
-          currentMusic?.path != song.path) {
-        _logLyricsDebug(
-          'generation ignored due to stale request -> title="${song.displayName}" '
-          'generationId=$generationId latest=$_lyricsGenerationSerial '
-          'currentPath="${currentMusic?.path}"',
-        );
-        return;
-      }
-
-      if (generatedLyrics == null || generatedLyrics.trim().isEmpty) {
-        // Gemini 没返回可用歌词时，不覆盖现有状态，只保留错误日志和结束状态。
-        _logLyricsDebug(
-          'generation returned empty lyrics -> title="${song.displayName}" '
-          'path="${song.path}"',
-        );
-        debugPrint(
-          '[AudioService] generate lyrics empty: '
-          'title="${song.displayName}" path="${song.path}" '
-          'generationId=$generationId',
-        );
-        return;
-      }
-
-      final generatedLines = _parseGeneratedLyrics(generatedLyrics);
-      final lyrics = MusicLyric(
-        id: LyricsIdUtils.fromLyricsText(generatedLyrics),
-        syncedLines: generatedLines.isNotEmpty
-            ? generatedLines
-            : _buildLyricsLines(const [], generatedLyrics),
-        plainText: generatedLyrics.trim(),
-      );
-
-      _logLyricsDebug(
-        'generation parsed result -> title="${song.displayName}" '
-        'rawLines=${_countNonEmptyLines(generatedLyrics)} '
-        'parsedTimedLines=${generatedLines.where((line) => line.isTimed).length} '
-        'parsedPlainLines=${generatedLines.where((line) => !line.isTimed).length}',
-      );
-      // 生成完成后，把最终歌词写入当前播放项，并把原始文本落库。
-      debugPrint(
-        '[AudioService] generation raw lyrics:\n${generatedLyrics.trim()}',
-      );
-      debugPrint(
-        '[AudioService] generation parsed syncedLines:\n${generatedLines.isEmpty ? '<empty>' : generatedLines.map((line) => '[${_formatTimestamp(line.timestamp)}] ${line.text}').join('\n')}',
-      );
-
-      _hasLyrics = true;
-      _isLyricsLoading = false;
-      _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-      _lyricsGenerationProgress = 0.0;
-      _isLyricsSynced = lyrics.syncedLines.any((line) => line.isTimed);
-      _lyricsSearchAttempted = true;
-      _currentLyricsLines = lyrics.syncedLines;
-      _currentLyricsText = lyrics.plainText;
-      _currentLyricsTitle = song.displayName;
-
-      if (_currentIndex >= 0 && _currentIndex < _queue.length) {
-        final currentSong = _queue[_currentIndex];
-        if (currentSong.path == song.path) {
-          _queue[_currentIndex] = currentSong.copyWith(lyrics: lyrics);
-          unawaited(_restoreCachedLyricsTranslations(_queue[_currentIndex]));
-        }
-      }
-
-      await _saveGeneratedLyricsToDatabase(
-        song: song,
-        generatedLyrics: generatedLyrics,
-        syncedLines: generatedLines,
-      );
-
-      // 通知界面刷新：此时歌词已经完整可用，不再是“生成中”的中间态。
-      notifyListeners();
-      _logLyricsDebug(
-        'generation done -> title="${song.displayName}" '
-        'lines=${_currentLyricsLines.length} synced=$_isLyricsSynced '
-        'textLen=${_currentLyricsText.length}',
-      );
-      debugPrint(
-        '[AudioService] generate lyrics done: '
-        'title="${song.displayName}" path="${song.path}" '
-        'generationId=$generationId lines=${_currentLyricsLines.length}',
-      );
-    } catch (e) {
-      debugPrint('[AudioService] Failed to generate lyrics: $e');
-      _logLyricsDebug(
-        'generation failed -> title="${song.displayName}" path="${song.path}" '
-        'error=$e generationId=$generationId',
-      );
-    } finally {
-      // 只有当前这次请求仍然是最新的一次，才结束“生成中”状态。
-      if (generationId == _lyricsGenerationSerial) {
-        _isLyricsGenerating = false;
-        _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-        _lyricsGenerationProgress = 0.0;
-        if (!generationCompleter.isCompleted) {
-          generationCompleter.complete();
-        }
-        if (identical(_lyricsGenerationCompleter, generationCompleter)) {
-          _lyricsGenerationCompleter = null;
-        }
-        notifyListeners();
-        debugPrint(
-          '[AudioService] generate lyrics finish: '
-          'title="${song.displayName}" path="${song.path}" '
-          'generationId=$generationId',
-        );
-      }
-    }
-  }
-
-  void _syncTranslatedLyricsToCurrentSong(
-    String songPath,
-    String lyricsId,
-    String languageCode,
-    List<String> translatedLines,
-    String translatedText,
-  ) {
-    if (_currentIndex < 0 || _currentIndex >= _queue.length) return;
-
-    final currentSong = _queue[_currentIndex];
-    if (currentSong.path != songPath) return;
-
-    final existingLyrics = currentSong.lyrics ?? const MusicLyric();
-    final existingTranslation = existingLyrics.translationFor(languageCode);
-    final updatedTranslation = _buildLyricsTranslation(
-      languageCode: languageCode,
-      translatedLines: translatedLines,
-      translatedText: translatedText,
-    );
-    if (existingTranslation == updatedTranslation) {
-      return;
-    }
-
-    final updatedTranslations = Map<String, MusicLyricTranslation>.from(
-      existingLyrics.translations,
-    )..[languageCode] = updatedTranslation;
-
-    _queue[_currentIndex] = currentSong.copyWith(
-      lyrics: existingLyrics.copyWith(
-        id: lyricsId.isEmpty ? existingLyrics.id : lyricsId,
-        translations: updatedTranslations,
-      ),
-    );
-
-    notifyListeners();
-    debugPrint(
-      '[AudioService] translated lyrics updated for ${currentSong.displayName}: '
-      '${translatedText.length} chars language=$languageCode',
-    );
-  }
-
-  Future<void> _waitForLyricsGenerationToFinish(String songPath) async {
-    while (_isLyricsGenerating && currentMusic?.path == songPath) {
-      final completer = _lyricsGenerationCompleter;
-      if (completer != null) {
-        try {
-          await completer.future;
-        } catch (_) {
-          return;
-        }
-      } else {
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-      }
-    }
-  }
-
-  Future<void> _saveTranslatedLyricsToDatabase({
-    required String songPath,
-    required String cacheKey,
-    required String languageCode,
-  }) async {
-    try {
-      final current = currentMusic;
-      if (current == null || current.path != songPath) return;
-
-      final lyrics = current.lyrics;
-      if (lyrics == null) return;
-
-      final translation = lyrics.translationFor(languageCode);
-      if (translation == null || !translation.hasContent) return;
-
-      _logLyricsDebug(
-        'translation save -> path="$songPath" language=$languageCode '
-        'cacheKey=$cacheKey textLen=${translation.translatedText.length} '
-        'lines=${translation.translatedLines.length}',
-      );
-
-      final record = LyricsTranslationCacheRecord(
-        cacheKey: cacheKey,
-        languageCode: languageCode,
-        translatedText: translation.translatedText,
-        translatedLines: translation.translatedLines,
-        provider: translation.provider,
-        updatedAtMillis:
-            translation.updatedAt?.millisecondsSinceEpoch ??
-            DateTime.now().millisecondsSinceEpoch,
-      );
-      await _db.insertOrUpdateLyricsTranslationCache(record);
-      _logLyricsDebug(
-        'translation cached -> path="$songPath" language=$languageCode',
-      );
-    } catch (e) {
-      debugPrint('[AudioService] Failed to cache translated lyrics: $e');
-      _logLyricsDebug(
-        'translation cache failed -> path="$songPath" language=$languageCode '
-        'error=$e',
-      );
-    }
-  }
-
-  Future<void> _restoreCachedLyricsTranslations(MusicFile song) async {
-    final lyrics = song.lyrics;
-    if (lyrics == null) {
-      _logLyricsDebug(
-        'translation restore skipped -> title="${song.displayName}" '
-        'path="${song.path}" reason=no_lyrics_object',
-      );
-      return;
-    }
-
-    final query = await _buildLyricsQueryForSong(song);
-    if (query == null) {
-      _logLyricsDebug(
-        'translation restore skipped -> title="${song.displayName}" '
-        'path="${song.path}" reason=no_query duration=${song.durationMillis} '
-        'playerDuration=$_duration',
-      );
-      return;
-    }
-
-    try {
-      final cachedTranslations = await _db.getLyricsTranslationCaches(
-        query.cacheKey,
-      );
-      if (cachedTranslations.isEmpty) {
-        _logLyricsDebug(
-          'translation restore miss -> title="${song.displayName}" '
-          'path="${song.path}" cacheKey=${query.cacheKey}',
-        );
-        return;
-      }
-
-      final preferredLanguageCode =
-          LanguageCodeUtils.currentSystemLanguageCode();
-      cachedTranslations.sort((a, b) {
-        final aPreferred = a.languageCode == preferredLanguageCode;
-        final bPreferred = b.languageCode == preferredLanguageCode;
-        if (aPreferred != bPreferred) {
-          return aPreferred ? -1 : 1;
-        }
-        return b.updatedAtMillis.compareTo(a.updatedAtMillis);
-      });
-
-      final updatedTranslations = Map<String, MusicLyricTranslation>.from(
-        lyrics.translations,
-      );
-      var changed = false;
-
-      for (final record in cachedTranslations) {
-        if (updatedTranslations.containsKey(record.languageCode)) continue;
-        final translation = MusicLyricTranslation(
-          languageCode: record.languageCode,
-          translatedText: record.translatedText,
-          translatedLines: record.translatedLines,
-          provider: record.provider,
-          updatedAt: DateTime.fromMillisecondsSinceEpoch(
-            record.updatedAtMillis,
-          ),
-        );
-        final existing = updatedTranslations[record.languageCode];
-        if (existing == translation) continue;
-        updatedTranslations[record.languageCode] = translation;
-        changed = true;
-      }
-
-      if (!changed) return;
-
-      for (var i = 0; i < _queue.length; i++) {
-        final queuedSong = _queue[i];
-        if (queuedSong.path != song.path) continue;
-        final queuedLyrics = queuedSong.lyrics;
-        if (queuedLyrics == null) continue;
-        _queue[i] = queuedSong.copyWith(
-          lyrics: queuedLyrics.copyWith(translations: updatedTranslations),
-        );
-      }
-
-      notifyListeners();
-      _logLyricsDebug(
-        'translation restored -> title="${song.displayName}" '
-        'path="${song.path}" cacheKey=${query.cacheKey} '
-        'preferred=$preferredLanguageCode '
-        'languages=${updatedTranslations.keys.join(",")}',
-      );
-    } catch (e) {
-      debugPrint('[AudioService] Failed to restore translated lyrics: $e');
-      _logLyricsDebug(
-        'translation restore failed -> title="${song.displayName}" error=$e',
-      );
-    }
-  }
-
-  String _lyricsSourceTextFromLyrics(MusicLyric lyrics) {
-    if (lyrics.syncedLines.isNotEmpty) {
-      return lyrics.syncedLines.map((line) => line.text).join('\n').trim();
-    }
-    return LrcUtils.stripTimestamps(lyrics.plainText).trim();
-  }
-
-  String _lyricsIdForSong(MusicFile song, {String? sourceLyrics}) {
-    final existingId = song.lyrics?.id.trim() ?? '';
-    if (existingId.isNotEmpty) return existingId;
-
-    final text =
-        (sourceLyrics ??
-                _lyricsSourceTextFromLyrics(song.lyrics ?? const MusicLyric()))
-            .trim();
-    if (text.isEmpty) return '';
-    return LyricsIdUtils.fromLyricsText(text);
-  }
-
-  MusicLyricTranslation _buildLyricsTranslation({
-    required String languageCode,
-    required List<String> translatedLines,
-    required String translatedText,
-  }) {
-    final normalizedLines = translatedLines
-        .map((line) => line.trim())
-        .toList(growable: false);
-    return MusicLyricTranslation(
-      languageCode: languageCode,
-      translatedText: translatedText,
-      translatedLines: normalizedLines,
-      provider: 'gemini',
-      updatedAt: DateTime.now(),
-    );
-  }
-
-  Future<void> _saveGeneratedLyricsToDatabase({
-    required MusicFile song,
-    required String generatedLyrics,
-    required List<LyricLine> syncedLines,
-  }) async {
-    try {
-      final duration = await _resolveLyricsDuration(song);
-      final query = LyricsQuery(
-        filePath: song.path,
-        fileName: song.name,
-        title: _lyricsTitleForQuery(song),
-        artist: _lyricsArtistForQuery(song),
-        album: _lyricsAlbumForQuery(song),
-        duration: duration,
-      );
-      final record = LyricsCacheRecord(
-        cacheKey: query.cacheKey,
-        source: 'gemini_generate',
-        isSynced: syncedLines.any((line) => line.isTimed),
-        syncedLyrics: syncedLines.any((line) => line.isTimed)
-            ? generatedLyrics
-            : null,
-        syncedLines: syncedLines.map((line) => line.toJson()).toList(),
-        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-      );
-      await _db.insertOrUpdateLyricsCache(record);
-      _logLyricsDebug(
-        'generation cached -> title="${song.displayName}" cacheKey=${query.cacheKey}',
-      );
-    } catch (e) {
-      debugPrint('[AudioService] Failed to cache generated lyrics: $e');
-      _logLyricsDebug(
-        'generation cache failed -> title="${song.displayName}" '
-        'path="${song.path}" error=$e',
-      );
-    }
-  }
-
-  List<LyricLine> _parseGeneratedLyrics(String? lyrics) {
-    return LrcUtils.parseTimedLyrics(lyrics);
-  }
-
-  int _countNonEmptyLines(String? text) {
-    if (text == null || text.trim().isEmpty) return 0;
-    return text
-        .split(RegExp(r'\r?\n'))
-        .where((line) => line.trim().isNotEmpty)
-        .length;
-  }
-
-  String _formatTimestamp(Duration duration) {
-    final totalMilliseconds = duration.inMilliseconds;
-    final minutes = totalMilliseconds ~/ 60000;
-    final seconds = (totalMilliseconds % 60000) ~/ 1000;
-    final centiseconds = (totalMilliseconds % 1000) ~/ 10;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.${centiseconds.toString().padLeft(2, '0')}';
-  }
-
-  String _lyricsTranslationCacheKey(String cacheKey, String languageCode) {
-    return '$cacheKey|$languageCode';
-  }
-
-  Future<LyricsQuery?> _buildLyricsQueryForSong(MusicFile song) async {
-    final duration = await _resolveLyricsDuration(song);
-    if (duration == null) {
-      _logLyricsDebug(
-        'lyrics query build failed -> title="${song.displayName}" '
-        'path="${song.path}" reason=no_duration '
-        'songDuration=${song.durationMillis} playerDuration=$_duration',
-      );
-      return null;
-    }
-
-    final query = LyricsQuery(
-      filePath: song.path,
-      fileName: song.name,
-      title: _lyricsTitleForQuery(song),
-      artist: _lyricsArtistForQuery(song),
-      album: _lyricsAlbumForQuery(song),
-      duration: duration,
-    );
-
-    _logLyricsDebug(
-      'lyrics query built -> title="${song.displayName}" '
-      'path="${song.path}" cacheKey=${query.cacheKey} '
-      'duration=${duration.inSeconds}s',
-    );
-    return query;
-  }
-
-  List<LyricLine> _buildLyricsLines(
-    List<LyricLine> syncedLines,
-    String fallbackPlainLyrics,
-  ) {
-    if (syncedLines.isNotEmpty) {
-      return syncedLines;
-    }
-
-    if (fallbackPlainLyrics.trim().isEmpty) {
-      return const [];
-    }
-
-    final lines = fallbackPlainLyrics.split(RegExp(r'\r?\n'));
-    if (lines.isEmpty) return const [];
-
-    return lines
-        .map(
-          (line) =>
-              LyricLine(timestamp: Duration.zero, text: line, isTimed: false),
-        )
-        .toList(growable: false);
-  }
-
-  String _lyricsTitleForQuery(MusicFile song) {
-    final displayName = song.displayName.trim();
-    return displayName.isNotEmpty ? displayName : song.name.trim();
-  }
-
-  Duration? _lyricsDurationForQuery(MusicFile song) {
-    final durationMillis = song.durationMillis;
-    if (durationMillis != null && durationMillis > 0) {
-      return Duration(milliseconds: durationMillis);
-    }
-    return null;
-  }
-
-  Future<Duration?> _resolveLyricsDuration(MusicFile song) async {
-    final direct = _lyricsDurationForQuery(song);
-    if (direct != null &&
-        song.durationMillis != null &&
-        song.durationMillis! > 0) {
-      return direct;
-    }
-
-    final dbMetadata = await _db.getSongMetadata(song.path);
-    final dbDuration = dbMetadata?.duration;
-    if (dbDuration != null && dbDuration > 0) {
-      _cacheSongDuration(song.path, dbDuration);
-      return Duration(milliseconds: dbDuration);
-    }
-
-    final fileMetadata = await MetadataHelper.readMetadataFromFile(song.path);
-    final fileDuration = fileMetadata?.duration;
-    if (fileDuration != null && fileDuration > 0) {
-      _cacheSongDuration(song.path, fileDuration);
-      return Duration(milliseconds: fileDuration);
-    }
-
-    if (_duration > Duration.zero) {
-      return _duration;
-    }
-
-    return direct;
-  }
+  Future<void> generateLyricsForCurrentSong() =>
+      _lyricsController.generateLyricsForCurrentSong();
 
   void _cacheSongDuration(String path, int durationMillis) {
     if (_currentIndex < 0 || _currentIndex >= _queue.length) return;
@@ -1857,30 +858,6 @@ class AudioService extends ChangeNotifier {
       durationMillis: durationMillis,
     );
     notifyListeners();
-  }
-
-  String? _lyricsArtistForQuery(MusicFile song) {
-    return _normalizedLyricsField(song.artist);
-  }
-
-  String? _lyricsAlbumForQuery(MusicFile song) {
-    return _normalizedLyricsField(song.album);
-  }
-
-  String? _normalizedLyricsField(String? value) {
-    final text = value?.trim();
-    if (text == null || text.isEmpty) {
-      return null;
-    }
-
-    final lower = text.toLowerCase();
-    if (lower == 'unknown' ||
-        lower == 'unknown artist' ||
-        lower == 'unknown album') {
-      return null;
-    }
-
-    return text;
   }
 
   void _logLyricsDebug(String message) {
@@ -2333,6 +1310,8 @@ class AudioService extends ChangeNotifier {
   @override
   void dispose() {
     _player.removeListener(_handlePlayerChanges);
+    _lyricsController.removeListener(notifyListeners);
+    _lyricsController.dispose();
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();
     _player.dispose();

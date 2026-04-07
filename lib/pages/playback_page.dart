@@ -103,13 +103,14 @@ class _PlaybackPageState extends State<PlaybackPage>
   }
 
   void _onCarouselAnimationComplete() {
+    if (!mounted) return;
+
     final audio = context.read<AudioService>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
+      });
     });
   }
 
@@ -245,7 +246,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                 l10n.saveCurrentTagsToFile,
                 style: const TextStyle(color: Colors.white),
               ),
-              enabled: currentSong != null && isMetadataWritable(currentSong.path),
+              enabled:
+                  currentSong != null && isMetadataWritable(currentSong.path),
               onTap: () {
                 Navigator.pop(dialogContext);
                 _saveCurrentSongTags(context, audio);
@@ -275,7 +277,10 @@ class _PlaybackPageState extends State<PlaybackPage>
     );
   }
 
-  Future<void> _saveCurrentSongTags(BuildContext context, AudioService audio) async {
+  Future<void> _saveCurrentSongTags(
+    BuildContext context,
+    AudioService audio,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
     final snapshot = audio.snapshot;
     final song = snapshot.currentMusic;
@@ -284,18 +289,18 @@ class _PlaybackPageState extends State<PlaybackPage>
     // Check if format is supported
     if (!isMetadataWritable(song.path)) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.unsupportedFormatSingle)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.unsupportedFormatSingle)));
       }
       return;
     }
 
     // Show loading
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.savingTags)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.savingTags)));
     }
 
     try {
@@ -325,9 +330,9 @@ class _PlaybackPageState extends State<PlaybackPage>
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.tagsSaveFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.tagsSaveFailed)));
       }
     }
   }
@@ -349,7 +354,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     final db = MetadataDatabase();
     final queuePaths = queue.map((s) => s.path).toList();
     final metadataMap = <String, SongMetadata>{};
-    
+
     for (final path in queuePaths) {
       final metadata = await db.getSongMetadata(path);
       if (metadata != null) {
@@ -360,10 +365,10 @@ class _PlaybackPageState extends State<PlaybackPage>
     // Filter songs that are modified and have writable format
     final modifiedSongs = <SongMetadata>[];
     final artworkBytesMap = <String, Uint8List?>{};
-    
+
     for (final song in queue) {
       if (!isMetadataWritable(song.path)) continue;
-      
+
       final metadata = metadataMap[song.path];
       if (metadata != null && metadata.isModified) {
         modifiedSongs.add(metadata);
@@ -374,11 +379,9 @@ class _PlaybackPageState extends State<PlaybackPage>
     if (modifiedSongs.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.noModifiedTagsToSave),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.noModifiedTagsToSave)));
       }
       return;
     }
@@ -463,9 +466,9 @@ class _PlaybackPageState extends State<PlaybackPage>
         messages.add(l10n.unsupportedFormat(unsupportedCount));
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(messages.join(' '))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(messages.join(' '))));
     }
   }
 
@@ -755,7 +758,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                                     context,
                                     audio,
                                   ),
-                            onTagCompletionLongPress: snapshot.currentMusic == null
+                            onTagCompletionLongPress:
+                                snapshot.currentMusic == null
                                 ? null
                                 : () => _showTagSaveMenu(context, audio),
                             onEqualizerTap: () => _showEqualizerPanel(context),
@@ -856,9 +860,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   Widget _buildLyricsModeScrim() {
     return Positioned.fill(
       child: IgnorePointer(
-        child: ColoredBox(
-          color: Colors.black.withValues(alpha: 0.28),
-        ),
+        child: ColoredBox(color: Colors.black.withValues(alpha: 0.28)),
       ),
     );
   }
@@ -985,5 +987,4 @@ class _PlaybackPageState extends State<PlaybackPage>
       ),
     );
   }
-
 }

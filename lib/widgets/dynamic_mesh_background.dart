@@ -15,7 +15,7 @@ class DynamicMeshBackground extends StatefulWidget {
 
 class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
   late List<MeshGradientPoint> points;
-  final double _bassEnergy = 0.0;
+  // final double _bassEnergy = 0.0;
   StreamSubscription? _fftSubscription;
 
   @override
