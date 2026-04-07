@@ -260,7 +260,8 @@ class MetadataHelper {
     // 1. 如果数据库已有记录且修改时间相同，直接返回
     final existing = await db.getSongMetadata(filePath);
     if (existing != null && existing.lastModifiedTime == lastModified) {
-      final hasArtwork = (existing.artworkPath?.isNotEmpty ?? false) ||
+      final hasArtwork =
+          (existing.artworkPath?.isNotEmpty ?? false) ||
           (existing.thumbnailPath?.isNotEmpty ?? false);
       if (!generateThumbnail || hasArtwork) {
         return (existing, null);
@@ -490,6 +491,27 @@ class MetadataHelper {
     }
   }
 
+  /// Loads metadata for playback use.
+  ///
+  /// This first tries the database cache. If no record exists, it falls back to
+  /// reading the audio file itself, then persists the parsed metadata back into
+  /// the database through [processMetadata].
+  ///
+  /// The returned artwork bytes are only populated when the fallback file parse
+  /// was needed and the file contained embedded artwork.
+  static Future<(SongMetadata, Uint8List?)?> loadMetadataForPlayback(
+    String filePath, {
+    bool generateThumbnail = false,
+  }) async {
+    final db = MetadataDatabase();
+    final cached = await db.getSongMetadata(filePath);
+    if (cached != null) {
+      return (cached, null);
+    }
+
+    return processMetadata(filePath, generateThumbnail: generateThumbnail);
+  }
+
   /// 解码文件内嵌封面，分辨率限制在 [maxWidth] * [maxHeight]
   static Future<Uint8List?> decodeEmbeddedArtwork(String filePath) async {
     try {
@@ -551,8 +573,9 @@ class MetadataHelper {
     }
 
     try {
-      final firstPictureBytes =
-          (pictures?.isNotEmpty ?? false) ? pictures!.first.bytes : null;
+      final firstPictureBytes = (pictures?.isNotEmpty ?? false)
+          ? pictures!.first.bytes
+          : null;
       final success = await _writeSelectionMetadataToFile(
         filePath: filePath,
         metadata: SongMetadata(
@@ -565,13 +588,15 @@ class MetadataHelper {
         ),
         artworkBytes: firstPictureBytes,
         lyrics: o3ics,
-        pictures: pictures?.map(
-          (picture) => AndroidTrackPicture(
-            bytes: picture.bytes,
-            mimeType: picture.mimetype,
-            pictureType: _pictureTypeToAndroidLabel(picture.pictureType),
-          ),
-        ).toList(),
+        pictures: pictures
+            ?.map(
+              (picture) => AndroidTrackPicture(
+                bytes: picture.bytes,
+                mimeType: picture.mimetype,
+                pictureType: _pictureTypeToAndroidLabel(picture.pictureType),
+              ),
+            )
+            .toList(),
       );
       return success;
     } catch (e) {

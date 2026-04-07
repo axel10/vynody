@@ -178,6 +178,100 @@ class AudioService extends ChangeNotifier {
     _scannerService = scanner;
   }
 
+  MusicFile _songFromMetadata(
+    MusicFile song,
+    SongMetadata metadata, {
+    Uint8List? artworkBytes,
+  }) {
+    return song.copyWith(
+      title: metadata.title,
+      artist: metadata.artist,
+      album: metadata.album,
+      trackNumber: metadata.trackNumber,
+      thumbnailPath: metadata.thumbnailPath,
+      artworkPath: metadata.artworkPath,
+      artworkWidth: metadata.artworkWidth,
+      artworkHeight: metadata.artworkHeight,
+      themeColorsBlob: metadata.themeColorsBlob,
+      waveformBlob: metadata.waveformBlob,
+      artworkBytes: artworkBytes ?? song.artworkBytes,
+      lastModifiedTime: metadata.lastModifiedTime,
+      lyrics: song.lyrics,
+    );
+  }
+
+  void _replaceQueueSongsByPath(String path, MusicFile updatedSong) {
+    for (var i = 0; i < _queue.length; i++) {
+      if (_queue[i].path == path) {
+        _queue[i] = updatedSong.copyWith(
+          lyrics: updatedSong.lyrics ?? _queue[i].lyrics,
+        );
+      }
+    }
+  }
+
+  bool _hasMeaningfulTrackText(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) {
+      return false;
+    }
+
+    final lower = text.toLowerCase();
+    return lower != 'unknown' &&
+        lower != 'unknown artist' &&
+        lower != 'unknown album';
+  }
+
+  bool _needsPlaybackMetadataRefresh(MusicFile song) {
+    return !_hasMeaningfulTrackText(song.title) ||
+        !_hasMeaningfulTrackText(song.artist) ||
+        !_hasMeaningfulTrackText(song.album);
+  }
+
+  Future<MusicFile> _resolveMetadataForPlayback(MusicFile song) async {
+    if (!_needsPlaybackMetadataRefresh(song)) {
+      return song;
+    }
+
+    final result = await MetadataHelper.loadMetadataForPlayback(
+      song.path,
+      generateThumbnail: false,
+    );
+    if (result == null) {
+      return song;
+    }
+
+    final metadata = result.$1;
+    final artworkBytes = result.$2;
+    final updatedSong = _songFromMetadata(
+      song,
+      metadata,
+      artworkBytes: artworkBytes,
+    );
+
+    _replaceQueueSongsByPath(song.path, updatedSong);
+    _scannerService?.updateMetadataForPath(
+      metadata,
+      artworkBytes: artworkBytes,
+    );
+    return updatedSong;
+  }
+
+  Future<void> _syncCurrentPlaybackSong(
+    MusicFile song, {
+    required bool awaitDataReady,
+  }) async {
+    final readyFuture = _ensureCurrentSongDataReady(song);
+    if (awaitDataReady) {
+      await readyFuture;
+    } else {
+      unawaited(readyFuture);
+    }
+
+    await _updateCurrentMetadata(song);
+    await _refreshCurrentWaveform(notify: false);
+  }
+
   /// 核心逻辑：确保当前即将播放或正在播放的歌曲数据已完备。
   /// 如果数据未就绪，则临时暂停耗时的后台扫描和非优先级的预处理任务，
   /// 并全力优先处理当前歌曲。处理完成后恢复后台任务。
@@ -552,20 +646,7 @@ class AudioService extends ChangeNotifier {
       final song = _queue[i];
       if (song.path != metadata.path) continue;
 
-      _queue[i] = song.copyWith(
-        title: metadata.title,
-        artist: metadata.artist,
-        album: metadata.album,
-        thumbnailPath: metadata.thumbnailPath,
-        artworkPath: metadata.artworkPath,
-        artworkWidth: metadata.artworkWidth,
-        artworkHeight: metadata.artworkHeight,
-        themeColorsBlob: metadata.themeColorsBlob,
-        waveformBlob: metadata.waveformBlob,
-        trackNumber: metadata.trackNumber,
-        artworkBytes: artworkBytes,
-        lastModifiedTime: metadata.lastModifiedTime,
-      );
+      _queue[i] = _songFromMetadata(song, metadata, artworkBytes: artworkBytes);
 
       queueChanged = true;
     }
@@ -647,19 +728,30 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _updateCurrentMetadata(MusicFile song) async {
+  /// Synchronizes the currently playing song with the in-memory playback state.
+  ///
+  /// This method does not "scan" the file or rebuild the database. Its job is to:
+  /// - make sure the current queue item reflects the newest `MusicFile` data
+  /// - preserve any existing lyrics already attached to that song
+  /// - hydrate artwork and theme colors if they are already available
+  /// - push the current track metadata to Windows / Android integration layers
+  /// - kick off lyrics loading when lyric mode is enabled
+  ///
+  /// In short: this is the "apply current song metadata to the player/UI" step
+  /// that runs after a track becomes current.
+  Future<void> _updateCurrentMetadata(MusicFile inputSong) async {
+    final song = await _resolveMetadataForPlayback(inputSong);
     final path = song.path;
     final isCurrentSong =
         _currentIndex >= 0 &&
         _currentIndex < _queue.length &&
         _queue[_currentIndex].path == path;
-    // Removed buggy guard that compared against currentMusic which was already updated to the new song.
-    // The callers (like _handlePlayerChanges or next()) already ensure this is only called when needed.
-
-    // 1. 更新内部状态：如果路径或 ID 与当前项不匹配，则可能发生了异步竞态。
-    // 这种情况下直接放弃，避免旧歌把当前歌的歌词状态覆盖掉。
+    // Guard against async races:
+    // if the queue has already moved on to another track, do not let this call
+    // overwrite the newer song's state with stale metadata.
     if (isCurrentSong) {
-      // 保留已有歌词，避免一次普通元数据刷新把刚生成/缓存的歌词覆盖掉。
+      // Keep any existing lyrics that are already attached to the current item.
+      // A normal metadata refresh should not wipe lyrics that were loaded or cached.
       final existingLyrics = _queue[_currentIndex].lyrics;
       _queue[_currentIndex] = song.copyWith(
         lyrics: song.lyrics ?? existingLyrics,
@@ -671,21 +763,17 @@ class AudioService extends ChangeNotifier {
       );
       return;
     }
-    // 如果设置开启了波形且对象中已有波形 blob，则不需要额外操作，MusicFile.waveform getter 会处理。
-    // 但如果我们需要在 UI 变化时强制更新 _currentMusic (比如 settingsService.isWaveformProgressBarEnabled 变化)，
-    // 我们的 _refreshCurrentWaveform (已更新) 会处理。
 
-    // We already have song.artworkBytes if it was passed in.
-    // However, we might want to ensure it has the blob if it's there.
-    // The current MusicFile object is copied as is.
-
-    // 2. 如果之前已缓存了主题色彩信息，此时直接应用
+    // Apply cached theme colors immediately so the UI can update without waiting
+    // for the slower artwork/palette pipeline.
     if (song.themeColorsBlob != null) {
       final colorsMap = ThemeColorHelper.blobToColors(song.themeColorsBlob!);
       _applyThemeColors(colorsMap);
     }
 
-    // 3. 核心封面试加载逻辑：先查数据库路径，没有则查内嵌封面
+    // Hydrate artwork bytes asynchronously:
+    // prefer the higher-quality file saved in the metadata database, then fall
+    // back to embedded artwork inside the audio file.
     unawaited(() async {
       Uint8List? highResBytes;
       String? highResPath;
@@ -709,12 +797,14 @@ class AudioService extends ChangeNotifier {
         );
 
         notifyListeners();
-        // 重算调色板（如果元数据刚发生变化）
+        // Recompute the palette only after the artwork bytes have been updated.
         await _updatePalette();
       }
     }());
 
-    // 4. 如果歌曲对象已经持有了歌词，则直接应用，无需二次触发
+    // If the incoming song already carries lyrics, restore them directly.
+    // Otherwise clear lyric state and let the async lyric fetch pipeline decide
+    // whether anything should be loaded.
     final songLyrics = song.lyrics;
     if (_isLyricsActive && songLyrics != null) {
       _hasLyrics = true;
@@ -739,24 +829,21 @@ class AudioService extends ChangeNotifier {
 
     notifyListeners();
 
-    // 5. 仅在封面数据尚未加载时重算调色板（避免重复计算）
-    // 注意：第640行的 _updatePalette() 已在封面加载完成后调用，这里只在封面未加载时兜底
+    // Fallback palette refresh:
+    // if artwork bytes/path are still missing here, keep the UI color state in
+    // sync with whatever is currently available.
     if (currentMusic?.artworkBytes == null &&
         currentMusic?.artworkPath == null) {
       await _updatePalette();
     }
 
-    // 6. 与系统底层接口对接，更新 Windows 的系统媒体控制弹窗/Android 通知栏的封面信息
+    // Propagate the current track to platform integrations so Windows media
+    // controls / Android notification UI stay in sync with playback.
     _windowsIntegration?.updateMetadata(song);
     _androidIntegration?.updateMetadata(song);
 
-    // 7. 异步启动歌词搜索或本地加载请求。
-    // 现在仅在歌词模式激活时才自动触发加载。
-    // 触发时机（当 isLyricsActive 为 true 时）：
-    // - 自动切歌：当上一曲播放结束自动进入下一曲时。
-    // - 手动切歌：用户点击“下一首”、“上一首”按钮时。
-    // - 手动播放：用户从列表点击某首歌曲启动播放时。
-    // - 列表流转：播放列表模式（顺序、随机、循环）导致的歌曲切换。
+    // Trigger lyric loading only when lyric mode is active and we still do not
+    // have lyrics for this track.
     if (_isLyricsActive && !_hasLyrics) {
       _logLyricsDebug(
         'post-metadata fetch -> title="${song.displayName}" '
@@ -1702,15 +1789,28 @@ class AudioService extends ChangeNotifier {
     int? id,
     String? mediaUri,
   }) async {
-    final fileMetadata = await MetadataHelper.readMetadataFromFile(path);
+    final resolved = await MetadataHelper.loadMetadataForPlayback(
+      path,
+      generateThumbnail: false,
+    );
+    final metadata = resolved?.$1;
+    final artworkBytes = resolved?.$2;
+
     return MusicFile(
       path: path,
       name: name,
-      title: fileMetadata?.title,
-      artist: fileMetadata?.artist,
-      album: fileMetadata?.album,
-      trackNumber: fileMetadata?.trackNumber,
-      durationMillis: fileMetadata?.duration,
+      title: metadata?.title,
+      artist: metadata?.artist,
+      album: metadata?.album,
+      trackNumber: metadata?.trackNumber,
+      durationMillis: metadata?.duration,
+      thumbnailPath: metadata?.thumbnailPath,
+      artworkPath: metadata?.artworkPath,
+      artworkWidth: metadata?.artworkWidth,
+      artworkHeight: metadata?.artworkHeight,
+      themeColorsBlob: metadata?.themeColorsBlob,
+      artworkBytes: artworkBytes,
+      lastModifiedTime: metadata?.lastModifiedTime,
       id: id,
       mediaUri: mediaUri,
     );
@@ -1806,15 +1906,11 @@ class AudioService extends ChangeNotifier {
 
       // 6. 确认即将播放歌曲的数据就绪（如果没好，则暂停扫描，优先处理）
       final current = songs[safeIndex];
-      await _ensureCurrentSongDataReady(current);
+      await _syncCurrentPlaybackSong(current, awaitDataReady: true);
 
-      // 7. 更新当前播放歌曲的元数据
-      await _updateCurrentMetadata(current);
-
-      // 8. 设置音量并更新当前波形显示
+      // 7. 设置音量并更新后台队列
 
       await _player.player.setVolume(_volume / 100.0);
-      await _refreshCurrentWaveform(notify: false);
 
       // 8. 启动后台线程来预加载队列中后续歌曲的元数据或波形字节，提升切换时的平滑度
       _startQueueBackgroundProcessing();
@@ -1840,10 +1936,8 @@ class AudioService extends ChangeNotifier {
     if (wasEmpty) {
       _currentIndex = 0;
       final current = songs[0];
-      await _ensureCurrentSongDataReady(current);
-      await _updateCurrentMetadata(current);
+      await _syncCurrentPlaybackSong(current, awaitDataReady: true);
       await _player.player.setVolume(_volume / 100.0);
-      await _refreshCurrentWaveform(notify: false);
     }
     _startQueueBackgroundProcessing();
     notifyListeners();
@@ -1892,9 +1986,7 @@ class AudioService extends ChangeNotifier {
         if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
           final song = _queue[_currentIndex];
-          unawaited(_ensureCurrentSongDataReady(song));
-          await _updateCurrentMetadata(song);
-          await _refreshCurrentWaveform(notify: false);
+          await _syncCurrentPlaybackSong(song, awaitDataReady: false);
         }
       }
     } finally {
@@ -1920,9 +2012,7 @@ class AudioService extends ChangeNotifier {
       }
       _currentIndex = index;
       final song = _queue[_currentIndex];
-      unawaited(_ensureCurrentSongDataReady(song));
-      await _updateCurrentMetadata(song);
-      await _refreshCurrentWaveform(notify: false);
+      await _syncCurrentPlaybackSong(song, awaitDataReady: false);
     } finally {
       _isTransitioning = false;
       notifyListeners();
@@ -1940,9 +2030,7 @@ class AudioService extends ChangeNotifier {
         if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
           final song = _queue[_currentIndex];
-          unawaited(_ensureCurrentSongDataReady(song));
-          await _updateCurrentMetadata(song);
-          await _refreshCurrentWaveform(notify: false);
+          await _syncCurrentPlaybackSong(song, awaitDataReady: false);
         }
       }
     } finally {
