@@ -43,6 +43,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   AcoustIDService? _acoustidService;
   final Set<String> _expandedAcoustIDIds = <String>{};
   final Set<String> _expandedReleaseGroupIds = <String>{};
+  final Set<String> _expandedMusicBrainzRecordingIds = <String>{};
 
   @override
   void initState() {
@@ -100,6 +101,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       if (!mounted) return;
       setState(() {
         _matches = results;
+        _expandedMusicBrainzRecordingIds.clear();
         _isLoading = false;
       });
     } catch (e) {
@@ -147,6 +149,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         _acoustidResults = results;
         _expandedAcoustIDIds.clear();
         _expandedReleaseGroupIds.clear();
+        _expandedMusicBrainzRecordingIds.clear();
         _isAcoustIDLoading = false;
       });
     } catch (e) {
@@ -182,8 +185,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     );
 
     try {
-      final durationMillis =
-          recording.durationMillis ?? widget.durationMillis;
+      final durationMillis = recording.durationMillis ?? widget.durationMillis;
       final saved = await MetadataHelper.saveSelectedSongMetadata(
         filePath: widget.songPath,
         title: recording.title,
@@ -307,15 +309,15 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       trackNumber: null,
       score: (trackResult.score * 100).round().clamp(0, 100),
       disambiguation: sourceLabel,
-      raw: raw ??
-          {
-            'track': trackResult.raw,
-            'recording': recording.raw,
-          },
+      releases: const [],
+      raw: raw ?? {'track': trackResult.raw, 'recording': recording.raw},
     )..resolvedCover = resolvedCover;
   }
 
-  Future<void> _applyMatch(MusicBrainzTrackMatch match) async {
+  Future<void> _applyMusicBrainzRelease(
+    MusicBrainzTrackMatch match,
+    MusicBrainzReleaseMatch release,
+  ) async {
     if (_isApplying) return;
 
     if (!mounted) return;
@@ -328,6 +330,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       final result = await _service.applySelection(
         songPath: widget.songPath,
         match: match,
+        selectedRelease: release,
         fallbackDurationMillis: widget.durationMillis,
       );
 
@@ -362,7 +365,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '根据音频指纹检索 AcoustID，展开后可选择专辑或发行版封面来补全信息；同时也检索 MusicBrainz 的近似结果。',
+                  '根据音频指纹检索 AcoustID，同时检索 MusicBrainz 的录音结果；点开录音后选择具体 release 封面来补全信息。',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
@@ -497,7 +500,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
               child: Text(
-                'MusicBrainz 结果',
+                'MusicBrainz 录音',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.72),
                   fontSize: 12,
@@ -509,135 +512,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         }
 
         for (var i = 0; i < _matches.length; i++) {
-          final match = _matches[i];
-          final durationText = match.durationLabel;
-          final trackLabel = match.trackNumber != null
-              ? 'Track ${match.trackNumber}'
-              : 'Track --';
-
-          children.add(
-            Material(
-              color: Colors.white.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(18),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: _isApplying ? null : () => _applyMatch(match),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: _MatchCoverImage(match: match, service: _service),
-                          ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.6),
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(6),
-                                  bottomRight: Radius.circular(10),
-                                ),
-                              ),
-                              child: Text(
-                                '${i + 1}',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              match.title.isNotEmpty
-                                  ? match.title
-                                  : _displayTitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              [
-                                if (match.artist.isNotEmpty) match.artist,
-                                if (match.album != null &&
-                                    match.album!.isNotEmpty)
-                                  match.album!,
-                              ].join(' · '),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.7),
-                                fontSize: 12,
-                                height: 1.3,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              [
-                                trackLabel,
-                                durationText,
-                                '评分 ${match.score}',
-                                if (match.releaseDate != null &&
-                                    match.releaseDate!.isNotEmpty)
-                                  match.releaseDate!,
-                                if (match.disambiguation != null &&
-                                    match.disambiguation!.isNotEmpty)
-                                  match.disambiguation!,
-                              ].join(' · '),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _ScoreBadge(score: match.score),
-                          const SizedBox(height: 10),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: Colors.white.withValues(alpha: 0.45),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
+          children.add(_buildMusicBrainzRecordingCard(_matches[i], i));
           if (i < _matches.length - 1) {
             children.add(const SizedBox(height: 8));
           }
@@ -663,6 +538,305 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
       children: children,
+    );
+  }
+
+  Widget _buildMusicBrainzRecordingCard(
+    MusicBrainzTrackMatch match,
+    int index,
+  ) {
+    final recordingKey = match.recordingId.isNotEmpty
+        ? match.recordingId
+        : 'recording_$index';
+    final expanded = _expandedMusicBrainzRecordingIds.contains(recordingKey);
+    final releaseCount = match.releases.length;
+    final hasReleases = releaseCount > 0;
+    final durationText = match.durationLabel;
+    final trackLabel = match.trackNumber != null
+        ? 'Track ${match.trackNumber}'
+        : 'Track --';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: _isApplying
+                  ? null
+                  : () {
+                      setState(() {
+                        if (expanded) {
+                          _expandedMusicBrainzRecordingIds.remove(recordingKey);
+                        } else {
+                          _expandedMusicBrainzRecordingIds.add(recordingKey);
+                        }
+                      });
+                    },
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: _MatchCoverImage(
+                            match: match,
+                            service: _service,
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(6),
+                                bottomRight: Radius.circular(10),
+                              ),
+                            ),
+                            child: Text(
+                              '${index + 1}',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            match.title.isNotEmpty
+                                ? match.title
+                                : _displayTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            [
+                              if (match.artist.isNotEmpty) match.artist,
+                              if (match.album != null &&
+                                  match.album!.isNotEmpty)
+                                match.album!,
+                            ].join(' · '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 12,
+                              height: 1.3,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            [
+                              trackLabel,
+                              durationText,
+                              '评分 ${match.score}',
+                              '$releaseCount 个发行版',
+                              if (match.releaseDate != null &&
+                                  match.releaseDate!.isNotEmpty)
+                                match.releaseDate!,
+                              if (match.disambiguation != null &&
+                                  match.disambiguation!.isNotEmpty)
+                                match.disambiguation!,
+                            ].join(' · '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.45),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _ScoreBadge(score: match.score),
+                        const SizedBox(height: 10),
+                        AnimatedRotation(
+                          turns: expanded ? 0.5 : 0.0,
+                          duration: const Duration(milliseconds: 180),
+                          child: Icon(
+                            hasReleases
+                                ? Icons.keyboard_arrow_down_rounded
+                                : Icons.remove_rounded,
+                            color: hasReleases
+                                ? Colors.white.withValues(alpha: 0.45)
+                                : Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: expanded
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                      child: hasReleases
+                          ? Column(
+                              children: [
+                                for (var i = 0; i < match.releases.length; i++)
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      top: i == 0 ? 0 : 8,
+                                    ),
+                                    child: _buildMusicBrainzReleaseRow(
+                                      match: match,
+                                      release: match.releases[i],
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : Text(
+                              '没有可展开的发行版',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.42),
+                                fontSize: 11,
+                              ),
+                            ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMusicBrainzReleaseRow({
+    required MusicBrainzTrackMatch match,
+    required MusicBrainzReleaseMatch release,
+  }) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.04),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: _isApplying
+            ? null
+            : () => _applyMusicBrainzRelease(match, release),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(9),
+                child: SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: Image.network(
+                    release.thumbnailUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      child: const Icon(
+                        Icons.album_outlined,
+                        color: Colors.white24,
+                        size: 20,
+                      ),
+                    ),
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return Center(
+                        child: SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.3,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white.withValues(alpha: 0.18),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      release.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        if (release.country != null &&
+                            release.country!.isNotEmpty)
+                          release.country!,
+                        if (release.dateLabel != null &&
+                            release.dateLabel!.isNotEmpty)
+                          release.dateLabel!,
+                        if (release.trackCount != null)
+                          '${release.trackCount} 首',
+                      ].join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 10.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white.withValues(alpha: 0.35),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -735,12 +909,14 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF46D27A)
-                                      .withValues(alpha: 0.2),
+                                  color: const Color(
+                                    0xFF46D27A,
+                                  ).withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
-                                    color: const Color(0xFF46D27A)
-                                        .withValues(alpha: 0.4),
+                                    color: const Color(
+                                      0xFF46D27A,
+                                    ).withValues(alpha: 0.4),
                                   ),
                                 ),
                                 child: const Text(
@@ -822,9 +998,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                           children: [
                             for (var i = 0; i < result.recordings.length; i++)
                               Padding(
-                                padding: EdgeInsets.only(
-                                  top: i == 0 ? 0 : 10,
-                                ),
+                                padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
                                 child: _buildAcoustIDRecordingBlock(
                                   trackResult: result,
                                   recording: result.recordings[i],
@@ -1004,10 +1178,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                   onTap: _isApplying
                       ? null
                       : () => _applyAcoustIDReleaseGroup(
-                            trackResult,
-                            recording,
-                            releaseGroup,
-                          ),
+                          trackResult,
+                          recording,
+                          releaseGroup,
+                        ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -1115,7 +1289,12 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         borderRadius: BorderRadius.circular(10),
         onTap: _isApplying
             ? null
-            : () => _applyAcoustIDRelease(trackResult, recording, releaseGroup, release),
+            : () => _applyAcoustIDRelease(
+                trackResult,
+                recording,
+                releaseGroup,
+                release,
+              ),
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
@@ -1172,7 +1351,8 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                     const SizedBox(height: 4),
                     Text(
                       [
-                        if (release.country != null && release.country!.isNotEmpty)
+                        if (release.country != null &&
+                            release.country!.isNotEmpty)
                           release.country!,
                         if (release.dateLabel != null &&
                             release.dateLabel!.isNotEmpty)

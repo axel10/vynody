@@ -9,6 +9,49 @@ import '../utils/clean_helper.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 
+class MusicBrainzReleaseMatch {
+  final String id;
+  final String title;
+  final String? country;
+  final String? dateLabel;
+  final int? trackCount;
+  final String? releaseGroupId;
+  final Map<String, dynamic> raw;
+
+  const MusicBrainzReleaseMatch({
+    required this.id,
+    required this.title,
+    required this.country,
+    required this.dateLabel,
+    required this.trackCount,
+    required this.releaseGroupId,
+    required this.raw,
+  });
+
+  String get thumbnailUrl =>
+      'https://coverartarchive.org/release/$id/front-250';
+
+  String get largeUrl => 'https://coverartarchive.org/release/$id/front';
+
+  factory MusicBrainzReleaseMatch.fromJson(Map<String, dynamic> json) {
+    String? releaseGroupId;
+    final releaseGroup = json['release-group'];
+    if (releaseGroup is Map<String, dynamic>) {
+      releaseGroupId = releaseGroup['id'] as String?;
+    }
+
+    return MusicBrainzReleaseMatch(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      country: json['country'] as String?,
+      dateLabel: json['date'] as String?,
+      trackCount: (json['track-count'] as num?)?.toInt(),
+      releaseGroupId: releaseGroupId,
+      raw: Map<String, dynamic>.from(json),
+    );
+  }
+}
+
 class MusicBrainzTrackMatch {
   final String recordingId;
   final String title;
@@ -22,6 +65,7 @@ class MusicBrainzTrackMatch {
   final int? trackNumber;
   final int score;
   final String? disambiguation;
+  final List<MusicBrainzReleaseMatch> releases;
   final Map<String, dynamic> raw;
 
   MusicBrainzTrackMatch({
@@ -37,6 +81,7 @@ class MusicBrainzTrackMatch {
     required this.trackNumber,
     required this.score,
     required this.disambiguation,
+    required this.releases,
     required this.raw,
     this.resolvedCover,
   });
@@ -46,11 +91,12 @@ class MusicBrainzTrackMatch {
   factory MusicBrainzTrackMatch.fromJson(Map<String, dynamic> json) {
     final releases = (json['releases'] as List<dynamic>? ?? const [])
         .whereType<Map<String, dynamic>>()
-        .toList();
+        .map(MusicBrainzReleaseMatch.fromJson)
+        .toList(growable: false);
 
-    Map<String, dynamic>? firstRelease;
+    MusicBrainzReleaseMatch? firstRelease;
     for (final release in releases) {
-      final media = (release['media'] as List<dynamic>? ?? const [])
+      final media = (release.raw['media'] as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
           .toList();
       if (media.isNotEmpty) {
@@ -68,17 +114,13 @@ class MusicBrainzTrackMatch {
     int? trackNumber;
 
     if (firstRelease != null) {
-      album = firstRelease['title'] as String?;
-      releaseId = firstRelease['id'] as String?;
-      releaseDate = firstRelease['date'] as String?;
-      country = firstRelease['country'] as String?;
+      album = firstRelease.title;
+      releaseId = firstRelease.id;
+      releaseDate = firstRelease.dateLabel;
+      country = firstRelease.country;
+      releaseGroupId = firstRelease.releaseGroupId;
 
-      final releaseGroup = firstRelease['release-group'];
-      if (releaseGroup is Map<String, dynamic>) {
-        releaseGroupId = releaseGroup['id'] as String?;
-      }
-
-      final media = (firstRelease['media'] as List<dynamic>? ?? const [])
+      final media = (firstRelease.raw['media'] as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
           .toList();
       if (media.isNotEmpty) {
@@ -108,7 +150,44 @@ class MusicBrainzTrackMatch {
       trackNumber: trackNumber,
       score: int.tryParse(json['score']?.toString() ?? '') ?? 0,
       disambiguation: json['disambiguation'] as String?,
+      releases: releases,
       raw: json,
+    );
+  }
+
+  MusicBrainzTrackMatch copyWith({
+    String? recordingId,
+    String? title,
+    String? artist,
+    String? album,
+    String? releaseId,
+    String? releaseGroupId,
+    String? releaseDate,
+    String? country,
+    int? durationMillis,
+    int? trackNumber,
+    int? score,
+    String? disambiguation,
+    List<MusicBrainzReleaseMatch>? releases,
+    ResolvedCover? resolvedCover,
+    Map<String, dynamic>? raw,
+  }) {
+    return MusicBrainzTrackMatch(
+      recordingId: recordingId ?? this.recordingId,
+      title: title ?? this.title,
+      artist: artist ?? this.artist,
+      album: album ?? this.album,
+      releaseId: releaseId ?? this.releaseId,
+      releaseGroupId: releaseGroupId ?? this.releaseGroupId,
+      releaseDate: releaseDate ?? this.releaseDate,
+      country: country ?? this.country,
+      durationMillis: durationMillis ?? this.durationMillis,
+      trackNumber: trackNumber ?? this.trackNumber,
+      score: score ?? this.score,
+      disambiguation: disambiguation ?? this.disambiguation,
+      releases: releases ?? this.releases,
+      raw: raw ?? this.raw,
+      resolvedCover: resolvedCover ?? this.resolvedCover,
     );
   }
 
@@ -125,8 +204,22 @@ class MusicBrainzTrackMatch {
     if (resolvedCover != null) {
       return resolvedCover!.thumbnailUrl;
     }
+    if (releases.isNotEmpty) {
+      return releases.first.thumbnailUrl;
+    }
     if (releaseId == null || releaseId!.isEmpty) return null;
     return 'https://coverartarchive.org/release/$releaseId/front-250';
+  }
+
+  String? get largeUrl {
+    if (resolvedCover != null) {
+      return resolvedCover!.largeUrl;
+    }
+    if (releases.isNotEmpty) {
+      return releases.first.largeUrl;
+    }
+    if (releaseId == null || releaseId!.isEmpty) return null;
+    return 'https://coverartarchive.org/release/$releaseId/front';
   }
 }
 
@@ -163,12 +256,9 @@ class MusicBrainzTagCompletionService {
     : _client = client ?? NetworkClient.instance;
 
   final NetworkClient _client;
-  final MetadataDatabase _db = MetadataDatabase();
 
   static final Map<String, List<MusicBrainzTrackMatch>> _searchCache = {};
   static final Map<String, _CoverArtResult> _coverCache = {};
-  static final Map<String, Future<ResolvedCover?>> _coverResolutionInFlight =
-      {};
 
   static Future<void> _rateLimit() async {
     final now = DateTime.now();
@@ -286,17 +376,44 @@ class MusicBrainzTagCompletionService {
   Future<MusicBrainzTagSelectionResult> applySelection({
     required String songPath,
     required MusicBrainzTrackMatch match,
+    MusicBrainzReleaseMatch? selectedRelease,
     SongMetadata? existingMetadata,
     int? fallbackDurationMillis,
   }) async {
-    final cover = await _downloadCoverArt(match);
+    final effectiveRelease =
+        selectedRelease ??
+        (match.releases.isNotEmpty ? match.releases.first : null);
+    final effectiveMatch = effectiveRelease != null
+        ? match.copyWith(
+            album: effectiveRelease.title,
+            releaseId: effectiveRelease.id,
+            releaseGroupId:
+                effectiveRelease.releaseGroupId ?? match.releaseGroupId,
+            releaseDate: effectiveRelease.dateLabel ?? match.releaseDate,
+            country: effectiveRelease.country ?? match.country,
+            releases: match.releases.isEmpty
+                ? <MusicBrainzReleaseMatch>[effectiveRelease]
+                : match.releases,
+            resolvedCover: ResolvedCover(
+              endpoint: 'release',
+              id: effectiveRelease.id,
+              largeUrl: effectiveRelease.largeUrl,
+              thumbnailUrl: effectiveRelease.thumbnailUrl,
+            ),
+          )
+        : match;
+
+    final cover = await _downloadCoverArt(
+      effectiveMatch,
+      selectedRelease: effectiveRelease,
+    );
     final saved = await MetadataHelper.saveSelectedSongMetadata(
       filePath: songPath,
-      title: match.title,
-      artist: match.artist,
-      album: match.album ?? 'Unknown Album',
-      duration: fallbackDurationMillis ?? match.durationMillis,
-      trackNumber: match.trackNumber,
+      title: effectiveMatch.title,
+      artist: effectiveMatch.artist,
+      album: effectiveMatch.album ?? 'Unknown Album',
+      duration: fallbackDurationMillis ?? effectiveMatch.durationMillis,
+      trackNumber: effectiveMatch.trackNumber,
       artworkBytes: cover?.bytes,
       artworkPath: cover?.path,
       thumbnailPath: cover?.thumbnailPath,
@@ -315,7 +432,7 @@ class MusicBrainzTagCompletionService {
       metadata: updated,
       artworkBytes: cover?.bytes,
       thumbnailPath: updated.thumbnailPath,
-      match: match,
+      match: effectiveMatch,
     );
   }
 
@@ -325,13 +442,13 @@ class MusicBrainzTagCompletionService {
     required int offset,
   }) async {
     final cacheKey = '${query.trim()}|limit=$limit|offset=$offset';
-    if (_searchCache.containsKey(cacheKey)) {
-      return _SearchPage(
-        matches: _searchCache[cacheKey]!,
-        count: null,
-        offset: offset,
-      );
-    }
+    // if (_searchCache.containsKey(cacheKey)) {
+    //   return _SearchPage(
+    //     matches: _searchCache[cacheKey]!,
+    //     count: null,
+    //     offset: offset,
+    //   );
+    // }
 
     try {
       await _rateLimit();
@@ -340,6 +457,7 @@ class MusicBrainzTagCompletionService {
         queryParameters: {
           'query': query,
           'fmt': 'json',
+          'inc': 'artist-credits+releases+media',
           'limit': '$limit',
           'offset': '$offset',
         },
@@ -366,151 +484,59 @@ class MusicBrainzTagCompletionService {
   Future<ResolvedCover?> resolveCover(MusicBrainzTrackMatch match) async {
     if (match.resolvedCover != null) return match.resolvedCover;
 
-    final candidates = <({String endpoint, String id})>[];
-    if (_hasMeaningfulText(match.releaseId)) {
-      candidates.add((endpoint: 'release', id: match.releaseId!));
-    }
-    if (_hasMeaningfulText(match.releaseGroupId)) {
-      candidates.add((endpoint: 'release-group', id: match.releaseGroupId!));
+    if (match.releases.isNotEmpty) {
+      final release = match.releases.first;
+      if (_hasMeaningfulText(release.id)) {
+        final resolved = ResolvedCover(
+          endpoint: 'release',
+          id: release.id,
+          largeUrl: release.largeUrl,
+          thumbnailUrl: release.thumbnailUrl,
+        );
+        match.resolvedCover = resolved;
+        return resolved;
+      }
     }
 
-    for (final candidate in candidates) {
-      final metadata = await _resolveCoverMetadataWithCache(
-        endpoint: candidate.endpoint,
-        id: candidate.id,
+    if (_hasMeaningfulText(match.releaseId)) {
+      final resolved = ResolvedCover(
+        endpoint: 'release',
+        id: match.releaseId!,
+        largeUrl:
+            'https://coverartarchive.org/release/${match.releaseId}/front',
+        thumbnailUrl:
+            'https://coverartarchive.org/release/${match.releaseId}/front-250',
       );
-      if (metadata != null) {
-        match.resolvedCover = metadata;
-        return metadata;
-      }
+      match.resolvedCover = resolved;
+      return resolved;
     }
 
     return null;
   }
 
-  Future<ResolvedCover?> _resolveCoverMetadataWithCache({
-    required String endpoint,
-    required String id,
-  }) async {
-    // Try database cache first
-    if (endpoint == 'release') {
-      final cached = await _db.getReleaseCoverCache(id);
-      if (cached != null && _hasMeaningfulText(cached.largeUrl)) {
-        return ResolvedCover(
-          endpoint: endpoint,
-          id: id,
-          largeUrl: cached.largeUrl,
-          thumbnailUrl: cached.thumbnailUrl,
-        );
-      }
-    }
-
-    // Check in-flight requests
-    final cacheKey = '$endpoint|$id';
-    final inFlight = _coverResolutionInFlight[cacheKey];
-    if (inFlight != null) {
-      return inFlight;
-    }
-
-    final future = _resolveCoverMetadataFromEndpoint(endpoint: endpoint, id: id)
-        .whenComplete(() {
-          _coverResolutionInFlight.remove(cacheKey);
-        });
-    _coverResolutionInFlight[cacheKey] = future;
-
-    final resolved = await future;
-    if (resolved != null && endpoint == 'release') {
-      // Save to database cache
-      await _db.insertOrUpdateReleaseCoverCache(
-        ReleaseCoverCacheRecord(
-          releaseId: id,
-          largeUrl: resolved.largeUrl,
-          thumbnailUrl: resolved.thumbnailUrl,
-          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-        ),
-      );
-    }
-
-    return resolved;
-  }
-
-  Future<ResolvedCover?> _resolveCoverMetadataFromEndpoint({
-    required String endpoint,
-    required String id,
-  }) async {
-    try {
-      await _rateLimit();
-      final apiUrl = Uri.https('coverartarchive.org', '/$endpoint/$id');
-      debugPrint('MusicBrainz cover metadata URL: $apiUrl');
-      final response = await _client.get(
-        apiUrl.toString(),
-        options: Options(responseType: ResponseType.json),
-      );
-      final data = response.data;
-      if (data is! Map<String, dynamic>) return null;
-
-      final images = (data['images'] as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      if (images.isEmpty) return null;
-
-      Map<String, dynamic>? selectedImage;
-      // 1. Try to find the front cover image
-      selectedImage = images.firstWhere(
-        (img) => img['front'] == true,
-        orElse: () => <String, dynamic>{},
-      );
-
-      // 2. Fallback to the first available image if no front image was found
-      if (selectedImage.isEmpty) {
-        selectedImage = images.isNotEmpty ? images.first : null;
-      }
-
-      if (selectedImage == null || selectedImage.isEmpty) return null;
-
-      final thumbnails = selectedImage['thumbnails'];
-      String? largeUrl;
-      String? thumbnailUrl;
-
-      if (thumbnails is Map<String, dynamic>) {
-        largeUrl =
-            selectedImage['image'] as String? ??
-            thumbnails['1200'] as String? ??
-            thumbnails['large'] as String?;
-        thumbnailUrl =
-            thumbnails['small'] as String? ??
-            thumbnails['250'] as String? ??
-            thumbnails['large'] as String? ??
-            largeUrl;
-      } else {
-        largeUrl = selectedImage['image'] as String?;
-        thumbnailUrl = largeUrl;
-      }
-
-      if (!_hasMeaningfulText(largeUrl)) return null;
-
-      return ResolvedCover(
-        endpoint: endpoint,
-        id: id,
-        largeUrl: largeUrl,
-        thumbnailUrl: thumbnailUrl,
-      );
-    } catch (e) {
-      debugPrint('MusicBrainz metadata resolution failed: $e');
-      return null;
-    }
-  }
-
   Future<_CoverArtResult?> _downloadCoverArt(
-    MusicBrainzTrackMatch match,
-  ) async {
-    final cacheKey =
-        match.releaseId ?? match.releaseGroupId ?? match.recordingId;
+    MusicBrainzTrackMatch match, {
+    MusicBrainzReleaseMatch? selectedRelease,
+  }) async {
+    final release =
+        selectedRelease ??
+        (match.releases.isNotEmpty ? match.releases.first : null);
+    final releaseId = release?.id ?? '';
+    final cacheKey = releaseId.isNotEmpty
+        ? releaseId
+        : match.releaseId ?? match.recordingId;
     if (_coverCache.containsKey(cacheKey)) {
       return _coverCache[cacheKey];
     }
 
-    final resolved = await resolveCover(match);
+    final resolved = release != null
+        ? ResolvedCover(
+            endpoint: 'release',
+            id: release.id,
+            largeUrl: release.largeUrl,
+            thumbnailUrl: release.thumbnailUrl,
+          )
+        : await resolveCover(match);
     if (resolved == null || resolved.largeUrl == null) return null;
 
     final cover = await _downloadResolvedCover(resolved);
