@@ -44,6 +44,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   final Set<String> _expandedAcoustIDIds = <String>{};
   final Set<String> _expandedReleaseGroupIds = <String>{};
   final Set<String> _expandedMusicBrainzRecordingIds = <String>{};
+  final Set<String> _expandedMusicBrainzReleaseGroupIds = <String>{};
 
   @override
   void initState() {
@@ -102,6 +103,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       setState(() {
         _matches = results;
         _expandedMusicBrainzRecordingIds.clear();
+        _expandedMusicBrainzReleaseGroupIds.clear();
         _isLoading = false;
       });
     } catch (e) {
@@ -549,12 +551,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         ? match.recordingId
         : 'recording_$index';
     final expanded = _expandedMusicBrainzRecordingIds.contains(recordingKey);
-    final releaseCount = match.releases.length;
-    final hasReleases = releaseCount > 0;
+    final releaseGroups = match.releaseGroups;
+    final releaseGroupCount = releaseGroups.length;
+    final hasReleaseGroups = releaseGroupCount > 0;
     final durationText = match.durationLabel;
-    final trackLabel = match.trackNumber != null
-        ? 'Track ${match.trackNumber}'
-        : 'Track --';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -658,16 +658,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                           const SizedBox(height: 8),
                           Text(
                             [
-                              trackLabel,
                               durationText,
+                              '$releaseGroupCount 组发行版',
                               '评分 ${match.score}',
-                              '$releaseCount 个发行版',
-                              if (match.releaseDate != null &&
-                                  match.releaseDate!.isNotEmpty)
-                                match.releaseDate!,
-                              if (match.disambiguation != null &&
-                                  match.disambiguation!.isNotEmpty)
-                                match.disambiguation!,
                             ].join(' · '),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -689,10 +682,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                           turns: expanded ? 0.5 : 0.0,
                           duration: const Duration(milliseconds: 180),
                           child: Icon(
-                            hasReleases
+                            hasReleaseGroups
                                 ? Icons.keyboard_arrow_down_rounded
                                 : Icons.remove_rounded,
-                            color: hasReleases
+                            color: hasReleaseGroups
                                 ? Colors.white.withValues(alpha: 0.45)
                                 : Colors.white.withValues(alpha: 0.2),
                           ),
@@ -710,17 +703,17 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
               child: expanded
                   ? Padding(
                       padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                      child: hasReleases
+                      child: hasReleaseGroups
                           ? Column(
                               children: [
-                                for (var i = 0; i < match.releases.length; i++)
+                                for (var i = 0; i < releaseGroups.length; i++)
                                   Padding(
                                     padding: EdgeInsets.only(
                                       top: i == 0 ? 0 : 8,
                                     ),
                                     child: _buildMusicBrainzReleaseRow(
                                       match: match,
-                                      release: match.releases[i],
+                                      releaseGroup: releaseGroups[i],
                                     ),
                                   ),
                               ],
@@ -743,13 +736,155 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
 
   Widget _buildMusicBrainzReleaseRow({
     required MusicBrainzTrackMatch match,
-    required MusicBrainzReleaseMatch release,
+    required MusicBrainzReleaseGroup releaseGroup,
   }) {
+    final groupKey = '${match.recordingId}::${releaseGroup.key}';
+    final expanded = _expandedMusicBrainzReleaseGroupIds.contains(groupKey);
+    final releaseCount = releaseGroup.releases.length;
+    final primaryRelease = releaseGroup.releases.first;
+
     return Material(
       color: Colors.white.withValues(alpha: 0.04),
       borderRadius: BorderRadius.circular(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: _isApplying
+                ? null
+                : () {
+                    setState(() {
+                      if (expanded) {
+                        _expandedMusicBrainzReleaseGroupIds.remove(groupKey);
+                      } else {
+                        _expandedMusicBrainzReleaseGroupIds.add(groupKey);
+                      }
+                    });
+                  },
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(9),
+                    child: SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Image.network(
+                        releaseGroup.thumbnailUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          child: const Icon(
+                            Icons.album_outlined,
+                            color: Colors.white24,
+                            size: 20,
+                          ),
+                        ),
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return Center(
+                            child: SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.3,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white.withValues(alpha: 0.18),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          releaseGroup.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          [
+                            '$releaseCount 个发行版',
+                            if (primaryRelease.country != null &&
+                                primaryRelease.country!.isNotEmpty)
+                              primaryRelease.country!,
+                            if (primaryRelease.dateLabel != null &&
+                                primaryRelease.dateLabel!.isNotEmpty)
+                              primaryRelease.dateLabel!,
+                          ].join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 10.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 180),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Colors.white.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: expanded
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < releaseGroup.releases.length; i++)
+                          Padding(
+                            padding: EdgeInsets.only(top: i == 0 ? 0 : 8),
+                            child: _buildMusicBrainzReleaseItem(
+                              match: match,
+                              release: releaseGroup.releases[i],
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMusicBrainzReleaseItem({
+    required MusicBrainzTrackMatch match,
+    required MusicBrainzReleaseMatch release,
+  }) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.03),
+      borderRadius: BorderRadius.circular(9),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(9),
         onTap: _isApplying
             ? null
             : () => _applyMusicBrainzRelease(match, release),
@@ -758,10 +893,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
           child: Row(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(8),
                 child: SizedBox(
-                  width: 42,
-                  height: 42,
+                  width: 38,
+                  height: 38,
                   child: Image.network(
                     release.thumbnailUrl,
                     fit: BoxFit.cover,
@@ -770,24 +905,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                       child: const Icon(
                         Icons.album_outlined,
                         color: Colors.white24,
-                        size: 20,
+                        size: 18,
                       ),
                     ),
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Center(
-                        child: SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.3,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white.withValues(alpha: 0.18),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
                   ),
                 ),
               ),
@@ -828,10 +948,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right_rounded,
-                color: Colors.white.withValues(alpha: 0.35),
+                color: Colors.white.withValues(alpha: 0.3),
               ),
             ],
           ),

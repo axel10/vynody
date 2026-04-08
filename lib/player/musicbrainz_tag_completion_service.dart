@@ -52,6 +52,23 @@ class MusicBrainzReleaseMatch {
   }
 }
 
+class MusicBrainzReleaseGroup {
+  final String key;
+  final String title;
+  final List<MusicBrainzReleaseMatch> releases;
+
+  const MusicBrainzReleaseGroup({
+    required this.key,
+    required this.title,
+    required this.releases,
+  });
+
+  String get thumbnailUrl =>
+      releases.isNotEmpty ? releases.first.thumbnailUrl : '';
+
+  String get largeUrl => releases.isNotEmpty ? releases.first.largeUrl : '';
+}
+
 class MusicBrainzTrackMatch {
   final String recordingId;
   final String title;
@@ -220,6 +237,55 @@ class MusicBrainzTrackMatch {
     }
     if (releaseId == null || releaseId!.isEmpty) return null;
     return 'https://coverartarchive.org/release/$releaseId/front';
+  }
+
+  List<MusicBrainzReleaseGroup> get releaseGroups {
+    if (releases.isEmpty) return const [];
+
+    final groups = <String, _MusicBrainzReleaseGroupBuilder>{};
+    final order = <String>[];
+
+    for (final release in releases) {
+      final key = _normalizeReleaseGroupKey(release.title);
+      final builder = groups[key];
+      if (builder == null) {
+        groups[key] = _MusicBrainzReleaseGroupBuilder(
+          key: key,
+          title: release.title.trim().isNotEmpty
+              ? release.title.trim()
+              : '未命名发行版',
+          releases: [release],
+        );
+        order.add(key);
+      } else {
+        builder.releases.add(release);
+        if (builder.title == '未命名发行版' && release.title.trim().isNotEmpty) {
+          builder.title = release.title.trim();
+        }
+      }
+    }
+
+    return order.map((key) => groups[key]!.toGroup()).toList(growable: false);
+  }
+}
+
+class _MusicBrainzReleaseGroupBuilder {
+  final String key;
+  String title;
+  final List<MusicBrainzReleaseMatch> releases;
+
+  _MusicBrainzReleaseGroupBuilder({
+    required this.key,
+    required this.title,
+    required this.releases,
+  });
+
+  MusicBrainzReleaseGroup toGroup() {
+    return MusicBrainzReleaseGroup(
+      key: key,
+      title: title,
+      releases: List<MusicBrainzReleaseMatch>.unmodifiable(releases),
+    );
   }
 }
 
@@ -722,4 +788,9 @@ String _joinArtistCredit(List<dynamic> credits) {
     buffer.write(entry['joinphrase']?.toString() ?? '');
   }
   return buffer.toString().trim();
+}
+
+String _normalizeReleaseGroupKey(String title) {
+  final normalized = title.trim().toLowerCase();
+  return normalized.isEmpty ? '__empty__' : normalized;
 }
