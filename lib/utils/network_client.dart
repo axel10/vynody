@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:detect_proxy_setting/detect_proxy_setting.dart';
 import 'package:flutter/foundation.dart';
 
-export 'package:dio/dio.dart' show Response, Options, DioException, CancelToken, ProgressCallback;
+export 'package:dio/dio.dart'
+    show Response, Options, DioException, CancelToken, ProgressCallback;
 
 /// 全局共享的网络请求封装。
 ///
@@ -19,6 +23,8 @@ class NetworkClient {
           },
         ),
       ) {
+    _dio.httpClientAdapter = _SystemProxyHttpClientAdapter();
+
     if (kDebugMode) {
       _dio.interceptors.add(
         InterceptorsWrapper(
@@ -149,5 +155,239 @@ class NetworkClient {
       data: data,
       options: options,
     );
+  }
+}
+
+class _SystemProxyHttpClientAdapter implements HttpClientAdapter {
+  _SystemProxyHttpClientAdapter();
+
+  final Map<String, String> _proxyCache = {};
+  final Map<String, Future<String>> _proxyLookupsInFlight = {};
+  bool _closed = false;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    if (_closed) {
+      throw StateError(
+        "Can't establish connection after the adapter was closed.",
+      );
+    }
+
+    final httpClient = HttpClient()..idleTimeout = const Duration(seconds: 3);
+    final proxyRule = await _resolveProxyRule(options.uri);
+    httpClient.findProxy = (uri) => proxyRule;
+
+    final connectionTimeout = options.connectTimeout;
+    if (connectionTimeout != null && connectionTimeout > Duration.zero) {
+      httpClient.connectionTimeout = connectionTimeout;
+    } else {
+      httpClient.connectionTimeout = null;
+    }
+
+    try {
+      final reqFuture = httpClient.openUrl(options.method, options.uri);
+      late HttpClientRequest request;
+      if (connectionTimeout != null && connectionTimeout > Duration.zero) {
+        request = await reqFuture.timeout(
+          connectionTimeout,
+          onTimeout: () {
+            throw DioException.connectionTimeout(
+              requestOptions: options,
+              timeout: connectionTimeout,
+            );
+          },
+        );
+      } else {
+        request = await reqFuture;
+      }
+
+      final requestWR = WeakReference<HttpClientRequest>(request);
+      cancelFuture?.whenComplete(() {
+        requestWR.target?.abort();
+      });
+
+      options.headers.forEach((key, value) {
+        if (value != null) {
+          request.headers.set(
+            key,
+            value,
+            preserveHeaderCase: options.preserveHeaderCase,
+          );
+        }
+      });
+
+      request.followRedirects = options.followRedirects;
+      request.maxRedirects = options.maxRedirects;
+      request.persistentConnection = options.persistentConnection;
+
+      if (requestStream != null) {
+        Future<dynamic> future = request.addStream(requestStream);
+        final sendTimeout = options.sendTimeout;
+        if (sendTimeout != null && sendTimeout > Duration.zero) {
+          future = future.timeout(
+            sendTimeout,
+            onTimeout: () {
+              request.abort();
+              throw DioException.sendTimeout(
+                timeout: sendTimeout,
+                requestOptions: options,
+              );
+            },
+          );
+        }
+        await future;
+      }
+
+      Future<HttpClientResponse> future = request.close();
+      final receiveTimeout = options.receiveTimeout ?? Duration.zero;
+      if (receiveTimeout > Duration.zero) {
+        future = future.timeout(
+          receiveTimeout,
+          onTimeout: () {
+            request.abort();
+            throw DioException.receiveTimeout(
+              timeout: receiveTimeout,
+              requestOptions: options,
+            );
+          },
+        );
+      }
+      final responseStream = await future;
+
+      if (responseStream.redirects.isNotEmpty) {
+        debugPrint(
+          '[NetworkClient] redirect: ${options.uri} -> ${responseStream.redirects.last.location}',
+        );
+      }
+
+      final headers = <String, List<String>>{};
+      responseStream.headers.forEach((key, values) {
+        headers[key] = values;
+      });
+
+      String? httpVersion;
+      try {
+        httpVersion = (responseStream.headers as dynamic).protocolVersion;
+      } catch (_) {}
+
+      final responseBody = ResponseBody(
+        responseStream.cast(),
+        responseStream.statusCode,
+        headers: headers,
+        isRedirect:
+            responseStream.isRedirect || responseStream.redirects.isNotEmpty,
+        redirects: responseStream.redirects
+            .map((e) => RedirectRecord(e.statusCode, e.method, e.location))
+            .toList(),
+        statusMessage: responseStream.reasonPhrase,
+        onClose: () => httpClient.close(force: false),
+      );
+      if (httpVersion != null) {
+        responseBody.extra[HttpClientAdapter.extraKeyHttpVersion] ??=
+            httpVersion;
+      }
+
+      return responseBody;
+    } on SocketException catch (e) {
+      httpClient.close(force: true);
+      if (e.message.contains('timed out')) {
+        final Duration effectiveTimeout;
+        if (connectionTimeout != null && connectionTimeout > Duration.zero) {
+          effectiveTimeout = connectionTimeout;
+        } else if (httpClient.connectionTimeout != null &&
+            httpClient.connectionTimeout! > Duration.zero) {
+          effectiveTimeout = httpClient.connectionTimeout!;
+        } else {
+          effectiveTimeout = Duration.zero;
+        }
+        throw DioException.connectionTimeout(
+          requestOptions: options,
+          timeout: effectiveTimeout,
+          error: e,
+        );
+      }
+      throw DioException.connectionError(
+        requestOptions: options,
+        reason: e.message,
+        error: e,
+      );
+    } catch (_) {
+      httpClient.close(force: true);
+      rethrow;
+    }
+  }
+
+  @override
+  void close({bool force = false}) {
+    _closed = true;
+  }
+
+  Future<String> _resolveProxyRule(Uri uri) async {
+    final cacheKey = uri.toString();
+    final cached = _proxyCache[cacheKey];
+    if (cached != null) return cached;
+
+    final inFlight = _proxyLookupsInFlight[cacheKey];
+    if (inFlight != null) return inFlight;
+
+    final future = _detectProxyRule(uri).whenComplete(() {
+      _proxyLookupsInFlight.remove(cacheKey);
+    });
+    _proxyLookupsInFlight[cacheKey] = future;
+
+    final rule = await future;
+    _proxyCache[cacheKey] = rule;
+    return rule;
+  }
+
+  Future<String> _detectProxyRule(Uri uri) async {
+    try {
+      if (_supportsSystemProxyPlugin) {
+        final setting = await proxySetting(url: uri.toString());
+        if (setting != null &&
+            setting.mode == ProxySettingModeEnum.proxy &&
+            setting.proxy.trim().isNotEmpty) {
+          final proxyAddress = _normalizeProxyAddress(setting.proxy);
+          if (proxyAddress.isNotEmpty) {
+            return 'PROXY $proxyAddress; DIRECT';
+          }
+        }
+        if (setting != null && setting.mode == ProxySettingModeEnum.direct) {
+          return 'DIRECT';
+        }
+      }
+    } catch (e) {
+      debugPrint('[NetworkClient] system proxy detect failed for $uri: $e');
+    }
+
+    return HttpClient.findProxyFromEnvironment(uri);
+  }
+
+  bool get _supportsSystemProxyPlugin {
+    return Platform.isWindows ||
+        Platform.isMacOS ||
+        Platform.isAndroid ||
+        Platform.isIOS;
+  }
+
+  String _normalizeProxyAddress(String value) {
+    var text = value.trim();
+    if (text.isEmpty) return '';
+
+    final parsed = Uri.tryParse(text);
+    if (parsed != null && parsed.scheme.isNotEmpty && parsed.host.isNotEmpty) {
+      final port = parsed.hasPort ? parsed.port : null;
+      return port == null ? parsed.host : '${parsed.host}:$port';
+    }
+
+    text = text.replaceFirst(RegExp(r'^[a-zA-Z]+://'), '');
+    text = text.replaceFirst(RegExp(r'^PROXY\s+', caseSensitive: false), '');
+    text = text.replaceFirst(RegExp(r'^SOCKS\s+', caseSensitive: false), '');
+    text = text.replaceFirst(RegExp(r'/$'), '');
+    return text;
   }
 }
