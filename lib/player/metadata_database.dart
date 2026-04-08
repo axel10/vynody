@@ -346,7 +346,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 15,
+      version: 16,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -546,6 +546,18 @@ class MetadataDatabase {
               provider TEXT,
               updatedAtMillis INTEGER,
               UNIQUE(cacheKey, languageCode)
+            )
+          ''');
+        }
+        if (oldVersion < 16) {
+          await db.execute('DROP TABLE IF EXISTS acoustid_cache');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS acoustid_cache (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              fingerprint TEXT UNIQUE,
+              durationSeconds INTEGER,
+              resultsJson TEXT,
+              updatedAtMillis INTEGER
             )
           ''');
         }

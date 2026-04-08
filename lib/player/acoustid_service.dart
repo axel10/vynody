@@ -1,140 +1,187 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:audio_core/audio_core.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:audio_core/audio_core.dart';
+
+import '../utils/query_url_utils.dart';
 import '../utils/network_client.dart';
 import 'metadata_database.dart';
 
-class AcoustIDResult {
-  final String recordingId;
-  final String title;
-  final String artist;
-  final String? album;
-  final String? releaseId;
-  final int? durationMillis;
-  final double score;
-  final List<String> acoustIds;
-  final Map<String, dynamic> raw;
-  String? resolvedThumbnailUrl;
+String acoustIDReleaseGroupThumbnailUrl(String releaseGroupId) =>
+    'https://coverartarchive.org/release-group/$releaseGroupId/front-250';
 
-  AcoustIDResult({
-    required this.recordingId,
+String acoustIDReleaseGroupLargeUrl(String releaseGroupId) =>
+    'https://coverartarchive.org/release-group/$releaseGroupId/front';
+
+String acoustIDReleaseThumbnailUrl(String releaseId) =>
+    'https://coverartarchive.org/release/$releaseId/front-250';
+
+String acoustIDReleaseLargeUrl(String releaseId) =>
+    'https://coverartarchive.org/release/$releaseId/front';
+
+class AcoustIDArtist {
+  final String id;
+  final String name;
+
+  const AcoustIDArtist({required this.id, required this.name});
+
+  factory AcoustIDArtist.fromJson(Map<String, dynamic> json) {
+    return AcoustIDArtist(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name};
+  }
+}
+
+class AcoustIDRelease {
+  final String id;
+  final String title;
+  final String? country;
+  final String? dateLabel;
+  final int? trackCount;
+  final Map<String, dynamic> raw;
+
+  const AcoustIDRelease({
+    required this.id,
     required this.title,
-    required this.artist,
-    this.album,
-    this.releaseId,
-    this.durationMillis,
-    required this.score,
-    required this.acoustIds,
+    this.country,
+    this.dateLabel,
+    this.trackCount,
     required this.raw,
   });
 
-  String? get thumbnailUrl {
-    if (resolvedThumbnailUrl != null && resolvedThumbnailUrl!.isNotEmpty) {
-      return resolvedThumbnailUrl;
-    }
-    if (releaseId == null || releaseId!.isEmpty) return null;
-    return 'https://coverartarchive.org/release/$releaseId/front-250';
-  }
+  String get thumbnailUrl => acoustIDReleaseThumbnailUrl(id);
 
-  factory AcoustIDResult.fromJson(Map<String, dynamic> json) {
-    // Accept cached, already-flattened records.
-    if (!json.containsKey('recordings')) {
-      return AcoustIDResult(
-        recordingId: json['recordingId'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        artist: json['artist'] as String? ?? 'Unknown Artist',
-        album: json['album'] as String?,
-        releaseId: json['releaseId'] as String?,
-        durationMillis: (json['durationMillis'] as num?)?.toInt(),
-        score: (json['score'] as num?)?.toDouble() ?? 0.0,
-        acoustIds: (json['acoustIds'] as List<dynamic>? ?? const [])
-            .whereType<String>()
-            .toList(growable: false),
-        raw: json['raw'] is Map<String, dynamic>
-            ? Map<String, dynamic>.from(json['raw'] as Map)
-            : json,
-      );
-    }
+  String get largeUrl => acoustIDReleaseLargeUrl(id);
 
-    final results = AcoustIDResult.fromLookupResult(json);
-    if (results.isEmpty) {
-      return AcoustIDResult(
-        recordingId: '',
-        title: '',
-        artist: 'Unknown Artist',
-        score: (json['score'] as num?)?.toDouble() ?? 0.0,
-        acoustIds: const [],
-        raw: json,
-      );
-    }
-
-    return results.first;
-  }
-
-  static List<AcoustIDResult> fromLookupResult(Map<String, dynamic> json) {
-    final recordings = (json['recordings'] as List<dynamic>? ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .toList();
-
-    return recordings
-        .map((recording) {
-          final title = recording['title'] as String? ?? '';
-          final artists = (recording['artists'] as List<dynamic>? ?? const [])
-              .whereType<Map<String, dynamic>>()
-              .toList();
-          final artist = artists
-              .map((a) => a['name'] as String? ?? '')
-              .join(', ');
-
-          final releases = (recording['releases'] as List<dynamic>? ?? const [])
-              .whereType<Map<String, dynamic>>()
-              .toList();
-          final album = releases.isNotEmpty
-              ? releases.first['title'] as String?
-              : null;
-          final releaseId = releases.isNotEmpty
-              ? releases.first['id'] as String?
-              : null;
-          final recordingId = recording['id'] as String? ?? '';
-          final durationMillis = (recording['length'] as num?)?.toInt();
-
-          final acoustIds = <String>[];
-          if (recordingId.isNotEmpty) {
-            acoustIds.add(recordingId);
-          }
-
-          return AcoustIDResult(
-            recordingId: recordingId,
-            title: title,
-            artist: artist.isEmpty ? 'Unknown Artist' : artist,
-            album: album,
-            releaseId: releaseId,
-            durationMillis: durationMillis,
-            score: (json['score'] as num?)?.toDouble() ?? 0.0,
-            acoustIds: acoustIds,
-            raw: {
-              'lookupId': json['id'],
-              'score': json['score'],
-              'recording': recording,
-            },
-          );
-        })
-        .toList(growable: false);
+  factory AcoustIDRelease.fromJson(Map<String, dynamic> json) {
+    return AcoustIDRelease(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      country: json['country'] as String?,
+      dateLabel: _formatDateLabel(json['date']),
+      trackCount: (json['track_count'] as num?)?.toInt(),
+      raw: Map<String, dynamic>.from(json),
+    );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'recordingId': recordingId,
+      'id': id,
+      'title': title,
+      'country': country,
+      'dateLabel': dateLabel,
+      'trackCount': trackCount,
+      'raw': raw,
+    };
+  }
+}
+
+class AcoustIDReleaseGroup {
+  final String id;
+  final String title;
+  final String? type;
+  final List<String> secondaryTypes;
+  final List<AcoustIDRelease> releases;
+  final Map<String, dynamic> raw;
+
+  const AcoustIDReleaseGroup({
+    required this.id,
+    required this.title,
+    this.type,
+    required this.secondaryTypes,
+    required this.releases,
+    required this.raw,
+  });
+
+  String get thumbnailUrl => acoustIDReleaseGroupThumbnailUrl(id);
+
+  String get largeUrl => acoustIDReleaseGroupLargeUrl(id);
+
+  factory AcoustIDReleaseGroup.fromJson(Map<String, dynamic> json) {
+    final releases = (json['releases'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(AcoustIDRelease.fromJson)
+        .toList(growable: false);
+
+    return AcoustIDReleaseGroup(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      type: json['type'] as String?,
+      secondaryTypes: (json['secondarytypes'] as List<dynamic>? ?? const [])
+          .map((item) => item?.toString() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false),
+      releases: releases,
+      raw: Map<String, dynamic>.from(json),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'type': type,
+      'secondaryTypes': secondaryTypes,
+      'releases': releases.map((item) => item.toJson()).toList(),
+      'raw': raw,
+    };
+  }
+}
+
+class AcoustIDRecording {
+  final String id;
+  final String title;
+  final String artist;
+  final int? durationMillis;
+  final List<AcoustIDReleaseGroup> releaseGroups;
+  final Map<String, dynamic> raw;
+
+  const AcoustIDRecording({
+    required this.id,
+    required this.title,
+    required this.artist,
+    this.durationMillis,
+    required this.releaseGroups,
+    required this.raw,
+  });
+
+  factory AcoustIDRecording.fromJson(Map<String, dynamic> json) {
+    final artists = <AcoustIDArtist>[];
+    final artistEntries = (json['artists'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(AcoustIDArtist.fromJson)
+        .toList(growable: false);
+    artists.addAll(artistEntries);
+
+    final releaseGroups = (json['releasegroups'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(AcoustIDReleaseGroup.fromJson)
+        .toList(growable: false);
+
+    return AcoustIDRecording(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      artist: _joinArtistNames(artists),
+      durationMillis: _durationFromJson(json),
+      releaseGroups: releaseGroups,
+      raw: Map<String, dynamic>.from(json),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
       'title': title,
       'artist': artist,
-      'album': album,
-      'releaseId': releaseId,
       'durationMillis': durationMillis,
-      'score': score,
-      'acoustIds': acoustIds,
+      'releaseGroups': releaseGroups.map((item) => item.toJson()).toList(),
       'raw': raw,
     };
   }
@@ -149,16 +196,126 @@ class AcoustIDResult {
   }
 }
 
-class ResolvedAcoustIDCover {
-  final String releaseId;
-  final String? largeUrl;
-  final String? thumbnailUrl;
+class AcoustIDResult {
+  final String id;
+  final double score;
+  final List<AcoustIDRecording> recordings;
+  final Map<String, dynamic> raw;
 
-  const ResolvedAcoustIDCover({
-    required this.releaseId,
-    this.largeUrl,
-    this.thumbnailUrl,
+  const AcoustIDResult({
+    required this.id,
+    required this.score,
+    required this.recordings,
+    required this.raw,
   });
+
+  bool get hasRecordings => recordings.isNotEmpty;
+
+  AcoustIDRecording? get primaryRecording =>
+      recordings.isNotEmpty ? recordings.first : null;
+
+  String get title => primaryRecording?.title ?? '';
+
+  String get artist => primaryRecording?.artist ?? 'Unknown Artist';
+
+  String? get album {
+    final recording = primaryRecording;
+    if (recording == null || recording.releaseGroups.isEmpty) return null;
+    return recording.releaseGroups.first.title;
+  }
+
+  int? get durationMillis => primaryRecording?.durationMillis;
+
+  String? get thumbnailUrl {
+    for (final recording in recordings) {
+      for (final releaseGroup in recording.releaseGroups) {
+        if (releaseGroup.thumbnailUrl.isNotEmpty) {
+          return releaseGroup.thumbnailUrl;
+        }
+        for (final release in releaseGroup.releases) {
+          if (release.thumbnailUrl.isNotEmpty) {
+            return release.thumbnailUrl;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  String? get largeUrl {
+    for (final recording in recordings) {
+      for (final releaseGroup in recording.releaseGroups) {
+        if (releaseGroup.largeUrl.isNotEmpty) {
+          return releaseGroup.largeUrl;
+        }
+        for (final release in releaseGroup.releases) {
+          if (release.largeUrl.isNotEmpty) {
+            return release.largeUrl;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  factory AcoustIDResult.fromJson(Map<String, dynamic> json) {
+    final recordings = (json['recordings'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(AcoustIDRecording.fromJson)
+        .toList(growable: false);
+
+    return AcoustIDResult(
+      id: json['id'] as String? ?? '',
+      score: (json['score'] as num?)?.toDouble() ?? 0.0,
+      recordings: recordings,
+      raw: _asMap(json['raw']) ?? Map<String, dynamic>.from(json),
+    );
+  }
+
+  factory AcoustIDResult.fromLookupResult(
+    Map<String, dynamic> json, {
+    double fallbackScore = 0.0,
+  }) {
+    final recordings = (json['recordings'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(AcoustIDRecording.fromJson)
+        .where((recording) => recording.id.isNotEmpty)
+        .toList(growable: false);
+
+    if (recordings.isEmpty) {
+      return AcoustIDResult(
+        id: json['id'] as String? ?? '',
+        score: (json['score'] as num?)?.toDouble() ?? fallbackScore,
+        recordings: const [],
+        raw: Map<String, dynamic>.from(json),
+      );
+    }
+
+    return AcoustIDResult(
+      id: json['id'] as String? ?? '',
+      score: (json['score'] as num?)?.toDouble() ?? fallbackScore,
+      recordings: recordings,
+      raw: Map<String, dynamic>.from(json),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'score': score,
+      'recordings': recordings.map((item) => item.toJson()).toList(),
+      'raw': raw,
+    };
+  }
+
+  String get durationLabel {
+    final ms = durationMillis;
+    if (ms == null || ms <= 0) return '--:--';
+    final totalSeconds = ms ~/ 1000;
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 }
 
 class AcoustIDService {
@@ -169,10 +326,8 @@ class AcoustIDService {
   final String apiKey;
   final NetworkClient _client;
   final MetadataDatabase _db;
-  final Map<String, Future<List<AcoustIDResult>>> _inFlight = {};
-  final Map<String, ResolvedAcoustIDCover?> _coverUrlCache = {};
-  final Map<String, Future<ResolvedAcoustIDCover?>> _coverResolutionInFlight =
-      {};
+  final Map<String, Future<List<AcoustIDResult>>> _fingerprintInFlight = {};
+  final Map<String, Future<AcoustIDResult?>> _trackLookupInFlight = {};
 
   Future<List<AcoustIDResult>> lookupByFingerprint({
     required String filePath,
@@ -197,7 +352,7 @@ class AcoustIDService {
       return cached;
     }
 
-    final existing = _inFlight[fingerprint];
+    final existing = _fingerprintInFlight[fingerprint];
     if (existing != null) {
       return existing;
     }
@@ -207,86 +362,40 @@ class AcoustIDService {
           fingerprint: fingerprint,
           durationSeconds: durationSeconds,
         ).whenComplete(() {
-          _inFlight.remove(fingerprint);
+          _fingerprintInFlight.remove(fingerprint);
         });
-    _inFlight[fingerprint] = future;
+    _fingerprintInFlight[fingerprint] = future;
 
     return future;
   }
 
-  Future<ResolvedAcoustIDCover?> resolveCoverUrls(AcoustIDResult result) async {
-    final releaseId = result.releaseId;
-    if (releaseId == null || releaseId.isEmpty) return null;
-
-    if (result.resolvedThumbnailUrl != null &&
-        result.resolvedThumbnailUrl!.isNotEmpty) {
-      return ResolvedAcoustIDCover(
-        releaseId: releaseId,
-        thumbnailUrl: result.resolvedThumbnailUrl,
-      );
+  Future<Uint8List?> downloadCoverBytes({
+    required List<String?> candidateUrls,
+  }) async {
+    for (final url in candidateUrls) {
+      if (!_hasMeaningfulText(url)) continue;
+      try {
+        final response = await _client.get<List<int>>(
+          url!,
+          options: Options(
+            responseType: ResponseType.bytes,
+            headers: {'Accept': 'image/jpeg, image/png, image/*, */*'},
+          ),
+        );
+        final data = response.data;
+        if (data != null && data.isNotEmpty) {
+          return Uint8List.fromList(data);
+        }
+      } catch (e) {
+        debugPrint('AcoustID: Cover download failed for $url: $e');
+      }
     }
-
-    // Try database cache first
-    final cached = await _db.getReleaseCoverCache(releaseId);
-    if (cached != null &&
-        (_hasMeaningfulText(cached.largeUrl) ||
-            _hasMeaningfulText(cached.thumbnailUrl))) {
-      final resolved = ResolvedAcoustIDCover(
-        releaseId: releaseId,
-        largeUrl: cached.largeUrl,
-        thumbnailUrl: cached.thumbnailUrl,
-      );
-      result.resolvedThumbnailUrl = resolved.thumbnailUrl;
-      return resolved;
-    }
-
-    // Check in-memory cache
-    final memoryCached = _coverUrlCache[releaseId];
-    if (memoryCached != null) {
-      result.resolvedThumbnailUrl = memoryCached.thumbnailUrl;
-      return memoryCached;
-    }
-
-    final inFlight = _coverResolutionInFlight[releaseId];
-    if (inFlight != null) {
-      final resolved = await inFlight;
-      result.resolvedThumbnailUrl = resolved?.thumbnailUrl;
-      return resolved;
-    }
-
-    final future = _resolveCoverUrls(releaseId).whenComplete(() {
-      _coverResolutionInFlight.remove(releaseId);
-    });
-    _coverResolutionInFlight[releaseId] = future;
-
-    final resolved = await future;
-    _coverUrlCache[releaseId] = resolved;
-    result.resolvedThumbnailUrl = resolved?.thumbnailUrl;
-
-    // Save to database cache
-    if (resolved != null) {
-      await _db.insertOrUpdateReleaseCoverCache(
-        ReleaseCoverCacheRecord(
-          releaseId: releaseId,
-          largeUrl: resolved.largeUrl,
-          thumbnailUrl: resolved.thumbnailUrl,
-          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-        ),
-      );
-    }
-
-    return resolved;
-  }
-
-  Future<String?> resolveCoverThumbnailUrl(AcoustIDResult result) async {
-    final resolved = await resolveCoverUrls(result);
-    return resolved?.thumbnailUrl;
+    return null;
   }
 
   bool _hasMeaningfulText(String? value) {
     if (value == null) return false;
-    final trimmed = value.trim();
-    return trimmed.isNotEmpty;
+    return value.trim().isNotEmpty;
   }
 
   Future<List<AcoustIDResult>?> _loadFromDatabase(String fingerprint) async {
@@ -297,12 +406,22 @@ class AcoustIDService {
       final decoded = jsonDecode(record.resultsJson);
       if (decoded is! List) return const [];
 
-      return decoded
+      final results = decoded
           .whereType<Map>()
           .map(
             (item) => AcoustIDResult.fromJson(Map<String, dynamic>.from(item)),
           )
+          .where((item) => item.hasRecordings)
           .toList(growable: false);
+
+      if (results.isEmpty) {
+        debugPrint(
+          'AcoustID: Cached fingerprint $fingerprint has no valid recordings, treating as cache miss.',
+        );
+        return null;
+      }
+
+      return results;
     } catch (e) {
       debugPrint(
         'AcoustID: Failed to load cache for fingerprint $fingerprint: $e',
@@ -317,13 +436,14 @@ class AcoustIDService {
   }) async {
     try {
       final response = await _client.get(
-        'https://api.acoustid.org/v2/lookup',
-        queryParameters: {
-          'client': apiKey,
-          'fingerprint': fingerprint,
-          'duration': durationSeconds.toString(),
-          'meta': 'recordings releases',
-        },
+        QueryUrlUtils.buildUrl(
+          'https://api.acoustid.org/v2/lookup',
+          queryParameters: {
+            'client': apiKey,
+            'fingerprint': fingerprint,
+            'duration': durationSeconds.toString(),
+          },
+        ),
       );
 
       final data = response.data;
@@ -338,20 +458,115 @@ class AcoustIDService {
 
       final results = (data['results'] as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
-          .toList();
+          .toList(growable: false);
+      if (results.isEmpty) return const [];
 
-      final parsed = results
-          .expand((e) => AcoustIDResult.fromLookupResult(e))
-          .toList();
+      final detailedResults = <AcoustIDResult>[];
+      for (final seed in results) {
+        final trackId = seed['id'] as String? ?? '';
+        if (trackId.isEmpty) continue;
+
+        final result = await _lookupTrackDetails(
+          trackId: trackId,
+          fallbackScore: (seed['score'] as num?)?.toDouble() ?? 0.0,
+        );
+        if (result != null && result.hasRecordings) {
+          detailedResults.add(result);
+        }
+      }
+
+      if (detailedResults.isEmpty) {
+        debugPrint(
+          'AcoustID: fingerprint $fingerprint returned ${results.length} seed results, but none had recordings after track lookup.',
+        );
+        return const [];
+      }
+
       await _saveToDatabase(
         fingerprint: fingerprint,
         durationSeconds: durationSeconds,
-        results: parsed,
+        results: detailedResults,
       );
-      return parsed;
+      return detailedResults;
     } catch (e) {
       debugPrint('AcoustID lookup failed: $e');
       return const [];
+    }
+  }
+
+  Future<AcoustIDResult?> _lookupTrackDetails({
+    required String trackId,
+    required double fallbackScore,
+  }) async {
+    final existing = _trackLookupInFlight[trackId];
+    if (existing != null) {
+      return existing;
+    }
+
+    final future =
+        _fetchTrackDetails(
+          trackId: trackId,
+          fallbackScore: fallbackScore,
+        ).whenComplete(() {
+          _trackLookupInFlight.remove(trackId);
+        });
+    _trackLookupInFlight[trackId] = future;
+
+    return future;
+  }
+
+  Future<AcoustIDResult?> _fetchTrackDetails({
+    required String trackId,
+    required double fallbackScore,
+  }) async {
+    try {
+      final response = await _client.get(
+        QueryUrlUtils.buildUrl(
+          'https://api.acoustid.org/v2/lookup',
+          queryParameters: {'client': apiKey, 'trackid': trackId},
+          rawQueryParameters: {'meta': 'recordings+releasegroups+releases'},
+        ),
+      );
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) return null;
+
+      final status = data['status'] as String?;
+      if (status != 'ok') {
+        final error = data['error']?['message'] as String?;
+        debugPrint('AcoustID track lookup error for $trackId: $error');
+        return null;
+      }
+
+      final results = (data['results'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+      if (results.isEmpty) return null;
+
+      Map<String, dynamic>? selected;
+      for (final candidate in results) {
+        final recordings = candidate['recordings'];
+        if (recordings is List && recordings.isNotEmpty) {
+          selected = candidate;
+          break;
+        }
+      }
+      selected ??= results.firstWhere(
+        (candidate) =>
+            (candidate['recordings'] as List<dynamic>? ?? const []).isNotEmpty,
+        orElse: () => <String, dynamic>{},
+      );
+
+      if (selected.isEmpty) return null;
+
+      final result = AcoustIDResult.fromLookupResult(
+        selected,
+        fallbackScore: fallbackScore,
+      );
+      return result.hasRecordings ? result : null;
+    } catch (e) {
+      debugPrint('AcoustID track lookup failed for $trackId: $e');
+      return null;
     }
   }
 
@@ -376,63 +591,58 @@ class AcoustIDService {
       );
     }
   }
+}
 
-  Future<ResolvedAcoustIDCover?> _resolveCoverUrls(String releaseId) async {
-    try {
-      final apiUrl = Uri.https('coverartarchive.org', '/release/$releaseId');
-      final response = await _client.get(
-        apiUrl.toString(),
-        options: Options(responseType: ResponseType.json),
-      );
-      final data = response.data;
-      if (data is! Map<String, dynamic>) return null;
+String _joinArtistNames(List<AcoustIDArtist> artists) {
+  final names = artists
+      .map((artist) => artist.name.trim())
+      .where((name) => name.isNotEmpty)
+      .toList(growable: false);
+  if (names.isEmpty) return 'Unknown Artist';
+  return names.join(', ');
+}
 
-      final images = (data['images'] as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      if (images.isEmpty) return null;
+String? _formatDateLabel(dynamic value) {
+  if (value == null) return null;
 
-      Map<String, dynamic>? selectedImage;
-      selectedImage = images.firstWhere(
-        (img) => img['front'] == true,
-        orElse: () => <String, dynamic>{},
-      );
-      if (selectedImage.isEmpty) {
-        selectedImage = images.isNotEmpty ? images.first : null;
-      }
-
-      if (selectedImage == null || selectedImage.isEmpty) return null;
-
-      final thumbnails = selectedImage['thumbnails'];
-      String? largeUrl;
-      String? thumbnailUrl;
-      if (thumbnails is Map<String, dynamic>) {
-        largeUrl =
-            selectedImage['image'] as String? ??
-            thumbnails['1200'] as String? ??
-            thumbnails['large'] as String?;
-        thumbnailUrl =
-            thumbnails['250'] as String? ??
-            thumbnails['small'] as String? ??
-            thumbnails['large'] as String? ??
-            largeUrl;
-      } else {
-        largeUrl = selectedImage['image'] as String?;
-        thumbnailUrl = largeUrl;
-      }
-
-      if (!_hasMeaningfulText(largeUrl) && !_hasMeaningfulText(thumbnailUrl)) {
-        return null;
-      }
-
-      return ResolvedAcoustIDCover(
-        releaseId: releaseId,
-        largeUrl: largeUrl,
-        thumbnailUrl: thumbnailUrl,
-      );
-    } catch (e) {
-      debugPrint('AcoustID cover resolution failed for $releaseId: $e');
-      return null;
-    }
+  if (value is String) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
+
+  if (value is Map) {
+    final map = Map<String, dynamic>.from(value);
+    final year = map['year'];
+    final month = map['month'];
+    final day = map['day'];
+    if (year == null && month == null && day == null) return null;
+
+    final parts = <String>[];
+    if (year != null) parts.add(year.toString());
+    if (month != null) parts.add(month.toString().padLeft(2, '0'));
+    if (day != null) parts.add(day.toString().padLeft(2, '0'));
+    return parts.join('-');
+  }
+
+  return value.toString();
+}
+
+int? _durationFromJson(Map<String, dynamic> json) {
+  final duration = json['duration'];
+  if (duration is num) {
+    return (duration * 1000).round();
+  }
+
+  final length = json['length'];
+  if (length is num) {
+    return length.round();
+  }
+
+  return null;
+}
+
+Map<String, dynamic>? _asMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return null;
 }

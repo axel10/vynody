@@ -1,16 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart' show Options, ResponseType;
 import '../utils/clean_helper.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
 import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
-import '../utils/network_client.dart';
 
 class SongTagCompletionSheet extends StatefulWidget {
   const SongTagCompletionSheet({
@@ -44,6 +41,8 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   List<AcoustIDResult> _acoustidResults = const [];
   bool _isAcoustIDLoading = true;
   AcoustIDService? _acoustidService;
+  final Set<String> _expandedAcoustIDIds = <String>{};
+  final Set<String> _expandedReleaseGroupIds = <String>{};
 
   @override
   void initState() {
@@ -144,24 +143,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       );
 
       if (!mounted) return;
-      final knownDuration = _fileMetadata?.duration ?? widget.durationMillis;
       setState(() {
-        _acoustidResults = results.map((r) {
-          if (r.durationMillis == null || r.durationMillis! <= 0) {
-            return AcoustIDResult(
-              recordingId: r.recordingId,
-              title: r.title,
-              artist: r.artist,
-              album: r.album,
-              releaseId: r.releaseId,
-              durationMillis: knownDuration,
-              score: r.score,
-              acoustIds: r.acoustIds,
-              raw: r.raw,
-            );
-          }
-          return r;
-        }).toList();
+        _acoustidResults = results;
+        _expandedAcoustIDIds.clear();
+        _expandedReleaseGroupIds.clear();
         _isAcoustIDLoading = false;
       });
     } catch (e) {
@@ -171,7 +156,19 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     }
   }
 
-  Future<void> _applyAcoustIDMatch(AcoustIDResult result) async {
+  Future<void> _applyAcoustIDSelection({
+    required AcoustIDResult trackResult,
+    required AcoustIDRecording recording,
+    required String albumTitle,
+    required String sourceLabel,
+    String? releaseId,
+    String? releaseGroupId,
+    String? coverLargeUrl,
+    String? coverThumbnailUrl,
+    Map<String, dynamic>? raw,
+    String? country,
+    String? releaseDate,
+  }) async {
     if (_isApplying) return;
 
     if (!mounted) return;
@@ -180,63 +177,19 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       _errorMessage = null;
     });
 
-    Uint8List? coverArtBytes;
-    if (result.releaseId != null && result.releaseId!.isNotEmpty) {
-      try {
-        final resolvedCover = _acoustidService != null
-            ? await _acoustidService!.resolveCoverUrls(result)
-            : null;
-        final resolvedLargeUrl = resolvedCover?.largeUrl;
-        final resolvedThumbnailUrl = resolvedCover?.thumbnailUrl;
-        final hasThumbnail = resolvedThumbnailUrl?.isNotEmpty ?? false;
-        final coverCandidates = <String>[
-          if (resolvedLargeUrl?.isNotEmpty ?? false) resolvedLargeUrl!,
-          if (hasThumbnail && resolvedThumbnailUrl != resolvedLargeUrl)
-            resolvedThumbnailUrl!,
-          '/release/${result.releaseId}/front-500',
-        ];
-
-        final coverClient = NetworkClient.instance;
-
-        for (final coverUrl in coverCandidates) {
-          try {
-            final resp = await coverClient.get<List<int>>(
-              coverUrl.startsWith('http')
-                  ? coverUrl
-                  : 'https://coverartarchive.org$coverUrl',
-              options: Options(
-                responseType: ResponseType.bytes,
-                headers: {'Accept': 'image/jpeg, image/png, image/*, */*'},
-              ),
-            );
-            if (resp.data != null && resp.data!.isNotEmpty) {
-              coverArtBytes = Uint8List.fromList(resp.data!);
-              debugPrint(
-                'AcoustID: Downloaded ${coverArtBytes.length} bytes of cover art for release ${result.releaseId}',
-              );
-              break;
-            }
-          } catch (e) {
-            debugPrint('AcoustID: Cover art candidate failed: $e');
-          }
-        }
-        if (coverArtBytes == null) {
-          debugPrint('AcoustID: Cover art response is empty');
-        }
-      } catch (e) {
-        debugPrint('AcoustID: Failed to download cover art: $e');
-      }
-    } else {
-      debugPrint('AcoustID: No releaseId available for cover art download');
-    }
+    final coverArtBytes = await _acoustidService?.downloadCoverBytes(
+      candidateUrls: [coverLargeUrl, coverThumbnailUrl],
+    );
 
     try {
+      final durationMillis =
+          recording.durationMillis ?? widget.durationMillis;
       final saved = await MetadataHelper.saveSelectedSongMetadata(
         filePath: widget.songPath,
-        title: result.title,
-        artist: result.artist,
-        album: result.album ?? 'Unknown Album',
-        duration: result.durationMillis ?? widget.durationMillis,
+        title: recording.title,
+        artist: recording.artist,
+        album: albumTitle,
+        duration: durationMillis,
         artworkBytes: coverArtBytes,
       );
 
@@ -245,26 +198,31 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       }
 
       final updated = saved.$1;
+      final resolvedCover = coverLargeUrl != null || coverThumbnailUrl != null
+          ? ResolvedCover(
+              endpoint: releaseId != null ? 'release' : 'release-group',
+              id: releaseId ?? releaseGroupId ?? '',
+              largeUrl: coverLargeUrl,
+              thumbnailUrl: coverThumbnailUrl ?? coverLargeUrl,
+            )
+          : null;
 
       if (!mounted) return;
       Navigator.of(context).pop(
         MusicBrainzTagSelectionResult(
           metadata: updated,
           artworkBytes: coverArtBytes,
-          match: MusicBrainzTrackMatch(
-            recordingId: result.recordingId,
-            title: updated.title,
-            artist: updated.artist,
-            album: updated.album,
-            releaseId: null,
-            releaseGroupId: null,
-            releaseDate: null,
-            country: null,
-            durationMillis: updated.duration,
-            trackNumber: null,
-            score: (result.score * 100).round().clamp(0, 100),
-            disambiguation: 'AcoustID',
-            raw: result.raw,
+          match: _buildAcoustIDSelectionMatch(
+            trackResult: trackResult,
+            recording: recording,
+            albumTitle: albumTitle,
+            releaseId: releaseId,
+            releaseGroupId: releaseGroupId,
+            releaseDate: releaseDate,
+            country: country,
+            raw: raw,
+            resolvedCover: resolvedCover,
+            sourceLabel: sourceLabel,
           ),
         ),
       );
@@ -275,6 +233,86 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         _errorMessage = '保存失败：$e';
       });
     }
+  }
+
+  Future<void> _applyAcoustIDReleaseGroup(
+    AcoustIDResult trackResult,
+    AcoustIDRecording recording,
+    AcoustIDReleaseGroup releaseGroup,
+  ) async {
+    await _applyAcoustIDSelection(
+      trackResult: trackResult,
+      recording: recording,
+      albumTitle: releaseGroup.title,
+      sourceLabel: 'AcoustID release-group',
+      releaseGroupId: releaseGroup.id,
+      coverLargeUrl: releaseGroup.largeUrl,
+      coverThumbnailUrl: releaseGroup.thumbnailUrl,
+      raw: {
+        'track': trackResult.raw,
+        'recording': recording.raw,
+        'releaseGroup': releaseGroup.raw,
+      },
+    );
+  }
+
+  Future<void> _applyAcoustIDRelease(
+    AcoustIDResult trackResult,
+    AcoustIDRecording recording,
+    AcoustIDReleaseGroup releaseGroup,
+    AcoustIDRelease release,
+  ) async {
+    await _applyAcoustIDSelection(
+      trackResult: trackResult,
+      recording: recording,
+      albumTitle: release.title,
+      sourceLabel: 'AcoustID release',
+      releaseId: release.id,
+      releaseGroupId: releaseGroup.id,
+      coverLargeUrl: release.largeUrl,
+      coverThumbnailUrl: release.thumbnailUrl,
+      country: release.country,
+      releaseDate: release.dateLabel,
+      raw: {
+        'track': trackResult.raw,
+        'recording': recording.raw,
+        'releaseGroup': releaseGroup.raw,
+        'release': release.raw,
+      },
+    );
+  }
+
+  MusicBrainzTrackMatch _buildAcoustIDSelectionMatch({
+    required AcoustIDResult trackResult,
+    required AcoustIDRecording recording,
+    required String albumTitle,
+    required String sourceLabel,
+    String? releaseId,
+    String? releaseGroupId,
+    String? releaseDate,
+    String? country,
+    Map<String, dynamic>? raw,
+    ResolvedCover? resolvedCover,
+  }) {
+    return MusicBrainzTrackMatch(
+      recordingId: recording.id.isNotEmpty ? recording.id : trackResult.id,
+      title: recording.title.isNotEmpty ? recording.title : _displayTitle,
+      artist: recording.artist.isNotEmpty ? recording.artist : 'Unknown Artist',
+      album: albumTitle,
+      releaseId: releaseId,
+      releaseGroupId: releaseGroupId,
+      releaseDate: releaseDate,
+      country: country,
+      durationMillis: recording.durationMillis ?? widget.durationMillis,
+      trackNumber: null,
+      score: (trackResult.score * 100).round().clamp(0, 100),
+      disambiguation: sourceLabel,
+      raw: raw ??
+          {
+            'track': trackResult.raw,
+            'recording': recording.raw,
+          },
+    )..resolvedCover = resolvedCover;
   }
 
   Future<void> _applyMatch(MusicBrainzTrackMatch match) async {
@@ -324,7 +362,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '根据音频指纹检索 AcoustID，并根据当前时长和已有标签检索 MusicBrainz，然后选择最接近的结果。',
+                  '根据音频指纹检索 AcoustID，展开后可选择专辑或发行版封面来补全信息；同时也检索 MusicBrainz 的近似结果。',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
@@ -396,10 +434,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       );
     }
 
-    final items = <Widget>[];
+    final children = <Widget>[];
 
     if (_isAcoustIDLoading) {
-      items.add(
+      children.add(
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Center(
@@ -415,91 +453,141 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         ),
       );
     } else if (_acoustidResults.isNotEmpty) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
+          child: Text(
+            'AcoustID 识别记录',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
       for (var i = 0; i < _acoustidResults.length; i++) {
-        final result = _acoustidResults[i];
-        items.add(
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Material(
-              color: const Color(0xFF46D27A).withValues(alpha: 0.1),
+        children.add(_buildAcoustIDResultCard(_acoustidResults[i], i));
+        if (i < _acoustidResults.length - 1) {
+          children.add(const SizedBox(height: 8));
+        }
+      }
+      children.add(const SizedBox(height: 10));
+    }
+
+    if (!_isLoading) {
+      if (_matches.isEmpty && _acoustidResults.isEmpty) {
+        return Center(
+          child: _EmptyState(
+            icon: Icons.search_off_rounded,
+            title: '没有找到匹配结果',
+            subtitle: '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。',
+            actionLabel: '重新搜索',
+            onAction: () {
+              _loadMatches();
+              _loadAcoustIDResult();
+            },
+          ),
+        );
+      }
+
+      if (_matches.isNotEmpty) {
+        if (children.isNotEmpty) {
+          children.add(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
+              child: Text(
+                'MusicBrainz 结果',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          );
+        }
+
+        for (var i = 0; i < _matches.length; i++) {
+          final match = _matches[i];
+          final durationText = match.durationLabel;
+          final trackLabel = match.trackNumber != null
+              ? 'Track ${match.trackNumber}'
+              : 'Track --';
+
+          children.add(
+            Material(
+              color: Colors.white.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(18),
               child: InkWell(
                 borderRadius: BorderRadius.circular(18),
-                onTap: _isApplying ? null : () => _applyAcoustIDMatch(result),
+                onTap: _isApplying ? null : () => _applyMatch(match),
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF46D27A).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: _AcoustIDCoverImage(
-                          result: result,
-                          service: _acoustidService,
-                        ),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: _MatchCoverImage(match: match, service: _service),
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(6),
+                                  bottomRight: Radius.circular(10),
+                                ),
+                              ),
+                              child: Text(
+                                '${i + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    result.title.isNotEmpty
-                                        ? result.title
-                                        : _displayTitle,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF46D27A,
-                                    ).withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                      color: const Color(
-                                        0xFF46D27A,
-                                      ).withValues(alpha: 0.4),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'AcoustID',
-                                    style: TextStyle(
-                                      color: Color(0xFF46D27A),
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              match.title.isNotEmpty
+                                  ? match.title
+                                  : _displayTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               [
-                                if (result.artist.isNotEmpty) result.artist,
-                                if (result.album != null &&
-                                    result.album!.isNotEmpty)
-                                  result.album!,
+                                if (match.artist.isNotEmpty) match.artist,
+                                if (match.album != null &&
+                                    match.album!.isNotEmpty)
+                                  match.album!,
                               ].join(' · '),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -512,8 +600,15 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                             const SizedBox(height: 8),
                             Text(
                               [
-                                result.durationLabel,
-                                '匹配度 ${(result.score * 100).round()}%',
+                                trackLabel,
+                                durationText,
+                                '评分 ${match.score}',
+                                if (match.releaseDate != null &&
+                                    match.releaseDate!.isNotEmpty)
+                                  match.releaseDate!,
+                                if (match.disambiguation != null &&
+                                    match.disambiguation!.isNotEmpty)
+                                  match.disambiguation!,
                               ].join(' · '),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -526,119 +621,146 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: const Color(0xFF46D27A).withValues(alpha: 0.6),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _ScoreBadge(score: match.score),
+                          const SizedBox(height: 10),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.white.withValues(alpha: 0.45),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-          ),
-        );
+          );
+          if (i < _matches.length - 1) {
+            children.add(const SizedBox(height: 8));
+          }
+        }
       }
     }
 
-    if (!_isLoading && _matches.isEmpty && _acoustidResults.isEmpty) {
-      items.add(
-        Expanded(
-          child: _EmptyState(
-            icon: Icons.search_off_rounded,
-            title: '没有找到匹配结果',
-            subtitle: '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。',
-            actionLabel: '重新搜索',
-            onAction: () {
-              _loadMatches();
-              _loadAcoustIDResult();
-            },
-          ),
+    if (children.isEmpty) {
+      return Center(
+        child: _EmptyState(
+          icon: Icons.search_off_rounded,
+          title: '没有找到匹配结果',
+          subtitle: '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。',
+          actionLabel: '重新搜索',
+          onAction: () {
+            _loadMatches();
+            _loadAcoustIDResult();
+          },
         ),
       );
-    } else if (!_isLoading) {
-      for (var i = 0; i < _matches.length; i++) {
-        final match = _matches[i];
-        final durationText = match.durationLabel;
-        final trackLabel = match.trackNumber != null
-            ? 'Track ${match.trackNumber}'
-            : 'Track --';
+    }
 
-        items.add(
-          Material(
-            color: Colors.white.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: _isApplying ? null : () => _applyMatch(match),
-              child: Padding(
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+      children: children,
+    );
+  }
+
+  Widget _buildAcoustIDResultCard(AcoustIDResult result, int index) {
+    final trackKey = result.id.isNotEmpty ? result.id : 'track_$index';
+    final expanded = _expandedAcoustIDIds.contains(trackKey);
+    final primaryRecording = result.primaryRecording;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Material(
+        color: const Color(0xFF46D27A).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: _isApplying
+              ? null
+              : () {
+                  setState(() {
+                    if (expanded) {
+                      _expandedAcoustIDIds.remove(trackKey);
+                    } else {
+                      _expandedAcoustIDIds.add(trackKey);
+                    }
+                  });
+                },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
                 padding: const EdgeInsets.all(14),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: _MatchCoverImage(
-                            match: match,
-                            service: _service,
-                          ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.6),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(6),
-                                bottomRight: Radius.circular(10),
-                              ),
-                            ),
-                            child: Text(
-                              '${_acoustidResults.isNotEmpty ? i + 1 : i + 1}',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF46D27A).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _AcoustIDCoverImage(result: result),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            match.title.isNotEmpty
-                                ? match.title
-                                : _displayTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  result.title.isNotEmpty
+                                      ? result.title
+                                      : _displayTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF46D27A)
+                                      .withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: const Color(0xFF46D27A)
+                                        .withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'AcoustID',
+                                  style: TextStyle(
+                                    color: Color(0xFF46D27A),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 6),
                           Text(
                             [
-                              if (match.artist.isNotEmpty) match.artist,
-                              if (match.album != null &&
-                                  match.album!.isNotEmpty)
-                                match.album!,
+                              if (result.artist.isNotEmpty) result.artist,
+                              if (result.album != null &&
+                                  result.album!.isNotEmpty)
+                                result.album!,
                             ].join(' · '),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -651,15 +773,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                           const SizedBox(height: 8),
                           Text(
                             [
-                              trackLabel,
-                              durationText,
-                              '评分 ${match.score}',
-                              if (match.releaseDate != null &&
-                                  match.releaseDate!.isNotEmpty)
-                                match.releaseDate!,
-                              if (match.disambiguation != null &&
-                                  match.disambiguation!.isNotEmpty)
-                                match.disambiguation!,
+                              '录音 ${result.recordings.length} 条',
+                              result.durationLabel,
+                              '匹配度 ${(result.score * 100).round()}%',
                             ].join(' · '),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -668,37 +784,416 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                               fontSize: 11,
                             ),
                           ),
+                          if (primaryRecording != null &&
+                              primaryRecording.releaseGroups.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                '首个专辑：${primaryRecording.releaseGroups.first.title}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.38),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        _ScoreBadge(score: match.score),
-                        const SizedBox(height: 10),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: Colors.white.withValues(alpha: 0.45),
-                        ),
-                      ],
+                    Icon(
+                      expanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: const Color(0xFF46D27A).withValues(alpha: 0.6),
                     ),
                   ],
                 ),
               ),
-            ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: expanded
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < result.recordings.length; i++)
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  top: i == 0 ? 0 : 10,
+                                ),
+                                child: _buildAcoustIDRecordingBlock(
+                                  trackResult: result,
+                                  recording: result.recordings[i],
+                                  recordingIndex: i,
+                                ),
+                              ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
           ),
-        );
+        ),
+      ),
+    );
+  }
 
-        if (i < _matches.length - 1) {
-          items.add(const SizedBox(height: 8));
-        }
-      }
-    }
+  Widget _buildAcoustIDRecordingBlock({
+    required AcoustIDResult trackResult,
+    required AcoustIDRecording recording,
+    required int recordingIndex,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${recordingIndex + 1}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.75),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        recording.title.isNotEmpty
+                            ? recording.title
+                            : trackResult.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        [
+                          if (recording.artist.isNotEmpty) recording.artist,
+                          recording.durationLabel,
+                        ].join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.55),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (recording.releaseGroups.isEmpty)
+              Text(
+                '没有可展开的专辑列表',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.42),
+                  fontSize: 11,
+                ),
+              )
+            else
+              Column(
+                children: [
+                  for (var i = 0; i < recording.releaseGroups.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(top: i == 0 ? 0 : 8),
+                      child: _buildAcoustIDReleaseGroupRow(
+                        trackResult: trackResult,
+                        recording: recording,
+                        releaseGroup: recording.releaseGroups[i],
+                      ),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
-      children: items,
+  Widget _buildAcoustIDReleaseGroupRow({
+    required AcoustIDResult trackResult,
+    required AcoustIDRecording recording,
+    required AcoustIDReleaseGroup releaseGroup,
+  }) {
+    final expanded = _expandedReleaseGroupIds.contains(releaseGroup.id);
+    final hasReleases = releaseGroup.releases.isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(12),
+                ),
+                child: SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: Image.network(
+                    releaseGroup.thumbnailUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.white.withValues(alpha: 0.04),
+                      child: const Icon(
+                        Icons.album_rounded,
+                        color: Colors.white24,
+                        size: 22,
+                      ),
+                    ),
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return Center(
+                        child: SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.4,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white.withValues(alpha: 0.18),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _isApplying
+                      ? null
+                      : () => _applyAcoustIDReleaseGroup(
+                            trackResult,
+                            recording,
+                            releaseGroup,
+                          ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          releaseGroup.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          [
+                            if (releaseGroup.type != null &&
+                                releaseGroup.type!.isNotEmpty)
+                              releaseGroup.type!,
+                            if (releaseGroup.secondaryTypes.isNotEmpty)
+                              releaseGroup.secondaryTypes.join('/'),
+                            '${releaseGroup.releases.length} 个发行版',
+                          ].where((item) => item.isNotEmpty).join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: hasReleases
+                    ? () {
+                        setState(() {
+                          if (expanded) {
+                            _expandedReleaseGroupIds.remove(releaseGroup.id);
+                          } else {
+                            _expandedReleaseGroupIds.add(releaseGroup.id);
+                          }
+                        });
+                      }
+                    : null,
+                icon: AnimatedRotation(
+                  turns: expanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 180),
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: hasReleases
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: expanded && hasReleases
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < releaseGroup.releases.length; i++)
+                          Padding(
+                            padding: EdgeInsets.only(top: i == 0 ? 0 : 8),
+                            child: _buildAcoustIDReleaseRow(
+                              trackResult: trackResult,
+                              recording: recording,
+                              releaseGroup: releaseGroup,
+                              release: releaseGroup.releases[i],
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAcoustIDReleaseRow({
+    required AcoustIDResult trackResult,
+    required AcoustIDRecording recording,
+    required AcoustIDReleaseGroup releaseGroup,
+    required AcoustIDRelease release,
+  }) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.04),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: _isApplying
+            ? null
+            : () => _applyAcoustIDRelease(trackResult, recording, releaseGroup, release),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(9),
+                child: SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: Image.network(
+                    release.thumbnailUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      child: const Icon(
+                        Icons.album_outlined,
+                        color: Colors.white24,
+                        size: 20,
+                      ),
+                    ),
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return Center(
+                        child: SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.3,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white.withValues(alpha: 0.18),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      release.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        if (release.country != null && release.country!.isNotEmpty)
+                          release.country!,
+                        if (release.dateLabel != null &&
+                            release.dateLabel!.isNotEmpty)
+                          release.dateLabel!,
+                        if (release.trackCount != null)
+                          '${release.trackCount} 首',
+                      ].join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 10.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -970,55 +1465,44 @@ class _MatchCoverImageState extends State<_MatchCoverImage> {
   }
 }
 
-class _AcoustIDCoverImage extends StatefulWidget {
-  const _AcoustIDCoverImage({required this.result, required this.service});
+class _AcoustIDCoverImage extends StatelessWidget {
+  const _AcoustIDCoverImage({required this.result});
 
   final AcoustIDResult result;
-  final AcoustIDService? service;
-
-  @override
-  State<_AcoustIDCoverImage> createState() => _AcoustIDCoverImageState();
-}
-
-class _AcoustIDCoverImageState extends State<_AcoustIDCoverImage> {
-  late Future<String?> _thumbnailResolutionFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _thumbnailResolutionFuture = _resolveThumbnailUrl();
-  }
-
-  @override
-  void didUpdateWidget(covariant _AcoustIDCoverImage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.result.releaseId != widget.result.releaseId ||
-        oldWidget.result.resolvedThumbnailUrl !=
-            widget.result.resolvedThumbnailUrl) {
-      _thumbnailResolutionFuture = _resolveThumbnailUrl();
-    }
-  }
-
-  Future<String?> _resolveThumbnailUrl() {
-    final releaseId = widget.result.releaseId;
-    if (releaseId == null || releaseId.isEmpty) {
-      return Future.value(null);
-    }
-
-    final service = widget.service;
-    if (service == null) {
-      return Future.value(null);
-    }
-
-    return service.resolveCoverThumbnailUrl(widget.result);
-  }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: _thumbnailResolutionFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
+    final url = result.thumbnailUrl;
+    if (url == null) {
+      return const Center(
+        child: Icon(
+          Icons.fingerprint_rounded,
+          color: Color(0xFF46D27A),
+          size: 28,
+        ),
+      );
+    }
+
+    return Center(
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded) return child;
+          return AnimatedOpacity(
+            opacity: frame == null ? 0 : 1,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            child: child,
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => const Icon(
+          Icons.fingerprint_rounded,
+          color: Color(0xFF46D27A),
+          size: 28,
+        ),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
           return Center(
             child: SizedBox(
               width: 14,
@@ -1031,53 +1515,8 @@ class _AcoustIDCoverImageState extends State<_AcoustIDCoverImage> {
               ),
             ),
           );
-        }
-
-        final url = widget.result.thumbnailUrl;
-        if (url == null) {
-          return const Icon(
-            Icons.fingerprint_rounded,
-            color: Color(0xFF46D27A),
-            size: 28,
-          );
-        }
-
-        return Center(
-          child: Image.network(
-            url,
-            fit: BoxFit.cover,
-            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-              if (wasSynchronouslyLoaded) return child;
-              return AnimatedOpacity(
-                opacity: frame == null ? 0 : 1,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-                child: child,
-              );
-            },
-            errorBuilder: (context, error, stackTrace) => const Icon(
-              Icons.fingerprint_rounded,
-              color: Color(0xFF46D27A),
-              size: 28,
-            ),
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Center(
-                child: SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      const Color(0xFF46D27A).withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
+        },
+      ),
     );
   }
 }
