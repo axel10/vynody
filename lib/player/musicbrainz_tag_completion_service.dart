@@ -343,27 +343,35 @@ class MusicBrainzTagCompletionService {
     required String? artist,
     required String? album,
     required int? durationMillis,
+    bool enableTitleQuery = true,
+    bool enableArtistQuery = true,
+    bool enableAlbumQuery = true,
+    bool enableDurationQuery = true,
     int limit = 12,
   }) async {
-    final titleCandidates = <String>[];
-    if (_hasMeaningfulText(title)) {
-      titleCandidates.add(title!.trim());
+    final titleCandidates = <String?>[];
+    if (enableTitleQuery) {
+      if (_hasMeaningfulText(title)) {
+        titleCandidates.add(title!.trim());
+      }
+
+      final fallbackTitle = CleanHelper.deriveCleanTitleFromFileName(songPath);
+      if (_hasMeaningfulText(fallbackTitle) &&
+          !titleCandidates.any(
+            (candidate) => candidate != null && _sameText(candidate, fallbackTitle),
+          )) {
+        titleCandidates.add(fallbackTitle);
+      }
+
+      if (titleCandidates.isEmpty) {
+        titleCandidates.add(p.basenameWithoutExtension(songPath));
+      }
+    } else {
+      titleCandidates.add(null);
     }
 
-    final fallbackTitle = CleanHelper.deriveCleanTitleFromFileName(songPath);
-    if (_hasMeaningfulText(fallbackTitle) &&
-        !titleCandidates.any(
-          (candidate) => _sameText(candidate, fallbackTitle),
-        )) {
-      titleCandidates.add(fallbackTitle);
-    }
-
-    if (titleCandidates.isEmpty) {
-      titleCandidates.add(p.basenameWithoutExtension(songPath));
-    }
-
-    final normalizedArtist = _normalizeField(artist);
-    final normalizedAlbum = _normalizeField(album);
+    final normalizedArtist = enableArtistQuery ? _normalizeField(artist) : '';
+    final normalizedAlbum = enableAlbumQuery ? _normalizeField(album) : '';
 
     final collected = <String, MusicBrainzTrackMatch>{};
     final desiredCount = limit.clamp(1, 50).toInt();
@@ -375,7 +383,7 @@ class MusicBrainzTagCompletionService {
         title: candidateTitle,
         artist: normalizedArtist,
         album: normalizedAlbum,
-        durationMillis: durationMillis,
+        durationMillis: enableDurationQuery ? durationMillis : null,
       );
 
       for (final query in queries) {
@@ -697,14 +705,14 @@ class _CoverArtResult {
 }
 
 List<String> _buildQueries({
-  required String title,
+  required String? title,
   required String? artist,
   required String? album,
   required int? durationMillis,
 }) {
   final queries = <String>[];
 
-  final titleTerm = _fieldTerm('recording', title);
+  final titleTerm = _hasMeaningfulText(title) ? _fieldTerm('recording', title!) : null;
   final artistTerm = _hasMeaningfulText(artist)
       ? _fieldTerm('artistname', artist!)
       : null;
@@ -725,12 +733,23 @@ List<String> _buildQueries({
     }
   }
 
-  addQuery([titleTerm, artistTerm, albumTerm, durationTerm]);
-  addQuery([titleTerm, artistTerm, durationTerm]);
-  addQuery([titleTerm, albumTerm, durationTerm]);
-  addQuery([titleTerm, durationTerm]);
-  addQuery([titleTerm, artistTerm]);
-  addQuery([titleTerm]);
+  if (titleTerm != null) {
+    addQuery([titleTerm, artistTerm, albumTerm, durationTerm]);
+    addQuery([titleTerm, artistTerm, durationTerm]);
+    addQuery([titleTerm, albumTerm, durationTerm]);
+    addQuery([titleTerm, durationTerm]);
+    addQuery([titleTerm, artistTerm]);
+    addQuery([titleTerm, albumTerm]);
+    addQuery([titleTerm]);
+  }
+
+  addQuery([artistTerm, albumTerm, durationTerm]);
+  addQuery([artistTerm, durationTerm]);
+  addQuery([albumTerm, durationTerm]);
+  addQuery([artistTerm, albumTerm]);
+  addQuery([artistTerm]);
+  addQuery([albumTerm]);
+  addQuery([durationTerm]);
 
   return queries;
 }

@@ -9,6 +9,13 @@ import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
 
+enum _SummaryCondition {
+  title,
+  artist,
+  album,
+  duration,
+}
+
 class SongTagCompletionSheet extends StatefulWidget {
   const SongTagCompletionSheet({
     super.key,
@@ -45,6 +52,8 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   final Set<String> _expandedReleaseGroupIds = <String>{};
   final Set<String> _expandedMusicBrainzRecordingIds = <String>{};
   final Set<String> _expandedMusicBrainzReleaseGroupIds = <String>{};
+  final Set<_SummaryCondition> _disabledSummaryConditions =
+      <_SummaryCondition>{};
 
   @override
   void initState() {
@@ -83,6 +92,23 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     return CleanHelper.deriveCleanTitleFromFileName(widget.songPath);
   }
 
+  bool _isSummaryConditionEnabled(_SummaryCondition condition) {
+    return !_disabledSummaryConditions.contains(condition);
+  }
+
+  Future<void> _toggleSummaryCondition(_SummaryCondition condition) async {
+    if (!mounted) return;
+    setState(() {
+      if (_disabledSummaryConditions.contains(condition)) {
+        _disabledSummaryConditions.remove(condition);
+      } else {
+        _disabledSummaryConditions.add(condition);
+      }
+    });
+
+    await _loadMatches();
+  }
+
   Future<void> _loadMatches() async {
     if (!mounted) return;
     setState(() {
@@ -97,6 +123,14 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         artist: _fileMetadata?.artist ?? widget.currentArtist,
         album: _fileMetadata?.album ?? widget.currentAlbum,
         durationMillis: _fileMetadata?.duration ?? widget.durationMillis,
+        enableTitleQuery:
+            _isSummaryConditionEnabled(_SummaryCondition.title),
+        enableArtistQuery:
+            _isSummaryConditionEnabled(_SummaryCondition.artist),
+        enableAlbumQuery:
+            _isSummaryConditionEnabled(_SummaryCondition.album),
+        enableDurationQuery:
+            _isSummaryConditionEnabled(_SummaryCondition.duration),
       );
 
       if (!mounted) return;
@@ -393,31 +427,57 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   }
 
   Widget _buildSummary(BuildContext context) {
-    final chips = <Widget>[
-      _InfoChip(label: '本地标题', value: _displayTitle),
+    final summaryItems = <Widget>[
+      _SummaryChip(
+        label: '本地标题',
+        value: _displayTitle,
+        enabled: _isSummaryConditionEnabled(_SummaryCondition.title),
+        onTap: () => _toggleSummaryCondition(_SummaryCondition.title),
+      ),
       if ((_fileMetadata?.artist ?? widget.currentArtist ?? '')
           .trim()
           .isNotEmpty)
-        _InfoChip(
+        _SummaryChip(
           label: '艺术家',
           value: (_fileMetadata?.artist ?? widget.currentArtist!).trim(),
+          enabled: _isSummaryConditionEnabled(_SummaryCondition.artist),
+          onTap: () => _toggleSummaryCondition(_SummaryCondition.artist),
         ),
       if ((_fileMetadata?.album ?? widget.currentAlbum ?? '').trim().isNotEmpty)
-        _InfoChip(
+        _SummaryChip(
           label: '专辑',
           value: (_fileMetadata?.album ?? widget.currentAlbum!).trim(),
+          enabled: _isSummaryConditionEnabled(_SummaryCondition.album),
+          onTap: () => _toggleSummaryCondition(_SummaryCondition.album),
         ),
       if (_fileMetadata?.duration != null || widget.durationMillis != null)
-        _InfoChip(
+        _SummaryChip(
           label: '时长',
           value:
               '${((_fileMetadata?.duration ?? widget.durationMillis!) ~/ 60000).toString().padLeft(2, '0')}:${(((_fileMetadata?.duration ?? widget.durationMillis!) ~/ 1000) % 60).toString().padLeft(2, '0')}',
+          enabled: _isSummaryConditionEnabled(_SummaryCondition.duration),
+          onTap: () => _toggleSummaryCondition(_SummaryCondition.duration),
         ),
     ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Wrap(spacing: 8, runSpacing: 8, children: chips),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Summary',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.68),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: summaryItems),
+        ],
+      ),
     );
   }
 
@@ -1575,29 +1635,69 @@ class _ScoreBadge extends StatelessWidget {
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.label, required this.value});
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onTap,
+  });
 
   final String label;
   final String value;
+  final bool enabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 260),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      child: Text(
-        '$label: $value',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.8),
-          fontSize: 12,
+    final accentColor = enabled
+        ? const Color(0xFF46D27A)
+        : Colors.white.withValues(alpha: 0.35);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        constraints: const BoxConstraints(maxWidth: 260),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: enabled
+              ? const Color(0xFF46D27A).withValues(alpha: 0.12)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: enabled
+                ? const Color(0xFF46D27A).withValues(alpha: 0.28)
+                : Colors.white.withValues(alpha: 0.06),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              enabled ? Icons.check_circle_outline_rounded : Icons.block_rounded,
+              size: 13,
+              color: accentColor,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                '$label: $value',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: enabled
+                      ? Colors.white.withValues(alpha: 0.88)
+                      : Colors.white.withValues(alpha: 0.58),
+                  fontSize: 12,
+                  decoration:
+                      enabled ? TextDecoration.none : TextDecoration.lineThrough,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
