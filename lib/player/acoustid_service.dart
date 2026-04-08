@@ -163,12 +163,7 @@ class ResolvedAcoustIDCover {
 
 class AcoustIDService {
   AcoustIDService({required this.apiKey, MetadataDatabase? db})
-    : _client = NetworkClient(
-        baseUrl: 'https://api.acoustid.org',
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 30),
-        headers: {'User-Agent': 'VibeFlow/1.0 (Desktop Audio Player)'},
-      ),
+    : _client = NetworkClient.instance,
       _db = db ?? MetadataDatabase();
 
   final String apiKey;
@@ -322,7 +317,7 @@ class AcoustIDService {
   }) async {
     try {
       final response = await _client.get(
-        '/v2/lookup',
+        'https://api.acoustid.org/v2/lookup',
         queryParameters: {
           'client': apiKey,
           'fingerprint': fingerprint,

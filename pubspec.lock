@@ -158,6 +158,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.7.0"
+  detect_proxy_setting:
+    dependency: "direct main"
+    description:
+      name: detect_proxy_setting
+      sha256: "76169280962b1ef0c10d21edc62ef7838b4759831e0ad431603c81fa654e29f7"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.0.9"
   device_info_plus:
     dependency: "direct main"
     description:
@@ -747,6 +755,46 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "6.1.5+1"
+  proxy_setting_android:
+    dependency: transitive
+    description:
+      name: proxy_setting_android
+      sha256: "5bcea721c2b4d99c9ac4eb41c6d836cf0c42e281072829bed281adca36af420f"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.0.6"
+  proxy_setting_ios:
+    dependency: transitive
+    description:
+      name: proxy_setting_ios
+      sha256: "15cfa8235361e4dd5641cabf29d2dde569f7e451b97b3dc3806e4053979a7d07"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.0.5"
+  proxy_setting_macos:
+    dependency: transitive
+    description:
+      name: proxy_setting_macos
+      sha256: f2caca614025aeef1d0331ebeba0bcfa850b25ced4e2a6be69e45b7ddfb65963
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.0.6"
+  proxy_setting_platform_interface:
+    dependency: transitive
+    description:
+      name: proxy_setting_platform_interface
+      sha256: "5fb408abc6a036ca4ec704563d2b994bd2cb99d39a2fd962fec8c27b5b2791b8"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.0.3"
+  proxy_setting_windows:
+    dependency: transitive
+    description:
+      name: proxy_setting_windows
+      sha256: d34c16aa7a2100b16ee0515fae3a65150144feb46e342127be0626734b849fa3
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.0.5"
   pub_semver:
     dependency: transitive
     description:

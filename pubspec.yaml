@@ -78,6 +78,7 @@ dependencies:
     path: ./plugin/audio_service/audio_service
   audio_metadata_reader: 
     path: ./plugin/audio_metadata_reader
+  detect_proxy_setting: ^0.0.9
 
 
 

@@ -196,16 +196,14 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
           '/release/${result.releaseId}/front-500',
         ];
 
-        final coverClient = NetworkClient(
-          baseUrl: 'https://coverartarchive.org',
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 15),
-        );
+        final coverClient = NetworkClient.instance;
 
         for (final coverUrl in coverCandidates) {
           try {
             final resp = await coverClient.get<List<int>>(
-              coverUrl,
+              coverUrl.startsWith('http')
+                  ? coverUrl
+                  : 'https://coverartarchive.org$coverUrl',
               options: Options(
                 responseType: ResponseType.bytes,
                 headers: {'Accept': 'image/jpeg, image/png, image/*, */*'},

@@ -3,48 +3,49 @@ import 'package:flutter/foundation.dart';
 
 export 'package:dio/dio.dart' show Response, Options, DioException, CancelToken, ProgressCallback;
 
-/// 一个简单的网络请求封装类，用于统一配置 Dio 及其参数。
+/// 全局共享的网络请求封装。
+///
+/// 所有业务网络请求都应通过这个单例发起，方便统一加拦截器、日志、鉴权和重试逻辑。
 class NetworkClient {
+  NetworkClient._internal()
+    : _dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 15),
+          headers: const {
+            'Accept': 'application/json',
+            'User-Agent': 'VibeFlow/1.0 (Desktop Audio Player)',
+          },
+        ),
+      ) {
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            debugPrint('Network Request: [${options.method}] ${options.uri}');
+            return handler.next(options);
+          },
+        ),
+      );
+    }
+  }
+
+  static final NetworkClient instance = NetworkClient._internal();
+
   final Dio _dio;
 
-  /// 提供对底层 Dio 实例的直接访问，
-  /// 用于那些需要特殊 Dio 处理（如 Options、Interceptors 等）的场景。
+  /// 提供对底层 Dio 实例的直接访问，用于需要特殊处理的场景。
   Dio get dio => _dio;
 
-  /// 构造函数，支持传递基础配置
-  NetworkClient({
-    String? baseUrl,
-    Map<String, dynamic>? headers,
-    Duration connectTimeout = const Duration(seconds: 15),
-    Duration receiveTimeout = const Duration(seconds: 15),
-    Duration sendTimeout = const Duration(seconds: 15),
-    List<Interceptor>? interceptors,
-  }) : _dio = Dio(
-          BaseOptions(
-            baseUrl: baseUrl ?? '',
-            connectTimeout: connectTimeout,
-            receiveTimeout: receiveTimeout,
-            sendTimeout: sendTimeout,
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'VibeFlow/1.0 (Desktop Audio Player)',
-              ...?headers,
-            },
-          ),
-        ) {
-    if (interceptors != null && interceptors.isNotEmpty) {
-      _dio.interceptors.addAll(interceptors);
-    }
+  /// 向全局 Dio 添加单个拦截器。
+  void addInterceptor(Interceptor interceptor) {
+    _dio.interceptors.add(interceptor);
+  }
 
-    // 默认开启日志拦截器，仅在调试环境下生效（可选）
-    if (kDebugMode) {
-      _dio.interceptors.add(InterceptorsWrapper(
-        onRequest: (options, handler) {
-          debugPrint('Network Request: [${options.method}] ${options.uri}');
-          return handler.next(options);
-        },
-      ));
-    }
+  /// 向全局 Dio 批量添加拦截器。
+  void addInterceptors(Iterable<Interceptor> interceptors) {
+    _dio.interceptors.addAll(interceptors);
   }
 
   /// 发起 GET 请求

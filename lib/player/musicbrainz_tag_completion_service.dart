@@ -160,14 +160,7 @@ class MusicBrainzTagSelectionResult {
 
 class MusicBrainzTagCompletionService {
   MusicBrainzTagCompletionService({NetworkClient? client})
-    : _client =
-          client ??
-          NetworkClient(
-            baseUrl: 'https://musicbrainz.org',
-            connectTimeout: const Duration(seconds: 10),
-            receiveTimeout: const Duration(seconds: 20),
-            headers: {'User-Agent': 'PurePlayer/1.0 (Codex desktop)'},
-          );
+    : _client = client ?? NetworkClient.instance;
 
   final NetworkClient _client;
   final MetadataDatabase _db = MetadataDatabase();
@@ -343,7 +336,7 @@ class MusicBrainzTagCompletionService {
     try {
       await _rateLimit();
       final response = await _client.get(
-        '/ws/2/recording/',
+        'https://musicbrainz.org/ws/2/recording/',
         queryParameters: {
           'query': query,
           'fmt': 'json',

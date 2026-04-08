@@ -176,14 +176,7 @@ class LyricSelectionResult {
 
 class LyricsService {
   LyricsService({NetworkClient? client, MetadataDatabase? db})
-    : _client =
-          client ??
-          NetworkClient(
-            baseUrl: 'https://lrclib.net/api',
-            connectTimeout: const Duration(seconds: 12),
-            receiveTimeout: const Duration(seconds: 12),
-            sendTimeout: const Duration(seconds: 12),
-          ),
+    : _client = client ?? NetworkClient.instance,
       _db = db ?? MetadataDatabase();
 
   final NetworkClient _client;
@@ -371,7 +364,7 @@ class LyricsService {
   Future<LyricTrack?> _fetchGet(LyricsQuery query) async {
     try {
       final response = await _client.get(
-        '/get',
+        'https://lrclib.net/api/get',
         queryParameters: {
           'track_name': query.title,
           'artist_name': query.artist,
@@ -406,7 +399,10 @@ class LyricsService {
                 value == null || (value is String && value.trim().isEmpty),
           );
 
-      final response = await _client.get('/search', queryParameters: params);
+      final response = await _client.get(
+        'https://lrclib.net/api/search',
+        queryParameters: params,
+      );
 
       final data = response.data;
       if (data is List) {

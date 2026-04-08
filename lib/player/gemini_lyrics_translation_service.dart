@@ -2,10 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dio/dio.dart';
+import 'package:dio/dio.dart' show Headers, ResponseType;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import '../utils/network_client.dart';
 import '../utils/lrc_utils.dart';
 
 class _GeminiFileUploadResult {
@@ -21,9 +22,10 @@ class _GeminiFileUploadResult {
 }
 
 class GeminiLyricsTranslationService {
-  GeminiLyricsTranslationService({Dio? dio}) : _dio = dio ?? Dio();
+  GeminiLyricsTranslationService({NetworkClient? client})
+    : _client = client ?? NetworkClient.instance;
 
-  final Dio _dio;
+  final NetworkClient _client;
   String? _cachedApiKey;
   static final RegExp _lineSplitPattern = RegExp(r'\r?\n');
   static final RegExp _timestampLinePattern = RegExp(
@@ -92,7 +94,7 @@ class GeminiLyricsTranslationService {
       debugPrint(
         '[GeminiLyrics] request start, lyrics length=${lyrics.length}',
       );
-      final response = await _dio.post(
+      final response = await _client.post(
         url,
         data: requestData,
         queryParameters: {'key': apiKey},
@@ -253,7 +255,7 @@ class GeminiLyricsTranslationService {
         '[GeminiLyrics] generation request payload=${jsonEncode(requestData)}',
       );
 
-      final response = await _dio.post(
+      final response = await _client.post(
         'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent',
         queryParameters: {'key': apiKey},
         data: requestData,
@@ -489,7 +491,7 @@ class GeminiLyricsTranslationService {
     final fileName = p.basename(file.path);
     final fileBytes = await file.readAsBytes();
 
-    final initResponse = await _dio.post(
+    final initResponse = await _client.post(
       'https://generativelanguage.googleapis.com/upload/v1beta/files',
       queryParameters: {'key': apiKey},
       options: Options(
@@ -517,7 +519,7 @@ class GeminiLyricsTranslationService {
 
     debugPrint('[GeminiLyrics] upload session url=$uploadUrl');
 
-    final uploadResponse = await _dio.post(
+    final uploadResponse = await _client.post(
       uploadUrl,
       options: Options(
         headers: {
@@ -583,7 +585,7 @@ class GeminiLyricsTranslationService {
     String fileName,
     String apiKey,
   ) async {
-    final response = await _dio.get(
+    final response = await _client.get(
       'https://generativelanguage.googleapis.com/v1beta/$fileName',
       queryParameters: {'key': apiKey},
     );
