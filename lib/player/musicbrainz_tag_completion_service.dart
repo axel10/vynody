@@ -3,9 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
 import '../utils/network_client.dart';
-import '../utils/clean_helper.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 
@@ -349,83 +347,25 @@ class MusicBrainzTagCompletionService {
     bool enableDurationQuery = true,
     int limit = 12,
   }) async {
-    final titleCandidates = <String?>[];
-    if (enableTitleQuery) {
-      if (_hasMeaningfulText(title)) {
-        titleCandidates.add(title!.trim());
-      }
-
-      final fallbackTitle = CleanHelper.deriveCleanTitleFromFileName(songPath);
-      if (_hasMeaningfulText(fallbackTitle) &&
-          !titleCandidates.any(
-            (candidate) => candidate != null && _sameText(candidate, fallbackTitle),
-          )) {
-        titleCandidates.add(fallbackTitle);
-      }
-
-      if (titleCandidates.isEmpty) {
-        titleCandidates.add(p.basenameWithoutExtension(songPath));
-      }
-    } else {
-      titleCandidates.add(null);
-    }
-
-    final normalizedArtist = enableArtistQuery ? _normalizeField(artist) : '';
-    final normalizedAlbum = enableAlbumQuery ? _normalizeField(album) : '';
-
-    final collected = <String, MusicBrainzTrackMatch>{};
     final desiredCount = limit.clamp(1, 50).toInt();
-    const pageSize = 20;
-    const maxFetchedPerQuery = 100;
+    final query = _buildQuery(
+      title: enableTitleQuery ? _normalizeField(title) : null,
+      artist: enableArtistQuery ? _normalizeField(artist) : null,
+      album: enableAlbumQuery ? _normalizeField(album) : null,
+      durationMillis: enableDurationQuery ? durationMillis : null,
+    );
 
-    for (final candidateTitle in titleCandidates) {
-      final queries = _buildQueries(
-        title: candidateTitle,
-        artist: normalizedArtist,
-        album: normalizedAlbum,
-        durationMillis: enableDurationQuery ? durationMillis : null,
-      );
-
-      for (final query in queries) {
-        var offset = 0;
-        while (offset < maxFetchedPerQuery) {
-          final page = await _searchWithCache(
-            query,
-            limit: pageSize,
-            offset: offset,
-          );
-
-          final matches = page.matches;
-          if (matches.isEmpty) break;
-
-          for (final match in matches) {
-            final key = match.recordingId.isNotEmpty
-                ? match.recordingId
-                : '${match.title}|${match.artist}|${match.album ?? ''}';
-            collected[key] ??= match;
-          }
-
-          if (collected.length >= desiredCount) {
-            break;
-          }
-
-          final nextOffset = offset + matches.length;
-          final totalCount = page.count;
-          if (matches.length < pageSize ||
-              (totalCount != null && nextOffset >= totalCount)) {
-            break;
-          }
-
-          offset = nextOffset;
-        }
-
-        if (collected.length >= desiredCount) break;
-      }
-
-      if (collected.length >= desiredCount) break;
+    if (query == null) {
+      return const [];
     }
 
-    final results = collected.values.toList()
+    final page = await _searchWithCache(
+      query,
+      limit: desiredCount,
+      offset: 0,
+    );
+
+    final results = page.matches.toList()
       ..sort((a, b) {
         final scoreCompare = b.score.compareTo(a.score);
         if (scoreCompare != 0) return scoreCompare;
@@ -516,13 +456,13 @@ class MusicBrainzTagCompletionService {
     required int offset,
   }) async {
     final cacheKey = '${query.trim()}|limit=$limit|offset=$offset';
-    // if (_searchCache.containsKey(cacheKey)) {
-    //   return _SearchPage(
-    //     matches: _searchCache[cacheKey]!,
-    //     count: null,
-    //     offset: offset,
-    //   );
-    // }
+    if (_searchCache.containsKey(cacheKey)) {
+      return _SearchPage(
+        matches: _searchCache[cacheKey]!,
+        count: null,
+        offset: offset,
+      );
+    }
 
     try {
       await _rateLimit();
@@ -704,15 +644,16 @@ class _CoverArtResult {
   });
 }
 
-List<String> _buildQueries({
+String? _buildQuery({
   required String? title,
   required String? artist,
   required String? album,
   required int? durationMillis,
 }) {
-  final queries = <String>[];
 
-  final titleTerm = _hasMeaningfulText(title) ? _fieldTerm('recording', title!) : null;
+  final titleTerm = _hasMeaningfulText(title)
+      ? _fieldTerm('recording', title!)
+      : null;
   final artistTerm = _hasMeaningfulText(artist)
       ? _fieldTerm('artistname', artist!)
       : null;
@@ -723,35 +664,14 @@ List<String> _buildQueries({
       ? _durationTerm(durationMillis)
       : null;
 
-  void addQuery(List<String?> terms) {
-    final query = terms
-        .whereType<String>()
-        .where((value) => value.isNotEmpty)
-        .join(' AND ');
-    if (query.isNotEmpty && !queries.contains(query)) {
-      queries.add(query);
-    }
-  }
+  final query = <String?>[
+    titleTerm,
+    artistTerm,
+    albumTerm,
+    durationTerm,
+  ].whereType<String>().where((value) => value.isNotEmpty).join(' AND ');
 
-  if (titleTerm != null) {
-    addQuery([titleTerm, artistTerm, albumTerm, durationTerm]);
-    addQuery([titleTerm, artistTerm, durationTerm]);
-    addQuery([titleTerm, albumTerm, durationTerm]);
-    addQuery([titleTerm, durationTerm]);
-    addQuery([titleTerm, artistTerm]);
-    addQuery([titleTerm, albumTerm]);
-    addQuery([titleTerm]);
-  }
-
-  addQuery([artistTerm, albumTerm, durationTerm]);
-  addQuery([artistTerm, durationTerm]);
-  addQuery([albumTerm, durationTerm]);
-  addQuery([artistTerm, albumTerm]);
-  addQuery([artistTerm]);
-  addQuery([albumTerm]);
-  addQuery([durationTerm]);
-
-  return queries;
+  return query.isEmpty ? null : query;
 }
 
 String _fieldTerm(String field, String value) {
@@ -790,10 +710,6 @@ bool _hasMeaningfulText(String? value) {
   return lower != 'unknown' &&
       lower != 'unknown artist' &&
       lower != 'unknown album';
-}
-
-bool _sameText(String left, String right) {
-  return left.trim().toLowerCase() == right.trim().toLowerCase();
 }
 
 String _joinArtistCredit(List<dynamic> credits) {

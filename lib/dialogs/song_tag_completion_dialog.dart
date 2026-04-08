@@ -9,12 +9,7 @@ import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
 
-enum _SummaryCondition {
-  title,
-  artist,
-  album,
-  duration,
-}
+enum _SummaryCondition { title, artist, album, duration }
 
 class SongTagCompletionSheet extends StatefulWidget {
   const SongTagCompletionSheet({
@@ -39,10 +34,14 @@ class SongTagCompletionSheet extends StatefulWidget {
 class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   final MusicBrainzTagCompletionService _service =
       MusicBrainzTagCompletionService();
+  final TextEditingController _musicBrainzSearchController =
+      TextEditingController();
+  final FocusNode _musicBrainzSearchFocusNode = FocusNode();
 
   List<MusicBrainzTrackMatch> _matches = const [];
   bool _isLoading = true;
   bool _isApplying = false;
+  bool _isMusicBrainzSearchExpanded = false;
   String? _errorMessage;
   SongMetadata? _fileMetadata;
   List<AcoustIDResult> _acoustidResults = const [];
@@ -58,8 +57,22 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   @override
   void initState() {
     super.initState();
+    _musicBrainzSearchController.addListener(_onMusicBrainzSearchChanged);
     _loadInitialData();
     _loadAcoustIDResult();
+  }
+
+  @override
+  void dispose() {
+    _musicBrainzSearchController.removeListener(_onMusicBrainzSearchChanged);
+    _musicBrainzSearchController.dispose();
+    _musicBrainzSearchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onMusicBrainzSearchChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   Future<void> _loadInitialData() async {
@@ -96,6 +109,84 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     return !_disabledSummaryConditions.contains(condition);
   }
 
+  String get _musicBrainzSearchQuery =>
+      _musicBrainzSearchController.text.trim().toLowerCase();
+
+  bool get _hasMusicBrainzSearchQuery => _musicBrainzSearchQuery.isNotEmpty;
+
+  String? _preferredMetadataText(String? primary, String? fallback) {
+    if (_hasMeaningfulText(primary)) return primary!.trim();
+    if (_hasMeaningfulText(fallback)) return fallback!.trim();
+    return null;
+  }
+
+  List<MusicBrainzTrackMatch> _filteredMusicBrainzMatches() {
+    if (!_hasMusicBrainzSearchQuery) return _matches;
+
+    final query = _musicBrainzSearchQuery;
+    return _matches
+        .where(
+          (match) => _filteredMusicBrainzReleaseGroups(match, query).isNotEmpty,
+        )
+        .toList(growable: false);
+  }
+
+  List<MusicBrainzReleaseGroup> _filteredMusicBrainzReleaseGroups(
+    MusicBrainzTrackMatch match, [
+    String? query,
+  ]) {
+    final normalizedQuery = (query ?? _musicBrainzSearchQuery)
+        .trim()
+        .toLowerCase();
+    if (normalizedQuery.isEmpty) return match.releaseGroups;
+
+    return match.releaseGroups
+        .where((group) {
+          if (_musicBrainzReleaseTitleMatches(group.title, normalizedQuery)) {
+            return true;
+          }
+          return group.releases.any(
+            (release) =>
+                _musicBrainzReleaseTitleMatches(release.title, normalizedQuery),
+          );
+        })
+        .toList(growable: false);
+  }
+
+  bool _musicBrainzReleaseTitleMatches(String title, String query) {
+    return title.trim().toLowerCase().contains(query);
+  }
+
+  bool _hasMeaningfulText(String? value) {
+    if (value == null) return false;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return false;
+    final lower = trimmed.toLowerCase();
+    return lower != 'unknown' &&
+        lower != 'unknown artist' &&
+        lower != 'unknown album';
+  }
+
+  void _toggleMusicBrainzSearchPanel() {
+    setState(() {
+      _isMusicBrainzSearchExpanded = !_isMusicBrainzSearchExpanded;
+    });
+
+    if (_isMusicBrainzSearchExpanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _musicBrainzSearchFocusNode.requestFocus();
+      });
+    } else {
+      _musicBrainzSearchFocusNode.unfocus();
+    }
+  }
+
+  void _clearMusicBrainzSearch() {
+    if (_musicBrainzSearchController.text.isEmpty) return;
+    _musicBrainzSearchController.clear();
+  }
+
   Future<void> _toggleSummaryCondition(_SummaryCondition condition) async {
     if (!mounted) return;
     setState(() {
@@ -117,20 +208,31 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     });
 
     try {
+      final title = _preferredMetadataText(
+        _fileMetadata?.title,
+        widget.currentTitle,
+      );
+      final artist = _preferredMetadataText(
+        _fileMetadata?.artist,
+        widget.currentArtist,
+      );
+      final album = _preferredMetadataText(
+        _fileMetadata?.album,
+        widget.currentAlbum,
+      );
+
       final results = await _service.searchMatches(
         songPath: widget.songPath,
-        title: _fileMetadata?.title ?? widget.currentTitle,
-        artist: _fileMetadata?.artist ?? widget.currentArtist,
-        album: _fileMetadata?.album ?? widget.currentAlbum,
+        title: title,
+        artist: artist,
+        album: album,
         durationMillis: _fileMetadata?.duration ?? widget.durationMillis,
-        enableTitleQuery:
-            _isSummaryConditionEnabled(_SummaryCondition.title),
-        enableArtistQuery:
-            _isSummaryConditionEnabled(_SummaryCondition.artist),
-        enableAlbumQuery:
-            _isSummaryConditionEnabled(_SummaryCondition.album),
-        enableDurationQuery:
-            _isSummaryConditionEnabled(_SummaryCondition.duration),
+        enableTitleQuery: _isSummaryConditionEnabled(_SummaryCondition.title),
+        enableArtistQuery: _isSummaryConditionEnabled(_SummaryCondition.artist),
+        enableAlbumQuery: _isSummaryConditionEnabled(_SummaryCondition.album),
+        enableDurationQuery: _isSummaryConditionEnabled(
+          _SummaryCondition.duration,
+        ),
       );
 
       if (!mounted) return;
@@ -384,42 +486,120 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '歌曲标签补全',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '歌曲标签补全',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '根据音频指纹检索 AcoustID，同时检索 MusicBrainz 的录音结果；点开录音后选择具体 release 封面来补全信息。',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '根据音频指纹检索 AcoustID，同时检索 MusicBrainz 的录音结果；点开录音后选择具体 release 封面来补全信息。',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 12,
-                    height: 1.35,
-                  ),
+              ),
+              IconButton(
+                onPressed: _toggleMusicBrainzSearchPanel,
+                icon: Icon(
+                  _isMusicBrainzSearchExpanded
+                      ? Icons.search_off_rounded
+                      : Icons.search_rounded,
+                  color: _hasMusicBrainzSearchQuery
+                      ? const Color(0xFF46D27A)
+                      : Colors.white70,
                 ),
-              ],
-            ),
+                tooltip: _isMusicBrainzSearchExpanded
+                    ? '关闭搜索'
+                    : '搜索 release 标题',
+              ),
+              IconButton(
+                onPressed: _isLoading ? null : _loadMatches,
+                icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+                tooltip: '刷新结果',
+              ),
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                tooltip: '关闭',
+              ),
+            ],
           ),
-          IconButton(
-            onPressed: _isLoading ? null : _loadMatches,
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
-            tooltip: '刷新结果',
-          ),
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close_rounded, color: Colors.white70),
-            tooltip: '关闭',
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: _isMusicBrainzSearchExpanded
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: TextField(
+                      controller: _musicBrainzSearchController,
+                      focusNode: _musicBrainzSearchFocusNode,
+                      style: const TextStyle(color: Colors.white),
+                      cursorColor: const Color(0xFF46D27A),
+                      decoration: InputDecoration(
+                        hintText: '过滤 MusicBrainz release 标题',
+                        hintStyle: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.35),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: Colors.white.withValues(alpha: 0.45),
+                        ),
+                        suffixIcon: _hasMusicBrainzSearchQuery
+                            ? IconButton(
+                                onPressed: _clearMusicBrainzSearch,
+                                icon: Icon(
+                                  Icons.clear_rounded,
+                                  color: Colors.white.withValues(alpha: 0.55),
+                                ),
+                                tooltip: '清空搜索',
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.06),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF46D27A),
+                            width: 1.1,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -482,11 +662,15 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   }
 
   Widget _buildBody(BuildContext context) {
+    final filteredMusicBrainzMatches = _filteredMusicBrainzMatches();
+
     if (_isLoading && _isAcoustIDLoading) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2.4));
     }
 
-    if (_errorMessage != null && _acoustidResults.isEmpty && _matches.isEmpty) {
+    if (_errorMessage != null &&
+        _acoustidResults.isEmpty &&
+        filteredMusicBrainzMatches.isEmpty) {
       return _EmptyState(
         icon: Icons.wifi_off_rounded,
         title: '检索失败',
@@ -541,22 +725,28 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     }
 
     if (!_isLoading) {
-      if (_matches.isEmpty && _acoustidResults.isEmpty) {
+      if (filteredMusicBrainzMatches.isEmpty && _acoustidResults.isEmpty) {
         return Center(
           child: _EmptyState(
             icon: Icons.search_off_rounded,
-            title: '没有找到匹配结果',
-            subtitle: '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。',
-            actionLabel: '重新搜索',
+            title: _hasMusicBrainzSearchQuery ? '没有找到匹配的 release' : '没有找到匹配结果',
+            subtitle: _hasMusicBrainzSearchQuery
+                ? '当前过滤条件下，没有包含该关键词的 release 标题。'
+                : '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。',
+            actionLabel: _hasMusicBrainzSearchQuery ? '清空搜索' : '重新搜索',
             onAction: () {
-              _loadMatches();
-              _loadAcoustIDResult();
+              if (_hasMusicBrainzSearchQuery) {
+                _clearMusicBrainzSearch();
+              } else {
+                _loadMatches();
+                _loadAcoustIDResult();
+              }
             },
           ),
         );
       }
 
-      if (_matches.isNotEmpty) {
+      if (filteredMusicBrainzMatches.isNotEmpty) {
         if (children.isNotEmpty) {
           children.add(
             Padding(
@@ -573,9 +763,11 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
           );
         }
 
-        for (var i = 0; i < _matches.length; i++) {
-          children.add(_buildMusicBrainzRecordingCard(_matches[i], i));
-          if (i < _matches.length - 1) {
+        for (var i = 0; i < filteredMusicBrainzMatches.length; i++) {
+          children.add(
+            _buildMusicBrainzRecordingCard(filteredMusicBrainzMatches[i], i),
+          );
+          if (i < filteredMusicBrainzMatches.length - 1) {
             children.add(const SizedBox(height: 8));
           }
         }
@@ -611,7 +803,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         ? match.recordingId
         : 'recording_$index';
     final expanded = _expandedMusicBrainzRecordingIds.contains(recordingKey);
-    final releaseGroups = match.releaseGroups;
+    final releaseGroups = _filteredMusicBrainzReleaseGroups(match);
     final releaseGroupCount = releaseGroups.length;
     final hasReleaseGroups = releaseGroupCount > 0;
     final durationText = match.durationLabel;
@@ -1677,7 +1869,9 @@ class _SummaryChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              enabled ? Icons.check_circle_outline_rounded : Icons.block_rounded,
+              enabled
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.block_rounded,
               size: 13,
               color: accentColor,
             ),
@@ -1692,8 +1886,9 @@ class _SummaryChip extends StatelessWidget {
                       ? Colors.white.withValues(alpha: 0.88)
                       : Colors.white.withValues(alpha: 0.58),
                   fontSize: 12,
-                  decoration:
-                      enabled ? TextDecoration.none : TextDecoration.lineThrough,
+                  decoration: enabled
+                      ? TextDecoration.none
+                      : TextDecoration.lineThrough,
                 ),
               ),
             ),
