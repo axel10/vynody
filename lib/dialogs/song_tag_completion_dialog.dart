@@ -53,6 +53,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
   final Set<String> _expandedMusicBrainzReleaseGroupIds = <String>{};
   final Set<_SummaryCondition> _disabledSummaryConditions =
       <_SummaryCondition>{};
+  final Map<_SummaryCondition, String> _editedSummaryConditionTexts =
+      <_SummaryCondition, String>{};
+  int _musicBrainzQueryRevision = 0;
 
   @override
   void initState() {
@@ -107,6 +110,33 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
 
   bool _isSummaryConditionEnabled(_SummaryCondition condition) {
     return !_disabledSummaryConditions.contains(condition);
+  }
+
+  String? _summaryConditionSourceText(_SummaryCondition condition) {
+    switch (condition) {
+      case _SummaryCondition.title:
+        return _displayTitle;
+      case _SummaryCondition.artist:
+        return _preferredMetadataText(_fileMetadata?.artist, widget.currentArtist);
+      case _SummaryCondition.album:
+        return _preferredMetadataText(_fileMetadata?.album, widget.currentAlbum);
+      case _SummaryCondition.duration:
+        final duration = _fileMetadata?.duration ?? widget.durationMillis;
+        if (duration == null) return null;
+        final minutes = duration ~/ 60000;
+        final seconds = (duration ~/ 1000) % 60;
+        return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+  }
+
+  String? _summaryConditionText(_SummaryCondition condition) {
+    final edited = _editedSummaryConditionTexts[condition];
+    if (_hasMeaningfulText(edited)) return edited!.trim();
+    return _summaryConditionSourceText(condition);
+  }
+
+  bool _canEditSummaryCondition(_SummaryCondition condition) {
+    return condition != _SummaryCondition.duration;
   }
 
   String get _musicBrainzSearchQuery =>
@@ -187,6 +217,85 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     _musicBrainzSearchController.clear();
   }
 
+  Future<void> _editSummaryCondition(_SummaryCondition condition) async {
+    if (!_canEditSummaryCondition(condition)) return;
+
+    final initialValue = _summaryConditionText(condition) ?? '';
+    final controller = TextEditingController(text: initialValue);
+
+    final editedValue = await showDialog<String?>(
+      context: context,
+      builder: (dialogContext) {
+        var currentValue = initialValue;
+
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final canSave = currentValue.trim().isNotEmpty;
+            return AlertDialog(
+              backgroundColor: const Color(0xFF171717),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              title: const Text(
+                '编辑查询条件',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                cursorColor: const Color(0xFF46D27A),
+                decoration: InputDecoration(
+                  hintText: '输入新的查询文字',
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.35),
+                  ),
+                ),
+                onChanged: (value) {
+                  setDialogState(() {
+                    currentValue = value;
+                  });
+                },
+                onSubmitted: canSave
+                    ? (_) => Navigator.of(dialogContext).pop(currentValue.trim())
+                    : null,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: canSave
+                      ? () => Navigator.of(dialogContext).pop(currentValue.trim())
+                      : null,
+                  child: const Text('保存'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    controller.dispose();
+
+    if (!mounted || editedValue == null) return;
+    final trimmed = editedValue.trim();
+    if (trimmed.isEmpty) return;
+
+    setState(() {
+      final sourceValue = _summaryConditionSourceText(condition)?.trim() ?? '';
+      if (trimmed == sourceValue) {
+        _editedSummaryConditionTexts.remove(condition);
+      } else {
+        _editedSummaryConditionTexts[condition] = trimmed;
+      }
+    });
+
+    await _loadMatches();
+  }
+
   Future<void> _toggleSummaryCondition(_SummaryCondition condition) async {
     if (!mounted) return;
     setState(() {
@@ -202,24 +311,16 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
 
   Future<void> _loadMatches() async {
     if (!mounted) return;
+    final revision = ++_musicBrainzQueryRevision;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final title = _preferredMetadataText(
-        _fileMetadata?.title,
-        widget.currentTitle,
-      );
-      final artist = _preferredMetadataText(
-        _fileMetadata?.artist,
-        widget.currentArtist,
-      );
-      final album = _preferredMetadataText(
-        _fileMetadata?.album,
-        widget.currentAlbum,
-      );
+      final title = _summaryConditionText(_SummaryCondition.title);
+      final artist = _summaryConditionText(_SummaryCondition.artist);
+      final album = _summaryConditionText(_SummaryCondition.album);
 
       final results = await _service.searchMatches(
         songPath: widget.songPath,
@@ -235,7 +336,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         ),
       );
 
-      if (!mounted) return;
+      if (!mounted || revision != _musicBrainzQueryRevision) return;
       setState(() {
         _matches = results;
         _expandedMusicBrainzRecordingIds.clear();
@@ -243,7 +344,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         _isLoading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || revision != _musicBrainzQueryRevision) return;
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
@@ -610,25 +711,30 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     final summaryItems = <Widget>[
       _SummaryChip(
         label: '本地标题',
-        value: _displayTitle,
+        value: _summaryConditionText(_SummaryCondition.title) ?? _displayTitle,
         enabled: _isSummaryConditionEnabled(_SummaryCondition.title),
         onTap: () => _toggleSummaryCondition(_SummaryCondition.title),
+        onEdit: () => _editSummaryCondition(_SummaryCondition.title),
       ),
       if ((_fileMetadata?.artist ?? widget.currentArtist ?? '')
           .trim()
           .isNotEmpty)
         _SummaryChip(
           label: '艺术家',
-          value: (_fileMetadata?.artist ?? widget.currentArtist!).trim(),
+          value: _summaryConditionText(_SummaryCondition.artist) ??
+              (_fileMetadata?.artist ?? widget.currentArtist!).trim(),
           enabled: _isSummaryConditionEnabled(_SummaryCondition.artist),
           onTap: () => _toggleSummaryCondition(_SummaryCondition.artist),
+          onEdit: () => _editSummaryCondition(_SummaryCondition.artist),
         ),
       if ((_fileMetadata?.album ?? widget.currentAlbum ?? '').trim().isNotEmpty)
         _SummaryChip(
           label: '专辑',
-          value: (_fileMetadata?.album ?? widget.currentAlbum!).trim(),
+          value: _summaryConditionText(_SummaryCondition.album) ??
+              (_fileMetadata?.album ?? widget.currentAlbum!).trim(),
           enabled: _isSummaryConditionEnabled(_SummaryCondition.album),
           onTap: () => _toggleSummaryCondition(_SummaryCondition.album),
+          onEdit: () => _editSummaryCondition(_SummaryCondition.album),
         ),
       if (_fileMetadata?.duration != null || widget.durationMillis != null)
         _SummaryChip(
@@ -646,7 +752,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Summary',
+            '查询条件',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.68),
               fontSize: 11,
@@ -1833,12 +1939,14 @@ class _SummaryChip extends StatelessWidget {
     required this.value,
     required this.enabled,
     required this.onTap,
+    this.onEdit,
   });
 
   final String label;
   final String value;
   final bool enabled;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -1892,6 +2000,26 @@ class _SummaryChip extends StatelessWidget {
                 ),
               ),
             ),
+            if (onEdit != null) ...[
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: onEdit,
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 24,
+                  height: 24,
+                ),
+                icon: Icon(
+                  Icons.edit_rounded,
+                  size: 13,
+                  color: enabled
+                      ? Colors.white.withValues(alpha: 0.8)
+                      : Colors.white.withValues(alpha: 0.42),
+                ),
+                tooltip: '编辑查询文字',
+              ),
+            ],
           ],
         ),
       ),
