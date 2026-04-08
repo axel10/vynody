@@ -219,9 +219,6 @@ class MusicBrainzTrackMatch {
     if (resolvedCover != null) {
       return resolvedCover!.thumbnailUrl;
     }
-    if (releases.isNotEmpty) {
-      return releases.first.thumbnailUrl;
-    }
     if (releaseId == null || releaseId!.isEmpty) return null;
     return 'https://coverartarchive.org/release/$releaseId/front-250';
   }
@@ -229,9 +226,6 @@ class MusicBrainzTrackMatch {
   String? get largeUrl {
     if (resolvedCover != null) {
       return resolvedCover!.largeUrl;
-    }
-    if (releases.isNotEmpty) {
-      return releases.first.largeUrl;
     }
     if (releaseId == null || releaseId!.isEmpty) return null;
     return 'https://coverartarchive.org/release/$releaseId/front';
@@ -497,20 +491,6 @@ class MusicBrainzTagCompletionService {
 
   Future<ResolvedCover?> resolveCover(MusicBrainzTrackMatch match) async {
     if (match.resolvedCover != null) return match.resolvedCover;
-
-    if (match.releases.isNotEmpty) {
-      final release = match.releases.first;
-      if (_hasMeaningfulText(release.id)) {
-        final resolved = ResolvedCover(
-          endpoint: 'release',
-          id: release.id,
-          largeUrl: release.largeUrl,
-          thumbnailUrl: release.thumbnailUrl,
-        );
-        match.resolvedCover = resolved;
-        return resolved;
-      }
-    }
 
     if (_hasMeaningfulText(match.releaseId)) {
       final resolved = ResolvedCover(
