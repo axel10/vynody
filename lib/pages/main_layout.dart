@@ -297,7 +297,7 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
 
   Future<void> _onDestinationSelected(int index) async {
     if (index == 4) {
-      _showMoreMenu();
+      await _openSettingsPage();
       return;
     }
     if (index == _currentIndex) {
@@ -306,35 +306,22 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     await navigateToMainTab(context, index: index);
   }
 
-  Future<void> _showMoreMenu() async {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-    final offset = renderBox.localToGlobal(Offset.zero);
-
-    final value = await showMenu(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        size.width,
-        offset.dy + size.height - 100,
-        0,
-        0,
-      ),
-      items: [
-        PopupMenuItem(
-          value: 'settings',
-          child: ListTile(
-            leading: Icon(Icons.settings),
-            title: Text(AppLocalizations.of(context)!.settings),
-          ),
-        ),
-      ],
-    );
-    if (!mounted || value != 'settings') {
-      return;
-    }
+  Future<void> _openSettingsPage() async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SettingsPage()),
+    );
+  }
+
+  Widget _buildTooltipIcon({
+    required String message,
+    required IconData icon,
+    Color? color,
+    double? size,
+  }) {
+    return Tooltip(
+      message: message,
+      child: Icon(icon, color: color, size: size),
     );
   }
 
@@ -369,61 +356,72 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     BuildContext context,
     bool isPlayback,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return [
       NavigationDestination(
-        icon: Icon(
-          Icons.folder_outlined,
+        icon: _buildTooltipIcon(
+          message: l10n.file,
+          icon: Icons.folder_outlined,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.folder,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.file,
+          icon: Icons.folder,
           color: isPlayback ? Colors.white : null,
         ),
-        label: AppLocalizations.of(context)!.file,
+        label: l10n.file,
       ),
       NavigationDestination(
-        icon: Icon(
-          Icons.play_circle_outline,
+        icon: _buildTooltipIcon(
+          message: l10n.play,
+          icon: Icons.play_circle_outline,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.play_circle,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.play,
+          icon: Icons.play_circle,
           color: isPlayback ? Colors.white : null,
         ),
-        label: AppLocalizations.of(context)!.play,
+        label: l10n.play,
       ),
       NavigationDestination(
-        icon: Icon(
-          Icons.playlist_play_outlined,
+        icon: _buildTooltipIcon(
+          message: l10n.list,
+          icon: Icons.playlist_play_outlined,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.playlist_play,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.list,
+          icon: Icons.playlist_play,
           color: isPlayback ? Colors.white : null,
         ),
-        label: AppLocalizations.of(context)!.list,
+        label: l10n.list,
       ),
       NavigationDestination(
-        icon: Icon(
-          Icons.queue_music_outlined,
+        icon: _buildTooltipIcon(
+          message: l10n.queueTab,
+          icon: Icons.queue_music_outlined,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.queue_music,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.queueTab,
+          icon: Icons.queue_music,
           color: isPlayback ? Colors.white : null,
         ),
-        label: AppLocalizations.of(context)!.queueTab,
+        label: l10n.queueTab,
       ),
       NavigationDestination(
-        icon: Icon(
-          Icons.more_horiz_outlined,
+        icon: _buildTooltipIcon(
+          message: l10n.settings,
+          icon: Icons.settings_outlined,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.more_horiz,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.settings,
+          icon: Icons.settings,
           color: isPlayback ? Colors.white : null,
         ),
-        label: '更多',
+        label: l10n.settings,
       ),
     ];
   }
@@ -432,61 +430,72 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     BuildContext context,
     bool isPlayback,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return [
       NavigationRailDestination(
-        icon: Icon(
-          Icons.folder_outlined,
+        icon: _buildTooltipIcon(
+          message: l10n.file,
+          icon: Icons.folder_outlined,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.folder,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.file,
+          icon: Icons.folder,
           color: isPlayback ? Colors.white : null,
         ),
-        label: Text(AppLocalizations.of(context)!.file),
+        label: Text(l10n.file),
       ),
       NavigationRailDestination(
-        icon: Icon(
-          Icons.play_circle_outline,
+        icon: _buildTooltipIcon(
+          message: l10n.play,
+          icon: Icons.play_circle_outline,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.play_circle,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.play,
+          icon: Icons.play_circle,
           color: isPlayback ? Colors.white : null,
         ),
-        label: Text(AppLocalizations.of(context)!.play),
+        label: Text(l10n.play),
       ),
       NavigationRailDestination(
-        icon: Icon(
-          Icons.playlist_play_outlined,
+        icon: _buildTooltipIcon(
+          message: l10n.list,
+          icon: Icons.playlist_play_outlined,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.playlist_play,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.list,
+          icon: Icons.playlist_play,
           color: isPlayback ? Colors.white : null,
         ),
-        label: Text(AppLocalizations.of(context)!.list),
+        label: Text(l10n.list),
       ),
       NavigationRailDestination(
-        icon: Icon(
-          Icons.queue_music_outlined,
+        icon: _buildTooltipIcon(
+          message: l10n.queueTab,
+          icon: Icons.queue_music_outlined,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.queue_music,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.queueTab,
+          icon: Icons.queue_music,
           color: isPlayback ? Colors.white : null,
         ),
-        label: Text(AppLocalizations.of(context)!.queueTab),
+        label: Text(l10n.queueTab),
       ),
       NavigationRailDestination(
-        icon: Icon(
-          Icons.more_horiz_outlined,
+        icon: _buildTooltipIcon(
+          message: l10n.settings,
+          icon: Icons.settings_outlined,
           color: isPlayback ? Colors.white70 : null,
         ),
-        selectedIcon: Icon(
-          Icons.more_horiz,
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.settings,
+          icon: Icons.settings,
           color: isPlayback ? Colors.white : null,
         ),
-        label: const Text('更多'),
+        label: Text(l10n.settings),
       ),
     ];
   }
