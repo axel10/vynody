@@ -375,6 +375,58 @@ class LyricsController extends ChangeNotifier {
     }
   }
 
+  Future<void> clearLyricsCacheForCurrentSong() async {
+    final song = _currentMusic();
+    if (song == null) return;
+
+    final cacheKey = await _lyricsCacheKeyForSong(song);
+    if (cacheKey.isNotEmpty) {
+      await _db.clearLyricsCacheByKey(cacheKey);
+      await _db.clearLyricsTranslationCacheByKey(cacheKey);
+      _translatedLyricsKeys.removeWhere((key) => key.startsWith('$cacheKey|'));
+      _translationInFlightKeys.removeWhere(
+        (key) => key.startsWith('$cacheKey|'),
+      );
+    }
+
+    if (_currentMusic()?.path != song.path) return;
+
+    _lyricsRequestSerial++;
+    _lyricsRetrySerial++;
+    _clearLyricsStateForPath(song.path);
+    _lyricsTranslationStatus = '';
+    notifyListeners();
+  }
+
+  Future<void> clearTranslationCacheForCurrentSong() async {
+    final song = _currentMusic();
+    if (song == null) return;
+
+    final cacheKey = await _lyricsCacheKeyForSong(song);
+    if (cacheKey.isNotEmpty) {
+      await _db.clearLyricsTranslationCacheByKey(cacheKey);
+      _translatedLyricsKeys.removeWhere((key) => key.startsWith('$cacheKey|'));
+      _translationInFlightKeys.removeWhere(
+        (key) => key.startsWith('$cacheKey|'),
+      );
+    }
+
+    if (_currentMusic()?.path != song.path) return;
+
+    _clearTranslationStateForPath(song.path);
+    _lyricsTranslationStatus = '';
+    notifyListeners();
+  }
+
+  Future<void> requeryLyricsForCurrentSong() async {
+    final song = _currentMusic();
+    if (song == null) return;
+
+    await clearLyricsCacheForCurrentSong();
+    if (_currentMusic()?.path != song.path) return;
+    scheduleFetch(song);
+  }
+
   Future<void> clearTranslationCache() async {
     await _db.clearLyricsTranslationCache();
 
@@ -783,6 +835,37 @@ class LyricsController extends ChangeNotifier {
 
   String _lyricsTranslationCacheKey(String cacheKey, String languageCode) {
     return '$cacheKey|$languageCode';
+  }
+
+  Future<String> _lyricsCacheKeyForSong(MusicFile song) async {
+    final query = await _buildLyricsQueryForSong(song);
+    return query?.cacheKey ?? '';
+  }
+
+  void _clearLyricsStateForPath(String path) {
+    final queue = _queue();
+    for (var i = 0; i < queue.length; i++) {
+      if (queue[i].path != path) continue;
+      if (queue[i].lyrics == null) continue;
+      queue[i] = _copySongWithLyrics(queue[i], null);
+    }
+
+    clearState();
+  }
+
+  void _clearTranslationStateForPath(String path) {
+    final queue = _queue();
+    for (var i = 0; i < queue.length; i++) {
+      final queuedSong = queue[i];
+      if (queuedSong.path != path) continue;
+      final lyrics = queuedSong.lyrics;
+      if (lyrics == null || lyrics.translations.isEmpty) continue;
+      queue[i] = queuedSong.copyWith(
+        lyrics: lyrics.copyWith(
+          translations: const <String, MusicLyricTranslation>{},
+        ),
+      );
+    }
   }
 
   Future<LyricsQuery?> _buildLyricsQueryForSong(MusicFile song) async {

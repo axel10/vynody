@@ -938,7 +938,9 @@ class PlaybackHeroCard extends StatelessWidget {
         : currentLyrics;
 
     return LyricsPanel(
-      key: ValueKey(snapshot.currentMusic?.path ?? 'no-track'),
+      key: ValueKey(
+        '${snapshot.currentIndex}:${snapshot.currentMusic?.path ?? 'no-track'}',
+      ),
       lines: lyrics?.syncedLines ?? const [],
       lyrics: lyrics,
       position: snapshot.position,
@@ -959,9 +961,11 @@ class PlaybackHeroCard extends StatelessWidget {
       onGenerateLyrics: () =>
           context.read<AudioService>().generateLyricsForCurrentSong(),
       onClearLyricsCache: () =>
-          context.read<AudioService>().clearAllLyricsCache(),
+          context.read<AudioService>().clearLyricsCacheForCurrentSong(),
       onClearTranslationCache: () =>
-          context.read<AudioService>().clearTranslationCache(),
+          context.read<AudioService>().clearTranslationCacheForCurrentSong(),
+      onRequeryLyrics: () =>
+          context.read<AudioService>().requeryLyricsForCurrentSong(),
       accentColor: accent,
     );
   }

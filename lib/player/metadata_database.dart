@@ -715,8 +715,32 @@ class MetadataDatabase {
     await db.delete('lyrics_cache');
   }
 
+  Future<void> clearLyricsCacheByKey(String cacheKey) async {
+    final normalizedCacheKey = cacheKey.trim();
+    if (normalizedCacheKey.isEmpty) return;
+
+    final db = await database;
+    await db.delete(
+      'lyrics_cache',
+      where: 'cacheKey = ?',
+      whereArgs: [normalizedCacheKey],
+    );
+  }
+
   Future<void> clearLyricsTranslationCache() async {
     final db = await database;
     await db.delete('lyrics_translation_cache');
+  }
+
+  Future<void> clearLyricsTranslationCacheByKey(String cacheKey) async {
+    final normalizedCacheKey = cacheKey.trim();
+    if (normalizedCacheKey.isEmpty) return;
+
+    final db = await database;
+    await db.delete(
+      'lyrics_translation_cache',
+      where: 'cacheKey = ?',
+      whereArgs: [normalizedCacheKey],
+    );
   }
 }

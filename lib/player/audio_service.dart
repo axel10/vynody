@@ -840,6 +840,15 @@ class AudioService extends ChangeNotifier {
         targetLanguageCode: targetLanguageCode,
       );
 
+  Future<void> clearLyricsCacheForCurrentSong() =>
+      _lyricsController.clearLyricsCacheForCurrentSong();
+
+  Future<void> clearTranslationCacheForCurrentSong() =>
+      _lyricsController.clearTranslationCacheForCurrentSong();
+
+  Future<void> requeryLyricsForCurrentSong() =>
+      _lyricsController.requeryLyricsForCurrentSong();
+
   Future<void> clearAllLyricsCache() => _lyricsController.clearAllLyricsCache();
 
   Future<void> clearTranslationCache() =>

@@ -26,6 +26,7 @@ class LyricsPanel extends StatefulWidget {
     this.onGenerateLyrics,
     this.onClearLyricsCache,
     this.onClearTranslationCache,
+    this.onRequeryLyrics,
     this.accentColor,
   });
 
@@ -46,6 +47,7 @@ class LyricsPanel extends StatefulWidget {
   final VoidCallback? onGenerateLyrics;
   final VoidCallback? onClearLyricsCache;
   final VoidCallback? onClearTranslationCache;
+  final Future<void> Function()? onRequeryLyrics;
   final Color? accentColor;
 
   @override
@@ -56,6 +58,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
   static const double _itemExtent = 72.0;
   final ScrollController _scrollController = ScrollController();
   int _lastActiveIndex = -1;
+  bool _isAutoScrollPaused = false;
 
   @override
   void dispose() {
@@ -118,11 +121,44 @@ class _LyricsPanelState extends State<LyricsPanel> {
 
   Future<void> _showContextMenu(
     BuildContext context,
-    Offset globalPosition,
-  ) async {
+    Offset globalPosition, {
+    bool requeryOnly = false,
+  }) async {
     final overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
+
+    final items = <PopupMenuEntry<String>>[
+      if (!requeryOnly && _hasTimedLyrics)
+        PopupMenuItem<String>(
+          value: 'toggle_auto_scroll',
+          child: Text(_isAutoScrollPaused ? '恢复自动滚动' : '暂停自动滚动'),
+        ),
+      if (!requeryOnly)
+        PopupMenuItem<String>(
+          value: 'translate',
+          enabled: widget.onTranslateLyrics != null && !widget.isTranslating,
+          child: const Text('翻译歌词'),
+        ),
+      if (!requeryOnly)
+        PopupMenuItem<String>(
+          value: 'clear_lyrics_cache',
+          enabled: widget.onClearLyricsCache != null,
+          child: const Text('清除当前歌词缓存'),
+        ),
+      if (!requeryOnly)
+        PopupMenuItem<String>(
+          value: 'clear_translation_cache',
+          enabled: widget.onClearTranslationCache != null,
+          child: const Text('清除当前翻译缓存'),
+        ),
+      if (requeryOnly)
+        PopupMenuItem<String>(
+          value: 'requery',
+          enabled: widget.onRequeryLyrics != null,
+          child: const Text('重新查询'),
+        ),
+    ];
 
     final selected = await showMenu<String>(
       context: context,
@@ -130,26 +166,19 @@ class _LyricsPanelState extends State<LyricsPanel> {
         Rect.fromPoints(globalPosition, globalPosition),
         Offset.zero & overlay.size,
       ),
-      items: [
-        PopupMenuItem<String>(
-          value: 'translate',
-          enabled: widget.onTranslateLyrics != null && !widget.isTranslating,
-          child: const Text('翻译歌词'),
-        ),
-        PopupMenuItem<String>(
-          value: 'clear_lyrics_cache',
-          enabled: widget.onClearLyricsCache != null,
-          child: const Text('清除所有歌词缓存'),
-        ),
-        PopupMenuItem<String>(
-          value: 'clear_translation_cache',
-          enabled: widget.onClearTranslationCache != null,
-          child: const Text('清除翻译缓存'),
-        ),
-      ],
+      items: items,
     );
 
-    if (selected == 'translate') {
+    if (!mounted) return;
+
+    if (selected == 'toggle_auto_scroll') {
+      setState(() {
+        _isAutoScrollPaused = !_isAutoScrollPaused;
+      });
+      if (!_isAutoScrollPaused) {
+        _scheduleScrollIfNeeded(force: true);
+      }
+    } else if (selected == 'translate') {
       await Future<void>.microtask(() => widget.onTranslateLyrics?.call());
     } else if (selected == 'clear_lyrics_cache') {
       await Future<void>.microtask(() => widget.onClearLyricsCache?.call());
@@ -157,6 +186,8 @@ class _LyricsPanelState extends State<LyricsPanel> {
       await Future<void>.microtask(
         () => widget.onClearTranslationCache?.call(),
       );
+    } else if (selected == 'requery') {
+      await widget.onRequeryLyrics?.call();
     }
   }
 
@@ -179,7 +210,9 @@ class _LyricsPanelState extends State<LyricsPanel> {
   }
 
   void _scheduleScrollIfNeeded({bool force = false}) {
-    if (widget.lines.isEmpty || !_hasTimedLyrics) return;
+    if (widget.lines.isEmpty || !_hasTimedLyrics || _isAutoScrollPaused) {
+      return;
+    }
 
     final activeIndex = _activeLineIndex();
     if (!force && activeIndex == _lastActiveIndex) return;
@@ -246,55 +279,67 @@ class _LyricsPanelState extends State<LyricsPanel> {
       // 这样避免用户在歌词还在加载中时误以为可以直接生成。
       final canGenerateLyrics =
           widget.lyricsSearchAttempted && widget.onGenerateLyrics != null;
-      return Stack(
-        children: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '暂无歌词',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 16,
-                    ),
-                  ),
-                  if (canGenerateLyrics) ...[
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      height: 42,
-                      child: FilledButton.icon(
-                        // 点击后只触发外部传入的回调，真正的生成流程由 AudioService 处理。
-                        onPressed: widget.isGeneratingLyrics
-                            ? null
-                            : widget.onGenerateLyrics,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: accent.withValues(alpha: 0.95),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                        ),
-                        icon: widget.isGeneratingLyrics
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                ),
-                              )
-                            : const Icon(Icons.auto_awesome, size: 18),
-                        label: Text(_buildGenerateButtonLabel()),
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onSecondaryTapDown: widget.onRequeryLyrics == null
+            ? null
+            : (details) {
+                _showContextMenu(
+                  context,
+                  details.globalPosition,
+                  requeryOnly: true,
+                );
+              },
+        child: Stack(
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '暂无歌词',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 16,
                       ),
                     ),
+                    if (canGenerateLyrics) ...[
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        height: 42,
+                        child: FilledButton.icon(
+                          // 点击后只触发外部传入的回调，真正的生成流程由 AudioService 处理。
+                          onPressed: widget.isGeneratingLyrics
+                              ? null
+                              : widget.onGenerateLyrics,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: accent.withValues(alpha: 0.95),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                          ),
+                          icon: widget.isGeneratingLyrics
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                  ),
+                                )
+                              : const Icon(Icons.auto_awesome, size: 18),
+                          label: Text(_buildGenerateButtonLabel()),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-          if (widget.isTranslating) _buildTranslationIndicator(accent),
-        ],
+            if (widget.isTranslating) _buildTranslationIndicator(accent),
+          ],
+        ),
       );
     }
 
