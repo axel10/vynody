@@ -82,7 +82,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get descending => '降序';
 
   @override
-  String get visualizerSettings => '设置';
+  String get visualizerSettings => '播放页设置';
 
   @override
   String get algorithm => '频谱';

@@ -83,7 +83,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get descending => 'Descending';
 
   @override
-  String get visualizerSettings => 'Settings';
+  String get visualizerSettings => 'Playback Page Settings';
 
   @override
   String get algorithm => 'Spectrum';

@@ -96,7 +96,7 @@
   "@descending": {
     "description": "Descending order"
   },
-  "visualizerSettings": "设置",
+  "visualizerSettings": "播放页设置",
   "@visualizerSettings": {
     "description": "Visualizer settings"
   },

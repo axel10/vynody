@@ -245,7 +245,7 @@ abstract class AppLocalizations {
   /// Visualizer settings
   ///
   /// In zh, this message translates to:
-  /// **'设置'**
+  /// **'播放页设置'**
   String get visualizerSettings;
 
   /// Spectrum tab

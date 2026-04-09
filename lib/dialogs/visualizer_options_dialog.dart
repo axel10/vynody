@@ -109,20 +109,21 @@ class VisualizerOptionsDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildSectionHeader(
-            context,
-            l10n.spectrumAdvancedOptions,
-            resetLabel: l10n.resetAlgorithm,
-            onReset: () {
-              audio.resetVisualizerOptions();
-              setDialogState(() {});
-            },
-          ),
-          const SizedBox(height: 12),
-          if (isAuto)
-            _buildAutoModeControls(context, setDialogState)
-          else
+          if (isAuto) ...[
+            _buildAutoModeControls(context, setDialogState),
+          ] else ...[
+            _buildSectionHeader(
+              context,
+              l10n.spectrumAdvancedOptions,
+              resetLabel: l10n.resetAlgorithm,
+              onReset: () {
+                audio.resetVisualizerOptions();
+                setDialogState(() {});
+              },
+            ),
+            const SizedBox(height: 12),
             _buildSpectrumAdvancedControls(context, setDialogState),
+          ],
         ],
       ),
     );
