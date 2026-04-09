@@ -251,13 +251,46 @@ class LyricsService {
   Future<LyricSelectionResult?> _fetchBestLyricsInternal(
     LyricsQuery query,
   ) async {
+    final primaryResult = await _fetchBestLyricsOnce(
+      query,
+      cacheQuery: query,
+      cacheEmptyResult: false,
+    );
+    if (primaryResult != null) {
+      return primaryResult;
+    }
+
+    final fallbackQuery = _buildTitleOnlyFallbackQuery(query);
+    if (fallbackQuery == null) {
+      await _saveEmptyToDatabase(query);
+      return null;
+    }
+
+    _logDebug(
+      'lyrics retry with title only -> title="${query.title}" '
+      'artist="${query.artist ?? ''}" album="${query.album ?? ''}"',
+    );
+
+    final fallbackResult = await _fetchBestLyricsOnce(
+      fallbackQuery,
+      cacheQuery: query,
+      cacheEmptyResult: true,
+    );
+    return fallbackResult;
+  }
+
+  Future<LyricSelectionResult?> _fetchBestLyricsOnce(
+    LyricsQuery query, {
+    required LyricsQuery cacheQuery,
+    required bool cacheEmptyResult,
+  }) async {
     final completeQuery = _buildCompleteQuery(query);
     if (completeQuery != null) {
       final direct = await _fetchGet(completeQuery);
       if (direct != null) {
         final scored = _scoreCandidate(completeQuery, direct, fromGetApi: true);
         if (scored != null && scored.score >= _acceptThreshold) {
-          await _saveToDatabase(query: completeQuery, result: scored);
+          await _saveToDatabase(query: cacheQuery, result: scored);
           return scored;
         }
       }
@@ -266,7 +299,9 @@ class LyricsService {
     final searchQuery = _buildSearchQuery(query);
     final searchResults = await _search(searchQuery);
     if (searchResults.isEmpty) {
-      await _saveEmptyToDatabase(query);
+      if (cacheEmptyResult) {
+        await _saveEmptyToDatabase(cacheQuery);
+      }
       return null;
     }
 
@@ -279,7 +314,9 @@ class LyricsService {
     }
 
     if (scoredResults.isEmpty) {
-      await _saveEmptyToDatabase(query);
+      if (cacheEmptyResult) {
+        await _saveEmptyToDatabase(cacheQuery);
+      }
       return null;
     }
 
@@ -304,12 +341,14 @@ class LyricsService {
         });
         bestCandidate = fallbackCandidates.first;
       } else {
-        await _saveEmptyToDatabase(query);
+        if (cacheEmptyResult) {
+          await _saveEmptyToDatabase(cacheQuery);
+        }
         return null;
       }
     }
 
-    await _saveToDatabase(query: searchQuery, result: bestCandidate);
+    await _saveToDatabase(query: cacheQuery, result: bestCandidate);
     return bestCandidate;
   }
 
@@ -357,6 +396,26 @@ class LyricsService {
       title: title,
       artist: _cleanField(query.artist),
       album: _cleanField(query.album),
+      duration: query.duration,
+    );
+  }
+
+  LyricsQuery? _buildTitleOnlyFallbackQuery(LyricsQuery query) {
+    final title = _cleanField(query.title);
+    if (title == null) {
+      return null;
+    }
+
+    final hasArtist = _cleanField(query.artist) != null;
+    final hasAlbum = _cleanField(query.album) != null;
+    if (!hasArtist && !hasAlbum) {
+      return null;
+    }
+
+    return LyricsQuery(
+      filePath: query.filePath,
+      fileName: query.fileName,
+      title: title,
       duration: query.duration,
     );
   }
@@ -761,6 +820,11 @@ class LyricsService {
     final seconds = (totalMilliseconds % 60000) ~/ 1000;
     final centiseconds = (totalMilliseconds % 1000) ~/ 10;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.${centiseconds.toString().padLeft(2, '0')}';
+  }
+
+  void _logDebug(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[Lyrics] $message');
   }
 }
 
