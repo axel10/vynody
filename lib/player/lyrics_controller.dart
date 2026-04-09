@@ -425,6 +425,7 @@ class LyricsController extends ChangeNotifier {
       final generatedLyrics = await _geminiLyricsTranslationService
           .generateLyricsFromFile(
             filePath: song.path,
+            songTitle: song.title,
             onUploadProgress: (progress) {
               if (generationId != _lyricsGenerationSerial ||
                   _currentMusic()?.path != song.path) {

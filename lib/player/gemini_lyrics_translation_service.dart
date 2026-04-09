@@ -176,6 +176,7 @@ class GeminiLyricsTranslationService {
 
   Future<String?> generateLyricsFromFile({
     required String filePath,
+    String? songTitle,
     String modelId = 'gemini-3.1-flash-lite-preview',
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
@@ -228,7 +229,12 @@ class GeminiLyricsTranslationService {
         return null;
       }
 
+      final normalizedTitle = songTitle?.trim();
+      final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
+          ? ''
+          : '这首歌的标题是《$normalizedTitle》。';
       final prompt =
+          '$titleHint'
           '输出这首歌的完整的带时间轴的标准LRC格式歌词,每一行歌词前面都带有一个方括号包裹的时间点，格式通常为：[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。'
           '仅输出结果不输出其他内容。';
       final requestData = {
