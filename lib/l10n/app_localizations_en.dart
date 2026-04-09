@@ -83,13 +83,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get descending => 'Descending';
 
   @override
-  String get visualizerSettings => 'Visualizer Settings';
+  String get visualizerSettings => 'Settings';
 
   @override
-  String get algorithm => 'Algorithm';
+  String get algorithm => 'Spectrum';
 
   @override
   String get appearance => 'Appearance';
+
+  @override
+  String get spectrumAppearanceGroup => 'Spectrum Appearance';
+
+  @override
+  String get spectrumAdvancedOptions => 'Spectrum Advanced Options';
 
   @override
   String get resetAlgorithm => 'Reset Algorithm';

@@ -245,13 +245,13 @@ abstract class AppLocalizations {
   /// Visualizer settings
   ///
   /// In zh, this message translates to:
-  /// **'可视化设置'**
+  /// **'设置'**
   String get visualizerSettings;
 
-  /// Algorithm tab
+  /// Spectrum tab
   ///
   /// In zh, this message translates to:
-  /// **'算法'**
+  /// **'频谱'**
   String get algorithm;
 
   /// Appearance tab
@@ -259,6 +259,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'外观'**
   String get appearance;
+
+  /// Spectrum appearance group
+  ///
+  /// In zh, this message translates to:
+  /// **'频谱外观'**
+  String get spectrumAppearanceGroup;
+
+  /// Spectrum advanced options
+  ///
+  /// In zh, this message translates to:
+  /// **'频谱高级选项'**
+  String get spectrumAdvancedOptions;
 
   /// Reset algorithm button
   ///

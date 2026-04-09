@@ -23,99 +23,48 @@ class VisualizerOptionsDialog extends StatelessWidget {
       child: StatefulBuilder(
         builder: (context, setDialogState) {
           final l10n = AppLocalizations.of(context)!;
-          final isAuto = settings.isAutoMode;
 
           return AlertDialog(
-            backgroundColor: Colors.grey[900],
-            titlePadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            backgroundColor: const Color(0xFF101114),
+            surfaceTintColor: Colors.transparent,
+            titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+            contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
             title: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.visualizerSettings,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          l10n.autoMode,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Switch(
-                          value: isAuto,
-                          activeThumbColor: Colors.blueAccent,
-                          onChanged: (val) {
-                            settings.isAutoMode = val;
-                            if (val) {
-                              // Re-apply auto settings immediately
-                              final Orientation orientation = MediaQuery.of(
-                                context,
-                              ).orientation;
-                              audio.applyVisualizerSettings(
-                                orientation: orientation,
-                              );
-                            }
-                            setDialogState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                if (!isAuto)
-                  TabBar(
-                    tabs: [
-                      Tab(text: l10n.algorithm),
-                      Tab(text: l10n.appearance),
-                    ],
-                    labelColor: Colors.blueAccent,
-                    unselectedLabelColor: Colors.white70,
-                    indicatorColor: Colors.blueAccent,
-                    dividerColor: Colors.transparent,
+                Text(
+                  l10n.visualizerSettings,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
                   ),
+                ),
+                const SizedBox(height: 14),
+                TabBar(
+                  tabs: [
+                    Tab(text: l10n.algorithm),
+                    Tab(text: l10n.appearance),
+                  ],
+                  labelColor: Colors.blueAccent,
+                  unselectedLabelColor: Colors.white70,
+                  indicatorColor: Colors.blueAccent,
+                  dividerColor: Colors.transparent,
+                ),
               ],
             ),
             content: SizedBox(
-              width: 600,
-              height: 450,
-              child: isAuto
-                  ? _buildAutoModeControls(context, setDialogState)
-                  : TabBarView(
-                      children: [
-                        _buildAlgorithmTab(context, setDialogState),
-                        _buildAppearanceTab(context, settings, setDialogState),
-                      ],
-                    ),
+              width: 660,
+              height: 520,
+              child: TabBarView(
+                children: [
+                  _buildAlgorithmTab(context, setDialogState),
+                  _buildAppearanceTab(context, settings, setDialogState),
+                ],
+              ),
             ),
             actions: [
-              TextButton(
-                onPressed: () {
-                  audio.resetVisualizerOptions();
-                  setDialogState(() {});
-                },
-                child: Text(
-                  l10n.resetAlgorithm,
-                  style: const TextStyle(color: Colors.redAccent),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  settings.resetVisualizerAppearance();
-                  setDialogState(() {});
-                },
-                child: Text(
-                  l10n.resetAppearance,
-                  style: const TextStyle(color: Colors.redAccent),
-                ),
-              ),
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
@@ -131,9 +80,117 @@ class VisualizerOptionsDialog extends StatelessWidget {
   }
 
   Widget _buildAlgorithmTab(BuildContext context, StateSetter setDialogState) {
-    final options = audio.currentVisualizerOptions;
+    final l10n = AppLocalizations.of(context)!;
+    final isAuto = settings.isAutoMode;
 
     return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionCard(
+            child: SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                l10n.autoMode,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+              value: isAuto,
+              activeThumbColor: Colors.blueAccent,
+              onChanged: (val) {
+                settings.isAutoMode = val;
+                if (val) {
+                  final Orientation orientation = MediaQuery.of(
+                    context,
+                  ).orientation;
+                  audio.applyVisualizerSettings(orientation: orientation);
+                }
+                setDialogState(() {});
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader(
+            context,
+            l10n.spectrumAdvancedOptions,
+            resetLabel: l10n.resetAlgorithm,
+            onReset: () {
+              audio.resetVisualizerOptions();
+              setDialogState(() {});
+            },
+          ),
+          const SizedBox(height: 12),
+          if (isAuto)
+            _buildAutoModeControls(context, setDialogState)
+          else
+            _buildSpectrumAdvancedControls(context, setDialogState),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutoModeControls(
+    BuildContext context,
+    StateSetter setDialogState,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return _buildSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.spectrumQuantity,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          _buildSegmentedControl<String>(
+            value: settings.autoSpectrumQuantity,
+            items: {
+              'low': l10n.quantityLow,
+              'medium': l10n.quantityMedium,
+              'high': l10n.quantityHigh,
+            },
+            onChanged: (val) {
+              settings.autoSpectrumQuantity = val;
+              audio.applyVisualizerSettings(
+                orientation: MediaQuery.of(context).orientation,
+              );
+              setDialogState(() {});
+            },
+          ),
+          const SizedBox(height: 24),
+          Text(
+            l10n.speed,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          _buildSegmentedControl<String>(
+            value: settings.autoSpeed,
+            items: {
+              'slow': l10n.speedSlow,
+              'medium': l10n.speedMedium,
+              'fast': l10n.speedFast,
+            },
+            onChanged: (val) {
+              settings.autoSpeed = val;
+              audio.applyVisualizerSettings(
+                orientation: MediaQuery.of(context).orientation,
+              );
+              setDialogState(() {});
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpectrumAdvancedControls(
+    BuildContext context,
+    StateSetter setDialogState,
+  ) {
+    final options = audio.currentVisualizerOptions;
+
+    return _buildSectionCard(
       child: Wrap(
         spacing: 20,
         runSpacing: 10,
@@ -298,75 +355,6 @@ class VisualizerOptionsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildAutoModeControls(
-    BuildContext context,
-    StateSetter setDialogState,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          Text(
-            l10n.spectrumQuantity,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          const SizedBox(height: 8),
-          _buildSegmentedControl<String>(
-            value: settings.autoSpectrumQuantity,
-            items: {
-              'low': l10n.quantityLow,
-              'medium': l10n.quantityMedium,
-              'high': l10n.quantityHigh,
-            },
-            onChanged: (val) {
-              settings.autoSpectrumQuantity = val;
-              audio.applyVisualizerSettings(
-                orientation: MediaQuery.of(context).orientation,
-              );
-              setDialogState(() {});
-            },
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.speed,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          const SizedBox(height: 8),
-          _buildSegmentedControl<String>(
-            value: settings.autoSpeed,
-            items: {
-              'slow': l10n.speedSlow,
-              'medium': l10n.speedMedium,
-              'fast': l10n.speedFast,
-            },
-            onChanged: (val) {
-              settings.autoSpeed = val;
-              audio.applyVisualizerSettings(
-                orientation: MediaQuery.of(context).orientation,
-              );
-              setDialogState(() {});
-            },
-          ),
-          const SizedBox(height: 32),
-          // In Auto Mode, Appearance settings are also accessible via an expansion or similar?
-          // The user said "current visualizer options as advanced options, hidden when auto mode is on".
-          // So I will hide EVERYTHING except these two in Auto Mode.
-          Center(
-            child: Text(
-              l10n.appearance,
-              style: const TextStyle(color: Colors.white38, fontSize: 12),
-            ),
-          ),
-          const Divider(color: Colors.white12),
-          _buildAppearanceTab(context, settings, setDialogState),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSegmentedControl<T>({
     required T value,
     required Map<T, String> items,
@@ -448,140 +436,136 @@ class VisualizerOptionsDialog extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildBackgroundTypeDropdown(context, settings, setDialogState),
-          const SizedBox(height: 16),
-          _buildOptionSlider(
-            context,
-            label: AppLocalizations.of(context)!.opacity,
-            value: settings.visualizerOpacity,
-            min: 0.0,
-            max: 1.0,
-            onChanged: (val) {
-              settings.visualizerOpacity = val;
-              setDialogState(() {});
-            },
-          ),
-          const SizedBox(height: 16),
-          SwitchListTile(
-            title: Text(
-              AppLocalizations.of(context)!.enableGradient,
-              style: TextStyle(color: Colors.white, fontSize: 13),
+          _buildSectionCard(
+            child: _buildBackgroundTypeDropdown(
+              context,
+              settings,
+              setDialogState,
             ),
-            value: settings.isVisualizerGradientEnabled,
-            activeThumbColor: Colors.blueAccent,
-            onChanged: (val) {
-              settings.isVisualizerGradientEnabled = val;
-              setDialogState(() {});
-            },
-            contentPadding: EdgeInsets.zero,
           ),
           const SizedBox(height: 8),
-          if (settings.isVisualizerGradientEnabled) ...[
-            _buildColorPickerRow(
-              context,
-              label: AppLocalizations.of(context)!.startColor,
-              color: settings.visualizerStartColor,
-              isDynamic: settings.isVisualizerDynamicStartColor,
-              onDynamicChanged: (val) {
-                settings.isVisualizerDynamicStartColor = val;
-                if (val) {
-                  context.read<AudioService>().updateDynamicColors();
-                }
-                setDialogState(() {});
-              },
-              onColorChanged: (c) {
-                settings.visualizerStartColor = c;
-                setDialogState(() {});
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildColorPickerRow(
-              context,
-              label: AppLocalizations.of(context)!.endColor,
-              color: settings.visualizerEndColor,
-              isDynamic: settings.isVisualizerDynamicEndColor,
-              onDynamicChanged: (val) {
-                settings.isVisualizerDynamicEndColor = val;
-                if (val) {
-                  context.read<AudioService>().updateDynamicColors();
-                }
-                setDialogState(() {});
-              },
-              onColorChanged: (c) {
-                settings.visualizerEndColor = c;
-                setDialogState(() {});
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildOptionSlider(
-              context,
-              label: AppLocalizations.of(context)!.gradientRangeStop1,
-              value: settings.visualizerGradientStop1,
-              min: 0.0,
-              max: 1.0,
-              onChanged: (val) {
-                settings.visualizerGradientStop1 = val;
-                setDialogState(() {});
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildOptionSlider(
-              context,
-              label: AppLocalizations.of(context)!.gradientRangeStop2,
-              value: settings.visualizerGradientStop2,
-              min: 0.0,
-              max: 1.0,
-              onChanged: (val) {
-                settings.visualizerGradientStop2 = val;
-                setDialogState(() {});
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
+          _buildSectionHeader(
+            context,
+            AppLocalizations.of(context)!.spectrumAppearanceGroup,
+            resetLabel: AppLocalizations.of(context)!.resetAppearance,
+            onReset: () {
+              settings.resetVisualizerAppearance();
+              setDialogState(() {});
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildSectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  AppLocalizations.of(context)!.gradientRepeatMode,
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-                const SizedBox(width: 16),
-                DropdownButton<int>(
-                  value: settings.visualizerGradientTileMode,
-                  dropdownColor: Colors.grey[800],
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  onChanged: (int? newValue) {
-                    if (newValue != null) {
-                      settings.visualizerGradientTileMode = newValue;
-                      setDialogState(() {});
-                    }
+                _buildOptionSlider(
+                  context,
+                  label: AppLocalizations.of(context)!.opacity,
+                  value: settings.visualizerOpacity,
+                  min: 0.0,
+                  max: 1.0,
+                  onChanged: (val) {
+                    settings.visualizerOpacity = val;
+                    setDialogState(() {});
                   },
-                  items: TileMode.values.map<DropdownMenuItem<int>>((mode) {
-                    return DropdownMenuItem<int>(
-                      value: mode.index,
-                      child: Text(mode.name),
-                    );
-                  }).toList(),
                 ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  title: Text(
+                    AppLocalizations.of(context)!.enableGradient,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                  value: settings.isVisualizerGradientEnabled,
+                  activeThumbColor: Colors.blueAccent,
+                  onChanged: (val) {
+                    settings.isVisualizerGradientEnabled = val;
+                    setDialogState(() {});
+                  },
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const SizedBox(height: 4),
+                if (settings.isVisualizerGradientEnabled) ...[
+                  _buildColorPickerRow(
+                    context,
+                    label: AppLocalizations.of(context)!.startColor,
+                    color: settings.visualizerStartColor,
+                    isDynamic: settings.isVisualizerDynamicStartColor,
+                    onDynamicChanged: (val) {
+                      settings.isVisualizerDynamicStartColor = val;
+                      if (val) {
+                        context.read<AudioService>().updateDynamicColors();
+                      }
+                      setDialogState(() {});
+                    },
+                    onColorChanged: (c) {
+                      settings.visualizerStartColor = c;
+                      setDialogState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildColorPickerRow(
+                    context,
+                    label: AppLocalizations.of(context)!.endColor,
+                    color: settings.visualizerEndColor,
+                    isDynamic: settings.isVisualizerDynamicEndColor,
+                    onDynamicChanged: (val) {
+                      settings.isVisualizerDynamicEndColor = val;
+                      if (val) {
+                        context.read<AudioService>().updateDynamicColors();
+                      }
+                      setDialogState(() {});
+                    },
+                    onColorChanged: (c) {
+                      settings.visualizerEndColor = c;
+                      setDialogState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildOptionSlider(
+                    context,
+                    label: AppLocalizations.of(context)!.gradientRangeStop1,
+                    value: settings.visualizerGradientStop1,
+                    min: 0.0,
+                    max: 1.0,
+                    onChanged: (val) {
+                      settings.visualizerGradientStop1 = val;
+                      setDialogState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildOptionSlider(
+                    context,
+                    label: AppLocalizations.of(context)!.gradientRangeStop2,
+                    value: settings.visualizerGradientStop2,
+                    min: 0.0,
+                    max: 1.0,
+                    onChanged: (val) {
+                      settings.visualizerGradientStop2 = val;
+                      setDialogState(() {});
+                    },
+                  ),
+                ] else ...[
+                  _buildColorPickerRow(
+                    context,
+                    label: AppLocalizations.of(context)!.color,
+                    color: settings.visualizerColor,
+                    isDynamic: settings.isVisualizerDynamicColor,
+                    onDynamicChanged: (val) {
+                      settings.isVisualizerDynamicColor = val;
+                      if (val) {
+                        context.read<AudioService>().updateDynamicColors();
+                      }
+                      setDialogState(() {});
+                    },
+                    onColorChanged: (c) {
+                      settings.visualizerColor = c;
+                      setDialogState(() {});
+                    },
+                  ),
+                ],
               ],
             ),
-          ] else ...[
-            _buildColorPickerRow(
-              context,
-              label: AppLocalizations.of(context)!.color,
-              color: settings.visualizerColor,
-              isDynamic: settings.isVisualizerDynamicColor,
-              onDynamicChanged: (val) {
-                settings.isVisualizerDynamicColor = val;
-                if (val) {
-                  context.read<AudioService>().updateDynamicColors();
-                }
-                setDialogState(() {});
-              },
-              onColorChanged: (c) {
-                settings.visualizerColor = c;
-                setDialogState(() {});
-              },
-            ),
-          ],
+          ),
         ],
       ),
     );
@@ -771,6 +755,52 @@ class VisualizerOptionsDialog extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title, {
+    String? resetLabel,
+    VoidCallback? onReset,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        if (onReset != null)
+          TextButton.icon(
+            onPressed: onReset,
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              visualDensity: VisualDensity.compact,
+            ),
+            icon: const Icon(Icons.restart_alt_rounded, size: 18),
+            label: Text(resetLabel ?? 'Reset'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSectionCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: child,
     );
   }
 }

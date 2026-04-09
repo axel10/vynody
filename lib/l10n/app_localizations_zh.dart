@@ -82,13 +82,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get descending => '降序';
 
   @override
-  String get visualizerSettings => '可视化设置';
+  String get visualizerSettings => '设置';
 
   @override
-  String get algorithm => '算法';
+  String get algorithm => '频谱';
 
   @override
   String get appearance => '外观';
+
+  @override
+  String get spectrumAppearanceGroup => '频谱外观';
+
+  @override
+  String get spectrumAdvancedOptions => '频谱高级选项';
 
   @override
   String get resetAlgorithm => '重置算法';

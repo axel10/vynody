@@ -96,17 +96,25 @@
   "@descending": {
     "description": "Descending order"
   },
-  "visualizerSettings": "可视化设置",
+  "visualizerSettings": "设置",
   "@visualizerSettings": {
     "description": "Visualizer settings"
   },
-  "algorithm": "算法",
+  "algorithm": "频谱",
   "@algorithm": {
-    "description": "Algorithm tab"
+    "description": "Spectrum tab"
   },
   "appearance": "外观",
   "@appearance": {
     "description": "Appearance tab"
+  },
+  "spectrumAppearanceGroup": "频谱外观",
+  "@spectrumAppearanceGroup": {
+    "description": "Spectrum appearance group"
+  },
+  "spectrumAdvancedOptions": "频谱高级选项",
+  "@spectrumAdvancedOptions": {
+    "description": "Spectrum advanced options"
   },
   "resetAlgorithm": "重置算法",
   "@resetAlgorithm": {

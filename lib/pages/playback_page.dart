@@ -618,36 +618,8 @@ class _PlaybackPageState extends State<PlaybackPage>
   }
 
   void _showMoreMenu(BuildContext context, AudioService audio) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text(
-          AppLocalizations.of(context)!.playbackOptions,
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(
-                Icons.settings_input_component,
-                color: Colors.blueAccent,
-              ),
-              title: Text(
-                AppLocalizations.of(context)!.setVisualizerDisplay,
-                style: const TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                final settings = context.read<SettingsService>();
-                showVisualizerOptionsDialog(context, audio, settings);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+    final settings = context.read<SettingsService>();
+    showVisualizerOptionsDialog(context, audio, settings);
   }
 
   @override
