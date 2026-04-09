@@ -69,15 +69,12 @@ dependencies:
   windows_single_instance: ^1.1.0
   intl: ^0.20.2
   mesh_gradient: ^1.3.8
-  liquid_glass_easy:
-    path: ./plugin/liquid_glass_easy
-  windows_taskbar: 
-    path: ./plugin/windows_taskbar
+  windows_taskbar:
+    git:
+      url: https://github.com/alexmercerind/windows_taskbar
   smtc_windows: ^1.1.0
-  audio_service: 
-    path: ./plugin/audio_service/audio_service
-  audio_metadata_reader: 
-    path: ./plugin/audio_metadata_reader
+  audio_service: ^0.18.18 
+  audio_metadata_reader:  ^1.4.2
   detect_proxy_setting: ^0.0.9
 
 
