@@ -21,8 +21,8 @@ class _GeminiFileUploadResult {
   });
 }
 
-class GeminiLyricsTranslationService {
-  GeminiLyricsTranslationService({NetworkClient? client})
+class GeminiLyricsService {
+  GeminiLyricsService({NetworkClient? client})
     : _client = client ?? NetworkClient.instance;
 
   final NetworkClient _client;
@@ -645,7 +645,7 @@ class GeminiLyricsTranslationService {
 
     debugPrint('[GeminiLyrics] upload session url=$uploadUrl');
 
-      final uploadResponse = await _client.post(
+    final uploadResponse = await _client.post(
       uploadUrl,
       options: Options(
         headers: {

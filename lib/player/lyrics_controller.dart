@@ -15,6 +15,18 @@ import 'lyrics_service.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 
+class _GeminiGenerationSession {
+  _GeminiGenerationSession({
+    required this.id,
+    required this.songPath,
+    required this.completer,
+  });
+
+  final int id;
+  final String songPath;
+  final Completer<void> completer;
+}
+
 class LyricsController extends ChangeNotifier {
   LyricsController({
     required MetadataDatabase db,
@@ -25,7 +37,7 @@ class LyricsController extends ChangeNotifier {
     required bool Function() isLyricsActive,
     required void Function(String path, int durationMillis) cacheSongDuration,
     LyricsService? lyricsService,
-    GeminiLyricsTranslationService? geminiLyricsTranslationService,
+    GeminiLyricsService? geminiLyricsService,
   }) : _db = db,
        _currentMusic = currentMusic,
        _queue = queue,
@@ -34,8 +46,7 @@ class LyricsController extends ChangeNotifier {
        _isLyricsActive = isLyricsActive,
        _cacheSongDuration = cacheSongDuration,
        _lyricsService = lyricsService ?? LyricsService(db: db),
-       _geminiLyricsService =
-           geminiLyricsTranslationService ?? GeminiLyricsTranslationService();
+       _geminiLyricsService = geminiLyricsService ?? GeminiLyricsService();
 
   final MetadataDatabase _db;
   final MusicFile? Function() _currentMusic;
@@ -45,7 +56,7 @@ class LyricsController extends ChangeNotifier {
   final bool Function() _isLyricsActive;
   final void Function(String path, int durationMillis) _cacheSongDuration;
   final LyricsService _lyricsService;
-  final GeminiLyricsTranslationService _geminiLyricsService;
+  final GeminiLyricsService _geminiLyricsService;
 
   int _lyricsRequestSerial = 0;
   final Set<String> _translatedLyricsKeys = <String>{};
@@ -309,20 +320,19 @@ class LyricsController extends ChangeNotifier {
       _lyricsTranslationStatus = '正在处理';
       notifyListeners();
 
-      final success = await _geminiLyricsService
-          .translateLyricsStream(
-            lyrics: sourceLyrics,
-            targetLanguageCode: normalizedLanguageCode,
-            onProgress: (translatedLines, translatedText) {
-              _syncTranslatedLyricsToCurrentSong(
-                currentSong.path,
-                lyricsId,
-                normalizedLanguageCode,
-                translatedLines,
-                translatedText,
-              );
-            },
+      final success = await _geminiLyricsService.translateLyricsStream(
+        lyrics: sourceLyrics,
+        targetLanguageCode: normalizedLanguageCode,
+        onProgress: (translatedLines, translatedText) {
+          _syncTranslatedLyricsToCurrentSong(
+            currentSong.path,
+            lyricsId,
+            normalizedLanguageCode,
+            translatedLines,
+            translatedText,
           );
+        },
+      );
       if (success) {
         _translatedLyricsKeys.add(activeTranslationKey);
         await _saveTranslatedLyricsToDatabase(
@@ -448,6 +458,117 @@ class LyricsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  _GeminiGenerationSession _beginGeminiGeneration(MusicFile song) {
+    final generationId = ++_lyricsGenerationSerial;
+    final completer = Completer<void>();
+    _lyricsGenerationCompleter = completer;
+    _isLyricsGenerating = true;
+    _isLyricsLoading = false;
+    _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
+    _lyricsGenerationProgress = 0.0;
+    notifyListeners();
+
+    return _GeminiGenerationSession(
+      id: generationId,
+      songPath: song.path,
+      completer: completer,
+    );
+  }
+
+  bool _isActiveGeminiGeneration(_GeminiGenerationSession session) {
+    return session.id == _lyricsGenerationSerial &&
+        _currentMusic()?.path == session.songPath;
+  }
+
+  void _updateGeminiGenerationStage(
+    _GeminiGenerationSession session,
+    String stage,
+  ) {
+    if (!_isActiveGeminiGeneration(session)) return;
+
+    switch (stage) {
+      case 'uploading':
+        _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
+        _lyricsGenerationProgress = 0.0;
+        break;
+      case 'processing':
+        _lyricsGenerationPhase = LyricsGenerationPhase.processing;
+        _lyricsGenerationProgress = 1.0;
+        break;
+      case 'generating':
+        _lyricsGenerationPhase = LyricsGenerationPhase.generating;
+        _lyricsGenerationProgress = 1.0;
+        break;
+      default:
+        _lyricsGenerationPhase = LyricsGenerationPhase.idle;
+        _lyricsGenerationProgress = 0.0;
+        break;
+    }
+    notifyListeners();
+  }
+
+  MusicLyric _buildGeneratedLyrics({
+    required String text,
+    required String source,
+    Map<String, MusicLyricTranslation> translations =
+        const <String, MusicLyricTranslation>{},
+  }) {
+    final normalizedText = text.trim();
+    final generatedLines = _parseGeneratedLyrics(normalizedText);
+    return MusicLyric(
+      id: LyricsIdUtils.fromLyricsText(normalizedText),
+      syncedLines: generatedLines.isNotEmpty
+          ? generatedLines
+          : _buildLyricsLines(const [], normalizedText),
+      plainText: normalizedText,
+      source: source,
+      translations: translations,
+    );
+  }
+
+  void _publishGeneratedLyrics(
+    _GeminiGenerationSession session, {
+    required MusicFile song,
+    required MusicLyric lyrics,
+  }) {
+    if (!_isActiveGeminiGeneration(session)) return;
+
+    _hasLyrics = true;
+    _isLyricsLoading = false;
+    _lyricsGenerationPhase = LyricsGenerationPhase.generating;
+    _lyricsGenerationProgress = 1.0;
+    _isLyricsSynced = lyrics.syncedLines.any((line) => line.isTimed);
+    _lyricsSearchAttempted = true;
+    _currentLyricsLines = lyrics.syncedLines;
+    _currentLyricsText = lyrics.plainText;
+    _currentLyricsTitle = song.displayName;
+
+    final updated = _replaceCurrentSongIfPath(
+      song.path,
+      (currentSong) => currentSong.copyWith(lyrics: lyrics),
+    );
+    if (updated != null) {
+      unawaited(restoreCachedTranslations(updated));
+    }
+
+    notifyListeners();
+  }
+
+  void _finalizeGeminiGeneration(_GeminiGenerationSession session) {
+    if (session.id != _lyricsGenerationSerial) return;
+
+    _isLyricsGenerating = false;
+    _lyricsGenerationPhase = LyricsGenerationPhase.idle;
+    _lyricsGenerationProgress = 0.0;
+    if (!session.completer.isCompleted) {
+      session.completer.complete();
+    }
+    if (identical(_lyricsGenerationCompleter, session.completer)) {
+      _lyricsGenerationCompleter = null;
+    }
+    notifyListeners();
+  }
+
   Future<void> generateLyricsForCurrentSong() async {
     final song = _currentMusic();
     if (song == null) {
@@ -462,97 +583,40 @@ class LyricsController extends ChangeNotifier {
       return;
     }
 
-    final generationId = ++_lyricsGenerationSerial;
-    final generationCompleter = Completer<void>();
-    _lyricsGenerationCompleter = generationCompleter;
-    _isLyricsGenerating = true;
-    _isLyricsLoading = false;
-    _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-    _lyricsGenerationProgress = 0.0;
-    notifyListeners();
+    final session = _beginGeminiGeneration(song);
 
     try {
-      final generatedLyrics = await _geminiLyricsService
-          .generateLyricsFromFile(
-            filePath: song.path,
-            songTitle: song.title,
-            onUploadProgress: (progress) {
-              if (generationId != _lyricsGenerationSerial ||
-                  _currentMusic()?.path != song.path) {
-                return;
-              }
+      final generatedLyrics = await _geminiLyricsService.generateLyricsFromFile(
+        filePath: song.path,
+        songTitle: song.title,
+        onUploadProgress: (progress) {
+          if (!_isActiveGeminiGeneration(session)) {
+            return;
+          }
 
-              _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-              _lyricsGenerationProgress = progress.clamp(0.0, 1.0);
-              notifyListeners();
-            },
-            onStageChanged: (stage) {
-              if (generationId != _lyricsGenerationSerial ||
-                  _currentMusic()?.path != song.path) {
-                return;
-              }
+          _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
+          _lyricsGenerationProgress = progress.clamp(0.0, 1.0);
+          notifyListeners();
+        },
+        onStageChanged: (stage) {
+          _updateGeminiGenerationStage(session, stage);
+        },
+        onProgress: (partialText, isFinal) {
+          if (!_isActiveGeminiGeneration(session)) {
+            return;
+          }
 
-              switch (stage) {
-                case 'uploading':
-                  _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-                  _lyricsGenerationProgress = 0.0;
-                  break;
-                case 'processing':
-                  _lyricsGenerationPhase = LyricsGenerationPhase.processing;
-                  _lyricsGenerationProgress = 1.0;
-                  break;
-                case 'generating':
-                  _lyricsGenerationPhase = LyricsGenerationPhase.generating;
-                  _lyricsGenerationProgress = 1.0;
-                  break;
-                default:
-                  _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-                  _lyricsGenerationProgress = 0.0;
-                  break;
-              }
-              notifyListeners();
-            },
-            onProgress: (partialText, isFinal) {
-              if (generationId != _lyricsGenerationSerial ||
-                  _currentMusic()?.path != song.path) {
-                return;
-              }
-
-              final progressText = partialText.trim();
-              if (progressText.isEmpty) return;
-              final progressLyrics = MusicLyric(
-                id: LyricsIdUtils.fromLyricsText(progressText),
-                syncedLines: _parseGeneratedLyrics(progressText),
-                plainText: progressText,
-                source: 'gemini',
-              );
-
-              _hasLyrics = true;
-              _isLyricsLoading = false;
-              _lyricsGenerationPhase = LyricsGenerationPhase.generating;
-              _lyricsGenerationProgress = 1.0;
-              _isLyricsSynced = progressLyrics.syncedLines.any(
-                (line) => line.isTimed,
-              );
-              _lyricsSearchAttempted = true;
-              _currentLyricsLines = progressLyrics.syncedLines;
-              _currentLyricsText = progressLyrics.plainText;
-              _currentLyricsTitle = song.displayName;
-
-              final updated = _replaceCurrentSongIfPath(
-                song.path,
-                (currentSong) => currentSong.copyWith(lyrics: progressLyrics),
-              );
-              if (updated != null) {
-                unawaited(restoreCachedTranslations(updated));
-              }
-
-              notifyListeners();
-            },
+          final progressText = partialText.trim();
+          if (progressText.isEmpty) return;
+          final progressLyrics = _buildGeneratedLyrics(
+            text: progressText,
+            source: 'gemini',
           );
+          _publishGeneratedLyrics(session, song: song, lyrics: progressLyrics);
+        },
+      );
 
-      if (generationId != _lyricsGenerationSerial ||
-          _currentMusic()?.path != song.path) {
+      if (!_isActiveGeminiGeneration(session)) {
         return;
       }
 
@@ -560,57 +624,22 @@ class LyricsController extends ChangeNotifier {
         return;
       }
 
-      final generatedLines = _parseGeneratedLyrics(generatedLyrics);
-      final lyrics = MusicLyric(
-        id: LyricsIdUtils.fromLyricsText(generatedLyrics),
-        syncedLines: generatedLines.isNotEmpty
-            ? generatedLines
-            : _buildLyricsLines(const [], generatedLyrics),
-        plainText: generatedLyrics.trim(),
+      final lyrics = _buildGeneratedLyrics(
+        text: generatedLyrics,
         source: 'gemini',
       );
-
-      _hasLyrics = true;
-      _isLyricsLoading = false;
-      _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-      _lyricsGenerationProgress = 0.0;
-      _isLyricsSynced = lyrics.syncedLines.any((line) => line.isTimed);
-      _lyricsSearchAttempted = true;
-      _currentLyricsLines = lyrics.syncedLines;
-      _currentLyricsText = lyrics.plainText;
-      _currentLyricsTitle = song.displayName;
-
-      final updated = _replaceCurrentSongIfPath(
-        song.path,
-        (currentSong) => currentSong.copyWith(lyrics: lyrics),
-      );
-      if (updated != null) {
-        unawaited(restoreCachedTranslations(updated));
-      }
+      _publishGeneratedLyrics(session, song: song, lyrics: lyrics);
 
       await _saveGeneratedLyricsToDatabase(
         song: song,
-        generatedLyrics: generatedLyrics,
-        syncedLines: generatedLines,
+        generatedLyrics: lyrics.plainText,
+        syncedLines: lyrics.syncedLines,
         source: 'gemini_generate',
       );
-
-      notifyListeners();
     } catch (e) {
       debugPrint('[LyricsController] Failed to generate lyrics: $e');
     } finally {
-      if (generationId == _lyricsGenerationSerial) {
-        _isLyricsGenerating = false;
-        _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-        _lyricsGenerationProgress = 0.0;
-        if (!generationCompleter.isCompleted) {
-          generationCompleter.complete();
-        }
-        if (identical(_lyricsGenerationCompleter, generationCompleter)) {
-          _lyricsGenerationCompleter = null;
-        }
-        notifyListeners();
-      }
+      _finalizeGeminiGeneration(session);
     }
   }
 
@@ -630,7 +659,6 @@ class LyricsController extends ChangeNotifier {
       return;
     }
 
-    final currentLyrics = song.lyrics ?? const MusicLyric();
     final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
     if (sourceLyrics.isEmpty) {
       debugPrint(
@@ -640,14 +668,7 @@ class LyricsController extends ChangeNotifier {
       return;
     }
 
-    final generationId = ++_lyricsGenerationSerial;
-    final generationCompleter = Completer<void>();
-    _lyricsGenerationCompleter = generationCompleter;
-    _isLyricsGenerating = true;
-    _isLyricsLoading = false;
-    _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-    _lyricsGenerationProgress = 0.0;
-    notifyListeners();
+    final session = _beginGeminiGeneration(song);
 
     try {
       final generatedTimeline = await _geminiLyricsService
@@ -656,8 +677,7 @@ class LyricsController extends ChangeNotifier {
             lyrics: sourceLyrics,
             songTitle: song.title,
             onUploadProgress: (progress) {
-              if (generationId != _lyricsGenerationSerial ||
-                  _currentMusic()?.path != song.path) {
+              if (!_isActiveGeminiGeneration(session)) {
                 return;
               }
 
@@ -666,73 +686,31 @@ class LyricsController extends ChangeNotifier {
               notifyListeners();
             },
             onStageChanged: (stage) {
-              if (generationId != _lyricsGenerationSerial ||
-                  _currentMusic()?.path != song.path) {
-                return;
-              }
-
-              switch (stage) {
-                case 'uploading':
-                  _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-                  _lyricsGenerationProgress = 0.0;
-                  break;
-                case 'processing':
-                  _lyricsGenerationPhase = LyricsGenerationPhase.processing;
-                  _lyricsGenerationProgress = 1.0;
-                  break;
-                case 'generating':
-                  _lyricsGenerationPhase = LyricsGenerationPhase.generating;
-                  _lyricsGenerationProgress = 1.0;
-                  break;
-                default:
-                  _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-                  _lyricsGenerationProgress = 0.0;
-                  break;
-              }
-              notifyListeners();
+              _updateGeminiGenerationStage(session, stage);
             },
             onProgress: (partialText, isFinal) {
-              if (generationId != _lyricsGenerationSerial ||
-                  _currentMusic()?.path != song.path) {
+              if (!_isActiveGeminiGeneration(session)) {
                 return;
               }
 
               final progressText = partialText.trim();
               if (progressText.isEmpty) return;
-              final progressLyrics = MusicLyric(
-                id: LyricsIdUtils.fromLyricsText(progressText),
-                syncedLines: _parseGeneratedLyrics(progressText),
-                plainText: progressText,
+              final progressLyrics = _buildGeneratedLyrics(
+                text: progressText,
                 source: 'gemini',
-                translations: currentLyrics.translations,
+                translations:
+                    _currentMusic()?.lyrics?.translations ??
+                    const <String, MusicLyricTranslation>{},
               );
-
-              _hasLyrics = true;
-              _isLyricsLoading = false;
-              _lyricsGenerationPhase = LyricsGenerationPhase.generating;
-              _lyricsGenerationProgress = 1.0;
-              _isLyricsSynced = progressLyrics.syncedLines.any(
-                (line) => line.isTimed,
+              _publishGeneratedLyrics(
+                session,
+                song: song,
+                lyrics: progressLyrics,
               );
-              _lyricsSearchAttempted = true;
-              _currentLyricsLines = progressLyrics.syncedLines;
-              _currentLyricsText = progressLyrics.plainText;
-              _currentLyricsTitle = song.displayName;
-
-              final updated = _replaceCurrentSongIfPath(
-                song.path,
-                (currentSong) => currentSong.copyWith(lyrics: progressLyrics),
-              );
-              if (updated != null) {
-                unawaited(restoreCachedTranslations(updated));
-              }
-
-              notifyListeners();
             },
           );
 
-      if (generationId != _lyricsGenerationSerial ||
-          _currentMusic()?.path != song.path) {
+      if (!_isActiveGeminiGeneration(session)) {
         return;
       }
 
@@ -740,58 +718,25 @@ class LyricsController extends ChangeNotifier {
         return;
       }
 
-      final generatedLines = _parseGeneratedLyrics(generatedTimeline);
-      final lyrics = MusicLyric(
-        id: LyricsIdUtils.fromLyricsText(generatedTimeline),
-        syncedLines: generatedLines.isNotEmpty
-            ? generatedLines
-            : _buildLyricsLines(const [], generatedTimeline),
-        plainText: generatedTimeline.trim(),
+      final lyrics = _buildGeneratedLyrics(
+        text: generatedTimeline,
         source: 'gemini',
-        translations: currentLyrics.translations,
+        translations:
+            _currentMusic()?.lyrics?.translations ??
+            const <String, MusicLyricTranslation>{},
       );
-
-      _hasLyrics = true;
-      _isLyricsLoading = false;
-      _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-      _lyricsGenerationProgress = 0.0;
-      _isLyricsSynced = lyrics.syncedLines.any((line) => line.isTimed);
-      _lyricsSearchAttempted = true;
-      _currentLyricsLines = lyrics.syncedLines;
-      _currentLyricsText = lyrics.plainText;
-      _currentLyricsTitle = song.displayName;
-
-      final updated = _replaceCurrentSongIfPath(
-        song.path,
-        (currentSong) => currentSong.copyWith(lyrics: lyrics),
-      );
-      if (updated != null) {
-        unawaited(restoreCachedTranslations(updated));
-      }
+      _publishGeneratedLyrics(session, song: song, lyrics: lyrics);
 
       await _saveGeneratedLyricsToDatabase(
         song: song,
-        generatedLyrics: generatedTimeline,
-        syncedLines: generatedLines,
+        generatedLyrics: lyrics.plainText,
+        syncedLines: lyrics.syncedLines,
         source: 'gemini_timeline',
       );
-
-      notifyListeners();
     } catch (e) {
       debugPrint('[LyricsController] Failed to generate timeline: $e');
     } finally {
-      if (generationId == _lyricsGenerationSerial) {
-        _isLyricsGenerating = false;
-        _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-        _lyricsGenerationProgress = 0.0;
-        if (!generationCompleter.isCompleted) {
-          generationCompleter.complete();
-        }
-        if (identical(_lyricsGenerationCompleter, generationCompleter)) {
-          _lyricsGenerationCompleter = null;
-        }
-        notifyListeners();
-      }
+      _finalizeGeminiGeneration(session);
     }
   }
 
