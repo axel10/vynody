@@ -20,6 +20,9 @@ class AudioSnapshot {
   final bool isRandomMode;
   final bool isShuffleRandomMode;
   final PlaylistMode playbackMode;
+  final EqualizerConfig equalizerConfig;
+  final List<MusicFile> randomHistory;
+  final List<MusicFile> randomQueue;
   final int? historyCursor;
   final int? deckCursor;
   final bool isVisualizerEnabled;
@@ -43,6 +46,9 @@ class AudioSnapshot {
     required this.isRandomMode,
     required this.isShuffleRandomMode,
     required this.playbackMode,
+    required this.equalizerConfig,
+    required List<MusicFile> randomHistory,
+    required List<MusicFile> randomQueue,
     required this.historyCursor,
     required this.deckCursor,
     required this.isVisualizerEnabled,
@@ -51,6 +57,8 @@ class AudioSnapshot {
     required Map<String, Color> currentThemeColorsMap,
     required this.isLyricsActive,
   }) : playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
+       randomHistory = List<MusicFile>.unmodifiable(randomHistory),
+       randomQueue = List<MusicFile>.unmodifiable(randomQueue),
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
          currentThemeColorsMap,
        ),
@@ -75,6 +83,9 @@ class AudioSnapshot {
             isRandomMode == other.isRandomMode &&
             isShuffleRandomMode == other.isShuffleRandomMode &&
             playbackMode == other.playbackMode &&
+            equalizerConfig == other.equalizerConfig &&
+            _deepEquality.equals(randomHistory, other.randomHistory) &&
+            _deepEquality.equals(randomQueue, other.randomQueue) &&
             historyCursor == other.historyCursor &&
             deckCursor == other.deckCursor &&
             isVisualizerEnabled == other.isVisualizerEnabled &&
@@ -102,6 +113,9 @@ class AudioSnapshot {
     isRandomMode,
     isShuffleRandomMode,
     playbackMode,
+    equalizerConfig,
+    _deepEquality.hash(randomHistory),
+    _deepEquality.hash(randomQueue),
     historyCursor,
     deckCursor,
     isVisualizerEnabled,

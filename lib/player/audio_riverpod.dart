@@ -1,9 +1,9 @@
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'audio_service.dart';
+import 'audio_snapshot.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'lyrics_riverpod.dart';
 import '../models/music_file.dart';
 import 'playlist_service.dart';
 import 'scanner_service.dart';
@@ -15,13 +15,12 @@ final settingsServiceProvider = Provider<SettingsService>((ref) {
   );
 });
 
-final audioServiceProvider = ChangeNotifierProvider<AudioService>((ref) {
-  final settingsService = ref.watch(settingsServiceProvider);
-  return AudioService(
-    settingsService,
-    readLyricsController: () => ref.read(lyricsControllerProvider.notifier),
-    readLyricsControllerState: () => ref.read(lyricsControllerProvider),
-  );
+final audioServiceStateProvider = NotifierProvider<AudioService, AudioSnapshot>(
+  AudioService.new,
+);
+
+final audioServiceProvider = Provider<AudioService>((ref) {
+  return ref.read(audioServiceStateProvider.notifier);
 });
 
 final scannerServiceProvider = ChangeNotifierProvider<ScannerService>((ref) {
@@ -39,112 +38,140 @@ final audioServiceWiringProvider = Provider<void>((ref) {
   scanner.setPlayerController(audio.playbackController);
 });
 
+final audioSnapshotProvider = Provider<AudioSnapshot>((ref) {
+  return ref.watch(audioServiceStateProvider);
+});
+
 final audioCurrentMusicProvider = Provider<MusicFile?>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.currentMusic));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.currentMusic),
+  );
 });
 
 final audioPlaybackQueueProvider = Provider<List<MusicFile>>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.playbackQueue));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.playbackQueue),
+  );
 });
 
 final audioRandomHistoryProvider = Provider<List<MusicFile>>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.randomHistory));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.randomHistory),
+  );
 });
 
 final audioRandomQueueProvider = Provider<List<MusicFile>>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.randomQueue));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.randomQueue),
+  );
 });
 
 final audioCurrentIndexProvider = Provider<int>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.currentIndex));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.currentIndex),
+  );
 });
 
 final audioHistoryCursorProvider = Provider<int?>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.historyCursor));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.historyCursor),
+  );
 });
 
 final audioDeckCursorProvider = Provider<int?>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.deckCursor));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.deckCursor),
+  );
 });
 
 final audioIsPlayingProvider = Provider<bool>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.isPlaying));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.isPlaying),
+  );
 });
 
 final audioVolumeProvider = Provider<double>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.volume));
+  return ref.watch(audioSnapshotProvider.select((snapshot) => snapshot.volume));
 });
 
 final audioPositionProvider = Provider<Duration>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.position));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.position),
+  );
 });
 
 final audioDurationProvider = Provider<Duration>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.duration));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.duration),
+  );
 });
 
 final audioIsRandomModeProvider = Provider<bool>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.isRandomMode));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.isRandomMode),
+  );
 });
 
 final audioIsShuffleRandomModeProvider = Provider<bool>((ref) {
   return ref.watch(
-    audioServiceProvider.select((audio) => audio.isShuffleRandomMode),
+    audioSnapshotProvider.select((snapshot) => snapshot.isShuffleRandomMode),
   );
 });
 
 final audioPlaybackModeProvider = Provider<PlaylistMode>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.playbackMode));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.playbackMode),
+  );
 });
 
 final audioCurrentThemeColorsMapProvider = Provider<Map<String, Color>>((ref) {
   return ref.watch(
-    audioServiceProvider.select((audio) => audio.currentThemeColorsMap),
+    audioSnapshotProvider.select((snapshot) => snapshot.currentThemeColorsMap),
   );
 });
 
 final audioDynamicStartColorProvider = Provider<Color?>((ref) {
   return ref.watch(
-    audioServiceProvider.select((audio) => audio.dynamicStartColor),
+    audioSnapshotProvider.select((snapshot) => snapshot.dynamicStartColor),
   );
 });
 
 final audioDynamicEndColorProvider = Provider<Color?>((ref) {
   return ref.watch(
-    audioServiceProvider.select((audio) => audio.dynamicEndColor),
+    audioSnapshotProvider.select((snapshot) => snapshot.dynamicEndColor),
   );
 });
 
 final audioIsLyricsActiveProvider = Provider<bool>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.isLyricsActive));
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.isLyricsActive),
+  );
 });
 
 final audioProgressProvider = Provider<double>((ref) {
   return ref.watch(
-    audioServiceProvider.select((audio) => audio.snapshot.progress),
+    audioSnapshotProvider.select((snapshot) => snapshot.progress),
   );
 });
 
 final audioIsTransitioningProvider = Provider<bool>((ref) {
   return ref.watch(
-    audioServiceProvider.select((audio) => audio.isTransitioning),
+    audioSnapshotProvider.select((snapshot) => snapshot.isTransitioning),
   );
 });
 
 final audioLastActionNextProvider = Provider<bool?>((ref) {
   return ref.watch(
-    audioServiceProvider.select((audio) => audio.isLastActionNext),
+    audioSnapshotProvider.select((snapshot) => snapshot.isLastActionNext),
   );
 });
 
 final audioIsVisualizerEnabledProvider = Provider<bool>((ref) {
   return ref.watch(
-    audioServiceProvider.select((audio) => audio.isVisualizerEnabled),
+    audioSnapshotProvider.select((snapshot) => snapshot.isVisualizerEnabled),
   );
 });
 
 final audioVisualizerStreamProvider = Provider<Stream<FftFrame>?>((ref) {
-  return ref.watch(
-    audioServiceProvider.select((audio) => audio.visualizerStream),
-  );
+  return ref.read(audioServiceProvider).visualizerStream;
 });

@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 
 import '../models/music_file.dart';
@@ -23,8 +24,10 @@ import 'metadata_helper.dart';
 import 'lyrics_controller.dart';
 import 'lyrics_controller_state.dart';
 import 'lyrics_controller_dependencies.dart';
+import 'audio_riverpod.dart';
+import 'lyrics_riverpod.dart';
 
-class AudioService extends ChangeNotifier {
+class AudioService extends Notifier<AudioSnapshot> {
   late final AudioCoreController _player;
   bool _isPlaying = false;
   Duration _position = Duration.zero;
@@ -43,14 +46,12 @@ class AudioService extends ChangeNotifier {
   bool? _lastNotifiedIsPlaying;
   int _lastNotifiedIndex = -1;
   String? _lastNotifiedFilePath;
-  final SettingsService settingsService;
+  late final SettingsService settingsService;
   late final VisualizerOptionsService _visualizerOptions;
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
   ScannerService? _scannerService;
   bool _isLyricsActive = false;
-  final LyricsControllerState Function()? _readLyricsControllerState;
-  final LyricsController Function()? _readLyricsController;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -69,12 +70,9 @@ class AudioService extends ChangeNotifier {
   bool get hasLyrics => _lyricsState.hasLyrics;
   bool get lyricsSearchAttempted => _lyricsState.lyricsSearchAttempted;
 
-  AudioService(
-    this.settingsService, {
-    LyricsControllerState Function()? readLyricsControllerState,
-    LyricsController Function()? readLyricsController,
-  }) : _readLyricsControllerState = readLyricsControllerState,
-       _readLyricsController = readLyricsController {
+  @override
+  AudioSnapshot build() {
+    settingsService = ref.read(settingsServiceProvider);
     _player = AudioCoreController(
       fadeSettings: FadeSettings(
         fadeOnSwitch: true,
@@ -103,12 +101,18 @@ class AudioService extends ChangeNotifier {
     settingsService.addListener(() {
       unawaited(_refreshCurrentWaveform());
     });
+    ref.onDispose(_dispose);
     unawaited(
       _player.initialize().then((_) {
         _visualizerOptions.loadOptions().then((_) => notifyListeners());
         _initializeMiniPlayerFftStream();
       }),
     );
+    return snapshot;
+  }
+
+  void notifyListeners() {
+    state = snapshot;
   }
 
   LyricsControllerDependencies get lyricsControllerDependencies {
@@ -124,23 +128,11 @@ class AudioService extends ChangeNotifier {
   }
 
   LyricsController get _lyricsController {
-    final readController = _readLyricsController;
-    if (readController == null) {
-      throw StateError(
-        'Lyrics controller access is not attached to AudioService yet.',
-      );
-    }
-    return readController();
+    return ref.read(lyricsControllerProvider.notifier);
   }
 
   LyricsControllerState get _lyricsState {
-    final readState = _readLyricsControllerState;
-    if (readState == null) {
-      throw StateError(
-        'Lyrics controller state access is not attached to AudioService yet.',
-      );
-    }
-    return readState();
+    return ref.read(lyricsControllerProvider);
   }
 
   void _initializeMiniPlayerFftStream() {
@@ -567,6 +559,9 @@ class AudioService extends ChangeNotifier {
     isRandomMode: isRandomMode,
     isShuffleRandomMode: isShuffleRandomMode,
     playbackMode: playbackMode,
+    equalizerConfig: equalizerConfig,
+    randomHistory: randomHistory,
+    randomQueue: randomQueue,
     historyCursor: historyCursor,
     deckCursor: deckCursor,
     isVisualizerEnabled: isVisualizerEnabled,
@@ -1291,12 +1286,10 @@ class AudioService extends ChangeNotifier {
     );
   }
 
-  @override
-  void dispose() {
+  void _dispose() {
     _player.removeListener(_handlePlayerChanges);
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();
     _player.dispose();
-    super.dispose();
   }
 }

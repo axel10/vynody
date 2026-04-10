@@ -31,8 +31,8 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = ref.watch(audioServiceProvider);
-    final config = audio.equalizerConfig;
+    final audio = ref.read(audioServiceProvider);
+    final config = ref.watch(audioSnapshotProvider).equalizerConfig;
     const accentColor = Colors.blueAccent;
 
     return BackdropFilter(
