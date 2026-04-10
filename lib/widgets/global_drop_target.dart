@@ -1,21 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
-import 'package:provider/provider.dart';
-import '../player/audio_service.dart';
+import '../player/audio_riverpod.dart';
 import '../models/music_file.dart';
 
-class GlobalDropTarget extends StatefulWidget {
+class GlobalDropTarget extends ConsumerStatefulWidget {
   final Widget child;
 
   const GlobalDropTarget({super.key, required this.child});
 
   @override
-  State<GlobalDropTarget> createState() => _GlobalDropTargetState();
+  ConsumerState<GlobalDropTarget> createState() => _GlobalDropTargetState();
 }
 
-class _GlobalDropTargetState extends State<GlobalDropTarget> {
+class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
   final List<String> _audioExtensions = const [
     '.mp3',
     '.m4a',
@@ -61,7 +61,7 @@ class _GlobalDropTargetState extends State<GlobalDropTarget> {
     return DropTarget(
       // 处理拖放完成事件
       onDragDone: (details) async {
-        final audio = context.read<AudioService>();
+        final audio = ref.read(audioServiceProvider);
         final List<MusicFile> allFiles = [];
 
         // 1. 递归扫描拖入的所有路径（支持拖入单个文件或整个文件夹）

@@ -4,12 +4,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_snapshot.dart';
-import '../player/audio_service.dart';
-import '../player/settings_service.dart';
-import '../player/playlist_service.dart';
+import '../player/audio_riverpod.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
 import '../widgets/cover_carousel.dart';
@@ -19,7 +17,7 @@ import '../widgets/waveform_progress_bar.dart';
 
 const String playbackHeroTag = 'player_capsule';
 
-class PlaybackHeroCard extends StatelessWidget {
+class PlaybackHeroCard extends ConsumerWidget {
   const PlaybackHeroCard({
     super.key,
     required this.isMini,
@@ -97,20 +95,22 @@ class PlaybackHeroCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Hero(
       tag: playbackHeroTag,
       child: Material(
         type: MaterialType.transparency,
-        child: isMini ? _buildMiniCard(context) : _buildFullCard(context),
+        child: isMini
+            ? _buildMiniCard(context, ref)
+            : _buildFullCard(context, ref),
       ),
     );
   }
 
-  Widget _buildMiniCard(BuildContext context) {
-    final audio = context.read<AudioService>();
-    final AudioSnapshot snapshot = context.select(
-      (AudioService a) => a.snapshot,
+  Widget _buildMiniCard(BuildContext context, WidgetRef ref) {
+    final audio = ref.read(audioServiceProvider);
+    final AudioSnapshot snapshot = ref.watch(
+      audioServiceProvider.select((a) => a.snapshot),
     );
     return Container(
       decoration: BoxDecoration(
@@ -227,7 +227,7 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFullCard(BuildContext context) {
+  Widget _buildFullCard(BuildContext context, WidgetRef ref) {
     const animDuration = Duration(milliseconds: 400);
     const animCurve = Curves.fastOutSlowIn;
 
@@ -526,7 +526,7 @@ class PlaybackHeroCard extends StatelessWidget {
                           opacity: lyricsOpacity.clamp(0.0, 1.0),
                           child: IgnorePointer(
                             ignoring: lyricsOpacity < 0.5,
-                            child: _buildLyricsPanelWidget(context),
+                            child: _buildLyricsPanelWidget(context, ref),
                           ),
                         ),
                       ),
@@ -546,7 +546,10 @@ class PlaybackHeroCard extends StatelessWidget {
                                 width: isLandscape
                                     ? 450
                                     : math.max(controlsWidth, 380.0),
-                                child: _buildPlaybackControlsWidget(context),
+                                child: _buildPlaybackControlsWidget(
+                                  context,
+                                  ref,
+                                ),
                               ),
                             ),
                           ),
@@ -557,7 +560,7 @@ class PlaybackHeroCard extends StatelessWidget {
                         left: coverLeft,
                         width: coverSide,
                         height: coverSide,
-                        child: _buildAlbumArtCore(context, coverSide),
+                        child: _buildAlbumArtCore(context, ref, coverSide),
                       ),
                       Positioned(
                         top: infoTop,
@@ -566,6 +569,7 @@ class PlaybackHeroCard extends StatelessWidget {
                         height: infoHeight,
                         child: _buildTrackInfo(
                           context,
+                          ref,
                           targetInfoAlign,
                           isLyricsMode,
                         ),
@@ -581,9 +585,13 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAlbumArtCore(BuildContext context, double currentSize) {
-    final AudioSnapshot snapshot = context.select(
-      (AudioService a) => a.snapshot,
+  Widget _buildAlbumArtCore(
+    BuildContext context,
+    WidgetRef ref,
+    double currentSize,
+  ) {
+    final AudioSnapshot snapshot = ref.watch(
+      audioServiceProvider.select((a) => a.snapshot),
     );
     final playlist = snapshot.playbackQueue;
     if (playlist.isEmpty) {
@@ -611,11 +619,11 @@ class PlaybackHeroCard extends StatelessWidget {
       child: CoverCarousel(
         playlist: playlist,
         currentIndex: snapshot.currentIndex,
-        audioService: context.read<AudioService>(),
+        audioService: ref.read(audioServiceProvider),
         isNext: isNext,
         displaySize: currentSize,
         onPageChanged: (page) {
-          final audio = context.read<AudioService>();
+          final audio = ref.read(audioServiceProvider);
           if (page >= 0 &&
               page < playlist.length &&
               page != snapshot.currentIndex) {
@@ -635,9 +643,14 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTrackInfo(BuildContext context, TextAlign align, bool isLyrics) {
-    final AudioSnapshot snapshot = context.select(
-      (AudioService a) => a.snapshot,
+  Widget _buildTrackInfo(
+    BuildContext context,
+    WidgetRef ref,
+    TextAlign align,
+    bool isLyrics,
+  ) {
+    final AudioSnapshot snapshot = ref.watch(
+      audioServiceProvider.select((a) => a.snapshot),
     );
     final l10n = AppLocalizations.of(context)!;
     final title = snapshot.currentMusic?.displayName ?? l10n.notSelected;
@@ -698,9 +711,9 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaybackControlsWidget(BuildContext context) {
-    final AudioSnapshot snapshot = context.select(
-      (AudioService a) => a.snapshot,
+  Widget _buildPlaybackControlsWidget(BuildContext context, WidgetRef ref) {
+    final AudioSnapshot snapshot = ref.watch(
+      audioServiceProvider.select((a) => a.snapshot),
     );
     final l10n = AppLocalizations.of(context)!;
 
@@ -741,10 +754,10 @@ class PlaybackHeroCard extends StatelessWidget {
                       : Colors.white70,
                 ),
                 onPressed: () {
-                  final audio = context.read<AudioService>();
+                  final audio = ref.read(audioServiceProvider);
                   if (audio.settingsService.randomRange == 1 &&
                       !snapshot.isRandomMode) {
-                    final playlistService = context.read<PlaylistService>();
+                    final playlistService = ref.read(playlistServiceProvider);
                     final List<MusicFile> allSongs = [];
                     final pathSet = <String>{};
                     for (final p in playlistService.playlists) {
@@ -784,9 +797,13 @@ class PlaybackHeroCard extends StatelessWidget {
           ],
         ),
         SizedBox(height: isLandscape ? 16 : 12),
-        Selector<SettingsService, bool>(
-          selector: (_, s) => s.isWaveformProgressBarEnabled,
-          builder: (context, enabled, _) {
+        Builder(
+          builder: (context) {
+            final enabled = ref.watch(
+              settingsServiceProvider.select(
+                (s) => s.isWaveformProgressBarEnabled,
+              ),
+            );
             final duration = snapshot.duration;
             final waveform =
                 overrideWaveform ?? snapshot.currentMusic?.waveform ?? const [];
@@ -912,9 +929,9 @@ class PlaybackHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLyricsPanelWidget(BuildContext context) {
-    final AudioSnapshot snapshot = context.select(
-      (AudioService a) => a.snapshot,
+  Widget _buildLyricsPanelWidget(BuildContext context, WidgetRef ref) {
+    final AudioSnapshot snapshot = ref.watch(
+      audioServiceProvider.select((a) => a.snapshot),
     );
     final accent =
         snapshot.currentThemeColorsMap['darkVibrant'] ??

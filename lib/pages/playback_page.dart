@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:provider/provider.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import '../l10n/app_localizations.dart';
@@ -12,7 +11,6 @@ import '../player/audio_riverpod.dart';
 import '../player/audio_snapshot.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
-import '../player/scanner_service.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
@@ -61,7 +59,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       _showVisualizer = audio.isVisualizerEnabled;
       _isLyricsMode = audio.isLyricsActive;
       _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
-      context.read<SettingsService>().resetInactivity();
+      ref.read(settingsServiceProvider).resetInactivity();
       if (mounted) {
         setState(() {});
       }
@@ -71,7 +69,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _settingsService ??= context.read<SettingsService>();
+    _settingsService ??= ref.read(settingsServiceProvider);
   }
 
   @override
@@ -97,7 +95,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   }
 
   void _startInactivityTimer() {
-    context.read<SettingsService>().resetInactivity();
+    ref.read(settingsServiceProvider).resetInactivity();
   }
 
   void toNextMusic(AudioService audio) {
@@ -196,8 +194,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
     if (result == null || !context.mounted) return;
 
-    final scanner = context.read<ScannerService>();
-    final playlistService = context.read<PlaylistService>();
+    final scanner = ref.read(scannerServiceProvider);
+    final playlistService = ref.read(playlistServiceProvider);
 
     await audio.applyUpdatedSongMetadata(
       result.metadata,
@@ -483,7 +481,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       context: context,
       builder: (context) {
         final l10n = AppLocalizations.of(context)!;
-        final settings = context.watch<SettingsService>();
+        final settings = ref.watch(settingsServiceProvider);
         return AlertDialog(
           title: Text(l10n.randomMode),
           content: Column(
@@ -518,7 +516,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                     settings.randomRange = val;
                     if (audio.isRandomMode) {
                       audio.toggleRandomMode(); // Off
-                      final playlistService = context.read<PlaylistService>();
+                      final playlistService = ref.read(playlistServiceProvider);
                       final allSongs = _getGlobalSongs(playlistService);
                       audio.toggleRandomMode(globalSongs: allSongs);
                     }
@@ -541,7 +539,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                       audio.toggleRandomMode(); // Off
                       if (settings.randomRange == 1) {
                         final allSongs = _getGlobalSongs(
-                          context.read<PlaylistService>(),
+                          ref.read(playlistServiceProvider),
                         );
                         audio.toggleRandomMode(globalSongs: allSongs);
                       } else {
@@ -562,7 +560,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                       audio.toggleRandomMode(); // Off
                       if (settings.randomRange == 1) {
                         final allSongs = _getGlobalSongs(
-                          context.read<PlaylistService>(),
+                          ref.read(playlistServiceProvider),
                         );
                         audio.toggleRandomMode(globalSongs: allSongs);
                       } else {
@@ -624,7 +622,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   }
 
   void _showMoreMenu(BuildContext context, AudioService audio) {
-    final settings = context.read<SettingsService>();
+    final settings = ref.read(settingsServiceProvider);
     showVisualizerOptionsDialog(context, audio, settings);
   }
 
@@ -637,8 +635,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     final isVisualizerEnabled = snapshot.isVisualizerEnabled;
     final isTransitioning = snapshot.isTransitioning;
     final shouldDrawVisualizer = isVisualizerEnabled && !isTransitioning;
-    final backgroundType = context.select(
-      (SettingsService s) => s.playbackBackgroundType,
+    final backgroundType = ref.watch(
+      settingsServiceProvider.select((s) => s.playbackBackgroundType),
     );
 
     return Listener(
@@ -658,9 +656,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             _lastOrientation = orientation;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              ref.read(audioServiceProvider).applyVisualizerSettings(
-                orientation: orientation,
-              );
+              ref
+                  .read(audioServiceProvider)
+                  .applyVisualizerSettings(orientation: orientation);
             });
           }
 
@@ -786,9 +784,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                 if (_isLyricsMode) _buildLyricsModeScrim(),
                 content,
                 if (_showVolumeSlider)
-                  Selector<AudioService, double>(
-                    selector: (_, a) => a.volume,
-                    builder: (context, volume, _) {
+                  Builder(
+                    builder: (context) {
+                      final volume = ref.watch(
+                        audioServiceProvider.select((a) => a.volume),
+                      );
                       final audio = ref.read(audioServiceProvider);
                       return VolumeSliderOverlay(
                         volume: volume,
@@ -919,44 +919,35 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             final frame = snapshot.data;
             if (frame == null) return const SizedBox.shrink();
 
-            return Selector<SettingsService, bool>(
-              selector: (_, s) => s
-                  .isAutoMode, // Just pick something so it rebuilds on auto mode change
-              builder: (context, value, child) {
-                // Re-read settings more cleanly or use the data tuple
-                final settings = context.read<SettingsService>();
-                final audio = ref.read(audioServiceProvider);
-                final isLandscape = orientation == Orientation.landscape;
-                final gap = isLandscape
-                    ? settings.landscapeGap
-                    : settings.portraitGap;
+            final settings = ref.watch(settingsServiceProvider);
+            final audio = ref.read(audioServiceProvider);
+            final isLandscape = orientation == Orientation.landscape;
+            final gap = isLandscape
+                ? settings.landscapeGap
+                : settings.portraitGap;
 
-                return ExcludeSemantics(
-                  child: CustomPaint(
-                    painter: FftPainter(
-                      values: frame.values,
-                      gap: gap,
-                      color: settings.isVisualizerDynamicColor
-                          ? (audio.dynamicStartColor ??
-                                settings.visualizerColor)
-                          : settings.visualizerColor,
-                      opacity: settings.visualizerOpacity,
-                      useGradient: settings.isVisualizerGradientEnabled,
-                      startColor: settings.isVisualizerDynamicStartColor
-                          ? (audio.dynamicStartColor ??
-                                settings.visualizerStartColor)
-                          : settings.visualizerStartColor,
-                      endColor: settings.isVisualizerDynamicEndColor
-                          ? (audio.dynamicEndColor ??
-                                settings.visualizerEndColor)
-                          : settings.visualizerEndColor,
-                      gradientStop1: settings.visualizerGradientStop1,
-                      gradientStop2: settings.visualizerGradientStop2,
-                      gradientTileMode: settings.visualizerGradientTileMode,
-                    ),
-                  ),
-                );
-              },
+            return ExcludeSemantics(
+              child: CustomPaint(
+                painter: FftPainter(
+                  values: frame.values,
+                  gap: gap,
+                  color: settings.isVisualizerDynamicColor
+                      ? (audio.dynamicStartColor ?? settings.visualizerColor)
+                      : settings.visualizerColor,
+                  opacity: settings.visualizerOpacity,
+                  useGradient: settings.isVisualizerGradientEnabled,
+                  startColor: settings.isVisualizerDynamicStartColor
+                      ? (audio.dynamicStartColor ??
+                            settings.visualizerStartColor)
+                      : settings.visualizerStartColor,
+                  endColor: settings.isVisualizerDynamicEndColor
+                      ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
+                      : settings.visualizerEndColor,
+                  gradientStop1: settings.visualizerGradientStop1,
+                  gradientStop2: settings.visualizerGradientStop2,
+                  gradientTileMode: settings.visualizerGradientTileMode,
+                ),
+              ),
             );
           },
         ),

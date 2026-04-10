@@ -1,18 +1,19 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
+import '../player/audio_riverpod.dart';
 import '../player/audio_service.dart';
 
-class EqualizerPanel extends StatefulWidget {
+class EqualizerPanel extends ConsumerStatefulWidget {
   const EqualizerPanel({super.key});
 
   @override
-  State<EqualizerPanel> createState() => _EqualizerPanelState();
+  ConsumerState<EqualizerPanel> createState() => _EqualizerPanelState();
 }
 
-class _EqualizerPanelState extends State<EqualizerPanel> {
+class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
   static const int bandCount = 10;
   List<double> _frequencies = [];
 
@@ -20,7 +21,7 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final audio = context.read<AudioService>();
+      final audio = ref.read(audioServiceProvider);
       audio.ensureEqualizerBandCount(bandCount);
       setState(() {
         _frequencies = audio.getEqualizerBandCenters(bandCount: bandCount);
@@ -30,7 +31,7 @@ class _EqualizerPanelState extends State<EqualizerPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = context.watch<AudioService>();
+    final audio = ref.watch(audioServiceProvider);
     final config = audio.equalizerConfig;
     const accentColor = Colors.blueAccent;
 

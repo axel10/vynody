@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
-import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
@@ -494,7 +493,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
                     onDynamicChanged: (val) {
                       settings.isVisualizerDynamicStartColor = val;
                       if (val) {
-                        context.read<AudioService>().updateDynamicColors();
+                        audio.updateDynamicColors();
                       }
                       setDialogState(() {});
                     },
@@ -512,7 +511,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
                     onDynamicChanged: (val) {
                       settings.isVisualizerDynamicEndColor = val;
                       if (val) {
-                        context.read<AudioService>().updateDynamicColors();
+                        audio.updateDynamicColors();
                       }
                       setDialogState(() {});
                     },
@@ -554,7 +553,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
                     onDynamicChanged: (val) {
                       settings.isVisualizerDynamicColor = val;
                       if (val) {
-                        context.read<AudioService>().updateDynamicColors();
+                        audio.updateDynamicColors();
                       }
                       setDialogState(() {});
                     },

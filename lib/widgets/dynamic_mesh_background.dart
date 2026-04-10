@@ -1,19 +1,19 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
-import 'package:provider/provider.dart';
-import '../player/audio_service.dart';
-import '../player/settings_service.dart';
+import '../player/audio_riverpod.dart';
 
-class DynamicMeshBackground extends StatefulWidget {
+class DynamicMeshBackground extends ConsumerStatefulWidget {
   const DynamicMeshBackground({super.key});
 
   @override
-  State<DynamicMeshBackground> createState() => _DynamicMeshBackgroundState();
+  ConsumerState<DynamicMeshBackground> createState() =>
+      _DynamicMeshBackgroundState();
 }
 
-class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
+class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
   late List<MeshGradientPoint> points;
   // final double _bassEnergy = 0.0;
   StreamSubscription? _fftSubscription;
@@ -50,7 +50,7 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
 
   /*
   void _subscribeToFft() {
-    final audio = context.read<AudioService>();
+    final audio = ref.read(audioServiceProvider);
     _fftSubscription = audio.visualizerStream.listen((frame) {
       if (!mounted) return;
       
@@ -89,20 +89,20 @@ class _DynamicMeshBackgroundState extends State<DynamicMeshBackground> {
   @override
   Widget build(BuildContext context) {
     // Use select to only rebuild when colors actually change
-    final themeColors = context.select(
-      (AudioService a) => a.currentThemeColorsMap,
+    final themeColors = ref.watch(
+      audioServiceProvider.select((a) => a.currentThemeColorsMap),
     );
-    final visualizerStartColor = context.select(
-      (SettingsService s) => s.visualizerStartColor,
+    final visualizerStartColor = ref.watch(
+      settingsServiceProvider.select((s) => s.visualizerStartColor),
     );
-    final visualizerEndColor = context.select(
-      (SettingsService s) => s.visualizerEndColor,
+    final visualizerEndColor = ref.watch(
+      settingsServiceProvider.select((s) => s.visualizerEndColor),
     );
-    final dynamicStartColor = context.select(
-      (AudioService a) => a.dynamicStartColor,
+    final dynamicStartColor = ref.watch(
+      audioServiceProvider.select((a) => a.dynamicStartColor),
     );
-    final dynamicEndColor = context.select(
-      (AudioService a) => a.dynamicEndColor,
+    final dynamicEndColor = ref.watch(
+      audioServiceProvider.select((a) => a.dynamicEndColor),
     );
 
     Color color1 =

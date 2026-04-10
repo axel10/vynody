@@ -3,7 +3,6 @@ import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'package:provider/provider.dart' as legacy_provider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
@@ -12,7 +11,6 @@ import 'pages/main_layout.dart';
 import 'player/audio_riverpod.dart';
 import 'player/audio_service.dart';
 import 'player/lyrics_riverpod.dart';
-import 'player/playlist_service.dart';
 import 'player/scanner_service.dart';
 import 'player/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
@@ -26,10 +24,8 @@ void handleFileOpen(List<String> args) {
   final context = navigatorKey.currentContext; // 获取全局导航上下文以访问 Provider
   if (context == null) return;
 
-  final audio = legacy_provider.Provider.of<AudioService>(
-    context,
-    listen: false,
-  );
+  final container = ProviderScope.containerOf(context);
+  final audio = container.read(audioServiceProvider);
   // 支持的音频格式列表
   final List<String> audioExtensions = [
     '.mp3',
@@ -101,34 +97,27 @@ void main(List<String> args) async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        settingsServiceProvider.overrideWithValue(settingsService),
-      ],
-      child: _LegacyProviderBridge(
-        settingsService: settingsService,
-        child: MyApp(args: args),
-      ),
+      overrides: [settingsServiceProvider.overrideWithValue(settingsService)],
+      child: _RiverpodServiceBridge(child: MyApp(args: args)),
     ),
   );
 }
 
-class _LegacyProviderBridge extends ConsumerStatefulWidget {
-  const _LegacyProviderBridge({
-    required this.settingsService,
-    required this.child,
-  });
+class _RiverpodServiceBridge extends ConsumerStatefulWidget {
+  const _RiverpodServiceBridge({required this.child});
 
-  final SettingsService settingsService;
   final Widget child;
 
   @override
-  ConsumerState<_LegacyProviderBridge> createState() =>
-      _LegacyProviderBridgeState();
+  ConsumerState<_RiverpodServiceBridge> createState() =>
+      _RiverpodServiceBridgeState();
 }
 
-class _LegacyProviderBridgeState extends ConsumerState<_LegacyProviderBridge> {
+class _RiverpodServiceBridgeState
+    extends ConsumerState<_RiverpodServiceBridge> {
   AudioService? _attachedAudio;
   bool _attachScheduled = false;
+  ScannerService? _attachedScanner;
 
   void _scheduleLyricsBridge(AudioService audio) {
     if (_attachScheduled || identical(_attachedAudio, audio)) {
@@ -144,6 +133,12 @@ class _LegacyProviderBridgeState extends ConsumerState<_LegacyProviderBridge> {
         readController: () => ref.read(lyricsControllerProvider.notifier),
         readState: () => ref.read(lyricsControllerProvider),
       );
+      final scanner = ref.read(scannerServiceProvider);
+      if (!identical(_attachedScanner, scanner)) {
+        scanner.setPlayerController(audio.playbackController);
+        audio.setScannerService(scanner);
+        _attachedScanner = scanner;
+      }
       _attachedAudio = audio;
     });
   }
@@ -152,27 +147,10 @@ class _LegacyProviderBridgeState extends ConsumerState<_LegacyProviderBridge> {
   Widget build(BuildContext context) {
     final audio = ref.read(audioServiceProvider);
     _scheduleLyricsBridge(audio);
+    ref.watch(scannerServiceProvider);
+    ref.watch(playlistServiceProvider);
 
-    return legacy_provider.MultiProvider(
-      providers: [
-        legacy_provider.ChangeNotifierProvider<AudioService>.value(
-          value: audio,
-        ),
-        legacy_provider.ChangeNotifierProxyProvider<AudioService, ScannerService>(
-          create: (_) => ScannerService(),
-          update: (_, audio, scanner) {
-            scanner!.setPlayerController(audio.playbackController);
-            audio.setScannerService(scanner);
-            return scanner;
-          },
-        ),
-        legacy_provider.ChangeNotifierProvider(create: (_) => PlaylistService()),
-        legacy_provider.ChangeNotifierProvider.value(
-          value: widget.settingsService,
-        ),
-      ],
-      child: widget.child,
-    );
+    return widget.child;
   }
 }
 

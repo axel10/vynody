@@ -1,24 +1,24 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../l10n/app_localizations.dart';
 import '../models/music_folder.dart';
+import '../player/audio_riverpod.dart';
 import '../player/scanner_service.dart';
-import '../player/audio_service.dart';
 import '../widgets/song_thumbnail.dart';
 
 // 目录页
-class FoldersPage extends StatefulWidget {
+class FoldersPage extends ConsumerStatefulWidget {
   final Future<void> Function()? onOpenPlayback;
 
   const FoldersPage({super.key, this.onOpenPlayback});
 
   @override
-  State<FoldersPage> createState() => _FoldersPageState();
+  ConsumerState<FoldersPage> createState() => _FoldersPageState();
 }
 
-class _FoldersPageState extends State<FoldersPage> {
+class _FoldersPageState extends ConsumerState<FoldersPage> {
   final ScrollController _scrollController = ScrollController();
 
   void _navigateTo(MusicFolder folder, ScannerService scanner) {
@@ -65,22 +65,32 @@ class _FoldersPageState extends State<FoldersPage> {
       if (!mounted) return;
 
       final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.scanningDirectory)));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.scanningDirectory),
+        ),
+      );
 
       final hasMusic = await scanner.addRootPath(selectedDirectory);
 
       if (!mounted) return;
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(
-        SnackBar(content: Text(hasMusic ? AppLocalizations.of(context)!.directoryAddedSuccess : AppLocalizations.of(context)!.directoryAddedNoMusic)),
+        SnackBar(
+          content: Text(
+            hasMusic
+                ? AppLocalizations.of(context)!.directoryAddedSuccess
+                : AppLocalizations.of(context)!.directoryAddedNoMusic,
+          ),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final scanner = context.watch<ScannerService>();
-    final audio = context.read<AudioService>();
+    final scanner = ref.watch(scannerServiceProvider);
+    final audio = ref.read(audioServiceProvider);
 
     // Sync _currentFolder if it's the system root and data has been loaded
     if (scanner.navigationCurrentFolder?.path == 'system' &&
@@ -88,7 +98,10 @@ class _FoldersPageState extends State<FoldersPage> {
         scanner.navigationCurrentFolder != scanner.systemMediaFolder) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          scanner.setNavigationState(scanner.systemMediaFolder, List.from(scanner.navigationHistory));
+          scanner.setNavigationState(
+            scanner.systemMediaFolder,
+            List.from(scanner.navigationHistory),
+          );
         }
       });
     }
@@ -129,7 +142,9 @@ class _FoldersPageState extends State<FoldersPage> {
                       Icons.library_music,
                       color: Colors.purple,
                     ),
-                    title: Text(AppLocalizations.of(context)!.systemMediaLibrary),
+                    title: Text(
+                      AppLocalizations.of(context)!.systemMediaLibrary,
+                    ),
                     subtitle: scanner.hasPermission
                         ? null
                         : Text(
@@ -140,7 +155,12 @@ class _FoldersPageState extends State<FoldersPage> {
                       // Navigate to a virtual folder or the real system folder
                       _navigateTo(
                         scanner.systemMediaFolder ??
-                            MusicFolder(path: 'system', name: AppLocalizations.of(context)!.systemMediaLibrary),
+                            MusicFolder(
+                              path: 'system',
+                              name: AppLocalizations.of(
+                                context,
+                              )!.systemMediaLibrary,
+                            ),
                         scanner,
                       );
                     },
@@ -188,7 +208,8 @@ class _FoldersPageState extends State<FoldersPage> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
-          if (scanner.navigationHistory.isNotEmpty || scanner.navigationCurrentFolder != null) {
+          if (scanner.navigationHistory.isNotEmpty ||
+              scanner.navigationCurrentFolder != null) {
             _goBack(scanner);
           }
         },
@@ -208,8 +229,7 @@ class _FoldersPageState extends State<FoldersPage> {
                   ),
 
                   // Show Permission Button if in system folder and no permission
-                  if (currentFolder.path == 'system' &&
-                      !scanner.hasPermission)
+                  if (currentFolder.path == 'system' && !scanner.hasPermission)
                     Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Center(
@@ -221,12 +241,18 @@ class _FoldersPageState extends State<FoldersPage> {
                               color: Colors.grey,
                             ),
                             const SizedBox(height: 16),
-                            Text(AppLocalizations.of(context)!.noMediaLibraryPermission),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.noMediaLibraryPermission,
+                            ),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () =>
                                   scanner.checkAndRequestPermissions(),
-                              child: Text(AppLocalizations.of(context)!.grantPermission),
+                              child: Text(
+                                AppLocalizations.of(context)!.grantPermission,
+                              ),
                             ),
                           ],
                         ),
@@ -313,9 +339,13 @@ class _FoldersPageState extends State<FoldersPage> {
               Navigator.pop(context);
               scanner.rebuildMetadataDatabase();
               if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.rebuildingDatabase)));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.rebuildingDatabase,
+                    ),
+                  ),
+                );
               }
             },
             child: Text(AppLocalizations.of(context)!.confirm),
@@ -357,7 +387,9 @@ class _FoldersPageState extends State<FoldersPage> {
                         ),
 
                         ListTile(
-                          title: Text(AppLocalizations.of(context)!.trackNumber),
+                          title: Text(
+                            AppLocalizations.of(context)!.trackNumber,
+                          ),
                           leading: Radio(value: SortCriteria.trackNumber),
                         ),
                       ],
@@ -413,7 +445,10 @@ class _FoldersPageState extends State<FoldersPage> {
       breadcrumbItems.add(
         InkWell(
           onTap: () {
-            scanner.setNavigationState(folder, scanner.navigationHistory.take(i).toList());
+            scanner.setNavigationState(
+              folder,
+              scanner.navigationHistory.take(i).toList(),
+            );
             _scrollToTop();
           },
           child: Padding(

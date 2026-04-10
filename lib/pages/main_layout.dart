@@ -4,13 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
 import '../player/audio_service.dart';
-import '../player/settings_service.dart';
 import '../pages/folder_page.dart';
 import '../pages/playback_page.dart';
 import '../pages/playlist_page.dart';
@@ -120,7 +118,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     if (_currentIndex != 1) {
       return;
     }
-    final settings = context.read<SettingsService>();
+    final settings = ref.read(settingsServiceProvider);
     if (settings.isImmersiveTabBarEnabled) {
       settings.resetInactivity();
     }
@@ -263,22 +261,22 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       // 预处理路径字符串
       final path = arg.replaceAll('"', '').trim();
       if (path.isEmpty) continue;
-      
+
       // 文件存在性校验
       if (File(path).existsSync()) {
         final ext = p.extension(path).toLowerCase();
-        
+
         // 匹配后缀
         if (audioExtensions.contains(ext)) {
           // 调用播放服务读取音频并播放
           // append: true 确保该文件插入到底部立刻切歌
           audio.playFile(path, p.basename(path), append: true);
-          
+
           if (!mounted) return;
-          
+
           // 切换到播放详情视图 (索引 1)
           await navigateToMainTab(context, index: 1);
-          
+
           // 处理完一个核心音频文件后停止（通常双击只打开一个文件）
           break;
         }
@@ -501,7 +499,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       _lastVolume = next.volume;
     });
 
-    final settings = context.watch<SettingsService>();
+    final settings = ref.watch(settingsServiceProvider);
     final theme = Theme.of(context);
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -669,23 +667,20 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     _WindowButton(
-                                      icon:
-                                          _isFullScreen
-                                              ? Icons.fullscreen_exit
-                                              : Icons.fullscreen,
-                                      brightness:
-                                          isPlayback
-                                              ? Brightness.dark
-                                              : theme.brightness,
-                                      onPressed:
-                                          () => _setFullScreen(!_isFullScreen),
+                                      icon: _isFullScreen
+                                          ? Icons.fullscreen_exit
+                                          : Icons.fullscreen,
+                                      brightness: isPlayback
+                                          ? Brightness.dark
+                                          : theme.brightness,
+                                      onPressed: () =>
+                                          _setFullScreen(!_isFullScreen),
                                     ),
                                     _WindowButton(
                                       icon: Icons.remove,
-                                      brightness:
-                                          isPlayback
-                                              ? Brightness.dark
-                                              : theme.brightness,
+                                      brightness: isPlayback
+                                          ? Brightness.dark
+                                          : theme.brightness,
                                       onPressed: () async {
                                         if (_isFullScreen) {
                                           await _setFullScreen(false);
@@ -694,15 +689,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                                       },
                                     ),
                                     _WindowButton(
-                                      icon:
-                                          _isMaximized
-                                              ? Icons.filter_none
-                                              : Icons.crop_square,
+                                      icon: _isMaximized
+                                          ? Icons.filter_none
+                                          : Icons.crop_square,
                                       iconSize: 14,
-                                      brightness:
-                                          isPlayback
-                                              ? Brightness.dark
-                                              : theme.brightness,
+                                      brightness: isPlayback
+                                          ? Brightness.dark
+                                          : theme.brightness,
                                       onPressed: () async {
                                         if (_isFullScreen) {
                                           await _setFullScreen(false);
@@ -716,10 +709,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                                     _WindowButton(
                                       icon: Icons.close,
                                       isClose: true,
-                                      brightness:
-                                          isPlayback
-                                              ? Brightness.dark
-                                              : theme.brightness,
+                                      brightness: isPlayback
+                                          ? Brightness.dark
+                                          : theme.brightness,
                                       onPressed: windowManager.close,
                                     ),
                                   ],
@@ -735,7 +727,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                       right: 0,
                       child: Center(
                         child: !isPlayback
-                              ? Builder(
+                            ? Builder(
                                 builder: (context) {
                                   final audio = ref.read(audioServiceProvider);
                                   return Container(
@@ -833,17 +825,17 @@ class _WindowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color iconColor =
-        brightness == Brightness.dark ? Colors.white : Colors.black87;
+    final Color iconColor = brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
 
     Color? hoverColor;
     if (isClose) {
       hoverColor = Colors.red.withValues(alpha: 0.8);
     } else {
-      hoverColor =
-          brightness == Brightness.dark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.black.withValues(alpha: 0.05);
+      hoverColor = brightness == Brightness.dark
+          ? Colors.white.withValues(alpha: 0.1)
+          : Colors.black.withValues(alpha: 0.05);
     }
 
     return Material(
@@ -855,11 +847,7 @@ class _WindowButton extends StatelessWidget {
           width: 46,
           height: 32,
           alignment: Alignment.center,
-          child: Icon(
-            icon,
-            size: iconSize,
-            color: isClose ? null : iconColor,
-          ),
+          child: Icon(icon, size: iconSize, color: isClose ? null : iconColor),
         ),
       ),
     );

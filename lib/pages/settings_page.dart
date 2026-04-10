@@ -1,31 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../player/settings_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../player/audio_riverpod.dart';
 import '../l10n/app_localizations.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final settings = context.watch<SettingsService>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsServiceProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settings, style: const TextStyle(color: Colors.white))),
+      appBar: AppBar(
+        title: Text(l10n.settings, style: const TextStyle(color: Colors.white)),
+      ),
       body: ListView(
         children: [
           SwitchListTile(
-            title: Text(l10n.immersiveTabBar, style: const TextStyle(color: Colors.white)),
-            subtitle: Text(l10n.immersiveTabBarDescription, style: const TextStyle(color: Colors.white70)),
+            title: Text(
+              l10n.immersiveTabBar,
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              l10n.immersiveTabBarDescription,
+              style: const TextStyle(color: Colors.white70),
+            ),
             value: settings.isImmersiveTabBarEnabled,
             onChanged: (value) {
               settings.isImmersiveTabBarEnabled = value;
             },
           ),
           ListTile(
-            title: Text(l10n.sampleStride, style: const TextStyle(color: Colors.white)),
-            subtitle: Text(l10n.sampleStrideDescription, style: const TextStyle(color: Colors.white70)),
+            title: Text(
+              l10n.sampleStride,
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              l10n.sampleStrideDescription,
+              style: const TextStyle(color: Colors.white70),
+            ),
             trailing: SizedBox(
               width: 120,
               child: Row(
@@ -52,8 +66,14 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
           ListTile(
-            title: Text(l10n.waveformSegments, style: const TextStyle(color: Colors.white)),
-            subtitle: Text(l10n.waveformSegmentsDescription, style: const TextStyle(color: Colors.white70)),
+            title: Text(
+              l10n.waveformSegments,
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              l10n.waveformSegmentsDescription,
+              style: const TextStyle(color: Colors.white70),
+            ),
             trailing: SizedBox(
               width: 120,
               child: Row(
@@ -80,10 +100,14 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
           SwitchListTile(
-            title: Text(l10n.enableWaveformProgressBar,
-                style: const TextStyle(color: Colors.white)),
-            subtitle: Text(l10n.enableWaveformProgressBarDescription,
-                style: const TextStyle(color: Colors.white70)),
+            title: Text(
+              l10n.enableWaveformProgressBar,
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              l10n.enableWaveformProgressBarDescription,
+              style: const TextStyle(color: Colors.white70),
+            ),
             value: settings.isWaveformProgressBarEnabled,
             onChanged: (value) {
               settings.isWaveformProgressBarEnabled = value;
@@ -94,4 +118,3 @@ class SettingsPage extends StatelessWidget {
     );
   }
 }
-

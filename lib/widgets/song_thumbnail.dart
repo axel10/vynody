@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:provider/provider.dart';
-import '../player/scanner_service.dart';
+import '../player/audio_riverpod.dart';
 
-class SongThumbnail extends StatefulWidget {
+class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
   final int? id;
   final double size;
@@ -18,10 +18,10 @@ class SongThumbnail extends StatefulWidget {
   });
 
   @override
-  State<SongThumbnail> createState() => _SongThumbnailState();
+  ConsumerState<SongThumbnail> createState() => _SongThumbnailState();
 }
 
-class _SongThumbnailState extends State<SongThumbnail> {
+class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   bool _loadTriggered = false;
 
   // Android/iOS: cache artwork bytes so parent rebuilds don't retrigger fetch.
@@ -46,12 +46,13 @@ class _SongThumbnailState extends State<SongThumbnail> {
     }
   }
 
-  void _triggerLoad(ScannerService scanner) {
+  void _triggerLoad() {
     if (_loadTriggered) return;
     _loadTriggered = true;
     // Run after the current frame so we don't call setState during build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        final scanner = ref.read(scannerServiceProvider);
         scanner.loadMetadataForPath(widget.path);
       }
     });
@@ -91,7 +92,7 @@ class _SongThumbnailState extends State<SongThumbnail> {
         return _fallbackIcon();
       }
     } else if (Platform.isWindows) {
-      final scanner = context.watch<ScannerService>();
+      final scanner = ref.watch(scannerServiceProvider);
       final metadata = scanner.metadataMap[widget.path];
 
       final imagePath = metadata?.thumbnailPath;
@@ -115,7 +116,7 @@ class _SongThumbnailState extends State<SongThumbnail> {
 
       // Metadata not yet in map, or the cached entry still lacks a thumbnail.
       if (metadata == null || metadata.thumbnailPath == null) {
-        _triggerLoad(scanner);
+        _triggerLoad();
       }
     }
 

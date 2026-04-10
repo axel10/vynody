@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
-import '../player/audio_service.dart';
-import '../player/scanner_service.dart';
+import '../player/audio_riverpod.dart';
 import '../widgets/song_thumbnail.dart';
 
 // 队列页面
-class QueuePage extends StatefulWidget {
+class QueuePage extends ConsumerStatefulWidget {
   const QueuePage({super.key});
 
   @override
-  State<QueuePage> createState() => _QueuePageState();
+  ConsumerState<QueuePage> createState() => _QueuePageState();
 }
 
-class _QueuePageState extends State<QueuePage> {
+class _QueuePageState extends ConsumerState<QueuePage> {
   bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
@@ -37,7 +36,8 @@ class _QueuePageState extends State<QueuePage> {
     });
   }
 
-  void _showClearQueueDialog(BuildContext context, AudioService audio) {
+  void _showClearQueueDialog(BuildContext context) {
+    final audio = ref.read(audioServiceProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -70,7 +70,7 @@ class _QueuePageState extends State<QueuePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final audio = Provider.of<AudioService>(context);
+    final audio = ref.read(audioServiceProvider);
 
     // Validate current view index against current mode
     if (_viewIndex == 1 && !audio.isRandomMode) {
@@ -87,8 +87,8 @@ class _QueuePageState extends State<QueuePage> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = context.watch<AudioService>();
-    final scanner = context.watch<ScannerService>();
+    final audio = ref.watch(audioServiceProvider);
+    final scanner = ref.watch(scannerServiceProvider);
     final queue = audio.playbackQueue;
 
     if (queue.isEmpty) {
@@ -170,7 +170,7 @@ class _QueuePageState extends State<QueuePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep),
-            onPressed: () => _showClearQueueDialog(context, audio),
+            onPressed: () => _showClearQueueDialog(context),
             tooltip: AppLocalizations.of(context)!.clearQueue,
           ),
         ],
