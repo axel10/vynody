@@ -1,39 +1,105 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
+import '../models/lyric_line.dart';
+import '../models/music_lyric.dart';
+import '../models/music_file.dart';
+import 'metadata_database.dart';
 import 'lyrics_controller.dart';
 import 'lyrics_controller_state.dart';
 
-typedef LyricsControllerBuilder = LyricsController Function();
+class LyricsControllerDependencies {
+  const LyricsControllerDependencies({
+    required this.db,
+    required this.currentMusic,
+    required this.queue,
+    required this.currentIndex,
+    required this.playerDuration,
+    required this.isLyricsActive,
+    required this.cacheSongDuration,
+  });
 
-final lyricsControllerBuilderProvider =
-    Provider<LyricsControllerBuilder>((ref) {
+  final MetadataDatabase db;
+  final MusicFile? Function() currentMusic;
+  final List<MusicFile> Function() queue;
+  final int Function() currentIndex;
+  final Duration Function() playerDuration;
+  final bool Function() isLyricsActive;
+  final void Function(String path, int durationMillis) cacheSongDuration;
+}
+
+final lyricsControllerDependenciesProvider =
+    Provider<LyricsControllerDependencies>((ref) {
       throw UnimplementedError(
-        'lyricsControllerBuilderProvider must be overridden before use',
+        'lyricsControllerDependenciesProvider must be overridden before use',
       );
     });
 
-final lyricsControllerProvider = ChangeNotifierProvider<LyricsController>((
+final lyricsControllerProvider =
+    NotifierProvider<LyricsController, LyricsControllerState>(
+      LyricsController.new,
+    );
+
+final lyricsDisplayLinesProvider = Provider.family<List<LyricLine>, MusicLyric?>(
+  (ref, baseLyrics) {
+    final liveLines = ref.watch(
+      lyricsControllerProvider.select((state) => state.currentLyricsLines),
+    );
+    if (liveLines.isNotEmpty) {
+      return liveLines;
+    }
+    return baseLyrics?.syncedLines ?? const [];
+  },
+);
+
+final lyricsDisplayPlainTextProvider = Provider.family<String, MusicLyric?>((
   ref,
+  baseLyrics,
 ) {
-  final builder = ref.watch(lyricsControllerBuilderProvider);
-  final controller = builder();
-  ref.onDispose(controller.dispose);
-  return controller;
+  final liveText = ref.watch(
+    lyricsControllerProvider.select((state) => state.currentLyricsText),
+  );
+  final normalizedLiveText = liveText.trim();
+  if (normalizedLiveText.isNotEmpty) {
+    return normalizedLiveText;
+  }
+  return baseLyrics?.plainText.trim() ?? '';
 });
 
-final lyricsControllerStateProvider = Provider<LyricsControllerState>((ref) {
-  final controller = ref.watch(lyricsControllerProvider);
-  return LyricsControllerState(
-    isLyricsLoading: controller.isLyricsLoading,
-    isLyricsTranslating: controller.isLyricsTranslating,
-    lyricsTranslationStatus: controller.lyricsTranslationStatus,
-    hasLyrics: controller.hasLyrics,
-    lyricsSearchAttempted: controller.lyricsSearchAttempted,
-    isLyricsSynced: controller.isLyricsSynced,
-    currentLyricsLines: controller.currentLyricsLines,
-    currentLyricsText: controller.currentLyricsText,
-    currentLyricsTitle: controller.currentLyricsTitle,
-    lyricsTranslationLanguageCode: controller.lyricsTranslationLanguageCode,
+final lyricsDisplayLyricsProvider = Provider.family<MusicLyric?, MusicLyric?>((
+  ref,
+  baseLyrics,
+) {
+  final liveText = ref.watch(
+    lyricsControllerProvider.select((state) => state.currentLyricsText),
   );
+  final normalizedLiveText = liveText.trim();
+  if (normalizedLiveText.isEmpty) {
+    return baseLyrics;
+  }
+
+  final displayLines = ref.watch(lyricsDisplayLinesProvider(baseLyrics));
+  return baseLyrics?.copyWith(
+    syncedLines: displayLines,
+    plainText: normalizedLiveText,
+  );
+});
+
+final lyricsHasRenderableContentProvider = Provider.family<bool, MusicLyric?>((
+  ref,
+  baseLyrics,
+) {
+  final hasLyrics = ref.watch(
+    lyricsControllerProvider.select((state) => state.hasLyrics),
+  );
+  if (!hasLyrics) {
+    return false;
+  }
+
+  final displayLines = ref.watch(lyricsDisplayLinesProvider(baseLyrics));
+  if (displayLines.isNotEmpty) {
+    return true;
+  }
+
+  final displayText = ref.watch(lyricsDisplayPlainTextProvider(baseLyrics));
+  return displayText.isNotEmpty;
 });

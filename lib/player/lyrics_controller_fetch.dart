@@ -36,7 +36,6 @@ extension LyricsControllerFetch on LyricsController {
       'queryDuration=$queryDuration playerDuration=${_playerDuration()} '
       'requestId=$requestId',
     );
-    notifyListeners();
 
     try {
       final result = await _lyricsService.fetchBestLyrics(query: query);
@@ -53,16 +52,11 @@ extension LyricsControllerFetch on LyricsController {
       _isLyricsLoading = false;
       _lyricsSearchAttempted = true;
       _hasLyrics = result != null && result.track.hasLyrics;
-      _isLyricsSynced = result?.isSynced ?? false;
       _currentLyricsLines = _buildLyricsLines(
         result?.syncedLines ?? const [],
         result?.lyricsText ?? '',
       );
       _currentLyricsText = result?.lyricsText ?? '';
-      final title = result?.track.displayTitle.trim();
-      _currentLyricsTitle = (title != null && title.isNotEmpty)
-          ? title
-          : _currentMusic()?.displayName;
 
       final updated = _replaceCurrentSongIfPath(
         song.path,
@@ -85,7 +79,7 @@ extension LyricsControllerFetch on LyricsController {
         unawaited(restoreCachedTranslations(updated));
       }
 
-      notifyListeners();
+      _bumpRevision();
       _lyricsService.debugPrintSelection(query, result);
     } catch (e) {
       debugPrint('[LyricsController] Failed to fetch lyrics: $e');
@@ -93,7 +87,6 @@ extension LyricsControllerFetch on LyricsController {
           _currentMusic()?.path == song.path) {
         _isLyricsLoading = false;
         _lyricsSearchAttempted = true;
-        notifyListeners();
       }
     }
   }
@@ -134,15 +127,15 @@ extension LyricsControllerFetch on LyricsController {
     _hasLyrics = false;
     _isLyricsLoading = false;
     _isLyricsTranslating = false;
-    _geminiGeneration.phase = LyricsGenerationPhase.idle;
-    _geminiGeneration.progress = 0.0;
-    _isLyricsSynced = false;
+    _setLyricsGenerating(
+      false,
+      phase: LyricsGenerationPhase.idle,
+      progress: 0.0,
+    );
     _lyricsSearchAttempted = false;
     _currentLyricsLines = const [];
     _currentLyricsText = '';
-    _currentLyricsTitle = _currentMusic()?.displayName;
-
-    notifyListeners();
+    _bumpRevision();
 
     final current = _currentMusic();
     if (_isLyricsActive() && current != null) {
@@ -169,7 +162,7 @@ extension LyricsControllerFetch on LyricsController {
     _lyricsRetrySerial++;
     _clearLyricsStateForPath(song.path);
     _lyricsTranslationStatus = '';
-    notifyListeners();
+    _bumpRevision();
   }
 
   Future<void> clearTranslationCacheForCurrentSong() async {
@@ -189,7 +182,7 @@ extension LyricsControllerFetch on LyricsController {
 
     _clearTranslationStateForPath(song.path);
     _lyricsTranslationStatus = '';
-    notifyListeners();
+    _bumpRevision();
   }
 
   Future<void> requeryLyricsForCurrentSong() async {
@@ -221,7 +214,7 @@ extension LyricsControllerFetch on LyricsController {
       );
     }
 
-    notifyListeners();
+    _bumpRevision();
   }
 
   Future<void> restoreCachedTranslations(MusicFile song) async {
@@ -282,7 +275,7 @@ extension LyricsControllerFetch on LyricsController {
         );
       }
 
-      notifyListeners();
+      _bumpRevision();
     } catch (e) {
       debugPrint('[LyricsController] Failed to restore translated lyrics: $e');
     }

@@ -5,11 +5,9 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 
 import '../models/music_file.dart';
-import '../models/lyric_line.dart';
 import 'audio_snapshot.dart';
 import 'metadata_database.dart';
 
@@ -22,8 +20,8 @@ import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
 import 'scanner_service.dart';
 import 'metadata_helper.dart';
-import 'lyrics_generation_phase.dart';
 import 'lyrics_controller.dart';
+import 'lyrics_controller_state.dart';
 import 'lyrics_riverpod.dart';
 
 class AudioService extends ChangeNotifier {
@@ -49,9 +47,9 @@ class AudioService extends ChangeNotifier {
   late final VisualizerOptionsService _visualizerOptions;
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
-  ProviderContainer? _riverpodContainer;
-  ProviderSubscription<LyricsController>? _lyricsControllerSubscription;
   ScannerService? _scannerService;
+  LyricsControllerState Function()? _readLyricsControllerState;
+  LyricsController Function()? _readLyricsController;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -67,24 +65,9 @@ class AudioService extends ChangeNotifier {
   Color? get dynamicEndColor => _dynamicEndColor;
   Map<String, Color> get currentThemeColorsMap => _currentThemeColorsMap;
   bool get isLyricsActive => _isLyricsActive;
-  String get lyricsTranslationLanguageCode =>
-      _lyricsController.lyricsTranslationLanguageCode;
-  bool get isLyricsLoading => _lyricsController.isLyricsLoading;
-  bool get isLyricsTranslating => _lyricsController.isLyricsTranslating;
-  bool get isLyricsGenerating => _lyricsController.isLyricsGenerating;
-  String get lyricsTranslationStatus =>
-      _lyricsController.lyricsTranslationStatus;
-  LyricsGenerationPhase get lyricsGenerationPhase =>
-      _lyricsController.lyricsGenerationPhase;
-  double get lyricsGenerationProgress =>
-      _lyricsController.lyricsGenerationProgress;
-  bool get hasLyrics => _lyricsController.hasLyrics;
-  bool get lyricsSearchAttempted => _lyricsController.lyricsSearchAttempted;
-  bool get isLyricsSynced => _lyricsController.isLyricsSynced;
-  List<LyricLine> get currentLyricsLines =>
-      _lyricsController.currentLyricsLines;
-  String get currentLyricsText => _lyricsController.currentLyricsText;
-  String? get currentLyricsTitle => _lyricsController.currentLyricsTitle;
+  bool get isLyricsLoading => _lyricsState.isLyricsLoading;
+  bool get hasLyrics => _lyricsState.hasLyrics;
+  bool get lyricsSearchAttempted => _lyricsState.lyricsSearchAttempted;
 
   AudioService(this.settingsService) {
     _player = AudioCoreController(
@@ -123,22 +106,16 @@ class AudioService extends ChangeNotifier {
     );
   }
 
-  void attachRiverpodContainer(ProviderContainer container) {
-    final oldSubscription = _lyricsControllerSubscription;
-    final oldContainer = _riverpodContainer;
-    _lyricsControllerSubscription = null;
-    _riverpodContainer = container;
-    oldSubscription?.close();
-    oldContainer?.dispose();
-    _lyricsControllerSubscription = container.listen<LyricsController>(
-      lyricsControllerProvider,
-      (_, next) => notifyListeners(),
-      fireImmediately: false,
-    );
+  void attachLyricsControllerAccess({
+    required LyricsController Function() readController,
+    required LyricsControllerState Function() readState,
+  }) {
+    _readLyricsController = readController;
+    _readLyricsControllerState = readState;
   }
 
-  LyricsController buildLyricsController() {
-    return LyricsController(
+  LyricsControllerDependencies get lyricsControllerDependencies {
+    return LyricsControllerDependencies(
       db: _db,
       currentMusic: () => currentMusic,
       queue: () => _queue,
@@ -150,13 +127,23 @@ class AudioService extends ChangeNotifier {
   }
 
   LyricsController get _lyricsController {
-    final container = _riverpodContainer;
-    if (container == null) {
+    final readController = _readLyricsController;
+    if (readController == null) {
       throw StateError(
-        'Riverpod container is not attached to AudioService yet.',
+        'Lyrics controller access is not attached to AudioService yet.',
       );
     }
-    return container.read(lyricsControllerProvider);
+    return readController();
+  }
+
+  LyricsControllerState get _lyricsState {
+    final readState = _readLyricsControllerState;
+    if (readState == null) {
+      throw StateError(
+        'Lyrics controller state access is not attached to AudioService yet.',
+      );
+    }
+    return readState();
   }
 
   void _initializeMiniPlayerFftStream() {
@@ -491,10 +478,6 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setLyricsTranslationLanguageCode(String languageCode) {
-    _lyricsController.setTranslationLanguageCode(languageCode);
-  }
-
   void moveQueueTrack(int oldIndex, int newIndex) {
     if (oldIndex < 0 ||
         oldIndex >= _queue.length ||
@@ -593,9 +576,6 @@ class AudioService extends ChangeNotifier {
     dynamicStartColor: _dynamicStartColor,
     dynamicEndColor: _dynamicEndColor,
     currentThemeColorsMap: _currentThemeColorsMap,
-    isLyricsGenerating: isLyricsGenerating,
-    lyricsGenerationPhase: lyricsGenerationPhase,
-    lyricsGenerationProgress: lyricsGenerationProgress,
     isLyricsActive: _isLyricsActive,
   );
 
@@ -853,57 +833,6 @@ class AudioService extends ChangeNotifier {
     }
 
     notifyListeners();
-  }
-
-  Future<void> translateLyricsForCurrentSong({String? targetLanguageCode}) =>
-      _lyricsController.translateLyricsForCurrentSong(
-        targetLanguageCode: targetLanguageCode,
-      );
-
-  Future<void> clearLyricsCacheForCurrentSong() =>
-      _lyricsController.clearLyricsCacheForCurrentSong();
-
-  Future<void> clearTranslationCacheForCurrentSong() =>
-      _lyricsController.clearTranslationCacheForCurrentSong();
-
-  Future<void> requeryLyricsForCurrentSong() =>
-      _lyricsController.requeryLyricsForCurrentSong();
-
-  Future<void> updateLyricsTimelineOffsetForCurrentSong(
-    Duration timelineOffset,
-  ) => _lyricsController.updateLyricsTimelineOffsetForCurrentSong(
-    timelineOffset,
-  );
-
-  Future<void> clearAllLyricsCache() => _lyricsController.clearAllLyricsCache();
-
-  Future<void> clearTranslationCache() =>
-      _lyricsController.clearTranslationCache();
-
-  Future<void> generateLyricsForCurrentSong() =>
-      _lyricsController.generateLyricsForCurrentSong();
-
-  Future<void> generateTimelineForCurrentSong() =>
-      _lyricsController.generateTimelineForCurrentSong();
-
-  Future<void> regenerateLyricsForCurrentSong() async {
-    final songPath = currentMusic?.path;
-    if (songPath == null) return;
-
-    await clearLyricsCacheForCurrentSong();
-    if (currentMusic?.path != songPath) return;
-    await generateLyricsForCurrentSong();
-  }
-
-  Future<void> regenerateTimelineForCurrentSong() async {
-    final songPath = currentMusic?.path;
-    if (songPath == null) return;
-
-    if (currentMusic?.lyrics == null && currentLyricsText.trim().isEmpty) {
-      return;
-    }
-
-    await generateTimelineForCurrentSong();
   }
 
   void _cacheSongDuration(String path, int durationMillis) {
@@ -1368,8 +1297,6 @@ class AudioService extends ChangeNotifier {
   @override
   void dispose() {
     _player.removeListener(_handlePlayerChanges);
-    _lyricsControllerSubscription?.close();
-    _riverpodContainer?.dispose();
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();
     _player.dispose();

@@ -3,7 +3,6 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import '../models/music_file.dart';
-import 'lyrics_generation_phase.dart';
 
 class AudioSnapshot {
   static final DeepCollectionEquality _deepEquality = DeepCollectionEquality();
@@ -27,9 +26,6 @@ class AudioSnapshot {
   final Color? dynamicStartColor;
   final Color? dynamicEndColor;
   final Map<String, Color> currentThemeColorsMap;
-  final bool isLyricsGenerating;
-  final LyricsGenerationPhase lyricsGenerationPhase;
-  final double lyricsGenerationProgress;
   final bool isLyricsActive;
   final double progress;
 
@@ -53,9 +49,6 @@ class AudioSnapshot {
     required this.dynamicStartColor,
     required this.dynamicEndColor,
     required Map<String, Color> currentThemeColorsMap,
-    required this.isLyricsGenerating,
-    required this.lyricsGenerationPhase,
-    required this.lyricsGenerationProgress,
     required this.isLyricsActive,
   }) : playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
@@ -87,9 +80,6 @@ class AudioSnapshot {
             isVisualizerEnabled == other.isVisualizerEnabled &&
             dynamicStartColor == other.dynamicStartColor &&
             dynamicEndColor == other.dynamicEndColor &&
-            isLyricsGenerating == other.isLyricsGenerating &&
-            lyricsGenerationPhase == other.lyricsGenerationPhase &&
-            lyricsGenerationProgress == other.lyricsGenerationProgress &&
             isLyricsActive == other.isLyricsActive &&
             _deepEquality.equals(
               currentThemeColorsMap,
@@ -117,9 +107,6 @@ class AudioSnapshot {
     isVisualizerEnabled,
     dynamicStartColor,
     dynamicEndColor,
-    isLyricsGenerating,
-    lyricsGenerationPhase,
-    lyricsGenerationProgress,
     isLyricsActive,
     _deepEquality.hash(currentThemeColorsMap),
   ]);

@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../models/lyric_line.dart';
+import '../utils/language_code_utils.dart';
+import 'lyrics_generation_phase.dart';
 
 part 'lyrics_controller_state.freezed.dart';
 
@@ -14,10 +16,14 @@ abstract class LyricsControllerState with _$LyricsControllerState {
     @Default('') String lyricsTranslationStatus,
     @Default(false) bool hasLyrics,
     @Default(false) bool lyricsSearchAttempted,
-    @Default(false) bool isLyricsSynced,
     @Default(<LyricLine>[]) List<LyricLine> currentLyricsLines,
     @Default('') String currentLyricsText,
-    String? currentLyricsTitle,
-    @Default('zh') String lyricsTranslationLanguageCode,
+    @Default(false) bool isLyricsGenerating,
+    @Default(LyricsGenerationPhase.idle)
+    LyricsGenerationPhase lyricsGenerationPhase,
+    @Default(0.0) double lyricsGenerationProgress,
+    @Default(LanguageCodeUtils.fallbackLanguageCode)
+    String lyricsTranslationLanguageCode,
+    @Default(0) int revision,
   }) = _LyricsControllerState;
 }

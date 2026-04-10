@@ -1,25 +1,27 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_file.dart';
 import '../models/music_lyric.dart';
 import '../models/music_lyric_translation.dart';
+import '../utils/language_code_utils.dart';
 import '../utils/lrc_utils.dart';
 import '../utils/lyrics_id_utils.dart';
-import '../utils/language_code_utils.dart';
 import 'gemini_lyrics_service.dart';
 import 'lyrics_cache_repository.dart';
-import 'lyrics_generation_phase.dart';
 import 'lyrics_controller_state.dart';
+import 'lyrics_generation_phase.dart';
+import 'lyrics_riverpod.dart';
 import 'lyrics_service.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 
 part 'lyrics_controller_fetch.dart';
-part 'lyrics_controller_translation.dart';
 part 'lyrics_controller_generation.dart';
+part 'lyrics_controller_translation.dart';
 part 'lyrics_controller_utils.dart';
 
 typedef _GeminiGenerationInvoker =
@@ -57,47 +59,15 @@ class _LyricsTranslationRequest {
 class _GeminiGenerationRuntime {
   int serial = 0;
   Completer<void>? completer;
-  LyricsGenerationPhase phase = LyricsGenerationPhase.idle;
-  double progress = 0.0;
 
   bool get isGenerating => completer != null;
 
   void start() {
     serial++;
     completer = Completer<void>();
-    phase = LyricsGenerationPhase.uploading;
-    progress = 0.0;
-  }
-
-  void setPhaseFromStage(String stage) {
-    switch (stage) {
-      case 'uploading':
-        phase = LyricsGenerationPhase.uploading;
-        progress = 0.0;
-        break;
-      case 'processing':
-        phase = LyricsGenerationPhase.processing;
-        progress = 1.0;
-        break;
-      case 'generating':
-        phase = LyricsGenerationPhase.generating;
-        progress = 1.0;
-        break;
-      default:
-        phase = LyricsGenerationPhase.idle;
-        progress = 0.0;
-        break;
-    }
-  }
-
-  void setUploadProgress(double value) {
-    phase = LyricsGenerationPhase.uploading;
-    progress = value.clamp(0.0, 1.0);
   }
 
   void finish() {
-    phase = LyricsGenerationPhase.idle;
-    progress = 0.0;
     final currentCompleter = completer;
     if (currentCompleter != null && !currentCompleter.isCompleted) {
       currentCompleter.complete();
@@ -106,133 +76,142 @@ class _GeminiGenerationRuntime {
   }
 }
 
-class LyricsController extends ChangeNotifier {
-  LyricsController({
-    required MetadataDatabase db,
-    required MusicFile? Function() currentMusic,
-    required List<MusicFile> Function() queue,
-    required int Function() currentIndex,
-    required Duration Function() playerDuration,
-    required bool Function() isLyricsActive,
-    required void Function(String path, int durationMillis) cacheSongDuration,
-    LyricsCacheRepository? lyricsCacheRepository,
-    LyricsService? lyricsService,
-    GeminiLyricsService? geminiLyricsService,
-  }) : _db = db,
-       _currentMusic = currentMusic,
-       _queue = queue,
-       _currentIndex = currentIndex,
-       _playerDuration = playerDuration,
-       _isLyricsActive = isLyricsActive,
-       _cacheSongDuration = cacheSongDuration,
-       _lyricsCacheRepository =
-           lyricsCacheRepository ?? LyricsCacheRepository(db: db),
-       _lyricsService =
-           lyricsService ??
-           LyricsService(
-             db: db,
-             cacheRepository:
-                 lyricsCacheRepository ?? LyricsCacheRepository(db: db),
-           ),
-       _geminiLyricsService = geminiLyricsService ?? GeminiLyricsService();
-
-  final MetadataDatabase _db;
-  final MusicFile? Function() _currentMusic;
-  final List<MusicFile> Function() _queue;
-  final int Function() _currentIndex;
-  final Duration Function() _playerDuration;
-  final bool Function() _isLyricsActive;
-  final void Function(String path, int durationMillis) _cacheSongDuration;
-  final LyricsCacheRepository _lyricsCacheRepository;
-  final LyricsService _lyricsService;
-  final GeminiLyricsService _geminiLyricsService;
+class LyricsController extends Notifier<LyricsControllerState> {
+  late final MetadataDatabase _db;
+  late final MusicFile? Function() _currentMusic;
+  late final List<MusicFile> Function() _queue;
+  late final int Function() _currentIndex;
+  late final Duration Function() _playerDuration;
+  late final bool Function() _isLyricsActive;
+  late final void Function(String path, int durationMillis) _cacheSongDuration;
+  late final LyricsCacheRepository _lyricsCacheRepository;
+  late final LyricsService _lyricsService;
+  late final GeminiLyricsService _geminiLyricsService;
 
   int _lyricsRequestSerial = 0;
   final Set<String> _translatedLyricsKeys = <String>{};
   final Set<String> _translationInFlightKeys = <String>{};
   int _lyricsRetrySerial = 0;
-  LyricsControllerState _state = const LyricsControllerState();
   final _GeminiGenerationRuntime _geminiGeneration = _GeminiGenerationRuntime();
-  String _lyricsTranslationLanguageCode =
-      LanguageCodeUtils.currentSystemLanguageCode();
 
-  bool get isLyricsLoading => _isLyricsLoading;
-  bool get isLyricsTranslating => _isLyricsTranslating;
-  bool get isLyricsGenerating => _geminiGeneration.isGenerating;
-  String get lyricsTranslationStatus => _lyricsTranslationStatus;
-  LyricsGenerationPhase get lyricsGenerationPhase => _geminiGeneration.phase;
-  double get lyricsGenerationProgress => _geminiGeneration.progress;
-  bool get hasLyrics => _hasLyrics;
-  bool get lyricsSearchAttempted => _lyricsSearchAttempted;
-  bool get isLyricsSynced => _isLyricsSynced;
-  List<LyricLine> get currentLyricsLines =>
-      List<LyricLine>.unmodifiable(_state.currentLyricsLines);
-  String get currentLyricsText => _state.currentLyricsText;
-  String? get currentLyricsTitle => _state.currentLyricsTitle;
-  String get lyricsTranslationLanguageCode => _lyricsTranslationLanguageCode;
+  @override
+  LyricsControllerState build() {
+    final dependencies = ref.watch(lyricsControllerDependenciesProvider);
+    _db = dependencies.db;
+    _currentMusic = dependencies.currentMusic;
+    _queue = dependencies.queue;
+    _currentIndex = dependencies.currentIndex;
+    _playerDuration = dependencies.playerDuration;
+    _isLyricsActive = dependencies.isLyricsActive;
+    _cacheSongDuration = dependencies.cacheSongDuration;
+    _lyricsCacheRepository = LyricsCacheRepository(db: _db);
+    _lyricsService = LyricsService(
+      db: _db,
+      cacheRepository: _lyricsCacheRepository,
+    );
+    _geminiLyricsService = GeminiLyricsService();
+    return LyricsControllerState(
+      lyricsTranslationLanguageCode:
+          LanguageCodeUtils.currentSystemLanguageCode(),
+    );
+  }
 
-  bool get _isLyricsLoading => _state.isLyricsLoading;
+  bool get _isLyricsLoading => state.isLyricsLoading;
   set _isLyricsLoading(bool value) {
-    _state = _state.copyWith(isLyricsLoading: value);
+    state = state.copyWith(isLyricsLoading: value);
   }
 
-  bool get _isLyricsTranslating => _state.isLyricsTranslating;
+  bool get _isLyricsTranslating => state.isLyricsTranslating;
   set _isLyricsTranslating(bool value) {
-    _state = _state.copyWith(isLyricsTranslating: value);
+    state = state.copyWith(isLyricsTranslating: value);
   }
 
-  String get _lyricsTranslationStatus => _state.lyricsTranslationStatus;
   set _lyricsTranslationStatus(String value) {
-    _state = _state.copyWith(lyricsTranslationStatus: value);
+    state = state.copyWith(lyricsTranslationStatus: value);
   }
 
-  bool get _hasLyrics => _state.hasLyrics;
+  bool get _hasLyrics => state.hasLyrics;
   set _hasLyrics(bool value) {
-    _state = _state.copyWith(hasLyrics: value);
+    state = state.copyWith(hasLyrics: value);
   }
 
-  bool get _lyricsSearchAttempted => _state.lyricsSearchAttempted;
+  bool get _lyricsSearchAttempted => state.lyricsSearchAttempted;
   set _lyricsSearchAttempted(bool value) {
-    _state = _state.copyWith(lyricsSearchAttempted: value);
+    state = state.copyWith(lyricsSearchAttempted: value);
   }
 
-  bool get _isLyricsSynced => _state.isLyricsSynced;
-  set _isLyricsSynced(bool value) {
-    _state = _state.copyWith(isLyricsSynced: value);
-  }
-
-  List<LyricLine> get _currentLyricsLines => _state.currentLyricsLines;
+  List<LyricLine> get _currentLyricsLines => state.currentLyricsLines;
   set _currentLyricsLines(List<LyricLine> value) {
-    _state = _state.copyWith(currentLyricsLines: value);
+    state = state.copyWith(currentLyricsLines: value);
   }
 
-  String get _currentLyricsText => _state.currentLyricsText;
+  String get _currentLyricsText => state.currentLyricsText;
   set _currentLyricsText(String value) {
-    _state = _state.copyWith(currentLyricsText: value);
+    state = state.copyWith(currentLyricsText: value);
   }
 
-  set _currentLyricsTitle(String? value) {
-    _state = _state.copyWith(currentLyricsTitle: value);
+  void _setLyricsGenerating(
+    bool value, {
+    LyricsGenerationPhase? phase,
+    double? progress,
+  }) {
+    state = state.copyWith(
+      isLyricsGenerating: value,
+      lyricsGenerationPhase: phase ?? state.lyricsGenerationPhase,
+      lyricsGenerationProgress: progress ?? state.lyricsGenerationProgress,
+    );
+  }
+
+  void _setGenerationStage(String stage) {
+    switch (stage) {
+      case 'uploading':
+        _setLyricsGenerating(
+          true,
+          phase: LyricsGenerationPhase.uploading,
+          progress: 0.0,
+        );
+        return;
+      case 'processing':
+        _setLyricsGenerating(
+          true,
+          phase: LyricsGenerationPhase.processing,
+          progress: 1.0,
+        );
+        return;
+      case 'generating':
+        _setLyricsGenerating(
+          true,
+          phase: LyricsGenerationPhase.generating,
+          progress: 1.0,
+        );
+        return;
+      default:
+        _setLyricsGenerating(
+          false,
+          phase: LyricsGenerationPhase.idle,
+          progress: 0.0,
+        );
+    }
+  }
+
+  void _bumpRevision() {
+    state = state.copyWith(revision: state.revision + 1);
   }
 
   void setTranslationLanguageCode(String languageCode) {
     final normalized = LanguageCodeUtils.normalizeLanguageCode(languageCode);
-    if (normalized.isEmpty || normalized == _lyricsTranslationLanguageCode) {
+    if (normalized.isEmpty || normalized == state.lyricsTranslationLanguageCode) {
       return;
     }
-    _lyricsTranslationLanguageCode = normalized;
-    notifyListeners();
+    state = state.copyWith(lyricsTranslationLanguageCode: normalized);
   }
 
   void clearState({bool notify = false}) {
-    _state = const LyricsControllerState();
-    _lyricsTranslationLanguageCode =
-        LanguageCodeUtils.currentSystemLanguageCode();
-    _geminiGeneration.phase = LyricsGenerationPhase.idle;
-    _geminiGeneration.progress = 0.0;
-    if (notify) {
-      notifyListeners();
-    }
+    state = LyricsControllerState(
+      lyricsTranslationLanguageCode:
+          LanguageCodeUtils.currentSystemLanguageCode(),
+      revision: notify ? state.revision + 1 : state.revision,
+    );
   }
 
   void restoreFromSongLyrics(MusicFile song) {
@@ -244,15 +223,14 @@ class LyricsController extends ChangeNotifier {
 
     _hasLyrics = true;
     _isLyricsLoading = false;
-    _isLyricsSynced = songLyrics.isSynced;
     _currentLyricsLines = songLyrics.syncedLines;
     _currentLyricsText = songLyrics.plainText;
-    _currentLyricsTitle = song.displayName;
     _lyricsSearchAttempted = true;
     unawaited(restoreCachedTranslations(song));
     _logDebug(
       'lyrics restored from cache -> title="${song.displayName}" '
       'lines=${songLyrics.syncedLines.length} synced=${songLyrics.isSynced}',
     );
+    _bumpRevision();
   }
 }

@@ -2,64 +2,32 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
+import '../player/lyrics_controller.dart';
+import '../player/lyrics_controller_state.dart';
 import '../player/lyrics_generation_phase.dart';
+import '../player/lyrics_riverpod.dart';
 
-class LyricsPanel extends StatefulWidget {
+class LyricsPanel extends rpod.ConsumerStatefulWidget {
   const LyricsPanel({
     super.key,
-    required this.lines,
     required this.lyrics,
     required this.position,
-    required this.isLoading,
-    required this.isTranslating,
-    required this.isGeneratingLyrics,
-    required this.lyricsTranslationStatus,
-    required this.lyricsGenerationPhase,
-    required this.lyricsGenerationProgress,
-    required this.hasLyrics,
-    required this.lyricsSearchAttempted,
-    required this.plainLyrics,
-    required this.translationLanguageCode,
-    this.onTranslateLyrics,
-    this.onGenerateLyrics,
-    this.onGenerateTimeline,
-    this.onClearLyricsCache,
-    this.onClearTranslationCache,
-    this.onRequeryLyrics,
-    this.onAdjustTimelineOffset,
     this.accentColor,
   });
 
-  final List<LyricLine> lines;
   final MusicLyric? lyrics;
   final Duration position;
-  final bool isLoading;
-  final bool isTranslating;
-  final bool isGeneratingLyrics;
-  final String lyricsTranslationStatus;
-  final LyricsGenerationPhase lyricsGenerationPhase;
-  final double lyricsGenerationProgress;
-  final bool hasLyrics;
-  final bool lyricsSearchAttempted;
-  final String plainLyrics;
-  final String translationLanguageCode;
-  final VoidCallback? onTranslateLyrics;
-  final VoidCallback? onGenerateLyrics;
-  final VoidCallback? onGenerateTimeline;
-  final VoidCallback? onClearLyricsCache;
-  final VoidCallback? onClearTranslationCache;
-  final Future<void> Function()? onRequeryLyrics;
-  final Future<void> Function(Duration timelineOffset)? onAdjustTimelineOffset;
   final Color? accentColor;
 
   @override
-  State<LyricsPanel> createState() => _LyricsPanelState();
+  rpod.ConsumerState<LyricsPanel> createState() => _LyricsPanelState();
 }
 
-class _LyricsPanelState extends State<LyricsPanel> {
+class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   static const double _itemExtent = 72.0;
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
@@ -69,16 +37,26 @@ class _LyricsPanelState extends State<LyricsPanel> {
   bool _isAutoScrollPaused = false;
   double _timelineOffsetSeconds = 0.0;
 
+  LyricsController get _lyricsControllerActions =>
+      ref.read(lyricsControllerProvider.notifier);
+
+  List<LyricLine> _displayLinesForCurrentLyrics() {
+    return ref.read(lyricsDisplayLinesProvider(widget.lyrics));
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
   }
 
-  Widget _buildTranslationIndicator(Color accent) {
-    if (!widget.isTranslating) return const SizedBox.shrink();
+  Widget _buildTranslationIndicator(
+    Color accent,
+    LyricsControllerState lyricsState,
+  ) {
+    if (!lyricsState.isLyricsTranslating) return const SizedBox.shrink();
 
-    final status = widget.lyricsTranslationStatus.trim();
+    final status = lyricsState.lyricsTranslationStatus.trim();
     return Positioned(
       top: 12,
       right: 12,
@@ -157,6 +135,8 @@ class _LyricsPanelState extends State<LyricsPanel> {
   Future<void> _showContextMenu(
     BuildContext context,
     Offset globalPosition, {
+    required LyricsControllerState lyricsState,
+    required List<LyricLine> displayLines,
     bool requeryOnly = false,
   }) async {
     final overlay =
@@ -164,30 +144,30 @@ class _LyricsPanelState extends State<LyricsPanel> {
     if (overlay == null) return;
 
     final items = <PopupMenuEntry<String>>[
-      if (widget.onGenerateLyrics != null)
+      if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate',
-          enabled: !widget.isGeneratingLyrics,
+          enabled: !lyricsState.isLyricsGenerating,
           child: Text(_buildGenerateMenuLabel()),
         ),
-      if (widget.onGenerateTimeline != null)
+      if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate_timeline',
-          enabled: !widget.isGeneratingLyrics,
+          enabled: !lyricsState.isLyricsGenerating,
           child: Text(_buildGenerateTimelineMenuLabel()),
         ),
       if (!requeryOnly &&
-          _hasTimedLyrics &&
-          widget.onAdjustTimelineOffset != null)
+          _hasTimedLyrics(displayLines) &&
+          lyricsState.hasLyrics)
         const PopupMenuDivider(),
       if (!requeryOnly &&
-          _hasTimedLyrics &&
-          widget.onAdjustTimelineOffset != null)
+          _hasTimedLyrics(displayLines) &&
+          lyricsState.hasLyrics)
         const PopupMenuItem<String>(
           value: 'adjust_timeline',
           child: Text('手动调整时间轴'),
         ),
-      if (!requeryOnly && _hasTimedLyrics)
+      if (!requeryOnly && _hasTimedLyrics(displayLines))
         PopupMenuItem<String>(
           value: 'toggle_auto_scroll',
           child: Text(_isAutoScrollPaused ? '恢复自动滚动' : '暂停自动滚动'),
@@ -195,25 +175,25 @@ class _LyricsPanelState extends State<LyricsPanel> {
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'translate',
-          enabled: widget.onTranslateLyrics != null && !widget.isTranslating,
+          enabled: !lyricsState.isLyricsTranslating,
           child: const Text('翻译歌词'),
         ),
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'clear_lyrics_cache',
-          enabled: widget.onClearLyricsCache != null,
+          enabled: lyricsState.hasLyrics,
           child: const Text('清除当前歌词缓存'),
         ),
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'clear_translation_cache',
-          enabled: widget.onClearTranslationCache != null,
+          enabled: lyricsState.hasLyrics,
           child: const Text('清除当前翻译缓存'),
         ),
       if (requeryOnly)
         PopupMenuItem<String>(
           value: 'requery',
-          enabled: widget.onRequeryLyrics != null,
+          enabled: lyricsState.hasLyrics,
           child: const Text('重新查询'),
         ),
     ];
@@ -237,29 +217,27 @@ class _LyricsPanelState extends State<LyricsPanel> {
         _scheduleScrollIfNeeded(force: true);
       }
     } else if (selected == 'generate') {
-      await Future<void>.microtask(() => widget.onGenerateLyrics?.call());
+      await _lyricsControllerActions.regenerateLyricsForCurrentSong();
     } else if (selected == 'generate_timeline') {
-      await Future<void>.microtask(() => widget.onGenerateTimeline?.call());
+      await _lyricsControllerActions.generateTimelineForCurrentSong();
     } else if (selected == 'translate') {
-      await Future<void>.microtask(() => widget.onTranslateLyrics?.call());
+      await _lyricsControllerActions.translateLyricsForCurrentSong();
     } else if (selected == 'clear_lyrics_cache') {
-      await Future<void>.microtask(() => widget.onClearLyricsCache?.call());
+      await _lyricsControllerActions.clearLyricsCacheForCurrentSong();
     } else if (selected == 'clear_translation_cache') {
-      await Future<void>.microtask(
-        () => widget.onClearTranslationCache?.call(),
-      );
+      await _lyricsControllerActions.clearTranslationCacheForCurrentSong();
     } else if (selected == 'requery') {
-      await widget.onRequeryLyrics?.call();
+      await _lyricsControllerActions.requeryLyricsForCurrentSong();
     } else if (selected == 'adjust_timeline') {
-      await _showTimelineAdjustmentPanel();
+      await _showTimelineAdjustmentPanel(displayLines);
     }
   }
 
-  String _buildGenerateButtonLabel() {
-    final progress = widget.lyricsGenerationProgress.clamp(0.0, 1.0);
+  String _buildGenerateButtonLabel(LyricsControllerState lyricsState) {
+    final progress = lyricsState.lyricsGenerationProgress.clamp(0.0, 1.0);
     final percent = (progress * 100).round();
 
-    switch (widget.lyricsGenerationPhase) {
+    switch (lyricsState.lyricsGenerationPhase) {
       case LyricsGenerationPhase.uploading:
         return '上传中 $percent%';
       case LyricsGenerationPhase.processing:
@@ -270,15 +248,19 @@ class _LyricsPanelState extends State<LyricsPanel> {
         break;
     }
 
-    return widget.isGeneratingLyrics ? '生成中...' : '生成歌词';
+    return lyricsState.isLyricsGenerating ? '生成中...' : '生成歌词';
   }
 
-  void _scheduleScrollIfNeeded({bool force = false}) {
-    if (widget.lines.isEmpty || !_hasTimedLyrics || _isAutoScrollPaused) {
+  void _scheduleScrollIfNeeded({
+    bool force = false,
+    List<LyricLine>? displayLines,
+  }) {
+    final lines = displayLines ?? _displayLinesForCurrentLyrics();
+    if (lines.isEmpty || !_hasTimedLyrics(lines) || _isAutoScrollPaused) {
       return;
     }
 
-    final activeIndex = _activeLineIndex();
+    final activeIndex = _activeLineIndex(lines);
     if (!force && activeIndex == _lastActiveIndex) return;
     _lastActiveIndex = activeIndex;
 
@@ -301,17 +283,17 @@ class _LyricsPanelState extends State<LyricsPanel> {
     });
   }
 
-  int _activeLineIndex() {
-    if (widget.lines.isEmpty || !_hasTimedLyrics) return -1;
+  int _activeLineIndex(List<LyricLine> displayLines) {
+    if (displayLines.isEmpty || !_hasTimedLyrics(displayLines)) return -1;
 
     final current = _adjustedPositionMilliseconds;
     int low = 0;
-    int high = widget.lines.length - 1;
+    int high = displayLines.length - 1;
     int answer = 0;
 
     while (low <= high) {
       final mid = (low + high) >> 1;
-      final midMs = widget.lines[mid].timestamp.inMilliseconds;
+      final midMs = displayLines[mid].timestamp.inMilliseconds;
       if (midMs <= current) {
         answer = mid;
         low = mid + 1;
@@ -323,8 +305,8 @@ class _LyricsPanelState extends State<LyricsPanel> {
     return answer;
   }
 
-  bool get _hasTimedLyrics {
-    return widget.lines.any((line) => line.isTimed);
+  bool _hasTimedLyrics(List<LyricLine> displayLines) {
+    return displayLines.any((line) => line.isTimed);
   }
 
   int get _adjustedPositionMilliseconds {
@@ -358,9 +340,10 @@ class _LyricsPanelState extends State<LyricsPanel> {
     return '当前偏移：$direction ${normalized.abs().toStringAsFixed(1)} 秒';
   }
 
-  Future<void> _showTimelineAdjustmentPanel() async {
-    final onAdjustTimelineOffset = widget.onAdjustTimelineOffset;
-    if (onAdjustTimelineOffset == null || !_hasTimedLyrics) return;
+  Future<void> _showTimelineAdjustmentPanel(
+    List<LyricLine> displayLines,
+  ) async {
+    if (!_hasTimedLyrics(displayLines)) return;
 
     final theme = Theme.of(context);
     final initialValue = _normalizeTimelineOffsetSeconds(
@@ -377,7 +360,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
           _timelineOffsetSeconds = normalized;
         });
       }
-      await onAdjustTimelineOffset(
+      await _lyricsControllerActions.updateLyricsTimelineOffsetForCurrentSong(
         Duration(milliseconds: (normalized * 1000).round()),
       );
     }
@@ -488,31 +471,38 @@ class _LyricsPanelState extends State<LyricsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final lyricsState = ref.watch(lyricsControllerProvider);
+    final displayLines = ref.watch(lyricsDisplayLinesProvider(widget.lyrics));
+    final displayPlainLyrics = ref.watch(
+      lyricsDisplayPlainTextProvider(widget.lyrics),
+    );
+    final displayLyrics = ref.watch(lyricsDisplayLyricsProvider(widget.lyrics));
+    final hasRenderableLyrics = ref.watch(
+      lyricsHasRenderableContentProvider(widget.lyrics),
+    );
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
-    final hasRenderableLyrics =
-        widget.hasLyrics &&
-        (widget.lines.isNotEmpty || widget.plainLyrics.trim().isNotEmpty);
+    final lyrics = displayLyrics;
+    final hasTimedLyrics = _hasTimedLyrics(displayLines);
 
-    if (widget.isLoading) {
+    if (lyricsState.isLyricsLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (!hasRenderableLyrics) {
       // 只有在已经尝试过联网找歌词、但仍然没有结果时，才显示“生成歌词”按钮。
       // 这样避免用户在歌词还在加载中时误以为可以直接生成。
-      final canGenerateLyrics =
-          widget.lyricsSearchAttempted && widget.onGenerateLyrics != null;
+      final canGenerateLyrics = lyricsState.lyricsSearchAttempted;
       return GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onSecondaryTapDown: widget.onRequeryLyrics == null
-            ? null
-            : (details) {
-                _showContextMenu(
-                  context,
-                  details.globalPosition,
-                  requeryOnly: true,
-                );
-              },
+        onSecondaryTapDown: (details) {
+          _showContextMenu(
+            context,
+            details.globalPosition,
+            lyricsState: lyricsState,
+            displayLines: displayLines,
+            requeryOnly: true,
+          );
+        },
         child: Stack(
           children: [
             Center(
@@ -533,16 +523,19 @@ class _LyricsPanelState extends State<LyricsPanel> {
                       SizedBox(
                         height: 42,
                         child: FilledButton.icon(
-                          // 点击后只触发外部传入的回调，真正的生成流程由 AudioService 处理。
-                          onPressed: widget.isGeneratingLyrics
+                          // 这里直接调 controller，避免再经由 AudioService 兜一层。
+                          onPressed: lyricsState.isLyricsGenerating
                               ? null
-                              : widget.onGenerateLyrics,
+                              : () async {
+                                  await _lyricsControllerActions
+                                      .regenerateLyricsForCurrentSong();
+                                },
                           style: FilledButton.styleFrom(
                             backgroundColor: accent.withValues(alpha: 0.95),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 18),
                           ),
-                          icon: widget.isGeneratingLyrics
+                          icon: lyricsState.isLyricsGenerating
                               ? SizedBox(
                                   width: 16,
                                   height: 16,
@@ -552,7 +545,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
                                   ),
                                 )
                               : const Icon(Icons.auto_awesome, size: 18),
-                          label: Text(_buildGenerateButtonLabel()),
+                          label: Text(_buildGenerateButtonLabel(lyricsState)),
                         ),
                       ),
                     ],
@@ -560,17 +553,23 @@ class _LyricsPanelState extends State<LyricsPanel> {
                 ),
               ),
             ),
-            if (widget.isTranslating) _buildTranslationIndicator(accent),
+            if (lyricsState.isLyricsTranslating)
+              _buildTranslationIndicator(accent, lyricsState),
           ],
         ),
       );
     }
 
-    if (widget.lines.isEmpty) {
+    if (displayLines.isEmpty) {
       return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onSecondaryTapDown: (details) {
-          _showContextMenu(context, details.globalPosition);
+          _showContextMenu(
+            context,
+            details.globalPosition,
+            lyricsState: lyricsState,
+            displayLines: displayLines,
+          );
         },
         child: Stack(
           children: [
@@ -588,7 +587,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SelectableText(
-                      widget.plainLyrics,
+                      displayPlainLyrics,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.92),
@@ -600,18 +599,24 @@ class _LyricsPanelState extends State<LyricsPanel> {
                 ),
               ),
             ),
-            if (widget.isTranslating) _buildTranslationIndicator(accent),
+            if (lyricsState.isLyricsTranslating)
+              _buildTranslationIndicator(accent, lyricsState),
           ],
         ),
       );
     }
 
-    _scheduleScrollIfNeeded();
+    _scheduleScrollIfNeeded(displayLines: displayLines);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onSecondaryTapDown: (details) {
-        _showContextMenu(context, details.globalPosition);
+        _showContextMenu(
+          context,
+          details.globalPosition,
+          lyricsState: lyricsState,
+          displayLines: displayLines,
+        );
       },
       child: Stack(
         children: [
@@ -624,21 +629,21 @@ class _LyricsPanelState extends State<LyricsPanel> {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 32),
               itemExtent: _itemExtent,
-              itemCount: widget.lines.length,
+              itemCount: displayLines.length,
               itemBuilder: (context, index) {
-                final line = widget.lines[index];
+                final line = displayLines[index];
                 final translated =
-                    widget.lyrics
+                    lyrics
                         ?.translatedLineAt(
                           index,
-                          widget.translationLanguageCode,
+                          lyricsState.lyricsTranslationLanguageCode,
                         )
                         .trim() ??
                     '';
-                final activeIndex = _activeLineIndex();
+                final activeIndex = _activeLineIndex(displayLines);
                 final distance = (index - activeIndex).abs();
-                final isActive = _hasTimedLyrics && index == activeIndex;
-                final isNear = _hasTimedLyrics && distance <= 1;
+                final isActive = hasTimedLyrics && index == activeIndex;
+                final isNear = hasTimedLyrics && distance <= 1;
 
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
@@ -719,7 +724,8 @@ class _LyricsPanelState extends State<LyricsPanel> {
               },
             ),
           ),
-          if (widget.isTranslating) _buildTranslationIndicator(accent),
+          if (lyricsState.isLyricsTranslating)
+            _buildTranslationIndicator(accent, lyricsState),
         ],
       ),
     );

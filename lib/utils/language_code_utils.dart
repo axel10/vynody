@@ -1,10 +1,12 @@
 import 'dart:ui';
 
 class LanguageCodeUtils {
+  static const String fallbackLanguageCode = 'en';
+
   static String currentSystemLanguageCode() {
     final locale = PlatformDispatcher.instance.locale;
     final normalized = normalizeLanguageCode(_localeToRawCode(locale));
-    return normalized.isEmpty ? 'en' : normalized;
+    return normalized.isEmpty ? fallbackLanguageCode : normalized;
   }
 
   static String normalizeLanguageCode(String? languageCode) {

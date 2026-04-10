@@ -10,18 +10,18 @@ extension LyricsControllerTranslation on LyricsController {
     if (song == null || _isLyricsTranslating) return;
 
     final normalizedLanguageCode = LanguageCodeUtils.normalizeLanguageCode(
-      targetLanguageCode ?? _lyricsTranslationLanguageCode,
+      targetLanguageCode ?? state.lyricsTranslationLanguageCode,
     );
     if (normalizedLanguageCode.isEmpty) return;
-    if (_lyricsTranslationLanguageCode != normalizedLanguageCode) {
-      _lyricsTranslationLanguageCode = normalizedLanguageCode;
-      notifyListeners();
+    if (state.lyricsTranslationLanguageCode != normalizedLanguageCode) {
+      state = state.copyWith(
+        lyricsTranslationLanguageCode: normalizedLanguageCode,
+      );
     }
 
     if (_geminiGeneration.isGenerating && _currentMusic()?.path == song.path) {
       _isLyricsTranslating = true;
       _lyricsTranslationStatus = '等待歌词生成完毕';
-      notifyListeners();
       await _waitForLyricsGenerationToFinish(song.path);
     }
 
@@ -43,7 +43,6 @@ extension LyricsControllerTranslation on LyricsController {
     } finally {
       _isLyricsTranslating = false;
       _lyricsTranslationStatus = '';
-      notifyListeners();
     }
   }
 
@@ -97,7 +96,6 @@ extension LyricsControllerTranslation on LyricsController {
     _translationInFlightKeys.add(request.translationKey);
     _isLyricsTranslating = true;
     _lyricsTranslationStatus = '正在处理';
-    notifyListeners();
 
     try {
       final success = await _geminiLyricsService.translateLyricsStream(
@@ -169,7 +167,7 @@ extension LyricsControllerTranslation on LyricsController {
     });
 
     if (updatedSong == null) return;
-    notifyListeners();
+    _bumpRevision();
   }
 
   Future<void> _waitForLyricsGenerationToFinish(String songPath) async {

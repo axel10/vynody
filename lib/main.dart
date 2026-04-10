@@ -39,7 +39,7 @@ void handleFileOpen(List<String> args) {
     // 处理路径中可能的双引号和两端空格
     final path = arg.replaceAll('"', '').trim();
     if (path.isEmpty) continue;
-    
+
     // 检查文件是否存在
     if (File(path).existsSync()) {
       final ext = p.extension(path).toLowerCase();
@@ -48,10 +48,10 @@ void handleFileOpen(List<String> args) {
         // 将文件添加到播放队列并开始播放
         // append: true 表示将其添加到队列末尾并切换到该歌曲播放
         audio.playFile(path, p.basename(path), append: true);
-        
+
         // 自动跳转到播放详情界面（索引为1的 Tab）
         navigateToMainTab(context, index: 1);
-        
+
         // 逻辑：匹配到第一个支持的文件即处理并跳出，避免一次打开大量文件导致界面混乱
         break;
       }
@@ -95,14 +95,19 @@ void main(List<String> args) async {
 
   final settingsService = await SettingsService.init();
   final audioService = AudioService(settingsService);
+  final lyricsDependencies = audioService.lyricsControllerDependencies;
   final riverpodContainer = ProviderContainer(
     overrides: [
-      lyricsControllerBuilderProvider.overrideWithValue(
-        audioService.buildLyricsController,
+      lyricsControllerDependenciesProvider.overrideWithValue(
+        lyricsDependencies,
       ),
     ],
   );
-  audioService.attachRiverpodContainer(riverpodContainer);
+  audioService.attachLyricsControllerAccess(
+    readController: () =>
+        riverpodContainer.read(lyricsControllerProvider.notifier),
+    readState: () => riverpodContainer.read(lyricsControllerProvider),
+  );
 
   runApp(
     MultiProvider(

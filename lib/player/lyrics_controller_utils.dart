@@ -94,7 +94,7 @@ extension LyricsControllerUtils on LyricsController {
     );
     if (updatedSong == null) return;
 
-    notifyListeners();
+    _bumpRevision();
     await _saveLyricsCacheForSong(updatedSong);
   }
 

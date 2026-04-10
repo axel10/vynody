@@ -6,7 +6,11 @@ extension LyricsControllerGeneration on LyricsController {
   _GeminiGenerationSession _beginGeminiGeneration(MusicFile song) {
     _geminiGeneration.start();
     _isLyricsLoading = false;
-    notifyListeners();
+    _setLyricsGenerating(
+      true,
+      phase: LyricsGenerationPhase.uploading,
+      progress: 0.0,
+    );
 
     return _GeminiGenerationSession(
       id: _geminiGeneration.serial,
@@ -25,8 +29,7 @@ extension LyricsControllerGeneration on LyricsController {
   ) {
     if (!_isActiveGeminiGeneration(session)) return;
 
-    _geminiGeneration.setPhaseFromStage(stage);
-    notifyListeners();
+    _setGenerationStage(stage);
   }
 
   MusicLyric _buildGeneratedLyrics({
@@ -59,13 +62,14 @@ extension LyricsControllerGeneration on LyricsController {
 
     _hasLyrics = true;
     _isLyricsLoading = false;
-    _geminiGeneration.phase = LyricsGenerationPhase.generating;
-    _geminiGeneration.progress = 1.0;
-    _isLyricsSynced = lyrics.syncedLines.any((line) => line.isTimed);
+    _setLyricsGenerating(
+      true,
+      phase: LyricsGenerationPhase.generating,
+      progress: 1.0,
+    );
     _lyricsSearchAttempted = true;
     _currentLyricsLines = lyrics.syncedLines;
     _currentLyricsText = lyrics.plainText;
-    _currentLyricsTitle = song.displayName;
 
     final updated = _replaceCurrentSongIfPath(
       song.path,
@@ -75,14 +79,18 @@ extension LyricsControllerGeneration on LyricsController {
       unawaited(restoreCachedTranslations(updated));
     }
 
-    notifyListeners();
+    _bumpRevision();
   }
 
   void _finalizeGeminiGeneration(_GeminiGenerationSession session) {
     if (session.id != _geminiGeneration.serial) return;
 
     _geminiGeneration.finish();
-    notifyListeners();
+    _setLyricsGenerating(
+      false,
+      phase: LyricsGenerationPhase.idle,
+      progress: 0.0,
+    );
   }
 
   Future<void> _runGeminiGeneration({
@@ -99,8 +107,11 @@ extension LyricsControllerGeneration on LyricsController {
             return;
           }
 
-          _geminiGeneration.setUploadProgress(progress);
-          notifyListeners();
+          _setLyricsGenerating(
+            true,
+            phase: LyricsGenerationPhase.uploading,
+            progress: progress.clamp(0.0, 1.0),
+          );
         },
         onStageChanged: (stage) {
           _updateGeminiGenerationStage(session, stage);

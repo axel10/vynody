@@ -5,15 +5,11 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
 import '../l10n/app_localizations.dart';
 import '../player/audio_snapshot.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../player/playlist_service.dart';
-import '../player/lyrics_riverpod.dart';
-import '../models/music_lyric.dart';
-import '../models/music_lyric_translation.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
 import '../widgets/cover_carousel.dart';
@@ -920,65 +916,18 @@ class PlaybackHeroCard extends StatelessWidget {
     final AudioSnapshot snapshot = context.select(
       (AudioService a) => a.snapshot,
     );
-    return rpod.Consumer(
-      builder: (context, ref, child) {
-        final lyricsState = ref.watch(lyricsControllerStateProvider);
-        final accent =
-            snapshot.currentThemeColorsMap['darkVibrant'] ??
-            snapshot.currentThemeColorsMap['darkMuted'] ??
-            Colors.white;
-        final currentLyrics = snapshot.currentMusic?.lyrics;
-        final lyrics = lyricsState.currentLyricsText.trim().isNotEmpty
-            ? MusicLyric(
-                id: currentLyrics?.id ?? '',
-                syncedLines: lyricsState.currentLyricsLines,
-                plainText: lyricsState.currentLyricsText.trim(),
-                translations:
-                    currentLyrics?.translations ??
-                    const <String, MusicLyricTranslation>{},
-                source: currentLyrics?.source ?? '',
-                timelineOffset: currentLyrics?.timelineOffset ?? Duration.zero,
-              )
-            : currentLyrics;
+    final accent =
+        snapshot.currentThemeColorsMap['darkVibrant'] ??
+        snapshot.currentThemeColorsMap['darkMuted'] ??
+        Colors.white;
 
-        return LyricsPanel(
-          key: ValueKey(
-            '${snapshot.currentIndex}:${snapshot.currentMusic?.path ?? 'no-track'}',
-          ),
-          lines: lyrics?.syncedLines ?? const [],
-          lyrics: lyrics,
-          position: snapshot.position,
-          isLoading: lyricsState.isLyricsLoading,
-          isTranslating: lyricsState.isLyricsTranslating,
-          isGeneratingLyrics: snapshot.isLyricsGenerating,
-          lyricsTranslationStatus: lyricsState.lyricsTranslationStatus,
-          lyricsGenerationPhase: snapshot.lyricsGenerationPhase,
-          lyricsGenerationProgress: snapshot.lyricsGenerationProgress,
-          hasLyrics: lyricsState.hasLyrics,
-          lyricsSearchAttempted: lyricsState.lyricsSearchAttempted,
-          plainLyrics: lyrics?.plainText ?? '',
-          translationLanguageCode:
-              lyricsState.lyricsTranslationLanguageCode,
-          // 面板里的“生成歌词”按钮最终会回调到 AudioService，
-          // 这样 UI 只负责展示状态，具体生成逻辑统一放在播放器服务层。
-          onTranslateLyrics: () =>
-              context.read<AudioService>().translateLyricsForCurrentSong(),
-          onGenerateLyrics: () =>
-              context.read<AudioService>().regenerateLyricsForCurrentSong(),
-          onGenerateTimeline: () =>
-              context.read<AudioService>().regenerateTimelineForCurrentSong(),
-          onClearLyricsCache: () =>
-              context.read<AudioService>().clearLyricsCacheForCurrentSong(),
-          onClearTranslationCache: () =>
-              context.read<AudioService>().clearTranslationCacheForCurrentSong(),
-          onRequeryLyrics: () =>
-              context.read<AudioService>().requeryLyricsForCurrentSong(),
-          onAdjustTimelineOffset: (timelineOffset) => context
-              .read<AudioService>()
-              .updateLyricsTimelineOffsetForCurrentSong(timelineOffset),
-          accentColor: accent,
-        );
-      },
+    return LyricsPanel(
+      key: ValueKey(
+        '${snapshot.currentIndex}:${snapshot.currentMusic?.path ?? 'no-track'}',
+      ),
+      lyrics: snapshot.currentMusic?.lyrics,
+      position: snapshot.position,
+      accentColor: accent,
     );
   }
 
