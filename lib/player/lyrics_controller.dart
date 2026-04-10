@@ -29,6 +29,24 @@ class _GeminiGenerationSession {
   final String songPath;
 }
 
+class _LyricsTranslationRequest {
+  _LyricsTranslationRequest({
+    required this.songPath,
+    required this.cacheKey,
+    required this.languageCode,
+    required this.sourceLyrics,
+    required this.lyricsId,
+    required this.translationKey,
+  });
+
+  final String songPath;
+  final String cacheKey;
+  final String languageCode;
+  final String sourceLyrics;
+  final String lyricsId;
+  final String translationKey;
+}
+
 class _GeminiGenerationRuntime {
   int serial = 0;
   Completer<void>? completer;
@@ -323,83 +341,113 @@ class LyricsController extends ChangeNotifier {
       await _waitForLyricsGenerationToFinish(song.path);
     }
 
-    String? translationKey;
     try {
       final currentSong = _currentMusic();
       if (currentSong == null || currentSong.path != song.path) return;
 
-      final sourceLyrics = currentSong.lyrics?.syncedLines.isNotEmpty == true
-          ? _lyricsTextWithTimestamps(currentSong.lyrics!)
-          : _currentLyricsText.trim();
+      final sourceLyrics = _lyricsSourceForTranslation(currentSong);
       if (sourceLyrics.isEmpty) return;
 
-      final query = await _buildLyricsQueryForSong(currentSong);
-      if (query == null) return;
-
-      final lyricsId = _lyricsIdForSong(
+      final request = await _buildLyricsTranslationRequest(
         currentSong,
+        normalizedLanguageCode: normalizedLanguageCode,
         sourceLyrics: sourceLyrics,
       );
-      if (lyricsId.isEmpty) return;
+      if (request == null) return;
 
-      final activeTranslationKey = _lyricsTranslationCacheKey(
-        query.cacheKey,
-        normalizedLanguageCode,
-      );
-      translationKey = activeTranslationKey;
-
-      final currentLyrics = currentSong.lyrics;
-      if (currentLyrics != null && !currentLyrics.hasId) {
-        _replaceCurrentSongIfPath(
-          currentSong.path,
-          (queueSong) =>
-              queueSong.copyWith(lyrics: currentLyrics.copyWith(id: lyricsId)),
-        );
-      }
-
-      if (_translationInFlightKeys.contains(activeTranslationKey)) return;
-      if ((currentSong.lyrics ?? currentLyrics)
-              ?.translationFor(normalizedLanguageCode)
-              ?.hasContent ==
-          true) {
-        return;
-      }
-      if (_translatedLyricsKeys.contains(activeTranslationKey)) return;
-
-      _translationInFlightKeys.add(activeTranslationKey);
-      _isLyricsTranslating = true;
-      _lyricsTranslationStatus = '正在处理';
+      await _runLyricsTranslationRequest(request);
+    } finally {
+      _isLyricsTranslating = false;
+      _lyricsTranslationStatus = '';
       notifyListeners();
+    }
+  }
 
+  Future<_LyricsTranslationRequest?> _buildLyricsTranslationRequest(
+    MusicFile song, {
+    required String normalizedLanguageCode,
+    required String sourceLyrics,
+  }) async {
+    final query = await _buildLyricsQueryForSong(song);
+    if (query == null) return null;
+
+    final lyricsId = _lyricsIdForSong(song, sourceLyrics: sourceLyrics);
+    if (lyricsId.isEmpty) return null;
+
+    final translationKey = _lyricsTranslationCacheKey(
+      query.cacheKey,
+      normalizedLanguageCode,
+    );
+
+    final currentLyrics = song.lyrics;
+    if (currentLyrics != null && !currentLyrics.hasId) {
+      _replaceCurrentSongIfPath(
+        song.path,
+        (queueSong) =>
+            queueSong.copyWith(lyrics: currentLyrics.copyWith(id: lyricsId)),
+      );
+    }
+
+    if (_translationInFlightKeys.contains(translationKey)) return null;
+    if (currentLyrics?.translationFor(normalizedLanguageCode)?.hasContent ==
+        true) {
+      return null;
+    }
+    if (_translatedLyricsKeys.contains(translationKey)) return null;
+
+    return _LyricsTranslationRequest(
+      songPath: song.path,
+      cacheKey: query.cacheKey,
+      languageCode: normalizedLanguageCode,
+      sourceLyrics: sourceLyrics,
+      lyricsId: lyricsId,
+      translationKey: translationKey,
+    );
+  }
+
+  Future<void> _runLyricsTranslationRequest(
+    _LyricsTranslationRequest request,
+  ) async {
+    if (_translationInFlightKeys.contains(request.translationKey)) return;
+
+    _translationInFlightKeys.add(request.translationKey);
+    _isLyricsTranslating = true;
+    _lyricsTranslationStatus = '正在处理';
+    notifyListeners();
+
+    try {
       final success = await _geminiLyricsService.translateLyricsStream(
-        lyrics: sourceLyrics,
-        targetLanguageCode: normalizedLanguageCode,
+        lyrics: request.sourceLyrics,
+        targetLanguageCode: request.languageCode,
         onProgress: (translatedLines, translatedText) {
           _syncTranslatedLyricsToCurrentSong(
-            currentSong.path,
-            lyricsId,
-            normalizedLanguageCode,
+            request.songPath,
+            request.lyricsId,
+            request.languageCode,
             translatedLines,
             translatedText,
           );
         },
       );
       if (success) {
-        _translatedLyricsKeys.add(activeTranslationKey);
+        _translatedLyricsKeys.add(request.translationKey);
         await _saveTranslatedLyricsToDatabase(
-          songPath: currentSong.path,
-          cacheKey: query.cacheKey,
-          languageCode: normalizedLanguageCode,
+          songPath: request.songPath,
+          cacheKey: request.cacheKey,
+          languageCode: request.languageCode,
         );
       }
     } finally {
-      if (translationKey != null) {
-        _translationInFlightKeys.remove(translationKey);
-      }
-      _isLyricsTranslating = false;
-      _lyricsTranslationStatus = '';
-      notifyListeners();
+      _translationInFlightKeys.remove(request.translationKey);
     }
+  }
+
+  String _lyricsSourceForTranslation(MusicFile song) {
+    final lyrics = song.lyrics;
+    if (lyrics?.syncedLines.isNotEmpty == true) {
+      return _lyricsTextWithTimestamps(lyrics!);
+    }
+    return _currentLyricsText.trim();
   }
 
   Future<void> clearAllLyricsCache() async {
