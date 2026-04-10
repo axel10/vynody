@@ -76,6 +76,8 @@ dependencies:
   audio_service: ^0.18.18 
   audio_metadata_reader:  ^1.4.2
   detect_proxy_setting: ^0.0.9
+  riverpod: ^3.2.1
+  freezed: ^3.2.5
 
 
 
