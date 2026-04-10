@@ -14,22 +14,18 @@ import 'metadata_database.dart';
 
 part 'lyrics_service.freezed.dart';
 
-class LyricsQuery {
-  final String filePath;
-  final String fileName;
-  final String title;
-  final String? artist;
-  final String? album;
-  final Duration? duration;
+@freezed
+abstract class LyricsQuery with _$LyricsQuery {
+  const LyricsQuery._();
 
-  const LyricsQuery({
-    required this.filePath,
-    required this.fileName,
-    required this.title,
-    this.artist,
-    this.album,
-    this.duration,
-  });
+  const factory LyricsQuery({
+    required String filePath,
+    required String fileName,
+    required String title,
+    String? artist,
+    String? album,
+    Duration? duration,
+  }) = _LyricsQuery;
 
   String get cacheKey {
     final parts = <String>[
@@ -101,22 +97,18 @@ abstract class LyricTrack with _$LyricTrack {
   }
 }
 
-class LyricScoreBreakdown {
-  final double title;
-  final double artist;
-  final double album;
-  final double duration;
-  final double lyricsQuality;
-  final double instrumentalPenalty;
+@freezed
+abstract class LyricScoreBreakdown with _$LyricScoreBreakdown {
+  const LyricScoreBreakdown._();
 
-  const LyricScoreBreakdown({
-    required this.title,
-    required this.artist,
-    required this.album,
-    required this.duration,
-    required this.lyricsQuality,
-    required this.instrumentalPenalty,
-  });
+  const factory LyricScoreBreakdown({
+    required double title,
+    required double artist,
+    required double album,
+    required double duration,
+    required double lyricsQuality,
+    required double instrumentalPenalty,
+  }) = _LyricScoreBreakdown;
 
   double get total =>
       title + artist + album + duration + lyricsQuality + instrumentalPenalty;

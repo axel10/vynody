@@ -200,11 +200,13 @@ class SongTagMatchCoverImage extends StatefulWidget {
 class _SongTagMatchCoverImageState extends State<SongTagMatchCoverImage> {
   bool _isResolving = false;
   bool _hasResolved = false;
+  ResolvedCover? _resolvedCover;
 
   @override
   void initState() {
     super.initState();
-    if (widget.match.resolvedCover == null) {
+    _resolvedCover = widget.match.resolvedCover;
+    if (_resolvedCover == null) {
       _resolve();
     } else {
       _hasResolved = true;
@@ -215,7 +217,7 @@ class _SongTagMatchCoverImageState extends State<SongTagMatchCoverImage> {
     if (_isResolving || !mounted) return;
     setState(() => _isResolving = true);
     try {
-      await widget.service.resolveCover(widget.match);
+      _resolvedCover = await widget.service.resolveCover(widget.match);
     } catch (_) {
       // Keep the fallback icon behavior if cover resolution fails.
     }
@@ -243,7 +245,7 @@ class _SongTagMatchCoverImageState extends State<SongTagMatchCoverImage> {
       );
     }
 
-    final resolvedCover = widget.match.resolvedCover;
+    final resolvedCover = _resolvedCover;
     if (resolvedCover != null && resolvedCover.thumbnailUrl != null) {
       final url = resolvedCover.thumbnailUrl!;
       return Image.network(

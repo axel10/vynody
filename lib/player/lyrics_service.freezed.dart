@@ -12,6 +12,290 @@ part of 'lyrics_service.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
+mixin _$LyricsQuery implements DiagnosticableTreeMixin {
+
+ String get filePath; String get fileName; String get title; String? get artist; String? get album; Duration? get duration;
+/// Create a copy of LyricsQuery
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$LyricsQueryCopyWith<LyricsQuery> get copyWith => _$LyricsQueryCopyWithImpl<LyricsQuery>(this as LyricsQuery, _$identity);
+
+
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'LyricsQuery'))
+    ..add(DiagnosticsProperty('filePath', filePath))..add(DiagnosticsProperty('fileName', fileName))..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('artist', artist))..add(DiagnosticsProperty('album', album))..add(DiagnosticsProperty('duration', duration));
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LyricsQuery&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.duration, duration) || other.duration == duration));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,filePath,fileName,title,artist,album,duration);
+
+@override
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
+  return 'LyricsQuery(filePath: $filePath, fileName: $fileName, title: $title, artist: $artist, album: $album, duration: $duration)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $LyricsQueryCopyWith<$Res>  {
+  factory $LyricsQueryCopyWith(LyricsQuery value, $Res Function(LyricsQuery) _then) = _$LyricsQueryCopyWithImpl;
+@useResult
+$Res call({
+ String filePath, String fileName, String title, String? artist, String? album, Duration? duration
+});
+
+
+
+
+}
+/// @nodoc
+class _$LyricsQueryCopyWithImpl<$Res>
+    implements $LyricsQueryCopyWith<$Res> {
+  _$LyricsQueryCopyWithImpl(this._self, this._then);
+
+  final LyricsQuery _self;
+  final $Res Function(LyricsQuery) _then;
+
+/// Create a copy of LyricsQuery
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? filePath = null,Object? fileName = null,Object? title = null,Object? artist = freezed,Object? album = freezed,Object? duration = freezed,}) {
+  return _then(_self.copyWith(
+filePath: null == filePath ? _self.filePath : filePath // ignore: cast_nullable_to_non_nullable
+as String,fileName: null == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,artist: freezed == artist ? _self.artist : artist // ignore: cast_nullable_to_non_nullable
+as String?,album: freezed == album ? _self.album : album // ignore: cast_nullable_to_non_nullable
+as String?,duration: freezed == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable
+as Duration?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [LyricsQuery].
+extension LyricsQueryPatterns on LyricsQuery {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _LyricsQuery value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _LyricsQuery() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _LyricsQuery value)  $default,){
+final _that = this;
+switch (_that) {
+case _LyricsQuery():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _LyricsQuery value)?  $default,){
+final _that = this;
+switch (_that) {
+case _LyricsQuery() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String filePath,  String fileName,  String title,  String? artist,  String? album,  Duration? duration)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _LyricsQuery() when $default != null:
+return $default(_that.filePath,_that.fileName,_that.title,_that.artist,_that.album,_that.duration);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String filePath,  String fileName,  String title,  String? artist,  String? album,  Duration? duration)  $default,) {final _that = this;
+switch (_that) {
+case _LyricsQuery():
+return $default(_that.filePath,_that.fileName,_that.title,_that.artist,_that.album,_that.duration);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String filePath,  String fileName,  String title,  String? artist,  String? album,  Duration? duration)?  $default,) {final _that = this;
+switch (_that) {
+case _LyricsQuery() when $default != null:
+return $default(_that.filePath,_that.fileName,_that.title,_that.artist,_that.album,_that.duration);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _LyricsQuery extends LyricsQuery with DiagnosticableTreeMixin {
+  const _LyricsQuery({required this.filePath, required this.fileName, required this.title, this.artist, this.album, this.duration}): super._();
+  
+
+@override final  String filePath;
+@override final  String fileName;
+@override final  String title;
+@override final  String? artist;
+@override final  String? album;
+@override final  Duration? duration;
+
+/// Create a copy of LyricsQuery
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$LyricsQueryCopyWith<_LyricsQuery> get copyWith => __$LyricsQueryCopyWithImpl<_LyricsQuery>(this, _$identity);
+
+
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'LyricsQuery'))
+    ..add(DiagnosticsProperty('filePath', filePath))..add(DiagnosticsProperty('fileName', fileName))..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('artist', artist))..add(DiagnosticsProperty('album', album))..add(DiagnosticsProperty('duration', duration));
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LyricsQuery&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.duration, duration) || other.duration == duration));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,filePath,fileName,title,artist,album,duration);
+
+@override
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
+  return 'LyricsQuery(filePath: $filePath, fileName: $fileName, title: $title, artist: $artist, album: $album, duration: $duration)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$LyricsQueryCopyWith<$Res> implements $LyricsQueryCopyWith<$Res> {
+  factory _$LyricsQueryCopyWith(_LyricsQuery value, $Res Function(_LyricsQuery) _then) = __$LyricsQueryCopyWithImpl;
+@override @useResult
+$Res call({
+ String filePath, String fileName, String title, String? artist, String? album, Duration? duration
+});
+
+
+
+
+}
+/// @nodoc
+class __$LyricsQueryCopyWithImpl<$Res>
+    implements _$LyricsQueryCopyWith<$Res> {
+  __$LyricsQueryCopyWithImpl(this._self, this._then);
+
+  final _LyricsQuery _self;
+  final $Res Function(_LyricsQuery) _then;
+
+/// Create a copy of LyricsQuery
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? filePath = null,Object? fileName = null,Object? title = null,Object? artist = freezed,Object? album = freezed,Object? duration = freezed,}) {
+  return _then(_LyricsQuery(
+filePath: null == filePath ? _self.filePath : filePath // ignore: cast_nullable_to_non_nullable
+as String,fileName: null == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,artist: freezed == artist ? _self.artist : artist // ignore: cast_nullable_to_non_nullable
+as String?,album: freezed == album ? _self.album : album // ignore: cast_nullable_to_non_nullable
+as String?,duration: freezed == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable
+as Duration?,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$LyricTrack implements DiagnosticableTreeMixin {
 
  int? get id; String? get lyricsId; String? get name; String? get trackName; String? get artistName; String? get albumName; double? get duration; bool get instrumental; String? get plainLyrics; String? get syncedLyrics;
@@ -308,6 +592,290 @@ as String?,
 }
 
 /// @nodoc
+mixin _$LyricScoreBreakdown implements DiagnosticableTreeMixin {
+
+ double get title; double get artist; double get album; double get duration; double get lyricsQuality; double get instrumentalPenalty;
+/// Create a copy of LyricScoreBreakdown
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$LyricScoreBreakdownCopyWith<LyricScoreBreakdown> get copyWith => _$LyricScoreBreakdownCopyWithImpl<LyricScoreBreakdown>(this as LyricScoreBreakdown, _$identity);
+
+
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'LyricScoreBreakdown'))
+    ..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('artist', artist))..add(DiagnosticsProperty('album', album))..add(DiagnosticsProperty('duration', duration))..add(DiagnosticsProperty('lyricsQuality', lyricsQuality))..add(DiagnosticsProperty('instrumentalPenalty', instrumentalPenalty));
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LyricScoreBreakdown&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.lyricsQuality, lyricsQuality) || other.lyricsQuality == lyricsQuality)&&(identical(other.instrumentalPenalty, instrumentalPenalty) || other.instrumentalPenalty == instrumentalPenalty));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,title,artist,album,duration,lyricsQuality,instrumentalPenalty);
+
+@override
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
+  return 'LyricScoreBreakdown(title: $title, artist: $artist, album: $album, duration: $duration, lyricsQuality: $lyricsQuality, instrumentalPenalty: $instrumentalPenalty)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $LyricScoreBreakdownCopyWith<$Res>  {
+  factory $LyricScoreBreakdownCopyWith(LyricScoreBreakdown value, $Res Function(LyricScoreBreakdown) _then) = _$LyricScoreBreakdownCopyWithImpl;
+@useResult
+$Res call({
+ double title, double artist, double album, double duration, double lyricsQuality, double instrumentalPenalty
+});
+
+
+
+
+}
+/// @nodoc
+class _$LyricScoreBreakdownCopyWithImpl<$Res>
+    implements $LyricScoreBreakdownCopyWith<$Res> {
+  _$LyricScoreBreakdownCopyWithImpl(this._self, this._then);
+
+  final LyricScoreBreakdown _self;
+  final $Res Function(LyricScoreBreakdown) _then;
+
+/// Create a copy of LyricScoreBreakdown
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? artist = null,Object? album = null,Object? duration = null,Object? lyricsQuality = null,Object? instrumentalPenalty = null,}) {
+  return _then(_self.copyWith(
+title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as double,artist: null == artist ? _self.artist : artist // ignore: cast_nullable_to_non_nullable
+as double,album: null == album ? _self.album : album // ignore: cast_nullable_to_non_nullable
+as double,duration: null == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable
+as double,lyricsQuality: null == lyricsQuality ? _self.lyricsQuality : lyricsQuality // ignore: cast_nullable_to_non_nullable
+as double,instrumentalPenalty: null == instrumentalPenalty ? _self.instrumentalPenalty : instrumentalPenalty // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [LyricScoreBreakdown].
+extension LyricScoreBreakdownPatterns on LyricScoreBreakdown {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _LyricScoreBreakdown value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _LyricScoreBreakdown() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _LyricScoreBreakdown value)  $default,){
+final _that = this;
+switch (_that) {
+case _LyricScoreBreakdown():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _LyricScoreBreakdown value)?  $default,){
+final _that = this;
+switch (_that) {
+case _LyricScoreBreakdown() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double title,  double artist,  double album,  double duration,  double lyricsQuality,  double instrumentalPenalty)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _LyricScoreBreakdown() when $default != null:
+return $default(_that.title,_that.artist,_that.album,_that.duration,_that.lyricsQuality,_that.instrumentalPenalty);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double title,  double artist,  double album,  double duration,  double lyricsQuality,  double instrumentalPenalty)  $default,) {final _that = this;
+switch (_that) {
+case _LyricScoreBreakdown():
+return $default(_that.title,_that.artist,_that.album,_that.duration,_that.lyricsQuality,_that.instrumentalPenalty);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double title,  double artist,  double album,  double duration,  double lyricsQuality,  double instrumentalPenalty)?  $default,) {final _that = this;
+switch (_that) {
+case _LyricScoreBreakdown() when $default != null:
+return $default(_that.title,_that.artist,_that.album,_that.duration,_that.lyricsQuality,_that.instrumentalPenalty);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _LyricScoreBreakdown extends LyricScoreBreakdown with DiagnosticableTreeMixin {
+  const _LyricScoreBreakdown({required this.title, required this.artist, required this.album, required this.duration, required this.lyricsQuality, required this.instrumentalPenalty}): super._();
+  
+
+@override final  double title;
+@override final  double artist;
+@override final  double album;
+@override final  double duration;
+@override final  double lyricsQuality;
+@override final  double instrumentalPenalty;
+
+/// Create a copy of LyricScoreBreakdown
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$LyricScoreBreakdownCopyWith<_LyricScoreBreakdown> get copyWith => __$LyricScoreBreakdownCopyWithImpl<_LyricScoreBreakdown>(this, _$identity);
+
+
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'LyricScoreBreakdown'))
+    ..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('artist', artist))..add(DiagnosticsProperty('album', album))..add(DiagnosticsProperty('duration', duration))..add(DiagnosticsProperty('lyricsQuality', lyricsQuality))..add(DiagnosticsProperty('instrumentalPenalty', instrumentalPenalty));
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LyricScoreBreakdown&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.lyricsQuality, lyricsQuality) || other.lyricsQuality == lyricsQuality)&&(identical(other.instrumentalPenalty, instrumentalPenalty) || other.instrumentalPenalty == instrumentalPenalty));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,title,artist,album,duration,lyricsQuality,instrumentalPenalty);
+
+@override
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
+  return 'LyricScoreBreakdown(title: $title, artist: $artist, album: $album, duration: $duration, lyricsQuality: $lyricsQuality, instrumentalPenalty: $instrumentalPenalty)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$LyricScoreBreakdownCopyWith<$Res> implements $LyricScoreBreakdownCopyWith<$Res> {
+  factory _$LyricScoreBreakdownCopyWith(_LyricScoreBreakdown value, $Res Function(_LyricScoreBreakdown) _then) = __$LyricScoreBreakdownCopyWithImpl;
+@override @useResult
+$Res call({
+ double title, double artist, double album, double duration, double lyricsQuality, double instrumentalPenalty
+});
+
+
+
+
+}
+/// @nodoc
+class __$LyricScoreBreakdownCopyWithImpl<$Res>
+    implements _$LyricScoreBreakdownCopyWith<$Res> {
+  __$LyricScoreBreakdownCopyWithImpl(this._self, this._then);
+
+  final _LyricScoreBreakdown _self;
+  final $Res Function(_LyricScoreBreakdown) _then;
+
+/// Create a copy of LyricScoreBreakdown
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? artist = null,Object? album = null,Object? duration = null,Object? lyricsQuality = null,Object? instrumentalPenalty = null,}) {
+  return _then(_LyricScoreBreakdown(
+title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as double,artist: null == artist ? _self.artist : artist // ignore: cast_nullable_to_non_nullable
+as double,album: null == album ? _self.album : album // ignore: cast_nullable_to_non_nullable
+as double,duration: null == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable
+as double,lyricsQuality: null == lyricsQuality ? _self.lyricsQuality : lyricsQuality // ignore: cast_nullable_to_non_nullable
+as double,instrumentalPenalty: null == instrumentalPenalty ? _self.instrumentalPenalty : instrumentalPenalty // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$LyricSelectionResult implements DiagnosticableTreeMixin {
 
  LyricTrack get track; bool get fromGetApi; String get source; double get score; LyricScoreBreakdown get breakdown; int get durationDiffSeconds; List<LyricLine> get syncedLines; String get lyricsText; Duration get timelineOffset;
@@ -351,7 +919,7 @@ $Res call({
 });
 
 
-$LyricTrackCopyWith<$Res> get track;
+$LyricTrackCopyWith<$Res> get track;$LyricScoreBreakdownCopyWith<$Res> get breakdown;
 
 }
 /// @nodoc
@@ -386,6 +954,15 @@ $LyricTrackCopyWith<$Res> get track {
   
   return $LyricTrackCopyWith<$Res>(_self.track, (value) {
     return _then(_self.copyWith(track: value));
+  });
+}/// Create a copy of LyricSelectionResult
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$LyricScoreBreakdownCopyWith<$Res> get breakdown {
+  
+  return $LyricScoreBreakdownCopyWith<$Res>(_self.breakdown, (value) {
+    return _then(_self.copyWith(breakdown: value));
   });
 }
 }
@@ -584,7 +1161,7 @@ $Res call({
 });
 
 
-@override $LyricTrackCopyWith<$Res> get track;
+@override $LyricTrackCopyWith<$Res> get track;@override $LyricScoreBreakdownCopyWith<$Res> get breakdown;
 
 }
 /// @nodoc
@@ -620,6 +1197,15 @@ $LyricTrackCopyWith<$Res> get track {
   
   return $LyricTrackCopyWith<$Res>(_self.track, (value) {
     return _then(_self.copyWith(track: value));
+  });
+}/// Create a copy of LyricSelectionResult
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$LyricScoreBreakdownCopyWith<$Res> get breakdown {
+  
+  return $LyricScoreBreakdownCopyWith<$Res>(_self.breakdown, (value) {
+    return _then(_self.copyWith(breakdown: value));
   });
 }
 }

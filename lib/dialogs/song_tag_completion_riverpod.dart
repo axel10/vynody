@@ -283,5 +283,6 @@ MusicBrainzTrackMatch _buildAcoustIDSelectionMatch({
     disambiguation: sourceLabel,
     releases: const [],
     raw: raw ?? {'track': trackResult.raw, 'recording': recording.raw},
-  )..resolvedCover = resolvedCover;
+    resolvedCover: resolvedCover,
+  );
 }

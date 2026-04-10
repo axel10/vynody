@@ -49,7 +49,7 @@ $Res call({
 });
 
 
-
+$MusicFileCopyWith<$Res>? get currentMusic;
 
 }
 /// @nodoc
@@ -91,7 +91,19 @@ as Map<String, Color>,isLyricsActive: null == isLyricsActive ? _self.isLyricsAct
 as bool,
   ));
 }
+/// Create a copy of AudioSnapshot
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MusicFileCopyWith<$Res>? get currentMusic {
+    if (_self.currentMusic == null) {
+    return null;
+  }
 
+  return $MusicFileCopyWith<$Res>(_self.currentMusic!, (value) {
+    return _then(_self.copyWith(currentMusic: value));
+  });
+}
 }
 
 
@@ -315,7 +327,7 @@ $Res call({
 });
 
 
-
+@override $MusicFileCopyWith<$Res>? get currentMusic;
 
 }
 /// @nodoc
@@ -358,7 +370,19 @@ as bool,
   ));
 }
 
+/// Create a copy of AudioSnapshot
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MusicFileCopyWith<$Res>? get currentMusic {
+    if (_self.currentMusic == null) {
+    return null;
+  }
 
+  return $MusicFileCopyWith<$Res>(_self.currentMusic!, (value) {
+    return _then(_self.copyWith(currentMusic: value));
+  });
+}
 }
 
 // dart format on

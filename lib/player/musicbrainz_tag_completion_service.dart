@@ -3,28 +3,26 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import '../utils/network_client.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 
-class MusicBrainzReleaseMatch {
-  final String id;
-  final String title;
-  final String? country;
-  final String? dateLabel;
-  final int? trackCount;
-  final String? releaseGroupId;
-  final Map<String, dynamic> raw;
+part 'musicbrainz_tag_completion_service.freezed.dart';
 
-  const MusicBrainzReleaseMatch({
-    required this.id,
-    required this.title,
-    required this.country,
-    required this.dateLabel,
-    required this.trackCount,
-    required this.releaseGroupId,
-    required this.raw,
-  });
+@freezed
+abstract class MusicBrainzReleaseMatch with _$MusicBrainzReleaseMatch {
+  const MusicBrainzReleaseMatch._();
+
+  const factory MusicBrainzReleaseMatch({
+    required String id,
+    required String title,
+    required String? country,
+    required String? dateLabel,
+    required int? trackCount,
+    required String? releaseGroupId,
+    required Map<String, dynamic> raw,
+  }) = _MusicBrainzReleaseMatch;
 
   String get thumbnailUrl =>
       'https://coverartarchive.org/release/$id/front-250';
@@ -50,16 +48,16 @@ class MusicBrainzReleaseMatch {
   }
 }
 
-class MusicBrainzReleaseGroup {
-  final String key;
-  final String title;
-  final List<MusicBrainzReleaseMatch> releases;
+@freezed
+abstract class MusicBrainzReleaseGroup with _$MusicBrainzReleaseGroup {
+  const MusicBrainzReleaseGroup._();
 
-  const MusicBrainzReleaseGroup({
-    required this.key,
-    required this.title,
-    required this.releases,
-  });
+  const factory MusicBrainzReleaseGroup({
+    required String key,
+    required String title,
+    @Default(<MusicBrainzReleaseMatch>[]) List<MusicBrainzReleaseMatch>
+    releases,
+  }) = _MusicBrainzReleaseGroup;
 
   String get thumbnailUrl =>
       releases.isNotEmpty ? releases.first.thumbnailUrl : '';
@@ -67,41 +65,28 @@ class MusicBrainzReleaseGroup {
   String get largeUrl => releases.isNotEmpty ? releases.first.largeUrl : '';
 }
 
-class MusicBrainzTrackMatch {
-  final String recordingId;
-  final String title;
-  final String artist;
-  final String? album;
-  final String? releaseId;
-  final String? releaseGroupId;
-  final String? releaseDate;
-  final String? country;
-  final int? durationMillis;
-  final int? trackNumber;
-  final int score;
-  final String? disambiguation;
-  final List<MusicBrainzReleaseMatch> releases;
-  final Map<String, dynamic> raw;
+@freezed
+abstract class MusicBrainzTrackMatch with _$MusicBrainzTrackMatch {
+  const MusicBrainzTrackMatch._();
 
-  MusicBrainzTrackMatch({
-    required this.recordingId,
-    required this.title,
-    required this.artist,
-    required this.album,
-    required this.releaseId,
-    required this.releaseGroupId,
-    required this.releaseDate,
-    required this.country,
-    required this.durationMillis,
-    required this.trackNumber,
-    required this.score,
-    required this.disambiguation,
-    required this.releases,
-    required this.raw,
-    this.resolvedCover,
-  });
-
-  ResolvedCover? resolvedCover;
+  const factory MusicBrainzTrackMatch({
+    required String recordingId,
+    required String title,
+    required String artist,
+    required String? album,
+    required String? releaseId,
+    required String? releaseGroupId,
+    required String? releaseDate,
+    required String? country,
+    required int? durationMillis,
+    required int? trackNumber,
+    required int score,
+    required String? disambiguation,
+    @Default(<MusicBrainzReleaseMatch>[]) List<MusicBrainzReleaseMatch>
+    releases,
+    required Map<String, dynamic> raw,
+    required ResolvedCover? resolvedCover,
+  }) = _MusicBrainzTrackMatch;
 
   factory MusicBrainzTrackMatch.fromJson(Map<String, dynamic> json) {
     final releases = (json['releases'] as List<dynamic>? ?? const [])
@@ -167,42 +152,7 @@ class MusicBrainzTrackMatch {
       disambiguation: json['disambiguation'] as String?,
       releases: releases,
       raw: json,
-    );
-  }
-
-  MusicBrainzTrackMatch copyWith({
-    String? recordingId,
-    String? title,
-    String? artist,
-    String? album,
-    String? releaseId,
-    String? releaseGroupId,
-    String? releaseDate,
-    String? country,
-    int? durationMillis,
-    int? trackNumber,
-    int? score,
-    String? disambiguation,
-    List<MusicBrainzReleaseMatch>? releases,
-    ResolvedCover? resolvedCover,
-    Map<String, dynamic>? raw,
-  }) {
-    return MusicBrainzTrackMatch(
-      recordingId: recordingId ?? this.recordingId,
-      title: title ?? this.title,
-      artist: artist ?? this.artist,
-      album: album ?? this.album,
-      releaseId: releaseId ?? this.releaseId,
-      releaseGroupId: releaseGroupId ?? this.releaseGroupId,
-      releaseDate: releaseDate ?? this.releaseDate,
-      country: country ?? this.country,
-      durationMillis: durationMillis ?? this.durationMillis,
-      trackNumber: trackNumber ?? this.trackNumber,
-      score: score ?? this.score,
-      disambiguation: disambiguation ?? this.disambiguation,
-      releases: releases ?? this.releases,
-      raw: raw ?? this.raw,
-      resolvedCover: resolvedCover ?? this.resolvedCover,
+      resolvedCover: null,
     );
   }
 
@@ -281,32 +231,28 @@ class _MusicBrainzReleaseGroupBuilder {
   }
 }
 
-class ResolvedCover {
-  final String endpoint;
-  final String id;
-  final String? largeUrl;
-  final String? thumbnailUrl;
+@freezed
+abstract class ResolvedCover with _$ResolvedCover {
+  const ResolvedCover._();
 
-  const ResolvedCover({
-    required this.endpoint,
-    required this.id,
-    this.largeUrl,
-    this.thumbnailUrl,
-  });
+  const factory ResolvedCover({
+    required String endpoint,
+    required String id,
+    String? largeUrl,
+    String? thumbnailUrl,
+  }) = _ResolvedCover;
 }
 
-class MusicBrainzTagSelectionResult {
-  final SongMetadata metadata;
-  final Uint8List? artworkBytes;
-  final String? thumbnailPath;
-  final MusicBrainzTrackMatch match;
+@freezed
+abstract class MusicBrainzTagSelectionResult with _$MusicBrainzTagSelectionResult {
+  const MusicBrainzTagSelectionResult._();
 
-  const MusicBrainzTagSelectionResult({
-    required this.metadata,
-    required this.artworkBytes,
-    this.thumbnailPath,
-    required this.match,
-  });
+  const factory MusicBrainzTagSelectionResult({
+    required SongMetadata metadata,
+    required Uint8List? artworkBytes,
+    String? thumbnailPath,
+    required MusicBrainzTrackMatch match,
+  }) = _MusicBrainzTagSelectionResult;
 }
 
 class MusicBrainzTagCompletionService {
@@ -501,7 +447,6 @@ class MusicBrainzTagCompletionService {
         thumbnailUrl:
             'https://coverartarchive.org/release/${match.releaseId}/front-250',
       );
-      match.resolvedCover = resolved;
       return resolved;
     }
 

@@ -4,10 +4,13 @@ import 'dart:convert';
 import 'package:audio_core/audio_core.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../utils/query_url_utils.dart';
 import '../utils/network_client.dart';
 import 'metadata_database.dart';
+
+part 'acoustid_service.freezed.dart';
 
 String acoustIDReleaseGroupThumbnailUrl(String releaseGroupId) =>
     'https://coverartarchive.org/release-group/$releaseGroupId/front-250';
@@ -21,11 +24,14 @@ String acoustIDReleaseThumbnailUrl(String releaseId) =>
 String acoustIDReleaseLargeUrl(String releaseId) =>
     'https://coverartarchive.org/release/$releaseId/front';
 
-class AcoustIDArtist {
-  final String id;
-  final String name;
+@freezed
+abstract class AcoustIDArtist with _$AcoustIDArtist {
+  const AcoustIDArtist._();
 
-  const AcoustIDArtist({required this.id, required this.name});
+  const factory AcoustIDArtist({
+    required String id,
+    required String name,
+  }) = _AcoustIDArtist;
 
   factory AcoustIDArtist.fromJson(Map<String, dynamic> json) {
     return AcoustIDArtist(
@@ -39,22 +45,18 @@ class AcoustIDArtist {
   }
 }
 
-class AcoustIDRelease {
-  final String id;
-  final String title;
-  final String? country;
-  final String? dateLabel;
-  final int? trackCount;
-  final Map<String, dynamic> raw;
+@freezed
+abstract class AcoustIDRelease with _$AcoustIDRelease {
+  const AcoustIDRelease._();
 
-  const AcoustIDRelease({
-    required this.id,
-    required this.title,
-    this.country,
-    this.dateLabel,
-    this.trackCount,
-    required this.raw,
-  });
+  const factory AcoustIDRelease({
+    required String id,
+    required String title,
+    String? country,
+    String? dateLabel,
+    int? trackCount,
+    required Map<String, dynamic> raw,
+  }) = _AcoustIDRelease;
 
   String get thumbnailUrl => acoustIDReleaseThumbnailUrl(id);
 
@@ -83,22 +85,18 @@ class AcoustIDRelease {
   }
 }
 
-class AcoustIDReleaseGroup {
-  final String id;
-  final String title;
-  final String? type;
-  final List<String> secondaryTypes;
-  final List<AcoustIDRelease> releases;
-  final Map<String, dynamic> raw;
+@freezed
+abstract class AcoustIDReleaseGroup with _$AcoustIDReleaseGroup {
+  const AcoustIDReleaseGroup._();
 
-  const AcoustIDReleaseGroup({
-    required this.id,
-    required this.title,
-    this.type,
-    required this.secondaryTypes,
-    required this.releases,
-    required this.raw,
-  });
+  const factory AcoustIDReleaseGroup({
+    required String id,
+    required String title,
+    String? type,
+    @Default(<String>[]) List<String> secondaryTypes,
+    @Default(<AcoustIDRelease>[]) List<AcoustIDRelease> releases,
+    required Map<String, dynamic> raw,
+  }) = _AcoustIDReleaseGroup;
 
   String get thumbnailUrl => acoustIDReleaseGroupThumbnailUrl(id);
 
@@ -135,22 +133,19 @@ class AcoustIDReleaseGroup {
   }
 }
 
-class AcoustIDRecording {
-  final String id;
-  final String title;
-  final String artist;
-  final int? durationMillis;
-  final List<AcoustIDReleaseGroup> releaseGroups;
-  final Map<String, dynamic> raw;
+@freezed
+abstract class AcoustIDRecording with _$AcoustIDRecording {
+  const AcoustIDRecording._();
 
-  const AcoustIDRecording({
-    required this.id,
-    required this.title,
-    required this.artist,
-    this.durationMillis,
-    required this.releaseGroups,
-    required this.raw,
-  });
+  const factory AcoustIDRecording({
+    required String id,
+    required String title,
+    required String artist,
+    int? durationMillis,
+    @Default(<AcoustIDReleaseGroup>[]) List<AcoustIDReleaseGroup>
+    releaseGroups,
+    required Map<String, dynamic> raw,
+  }) = _AcoustIDRecording;
 
   factory AcoustIDRecording.fromJson(Map<String, dynamic> json) {
     final artists = <AcoustIDArtist>[];
@@ -196,18 +191,16 @@ class AcoustIDRecording {
   }
 }
 
-class AcoustIDResult {
-  final String id;
-  final double score;
-  final List<AcoustIDRecording> recordings;
-  final Map<String, dynamic> raw;
+@freezed
+abstract class AcoustIDResult with _$AcoustIDResult {
+  const AcoustIDResult._();
 
-  const AcoustIDResult({
-    required this.id,
-    required this.score,
-    required this.recordings,
-    required this.raw,
-  });
+  const factory AcoustIDResult({
+    required String id,
+    required double score,
+    @Default(<AcoustIDRecording>[]) List<AcoustIDRecording> recordings,
+    required Map<String, dynamic> raw,
+  }) = _AcoustIDResult;
 
   bool get hasRecordings => recordings.isNotEmpty;
 
