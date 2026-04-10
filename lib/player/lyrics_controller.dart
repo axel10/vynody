@@ -10,6 +10,7 @@ import '../utils/lrc_utils.dart';
 import '../utils/lyrics_id_utils.dart';
 import '../utils/language_code_utils.dart';
 import 'gemini_lyrics_service.dart';
+import 'lyrics_cache_repository.dart';
 import 'lyrics_generation_phase.dart';
 import 'lyrics_service.dart';
 import 'metadata_database.dart';
@@ -108,6 +109,7 @@ class LyricsController extends ChangeNotifier {
     required Duration Function() playerDuration,
     required bool Function() isLyricsActive,
     required void Function(String path, int durationMillis) cacheSongDuration,
+    LyricsCacheRepository? lyricsCacheRepository,
     LyricsService? lyricsService,
     GeminiLyricsService? geminiLyricsService,
   }) : _db = db,
@@ -117,7 +119,15 @@ class LyricsController extends ChangeNotifier {
        _playerDuration = playerDuration,
        _isLyricsActive = isLyricsActive,
        _cacheSongDuration = cacheSongDuration,
-       _lyricsService = lyricsService ?? LyricsService(db: db),
+       _lyricsCacheRepository =
+           lyricsCacheRepository ?? LyricsCacheRepository(db: db),
+       _lyricsService =
+           lyricsService ??
+           LyricsService(
+             db: db,
+             cacheRepository:
+                 lyricsCacheRepository ?? LyricsCacheRepository(db: db),
+           ),
        _geminiLyricsService = geminiLyricsService ?? GeminiLyricsService();
 
   final MetadataDatabase _db;
@@ -127,6 +137,7 @@ class LyricsController extends ChangeNotifier {
   final Duration Function() _playerDuration;
   final bool Function() _isLyricsActive;
   final void Function(String path, int durationMillis) _cacheSongDuration;
+  final LyricsCacheRepository _lyricsCacheRepository;
   final LyricsService _lyricsService;
   final GeminiLyricsService _geminiLyricsService;
 
@@ -451,8 +462,7 @@ class LyricsController extends ChangeNotifier {
   }
 
   Future<void> clearAllLyricsCache() async {
-    await _db.clearLyricsCache();
-    await _db.clearLyricsTranslationCache();
+    await _lyricsCacheRepository.clearAllLyricsCaches();
 
     final queue = _queue();
     for (var i = 0; i < queue.length; i++) {
@@ -489,8 +499,7 @@ class LyricsController extends ChangeNotifier {
 
     final cacheKey = await _lyricsCacheKeyForSong(song);
     if (cacheKey.isNotEmpty) {
-      await _db.clearLyricsCacheByKey(cacheKey);
-      await _db.clearLyricsTranslationCacheByKey(cacheKey);
+      await _lyricsCacheRepository.clearAllLyricsCachesByKey(cacheKey);
       _translatedLyricsKeys.removeWhere((key) => key.startsWith('$cacheKey|'));
       _translationInFlightKeys.removeWhere(
         (key) => key.startsWith('$cacheKey|'),
@@ -512,7 +521,7 @@ class LyricsController extends ChangeNotifier {
 
     final cacheKey = await _lyricsCacheKeyForSong(song);
     if (cacheKey.isNotEmpty) {
-      await _db.clearLyricsTranslationCacheByKey(cacheKey);
+      await _lyricsCacheRepository.clearLyricsTranslationCacheByKey(cacheKey);
       _translatedLyricsKeys.removeWhere((key) => key.startsWith('$cacheKey|'));
       _translationInFlightKeys.removeWhere(
         (key) => key.startsWith('$cacheKey|'),
@@ -536,7 +545,7 @@ class LyricsController extends ChangeNotifier {
   }
 
   Future<void> clearTranslationCache() async {
-    await _db.clearLyricsTranslationCache();
+    await _lyricsCacheRepository.clearLyricsTranslationCache();
 
     _translatedLyricsKeys.clear();
     _translationInFlightKeys.clear();
@@ -820,9 +829,8 @@ class LyricsController extends ChangeNotifier {
     if (query == null) return;
 
     try {
-      final cachedTranslations = await _db.getLyricsTranslationCaches(
-        query.cacheKey,
-      );
+      final cachedTranslations = await _lyricsCacheRepository
+          .getLyricsTranslationCaches(query.cacheKey);
       if (cachedTranslations.isEmpty) return;
 
       final preferredLanguageCode =
@@ -957,7 +965,7 @@ class LyricsController extends ChangeNotifier {
             translation.updatedAt?.millisecondsSinceEpoch ??
             DateTime.now().millisecondsSinceEpoch,
       );
-      await _db.insertOrUpdateLyricsTranslationCache(record);
+      await _lyricsCacheRepository.saveLyricsTranslationCache(record);
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache translated lyrics: $e');
     }
@@ -1047,7 +1055,7 @@ class LyricsController extends ChangeNotifier {
         syncedLines: syncedLines.map((line) => line.toJson()).toList(),
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
-      await _db.insertOrUpdateLyricsCache(record);
+      await _lyricsCacheRepository.saveLyricsCache(record);
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache generated lyrics: $e');
     }

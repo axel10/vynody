@@ -8,6 +8,7 @@ import '../utils/clean_helper.dart';
 import '../utils/lyrics_id_utils.dart';
 import '../utils/lrc_utils.dart';
 import '../models/lyric_line.dart';
+import 'lyrics_cache_repository.dart';
 import 'metadata_database.dart';
 
 class LyricsQuery {
@@ -177,12 +178,15 @@ class LyricSelectionResult {
 }
 
 class LyricsService {
-  LyricsService({NetworkClient? client, MetadataDatabase? db})
-    : _client = client ?? NetworkClient.instance,
-      _db = db ?? MetadataDatabase();
+  LyricsService({
+    NetworkClient? client,
+    MetadataDatabase? db,
+    LyricsCacheRepository? cacheRepository,
+  }) : _client = client ?? NetworkClient.instance,
+       _cacheRepository = cacheRepository ?? LyricsCacheRepository(db: db);
 
   final NetworkClient _client;
-  final MetadataDatabase _db;
+  final LyricsCacheRepository _cacheRepository;
   final Map<String, Future<LyricSelectionResult?>> _inFlight = {};
 
   static const double _acceptThreshold = 65.0;
@@ -356,7 +360,7 @@ class LyricsService {
 
   Future<LyricSelectionResult?> _loadFromDatabase(LyricsQuery query) async {
     try {
-      final record = await _db.getLyricsCache(query.cacheKey);
+      final record = await _cacheRepository.getLyricsCache(query.cacheKey);
       if (record == null) return null;
       return _selectionFromRecord(query, record);
     } catch (e) {
@@ -491,7 +495,7 @@ class LyricsService {
         syncedLines: const [],
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
-      await _db.insertOrUpdateLyricsCache(record);
+      await _cacheRepository.saveLyricsCache(record);
     } catch (e) {
       debugPrint(
         '[Lyrics] Failed to cache empty result for "${query.title}": $e',
@@ -513,7 +517,7 @@ class LyricsService {
         syncedLines: result.syncedLines.map((line) => line.toJson()).toList(),
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
-      await _db.insertOrUpdateLyricsCache(record);
+      await _cacheRepository.saveLyricsCache(record);
     } catch (e) {
       debugPrint('[Lyrics] Failed to cache lyrics for "${query.title}": $e');
     }
