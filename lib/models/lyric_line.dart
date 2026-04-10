@@ -1,47 +1,25 @@
-class LyricLine {
-  final Duration timestamp;
-  final String text;
-  final bool isTimed;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const LyricLine({
-    required this.timestamp,
-    required this.text,
-    this.isTimed = true,
-  });
+import 'lyrics_json_converters.dart';
 
-  LyricLine copyWith({Duration? timestamp, String? text, bool? isTimed}) {
-    return LyricLine(
-      timestamp: timestamp ?? this.timestamp,
-      text: text ?? this.text,
-      isTimed: isTimed ?? this.isTimed,
-    );
-  }
+part 'lyric_line.freezed.dart';
+part 'lyric_line.g.dart';
 
-  Map<String, dynamic> toJson() {
-    return {
-      'timestampMs': timestamp.inMilliseconds,
-      'text': text,
-      'isTimed': isTimed,
-    };
-  }
+@freezed
+abstract class LyricLine with _$LyricLine {
+  const LyricLine._();
 
-  factory LyricLine.fromJson(Map<String, dynamic> json) {
-    return LyricLine(
-      timestamp: Duration(milliseconds: (json['timestampMs'] as num).round()),
-      text: json['text'] as String? ?? '',
-      isTimed: json['isTimed'] as bool? ?? true,
-    );
-  }
+  const factory LyricLine({
+    @JsonKey(
+      name: 'timestampMs',
+      fromJson: durationFromMilliseconds,
+      toJson: durationToMilliseconds,
+    )
+    required Duration timestamp,
+    @Default('') String text,
+    @Default(true) bool isTimed,
+  }) = _LyricLine;
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is LyricLine &&
-            timestamp == other.timestamp &&
-            text == other.text &&
-            isTimed == other.isTimed;
-  }
-
-  @override
-  int get hashCode => Object.hash(timestamp, text, isTimed);
+  factory LyricLine.fromJson(Map<String, dynamic> json) =>
+      _$LyricLineFromJson(json);
 }

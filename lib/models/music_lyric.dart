@@ -1,30 +1,37 @@
-import 'package:flutter/foundation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'lyric_line.dart';
+import 'lyrics_json_converters.dart';
 import 'music_lyric_translation.dart';
 
-class MusicLyric {
-  final String id;
-  final List<LyricLine> syncedLines;
-  final String plainText;
-  final Map<String, MusicLyricTranslation> translations;
-  final String source;
-  final Duration timelineOffset;
+part 'music_lyric.freezed.dart';
+part 'music_lyric.g.dart';
+
+@freezed
+abstract class MusicLyric with _$MusicLyric {
+  const MusicLyric._();
+
+  const factory MusicLyric({
+    @Default('') String id,
+    @Default(<LyricLine>[]) List<LyricLine> syncedLines,
+    @Default('') String plainText,
+    @Default(<String, MusicLyricTranslation>{})
+    Map<String, MusicLyricTranslation> translations,
+    @Default('') String source,
+    @JsonKey(
+      fromJson: durationFromMilliseconds,
+      toJson: durationToMilliseconds,
+    )
+    @Default(Duration.zero) Duration timelineOffset,
+  }) = _MusicLyric;
+
+  factory MusicLyric.fromJson(Map<String, dynamic> json) =>
+      _$MusicLyricFromJson(json);
 
   bool get hasId => id.trim().isNotEmpty;
   bool get isSynced => syncedLines.any((line) => line.isTimed);
-
   bool get hasTranslatedLyrics =>
       translations.values.any((translation) => translation.hasContent);
-
-  const MusicLyric({
-    this.id = '',
-    this.syncedLines = const [],
-    this.plainText = '',
-    this.translations = const {},
-    this.source = '',
-    this.timelineOffset = Duration.zero,
-  });
 
   MusicLyricTranslation? translationFor(String languageCode) {
     return translations[languageCode];
@@ -32,9 +39,13 @@ class MusicLyric {
 
   List<String> translatedLinesOf(String languageCode) {
     final translatedLines = translations[languageCode]?.translatedLines;
-    if (translatedLines == null || translatedLines.isEmpty) return const [];
+    if (translatedLines == null || translatedLines.isEmpty) {
+      return const [];
+    }
 
-    return translatedLines.map((line) => line.trim()).toList(growable: false);
+    return translatedLines
+        .map((line) => line.trim())
+        .toList(growable: false);
   }
 
   String translatedTextOf(String languageCode) {
@@ -44,46 +55,4 @@ class MusicLyric {
   String translatedLineAt(int index, String languageCode) {
     return translations[languageCode]?.translatedLineAt(index) ?? '';
   }
-
-  MusicLyric copyWith({
-    String? id,
-    List<LyricLine>? syncedLines,
-    String? plainText,
-    Map<String, MusicLyricTranslation>? translations,
-    String? source,
-    Duration? timelineOffset,
-  }) {
-    return MusicLyric(
-      id: id ?? this.id,
-      syncedLines: syncedLines ?? this.syncedLines,
-      plainText: plainText ?? this.plainText,
-      translations: translations ?? this.translations,
-      source: source ?? this.source,
-      timelineOffset: timelineOffset ?? this.timelineOffset,
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is MusicLyric &&
-        other.id == id &&
-        listEquals(other.syncedLines, syncedLines) &&
-        other.plainText == plainText &&
-        mapEquals(other.translations, translations) &&
-        other.source == source &&
-        other.timelineOffset == timelineOffset;
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    Object.hashAll(syncedLines),
-    plainText,
-    source,
-    timelineOffset,
-    Object.hashAllUnordered(
-      translations.entries.map((entry) => Object.hash(entry.key, entry.value)),
-    ),
-  );
 }
