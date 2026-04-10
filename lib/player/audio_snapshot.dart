@@ -21,6 +21,7 @@ class AudioSnapshot {
   final bool isShuffleRandomMode;
   final PlaylistMode playbackMode;
   final EqualizerConfig equalizerConfig;
+  final VisualizerOptimizationOptions currentVisualizerOptions;
   final List<MusicFile> randomHistory;
   final List<MusicFile> randomQueue;
   final int? historyCursor;
@@ -47,6 +48,7 @@ class AudioSnapshot {
     required this.isShuffleRandomMode,
     required this.playbackMode,
     required this.equalizerConfig,
+    required this.currentVisualizerOptions,
     required List<MusicFile> randomHistory,
     required List<MusicFile> randomQueue,
     required this.historyCursor,
@@ -84,6 +86,7 @@ class AudioSnapshot {
             isShuffleRandomMode == other.isShuffleRandomMode &&
             playbackMode == other.playbackMode &&
             equalizerConfig == other.equalizerConfig &&
+            currentVisualizerOptions == other.currentVisualizerOptions &&
             _deepEquality.equals(randomHistory, other.randomHistory) &&
             _deepEquality.equals(randomQueue, other.randomQueue) &&
             historyCursor == other.historyCursor &&
@@ -114,6 +117,7 @@ class AudioSnapshot {
     isShuffleRandomMode,
     playbackMode,
     equalizerConfig,
+    currentVisualizerOptions,
     _deepEquality.hash(randomHistory),
     _deepEquality.hash(randomQueue),
     historyCursor,

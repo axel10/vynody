@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
+import '../player/audio_riverpod.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 
-class VisualizerOptionsDialog extends StatelessWidget {
+class VisualizerOptionsDialog extends ConsumerWidget {
   const VisualizerOptionsDialog({
     super.key,
     required this.audio,
@@ -16,7 +18,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
   final SettingsService settings;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
       length: 2,
       child: StatefulBuilder(
@@ -58,7 +60,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
               height: 520,
               child: TabBarView(
                 children: [
-                  _buildAlgorithmTab(context, setDialogState),
+                  _buildAlgorithmTab(context, ref, setDialogState),
                   _buildAppearanceTab(context, settings, setDialogState),
                 ],
               ),
@@ -78,7 +80,11 @@ class VisualizerOptionsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildAlgorithmTab(BuildContext context, StateSetter setDialogState) {
+  Widget _buildAlgorithmTab(
+    BuildContext context,
+    WidgetRef ref,
+    StateSetter setDialogState,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     final isAuto = settings.isAutoMode;
 
@@ -121,7 +127,7 @@ class VisualizerOptionsDialog extends StatelessWidget {
               },
             ),
             const SizedBox(height: 12),
-            _buildSpectrumAdvancedControls(context, setDialogState),
+            _buildSpectrumAdvancedControls(context, ref, setDialogState),
           ],
         ],
       ),
@@ -186,9 +192,10 @@ class VisualizerOptionsDialog extends StatelessWidget {
 
   Widget _buildSpectrumAdvancedControls(
     BuildContext context,
+    WidgetRef ref,
     StateSetter setDialogState,
   ) {
-    final options = audio.currentVisualizerOptions;
+    final options = ref.watch(audioCurrentVisualizerOptionsProvider);
 
     return _buildSectionCard(
       child: Wrap(

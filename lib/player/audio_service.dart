@@ -560,6 +560,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     isShuffleRandomMode: isShuffleRandomMode,
     playbackMode: playbackMode,
     equalizerConfig: equalizerConfig,
+    currentVisualizerOptions: currentVisualizerOptions,
     randomHistory: randomHistory,
     randomQueue: randomQueue,
     historyCursor: historyCursor,

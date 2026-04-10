@@ -172,6 +172,15 @@ final audioIsVisualizerEnabledProvider = Provider<bool>((ref) {
   );
 });
 
+final audioCurrentVisualizerOptionsProvider =
+    Provider<VisualizerOptimizationOptions>((ref) {
+      return ref.watch(
+        audioSnapshotProvider.select(
+          (snapshot) => snapshot.currentVisualizerOptions,
+        ),
+      );
+    });
+
 final audioVisualizerStreamProvider = Provider<Stream<FftFrame>?>((ref) {
   return ref.read(audioServiceProvider).visualizerStream;
 });
