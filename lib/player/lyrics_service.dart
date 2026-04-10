@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../utils/network_client.dart';
 import '../utils/clean_helper.dart';
@@ -10,6 +11,8 @@ import '../utils/lrc_utils.dart';
 import '../models/lyric_line.dart';
 import 'lyrics_cache_repository.dart';
 import 'metadata_database.dart';
+
+part 'lyrics_service.freezed.dart';
 
 class LyricsQuery {
   final String filePath;
@@ -40,30 +43,22 @@ class LyricsQuery {
   }
 }
 
-class LyricTrack {
-  final int? id;
-  final String? lyricsId;
-  final String? name;
-  final String? trackName;
-  final String? artistName;
-  final String? albumName;
-  final double? duration;
-  final bool instrumental;
-  final String? plainLyrics;
-  final String? syncedLyrics;
+@freezed
+abstract class LyricTrack with _$LyricTrack {
+  const LyricTrack._();
 
-  const LyricTrack({
-    this.id,
-    this.lyricsId,
-    this.name,
-    this.trackName,
-    this.artistName,
-    this.albumName,
-    this.duration,
-    required this.instrumental,
-    this.plainLyrics,
-    this.syncedLyrics,
-  });
+  const factory LyricTrack({
+    int? id,
+    String? lyricsId,
+    String? name,
+    String? trackName,
+    String? artistName,
+    String? albumName,
+    double? duration,
+    @Default(false) bool instrumental,
+    String? plainLyrics,
+    String? syncedLyrics,
+  }) = _LyricTrack;
 
   factory LyricTrack.fromJson(Map<String, dynamic> json) {
     return LyricTrack(
@@ -104,32 +99,6 @@ class LyricTrack {
       'syncedLyrics': syncedLyrics,
     };
   }
-
-  LyricTrack copyWith({
-    int? id,
-    String? lyricsId,
-    String? name,
-    String? trackName,
-    String? artistName,
-    String? albumName,
-    double? duration,
-    bool? instrumental,
-    String? plainLyrics,
-    String? syncedLyrics,
-  }) {
-    return LyricTrack(
-      id: id ?? this.id,
-      lyricsId: lyricsId ?? this.lyricsId,
-      name: name ?? this.name,
-      trackName: trackName ?? this.trackName,
-      artistName: artistName ?? this.artistName,
-      albumName: albumName ?? this.albumName,
-      duration: duration ?? this.duration,
-      instrumental: instrumental ?? this.instrumental,
-      plainLyrics: plainLyrics ?? this.plainLyrics,
-      syncedLyrics: syncedLyrics ?? this.syncedLyrics,
-    );
-  }
 }
 
 class LyricScoreBreakdown {
@@ -153,28 +122,21 @@ class LyricScoreBreakdown {
       title + artist + album + duration + lyricsQuality + instrumentalPenalty;
 }
 
-class LyricSelectionResult {
-  final LyricTrack track;
-  final bool fromGetApi;
-  final String source;
-  final double score;
-  final LyricScoreBreakdown breakdown;
-  final int durationDiffSeconds;
-  final List<LyricLine> syncedLines;
-  final String lyricsText;
-  final Duration timelineOffset;
+@freezed
+abstract class LyricSelectionResult with _$LyricSelectionResult {
+  const LyricSelectionResult._();
 
-  const LyricSelectionResult({
-    required this.track,
-    required this.fromGetApi,
-    required this.source,
-    required this.score,
-    required this.breakdown,
-    required this.durationDiffSeconds,
-    required this.syncedLines,
-    required this.lyricsText,
-    this.timelineOffset = Duration.zero,
-  });
+  const factory LyricSelectionResult({
+    required LyricTrack track,
+    required bool fromGetApi,
+    required String source,
+    required double score,
+    required LyricScoreBreakdown breakdown,
+    required int durationDiffSeconds,
+    @Default(<LyricLine>[]) List<LyricLine> syncedLines,
+    required String lyricsText,
+    @Default(Duration.zero) Duration timelineOffset,
+  }) = _LyricSelectionResult;
 
   bool get isSynced => syncedLines.isNotEmpty;
 }
