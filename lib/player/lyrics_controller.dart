@@ -23,15 +23,62 @@ typedef _GeminiGenerationInvoker =
     });
 
 class _GeminiGenerationSession {
-  _GeminiGenerationSession({
-    required this.id,
-    required this.songPath,
-    required this.completer,
-  });
+  _GeminiGenerationSession({required this.id, required this.songPath});
 
   final int id;
   final String songPath;
-  final Completer<void> completer;
+}
+
+class _GeminiGenerationRuntime {
+  int serial = 0;
+  Completer<void>? completer;
+  LyricsGenerationPhase phase = LyricsGenerationPhase.idle;
+  double progress = 0.0;
+
+  bool get isGenerating => completer != null;
+
+  void start() {
+    serial++;
+    completer = Completer<void>();
+    phase = LyricsGenerationPhase.uploading;
+    progress = 0.0;
+  }
+
+  void setPhaseFromStage(String stage) {
+    switch (stage) {
+      case 'uploading':
+        phase = LyricsGenerationPhase.uploading;
+        progress = 0.0;
+        break;
+      case 'processing':
+        phase = LyricsGenerationPhase.processing;
+        progress = 1.0;
+        break;
+      case 'generating':
+        phase = LyricsGenerationPhase.generating;
+        progress = 1.0;
+        break;
+      default:
+        phase = LyricsGenerationPhase.idle;
+        progress = 0.0;
+        break;
+    }
+  }
+
+  void setUploadProgress(double value) {
+    phase = LyricsGenerationPhase.uploading;
+    progress = value.clamp(0.0, 1.0);
+  }
+
+  void finish() {
+    phase = LyricsGenerationPhase.idle;
+    progress = 0.0;
+    final currentCompleter = completer;
+    if (currentCompleter != null && !currentCompleter.isCompleted) {
+      currentCompleter.complete();
+    }
+    completer = null;
+  }
 }
 
 class LyricsController extends ChangeNotifier {
@@ -68,18 +115,14 @@ class LyricsController extends ChangeNotifier {
   int _lyricsRequestSerial = 0;
   final Set<String> _translatedLyricsKeys = <String>{};
   final Set<String> _translationInFlightKeys = <String>{};
-  Completer<void>? _lyricsGenerationCompleter;
   int _lyricsRetrySerial = 0;
   bool _isLyricsLoading = false;
   bool _isLyricsTranslating = false;
-  bool _isLyricsGenerating = false;
   String _lyricsTranslationStatus = '';
   bool _hasLyrics = false;
   bool _lyricsSearchAttempted = false;
   bool _isLyricsSynced = false;
-  int _lyricsGenerationSerial = 0;
-  LyricsGenerationPhase _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-  double _lyricsGenerationProgress = 0.0;
+  final _GeminiGenerationRuntime _geminiGeneration = _GeminiGenerationRuntime();
   List<LyricLine> _currentLyricsLines = const [];
   String _currentLyricsText = '';
   String? _currentLyricsTitle;
@@ -88,10 +131,10 @@ class LyricsController extends ChangeNotifier {
 
   bool get isLyricsLoading => _isLyricsLoading;
   bool get isLyricsTranslating => _isLyricsTranslating;
-  bool get isLyricsGenerating => _isLyricsGenerating;
+  bool get isLyricsGenerating => _geminiGeneration.isGenerating;
   String get lyricsTranslationStatus => _lyricsTranslationStatus;
-  LyricsGenerationPhase get lyricsGenerationPhase => _lyricsGenerationPhase;
-  double get lyricsGenerationProgress => _lyricsGenerationProgress;
+  LyricsGenerationPhase get lyricsGenerationPhase => _geminiGeneration.phase;
+  double get lyricsGenerationProgress => _geminiGeneration.progress;
   bool get hasLyrics => _hasLyrics;
   bool get lyricsSearchAttempted => _lyricsSearchAttempted;
   bool get isLyricsSynced => _isLyricsSynced;
@@ -113,7 +156,8 @@ class LyricsController extends ChangeNotifier {
   void clearState({bool notify = false}) {
     _isLyricsLoading = false;
     _isLyricsTranslating = false;
-    _isLyricsGenerating = false;
+    _geminiGeneration.phase = LyricsGenerationPhase.idle;
+    _geminiGeneration.progress = 0.0;
     _hasLyrics = false;
     _isLyricsSynced = false;
     _currentLyricsLines = const [];
@@ -272,7 +316,7 @@ class LyricsController extends ChangeNotifier {
       notifyListeners();
     }
 
-    if (_isLyricsGenerating && _currentMusic()?.path == song.path) {
+    if (_geminiGeneration.isGenerating && _currentMusic()?.path == song.path) {
       _isLyricsTranslating = true;
       _lyricsTranslationStatus = '等待歌词生成完毕';
       notifyListeners();
@@ -375,7 +419,8 @@ class LyricsController extends ChangeNotifier {
     _hasLyrics = false;
     _isLyricsLoading = false;
     _isLyricsTranslating = false;
-    _isLyricsGenerating = false;
+    _geminiGeneration.phase = LyricsGenerationPhase.idle;
+    _geminiGeneration.progress = 0.0;
     _isLyricsSynced = false;
     _lyricsSearchAttempted = false;
     _currentLyricsLines = const [];
@@ -466,24 +511,18 @@ class LyricsController extends ChangeNotifier {
   }
 
   _GeminiGenerationSession _beginGeminiGeneration(MusicFile song) {
-    final generationId = ++_lyricsGenerationSerial;
-    final completer = Completer<void>();
-    _lyricsGenerationCompleter = completer;
-    _isLyricsGenerating = true;
+    _geminiGeneration.start();
     _isLyricsLoading = false;
-    _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-    _lyricsGenerationProgress = 0.0;
     notifyListeners();
 
     return _GeminiGenerationSession(
-      id: generationId,
+      id: _geminiGeneration.serial,
       songPath: song.path,
-      completer: completer,
     );
   }
 
   bool _isActiveGeminiGeneration(_GeminiGenerationSession session) {
-    return session.id == _lyricsGenerationSerial &&
+    return session.id == _geminiGeneration.serial &&
         _currentMusic()?.path == session.songPath;
   }
 
@@ -493,24 +532,7 @@ class LyricsController extends ChangeNotifier {
   ) {
     if (!_isActiveGeminiGeneration(session)) return;
 
-    switch (stage) {
-      case 'uploading':
-        _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-        _lyricsGenerationProgress = 0.0;
-        break;
-      case 'processing':
-        _lyricsGenerationPhase = LyricsGenerationPhase.processing;
-        _lyricsGenerationProgress = 1.0;
-        break;
-      case 'generating':
-        _lyricsGenerationPhase = LyricsGenerationPhase.generating;
-        _lyricsGenerationProgress = 1.0;
-        break;
-      default:
-        _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-        _lyricsGenerationProgress = 0.0;
-        break;
-    }
+    _geminiGeneration.setPhaseFromStage(stage);
     notifyListeners();
   }
 
@@ -542,8 +564,8 @@ class LyricsController extends ChangeNotifier {
 
     _hasLyrics = true;
     _isLyricsLoading = false;
-    _lyricsGenerationPhase = LyricsGenerationPhase.generating;
-    _lyricsGenerationProgress = 1.0;
+    _geminiGeneration.phase = LyricsGenerationPhase.generating;
+    _geminiGeneration.progress = 1.0;
     _isLyricsSynced = lyrics.syncedLines.any((line) => line.isTimed);
     _lyricsSearchAttempted = true;
     _currentLyricsLines = lyrics.syncedLines;
@@ -562,17 +584,9 @@ class LyricsController extends ChangeNotifier {
   }
 
   void _finalizeGeminiGeneration(_GeminiGenerationSession session) {
-    if (session.id != _lyricsGenerationSerial) return;
+    if (session.id != _geminiGeneration.serial) return;
 
-    _isLyricsGenerating = false;
-    _lyricsGenerationPhase = LyricsGenerationPhase.idle;
-    _lyricsGenerationProgress = 0.0;
-    if (!session.completer.isCompleted) {
-      session.completer.complete();
-    }
-    if (identical(_lyricsGenerationCompleter, session.completer)) {
-      _lyricsGenerationCompleter = null;
-    }
+    _geminiGeneration.finish();
     notifyListeners();
   }
 
@@ -590,8 +604,7 @@ class LyricsController extends ChangeNotifier {
             return;
           }
 
-          _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-          _lyricsGenerationProgress = progress.clamp(0.0, 1.0);
+          _geminiGeneration.setUploadProgress(progress);
           notifyListeners();
         },
         onStageChanged: (stage) {
@@ -649,7 +662,7 @@ class LyricsController extends ChangeNotifier {
       debugPrint('[LyricsController] generate lyrics skipped: no current song');
       return;
     }
-    if (_isLyricsGenerating) {
+    if (_geminiGeneration.isGenerating) {
       debugPrint(
         '[LyricsController] generate lyrics skipped: already generating '
         'path=${song.path}',
@@ -689,7 +702,7 @@ class LyricsController extends ChangeNotifier {
       );
       return;
     }
-    if (_isLyricsGenerating) {
+    if (_geminiGeneration.isGenerating) {
       debugPrint(
         '[LyricsController] generate timeline skipped: already generating '
         'path=${song.path}',
@@ -855,16 +868,18 @@ class LyricsController extends ChangeNotifier {
   }
 
   Future<void> _waitForLyricsGenerationToFinish(String songPath) async {
-    while (_isLyricsGenerating && _currentMusic()?.path == songPath) {
-      final completer = _lyricsGenerationCompleter;
-      if (completer != null) {
-        try {
-          await completer.future;
-        } catch (_) {
-          return;
-        }
-      } else {
+    while (_geminiGeneration.isGenerating &&
+        _currentMusic()?.path == songPath) {
+      final completer = _geminiGeneration.completer;
+      if (completer == null) {
         await Future<void>.delayed(const Duration(milliseconds: 100));
+        continue;
+      }
+
+      try {
+        await completer.future;
+      } catch (_) {
+        return;
       }
     }
   }
