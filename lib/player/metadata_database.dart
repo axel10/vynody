@@ -3,44 +3,33 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-class SongMetadata {
-  final int? id;
-  final String path;
-  final String title;
-  final String album;
-  final String artist;
-  final int? duration;
-  final String? artworkPath;
-  final String? thumbnailPath;
-  final int? artworkWidth;
-  final int? artworkHeight;
-  final int? trackNumber;
-  final Uint8List? themeColorsBlob;
-  final Uint8List? waveformBlob;
-  final int? lastModifiedTime;
-  final int? createdAt;
-  final List<String>? genres;
+part 'metadata_database.freezed.dart';
 
-  SongMetadata({
-    this.id,
-    required this.path,
-    required this.title,
-    required this.album,
-    required this.artist,
-    this.duration,
-    this.artworkPath,
-    this.thumbnailPath,
-    this.artworkWidth,
-    this.artworkHeight,
-    this.trackNumber,
-    this.themeColorsBlob,
-    this.waveformBlob,
-    this.lastModifiedTime,
-    this.createdAt,
-    this.genres,
-  });
+@freezed
+abstract class SongMetadata with _$SongMetadata {
+  const SongMetadata._();
+
+  const factory SongMetadata({
+    int? id,
+    required String path,
+    required String title,
+    required String album,
+    required String artist,
+    int? duration,
+    String? artworkPath,
+    String? thumbnailPath,
+    int? artworkWidth,
+    int? artworkHeight,
+    int? trackNumber,
+    Uint8List? themeColorsBlob,
+    Uint8List? waveformBlob,
+    int? lastModifiedTime,
+    int? createdAt,
+    List<String>? genres,
+  }) = _SongMetadata;
 
   /// Check if this metadata has been modified since creation
   bool get isModified {
@@ -93,44 +82,6 @@ class SongMetadata {
       lastModifiedTime: map['lastModifiedTime'],
       createdAt: map['createdAt'],
       genres: genres,
-    );
-  }
-
-  SongMetadata copyWith({
-    int? id,
-    String? path,
-    String? title,
-    String? album,
-    String? artist,
-    int? duration,
-    String? artworkPath,
-    String? thumbnailPath,
-    int? artworkWidth,
-    int? artworkHeight,
-    int? trackNumber,
-    Uint8List? themeColorsBlob,
-    Uint8List? waveformBlob,
-    int? lastModifiedTime,
-    int? createdAt,
-    List<String>? genres,
-  }) {
-    return SongMetadata(
-      id: id ?? this.id,
-      path: path ?? this.path,
-      title: title ?? this.title,
-      album: album ?? this.album,
-      artist: artist ?? this.artist,
-      duration: duration ?? this.duration,
-      artworkPath: artworkPath ?? this.artworkPath,
-      thumbnailPath: thumbnailPath ?? this.thumbnailPath,
-      artworkWidth: artworkWidth ?? this.artworkWidth,
-      artworkHeight: artworkHeight ?? this.artworkHeight,
-      trackNumber: trackNumber ?? this.trackNumber,
-      themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
-      waveformBlob: waveformBlob ?? this.waveformBlob,
-      lastModifiedTime: lastModifiedTime ?? this.lastModifiedTime,
-      createdAt: createdAt ?? this.createdAt,
-      genres: genres ?? this.genres,
     );
   }
 }
