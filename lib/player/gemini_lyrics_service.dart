@@ -45,11 +45,11 @@ class GeminiLyricsTranslationService {
       return false;
     }
 
-    final sourceLines = _stripTimestampsPreservingBlankLines(lyrics);
+    final sourceLines = _splitLyricsLines(lyrics);
     final blankLineIndexes = <int>[];
     final compactSourceLines = <String>[];
     for (var i = 0; i < sourceLines.length; i++) {
-      final line = sourceLines[i].trim();
+      final line = _stripTimestampPrefix(sourceLines[i]).trim();
       if (line.isEmpty) {
         blankLineIndexes.add(i);
       } else {
@@ -63,12 +63,12 @@ class GeminiLyricsTranslationService {
       return false;
     }
     final targetLanguageName = _targetLanguageName(targetLanguageCode);
-    final sourceLyricsForModel = compactSourceLines.join('\n');
+    final sourceLyricsForModel = _normalizeSourceLyrics(lyrics);
     final prompt =
         '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
-        '总结整首歌的意境并结合上下文尽量意译。'
-        '请保持有内容歌词的分行顺序，每一行对应一行译文。'
-        '原文中的空行已由程序单独处理，请不要自行补充空行、编号或时间轴。如果无标题不要自行生成标题。\n'
+        '请保留完整时间轴和原有分行顺序，不要删减、合并、重排任何一行，也不要自行补充空行、编号或解释。'
+        '如果输入中带有时间轴，请在输出中原样保留对应时间轴，程序会在后处理去掉时间轴。'
+        '总结整首歌的意境并结合上下文尽量意译。如果无标题不要自行生成标题。\n'
         '$sourceLyricsForModel';
     final requestData = {
       'contents': [
@@ -117,7 +117,15 @@ class GeminiLyricsTranslationService {
       Timer? printTimer;
 
       void emitProgress({bool force = false}) {
-        final current = translatedBuffer.toString().trim();
+        final rawCurrent = translatedBuffer.toString();
+        final cleanedCurrent = _stripTimestamps(
+          LrcUtils.cleanGeneratedLyricsText(rawCurrent),
+        );
+        final current = _visibleTranslationText(
+          cleanedCurrent,
+          rawCurrent,
+          force: force,
+        );
         if (current.isEmpty) return;
         if (!force && current.length == lastPrintedLength) return;
         lastPrintedLength = current.length;
@@ -127,10 +135,13 @@ class GeminiLyricsTranslationService {
           blankLineIndexes,
           sourceLines.length,
         );
-        final snapshot = restoredLines.join('\n');
+        final visibleLines = restoredLines
+            .map((line) => _stripTimestampPrefix(line).trimRight())
+            .toList(growable: false);
+        final snapshot = visibleLines.join('\n');
         if (onProgress != null && (force || snapshot != lastProgressSnapshot)) {
           lastProgressSnapshot = snapshot;
-          onProgress(restoredLines, snapshot);
+          onProgress(visibleLines, snapshot);
         }
         debugPrint('[GeminiLyrics] translated: $current');
       }
@@ -210,6 +221,7 @@ class GeminiLyricsTranslationService {
       mimeType: mimeType,
       modelId: modelId,
       prompt: prompt,
+      preserveTimestamps: true,
       onUploadProgress: onUploadProgress,
       onStageChanged: onStageChanged,
       onProgress: onProgress,
@@ -217,6 +229,7 @@ class GeminiLyricsTranslationService {
   }
 
   Future<String?> generateTimelineFromLyrics({
+    required String filePath,
     required String lyrics,
     String? songTitle,
     String modelId = 'gemini-3.1-flash-lite-preview',
@@ -230,57 +243,45 @@ class GeminiLyricsTranslationService {
       return null;
     }
 
-    final normalizedLyrics = _stripTimestampsPreservingBlankLines(
-      lyrics,
-    ).join('\n').trim();
+    final file = File(filePath);
+    if (!await file.exists()) {
+      debugPrint('[GeminiLyrics] file not found for timeline: $filePath');
+      return null;
+    }
+
+    final mimeType = _mimeTypeForFilePath(filePath);
+    final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       debugPrint('[GeminiLyrics] no usable lyrics for timeline generation.');
       return null;
     }
 
-    final tempDir = await Directory.systemTemp.createTemp(
-      'vibe_flow_gemini_timeline_',
+    // final normalizedTitle = songTitle?.trim();
+    // final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
+    //     ? ''
+    //     : '这首歌的标题是《$normalizedTitle》。';
+    final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
+    final promptPrefix = hasOriginalTimestamps
+        ? '这是这首歌的歌词和源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
+        : '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
+    final prompt =
+        // '$titleHint'
+        '$promptPrefix\n'
+        '```text\n'
+        '$normalizedLyrics\n'
+        '```';
+
+    return _generateFromUploadedFile(
+      file: file,
+      apiKey: apiKey,
+      mimeType: mimeType,
+      modelId: modelId,
+      prompt: prompt,
+      preserveTimestamps: true,
+      onUploadProgress: onUploadProgress,
+      onStageChanged: onStageChanged,
+      onProgress: onProgress,
     );
-    final tempFile = File(
-      p.join(
-        tempDir.path,
-        'lyrics_${DateTime.now().millisecondsSinceEpoch}.txt',
-      ),
-    );
-
-    try {
-      await tempFile.writeAsString(normalizedLyrics, flush: true);
-
-      final normalizedTitle = songTitle?.trim();
-      final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
-          ? ''
-          : '这首歌的标题是《$normalizedTitle》。';
-      final prompt =
-          '$titleHint'
-          '请根据这段歌词生成完整的标准LRC时间轴歌词。'
-          '输入内容已经去掉了原有时间轴，如果原文是纯文本歌词，请直接基于文本内容生成时间轴。'
-          '请尽量保持原有分行和语义顺序，每一行都应有合理时间点。'
-          '仅输出LRC结果，不要解释，不要编号，不要代码块。';
-
-      return _generateFromUploadedFile(
-        file: tempFile,
-        apiKey: apiKey,
-        mimeType: 'text/plain',
-        modelId: modelId,
-        prompt: prompt,
-        onUploadProgress: onUploadProgress,
-        onStageChanged: onStageChanged,
-        onProgress: onProgress,
-      );
-    } finally {
-      try {
-        if (await tempDir.exists()) {
-          await tempDir.delete(recursive: true);
-        }
-      } catch (e) {
-        debugPrint('[GeminiLyrics] failed to clean temp timeline file: $e');
-      }
-    }
   }
 
   Future<String?> _generateFromUploadedFile({
@@ -289,6 +290,7 @@ class GeminiLyricsTranslationService {
     required String mimeType,
     required String modelId,
     required String prompt,
+    required bool preserveTimestamps,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -410,7 +412,10 @@ class GeminiLyricsTranslationService {
       final cleanedText = LrcUtils.cleanGeneratedLyricsText(
         generatedText ?? generatedBuffer.toString(),
       );
-      if (cleanedText.isEmpty) {
+      final finalText = preserveTimestamps
+          ? cleanedText
+          : _stripTimestamps(cleanedText);
+      if (finalText.isEmpty) {
         debugPrint('[GeminiLyrics] empty lyrics response.');
         debugPrint(
           '[GeminiLyrics] raw generate response: ${generatedBuffer.toString()}',
@@ -420,9 +425,9 @@ class GeminiLyricsTranslationService {
 
       // 最终结果会再做一次清洗，去掉代码块、杂项前缀和非 LRC 内容。
       debugPrint('[GeminiLyrics] final generated lyrics:');
-      debugPrint(cleanedText);
-      onProgress?.call(cleanedText, true);
-      return cleanedText;
+      debugPrint(finalText);
+      onProgress?.call(finalText, true);
+      return finalText;
     } on DioException catch (e) {
       debugPrint('[GeminiLyrics] generation failed: ${e.message}');
       debugPrint('[GeminiLyrics] generation status: ${e.response?.statusCode}');
@@ -447,6 +452,41 @@ class GeminiLyricsTranslationService {
     }
 
     return null;
+  }
+
+  List<String> _splitLyricsLines(String lyrics) {
+    return lyrics.split(_lineSplitPattern);
+  }
+
+  String _normalizeSourceLyrics(String lyrics) {
+    return _splitLyricsLines(lyrics).join('\n').trim();
+  }
+
+  String _stripTimestampPrefix(String line) {
+    return line.replaceAll(_timestampLinePattern, '');
+  }
+
+  bool _hasTimestampedLyrics(String lyrics) {
+    return _timestampLinePattern.hasMatch(lyrics);
+  }
+
+  String _stripTimestamps(String text) {
+    return LrcUtils.stripTimestamps(text);
+  }
+
+  String _visibleTranslationText(
+    String cleanedText,
+    String rawText, {
+    required bool force,
+  }) {
+    if (cleanedText.isEmpty) return '';
+    if (force || rawText.endsWith('\n') || rawText.endsWith('\r')) {
+      return cleanedText;
+    }
+
+    final lines = _splitTranslationLines(cleanedText);
+    if (lines.length <= 1) return '';
+    return lines.take(lines.length - 1).join('\n').trim();
   }
 
   String _targetLanguageName(String languageCode) {
@@ -518,16 +558,6 @@ class GeminiLyricsTranslationService {
     }
 
     return restoredLines;
-  }
-
-  List<String> _stripTimestampsPreservingBlankLines(String lyrics) {
-    return lyrics
-        .split(_lineSplitPattern)
-        .map((line) {
-          final withoutTimestamps = line.replaceAll(_timestampLinePattern, '');
-          return withoutTimestamps.trimRight();
-        })
-        .toList(growable: false);
   }
 
   Future<String?> _loadApiKey() async {
@@ -615,7 +645,7 @@ class GeminiLyricsTranslationService {
 
     debugPrint('[GeminiLyrics] upload session url=$uploadUrl');
 
-    final uploadResponse = await _client.post(
+      final uploadResponse = await _client.post(
       uploadUrl,
       options: Options(
         headers: {
@@ -629,8 +659,7 @@ class GeminiLyricsTranslationService {
       data: fileBytes,
       onSendProgress: (sent, total) {
         if (total <= 0) return;
-        final progress = (sent / total * 100).toStringAsFixed(2);
-        debugPrint('[GeminiLyrics] upload progress: $progress%');
+        // debugPrint('[GeminiLyrics] upload progress: $progress%');
         onUploadProgress?.call(sent / total);
       },
     );

@@ -9,7 +9,7 @@ import '../models/music_lyric_translation.dart';
 import '../utils/lrc_utils.dart';
 import '../utils/lyrics_id_utils.dart';
 import '../utils/language_code_utils.dart';
-import 'gemini_lyrics_translation_service.dart';
+import 'gemini_lyrics_service.dart';
 import 'lyrics_generation_phase.dart';
 import 'lyrics_service.dart';
 import 'metadata_database.dart';
@@ -34,7 +34,7 @@ class LyricsController extends ChangeNotifier {
        _isLyricsActive = isLyricsActive,
        _cacheSongDuration = cacheSongDuration,
        _lyricsService = lyricsService ?? LyricsService(db: db),
-       _geminiLyricsTranslationService =
+       _geminiLyricsService =
            geminiLyricsTranslationService ?? GeminiLyricsTranslationService();
 
   final MetadataDatabase _db;
@@ -45,7 +45,7 @@ class LyricsController extends ChangeNotifier {
   final bool Function() _isLyricsActive;
   final void Function(String path, int durationMillis) _cacheSongDuration;
   final LyricsService _lyricsService;
-  final GeminiLyricsTranslationService _geminiLyricsTranslationService;
+  final GeminiLyricsTranslationService _geminiLyricsService;
 
   int _lyricsRequestSerial = 0;
   final Set<String> _translatedLyricsKeys = <String>{};
@@ -267,10 +267,7 @@ class LyricsController extends ChangeNotifier {
       if (currentSong == null || currentSong.path != song.path) return;
 
       final sourceLyrics = currentSong.lyrics?.syncedLines.isNotEmpty == true
-          ? currentSong.lyrics!.syncedLines
-                .map((line) => line.text)
-                .join('\n')
-                .trim()
+          ? _lyricsTextWithTimestamps(currentSong.lyrics!)
           : _currentLyricsText.trim();
       if (sourceLyrics.isEmpty) return;
 
@@ -312,7 +309,7 @@ class LyricsController extends ChangeNotifier {
       _lyricsTranslationStatus = '正在处理';
       notifyListeners();
 
-      final success = await _geminiLyricsTranslationService
+      final success = await _geminiLyricsService
           .translateLyricsStream(
             lyrics: sourceLyrics,
             targetLanguageCode: normalizedLanguageCode,
@@ -475,7 +472,7 @@ class LyricsController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final generatedLyrics = await _geminiLyricsTranslationService
+      final generatedLyrics = await _geminiLyricsService
           .generateLyricsFromFile(
             filePath: song.path,
             songTitle: song.title,
@@ -653,8 +650,9 @@ class LyricsController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final generatedTimeline = await _geminiLyricsTranslationService
+      final generatedTimeline = await _geminiLyricsService
           .generateTimelineFromLyrics(
+            filePath: song.path,
             lyrics: sourceLyrics,
             songTitle: song.title,
             onUploadProgress: (progress) {
@@ -970,6 +968,20 @@ class LyricsController extends ChangeNotifier {
     return LrcUtils.stripTimestamps(lyrics.plainText).trim();
   }
 
+  String _lyricsTextWithTimestamps(MusicLyric lyrics) {
+    if (lyrics.syncedLines.isEmpty) {
+      return lyrics.plainText.trim();
+    }
+
+    return lyrics.syncedLines
+        .map((line) {
+          if (!line.isTimed) return line.text.trimRight();
+          return '[${_formatTimestamp(line.timestamp)}] ${line.text}';
+        })
+        .join('\n')
+        .trim();
+  }
+
   String _lyricsIdForSong(MusicFile song, {String? sourceLyrics}) {
     final existingId = song.lyrics?.id.trim() ?? '';
     if (existingId.isNotEmpty) return existingId;
@@ -980,6 +992,14 @@ class LyricsController extends ChangeNotifier {
             .trim();
     if (text.isEmpty) return '';
     return LyricsIdUtils.fromLyricsText(text);
+  }
+
+  String _formatTimestamp(Duration duration) {
+    final totalMilliseconds = duration.inMilliseconds;
+    final minutes = totalMilliseconds ~/ 60000;
+    final seconds = (totalMilliseconds % 60000) ~/ 1000;
+    final centiseconds = (totalMilliseconds % 1000) ~/ 10;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.${centiseconds.toString().padLeft(2, '0')}';
   }
 
   MusicLyricTranslation _buildLyricsTranslation({
@@ -1038,10 +1058,12 @@ class LyricsController extends ChangeNotifier {
   String _timelineSourceLyricsForSong(MusicFile song) {
     final lyrics = song.lyrics;
     if (lyrics != null && lyrics.plainText.trim().isNotEmpty) {
-      return LrcUtils.stripTimestamps(lyrics.plainText).trim();
+      // 保留原始 LRC 文本，让“重新生成时间轴”有机会基于现有时间戳修正，
+      // 而不是把已有时间轴先清掉再重打一次。
+      return lyrics.plainText.trim();
     }
 
-    return LrcUtils.stripTimestamps(_currentLyricsText).trim();
+    return _currentLyricsText.trim();
   }
 
   String _lyricsTranslationCacheKey(String cacheKey, String languageCode) {
