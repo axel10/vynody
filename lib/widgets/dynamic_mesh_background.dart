@@ -89,21 +89,15 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
   @override
   Widget build(BuildContext context) {
     // Use select to only rebuild when colors actually change
-    final themeColors = ref.watch(
-      audioServiceProvider.select((a) => a.currentThemeColorsMap),
-    );
+    final themeColors = ref.watch(audioCurrentThemeColorsMapProvider);
     final visualizerStartColor = ref.watch(
       settingsServiceProvider.select((s) => s.visualizerStartColor),
     );
     final visualizerEndColor = ref.watch(
       settingsServiceProvider.select((s) => s.visualizerEndColor),
     );
-    final dynamicStartColor = ref.watch(
-      audioServiceProvider.select((a) => a.dynamicStartColor),
-    );
-    final dynamicEndColor = ref.watch(
-      audioServiceProvider.select((a) => a.dynamicEndColor),
-    );
+    final dynamicStartColor = ref.watch(audioDynamicStartColorProvider);
+    final dynamicEndColor = ref.watch(audioDynamicEndColorProvider);
 
     Color color1 =
         themeColors['dominant'] ?? dynamicStartColor ?? visualizerStartColor;

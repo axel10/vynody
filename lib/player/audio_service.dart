@@ -48,8 +48,8 @@ class AudioService extends ChangeNotifier {
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
   ScannerService? _scannerService;
-  LyricsControllerState Function()? _readLyricsControllerState;
-  LyricsController Function()? _readLyricsController;
+  final LyricsControllerState Function()? _readLyricsControllerState;
+  final LyricsController Function()? _readLyricsController;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -69,7 +69,12 @@ class AudioService extends ChangeNotifier {
   bool get hasLyrics => _lyricsState.hasLyrics;
   bool get lyricsSearchAttempted => _lyricsState.lyricsSearchAttempted;
 
-  AudioService(this.settingsService) {
+  AudioService(
+    this.settingsService, {
+    LyricsControllerState Function()? readLyricsControllerState,
+    LyricsController Function()? readLyricsController,
+  }) : _readLyricsControllerState = readLyricsControllerState,
+       _readLyricsController = readLyricsController {
     _player = AudioCoreController(
       fadeSettings: FadeSettings(
         fadeOnSwitch: true,
@@ -104,14 +109,6 @@ class AudioService extends ChangeNotifier {
         _initializeMiniPlayerFftStream();
       }),
     );
-  }
-
-  void attachLyricsControllerAccess({
-    required LyricsController Function() readController,
-    required LyricsControllerState Function() readState,
-  }) {
-    _readLyricsController = readController;
-    _readLyricsControllerState = readState;
   }
 
   LyricsControllerDependencies get lyricsControllerDependencies {

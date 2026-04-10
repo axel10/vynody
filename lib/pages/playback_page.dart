@@ -8,7 +8,6 @@ import 'package:audio_core/audio_core.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
-import '../player/audio_snapshot.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
@@ -57,8 +56,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       final audio = _audioService;
       if (audio == null) return;
       _showVisualizer = audio.isVisualizerEnabled;
-      _isLyricsMode = audio.isLyricsActive;
-      _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
+      _isLyricsMode = ref.read(audioIsLyricsActiveProvider);
+      _pendingArtworkBytes = ref.read(audioCurrentMusicProvider)?.artworkBytes;
       ref.read(settingsServiceProvider).resetInactivity();
       if (mounted) {
         setState(() {});
@@ -109,11 +108,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   void _onCarouselAnimationComplete() {
     if (!mounted) return;
 
-    final audio = ref.read(audioServiceProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
-        _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
+        _pendingArtworkBytes = ref.read(audioCurrentMusicProvider)?.artworkBytes;
       });
     });
   }
@@ -175,9 +173,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     BuildContext context,
     AudioService audio,
   ) async {
-    final snapshot = audio.snapshot;
-    final song = snapshot.currentMusic;
+    final song = ref.read(audioCurrentMusicProvider);
     if (song == null) return;
+    final duration = ref.read(audioDurationProvider);
 
     final result = await showModalBottomSheet<MusicBrainzTagSelectionResult>(
       context: context,
@@ -188,7 +186,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
         currentTitle: song.displayName,
         currentArtist: song.artist,
         currentAlbum: song.album,
-        durationMillis: snapshot.duration.inMilliseconds,
+        durationMillis: duration.inMilliseconds,
       ),
     );
 
@@ -229,9 +227,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
   void _showTagSaveMenu(BuildContext context, AudioService audio) {
     final l10n = AppLocalizations.of(context)!;
-    final snapshot = audio.snapshot;
-    final currentSong = snapshot.currentMusic;
-    final queue = snapshot.playbackQueue;
+    final currentSong = ref.read(audioCurrentMusicProvider);
+    final queue = ref.read(audioPlaybackQueueProvider);
 
     showDialog(
       context: context,
@@ -343,7 +340,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
   Future<void> _saveQueueTags(BuildContext context, AudioService audio) async {
     final l10n = AppLocalizations.of(context)!;
-    final queue = audio.playbackQueue;
+    final queue = ref.read(audioPlaybackQueueProvider);
     if (queue.isEmpty) return;
 
     // Show initial loading message
@@ -629,11 +626,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   @override
   Widget build(BuildContext context) {
     // Separate UI status from rendering visibility to avoid flicker
-    final AudioSnapshot snapshot = ref.watch(
-      audioServiceProvider.select((a) => a.snapshot),
-    );
-    final isVisualizerEnabled = snapshot.isVisualizerEnabled;
-    final isTransitioning = snapshot.isTransitioning;
+    final isVisualizerEnabled = ref.watch(audioIsVisualizerEnabledProvider);
+    final isTransitioning = ref.watch(audioIsTransitioningProvider);
     final shouldDrawVisualizer = isVisualizerEnabled && !isTransitioning;
     final backgroundType = ref.watch(
       settingsServiceProvider.select((s) => s.playbackBackgroundType),
@@ -673,10 +667,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                       child: Builder(
                         builder: (context) {
                           final audio = ref.read(audioServiceProvider);
-                          final playState = snapshot;
-                          final isNext = playState.isLastActionNext ?? true;
+                          final isNext =
+                              ref.watch(audioLastActionNextProvider) ?? true;
+                          final currentMusic =
+                              ref.watch(audioCurrentMusicProvider);
+                          final duration = ref.watch(audioDurationProvider);
                           final isVisualizerEnabled =
-                              playState.isVisualizerEnabled;
+                              ref.watch(audioIsVisualizerEnabledProvider);
 
                           return PlaybackHeroCard(
                             isMini: false,
@@ -692,9 +689,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                                 ? Duration(
                                     milliseconds:
                                         (_scrubProgress *
-                                                playState
-                                                    .duration
-                                                    .inMilliseconds)
+                                                duration.inMilliseconds)
                                             .round(),
                                   )
                                 : null,
@@ -716,7 +711,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             onSeek: (val) {
                               final target = Duration(
                                 milliseconds:
-                                    (val * playState.duration.inMilliseconds)
+                                    (val * duration.inMilliseconds)
                                         .round(),
                               );
                               setState(() {
@@ -726,14 +721,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                               audio.seek(target);
                             },
                             onToggleVisualizer: () => _toggleVisualizer(audio),
-                            onTagCompletionTap: snapshot.currentMusic == null
+                            onTagCompletionTap: currentMusic == null
                                 ? null
                                 : () => _showSongTagCompletionSheet(
                                     context,
                                     audio,
                                   ),
                             onTagCompletionLongPress:
-                                snapshot.currentMusic == null
+                                currentMusic == null
                                 ? null
                                 : () => _showTagSaveMenu(context, audio),
                             onEqualizerTap: () => _showEqualizerPanel(context),
@@ -787,7 +782,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   Builder(
                     builder: (context) {
                       final volume = ref.watch(
-                        audioServiceProvider.select((a) => a.volume),
+                        audioVolumeProvider,
                       );
                       final audio = ref.read(audioServiceProvider);
                       return VolumeSliderOverlay(

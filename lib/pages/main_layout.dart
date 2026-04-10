@@ -159,7 +159,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    _lastVolume = ref.read(audioServiceProvider).volume;
+    _lastVolume = ref.read(audioVolumeProvider);
 
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -491,12 +491,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AudioService>(audioServiceProvider, (previous, next) {
+    ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
-      if (_lastVolume != null && (_lastVolume! - next.volume).abs() > 0.1) {
+      if (_lastVolume != null && (_lastVolume! - next).abs() > 0.1) {
         _triggerHUD();
       }
-      _lastVolume = next.volume;
+      _lastVolume = next;
     });
 
     final settings = ref.watch(settingsServiceProvider);

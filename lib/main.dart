@@ -9,9 +9,6 @@ import 'package:windows_single_instance/windows_single_instance.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
 import 'player/audio_riverpod.dart';
-import 'player/audio_service.dart';
-import 'player/lyrics_riverpod.dart';
-import 'player/scanner_service.dart';
 import 'player/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 
@@ -98,60 +95,14 @@ void main(List<String> args) async {
   runApp(
     ProviderScope(
       overrides: [settingsServiceProvider.overrideWithValue(settingsService)],
-      child: _RiverpodServiceBridge(child: MyApp(args: args)),
+      child: Consumer(
+        builder: (context, ref, _) {
+          ref.watch(audioServiceWiringProvider);
+          return MyApp(args: args);
+        },
+      ),
     ),
   );
-}
-
-class _RiverpodServiceBridge extends ConsumerStatefulWidget {
-  const _RiverpodServiceBridge({required this.child});
-
-  final Widget child;
-
-  @override
-  ConsumerState<_RiverpodServiceBridge> createState() =>
-      _RiverpodServiceBridgeState();
-}
-
-class _RiverpodServiceBridgeState
-    extends ConsumerState<_RiverpodServiceBridge> {
-  AudioService? _attachedAudio;
-  bool _attachScheduled = false;
-  ScannerService? _attachedScanner;
-
-  void _scheduleLyricsBridge(AudioService audio) {
-    if (_attachScheduled || identical(_attachedAudio, audio)) {
-      return;
-    }
-
-    _attachScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _attachScheduled = false;
-      if (!mounted) return;
-
-      audio.attachLyricsControllerAccess(
-        readController: () => ref.read(lyricsControllerProvider.notifier),
-        readState: () => ref.read(lyricsControllerProvider),
-      );
-      final scanner = ref.read(scannerServiceProvider);
-      if (!identical(_attachedScanner, scanner)) {
-        scanner.setPlayerController(audio.playbackController);
-        audio.setScannerService(scanner);
-        _attachedScanner = scanner;
-      }
-      _attachedAudio = audio;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final audio = ref.read(audioServiceProvider);
-    _scheduleLyricsBridge(audio);
-    ref.watch(scannerServiceProvider);
-    ref.watch(playlistServiceProvider);
-
-    return widget.child;
-  }
 }
 
 class MyApp extends StatelessWidget {

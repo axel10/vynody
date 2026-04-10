@@ -6,7 +6,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
-import '../player/audio_snapshot.dart';
 import '../player/audio_riverpod.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
@@ -108,10 +107,9 @@ class PlaybackHeroCard extends ConsumerWidget {
   }
 
   Widget _buildMiniCard(BuildContext context, WidgetRef ref) {
-    final audio = ref.read(audioServiceProvider);
-    final AudioSnapshot snapshot = ref.watch(
-      audioServiceProvider.select((a) => a.snapshot),
-    );
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final isPlaying = ref.watch(audioIsPlayingProvider);
+    final progress = ref.watch(audioProgressProvider);
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.82),
@@ -131,7 +129,9 @@ class PlaybackHeroCard extends ConsumerWidget {
             Positioned.fill(
               child: Opacity(
                 opacity: 0.6,
-                child: MiniSpectrumBackground(audio: audio),
+                child: MiniSpectrumBackground(
+                  audio: ref.read(audioServiceProvider),
+                ),
               ),
             ),
             Padding(
@@ -146,7 +146,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          MiniArtwork(audio: audio),
+                          const MiniArtwork(),
                           const SizedBox(width: 12),
                           Flexible(
                             child: ConstrainedBox(
@@ -156,10 +156,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    snapshot.currentMusic?.displayName ??
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.notSelected,
+                                    currentMusic?.displayName ??
+                                        AppLocalizations.of(context)!.notSelected,
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodySmall!
@@ -176,7 +174,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(999),
                                     child: LinearProgressIndicator(
                                       minHeight: 3,
-                                      value: snapshot.progress.clamp(0.0, 1.0),
+                                      value: progress.clamp(0.0, 1.0),
                                       backgroundColor: Colors.white24,
                                       valueColor:
                                           const AlwaysStoppedAnimation<Color>(
@@ -202,11 +200,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       MiniControlButton(
-                        icon: snapshot.isPlaying
+                        icon: isPlaying
                             ? Icons.pause_rounded
                             : Icons.play_arrow_rounded,
                         onPressed: onPlayPause,
-                        tooltip: snapshot.isPlaying
+                        tooltip: isPlaying
                             ? AppLocalizations.of(context)!.pause
                             : AppLocalizations.of(context)!.play,
                       ),
@@ -590,10 +588,8 @@ class PlaybackHeroCard extends ConsumerWidget {
     WidgetRef ref,
     double currentSize,
   ) {
-    final AudioSnapshot snapshot = ref.watch(
-      audioServiceProvider.select((a) => a.snapshot),
-    );
-    final playlist = snapshot.playbackQueue;
+    final playlist = ref.watch(audioPlaybackQueueProvider);
+    final currentIndex = ref.watch(audioCurrentIndexProvider);
     if (playlist.isEmpty) {
       return Center(
         child: Container(
@@ -618,15 +614,13 @@ class PlaybackHeroCard extends ConsumerWidget {
     final cover = ExcludeSemantics(
       child: CoverCarousel(
         playlist: playlist,
-        currentIndex: snapshot.currentIndex,
+        currentIndex: currentIndex,
         audioService: ref.read(audioServiceProvider),
         isNext: isNext,
         displaySize: currentSize,
         onPageChanged: (page) {
           final audio = ref.read(audioServiceProvider);
-          if (page >= 0 &&
-              page < playlist.length &&
-              page != snapshot.currentIndex) {
+          if (page >= 0 && page < playlist.length && page != currentIndex) {
             audio.playAtIndex(page);
           }
         },
@@ -649,14 +643,12 @@ class PlaybackHeroCard extends ConsumerWidget {
     TextAlign align,
     bool isLyrics,
   ) {
-    final AudioSnapshot snapshot = ref.watch(
-      audioServiceProvider.select((a) => a.snapshot),
-    );
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
     final l10n = AppLocalizations.of(context)!;
-    final title = snapshot.currentMusic?.displayName ?? l10n.notSelected;
+    final title = currentMusic?.displayName ?? l10n.notSelected;
 
-    final rawAlbum = snapshot.currentMusic?.album?.trim() ?? '';
-    final rawArtist = snapshot.currentMusic?.artist?.trim() ?? '';
+    final rawAlbum = currentMusic?.album?.trim() ?? '';
+    final rawArtist = currentMusic?.artist?.trim() ?? '';
 
     bool isUnknown(String val) {
       if (val.isEmpty) return true;
@@ -712,9 +704,11 @@ class PlaybackHeroCard extends ConsumerWidget {
   }
 
   Widget _buildPlaybackControlsWidget(BuildContext context, WidgetRef ref) {
-    final AudioSnapshot snapshot = ref.watch(
-      audioServiceProvider.select((a) => a.snapshot),
-    );
+    final playbackMode = ref.watch(audioPlaybackModeProvider);
+    final isRandomMode = ref.watch(audioIsRandomModeProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
+    final duration = ref.watch(audioDurationProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return Column(
@@ -734,12 +728,12 @@ class PlaybackHeroCard extends ConsumerWidget {
               onLongPress: onShowPlaylistModeSelector,
               child: IconButton(
                 icon: Icon(
-                  getPlaylistModeIcon(snapshot.playbackMode),
+                  getPlaylistModeIcon(playbackMode),
                   size: 28,
                   color: Colors.white70,
                 ),
                 onPressed: onCyclePlaylistMode,
-                tooltip: getPlaylistModeName(snapshot.playbackMode, l10n),
+                tooltip: getPlaylistModeName(playbackMode, l10n),
               ),
             ),
             const SizedBox(width: 8),
@@ -749,14 +743,14 @@ class PlaybackHeroCard extends ConsumerWidget {
                 icon: Icon(
                   Icons.shuffle_rounded,
                   size: 28,
-                  color: snapshot.isRandomMode
+                  color: isRandomMode
                       ? Theme.of(context).colorScheme.primary
                       : Colors.white70,
                 ),
                 onPressed: () {
                   final audio = ref.read(audioServiceProvider);
                   if (audio.settingsService.randomRange == 1 &&
-                      !snapshot.isRandomMode) {
+                      !isRandomMode) {
                     final playlistService = ref.read(playlistServiceProvider);
                     final List<MusicFile> allSongs = [];
                     final pathSet = <String>{};
@@ -804,11 +798,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                 (s) => s.isWaveformProgressBarEnabled,
               ),
             );
-            final duration = snapshot.duration;
-            final waveform =
-                overrideWaveform ?? snapshot.currentMusic?.waveform ?? const [];
+            final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
             final displayProgress =
-                overrideProgress ?? snapshot.progress.clamp(0.0, 1.0);
+                overrideProgress ?? ref.watch(audioProgressProvider).clamp(0.0, 1.0);
 
             if (enabled) {
               return Padding(
@@ -832,11 +824,11 @@ class PlaybackHeroCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                formatDuration(overridePosition ?? snapshot.position),
+                formatDuration(overridePosition ?? ref.watch(audioPositionProvider)),
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Text(
-                formatDuration(snapshot.duration),
+                formatDuration(duration),
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
@@ -877,15 +869,14 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
               child: IconButton(
                 onPressed: onPlayPause,
-                tooltip: snapshot.isPlaying ? l10n.pause : l10n.play,
+                tooltip: ref.watch(audioIsPlayingProvider) ? l10n.pause : l10n.play,
                 icon: Icon(
-                  snapshot.isPlaying
+                  ref.watch(audioIsPlayingProvider)
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
                   size: 40,
-                  color:
-                      snapshot.currentThemeColorsMap['darkVibrant'] ??
-                      snapshot.currentThemeColorsMap['darkMuted'] ??
+                  color: currentThemeColorsMap['darkVibrant'] ??
+                      currentThemeColorsMap['darkMuted'] ??
                       Colors.black,
                 ),
               ),
@@ -914,7 +905,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 },
                 child: IconButton(
                   icon: Icon(
-                    getVolumeIcon(snapshot.volume),
+                    getVolumeIcon(ref.watch(audioVolumeProvider)),
                     size: 28,
                     color: Colors.white70,
                   ),
@@ -930,20 +921,21 @@ class PlaybackHeroCard extends ConsumerWidget {
   }
 
   Widget _buildLyricsPanelWidget(BuildContext context, WidgetRef ref) {
-    final AudioSnapshot snapshot = ref.watch(
-      audioServiceProvider.select((a) => a.snapshot),
-    );
+    final currentIndex = ref.watch(audioCurrentIndexProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final position = ref.watch(audioPositionProvider);
+    final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
     final accent =
-        snapshot.currentThemeColorsMap['darkVibrant'] ??
-        snapshot.currentThemeColorsMap['darkMuted'] ??
+        currentThemeColorsMap['darkVibrant'] ??
+        currentThemeColorsMap['darkMuted'] ??
         Colors.white;
 
     return LyricsPanel(
       key: ValueKey(
-        '${snapshot.currentIndex}:${snapshot.currentMusic?.path ?? 'no-track'}',
+        '$currentIndex:${currentMusic?.path ?? 'no-track'}',
       ),
-      lyrics: snapshot.currentMusic?.lyrics,
-      position: snapshot.position,
+      lyrics: currentMusic?.lyrics,
+      position: position,
       accentColor: accent,
     );
   }

@@ -1,36 +1,37 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../player/audio_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
+import '../player/audio_riverpod.dart';
+import '../player/audio_service.dart';
 
-class MiniArtwork extends StatelessWidget {
-  const MiniArtwork({super.key, required this.audio});
-
-  final AudioService audio;
+class MiniArtwork extends ConsumerWidget {
+  const MiniArtwork({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
     return Container(
       width: 36,
       height: 36,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        image: audio.currentMusic?.artworkBytes != null
+        image: currentMusic?.artworkBytes != null
             ? DecorationImage(
-                image: MemoryImage(audio.currentMusic!.artworkBytes!),
+                image: MemoryImage(currentMusic!.artworkBytes!),
                 fit: BoxFit.cover,
               )
-            : audio.currentMusic?.artworkPath != null
+            : currentMusic?.artworkPath != null
             ? DecorationImage(
-                image: FileImage(File(audio.currentMusic!.artworkPath!)),
+                image: FileImage(File(currentMusic!.artworkPath!)),
                 fit: BoxFit.cover,
               )
             : null,
         color: Colors.grey[900],
       ),
       child:
-          (audio.currentMusic?.artworkBytes == null &&
-              audio.currentMusic?.artworkPath == null)
+          (currentMusic?.artworkBytes == null &&
+              currentMusic?.artworkPath == null)
           ? const Icon(Icons.music_note, color: Colors.white, size: 20)
           : null,
     );
@@ -61,22 +62,23 @@ class MiniControlButton extends StatelessWidget {
   }
 }
 
-class MiniSpectrumBackground extends StatelessWidget {
+class MiniSpectrumBackground extends ConsumerWidget {
   final AudioService audio;
 
   const MiniSpectrumBackground({super.key, required this.audio});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // 使用独立的 FFT 流（专用于迷你播放器）
     final fftStream = audio.miniPlayerFftStream;
     if (fftStream == null) return const SizedBox.shrink();
+    final isPlaying = ref.watch(audioIsPlayingProvider);
 
     return StreamBuilder<FftFrame>(
       stream: fftStream,
       builder: (context, snapshot) {
         final frame = snapshot.data;
-        if (frame == null || !audio.isPlaying) return const SizedBox.shrink();
+        if (frame == null || !isPlaying) return const SizedBox.shrink();
         return RepaintBoundary(
           child: CustomPaint(
             painter: _MiniSpectrumPainter(

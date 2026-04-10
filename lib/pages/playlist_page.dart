@@ -279,7 +279,9 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = ref.watch(audioServiceProvider);
+    final audio = ref.read(audioServiceProvider);
+    final currentIndex = ref.watch(audioCurrentIndexProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
     final playlistService = ref.watch(playlistServiceProvider);
     final scanner = ref.watch(scannerServiceProvider);
     final currentPlaylist = playlistService.currentPlaylist;
@@ -406,10 +408,10 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                           );
                         },
                         itemBuilder: (context, index) {
-                          final song = currentPlaylist.songs[index];
-                          final isCurrent =
-                              audio.currentIndex == index &&
-                              audio.currentMusic?.path == song.path;
+                            final song = currentPlaylist.songs[index];
+                            final isCurrent =
+                                currentIndex == index &&
+                                currentMusic?.path == song.path;
                           final isSelected = _selectedIndices.contains(index);
 
                           return GestureDetector(
@@ -493,11 +495,11 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                                     ),
                               onTap: _isSelectionMode
                                   ? () => _toggleSelection(index)
-                                  : () {
-                                      audio.playPlaylist(
-                                        currentPlaylist.songs,
-                                        initialIndex: index,
-                                      );
+                                    : () {
+                                        audio.playPlaylist(
+                                          currentPlaylist.songs,
+                                          initialIndex: index,
+                                        );
                                     },
                             ),
                           );

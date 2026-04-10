@@ -70,14 +70,13 @@ class _QueuePageState extends ConsumerState<QueuePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final audio = ref.read(audioServiceProvider);
 
     // Validate current view index against current mode
-    if (_viewIndex == 1 && !audio.isRandomMode) {
+    if (_viewIndex == 1 && !ref.read(audioIsRandomModeProvider)) {
       _viewIndex = 0;
     }
-    if (_viewIndex == 2 && !audio.isShuffleRandomMode) {
-      if (audio.isRandomMode) {
+    if (_viewIndex == 2 && !ref.read(audioIsShuffleRandomModeProvider)) {
+      if (ref.read(audioIsRandomModeProvider)) {
         _viewIndex = 1;
       } else {
         _viewIndex = 0;
@@ -87,9 +86,15 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = ref.watch(audioServiceProvider);
+    final isRandomMode = ref.watch(audioIsRandomModeProvider);
+    final isShuffleRandomMode = ref.watch(audioIsShuffleRandomModeProvider);
+    final queue = ref.watch(audioPlaybackQueueProvider);
+    final randomHistory = ref.watch(audioRandomHistoryProvider);
+    final randomQueue = ref.watch(audioRandomQueueProvider);
+    final currentIndex = ref.watch(audioCurrentIndexProvider);
+    final historyCursor = ref.watch(audioHistoryCursorProvider);
+    final deckCursor = ref.watch(audioDeckCursorProvider);
     final scanner = ref.watch(scannerServiceProvider);
-    final queue = audio.playbackQueue;
 
     if (queue.isEmpty) {
       return Scaffold(
@@ -126,7 +131,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: audio.isRandomMode
+        title: isRandomMode
             ? DropdownButtonHideUnderline(
                 child: DropdownButton<int>(
                   value: _viewIndex,
@@ -147,7 +152,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
-                    if (audio.isShuffleRandomMode)
+                    if (isShuffleRandomMode)
                       DropdownMenuItem(
                         value: 2,
                         child: Text(
@@ -206,32 +211,32 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                   buildDefaultDragHandles: false,
                   padding: const EdgeInsets.only(bottom: 160),
                   itemCount: _viewIndex == 1
-                      ? audio.randomHistory.length
+                      ? randomHistory.length
                       : _viewIndex == 2
-                      ? audio.randomQueue.length
+                      ? randomQueue.length
                       : queue.length,
                   onReorder: (oldIndex, newIndex) {
                     if (_viewIndex != 0) return;
                     if (newIndex > oldIndex) newIndex--;
-                    audio.moveQueueTrack(oldIndex, newIndex);
+                    ref.read(audioServiceProvider).moveQueueTrack(oldIndex, newIndex);
                   },
                   itemBuilder: (context, index) {
                     final isHistoryView = _viewIndex == 1;
                     final isRandomQueueView = _viewIndex == 2;
                     final displayQueue = isHistoryView
-                        ? audio.randomHistory
+                        ? randomHistory
                         : isRandomQueueView
-                        ? audio.randomQueue
+                        ? randomQueue
                         : queue;
                     final song = displayQueue[index];
 
                     final bool isCurrent;
                     if (isHistoryView) {
-                      isCurrent = (index == audio.historyCursor);
+                      isCurrent = (index == historyCursor);
                     } else if (isRandomQueueView) {
-                      isCurrent = (index == audio.deckCursor);
+                      isCurrent = (index == deckCursor);
                     } else {
-                      isCurrent = (audio.currentIndex == index);
+                      isCurrent = (currentIndex == index);
                     }
                     final isSelected = _selectedIndices.contains(index);
 
@@ -334,13 +339,13 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                             ? () => _toggleSelection(index)
                             : () {
                                 if (isHistoryView || isRandomQueueView) {
-                                  final actualIndex = audio.playbackQueue
+                                  final actualIndex = queue
                                       .indexWhere((s) => s.path == song.path);
                                   if (actualIndex >= 0) {
-                                    audio.playAtIndex(actualIndex);
+                                    ref.read(audioServiceProvider).playAtIndex(actualIndex);
                                   }
                                 } else {
-                                  audio.playAtIndex(index);
+                                  ref.read(audioServiceProvider).playAtIndex(index);
                                 }
                               },
                       ),
@@ -380,7 +385,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                       i >= 0;
                                       i--
                                     ) {
-                                      audio.removeFromPlaylist(
+                                      ref.read(audioServiceProvider).removeFromPlaylist(
                                         sortedIndices[i],
                                       );
                                     }
