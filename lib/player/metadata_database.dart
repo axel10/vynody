@@ -140,7 +140,7 @@ class LyricsCacheRecord {
   final int? id;
   // 本次歌词查询的缓存键，由歌曲路径、标题、歌手、专辑、时长组合生成。
   final String cacheKey;
-  // 缓存来源，例如 get、search、none、gemini_generate。
+  // 缓存来源，例如 get、search、none、gemini_generate、gemini_timeline。
   final String source;
   // 是否为同步歌词。
   final bool isSynced;

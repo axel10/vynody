@@ -857,6 +857,9 @@ class AudioService extends ChangeNotifier {
   Future<void> generateLyricsForCurrentSong() =>
       _lyricsController.generateLyricsForCurrentSong();
 
+  Future<void> generateTimelineForCurrentSong() =>
+      _lyricsController.generateTimelineForCurrentSong();
+
   Future<void> regenerateLyricsForCurrentSong() async {
     final songPath = currentMusic?.path;
     if (songPath == null) return;
@@ -864,6 +867,17 @@ class AudioService extends ChangeNotifier {
     await clearLyricsCacheForCurrentSong();
     if (currentMusic?.path != songPath) return;
     await generateLyricsForCurrentSong();
+  }
+
+  Future<void> regenerateTimelineForCurrentSong() async {
+    final songPath = currentMusic?.path;
+    if (songPath == null) return;
+
+    if (currentMusic?.lyrics == null && currentLyricsText.trim().isEmpty) {
+      return;
+    }
+
+    await generateTimelineForCurrentSong();
   }
 
   void _cacheSongDuration(String path, int durationMillis) {

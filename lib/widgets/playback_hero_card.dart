@@ -961,6 +961,8 @@ class PlaybackHeroCard extends StatelessWidget {
           context.read<AudioService>().translateLyricsForCurrentSong(),
       onGenerateLyrics: () =>
           context.read<AudioService>().regenerateLyricsForCurrentSong(),
+      onGenerateTimeline: () =>
+          context.read<AudioService>().regenerateTimelineForCurrentSong(),
       onClearLyricsCache: () =>
           context.read<AudioService>().clearLyricsCacheForCurrentSong(),
       onClearTranslationCache: () =>

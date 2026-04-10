@@ -684,7 +684,7 @@ class LyricsService {
 
   String _sourceFromCacheRecord(String source) {
     final normalized = source.trim().toLowerCase();
-    if (normalized == 'gemini_generate') {
+    if (normalized.startsWith('gemini')) {
       return 'gemini';
     }
     if (normalized == 'get' || normalized == 'search') {

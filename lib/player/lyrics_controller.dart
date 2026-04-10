@@ -595,11 +595,192 @@ class LyricsController extends ChangeNotifier {
         song: song,
         generatedLyrics: generatedLyrics,
         syncedLines: generatedLines,
+        source: 'gemini_generate',
       );
 
       notifyListeners();
     } catch (e) {
       debugPrint('[LyricsController] Failed to generate lyrics: $e');
+    } finally {
+      if (generationId == _lyricsGenerationSerial) {
+        _isLyricsGenerating = false;
+        _lyricsGenerationPhase = LyricsGenerationPhase.idle;
+        _lyricsGenerationProgress = 0.0;
+        if (!generationCompleter.isCompleted) {
+          generationCompleter.complete();
+        }
+        if (identical(_lyricsGenerationCompleter, generationCompleter)) {
+          _lyricsGenerationCompleter = null;
+        }
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> generateTimelineForCurrentSong() async {
+    final song = _currentMusic();
+    if (song == null) {
+      debugPrint(
+        '[LyricsController] generate timeline skipped: no current song',
+      );
+      return;
+    }
+    if (_isLyricsGenerating) {
+      debugPrint(
+        '[LyricsController] generate timeline skipped: already generating '
+        'path=${song.path}',
+      );
+      return;
+    }
+
+    final currentLyrics = song.lyrics ?? const MusicLyric();
+    final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
+    if (sourceLyrics.isEmpty) {
+      debugPrint(
+        '[LyricsController] generate timeline skipped: no usable lyrics '
+        'path=${song.path}',
+      );
+      return;
+    }
+
+    final generationId = ++_lyricsGenerationSerial;
+    final generationCompleter = Completer<void>();
+    _lyricsGenerationCompleter = generationCompleter;
+    _isLyricsGenerating = true;
+    _isLyricsLoading = false;
+    _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
+    _lyricsGenerationProgress = 0.0;
+    notifyListeners();
+
+    try {
+      final generatedTimeline = await _geminiLyricsTranslationService
+          .generateTimelineFromLyrics(
+            lyrics: sourceLyrics,
+            songTitle: song.title,
+            onUploadProgress: (progress) {
+              if (generationId != _lyricsGenerationSerial ||
+                  _currentMusic()?.path != song.path) {
+                return;
+              }
+
+              _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
+              _lyricsGenerationProgress = progress.clamp(0.0, 1.0);
+              notifyListeners();
+            },
+            onStageChanged: (stage) {
+              if (generationId != _lyricsGenerationSerial ||
+                  _currentMusic()?.path != song.path) {
+                return;
+              }
+
+              switch (stage) {
+                case 'uploading':
+                  _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
+                  _lyricsGenerationProgress = 0.0;
+                  break;
+                case 'processing':
+                  _lyricsGenerationPhase = LyricsGenerationPhase.processing;
+                  _lyricsGenerationProgress = 1.0;
+                  break;
+                case 'generating':
+                  _lyricsGenerationPhase = LyricsGenerationPhase.generating;
+                  _lyricsGenerationProgress = 1.0;
+                  break;
+                default:
+                  _lyricsGenerationPhase = LyricsGenerationPhase.idle;
+                  _lyricsGenerationProgress = 0.0;
+                  break;
+              }
+              notifyListeners();
+            },
+            onProgress: (partialText, isFinal) {
+              if (generationId != _lyricsGenerationSerial ||
+                  _currentMusic()?.path != song.path) {
+                return;
+              }
+
+              final progressText = partialText.trim();
+              if (progressText.isEmpty) return;
+              final progressLyrics = MusicLyric(
+                id: LyricsIdUtils.fromLyricsText(progressText),
+                syncedLines: _parseGeneratedLyrics(progressText),
+                plainText: progressText,
+                source: 'gemini',
+                translations: currentLyrics.translations,
+              );
+
+              _hasLyrics = true;
+              _isLyricsLoading = false;
+              _lyricsGenerationPhase = LyricsGenerationPhase.generating;
+              _lyricsGenerationProgress = 1.0;
+              _isLyricsSynced = progressLyrics.syncedLines.any(
+                (line) => line.isTimed,
+              );
+              _lyricsSearchAttempted = true;
+              _currentLyricsLines = progressLyrics.syncedLines;
+              _currentLyricsText = progressLyrics.plainText;
+              _currentLyricsTitle = song.displayName;
+
+              final updated = _replaceCurrentSongIfPath(
+                song.path,
+                (currentSong) => currentSong.copyWith(lyrics: progressLyrics),
+              );
+              if (updated != null) {
+                unawaited(restoreCachedTranslations(updated));
+              }
+
+              notifyListeners();
+            },
+          );
+
+      if (generationId != _lyricsGenerationSerial ||
+          _currentMusic()?.path != song.path) {
+        return;
+      }
+
+      if (generatedTimeline == null || generatedTimeline.trim().isEmpty) {
+        return;
+      }
+
+      final generatedLines = _parseGeneratedLyrics(generatedTimeline);
+      final lyrics = MusicLyric(
+        id: LyricsIdUtils.fromLyricsText(generatedTimeline),
+        syncedLines: generatedLines.isNotEmpty
+            ? generatedLines
+            : _buildLyricsLines(const [], generatedTimeline),
+        plainText: generatedTimeline.trim(),
+        source: 'gemini',
+        translations: currentLyrics.translations,
+      );
+
+      _hasLyrics = true;
+      _isLyricsLoading = false;
+      _lyricsGenerationPhase = LyricsGenerationPhase.idle;
+      _lyricsGenerationProgress = 0.0;
+      _isLyricsSynced = lyrics.syncedLines.any((line) => line.isTimed);
+      _lyricsSearchAttempted = true;
+      _currentLyricsLines = lyrics.syncedLines;
+      _currentLyricsText = lyrics.plainText;
+      _currentLyricsTitle = song.displayName;
+
+      final updated = _replaceCurrentSongIfPath(
+        song.path,
+        (currentSong) => currentSong.copyWith(lyrics: lyrics),
+      );
+      if (updated != null) {
+        unawaited(restoreCachedTranslations(updated));
+      }
+
+      await _saveGeneratedLyricsToDatabase(
+        song: song,
+        generatedLyrics: generatedTimeline,
+        syncedLines: generatedLines,
+        source: 'gemini_timeline',
+      );
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[LyricsController] Failed to generate timeline: $e');
     } finally {
       if (generationId == _lyricsGenerationSerial) {
         _isLyricsGenerating = false;
@@ -822,6 +1003,7 @@ class LyricsController extends ChangeNotifier {
     required MusicFile song,
     required String generatedLyrics,
     required List<LyricLine> syncedLines,
+    String source = 'gemini_generate',
   }) async {
     try {
       final duration = await _resolveLyricsDuration(song);
@@ -835,7 +1017,7 @@ class LyricsController extends ChangeNotifier {
       );
       final record = LyricsCacheRecord(
         cacheKey: query.cacheKey,
-        source: 'gemini_generate',
+        source: source,
         isSynced: syncedLines.any((line) => line.isTimed),
         syncedLyrics: syncedLines.any((line) => line.isTimed)
             ? generatedLyrics
@@ -851,6 +1033,15 @@ class LyricsController extends ChangeNotifier {
 
   List<LyricLine> _parseGeneratedLyrics(String? lyrics) {
     return LrcUtils.parseTimedLyrics(lyrics);
+  }
+
+  String _timelineSourceLyricsForSong(MusicFile song) {
+    final lyrics = song.lyrics;
+    if (lyrics != null && lyrics.plainText.trim().isNotEmpty) {
+      return LrcUtils.stripTimestamps(lyrics.plainText).trim();
+    }
+
+    return LrcUtils.stripTimestamps(_currentLyricsText).trim();
   }
 
   String _lyricsTranslationCacheKey(String cacheKey, String languageCode) {

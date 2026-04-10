@@ -195,11 +195,109 @@ class GeminiLyricsTranslationService {
     }
 
     final mimeType = _mimeTypeForFilePath(filePath);
+    final normalizedTitle = songTitle?.trim();
+    final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
+        ? ''
+        : '这首歌的标题是《$normalizedTitle》。';
+    final prompt =
+        '$titleHint'
+        '输出这首歌的完整的带时间轴的标准LRC格式歌词,每一行歌词前面都带有一个方括号包裹的时间点，格式通常为：[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。'
+        '仅输出结果不输出其他内容。';
+
+    return _generateFromUploadedFile(
+      file: file,
+      apiKey: apiKey,
+      mimeType: mimeType,
+      modelId: modelId,
+      prompt: prompt,
+      onUploadProgress: onUploadProgress,
+      onStageChanged: onStageChanged,
+      onProgress: onProgress,
+    );
+  }
+
+  Future<String?> generateTimelineFromLyrics({
+    required String lyrics,
+    String? songTitle,
+    String modelId = 'gemini-3.1-flash-lite-preview',
+    void Function(double progress)? onUploadProgress,
+    void Function(String stage)? onStageChanged,
+    void Function(String partialText, bool isFinal)? onProgress,
+  }) async {
+    final apiKey = await _loadApiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip timeline.');
+      return null;
+    }
+
+    final normalizedLyrics = _stripTimestampsPreservingBlankLines(
+      lyrics,
+    ).join('\n').trim();
+    if (normalizedLyrics.isEmpty) {
+      debugPrint('[GeminiLyrics] no usable lyrics for timeline generation.');
+      return null;
+    }
+
+    final tempDir = await Directory.systemTemp.createTemp(
+      'vibe_flow_gemini_timeline_',
+    );
+    final tempFile = File(
+      p.join(
+        tempDir.path,
+        'lyrics_${DateTime.now().millisecondsSinceEpoch}.txt',
+      ),
+    );
 
     try {
+      await tempFile.writeAsString(normalizedLyrics, flush: true);
+
+      final normalizedTitle = songTitle?.trim();
+      final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
+          ? ''
+          : '这首歌的标题是《$normalizedTitle》。';
+      final prompt =
+          '$titleHint'
+          '请根据这段歌词生成完整的标准LRC时间轴歌词。'
+          '输入内容已经去掉了原有时间轴，如果原文是纯文本歌词，请直接基于文本内容生成时间轴。'
+          '请尽量保持原有分行和语义顺序，每一行都应有合理时间点。'
+          '仅输出LRC结果，不要解释，不要编号，不要代码块。';
+
+      return _generateFromUploadedFile(
+        file: tempFile,
+        apiKey: apiKey,
+        mimeType: 'text/plain',
+        modelId: modelId,
+        prompt: prompt,
+        onUploadProgress: onUploadProgress,
+        onStageChanged: onStageChanged,
+        onProgress: onProgress,
+      );
+    } finally {
+      try {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      } catch (e) {
+        debugPrint('[GeminiLyrics] failed to clean temp timeline file: $e');
+      }
+    }
+  }
+
+  Future<String?> _generateFromUploadedFile({
+    required File file,
+    required String apiKey,
+    required String mimeType,
+    required String modelId,
+    required String prompt,
+    void Function(double progress)? onUploadProgress,
+    void Function(String stage)? onStageChanged,
+    void Function(String partialText, bool isFinal)? onProgress,
+  }) async {
+    final filePath = file.path;
+    try {
       onStageChanged?.call('uploading');
-      // 先把本地音频文件上传到 Gemini 文件服务，后续生成请求只引用文件 URI。
-      // 这样模型可以直接“看见”整首歌，而不是只靠标题或歌词文本猜测。
+      // 先把本地文件上传到 Gemini 文件服务，后续生成请求只引用文件 URI。
+      // 这样模型可以直接读取整份输入，而不是只靠 prompt 猜测。
       debugPrint('[GeminiLyrics] 开始上传文件: $filePath');
       final uploadedFile = await _uploadFile(
         file: file,
@@ -229,14 +327,6 @@ class GeminiLyricsTranslationService {
         return null;
       }
 
-      final normalizedTitle = songTitle?.trim();
-      final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
-          ? ''
-          : '这首歌的标题是《$normalizedTitle》。';
-      final prompt =
-          '$titleHint'
-          '输出这首歌的完整的带时间轴的标准LRC格式歌词,每一行歌词前面都带有一个方括号包裹的时间点，格式通常为：[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。'
-          '仅输出结果不输出其他内容。';
       final requestData = {
         'contents': [
           {
@@ -251,7 +341,7 @@ class GeminiLyricsTranslationService {
         ],
       };
 
-      // 这里使用 streamGenerateContent，是为了让歌词在模型生成时就能逐步回传给界面。
+      // 这里使用 streamGenerateContent，是为了让结果在模型生成时就能逐步回传给界面。
       debugPrint('[GeminiLyrics] generation request model=$modelId');
       debugPrint('[GeminiLyrics] generation request filePath=$filePath');
       debugPrint('[GeminiLyrics] generation request fileName=$fileName');

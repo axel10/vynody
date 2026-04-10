@@ -24,6 +24,7 @@ class LyricsPanel extends StatefulWidget {
     required this.translationLanguageCode,
     this.onTranslateLyrics,
     this.onGenerateLyrics,
+    this.onGenerateTimeline,
     this.onClearLyricsCache,
     this.onClearTranslationCache,
     this.onRequeryLyrics,
@@ -45,6 +46,7 @@ class LyricsPanel extends StatefulWidget {
   final String translationLanguageCode;
   final VoidCallback? onTranslateLyrics;
   final VoidCallback? onGenerateLyrics;
+  final VoidCallback? onGenerateTimeline;
   final VoidCallback? onClearLyricsCache;
   final VoidCallback? onClearTranslationCache;
   final Future<void> Function()? onRequeryLyrics;
@@ -107,10 +109,18 @@ class _LyricsPanelState extends State<LyricsPanel> {
 
   String _buildGenerateMenuLabel() {
     final source = widget.lyrics?.source.trim().toLowerCase() ?? '';
-    if (source == 'gemini') {
+    if (source.startsWith('gemini')) {
       return '重新生成歌词（来源gemini）';
     }
     return '使用AI生成歌词（来源是lrclib）';
+  }
+
+  String _buildGenerateTimelineMenuLabel() {
+    final source = widget.lyrics?.source.trim().toLowerCase() ?? '';
+    if (source.startsWith('gemini')) {
+      return '重新生成时间轴（来源gemini）';
+    }
+    return '使用AI生成时间轴';
   }
 
   @override
@@ -142,6 +152,12 @@ class _LyricsPanelState extends State<LyricsPanel> {
           value: 'generate',
           enabled: !widget.isGeneratingLyrics,
           child: Text(_buildGenerateMenuLabel()),
+        ),
+      if (widget.onGenerateTimeline != null)
+        PopupMenuItem<String>(
+          value: 'generate_timeline',
+          enabled: !widget.isGeneratingLyrics,
+          child: Text(_buildGenerateTimelineMenuLabel()),
         ),
       if (!requeryOnly && _hasTimedLyrics)
         PopupMenuItem<String>(
@@ -194,6 +210,8 @@ class _LyricsPanelState extends State<LyricsPanel> {
       }
     } else if (selected == 'generate') {
       await Future<void>.microtask(() => widget.onGenerateLyrics?.call());
+    } else if (selected == 'generate_timeline') {
+      await Future<void>.microtask(() => widget.onGenerateTimeline?.call());
     } else if (selected == 'translate') {
       await Future<void>.microtask(() => widget.onTranslateLyrics?.call());
     } else if (selected == 'clear_lyrics_cache') {
