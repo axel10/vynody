@@ -15,6 +15,13 @@ import 'lyrics_service.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 
+typedef _GeminiGenerationInvoker =
+    Future<String?> Function({
+      required void Function(double progress) onUploadProgress,
+      required void Function(String stage) onStageChanged,
+      required void Function(String partialText, bool isFinal) onProgress,
+    });
+
 class _GeminiGenerationSession {
   _GeminiGenerationSession({
     required this.id,
@@ -569,26 +576,15 @@ class LyricsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> generateLyricsForCurrentSong() async {
-    final song = _currentMusic();
-    if (song == null) {
-      debugPrint('[LyricsController] generate lyrics skipped: no current song');
-      return;
-    }
-    if (_isLyricsGenerating) {
-      debugPrint(
-        '[LyricsController] generate lyrics skipped: already generating '
-        'path=${song.path}',
-      );
-      return;
-    }
-
+  Future<void> _runGeminiGeneration({
+    required MusicFile song,
+    required String databaseSource,
+    required _GeminiGenerationInvoker invoke,
+    Map<String, MusicLyricTranslation> Function()? translationProvider,
+  }) async {
     final session = _beginGeminiGeneration(song);
-
     try {
-      final generatedLyrics = await _geminiLyricsService.generateLyricsFromFile(
-        filePath: song.path,
-        songTitle: song.title,
+      final generatedText = await invoke(
         onUploadProgress: (progress) {
           if (!_isActiveGeminiGeneration(session)) {
             return;
@@ -611,6 +607,9 @@ class LyricsController extends ChangeNotifier {
           final progressLyrics = _buildGeneratedLyrics(
             text: progressText,
             source: 'gemini',
+            translations:
+                translationProvider?.call() ??
+                const <String, MusicLyricTranslation>{},
           );
           _publishGeneratedLyrics(session, song: song, lyrics: progressLyrics);
         },
@@ -620,13 +619,16 @@ class LyricsController extends ChangeNotifier {
         return;
       }
 
-      if (generatedLyrics == null || generatedLyrics.trim().isEmpty) {
+      if (generatedText == null || generatedText.trim().isEmpty) {
         return;
       }
 
       final lyrics = _buildGeneratedLyrics(
-        text: generatedLyrics,
+        text: generatedText,
         source: 'gemini',
+        translations:
+            translationProvider?.call() ??
+            const <String, MusicLyricTranslation>{},
       );
       _publishGeneratedLyrics(session, song: song, lyrics: lyrics);
 
@@ -634,12 +636,48 @@ class LyricsController extends ChangeNotifier {
         song: song,
         generatedLyrics: lyrics.plainText,
         syncedLines: lyrics.syncedLines,
-        source: 'gemini_generate',
+        source: databaseSource,
+      );
+    } finally {
+      _finalizeGeminiGeneration(session);
+    }
+  }
+
+  Future<void> generateLyricsForCurrentSong() async {
+    final song = _currentMusic();
+    if (song == null) {
+      debugPrint('[LyricsController] generate lyrics skipped: no current song');
+      return;
+    }
+    if (_isLyricsGenerating) {
+      debugPrint(
+        '[LyricsController] generate lyrics skipped: already generating '
+        'path=${song.path}',
+      );
+      return;
+    }
+
+    try {
+      await _runGeminiGeneration(
+        song: song,
+        databaseSource: 'gemini_generate',
+        invoke:
+            ({
+              required onUploadProgress,
+              required onStageChanged,
+              required onProgress,
+            }) {
+              return _geminiLyricsService.generateLyricsFromFile(
+                filePath: song.path,
+                songTitle: song.title,
+                onUploadProgress: onUploadProgress,
+                onStageChanged: onStageChanged,
+                onProgress: onProgress,
+              );
+            },
       );
     } catch (e) {
       debugPrint('[LyricsController] Failed to generate lyrics: $e');
-    } finally {
-      _finalizeGeminiGeneration(session);
     }
   }
 
@@ -668,75 +706,31 @@ class LyricsController extends ChangeNotifier {
       return;
     }
 
-    final session = _beginGeminiGeneration(song);
-
     try {
-      final generatedTimeline = await _geminiLyricsService
-          .generateTimelineFromLyrics(
-            filePath: song.path,
-            lyrics: sourceLyrics,
-            songTitle: song.title,
-            onUploadProgress: (progress) {
-              if (!_isActiveGeminiGeneration(session)) {
-                return;
-              }
-
-              _lyricsGenerationPhase = LyricsGenerationPhase.uploading;
-              _lyricsGenerationProgress = progress.clamp(0.0, 1.0);
-              notifyListeners();
-            },
-            onStageChanged: (stage) {
-              _updateGeminiGenerationStage(session, stage);
-            },
-            onProgress: (partialText, isFinal) {
-              if (!_isActiveGeminiGeneration(session)) {
-                return;
-              }
-
-              final progressText = partialText.trim();
-              if (progressText.isEmpty) return;
-              final progressLyrics = _buildGeneratedLyrics(
-                text: progressText,
-                source: 'gemini',
-                translations:
-                    _currentMusic()?.lyrics?.translations ??
-                    const <String, MusicLyricTranslation>{},
-              );
-              _publishGeneratedLyrics(
-                session,
-                song: song,
-                lyrics: progressLyrics,
-              );
-            },
-          );
-
-      if (!_isActiveGeminiGeneration(session)) {
-        return;
-      }
-
-      if (generatedTimeline == null || generatedTimeline.trim().isEmpty) {
-        return;
-      }
-
-      final lyrics = _buildGeneratedLyrics(
-        text: generatedTimeline,
-        source: 'gemini',
-        translations:
+      await _runGeminiGeneration(
+        song: song,
+        databaseSource: 'gemini_timeline',
+        translationProvider: () =>
             _currentMusic()?.lyrics?.translations ??
             const <String, MusicLyricTranslation>{},
-      );
-      _publishGeneratedLyrics(session, song: song, lyrics: lyrics);
-
-      await _saveGeneratedLyricsToDatabase(
-        song: song,
-        generatedLyrics: lyrics.plainText,
-        syncedLines: lyrics.syncedLines,
-        source: 'gemini_timeline',
+        invoke:
+            ({
+              required onUploadProgress,
+              required onStageChanged,
+              required onProgress,
+            }) {
+              return _geminiLyricsService.generateTimelineFromLyrics(
+                filePath: song.path,
+                lyrics: sourceLyrics,
+                songTitle: song.title,
+                onUploadProgress: onUploadProgress,
+                onStageChanged: onStageChanged,
+                onProgress: onProgress,
+              );
+            },
       );
     } catch (e) {
       debugPrint('[LyricsController] Failed to generate timeline: $e');
-    } finally {
-      _finalizeGeminiGeneration(session);
     }
   }
 
