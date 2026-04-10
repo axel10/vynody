@@ -212,14 +212,28 @@ class LyricsService {
 
     final cacheKey = normalizedQuery.cacheKey;
 
-    // 不再使用内存层缓存，而是依赖 MusicFile 自身的持有和数据库持久化。
-    // 这里只保留数据库层的查找逻辑。
-    final cachedFromDb = await _loadFromDatabase(normalizedQuery);
+    // 先尝试原始查询键，兼容 Gemini 生成结果按“当前曲目原始元数据”写入的缓存。
+    // 再回退到规范化后的查询键，保持既有 LRCLib 缓存命中逻辑不变。
+    final cachedFromDb = await _loadFromDatabase(query, ignoreEmptyCache: true);
     if (cachedFromDb != null) {
       if (debugLog) {
-        debugPrintSelection(normalizedQuery, cachedFromDb, source: 'sqlite');
+        debugPrintSelection(query, cachedFromDb, source: 'sqlite');
       }
       return cachedFromDb;
+    }
+
+    // 不再使用内存层缓存，而是依赖 MusicFile 自身的持有和数据库持久化。
+    // 这里只保留数据库层的查找逻辑。
+    final normalizedCachedFromDb = await _loadFromDatabase(normalizedQuery);
+    if (normalizedCachedFromDb != null) {
+      if (debugLog) {
+        debugPrintSelection(
+          normalizedQuery,
+          normalizedCachedFromDb,
+          source: 'sqlite',
+        );
+      }
+      return normalizedCachedFromDb;
     }
 
     // 3. 合并正在进行的相同请求：防止同一首歌短时间内多次发起网络搜索请求
@@ -358,14 +372,38 @@ class LyricsService {
     return bestCandidate;
   }
 
-  Future<LyricSelectionResult?> _loadFromDatabase(LyricsQuery query) async {
+  Future<LyricSelectionResult?> _loadFromDatabase(
+    LyricsQuery query, {
+    bool ignoreEmptyCache = false,
+  }) async {
     try {
       final record = await _cacheRepository.getLyricsCache(query.cacheKey);
       if (record == null) return null;
+      if (ignoreEmptyCache && record.source.trim().toLowerCase() == 'none') {
+        return null;
+      }
       return _selectionFromRecord(query, record);
     } catch (e) {
       debugPrint('[Lyrics] Failed to load cache for "${query.cacheKey}": $e');
       return null;
+    }
+  }
+
+  Future<void> _saveEmptyToDatabase(LyricsQuery query) async {
+    try {
+      final record = LyricsCacheRecord(
+        cacheKey: query.cacheKey,
+        source: 'none',
+        isSynced: false,
+        syncedLyrics: null,
+        syncedLines: const [],
+        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+      );
+      await _cacheRepository.saveLyricsCache(record);
+    } catch (e) {
+      debugPrint(
+        '[Lyrics] Failed to cache empty result for "${query.title}": $e',
+      );
     }
   }
 
@@ -483,24 +521,6 @@ class LyricsService {
       debugPrint('[Lyrics] SEARCH error for "${query.title}": $e');
     }
     return const [];
-  }
-
-  Future<void> _saveEmptyToDatabase(LyricsQuery query) async {
-    try {
-      final record = LyricsCacheRecord(
-        cacheKey: query.cacheKey,
-        source: 'none',
-        isSynced: false,
-        syncedLyrics: null,
-        syncedLines: const [],
-        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-      );
-      await _cacheRepository.saveLyricsCache(record);
-    } catch (e) {
-      debugPrint(
-        '[Lyrics] Failed to cache empty result for "${query.title}": $e',
-      );
-    }
   }
 
   Future<void> _saveToDatabase({
