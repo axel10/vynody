@@ -1,20 +1,20 @@
-import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/clean_helper.dart';
-import '../player/musicbrainz_tag_completion_service.dart';
 import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
+import '../player/musicbrainz_tag_completion_service.dart';
 import 'song_tag_completion_widgets.dart';
 import 'song_tag_musicbrainz_cards.dart';
 import 'song_tag_acoustid_cards.dart';
+import 'song_tag_completion_riverpod.dart';
 
 enum _SummaryCondition { title, artist, album, duration }
 
-class SongTagCompletionSheet extends StatefulWidget {
+class SongTagCompletionSheet extends ConsumerStatefulWidget {
   const SongTagCompletionSheet({
     super.key,
     required this.songPath,
@@ -31,25 +31,18 @@ class SongTagCompletionSheet extends StatefulWidget {
   final int? durationMillis;
 
   @override
-  State<SongTagCompletionSheet> createState() => _SongTagCompletionSheetState();
+  ConsumerState<SongTagCompletionSheet> createState() =>
+      _SongTagCompletionSheetState();
 }
 
-class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
-  final MusicBrainzTagCompletionService _service =
-      MusicBrainzTagCompletionService();
+class _SongTagCompletionSheetState
+    extends ConsumerState<SongTagCompletionSheet> {
   final TextEditingController _musicBrainzSearchController =
       TextEditingController();
   final FocusNode _musicBrainzSearchFocusNode = FocusNode();
 
-  List<MusicBrainzTrackMatch> _matches = const [];
-  bool _isLoading = true;
-  bool _isApplying = false;
   bool _isMusicBrainzSearchExpanded = false;
-  String? _errorMessage;
   SongMetadata? _fileMetadata;
-  List<AcoustIDResult> _acoustidResults = const [];
-  bool _isAcoustIDLoading = true;
-  AcoustIDService? _acoustidService;
   final Set<String> _expandedAcoustIDIds = <String>{};
   final Set<String> _expandedReleaseGroupIds = <String>{};
   final Set<String> _expandedMusicBrainzRecordingIds = <String>{};
@@ -58,14 +51,12 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       <_SummaryCondition>{};
   final Map<_SummaryCondition, String> _editedSummaryConditionTexts =
       <_SummaryCondition, String>{};
-  int _musicBrainzQueryRevision = 0;
 
   @override
   void initState() {
     super.initState();
     _musicBrainzSearchController.addListener(_onMusicBrainzSearchChanged);
     _loadInitialData();
-    _loadAcoustIDResult();
   }
 
   @override
@@ -81,22 +72,26 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     setState(() {});
   }
 
+  SongTagCompletionController get _controller =>
+      ref.read(songTagCompletionControllerProvider(widget.songPath));
+
   Future<void> _loadInitialData() async {
     if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
-      _fileMetadata = await MetadataHelper.readMetadataFromFile(
+      final metadata = await MetadataHelper.readMetadataFromFile(
         widget.songPath,
       );
+      if (!mounted) return;
+      setState(() {
+        _fileMetadata = metadata;
+      });
     } catch (e) {
       debugPrint('Error reading file tags: $e');
     }
 
     if (!mounted) return;
     _loadMatches();
+    _loadAcoustIDResult();
   }
 
   String get _displayTitle {
@@ -159,11 +154,13 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     return null;
   }
 
-  List<MusicBrainzTrackMatch> _filteredMusicBrainzMatches() {
-    if (!_hasMusicBrainzSearchQuery) return _matches;
+  List<MusicBrainzTrackMatch> _filteredMusicBrainzMatches(
+    SongTagCompletionController controller,
+  ) {
+    if (!_hasMusicBrainzSearchQuery) return controller.musicBrainzMatches;
 
     final query = _musicBrainzSearchQuery;
-    return _matches
+    return controller.musicBrainzMatches
         .where(
           (match) => _filteredMusicBrainzReleaseGroups(match, query).isNotEmpty,
         )
@@ -322,91 +319,40 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
 
   Future<void> _loadMatches() async {
     if (!mounted) return;
-    final revision = ++_musicBrainzQueryRevision;
+    final title = _summaryConditionText(_SummaryCondition.title);
+    final artist = _summaryConditionText(_SummaryCondition.artist);
+    final album = _summaryConditionText(_SummaryCondition.album);
+
+    await _controller.loadMusicBrainzMatches(
+      title: title,
+      artist: artist,
+      album: album,
+      durationMillis: _fileMetadata?.duration ?? widget.durationMillis,
+      enableTitleQuery: _isSummaryConditionEnabled(_SummaryCondition.title),
+      enableArtistQuery: _isSummaryConditionEnabled(_SummaryCondition.artist),
+      enableAlbumQuery: _isSummaryConditionEnabled(_SummaryCondition.album),
+      enableDurationQuery: _isSummaryConditionEnabled(
+        _SummaryCondition.duration,
+      ),
+    );
+
+    if (!mounted) return;
     setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+      _expandedMusicBrainzRecordingIds.clear();
+      _expandedMusicBrainzReleaseGroupIds.clear();
     });
-
-    try {
-      final title = _summaryConditionText(_SummaryCondition.title);
-      final artist = _summaryConditionText(_SummaryCondition.artist);
-      final album = _summaryConditionText(_SummaryCondition.album);
-
-      final results = await _service.searchMatches(
-        songPath: widget.songPath,
-        title: title,
-        artist: artist,
-        album: album,
-        durationMillis: _fileMetadata?.duration ?? widget.durationMillis,
-        enableTitleQuery: _isSummaryConditionEnabled(_SummaryCondition.title),
-        enableArtistQuery: _isSummaryConditionEnabled(_SummaryCondition.artist),
-        enableAlbumQuery: _isSummaryConditionEnabled(_SummaryCondition.album),
-        enableDurationQuery: _isSummaryConditionEnabled(
-          _SummaryCondition.duration,
-        ),
-      );
-
-      if (!mounted || revision != _musicBrainzQueryRevision) return;
-      setState(() {
-        _matches = results;
-        _expandedMusicBrainzRecordingIds.clear();
-        _expandedMusicBrainzReleaseGroupIds.clear();
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted || revision != _musicBrainzQueryRevision) return;
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
-    }
   }
 
   Future<void> _loadAcoustIDResult() async {
-    try {
-      final apiKeyFile = File('api_keys.json');
-      String apiKey;
-      if (await apiKeyFile.exists()) {
-        final content = await apiKeyFile.readAsString();
-        final json = jsonDecode(content) as Map<String, dynamic>;
-        apiKey = json['AcoustID_API_KEY'] as String? ?? '';
-      } else {
-        debugPrint('AcoustID: api_keys.json not found');
-        if (!mounted) return;
-        setState(() => _isAcoustIDLoading = false);
-        return;
-      }
+    final durationSec = (_fileMetadata?.duration ?? widget.durationMillis ?? 0);
+    await _controller.loadAcoustIDResult(durationMillis: durationSec);
 
-      if (apiKey.isEmpty) {
-        debugPrint('AcoustID: API key is empty');
-        if (!mounted) return;
-        setState(() => _isAcoustIDLoading = false);
-        return;
-      }
-
-      final acoustidService = AcoustIDService(apiKey: apiKey);
-      _acoustidService = acoustidService;
-      final durationSec =
-          (_fileMetadata?.duration ?? widget.durationMillis ?? 0) ~/ 1000;
-      final results = await acoustidService.lookupByFingerprint(
-        filePath: widget.songPath,
-        durationSeconds: durationSec,
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _acoustidResults = results;
-        _expandedAcoustIDIds.clear();
-        _expandedReleaseGroupIds.clear();
-        _expandedMusicBrainzRecordingIds.clear();
-        _isAcoustIDLoading = false;
-      });
-    } catch (e) {
-      debugPrint('AcoustID: Failed to load result: $e');
-      if (!mounted) return;
-      setState(() => _isAcoustIDLoading = false);
-    }
+    if (!mounted) return;
+    setState(() {
+      _expandedAcoustIDIds.clear();
+      _expandedReleaseGroupIds.clear();
+      _expandedMusicBrainzRecordingIds.clear();
+    });
   }
 
   Future<void> _applyAcoustIDSelection({
@@ -414,6 +360,8 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     required AcoustIDRecording recording,
     required String albumTitle,
     required String sourceLabel,
+    required String fallbackTitle,
+    required int? fallbackDurationMillis,
     String? releaseId,
     String? releaseGroupId,
     String? coverLargeUrl,
@@ -422,69 +370,24 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     String? country,
     String? releaseDate,
   }) async {
-    if (_isApplying) return;
-
-    if (!mounted) return;
-    setState(() {
-      _isApplying = true;
-      _errorMessage = null;
-    });
-
-    final coverArtBytes = await _acoustidService?.downloadCoverBytes(
-      candidateUrls: [coverLargeUrl, coverThumbnailUrl],
+    final result = await _controller.applyAcoustIDSelection(
+      trackResult: trackResult,
+      recording: recording,
+      albumTitle: albumTitle,
+      sourceLabel: sourceLabel,
+      fallbackTitle: fallbackTitle,
+      fallbackDurationMillis: fallbackDurationMillis,
+      releaseId: releaseId,
+      releaseGroupId: releaseGroupId,
+      coverLargeUrl: coverLargeUrl,
+      coverThumbnailUrl: coverThumbnailUrl,
+      raw: raw,
+      country: country,
+      releaseDate: releaseDate,
+      existingMetadata: _fileMetadata,
     );
-
-    try {
-      final durationMillis = recording.durationMillis ?? widget.durationMillis;
-      final saved = await MetadataHelper.saveSelectedSongMetadata(
-        filePath: widget.songPath,
-        title: recording.title,
-        artist: recording.artist,
-        album: albumTitle,
-        duration: durationMillis,
-        artworkBytes: coverArtBytes,
-      );
-
-      if (saved == null) {
-        throw StateError('写入标签和文件同步失败');
-      }
-
-      final updated = saved.$1;
-      final resolvedCover = coverLargeUrl != null || coverThumbnailUrl != null
-          ? ResolvedCover(
-              endpoint: releaseId != null ? 'release' : 'release-group',
-              id: releaseId ?? releaseGroupId ?? '',
-              largeUrl: coverLargeUrl,
-              thumbnailUrl: coverThumbnailUrl ?? coverLargeUrl,
-            )
-          : null;
-
-      if (!mounted) return;
-      Navigator.of(context).pop(
-        MusicBrainzTagSelectionResult(
-          metadata: updated,
-          artworkBytes: coverArtBytes,
-          match: _buildAcoustIDSelectionMatch(
-            trackResult: trackResult,
-            recording: recording,
-            albumTitle: albumTitle,
-            releaseId: releaseId,
-            releaseGroupId: releaseGroupId,
-            releaseDate: releaseDate,
-            country: country,
-            raw: raw,
-            resolvedCover: resolvedCover,
-            sourceLabel: sourceLabel,
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isApplying = false;
-        _errorMessage = '保存失败：$e';
-      });
-    }
+    if (!mounted || result == null) return;
+    Navigator.of(context).pop(result);
   }
 
   Future<void> _applyAcoustIDReleaseGroup(
@@ -497,6 +400,8 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       recording: recording,
       albumTitle: releaseGroup.title,
       sourceLabel: 'AcoustID release-group',
+      fallbackTitle: _displayTitle,
+      fallbackDurationMillis: _fileMetadata?.duration ?? widget.durationMillis,
       releaseGroupId: releaseGroup.id,
       coverLargeUrl: releaseGroup.largeUrl,
       coverThumbnailUrl: releaseGroup.thumbnailUrl,
@@ -519,6 +424,8 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
       recording: recording,
       albumTitle: release.title,
       sourceLabel: 'AcoustID release',
+      fallbackTitle: _displayTitle,
+      fallbackDurationMillis: _fileMetadata?.duration ?? widget.durationMillis,
       releaseId: release.id,
       releaseGroupId: releaseGroup.id,
       coverLargeUrl: release.largeUrl,
@@ -534,68 +441,25 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     );
   }
 
-  MusicBrainzTrackMatch _buildAcoustIDSelectionMatch({
-    required AcoustIDResult trackResult,
-    required AcoustIDRecording recording,
-    required String albumTitle,
-    required String sourceLabel,
-    String? releaseId,
-    String? releaseGroupId,
-    String? releaseDate,
-    String? country,
-    Map<String, dynamic>? raw,
-    ResolvedCover? resolvedCover,
-  }) {
-    return MusicBrainzTrackMatch(
-      recordingId: recording.id.isNotEmpty ? recording.id : trackResult.id,
-      title: recording.title.isNotEmpty ? recording.title : _displayTitle,
-      artist: recording.artist.isNotEmpty ? recording.artist : 'Unknown Artist',
-      album: albumTitle,
-      releaseId: releaseId,
-      releaseGroupId: releaseGroupId,
-      releaseDate: releaseDate,
-      country: country,
-      durationMillis: recording.durationMillis ?? widget.durationMillis,
-      trackNumber: null,
-      score: (trackResult.score * 100).round().clamp(0, 100),
-      disambiguation: sourceLabel,
-      releases: const [],
-      raw: raw ?? {'track': trackResult.raw, 'recording': recording.raw},
-    )..resolvedCover = resolvedCover;
-  }
-
   Future<void> _applyMusicBrainzRelease(
     MusicBrainzTrackMatch match,
     MusicBrainzReleaseMatch release,
   ) async {
-    if (_isApplying) return;
+    final result = await _controller.applyMusicBrainzRelease(
+      match: match,
+      release: release,
+      fallbackDurationMillis: _fileMetadata?.duration ?? widget.durationMillis,
+      existingMetadata: _fileMetadata,
+    );
 
-    if (!mounted) return;
-    setState(() {
-      _isApplying = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final result = await _service.applySelection(
-        songPath: widget.songPath,
-        match: match,
-        selectedRelease: release,
-        fallbackDurationMillis: widget.durationMillis,
-      );
-
-      if (!mounted) return;
-      Navigator.of(context).pop(result);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isApplying = false;
-        _errorMessage = '保存失败：$e';
-      });
-    }
+    if (!mounted || result == null) return;
+    Navigator.of(context).pop(result);
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(
+    BuildContext context,
+    SongTagCompletionController controller,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
       child: Column(
@@ -643,7 +507,9 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                     : '搜索 release 标题',
               ),
               IconButton(
-                onPressed: _isLoading ? null : _loadMatches,
+                onPressed: controller.isMusicBrainzLoading
+                    ? null
+                    : _loadMatches,
                 icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
                 tooltip: '刷新结果',
               ),
@@ -718,7 +584,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     );
   }
 
-  Widget _buildSummary(BuildContext context) {
+  Widget _buildSummary(
+    BuildContext context,
+    SongTagCompletionController controller,
+  ) {
     final summaryItems = <Widget>[
       SongTagSummaryChip(
         label: '本地标题',
@@ -780,20 +649,23 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    final filteredMusicBrainzMatches = _filteredMusicBrainzMatches();
+  Widget _buildBody(
+    BuildContext context,
+    SongTagCompletionController controller,
+  ) {
+    final filteredMusicBrainzMatches = _filteredMusicBrainzMatches(controller);
 
-    if (_isLoading && _isAcoustIDLoading) {
+    if (controller.isMusicBrainzLoading && controller.isAcoustIDLoading) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2.4));
     }
 
-    if (_errorMessage != null &&
-        _acoustidResults.isEmpty &&
+    if (controller.errorMessage != null &&
+        controller.acoustidResults.isEmpty &&
         filteredMusicBrainzMatches.isEmpty) {
       return SongTagEmptyState(
         icon: Icons.wifi_off_rounded,
         title: '检索失败',
-        subtitle: _errorMessage!,
+        subtitle: controller.errorMessage!,
         actionLabel: '重试',
         onAction: () {
           _loadMatches();
@@ -804,7 +676,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
 
     final children = <Widget>[];
 
-    if (_isAcoustIDLoading) {
+    if (controller.isAcoustIDLoading) {
       children.add(
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -820,7 +692,7 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
           ),
         ),
       );
-    } else if (_acoustidResults.isNotEmpty) {
+    } else if (controller.acoustidResults.isNotEmpty) {
       children.add(
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
@@ -834,15 +706,15 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
           ),
         ),
       );
-      for (var i = 0; i < _acoustidResults.length; i++) {
-        final result = _acoustidResults[i];
+      for (var i = 0; i < controller.acoustidResults.length; i++) {
+        final result = controller.acoustidResults[i];
         final trackKey = result.id.isNotEmpty ? result.id : 'track_$i';
         children.add(
           SongTagAcoustIDResultCard(
             result: result,
             index: i,
             displayTitle: _displayTitle,
-            isApplying: _isApplying,
+            isApplying: controller.isApplying,
             isExpanded: _expandedAcoustIDIds.contains(trackKey),
             onToggleExpanded: () {
               setState(() {
@@ -868,15 +740,16 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
             onApplyRelease: _applyAcoustIDRelease,
           ),
         );
-        if (i < _acoustidResults.length - 1) {
+        if (i < controller.acoustidResults.length - 1) {
           children.add(const SizedBox(height: 8));
         }
       }
       children.add(const SizedBox(height: 10));
     }
 
-    if (!_isLoading) {
-      if (filteredMusicBrainzMatches.isEmpty && _acoustidResults.isEmpty) {
+    if (!controller.isMusicBrainzLoading) {
+      if (filteredMusicBrainzMatches.isEmpty &&
+          controller.acoustidResults.isEmpty) {
         return Center(
           child: SongTagEmptyState(
             icon: Icons.search_off_rounded,
@@ -924,8 +797,8 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
               match: match,
               index: i,
               displayTitle: _displayTitle,
-              service: _service,
-              isApplying: _isApplying,
+              service: controller.service,
+              isApplying: controller.isApplying,
               isExpanded: _expandedMusicBrainzRecordingIds.contains(
                 recordingKey,
               ),
@@ -983,6 +856,10 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = ref.watch(
+      songTagCompletionControllerProvider(widget.songPath),
+    );
+
     return SafeArea(
       top: false,
       child: FractionallySizedBox(
@@ -1005,13 +882,13 @@ class _SongTagCompletionSheetState extends State<SongTagCompletionSheet> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(context),
-                    _buildSummary(context),
+                    _buildHeader(context, controller),
+                    _buildSummary(context, controller),
                     const SizedBox(height: 14),
-                    Expanded(child: _buildBody(context)),
+                    Expanded(child: _buildBody(context, controller)),
                   ],
                 ),
-                if (_isApplying)
+                if (controller.isApplying)
                   Positioned.fill(
                     child: ColoredBox(
                       color: Colors.black.withValues(alpha: 0.35),
