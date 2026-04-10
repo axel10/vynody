@@ -3,12 +3,13 @@ import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as legacy_provider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
+import 'player/audio_riverpod.dart';
 import 'player/audio_service.dart';
 import 'player/lyrics_riverpod.dart';
 import 'player/playlist_service.dart';
@@ -25,7 +26,10 @@ void handleFileOpen(List<String> args) {
   final context = navigatorKey.currentContext; // 获取全局导航上下文以访问 Provider
   if (context == null) return;
 
-  final audio = context.read<AudioService>();
+  final audio = legacy_provider.Provider.of<AudioService>(
+    context,
+    listen: false,
+  );
   // 支持的音频格式列表
   final List<String> audioExtensions = [
     '.mp3',
@@ -94,26 +98,67 @@ void main(List<String> args) async {
   }
 
   final settingsService = await SettingsService.init();
-  final audioService = AudioService(settingsService);
-  final lyricsDependencies = audioService.lyricsControllerDependencies;
-  final riverpodContainer = ProviderContainer(
-    overrides: [
-      lyricsControllerDependenciesProvider.overrideWithValue(
-        lyricsDependencies,
-      ),
-    ],
-  );
-  audioService.attachLyricsControllerAccess(
-    readController: () =>
-        riverpodContainer.read(lyricsControllerProvider.notifier),
-    readState: () => riverpodContainer.read(lyricsControllerProvider),
-  );
 
   runApp(
-    MultiProvider(
+    ProviderScope(
+      overrides: [
+        settingsServiceProvider.overrideWithValue(settingsService),
+      ],
+      child: _LegacyProviderBridge(
+        settingsService: settingsService,
+        child: MyApp(args: args),
+      ),
+    ),
+  );
+}
+
+class _LegacyProviderBridge extends ConsumerStatefulWidget {
+  const _LegacyProviderBridge({
+    required this.settingsService,
+    required this.child,
+  });
+
+  final SettingsService settingsService;
+  final Widget child;
+
+  @override
+  ConsumerState<_LegacyProviderBridge> createState() =>
+      _LegacyProviderBridgeState();
+}
+
+class _LegacyProviderBridgeState extends ConsumerState<_LegacyProviderBridge> {
+  AudioService? _attachedAudio;
+  bool _attachScheduled = false;
+
+  void _scheduleLyricsBridge(AudioService audio) {
+    if (_attachScheduled || identical(_attachedAudio, audio)) {
+      return;
+    }
+
+    _attachScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _attachScheduled = false;
+      if (!mounted) return;
+
+      audio.attachLyricsControllerAccess(
+        readController: () => ref.read(lyricsControllerProvider.notifier),
+        readState: () => ref.read(lyricsControllerProvider),
+      );
+      _attachedAudio = audio;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final audio = ref.read(audioServiceProvider);
+    _scheduleLyricsBridge(audio);
+
+    return legacy_provider.MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: audioService),
-        ChangeNotifierProxyProvider<AudioService, ScannerService>(
+        legacy_provider.ChangeNotifierProvider<AudioService>.value(
+          value: audio,
+        ),
+        legacy_provider.ChangeNotifierProxyProvider<AudioService, ScannerService>(
           create: (_) => ScannerService(),
           update: (_, audio, scanner) {
             scanner!.setPlayerController(audio.playbackController);
@@ -121,15 +166,14 @@ void main(List<String> args) async {
             return scanner;
           },
         ),
-        ChangeNotifierProvider(create: (_) => PlaylistService()),
-        ChangeNotifierProvider.value(value: settingsService),
+        legacy_provider.ChangeNotifierProvider(create: (_) => PlaylistService()),
+        legacy_provider.ChangeNotifierProvider.value(
+          value: widget.settingsService,
+        ),
       ],
-      child: UncontrolledProviderScope(
-        container: riverpodContainer,
-        child: MyApp(args: args),
-      ),
-    ),
-  );
+      child: widget.child,
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {

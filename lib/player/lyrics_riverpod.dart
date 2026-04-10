@@ -2,36 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
-import '../models/music_file.dart';
-import 'metadata_database.dart';
+import 'lyrics_controller_dependencies.dart';
+import 'audio_riverpod.dart';
 import 'lyrics_controller.dart';
 import 'lyrics_controller_state.dart';
 
-class LyricsControllerDependencies {
-  const LyricsControllerDependencies({
-    required this.db,
-    required this.currentMusic,
-    required this.queue,
-    required this.currentIndex,
-    required this.playerDuration,
-    required this.isLyricsActive,
-    required this.cacheSongDuration,
-  });
-
-  final MetadataDatabase db;
-  final MusicFile? Function() currentMusic;
-  final List<MusicFile> Function() queue;
-  final int Function() currentIndex;
-  final Duration Function() playerDuration;
-  final bool Function() isLyricsActive;
-  final void Function(String path, int durationMillis) cacheSongDuration;
-}
-
 final lyricsControllerDependenciesProvider =
     Provider<LyricsControllerDependencies>((ref) {
-      throw UnimplementedError(
-        'lyricsControllerDependenciesProvider must be overridden before use',
-      );
+      final audioService = ref.read(audioServiceProvider);
+      return audioService.lyricsControllerDependencies;
     });
 
 final lyricsControllerProvider =

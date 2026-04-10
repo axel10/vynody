@@ -22,7 +22,7 @@ import 'scanner_service.dart';
 import 'metadata_helper.dart';
 import 'lyrics_controller.dart';
 import 'lyrics_controller_state.dart';
-import 'lyrics_riverpod.dart';
+import 'lyrics_controller_dependencies.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioCoreController _player;

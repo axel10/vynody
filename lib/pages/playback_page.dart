@@ -3,10 +3,12 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import '../l10n/app_localizations.dart';
+import '../player/audio_riverpod.dart';
 import '../player/audio_snapshot.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
@@ -27,14 +29,14 @@ import '../widgets/equalizer_panel.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
 
-class PlaybackPage extends StatefulWidget {
+class PlaybackPage extends ConsumerStatefulWidget {
   const PlaybackPage({super.key});
 
   @override
-  State<PlaybackPage> createState() => _PlaybackPageState();
+  ConsumerState<PlaybackPage> createState() => _PlaybackPageState();
 }
 
-class _PlaybackPageState extends State<PlaybackPage>
+class _PlaybackPageState extends ConsumerState<PlaybackPage>
     with SingleTickerProviderStateMixin {
   bool _showVolumeSlider = false;
   bool _showVisualizer = true;
@@ -51,9 +53,11 @@ class _PlaybackPageState extends State<PlaybackPage>
   @override
   void initState() {
     super.initState();
+    _audioService = ref.read(audioServiceProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final audio = context.read<AudioService>();
+      final audio = _audioService;
+      if (audio == null) return;
       _showVisualizer = audio.isVisualizerEnabled;
       _isLyricsMode = audio.isLyricsActive;
       _pendingArtworkBytes = audio.currentMusic?.artworkBytes;
@@ -68,7 +72,6 @@ class _PlaybackPageState extends State<PlaybackPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _settingsService ??= context.read<SettingsService>();
-    _audioService ??= context.read<AudioService>();
   }
 
   @override
@@ -83,10 +86,13 @@ class _PlaybackPageState extends State<PlaybackPage>
     }
     // 离开播放页时，显式关闭 AudioService 的歌词激活标记。
     // 这将停止在歌曲切换时自动从网络抓取歌词，从而节省网络资源。
-    // 使用已缓存的服务实例，避免在 dispose 时查找 context
-    Future.microtask(() {
-      _audioService?.setLyricsActive(false);
-    });
+    // 使用已缓存的服务实例，避免在 dispose 时查找 ref/context
+    final audio = _audioService;
+    if (audio != null) {
+      Future.microtask(() {
+        audio.setLyricsActive(false);
+      });
+    }
     super.dispose();
   }
 
@@ -105,7 +111,7 @@ class _PlaybackPageState extends State<PlaybackPage>
   void _onCarouselAnimationComplete() {
     if (!mounted) return;
 
-    final audio = context.read<AudioService>();
+    final audio = ref.read(audioServiceProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
@@ -131,7 +137,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     // 延后一帧再通知 Provider，避免和本次切换动画的重建过程抢占同一帧。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<AudioService>().setLyricsActive(nextLyricsMode);
+      ref.read(audioServiceProvider).setLyricsActive(nextLyricsMode);
     });
   }
 
@@ -625,8 +631,8 @@ class _PlaybackPageState extends State<PlaybackPage>
   @override
   Widget build(BuildContext context) {
     // Separate UI status from rendering visibility to avoid flicker
-    final AudioSnapshot snapshot = context.select(
-      (AudioService a) => a.snapshot,
+    final AudioSnapshot snapshot = ref.watch(
+      audioServiceProvider.select((a) => a.snapshot),
     );
     final isVisualizerEnabled = snapshot.isVisualizerEnabled;
     final isTransitioning = snapshot.isTransitioning;
@@ -652,7 +658,7 @@ class _PlaybackPageState extends State<PlaybackPage>
             _lastOrientation = orientation;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              context.read<AudioService>().applyVisualizerSettings(
+              ref.read(audioServiceProvider).applyVisualizerSettings(
                 orientation: orientation,
               );
             });
@@ -668,10 +674,8 @@ class _PlaybackPageState extends State<PlaybackPage>
                     child: Center(
                       child: Builder(
                         builder: (context) {
-                          final audio = context.read<AudioService>();
-                          final playState = context.select(
-                            (AudioService a) => a.snapshot,
-                          );
+                          final audio = ref.read(audioServiceProvider);
+                          final playState = snapshot;
                           final isNext = playState.isLastActionNext ?? true;
                           final isVisualizerEnabled =
                               playState.isVisualizerEnabled;
@@ -785,7 +789,7 @@ class _PlaybackPageState extends State<PlaybackPage>
                   Selector<AudioService, double>(
                     selector: (_, a) => a.volume,
                     builder: (context, volume, _) {
-                      final audio = context.read<AudioService>();
+                      final audio = ref.read(audioServiceProvider);
                       return VolumeSliderOverlay(
                         volume: volume,
                         onVolumeChanged: (val) {
@@ -910,7 +914,7 @@ class _PlaybackPageState extends State<PlaybackPage>
     return Positioned.fill(
       child: RepaintBoundary(
         child: StreamBuilder<FftFrame>(
-          stream: context.read<AudioService>().visualizerStream,
+          stream: ref.read(audioServiceProvider).visualizerStream,
           builder: (context, snapshot) {
             final frame = snapshot.data;
             if (frame == null) return const SizedBox.shrink();
@@ -921,7 +925,7 @@ class _PlaybackPageState extends State<PlaybackPage>
               builder: (context, value, child) {
                 // Re-read settings more cleanly or use the data tuple
                 final settings = context.read<SettingsService>();
-                final audio = context.read<AudioService>();
+                final audio = ref.read(audioServiceProvider);
                 final isLandscape = orientation == Orientation.landscape;
                 final gap = isLandscape
                     ? settings.landscapeGap

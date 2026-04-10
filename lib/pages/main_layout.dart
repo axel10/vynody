@@ -2,11 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
+import '../player/audio_riverpod.dart';
 import '../player/audio_service.dart';
 import '../player/settings_service.dart';
 import '../pages/folder_page.dart';
@@ -81,26 +83,27 @@ class ToggleFullScreenIntent extends Intent {
   const ToggleFullScreenIntent();
 }
 
-class MainLayout extends StatefulWidget {
+class MainLayout extends ConsumerStatefulWidget {
   final List<String> args;
   final int initialIndex;
 
   const MainLayout({super.key, required this.args, this.initialIndex = 1});
 
   @override
-  State<MainLayout> createState() => _MainLayoutState();
+  ConsumerState<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends State<MainLayout> with WindowListener {
+class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   late int _currentIndex;
   bool _showVolumeHUD = false;
   Timer? _hudTimer;
   double? _lastVolume;
-  late AudioService _audioService;
   // _isFullScreen 决定了标题栏全屏按钮的图标状态（全屏 vs 窗口化）
   // 该状态通过 _syncWindowState() 与原生窗口状态保持同步
   bool _isFullScreen = false;
   bool _isMaximized = false;
+
+  AudioService get _audioService => ref.read(audioServiceProvider);
 
   void _handleDesktopPointerActivity(PointerEvent event) {
     if (event is PointerDownEvent) {
@@ -138,15 +141,6 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     });
   }
 
-  void _onAudioServiceChange() {
-    if (!mounted) return;
-    if (_lastVolume != null &&
-        (_lastVolume! - _audioService.volume).abs() > 0.1) {
-      _triggerHUD();
-    }
-    _lastVolume = _audioService.volume;
-  }
-
   // 同步当前原生窗口状态到 Flutter UI 状态
   Future<void> _syncWindowState() async {
     if (!mounted) return;
@@ -167,9 +161,7 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-
-    _audioService = context.read<AudioService>();
-    _audioService.addListener(_onAudioServiceChange);
+    _lastVolume = ref.read(audioServiceProvider).volume;
 
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -190,7 +182,6 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       windowManager.removeListener(this);
     }
-    _audioService.removeListener(_onAudioServiceChange);
     _hudTimer?.cancel();
     super.dispose();
   }
@@ -259,7 +250,7 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
       return;
     }
 
-    final audio = context.read<AudioService>();
+    final audio = ref.read(audioServiceProvider);
     final List<String> audioExtensions = [
       '.mp3',
       '.m4a',
@@ -502,6 +493,14 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AudioService>(audioServiceProvider, (previous, next) {
+      if (!mounted) return;
+      if (_lastVolume != null && (_lastVolume! - next.volume).abs() > 0.1) {
+        _triggerHUD();
+      }
+      _lastVolume = next.volume;
+    });
+
     final settings = context.watch<SettingsService>();
     final theme = Theme.of(context);
     final bool isDesktop =
@@ -736,9 +735,9 @@ class _MainLayoutState extends State<MainLayout> with WindowListener {
                       right: 0,
                       child: Center(
                         child: !isPlayback
-                            ? Builder(
+                              ? Builder(
                                 builder: (context) {
-                                  final audio = context.read<AudioService>();
+                                  final audio = ref.read(audioServiceProvider);
                                   return Container(
                                     key: const ValueKey('dynamic-island'),
                                     constraints: BoxConstraints(
