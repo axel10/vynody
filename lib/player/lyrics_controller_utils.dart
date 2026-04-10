@@ -29,7 +29,8 @@ extension LyricsControllerUtils on LyricsController {
     if (existingId.isNotEmpty) return existingId;
 
     final text =
-        (sourceLyrics ?? _lyricsSourceTextFromLyrics(song.lyrics ?? const MusicLyric()))
+        (sourceLyrics ??
+                _lyricsSourceTextFromLyrics(song.lyrics ?? const MusicLyric()))
             .trim();
     if (text.isEmpty) return '';
     return LyricsIdUtils.fromLyricsText(text);
@@ -72,6 +73,29 @@ extension LyricsControllerUtils on LyricsController {
         ),
       );
     }
+  }
+
+  Future<void> updateLyricsTimelineOffsetForCurrentSong(
+    Duration timelineOffset,
+  ) async {
+    final song = _currentMusic();
+    if (song == null) return;
+
+    final lyrics = song.lyrics;
+    if (lyrics == null) return;
+
+    final normalizedOffset = _normalizeTimelineOffset(timelineOffset);
+    if (lyrics.timelineOffset == normalizedOffset) return;
+
+    final updatedLyrics = lyrics.copyWith(timelineOffset: normalizedOffset);
+    final updatedSong = _replaceCurrentSongIfPath(
+      song.path,
+      (currentSong) => currentSong.copyWith(lyrics: updatedLyrics),
+    );
+    if (updatedSong == null) return;
+
+    notifyListeners();
+    await _saveLyricsCacheForSong(updatedSong);
   }
 
   Future<LyricsQuery?> _buildLyricsQueryForSong(MusicFile song) async {
@@ -223,6 +247,45 @@ extension LyricsControllerUtils on LyricsController {
       lastModifiedTime: song.lastModifiedTime,
       lyrics: lyrics,
     );
+  }
+
+  Future<void> _saveLyricsCacheForSong(MusicFile song) async {
+    final lyrics = song.lyrics;
+    if (lyrics == null) return;
+
+    final query = await _buildLyricsQueryForSong(song);
+    if (query == null) return;
+
+    final syncedLinesJson = lyrics.syncedLines
+        .map((line) => line.toJson())
+        .toList();
+    final plainLyrics = lyrics.plainText.trim();
+
+    try {
+      await _lyricsCacheRepository.saveLyricsCache(
+        LyricsCacheRecord(
+          cacheKey: query.cacheKey,
+          source: lyrics.source.trim().isEmpty
+              ? 'manual_adjust'
+              : lyrics.source,
+          isSynced: lyrics.isSynced,
+          syncedLyrics: lyrics.syncedLines.isNotEmpty
+              ? _lyricsTextWithTimestamps(lyrics)
+              : (plainLyrics.isEmpty ? null : plainLyrics),
+          syncedLines: syncedLinesJson,
+          timelineOffsetMillis: lyrics.timelineOffset.inMilliseconds,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[LyricsController] Failed to cache timeline offset: $e');
+    }
+  }
+
+  Duration _normalizeTimelineOffset(Duration timelineOffset) {
+    final clampedMillis = timelineOffset.inMilliseconds.clamp(-30000, 30000);
+    final snappedMillis = ((clampedMillis / 100).round() * 100).toInt();
+    return Duration(milliseconds: snappedMillis);
   }
 
   void _logDebug(String message) {

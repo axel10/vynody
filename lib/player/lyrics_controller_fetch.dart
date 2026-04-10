@@ -74,6 +74,10 @@ extension LyricsControllerFetch on LyricsController {
             syncedLines: _currentLyricsLines,
             plainText: _currentLyricsText,
             source: result?.source ?? 'lrclib',
+            timelineOffset:
+                result?.timelineOffset ??
+                song.lyrics?.timelineOffset ??
+                Duration.zero,
           ),
         ),
       );

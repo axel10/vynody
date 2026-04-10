@@ -9,6 +9,7 @@ class MusicLyric {
   final String plainText;
   final Map<String, MusicLyricTranslation> translations;
   final String source;
+  final Duration timelineOffset;
 
   bool get hasId => id.trim().isNotEmpty;
   bool get isSynced => syncedLines.any((line) => line.isTimed);
@@ -22,6 +23,7 @@ class MusicLyric {
     this.plainText = '',
     this.translations = const {},
     this.source = '',
+    this.timelineOffset = Duration.zero,
   });
 
   MusicLyricTranslation? translationFor(String languageCode) {
@@ -49,6 +51,7 @@ class MusicLyric {
     String? plainText,
     Map<String, MusicLyricTranslation>? translations,
     String? source,
+    Duration? timelineOffset,
   }) {
     return MusicLyric(
       id: id ?? this.id,
@@ -56,6 +59,7 @@ class MusicLyric {
       plainText: plainText ?? this.plainText,
       translations: translations ?? this.translations,
       source: source ?? this.source,
+      timelineOffset: timelineOffset ?? this.timelineOffset,
     );
   }
 
@@ -67,7 +71,8 @@ class MusicLyric {
         listEquals(other.syncedLines, syncedLines) &&
         other.plainText == plainText &&
         mapEquals(other.translations, translations) &&
-        other.source == source;
+        other.source == source &&
+        other.timelineOffset == timelineOffset;
   }
 
   @override
@@ -76,6 +81,7 @@ class MusicLyric {
     Object.hashAll(syncedLines),
     plainText,
     source,
+    timelineOffset,
     Object.hashAllUnordered(
       translations.entries.map((entry) => Object.hash(entry.key, entry.value)),
     ),

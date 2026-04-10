@@ -148,6 +148,8 @@ class LyricsCacheRecord {
   final String? syncedLyrics;
   // 已解析好的逐行时间轴数据，便于直接恢复渲染。
   final List<Map<String, dynamic>> syncedLines;
+  // 手动调整后的整体时间轴偏移，单位毫秒。
+  final int timelineOffsetMillis;
   // 最近更新时间，毫秒时间戳。
   final int updatedAtMillis;
 
@@ -158,6 +160,7 @@ class LyricsCacheRecord {
     required this.isSynced,
     this.syncedLyrics,
     required this.syncedLines,
+    required this.timelineOffsetMillis,
     required this.updatedAtMillis,
   });
 
@@ -168,6 +171,7 @@ class LyricsCacheRecord {
       'isSynced': isSynced ? 1 : 0,
       'syncedLyrics': syncedLyrics,
       'syncedLinesJson': jsonEncode(syncedLines),
+      'timelineOffsetMillis': timelineOffsetMillis,
       'updatedAtMillis': updatedAtMillis,
     };
   }
@@ -188,6 +192,7 @@ class LyricsCacheRecord {
       isSynced: (map['isSynced'] as int? ?? 0) == 1,
       syncedLyrics: map['syncedLyrics'] as String?,
       syncedLines: decodedLines,
+      timelineOffsetMillis: (map['timelineOffsetMillis'] as int?) ?? 0,
       updatedAtMillis:
           (map['updatedAtMillis'] as int?) ??
           DateTime.now().millisecondsSinceEpoch,
@@ -346,7 +351,7 @@ class MetadataDatabase {
 
     return await openDatabase(
       path,
-      version: 16,
+      version: 17,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE songs (
@@ -377,6 +382,7 @@ class MetadataDatabase {
             isSynced INTEGER,
             syncedLyrics TEXT,
             syncedLinesJson TEXT,
+            timelineOffsetMillis INTEGER,
             updatedAtMillis INTEGER
           )
         ''');
@@ -560,6 +566,17 @@ class MetadataDatabase {
               updatedAtMillis INTEGER
             )
           ''');
+        }
+        if (oldVersion < 17) {
+          if (!await _columnExists(
+            db,
+            'lyrics_cache',
+            'timelineOffsetMillis',
+          )) {
+            await db.execute(
+              'ALTER TABLE lyrics_cache ADD COLUMN timelineOffsetMillis INTEGER',
+            );
+          }
         }
       },
     );

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -28,6 +29,7 @@ class LyricsPanel extends StatefulWidget {
     this.onClearLyricsCache,
     this.onClearTranslationCache,
     this.onRequeryLyrics,
+    this.onAdjustTimelineOffset,
     this.accentColor,
   });
 
@@ -50,6 +52,7 @@ class LyricsPanel extends StatefulWidget {
   final VoidCallback? onClearLyricsCache;
   final VoidCallback? onClearTranslationCache;
   final Future<void> Function()? onRequeryLyrics;
+  final Future<void> Function(Duration timelineOffset)? onAdjustTimelineOffset;
   final Color? accentColor;
 
   @override
@@ -58,9 +61,13 @@ class LyricsPanel extends StatefulWidget {
 
 class _LyricsPanelState extends State<LyricsPanel> {
   static const double _itemExtent = 72.0;
+  static const double _timelineOffsetMinSeconds = -10.0;
+  static const double _timelineOffsetMaxSeconds = 10.0;
+  static const double _timelineOffsetStepSeconds = 0.1;
   final ScrollController _scrollController = ScrollController();
   int _lastActiveIndex = -1;
   bool _isAutoScrollPaused = false;
+  double _timelineOffsetSeconds = 0.0;
 
   @override
   void dispose() {
@@ -126,12 +133,22 @@ class _LyricsPanelState extends State<LyricsPanel> {
   @override
   void didUpdateWidget(covariant LyricsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final oldOffset = _timelineOffsetToSeconds(
+      oldWidget.lyrics?.timelineOffset,
+    );
+    final newOffset = _timelineOffsetToSeconds(widget.lyrics?.timelineOffset);
+    if (oldOffset != newOffset) {
+      _timelineOffsetSeconds = newOffset;
+    }
     _scheduleScrollIfNeeded();
   }
 
   @override
   void initState() {
     super.initState();
+    _timelineOffsetSeconds = _timelineOffsetToSeconds(
+      widget.lyrics?.timelineOffset,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduleScrollIfNeeded(force: true);
     });
@@ -158,6 +175,17 @@ class _LyricsPanelState extends State<LyricsPanel> {
           value: 'generate_timeline',
           enabled: !widget.isGeneratingLyrics,
           child: Text(_buildGenerateTimelineMenuLabel()),
+        ),
+      if (!requeryOnly &&
+          _hasTimedLyrics &&
+          widget.onAdjustTimelineOffset != null)
+        const PopupMenuDivider(),
+      if (!requeryOnly &&
+          _hasTimedLyrics &&
+          widget.onAdjustTimelineOffset != null)
+        const PopupMenuItem<String>(
+          value: 'adjust_timeline',
+          child: Text('手动调整时间轴'),
         ),
       if (!requeryOnly && _hasTimedLyrics)
         PopupMenuItem<String>(
@@ -222,6 +250,8 @@ class _LyricsPanelState extends State<LyricsPanel> {
       );
     } else if (selected == 'requery') {
       await widget.onRequeryLyrics?.call();
+    } else if (selected == 'adjust_timeline') {
+      await _showTimelineAdjustmentPanel();
     }
   }
 
@@ -274,7 +304,7 @@ class _LyricsPanelState extends State<LyricsPanel> {
   int _activeLineIndex() {
     if (widget.lines.isEmpty || !_hasTimedLyrics) return -1;
 
-    final current = widget.position.inMilliseconds;
+    final current = _adjustedPositionMilliseconds;
     int low = 0;
     int high = widget.lines.length - 1;
     int answer = 0;
@@ -295,6 +325,165 @@ class _LyricsPanelState extends State<LyricsPanel> {
 
   bool get _hasTimedLyrics {
     return widget.lines.any((line) => line.isTimed);
+  }
+
+  int get _adjustedPositionMilliseconds {
+    return widget.position.inMilliseconds - _timelineOffsetMilliseconds;
+  }
+
+  int get _timelineOffsetMilliseconds {
+    return (_timelineOffsetSeconds * 1000).round();
+  }
+
+  double _timelineOffsetToSeconds(Duration? offset) {
+    final seconds = (offset?.inMilliseconds ?? 0) / 1000.0;
+    return _normalizeTimelineOffsetSeconds(seconds);
+  }
+
+  double _normalizeTimelineOffsetSeconds(double value) {
+    final clamped = value.clamp(
+      _timelineOffsetMinSeconds,
+      _timelineOffsetMaxSeconds,
+    );
+    return (clamped * 10).roundToDouble() / 10.0;
+  }
+
+  String _timelineOffsetLabel(double seconds) {
+    final normalized = _normalizeTimelineOffsetSeconds(seconds);
+    if (normalized == 0) {
+      return '当前偏移：0.0 秒';
+    }
+
+    final direction = normalized > 0 ? '延后' : '提前';
+    return '当前偏移：$direction ${normalized.abs().toStringAsFixed(1)} 秒';
+  }
+
+  Future<void> _showTimelineAdjustmentPanel() async {
+    final onAdjustTimelineOffset = widget.onAdjustTimelineOffset;
+    if (onAdjustTimelineOffset == null || !_hasTimedLyrics) return;
+
+    final theme = Theme.of(context);
+    final initialValue = _normalizeTimelineOffsetSeconds(
+      _timelineOffsetSeconds,
+    );
+    var dialogValue = initialValue;
+    StateSetter? dialogSetState;
+
+    Future<void> commitOffset(double value) async {
+      final normalized = _normalizeTimelineOffsetSeconds(value);
+      if (!mounted) return;
+      if (_timelineOffsetSeconds != normalized) {
+        setState(() {
+          _timelineOffsetSeconds = normalized;
+        });
+      }
+      await onAdjustTimelineOffset(
+        Duration(milliseconds: (normalized * 1000).round()),
+      );
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('手动调整时间轴'),
+          content: StatefulBuilder(
+            builder: (context, setDialogState) {
+              dialogSetState = setDialogState;
+              final label = _timelineOffsetLabel(dialogValue);
+              return ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      '向右拖动会让歌词整体延后，向左拖动会让歌词整体提前。',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      label,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Slider(
+                      value: dialogValue,
+                      min: _timelineOffsetMinSeconds,
+                      max: _timelineOffsetMaxSeconds,
+                      divisions:
+                          ((_timelineOffsetMaxSeconds -
+                                      _timelineOffsetMinSeconds) /
+                                  _timelineOffsetStepSeconds)
+                              .round(),
+                      label: label,
+                      onChanged: (value) {
+                        final snapped = _normalizeTimelineOffsetSeconds(value);
+                        setDialogState(() {
+                          dialogValue = snapped;
+                        });
+                        setState(() {
+                          _timelineOffsetSeconds = snapped;
+                        });
+                      },
+                      onChangeEnd: (value) {
+                        unawaited(commitOffset(value));
+                      },
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '提前 30.0 秒',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          '延后 30.0 秒',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: dialogValue == 0
+                  ? null
+                  : () {
+                      final snapped = _normalizeTimelineOffsetSeconds(0);
+                      dialogSetState?.call(() {
+                        dialogValue = snapped;
+                      });
+                      setState(() {
+                        _timelineOffsetSeconds = snapped;
+                      });
+                      unawaited(commitOffset(snapped));
+                    },
+              child: const Text('重置'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('关闭'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

@@ -935,6 +935,7 @@ class PlaybackHeroCard extends StatelessWidget {
                 currentLyrics?.translations ??
                 const <String, MusicLyricTranslation>{},
             source: currentLyrics?.source ?? '',
+            timelineOffset: currentLyrics?.timelineOffset ?? Duration.zero,
           )
         : currentLyrics;
 
@@ -969,6 +970,9 @@ class PlaybackHeroCard extends StatelessWidget {
           context.read<AudioService>().clearTranslationCacheForCurrentSong(),
       onRequeryLyrics: () =>
           context.read<AudioService>().requeryLyricsForCurrentSong(),
+      onAdjustTimelineOffset: (timelineOffset) => context
+          .read<AudioService>()
+          .updateLyricsTimelineOffsetForCurrentSong(timelineOffset),
       accentColor: accent,
     );
   }

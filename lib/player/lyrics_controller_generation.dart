@@ -32,6 +32,7 @@ extension LyricsControllerGeneration on LyricsController {
   MusicLyric _buildGeneratedLyrics({
     required String text,
     required String source,
+    Duration timelineOffset = Duration.zero,
     Map<String, MusicLyricTranslation> translations =
         const <String, MusicLyricTranslation>{},
   }) {
@@ -44,6 +45,7 @@ extension LyricsControllerGeneration on LyricsController {
           : _buildLyricsLines(const [], normalizedText),
       plainText: normalizedText,
       source: source,
+      timelineOffset: timelineOffset,
       translations: translations,
     );
   }
@@ -113,6 +115,7 @@ extension LyricsControllerGeneration on LyricsController {
           final progressLyrics = _buildGeneratedLyrics(
             text: progressText,
             source: 'gemini',
+            timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
             translations:
                 translationProvider?.call() ??
                 const <String, MusicLyricTranslation>{},
@@ -132,6 +135,7 @@ extension LyricsControllerGeneration on LyricsController {
       final lyrics = _buildGeneratedLyrics(
         text: generatedText,
         source: 'gemini',
+        timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
         translations:
             translationProvider?.call() ??
             const <String, MusicLyricTranslation>{},
@@ -281,6 +285,7 @@ extension LyricsControllerGeneration on LyricsController {
             ? generatedLyrics
             : null,
         syncedLines: syncedLines.map((line) => line.toJson()).toList(),
+        timelineOffsetMillis: song.lyrics?.timelineOffset.inMilliseconds ?? 0,
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
       await _lyricsCacheRepository.saveLyricsCache(record);

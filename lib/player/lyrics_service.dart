@@ -162,6 +162,7 @@ class LyricSelectionResult {
   final int durationDiffSeconds;
   final List<LyricLine> syncedLines;
   final String lyricsText;
+  final Duration timelineOffset;
 
   const LyricSelectionResult({
     required this.track,
@@ -172,6 +173,7 @@ class LyricSelectionResult {
     required this.durationDiffSeconds,
     required this.syncedLines,
     required this.lyricsText,
+    this.timelineOffset = Duration.zero,
   });
 
   bool get isSynced => syncedLines.isNotEmpty;
@@ -397,6 +399,7 @@ class LyricsService {
         isSynced: false,
         syncedLyrics: null,
         syncedLines: const [],
+        timelineOffsetMillis: 0,
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
       await _cacheRepository.saveLyricsCache(record);
@@ -535,6 +538,7 @@ class LyricsService {
         isSynced: result.isSynced,
         syncedLyrics: result.track.syncedLyrics ?? lyricsText,
         syncedLines: result.syncedLines.map((line) => line.toJson()).toList(),
+        timelineOffsetMillis: result.timelineOffset.inMilliseconds,
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
       await _cacheRepository.saveLyricsCache(record);
@@ -582,6 +586,7 @@ class LyricsService {
       durationDiffSeconds: 0,
       syncedLines: syncedLines,
       lyricsText: lyricsText,
+      timelineOffset: Duration(milliseconds: record.timelineOffsetMillis),
     );
   }
 
@@ -703,6 +708,7 @@ class LyricsService {
       durationDiffSeconds: durationDiffSeconds,
       syncedLines: syncedLines,
       lyricsText: lyricsText,
+      timelineOffset: Duration.zero,
     );
   }
 

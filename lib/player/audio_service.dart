@@ -849,6 +849,12 @@ class AudioService extends ChangeNotifier {
   Future<void> requeryLyricsForCurrentSong() =>
       _lyricsController.requeryLyricsForCurrentSong();
 
+  Future<void> updateLyricsTimelineOffsetForCurrentSong(
+    Duration timelineOffset,
+  ) => _lyricsController.updateLyricsTimelineOffsetForCurrentSong(
+    timelineOffset,
+  );
+
   Future<void> clearAllLyricsCache() => _lyricsController.clearAllLyricsCache();
 
   Future<void> clearTranslationCache() =>
