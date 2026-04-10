@@ -21,12 +21,293 @@ class _GeminiFileUploadResult {
   });
 }
 
-class GeminiLyricsService {
-  GeminiLyricsService({NetworkClient? client})
+class _GeminiLyricsApiClient {
+  _GeminiLyricsApiClient({NetworkClient? client})
     : _client = client ?? NetworkClient.instance;
 
   final NetworkClient _client;
   String? _cachedApiKey;
+
+  Future<String?> loadApiKey() async {
+    if (_cachedApiKey != null) return _cachedApiKey;
+
+    final candidates = <File>[];
+
+    var currentDir = Directory.current.absolute;
+    for (var i = 0; i < 5; i++) {
+      candidates.add(File(p.join(currentDir.path, 'api_keys.json')));
+      final parent = currentDir.parent;
+      if (parent.path == currentDir.path) {
+        break;
+      }
+      currentDir = parent;
+    }
+
+    var executableDir = File(Platform.resolvedExecutable).parent.absolute;
+    for (var i = 0; i < 3; i++) {
+      candidates.add(File(p.join(executableDir.path, 'api_keys.json')));
+      final parent = executableDir.parent;
+      if (parent.path == executableDir.path) {
+        break;
+      }
+      executableDir = parent;
+    }
+
+    for (final file in candidates) {
+      if (!await file.exists()) continue;
+      try {
+        final content = await file.readAsString();
+        final jsonData = jsonDecode(content);
+        if (jsonData is Map<String, dynamic>) {
+          final key = jsonData['GEMINI_API_KEY']?.toString().trim();
+          if (key != null && key.isNotEmpty) {
+            _cachedApiKey = key;
+            return key;
+          }
+        }
+      } catch (e) {
+        debugPrint(
+          '[GeminiLyrics] failed to read api key from ${file.path}: $e',
+        );
+      }
+    }
+
+    return null;
+  }
+
+  Future<_GeminiFileUploadResult?> uploadFile({
+    required File file,
+    required String apiKey,
+    required String mimeType,
+    void Function(double progress)? onUploadProgress,
+  }) async {
+    final fileSize = await file.length();
+    final fileName = p.basename(file.path);
+    final fileBytes = await file.readAsBytes();
+
+    final initResponse = await _client.post(
+      'https://generativelanguage.googleapis.com/upload/v1beta/files',
+      queryParameters: {'key': apiKey},
+      options: Options(
+        headers: {
+          'X-Goog-Upload-Protocol': 'resumable',
+          'X-Goog-Upload-Command': 'start',
+          'X-Goog-Upload-Header-Content-Length': fileSize,
+          'X-Goog-Upload-Header-Content-Type': mimeType,
+          'Content-Type': 'application/json',
+        },
+      ),
+      data: {
+        'file': {'display_name': fileName},
+      },
+    );
+
+    debugPrint('[GeminiLyrics] upload init fileName=$fileName');
+    debugPrint('[GeminiLyrics] upload init mimeType=$mimeType');
+    debugPrint('[GeminiLyrics] upload init fileSize=$fileSize');
+
+    final uploadUrl = initResponse.headers.value('X-Goog-Upload-URL');
+    if (uploadUrl == null || uploadUrl.isEmpty) {
+      throw Exception('未能获取 Gemini 上传 URL');
+    }
+
+    debugPrint('[GeminiLyrics] upload session url=$uploadUrl');
+
+    final uploadResponse = await _client.post(
+      uploadUrl,
+      options: Options(
+        headers: {
+          'X-Goog-Upload-Protocol': 'resumable',
+          'X-Goog-Upload-Command': 'upload, finalize',
+          'X-Goog-Upload-Offset': 0,
+          Headers.contentLengthHeader: fileBytes.length,
+        },
+        contentType: mimeType,
+      ),
+      data: fileBytes,
+      onSendProgress: (sent, total) {
+        if (total <= 0) return;
+        onUploadProgress?.call(sent / total);
+      },
+    );
+
+    debugPrint(
+      '[GeminiLyrics] upload response status=${uploadResponse.statusCode}',
+    );
+    debugPrint('[GeminiLyrics] upload response data=${uploadResponse.data}');
+
+    final uploadedFile = parseUploadedFile(uploadResponse.data);
+    if (uploadedFile == null) {
+      throw Exception('未能从 Gemini 上传响应中解析文件信息');
+    }
+
+    return uploadedFile;
+  }
+
+  Future<bool> waitForFileActive({
+    required String fileName,
+    required String apiKey,
+    String? initialState,
+  }) async {
+    final normalizedInitialState = initialState?.trim().toUpperCase();
+    if (normalizedInitialState == null || normalizedInitialState.isEmpty) {
+      return true;
+    }
+    if (normalizedInitialState == 'ACTIVE') {
+      return true;
+    }
+
+    for (var attempt = 0; attempt < 20; attempt++) {
+      await Future<void>.delayed(const Duration(seconds: 1));
+
+      final info = await fetchFileInfo(fileName, apiKey);
+      final state = info?.state?.trim().toUpperCase();
+      if (state == null || state == 'ACTIVE') {
+        return true;
+      }
+      if (state == 'FAILED') {
+        throw Exception('Gemini 文件处理失败: $fileName');
+      }
+    }
+
+    return false;
+  }
+
+  Future<_GeminiFileUploadResult?> fetchFileInfo(
+    String fileName,
+    String apiKey,
+  ) async {
+    final response = await _client.get(
+      'https://generativelanguage.googleapis.com/v1beta/$fileName',
+      queryParameters: {'key': apiKey},
+    );
+    return parseUploadedFile(response.data);
+  }
+
+  _GeminiFileUploadResult? parseUploadedFile(dynamic data) {
+    if (data is! Map) return null;
+
+    final root = data['file'];
+    final fileMap = root is Map ? root : data;
+    final name = fileMap['name']?.toString().trim();
+    final uri = fileMap['uri']?.toString().trim();
+    if (name == null || name.isEmpty || uri == null || uri.isEmpty) {
+      return null;
+    }
+
+    final state = fileMap['state']?.toString();
+    return _GeminiFileUploadResult(name: name, uri: uri, state: state);
+  }
+
+  String mimeTypeForFilePath(String filePath) {
+    switch (p.extension(filePath).toLowerCase()) {
+      case '.mp3':
+        return 'audio/mpeg';
+      case '.m4a':
+      case '.mp4':
+      case '.m4b':
+        return 'audio/mp4';
+      case '.flac':
+        return 'audio/flac';
+      case '.wav':
+        return 'audio/wav';
+      case '.aac':
+        return 'audio/aac';
+      case '.ogg':
+        return 'audio/ogg';
+      case '.opus':
+        return 'audio/opus';
+      case '.webm':
+        return 'audio/webm';
+      case '.wma':
+        return 'audio/x-ms-wma';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+}
+
+class _GeminiStreamTextParser {
+  String? extractText(dynamic raw) {
+    if (raw is Map || raw is List) {
+      final extracted = _extractTextFromDecoded(raw);
+      if (extracted != null && extracted.isNotEmpty) {
+        return extracted;
+      }
+      return null;
+    }
+
+    if (raw is! String) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      final extracted = _extractTextFromDecoded(decoded);
+      if (extracted != null && extracted.isNotEmpty) {
+        return extracted;
+      }
+    } catch (_) {
+      // Ignore malformed SSE payloads and continue with a loose fallback.
+    }
+
+    final looseMatch = RegExp(
+      r'"text"\s*:\s*"((?:\\.|[^"\\])*)"',
+      dotAll: true,
+    ).firstMatch(raw);
+    if (looseMatch != null) {
+      final rawText = '"${looseMatch.group(1)!}"';
+      try {
+        final text = jsonDecode(rawText);
+        if (text is String && text.isNotEmpty) {
+          return text;
+        }
+      } catch (_) {
+        // Keep returning null if the fallback cannot be decoded.
+      }
+    }
+
+    return null;
+  }
+
+  String? _extractTextFromDecoded(dynamic decoded) {
+    if (decoded is Map) {
+      for (final entry in decoded.entries) {
+        if (entry.key == 'text' && entry.value is String) {
+          final text = entry.value as String;
+          if (text.isNotEmpty) return text;
+        }
+
+        final nested = _extractTextFromDecoded(entry.value);
+        if (nested != null && nested.isNotEmpty) {
+          return nested;
+        }
+      }
+      return null;
+    }
+
+    if (decoded is List) {
+      for (final item in decoded) {
+        final nested = _extractTextFromDecoded(item);
+        if (nested != null && nested.isNotEmpty) {
+          return nested;
+        }
+      }
+      return null;
+    }
+
+    return null;
+  }
+}
+
+class GeminiLyricsService {
+  GeminiLyricsService({NetworkClient? client})
+    : _client = client ?? NetworkClient.instance,
+      _api = _GeminiLyricsApiClient(client: client);
+
+  final NetworkClient _client;
+  final _GeminiLyricsApiClient _api;
+  final _GeminiStreamTextParser _streamParser = _GeminiStreamTextParser();
   static final RegExp _lineSplitPattern = RegExp(r'\r?\n');
   static final RegExp _timestampLinePattern = RegExp(
     r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
@@ -39,7 +320,7 @@ class GeminiLyricsService {
     onProgress,
     String modelId = 'gemma-4-31b-it',
   }) async {
-    final apiKey = await _loadApiKey();
+    final apiKey = await _api.loadApiKey();
     if (apiKey == null || apiKey.isEmpty) {
       debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip translation.');
       return false;
@@ -164,7 +445,7 @@ class GeminiLyricsService {
             continue;
           }
 
-          final chunk = _extractText(data);
+          final chunk = _streamParser.extractText(data);
           if (chunk == null || chunk.isEmpty) {
             continue;
           }
@@ -193,7 +474,7 @@ class GeminiLyricsService {
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
-    final apiKey = await _loadApiKey();
+    final apiKey = await _api.loadApiKey();
     if (apiKey == null || apiKey.isEmpty) {
       debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip generation.');
       return null;
@@ -205,7 +486,7 @@ class GeminiLyricsService {
       return null;
     }
 
-    final mimeType = _mimeTypeForFilePath(filePath);
+    final mimeType = _api.mimeTypeForFilePath(filePath);
     final normalizedTitle = songTitle?.trim();
     final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
         ? ''
@@ -237,7 +518,7 @@ class GeminiLyricsService {
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
-    final apiKey = await _loadApiKey();
+    final apiKey = await _api.loadApiKey();
     if (apiKey == null || apiKey.isEmpty) {
       debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip timeline.');
       return null;
@@ -249,7 +530,7 @@ class GeminiLyricsService {
       return null;
     }
 
-    final mimeType = _mimeTypeForFilePath(filePath);
+    final mimeType = _api.mimeTypeForFilePath(filePath);
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       debugPrint('[GeminiLyrics] no usable lyrics for timeline generation.');
@@ -301,7 +582,7 @@ class GeminiLyricsService {
       // 先把本地文件上传到 Gemini 文件服务，后续生成请求只引用文件 URI。
       // 这样模型可以直接读取整份输入，而不是只靠 prompt 猜测。
       debugPrint('[GeminiLyrics] 开始上传文件: $filePath');
-      final uploadedFile = await _uploadFile(
+      final uploadedFile = await _api.uploadFile(
         file: file,
         apiKey: apiKey,
         mimeType: mimeType,
@@ -316,7 +597,7 @@ class GeminiLyricsService {
 
       final fileName = uploadedFile.name;
       final fileUri = uploadedFile.uri;
-      final isActive = await _waitForGeminiFileActive(
+      final isActive = await _api.waitForFileActive(
         fileName: fileName,
         apiKey: apiKey,
         initialState: uploadedFile.state,
@@ -399,7 +680,7 @@ class GeminiLyricsService {
             continue;
           }
 
-          final chunk = _extractText(data);
+          final chunk = _streamParser.extractText(data);
           if (chunk == null || chunk.isEmpty) continue;
           generatedBuffer.write(chunk);
           emitProgress();
@@ -408,7 +689,9 @@ class GeminiLyricsService {
         emitProgress(force: true);
       }
 
-      final generatedText = _extractText(generatedBuffer.toString());
+      final generatedText = _streamParser.extractText(
+        generatedBuffer.toString(),
+      );
       final cleanedText = LrcUtils.cleanGeneratedLyricsText(
         generatedText ?? generatedBuffer.toString(),
       );
@@ -558,275 +841,5 @@ class GeminiLyricsService {
     }
 
     return restoredLines;
-  }
-
-  Future<String?> _loadApiKey() async {
-    if (_cachedApiKey != null) return _cachedApiKey;
-
-    final candidates = <File>[];
-
-    var currentDir = Directory.current.absolute;
-    for (var i = 0; i < 5; i++) {
-      candidates.add(File(p.join(currentDir.path, 'api_keys.json')));
-      final parent = currentDir.parent;
-      if (parent.path == currentDir.path) {
-        break;
-      }
-      currentDir = parent;
-    }
-
-    var executableDir = File(Platform.resolvedExecutable).parent.absolute;
-    for (var i = 0; i < 3; i++) {
-      candidates.add(File(p.join(executableDir.path, 'api_keys.json')));
-      final parent = executableDir.parent;
-      if (parent.path == executableDir.path) {
-        break;
-      }
-      executableDir = parent;
-    }
-
-    for (final file in candidates) {
-      if (!await file.exists()) continue;
-      try {
-        final content = await file.readAsString();
-        final jsonData = jsonDecode(content);
-        if (jsonData is Map<String, dynamic>) {
-          final key = jsonData['GEMINI_API_KEY']?.toString().trim();
-          if (key != null && key.isNotEmpty) {
-            _cachedApiKey = key;
-            return key;
-          }
-        }
-      } catch (e) {
-        debugPrint(
-          '[GeminiLyrics] failed to read api key from ${file.path}: $e',
-        );
-      }
-    }
-
-    return null;
-  }
-
-  Future<_GeminiFileUploadResult?> _uploadFile({
-    required File file,
-    required String apiKey,
-    required String mimeType,
-    void Function(double progress)? onUploadProgress,
-  }) async {
-    final fileSize = await file.length();
-    final fileName = p.basename(file.path);
-    final fileBytes = await file.readAsBytes();
-
-    final initResponse = await _client.post(
-      'https://generativelanguage.googleapis.com/upload/v1beta/files',
-      queryParameters: {'key': apiKey},
-      options: Options(
-        headers: {
-          'X-Goog-Upload-Protocol': 'resumable',
-          'X-Goog-Upload-Command': 'start',
-          'X-Goog-Upload-Header-Content-Length': fileSize,
-          'X-Goog-Upload-Header-Content-Type': mimeType,
-          'Content-Type': 'application/json',
-        },
-      ),
-      data: {
-        'file': {'display_name': fileName},
-      },
-    );
-
-    debugPrint('[GeminiLyrics] upload init fileName=$fileName');
-    debugPrint('[GeminiLyrics] upload init mimeType=$mimeType');
-    debugPrint('[GeminiLyrics] upload init fileSize=$fileSize');
-
-    final uploadUrl = initResponse.headers.value('X-Goog-Upload-URL');
-    if (uploadUrl == null || uploadUrl.isEmpty) {
-      throw Exception('未能获取 Gemini 上传 URL');
-    }
-
-    debugPrint('[GeminiLyrics] upload session url=$uploadUrl');
-
-    final uploadResponse = await _client.post(
-      uploadUrl,
-      options: Options(
-        headers: {
-          'X-Goog-Upload-Protocol': 'resumable',
-          'X-Goog-Upload-Command': 'upload, finalize',
-          'X-Goog-Upload-Offset': 0,
-          Headers.contentLengthHeader: fileBytes.length,
-        },
-        contentType: mimeType,
-      ),
-      data: fileBytes,
-      onSendProgress: (sent, total) {
-        if (total <= 0) return;
-        // debugPrint('[GeminiLyrics] upload progress: $progress%');
-        onUploadProgress?.call(sent / total);
-      },
-    );
-
-    debugPrint(
-      '[GeminiLyrics] upload response status=${uploadResponse.statusCode}',
-    );
-    debugPrint('[GeminiLyrics] upload response data=${uploadResponse.data}');
-
-    final uploadedFile = _parseUploadedFile(uploadResponse.data);
-    if (uploadedFile == null) {
-      throw Exception('未能从 Gemini 上传响应中解析文件信息');
-    }
-
-    return uploadedFile;
-  }
-
-  Future<bool> _waitForGeminiFileActive({
-    required String fileName,
-    required String apiKey,
-    String? initialState,
-  }) async {
-    final normalizedInitialState = initialState?.trim().toUpperCase();
-    if (normalizedInitialState == null || normalizedInitialState.isEmpty) {
-      return true;
-    }
-    if (normalizedInitialState == 'ACTIVE') {
-      return true;
-    }
-
-    for (var attempt = 0; attempt < 20; attempt++) {
-      await Future<void>.delayed(const Duration(seconds: 1));
-
-      final info = await _fetchGeminiFileInfo(fileName, apiKey);
-      final state = info?.state?.trim().toUpperCase();
-      if (state == null || state == 'ACTIVE') {
-        return true;
-      }
-      if (state == 'FAILED') {
-        throw Exception('Gemini 文件处理失败: $fileName');
-      }
-    }
-
-    return false;
-  }
-
-  Future<_GeminiFileUploadResult?> _fetchGeminiFileInfo(
-    String fileName,
-    String apiKey,
-  ) async {
-    final response = await _client.get(
-      'https://generativelanguage.googleapis.com/v1beta/$fileName',
-      queryParameters: {'key': apiKey},
-    );
-    return _parseUploadedFile(response.data);
-  }
-
-  _GeminiFileUploadResult? _parseUploadedFile(dynamic data) {
-    if (data is! Map) return null;
-
-    final root = data['file'];
-    final fileMap = root is Map ? root : data;
-    final name = fileMap['name']?.toString().trim();
-    final uri = fileMap['uri']?.toString().trim();
-    if (name == null || name.isEmpty || uri == null || uri.isEmpty) {
-      return null;
-    }
-
-    final state = fileMap['state']?.toString();
-    return _GeminiFileUploadResult(name: name, uri: uri, state: state);
-  }
-
-  String _mimeTypeForFilePath(String filePath) {
-    switch (p.extension(filePath).toLowerCase()) {
-      case '.mp3':
-        return 'audio/mpeg';
-      case '.m4a':
-      case '.mp4':
-      case '.m4b':
-        return 'audio/mp4';
-      case '.flac':
-        return 'audio/flac';
-      case '.wav':
-        return 'audio/wav';
-      case '.aac':
-        return 'audio/aac';
-      case '.ogg':
-        return 'audio/ogg';
-      case '.opus':
-        return 'audio/opus';
-      case '.webm':
-        return 'audio/webm';
-      case '.wma':
-        return 'audio/x-ms-wma';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  String? _extractText(dynamic raw) {
-    if (raw is Map || raw is List) {
-      final extracted = _extractTextFromDecoded(raw);
-      if (extracted != null && extracted.isNotEmpty) {
-        return extracted;
-      }
-      return null;
-    }
-
-    if (raw is! String) {
-      return null;
-    }
-
-    try {
-      final decoded = jsonDecode(raw);
-      final extracted = _extractTextFromDecoded(decoded);
-      if (extracted != null && extracted.isNotEmpty) {
-        return extracted;
-      }
-    } catch (_) {
-      // Ignore malformed SSE payloads and continue with a loose fallback.
-    }
-
-    final looseMatch = RegExp(
-      r'"text"\s*:\s*"((?:\\.|[^"\\])*)"',
-      dotAll: true,
-    ).firstMatch(raw);
-    if (looseMatch != null) {
-      final rawText = '"${looseMatch.group(1)!}"';
-      try {
-        final text = jsonDecode(rawText);
-        if (text is String && text.isNotEmpty) {
-          return text;
-        }
-      } catch (_) {
-        // Keep returning null if the fallback cannot be decoded.
-      }
-    }
-
-    return null;
-  }
-
-  String? _extractTextFromDecoded(dynamic decoded) {
-    if (decoded is Map) {
-      for (final entry in decoded.entries) {
-        if (entry.key == 'text' && entry.value is String) {
-          final text = entry.value as String;
-          if (text.isNotEmpty) return text;
-        }
-
-        final nested = _extractTextFromDecoded(entry.value);
-        if (nested != null && nested.isNotEmpty) {
-          return nested;
-        }
-      }
-      return null;
-    }
-
-    if (decoded is List) {
-      for (final item in decoded) {
-        final nested = _extractTextFromDecoded(item);
-        if (nested != null && nested.isNotEmpty) {
-          return nested;
-        }
-      }
-      return null;
-    }
-
-    return null;
   }
 }
