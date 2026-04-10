@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 
 import '../models/music_file.dart';
@@ -23,6 +24,7 @@ import 'scanner_service.dart';
 import 'metadata_helper.dart';
 import 'lyrics_generation_phase.dart';
 import 'lyrics_controller.dart';
+import 'lyrics_riverpod.dart';
 
 class AudioService extends ChangeNotifier {
   late final AudioCoreController _player;
@@ -47,7 +49,8 @@ class AudioService extends ChangeNotifier {
   late final VisualizerOptionsService _visualizerOptions;
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
-  late final LyricsController _lyricsController;
+  ProviderContainer? _riverpodContainer;
+  ProviderSubscription<LyricsController>? _lyricsControllerSubscription;
   ScannerService? _scannerService;
 
   // 独立的 FFT 输出流（用于迷你播放器）
@@ -101,16 +104,6 @@ class AudioService extends ChangeNotifier {
       settingsService: settingsService,
     );
     _waveformService = WaveformService(db: _db, player: _player);
-    _lyricsController = LyricsController(
-      db: _db,
-      currentMusic: () => currentMusic,
-      queue: () => _queue,
-      currentIndex: () => _currentIndex,
-      playerDuration: () => _duration,
-      isLyricsActive: () => _isLyricsActive,
-      cacheSongDuration: _cacheSongDuration,
-    );
-    _lyricsController.addListener(notifyListeners);
 
     _windowsIntegration = Platform.isWindows
         ? WindowsIntegrationService(this)
@@ -128,6 +121,42 @@ class AudioService extends ChangeNotifier {
         _initializeMiniPlayerFftStream();
       }),
     );
+  }
+
+  void attachRiverpodContainer(ProviderContainer container) {
+    final oldSubscription = _lyricsControllerSubscription;
+    final oldContainer = _riverpodContainer;
+    _lyricsControllerSubscription = null;
+    _riverpodContainer = container;
+    oldSubscription?.close();
+    oldContainer?.dispose();
+    _lyricsControllerSubscription = container.listen<LyricsController>(
+      lyricsControllerProvider,
+      (_, next) => notifyListeners(),
+      fireImmediately: false,
+    );
+  }
+
+  LyricsController buildLyricsController() {
+    return LyricsController(
+      db: _db,
+      currentMusic: () => currentMusic,
+      queue: () => _queue,
+      currentIndex: () => _currentIndex,
+      playerDuration: () => _duration,
+      isLyricsActive: () => _isLyricsActive,
+      cacheSongDuration: _cacheSongDuration,
+    );
+  }
+
+  LyricsController get _lyricsController {
+    final container = _riverpodContainer;
+    if (container == null) {
+      throw StateError(
+        'Riverpod container is not attached to AudioService yet.',
+      );
+    }
+    return container.read(lyricsControllerProvider);
   }
 
   void _initializeMiniPlayerFftStream() {
@@ -564,19 +593,10 @@ class AudioService extends ChangeNotifier {
     dynamicStartColor: _dynamicStartColor,
     dynamicEndColor: _dynamicEndColor,
     currentThemeColorsMap: _currentThemeColorsMap,
-    isLyricsLoading: isLyricsLoading,
-    isLyricsTranslating: isLyricsTranslating,
     isLyricsGenerating: isLyricsGenerating,
-    lyricsTranslationStatus: lyricsTranslationStatus,
     lyricsGenerationPhase: lyricsGenerationPhase,
     lyricsGenerationProgress: lyricsGenerationProgress,
-    currentLyricsLines: currentLyricsLines,
-    currentLyricsText: currentLyricsText,
-    hasLyrics: hasLyrics,
-    lyricsSearchAttempted: lyricsSearchAttempted,
-    currentLyricsTitle: currentLyricsTitle,
     isLyricsActive: _isLyricsActive,
-    lyricsTranslationLanguageCode: lyricsTranslationLanguageCode,
   );
 
   Uint8List? getCachedArtwork(String? path) {
@@ -1348,8 +1368,8 @@ class AudioService extends ChangeNotifier {
   @override
   void dispose() {
     _player.removeListener(_handlePlayerChanges);
-    _lyricsController.removeListener(notifyListeners);
-    _lyricsController.dispose();
+    _lyricsControllerSubscription?.close();
+    _riverpodContainer?.dispose();
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();
     _player.dispose();

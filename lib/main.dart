@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
 import 'player/audio_service.dart';
+import 'player/lyrics_riverpod.dart';
 import 'player/playlist_service.dart';
 import 'player/scanner_service.dart';
 import 'player/settings_service.dart';
@@ -92,11 +94,20 @@ void main(List<String> args) async {
   }
 
   final settingsService = await SettingsService.init();
+  final audioService = AudioService(settingsService);
+  final riverpodContainer = ProviderContainer(
+    overrides: [
+      lyricsControllerBuilderProvider.overrideWithValue(
+        audioService.buildLyricsController,
+      ),
+    ],
+  );
+  audioService.attachRiverpodContainer(riverpodContainer);
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AudioService(settingsService)),
+        ChangeNotifierProvider.value(value: audioService),
         ChangeNotifierProxyProvider<AudioService, ScannerService>(
           create: (_) => ScannerService(),
           update: (_, audio, scanner) {
@@ -108,7 +119,10 @@ void main(List<String> args) async {
         ChangeNotifierProvider(create: (_) => PlaylistService()),
         ChangeNotifierProvider.value(value: settingsService),
       ],
-      child: MyApp(args: args),
+      child: UncontrolledProviderScope(
+        container: riverpodContainer,
+        child: MyApp(args: args),
+      ),
     ),
   );
 }

@@ -12,6 +12,7 @@ import '../utils/language_code_utils.dart';
 import 'gemini_lyrics_service.dart';
 import 'lyrics_cache_repository.dart';
 import 'lyrics_generation_phase.dart';
+import 'lyrics_controller_state.dart';
 import 'lyrics_service.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
@@ -150,16 +151,8 @@ class LyricsController extends ChangeNotifier {
   final Set<String> _translatedLyricsKeys = <String>{};
   final Set<String> _translationInFlightKeys = <String>{};
   int _lyricsRetrySerial = 0;
-  bool _isLyricsLoading = false;
-  bool _isLyricsTranslating = false;
-  String _lyricsTranslationStatus = '';
-  bool _hasLyrics = false;
-  bool _lyricsSearchAttempted = false;
-  bool _isLyricsSynced = false;
+  LyricsControllerState _state = const LyricsControllerState();
   final _GeminiGenerationRuntime _geminiGeneration = _GeminiGenerationRuntime();
-  List<LyricLine> _currentLyricsLines = const [];
-  String _currentLyricsText = '';
-  String? _currentLyricsTitle;
   String _lyricsTranslationLanguageCode =
       LanguageCodeUtils.currentSystemLanguageCode();
 
@@ -173,10 +166,54 @@ class LyricsController extends ChangeNotifier {
   bool get lyricsSearchAttempted => _lyricsSearchAttempted;
   bool get isLyricsSynced => _isLyricsSynced;
   List<LyricLine> get currentLyricsLines =>
-      List<LyricLine>.unmodifiable(_currentLyricsLines);
-  String get currentLyricsText => _currentLyricsText;
-  String? get currentLyricsTitle => _currentLyricsTitle;
+      List<LyricLine>.unmodifiable(_state.currentLyricsLines);
+  String get currentLyricsText => _state.currentLyricsText;
+  String? get currentLyricsTitle => _state.currentLyricsTitle;
   String get lyricsTranslationLanguageCode => _lyricsTranslationLanguageCode;
+
+  bool get _isLyricsLoading => _state.isLyricsLoading;
+  set _isLyricsLoading(bool value) {
+    _state = _state.copyWith(isLyricsLoading: value);
+  }
+
+  bool get _isLyricsTranslating => _state.isLyricsTranslating;
+  set _isLyricsTranslating(bool value) {
+    _state = _state.copyWith(isLyricsTranslating: value);
+  }
+
+  String get _lyricsTranslationStatus => _state.lyricsTranslationStatus;
+  set _lyricsTranslationStatus(String value) {
+    _state = _state.copyWith(lyricsTranslationStatus: value);
+  }
+
+  bool get _hasLyrics => _state.hasLyrics;
+  set _hasLyrics(bool value) {
+    _state = _state.copyWith(hasLyrics: value);
+  }
+
+  bool get _lyricsSearchAttempted => _state.lyricsSearchAttempted;
+  set _lyricsSearchAttempted(bool value) {
+    _state = _state.copyWith(lyricsSearchAttempted: value);
+  }
+
+  bool get _isLyricsSynced => _state.isLyricsSynced;
+  set _isLyricsSynced(bool value) {
+    _state = _state.copyWith(isLyricsSynced: value);
+  }
+
+  List<LyricLine> get _currentLyricsLines => _state.currentLyricsLines;
+  set _currentLyricsLines(List<LyricLine> value) {
+    _state = _state.copyWith(currentLyricsLines: value);
+  }
+
+  String get _currentLyricsText => _state.currentLyricsText;
+  set _currentLyricsText(String value) {
+    _state = _state.copyWith(currentLyricsText: value);
+  }
+
+  set _currentLyricsTitle(String? value) {
+    _state = _state.copyWith(currentLyricsTitle: value);
+  }
 
   void setTranslationLanguageCode(String languageCode) {
     final normalized = LanguageCodeUtils.normalizeLanguageCode(languageCode);
@@ -188,16 +225,11 @@ class LyricsController extends ChangeNotifier {
   }
 
   void clearState({bool notify = false}) {
-    _isLyricsLoading = false;
-    _isLyricsTranslating = false;
+    _state = const LyricsControllerState();
+    _lyricsTranslationLanguageCode =
+        LanguageCodeUtils.currentSystemLanguageCode();
     _geminiGeneration.phase = LyricsGenerationPhase.idle;
     _geminiGeneration.progress = 0.0;
-    _hasLyrics = false;
-    _isLyricsSynced = false;
-    _currentLyricsLines = const [];
-    _currentLyricsText = '';
-    _currentLyricsTitle = null;
-    _lyricsSearchAttempted = false;
     if (notify) {
       notifyListeners();
     }

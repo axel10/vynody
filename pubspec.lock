@@ -442,6 +442,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.33"
+  flutter_riverpod:
+    dependency: "direct main"
+    description:
+      name: flutter_riverpod
+      sha256: "4e166be88e1dbbaa34a280bdb744aeae73b7ef25fdf8db7a3bb776760a3648e2"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "3.3.1"
   flutter_rust_bridge:
     dependency: transitive
     description:

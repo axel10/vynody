@@ -2,7 +2,6 @@ import 'package:audio_core/audio_core.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
-import '../models/lyric_line.dart';
 import '../models/music_file.dart';
 import 'lyrics_generation_phase.dart';
 
@@ -28,19 +27,10 @@ class AudioSnapshot {
   final Color? dynamicStartColor;
   final Color? dynamicEndColor;
   final Map<String, Color> currentThemeColorsMap;
-  final bool isLyricsLoading;
-  final bool isLyricsTranslating;
   final bool isLyricsGenerating;
-  final String lyricsTranslationStatus;
   final LyricsGenerationPhase lyricsGenerationPhase;
   final double lyricsGenerationProgress;
-  final List<LyricLine> currentLyricsLines;
-  final String currentLyricsText;
-  final bool hasLyrics;
-  final bool lyricsSearchAttempted;
-  final String? currentLyricsTitle;
   final bool isLyricsActive;
-  final String lyricsTranslationLanguageCode;
   final double progress;
 
   AudioSnapshot({
@@ -63,24 +53,14 @@ class AudioSnapshot {
     required this.dynamicStartColor,
     required this.dynamicEndColor,
     required Map<String, Color> currentThemeColorsMap,
-    required this.isLyricsLoading,
-    required this.isLyricsTranslating,
     required this.isLyricsGenerating,
-    required this.lyricsTranslationStatus,
     required this.lyricsGenerationPhase,
     required this.lyricsGenerationProgress,
-    required List<LyricLine> currentLyricsLines,
-    required this.currentLyricsText,
-    required this.hasLyrics,
-    required this.lyricsSearchAttempted,
-    required this.currentLyricsTitle,
     required this.isLyricsActive,
-    required this.lyricsTranslationLanguageCode,
   }) : playbackQueue = List<MusicFile>.unmodifiable(playbackQueue),
        currentThemeColorsMap = Map<String, Color>.unmodifiable(
          currentThemeColorsMap,
        ),
-       currentLyricsLines = List<LyricLine>.unmodifiable(currentLyricsLines),
        progress = duration.inMilliseconds > 0
            ? position.inMilliseconds / duration.inMilliseconds
            : 0.0;
@@ -107,23 +87,10 @@ class AudioSnapshot {
             isVisualizerEnabled == other.isVisualizerEnabled &&
             dynamicStartColor == other.dynamicStartColor &&
             dynamicEndColor == other.dynamicEndColor &&
-            isLyricsLoading == other.isLyricsLoading &&
-            isLyricsTranslating == other.isLyricsTranslating &&
             isLyricsGenerating == other.isLyricsGenerating &&
-            lyricsTranslationStatus == other.lyricsTranslationStatus &&
             lyricsGenerationPhase == other.lyricsGenerationPhase &&
             lyricsGenerationProgress == other.lyricsGenerationProgress &&
-            _deepEquality.equals(
-              currentLyricsLines,
-              other.currentLyricsLines,
-            ) &&
-            currentLyricsText == other.currentLyricsText &&
-            hasLyrics == other.hasLyrics &&
-            lyricsSearchAttempted == other.lyricsSearchAttempted &&
-            currentLyricsTitle == other.currentLyricsTitle &&
             isLyricsActive == other.isLyricsActive &&
-            lyricsTranslationLanguageCode ==
-                other.lyricsTranslationLanguageCode &&
             _deepEquality.equals(
               currentThemeColorsMap,
               other.currentThemeColorsMap,
@@ -150,19 +117,10 @@ class AudioSnapshot {
     isVisualizerEnabled,
     dynamicStartColor,
     dynamicEndColor,
-    isLyricsLoading,
-    isLyricsTranslating,
     isLyricsGenerating,
-    lyricsTranslationStatus,
     lyricsGenerationPhase,
     lyricsGenerationProgress,
-    _deepEquality.hash(currentLyricsLines),
-    currentLyricsText,
-    hasLyrics,
-    lyricsSearchAttempted,
-    currentLyricsTitle,
     isLyricsActive,
-    lyricsTranslationLanguageCode,
     _deepEquality.hash(currentThemeColorsMap),
   ]);
 }
