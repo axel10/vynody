@@ -86,10 +86,10 @@ class ScannerService extends ChangeNotifier {
     _setupMediaObserver();
   }
 
-  void setPlayerController(AudioCoreController controller) {
+  void setPlayerController(AudioCoreController? controller) {
     final changed = !identical(_playerController, controller);
     _playerController = controller;
-    if (changed && Platform.isAndroid) {
+    if (changed && controller != null && Platform.isAndroid) {
       unawaited(checkAndRequestPermissions());
     }
   }

@@ -48,6 +48,7 @@ class AudioService extends ChangeNotifier {
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
   ScannerService? _scannerService;
+  bool _isLyricsActive = false;
   final LyricsControllerState Function()? _readLyricsControllerState;
   final LyricsController Function()? _readLyricsController;
 
@@ -57,7 +58,6 @@ class AudioService extends ChangeNotifier {
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
   Map<String, Color> _currentThemeColorsMap = const {};
-  bool _isLyricsActive = false; // 用户是否开启了歌词模式
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
 
@@ -118,7 +118,7 @@ class AudioService extends ChangeNotifier {
       queue: () => _queue,
       currentIndex: () => _currentIndex,
       playerDuration: () => _duration,
-      isLyricsActive: () => _isLyricsActive,
+      isLyricsActive: () => isLyricsActive,
       cacheSongDuration: _cacheSongDuration,
     );
   }
@@ -179,7 +179,7 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setScannerService(ScannerService scanner) {
+  void setScannerService(ScannerService? scanner) {
     _scannerService = scanner;
   }
 
@@ -342,7 +342,7 @@ class AudioService extends ChangeNotifier {
         final song = _queue[_currentIndex];
         _logLyricsDebug(
           'track changed -> index=$_currentIndex title="${song.displayName}" '
-          'path="${song.path}" duration=$_duration active=$_isLyricsActive',
+          'path="${song.path}" duration=$_duration active=$isLyricsActive',
         );
         unawaited(
           // 发起完整的元数据更新流程
@@ -364,7 +364,7 @@ class AudioService extends ChangeNotifier {
 
     // 如果当前开启了歌词模式，但因为切歌瞬间加载太快（时长 Duration 还没准备好）
     // 导致 API 没匹配到或尚未开始加载，当时长变为有效正值时，自动触发补抓取。
-    if (_isLyricsActive &&
+    if (isLyricsActive &&
         _duration > Duration.zero &&
         !hasLyrics &&
         !isLyricsLoading &&
@@ -449,7 +449,7 @@ class AudioService extends ChangeNotifier {
   /// 设置歌词模式是否激活。
   /// 当激活时，如果当前歌曲尚未加载歌词，则立即触发加载。
   void setLyricsActive(bool active) {
-    if (_isLyricsActive == active) return;
+    if (isLyricsActive == active) return;
     _isLyricsActive = active;
     _logLyricsDebug(
       'lyrics mode ${active ? 'enabled' : 'disabled'} -> '
@@ -457,7 +457,7 @@ class AudioService extends ChangeNotifier {
       'loading=$isLyricsLoading searched=$lyricsSearchAttempted',
     );
 
-    if (_isLyricsActive &&
+    if (isLyricsActive &&
         currentMusic?.path != null &&
         !hasLyrics &&
         !isLyricsLoading) {
@@ -573,7 +573,7 @@ class AudioService extends ChangeNotifier {
     dynamicStartColor: _dynamicStartColor,
     dynamicEndColor: _dynamicEndColor,
     currentThemeColorsMap: _currentThemeColorsMap,
-    isLyricsActive: _isLyricsActive,
+    isLyricsActive: isLyricsActive,
   );
 
   Uint8List? getCachedArtwork(String? path) {
@@ -644,7 +644,7 @@ class AudioService extends ChangeNotifier {
     await _updatePalette();
 
     if (queueChanged || isCurrentTrack) {
-      if (isCurrentTrack && _isLyricsActive) {
+      if (isCurrentTrack && isLyricsActive) {
         final current = currentMusic;
         if (current != null) {
           unawaited(_lyricsController.fetchAndLog(current));
@@ -794,12 +794,12 @@ class AudioService extends ChangeNotifier {
     // Otherwise clear lyric state and let the async lyric fetch pipeline decide
     // whether anything should be loaded.
     final songLyrics = song.lyrics;
-    if (_isLyricsActive && songLyrics != null) {
+    if (isLyricsActive && songLyrics != null) {
       _lyricsController.restoreFromSongLyrics(song);
     } else {
       _logLyricsDebug(
         'lyrics state cleared -> title="${song.displayName}" '
-        'mode=$_isLyricsActive hasCache=${songLyrics != null}',
+        'mode=$isLyricsActive hasCache=${songLyrics != null}',
       );
       _lyricsController.clearState();
     }
@@ -821,7 +821,7 @@ class AudioService extends ChangeNotifier {
 
     // Trigger lyric loading only when lyric mode is active and we still do not
     // have lyrics for this track.
-    if (_isLyricsActive && !hasLyrics) {
+    if (isLyricsActive && !hasLyrics) {
       _logLyricsDebug(
         'post-metadata fetch -> title="${song.displayName}" '
         'duration=$_duration hasLyrics=$hasLyrics loading=$isLyricsLoading',

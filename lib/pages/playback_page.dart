@@ -111,7 +111,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
-        _pendingArtworkBytes = ref.read(audioCurrentMusicProvider)?.artworkBytes;
+        _pendingArtworkBytes = ref
+            .read(audioCurrentMusicProvider)
+            ?.artworkBytes;
       });
     });
   }
@@ -133,7 +135,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     // 延后一帧再通知 Provider，避免和本次切换动画的重建过程抢占同一帧。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(audioServiceProvider).setLyricsActive(nextLyricsMode);
+      _audioService?.setLyricsActive(nextLyricsMode);
     });
   }
 
@@ -626,6 +628,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   @override
   Widget build(BuildContext context) {
     // Separate UI status from rendering visibility to avoid flicker
+    final audio = ref.read(audioServiceProvider);
     final isVisualizerEnabled = ref.watch(audioIsVisualizerEnabledProvider);
     final isTransitioning = ref.watch(audioIsTransitioningProvider);
     final shouldDrawVisualizer = isVisualizerEnabled && !isTransitioning;
@@ -650,9 +653,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             _lastOrientation = orientation;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              ref
-                  .read(audioServiceProvider)
-                  .applyVisualizerSettings(orientation: orientation);
+              audio.applyVisualizerSettings(orientation: orientation);
             });
           }
 
@@ -666,7 +667,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                     child: Center(
                       child: Builder(
                         builder: (context) {
-                          final audio = ref.read(audioServiceProvider);
+                          // `audio` is cached once per build so we can use it in callbacks without repeating reads.
                           final isNext =
                               ref.watch(audioLastActionNextProvider) ?? true;
                           final currentMusic =
@@ -710,9 +711,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             },
                             onSeek: (val) {
                               final target = Duration(
-                                milliseconds:
-                                    (val * duration.inMilliseconds)
-                                        .round(),
+                                milliseconds: (val * duration.inMilliseconds)
+                                    .round(),
                               );
                               setState(() {
                                 _isScrubbingProgress = false;
@@ -727,8 +727,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                                     context,
                                     audio,
                                   ),
-                            onTagCompletionLongPress:
-                                currentMusic == null
+                            onTagCompletionLongPress: currentMusic == null
                                 ? null
                                 : () => _showTagSaveMenu(context, audio),
                             onEqualizerTap: () => _showEqualizerPanel(context),
@@ -784,7 +783,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                       final volume = ref.watch(
                         audioVolumeProvider,
                       );
-                      final audio = ref.read(audioServiceProvider);
                       return VolumeSliderOverlay(
                         volume: volume,
                         onVolumeChanged: (val) {
@@ -909,13 +907,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     return Positioned.fill(
       child: RepaintBoundary(
         child: StreamBuilder<FftFrame>(
-          stream: ref.read(audioServiceProvider).visualizerStream,
+          stream: ref.watch(audioVisualizerStreamProvider),
           builder: (context, snapshot) {
             final frame = snapshot.data;
             if (frame == null) return const SizedBox.shrink();
 
             final settings = ref.watch(settingsServiceProvider);
-            final audio = ref.read(audioServiceProvider);
+            final dynamicStartColor = ref.watch(audioDynamicStartColorProvider);
+            final dynamicEndColor = ref.watch(audioDynamicEndColorProvider);
             final isLandscape = orientation == Orientation.landscape;
             final gap = isLandscape
                 ? settings.landscapeGap
@@ -927,16 +926,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   values: frame.values,
                   gap: gap,
                   color: settings.isVisualizerDynamicColor
-                      ? (audio.dynamicStartColor ?? settings.visualizerColor)
+                      ? (dynamicStartColor ?? settings.visualizerColor)
                       : settings.visualizerColor,
                   opacity: settings.visualizerOpacity,
                   useGradient: settings.isVisualizerGradientEnabled,
                   startColor: settings.isVisualizerDynamicStartColor
-                      ? (audio.dynamicStartColor ??
-                            settings.visualizerStartColor)
+                      ? (dynamicStartColor ?? settings.visualizerStartColor)
                       : settings.visualizerStartColor,
                   endColor: settings.isVisualizerDynamicEndColor
-                      ? (audio.dynamicEndColor ?? settings.visualizerEndColor)
+                      ? (dynamicEndColor ?? settings.visualizerEndColor)
                       : settings.visualizerEndColor,
                   gradientStop1: settings.visualizerGradientStop1,
                   gradientStop2: settings.visualizerGradientStop2,

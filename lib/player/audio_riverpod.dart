@@ -120,17 +120,31 @@ final audioIsLyricsActiveProvider = Provider<bool>((ref) {
 });
 
 final audioProgressProvider = Provider<double>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.snapshot.progress));
+  return ref.watch(
+    audioServiceProvider.select((audio) => audio.snapshot.progress),
+  );
 });
 
 final audioIsTransitioningProvider = Provider<bool>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.isTransitioning));
+  return ref.watch(
+    audioServiceProvider.select((audio) => audio.isTransitioning),
+  );
 });
 
 final audioLastActionNextProvider = Provider<bool?>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.isLastActionNext));
+  return ref.watch(
+    audioServiceProvider.select((audio) => audio.isLastActionNext),
+  );
 });
 
 final audioIsVisualizerEnabledProvider = Provider<bool>((ref) {
-  return ref.watch(audioServiceProvider.select((audio) => audio.isVisualizerEnabled));
+  return ref.watch(
+    audioServiceProvider.select((audio) => audio.isVisualizerEnabled),
+  );
+});
+
+final audioVisualizerStreamProvider = Provider<Stream<FftFrame>?>((ref) {
+  return ref.watch(
+    audioServiceProvider.select((audio) => audio.visualizerStream),
+  );
 });
