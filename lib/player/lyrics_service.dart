@@ -155,6 +155,7 @@ class LyricScoreBreakdown {
 class LyricSelectionResult {
   final LyricTrack track;
   final bool fromGetApi;
+  final String source;
   final double score;
   final LyricScoreBreakdown breakdown;
   final int durationDiffSeconds;
@@ -164,6 +165,7 @@ class LyricSelectionResult {
   const LyricSelectionResult({
     required this.track,
     required this.fromGetApi,
+    required this.source,
     required this.score,
     required this.breakdown,
     required this.durationDiffSeconds,
@@ -543,6 +545,7 @@ class LyricsService {
     return LyricSelectionResult(
       track: track,
       fromGetApi: record.source == 'get',
+      source: _sourceFromCacheRecord(record.source),
       score: 100.0,
       breakdown: LyricScoreBreakdown(
         title: 0,
@@ -663,6 +666,7 @@ class LyricsService {
     return LyricSelectionResult(
       track: candidate.copyWith(lyricsId: lyricsId),
       fromGetApi: fromGetApi,
+      source: 'lrclib',
       score: total,
       breakdown: LyricScoreBreakdown(
         title: titleScore * 45.0,
@@ -676,6 +680,17 @@ class LyricsService {
       syncedLines: syncedLines,
       lyricsText: lyricsText,
     );
+  }
+
+  String _sourceFromCacheRecord(String source) {
+    final normalized = source.trim().toLowerCase();
+    if (normalized == 'gemini_generate') {
+      return 'gemini';
+    }
+    if (normalized == 'get' || normalized == 'search') {
+      return 'lrclib';
+    }
+    return normalized.isEmpty ? 'lrclib' : normalized;
   }
 
   int _compareSelectionResults(LyricSelectionResult a, LyricSelectionResult b) {

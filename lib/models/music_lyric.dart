@@ -8,6 +8,7 @@ class MusicLyric {
   final List<LyricLine> syncedLines;
   final String plainText;
   final Map<String, MusicLyricTranslation> translations;
+  final String source;
 
   bool get hasId => id.trim().isNotEmpty;
   bool get isSynced => syncedLines.any((line) => line.isTimed);
@@ -20,6 +21,7 @@ class MusicLyric {
     this.syncedLines = const [],
     this.plainText = '',
     this.translations = const {},
+    this.source = '',
   });
 
   MusicLyricTranslation? translationFor(String languageCode) {
@@ -30,9 +32,7 @@ class MusicLyric {
     final translatedLines = translations[languageCode]?.translatedLines;
     if (translatedLines == null || translatedLines.isEmpty) return const [];
 
-    return translatedLines
-        .map((line) => line.trim())
-        .toList(growable: false);
+    return translatedLines.map((line) => line.trim()).toList(growable: false);
   }
 
   String translatedTextOf(String languageCode) {
@@ -48,12 +48,14 @@ class MusicLyric {
     List<LyricLine>? syncedLines,
     String? plainText,
     Map<String, MusicLyricTranslation>? translations,
+    String? source,
   }) {
     return MusicLyric(
       id: id ?? this.id,
       syncedLines: syncedLines ?? this.syncedLines,
       plainText: plainText ?? this.plainText,
       translations: translations ?? this.translations,
+      source: source ?? this.source,
     );
   }
 
@@ -64,7 +66,8 @@ class MusicLyric {
         other.id == id &&
         listEquals(other.syncedLines, syncedLines) &&
         other.plainText == plainText &&
-        mapEquals(other.translations, translations);
+        mapEquals(other.translations, translations) &&
+        other.source == source;
   }
 
   @override
@@ -72,6 +75,7 @@ class MusicLyric {
     id,
     Object.hashAll(syncedLines),
     plainText,
+    source,
     Object.hashAllUnordered(
       translations.entries.map((entry) => Object.hash(entry.key, entry.value)),
     ),

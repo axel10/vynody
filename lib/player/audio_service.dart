@@ -857,6 +857,15 @@ class AudioService extends ChangeNotifier {
   Future<void> generateLyricsForCurrentSong() =>
       _lyricsController.generateLyricsForCurrentSong();
 
+  Future<void> regenerateLyricsForCurrentSong() async {
+    final songPath = currentMusic?.path;
+    if (songPath == null) return;
+
+    await clearLyricsCacheForCurrentSong();
+    if (currentMusic?.path != songPath) return;
+    await generateLyricsForCurrentSong();
+  }
+
   void _cacheSongDuration(String path, int durationMillis) {
     if (_currentIndex < 0 || _currentIndex >= _queue.length) return;
     final currentSong = _queue[_currentIndex];

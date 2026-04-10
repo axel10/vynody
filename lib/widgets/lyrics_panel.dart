@@ -105,6 +105,14 @@ class _LyricsPanelState extends State<LyricsPanel> {
     );
   }
 
+  String _buildGenerateMenuLabel() {
+    final source = widget.lyrics?.source.trim().toLowerCase() ?? '';
+    if (source == 'gemini') {
+      return '重新生成歌词（来源gemini）';
+    }
+    return '使用AI生成歌词（来源是lrclib）';
+  }
+
   @override
   void didUpdateWidget(covariant LyricsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -129,6 +137,12 @@ class _LyricsPanelState extends State<LyricsPanel> {
     if (overlay == null) return;
 
     final items = <PopupMenuEntry<String>>[
+      if (widget.onGenerateLyrics != null)
+        PopupMenuItem<String>(
+          value: 'generate',
+          enabled: !widget.isGeneratingLyrics,
+          child: Text(_buildGenerateMenuLabel()),
+        ),
       if (!requeryOnly && _hasTimedLyrics)
         PopupMenuItem<String>(
           value: 'toggle_auto_scroll',
@@ -178,6 +192,8 @@ class _LyricsPanelState extends State<LyricsPanel> {
       if (!_isAutoScrollPaused) {
         _scheduleScrollIfNeeded(force: true);
       }
+    } else if (selected == 'generate') {
+      await Future<void>.microtask(() => widget.onGenerateLyrics?.call());
     } else if (selected == 'translate') {
       await Future<void>.microtask(() => widget.onTranslateLyrics?.call());
     } else if (selected == 'clear_lyrics_cache') {

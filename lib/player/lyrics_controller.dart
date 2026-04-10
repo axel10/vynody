@@ -198,6 +198,7 @@ class LyricsController extends ChangeNotifier {
                 LyricsIdUtils.fromLyricsText(_currentLyricsText),
             syncedLines: _currentLyricsLines,
             plainText: _currentLyricsText,
+            source: result?.source ?? 'lrclib',
           ),
         ),
       );
@@ -526,6 +527,7 @@ class LyricsController extends ChangeNotifier {
                 id: LyricsIdUtils.fromLyricsText(progressText),
                 syncedLines: _parseGeneratedLyrics(progressText),
                 plainText: progressText,
+                source: 'gemini',
               );
 
               _hasLyrics = true;
@@ -568,6 +570,7 @@ class LyricsController extends ChangeNotifier {
             ? generatedLines
             : _buildLyricsLines(const [], generatedLyrics),
         plainText: generatedLyrics.trim(),
+        source: 'gemini',
       );
 
       _hasLyrics = true;
@@ -611,6 +614,23 @@ class LyricsController extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  Future<void> regenerateLyricsForCurrentSong() async {
+    final song = _currentMusic();
+    if (song == null) {
+      debugPrint(
+        '[LyricsController] regenerate lyrics skipped: no current song',
+      );
+      return;
+    }
+
+    await clearLyricsCacheForCurrentSong();
+    if (_currentMusic()?.path != song.path) {
+      return;
+    }
+
+    await generateLyricsForCurrentSong();
   }
 
   Future<void> restoreCachedTranslations(MusicFile song) async {

@@ -934,6 +934,7 @@ class PlaybackHeroCard extends StatelessWidget {
             translations:
                 currentLyrics?.translations ??
                 const <String, MusicLyricTranslation>{},
+            source: currentLyrics?.source ?? '',
           )
         : currentLyrics;
 
@@ -959,7 +960,7 @@ class PlaybackHeroCard extends StatelessWidget {
       onTranslateLyrics: () =>
           context.read<AudioService>().translateLyricsForCurrentSong(),
       onGenerateLyrics: () =>
-          context.read<AudioService>().generateLyricsForCurrentSong(),
+          context.read<AudioService>().regenerateLyricsForCurrentSong(),
       onClearLyricsCache: () =>
           context.read<AudioService>().clearLyricsCacheForCurrentSong(),
       onClearTranslationCache: () =>
