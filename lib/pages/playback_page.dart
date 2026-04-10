@@ -285,7 +285,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     AudioService audio,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final snapshot = audio.snapshot;
+    final snapshot = ref.read(audioSnapshotProvider);
     final song = snapshot.currentMusic;
     if (song == null) return;
 
@@ -670,11 +670,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                           // `audio` is cached once per build so we can use it in callbacks without repeating reads.
                           final isNext =
                               ref.watch(audioLastActionNextProvider) ?? true;
-                          final currentMusic =
-                              ref.watch(audioCurrentMusicProvider);
+                          final currentMusic = ref.watch(
+                            audioCurrentMusicProvider,
+                          );
                           final duration = ref.watch(audioDurationProvider);
-                          final isVisualizerEnabled =
-                              ref.watch(audioIsVisualizerEnabledProvider);
+                          final isVisualizerEnabled = ref.watch(
+                            audioIsVisualizerEnabledProvider,
+                          );
 
                           return PlaybackHeroCard(
                             isMini: false,
@@ -780,9 +782,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                 if (_showVolumeSlider)
                   Builder(
                     builder: (context) {
-                      final volume = ref.watch(
-                        audioVolumeProvider,
-                      );
+                      final volume = ref.watch(audioVolumeProvider);
                       return VolumeSliderOverlay(
                         volume: volume,
                         onVolumeChanged: (val) {
