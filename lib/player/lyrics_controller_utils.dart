@@ -98,6 +98,80 @@ extension LyricsControllerUtils on LyricsController {
     await _saveLyricsCacheForSong(updatedSong);
   }
 
+  Future<void> fillLyricsForCurrentSong(String lyricsText) async {
+    final song = _currentMusic();
+    if (song == null) return;
+
+    final normalizedText = lyricsText.replaceAll('\r\n', '\n').trim();
+    if (normalizedText.isEmpty) return;
+
+    final query =
+        await _buildLyricsQueryForSong(song) ??
+        LyricsQuery(
+          filePath: song.path,
+          fileName: song.name,
+          title: _lyricsTitleForQuery(song),
+          artist: _lyricsArtistForQuery(song),
+          album: _lyricsAlbumForQuery(song),
+        );
+    final cacheKey = query.cacheKey;
+
+    if (_currentMusic()?.path != song.path) return;
+
+    final filledLyrics = MusicLyric(
+      id: LyricsIdUtils.fromLyricsText(normalizedText),
+      syncedLines: _buildLyricsLines(const [], normalizedText),
+      plainText: normalizedText,
+      source: LyricsCacheSource.manualAdjust.musicLyricSource,
+      timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
+    );
+
+    final updatedSong = _replaceCurrentSongIfPath(
+      song.path,
+      (currentSong) => currentSong.copyWith(lyrics: filledLyrics),
+    );
+    if (updatedSong == null) return;
+
+    if (cacheKey.isNotEmpty) {
+      await _lyricsCacheRepository.clearAllLyricsCachesByKey(cacheKey);
+      _translatedLyricsKeys.removeWhere((key) => key.startsWith('$cacheKey|'));
+      _translationInFlightKeys.removeWhere(
+        (key) => key.startsWith('$cacheKey|'),
+      );
+    }
+
+    _hasLyrics = true;
+    _isLyricsLoading = false;
+    _isLyricsTranslating = false;
+    _lyricsTranslationStatus = '';
+    _lyricsSearchAttempted = true;
+    _currentLyricsLines = filledLyrics.syncedLines;
+    _currentLyricsText = filledLyrics.plainText;
+    _setLyricsGenerating(
+      false,
+      phase: LyricsGenerationPhase.idle,
+      progress: 0.0,
+    );
+
+    _bumpRevision();
+
+    try {
+      await _lyricsCacheRepository.saveLyricsCache(
+        LyricsCacheRecord(
+          cacheKey: cacheKey,
+          source: LyricsCacheSource.manualAdjust,
+          isSynced: filledLyrics.isSynced,
+          syncedLyrics: filledLyrics.plainText,
+          syncedLines: filledLyrics.syncedLines,
+          timelineOffsetMillis: filledLyrics.timelineOffset.inMilliseconds,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[LyricsController] Failed to cache manual lyrics: $e');
+    }
+  }
+
   Future<LyricsQuery?> _buildLyricsQueryForSong(MusicFile song) async {
     final duration = await _resolveLyricsDuration(song);
     if (duration == null) {

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
+import '../player/audio_riverpod.dart';
 import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
 import '../player/lyrics_generation_phase.dart';
@@ -137,6 +138,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     Offset globalPosition, {
     required LyricsControllerState lyricsState,
     required List<LyricLine> displayLines,
+    required String displayPlainLyrics,
+    required bool hasCurrentSong,
     bool requeryOnly = false,
   }) async {
     final overlay =
@@ -144,6 +147,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (overlay == null) return;
 
     final items = <PopupMenuEntry<String>>[
+      if (hasCurrentSong)
+        const PopupMenuItem<String>(value: 'fill_lyrics', child: Text('填写歌词')),
       if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate',
@@ -230,7 +235,66 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       await _lyricsControllerActions.requeryLyricsForCurrentSong();
     } else if (selected == 'adjust_timeline') {
       await _showTimelineAdjustmentPanel(displayLines);
+    } else if (selected == 'fill_lyrics') {
+      await _showManualLyricsDialog(displayPlainLyrics);
     }
+  }
+
+  Future<void> _showManualLyricsDialog(String initialLyrics) async {
+    final controller = TextEditingController(text: initialLyrics);
+    final submittedLyrics = await showDialog<String?>(
+      context: context,
+      builder: (dialogContext) {
+        var currentValue = initialLyrics;
+
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final canSave = currentValue.trim().isNotEmpty;
+            return AlertDialog(
+              title: const Text('填写歌词'),
+              content: SizedBox(
+                width: 520,
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  maxLines: 14,
+                  minLines: 8,
+                  decoration: const InputDecoration(
+                    hintText: '在这里粘贴或输入歌词，支持多行文本',
+                    alignLabelWithHint: true,
+                  ),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      currentValue = value;
+                    });
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: canSave
+                      ? () =>
+                            Navigator.of(dialogContext).pop(currentValue.trim())
+                      : null,
+                  child: const Text('确认'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    controller.dispose();
+
+    if (!mounted || submittedLyrics == null) return;
+
+    await _lyricsControllerActions.fillLyricsForCurrentSong(submittedLyrics);
   }
 
   String _buildGenerateButtonLabel(LyricsControllerState lyricsState) {
@@ -480,6 +544,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final hasRenderableLyrics = ref.watch(
       lyricsHasRenderableContentProvider(widget.lyrics),
     );
+    final hasCurrentSong = ref.watch(audioCurrentMusicProvider) != null;
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
@@ -500,6 +565,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             details.globalPosition,
             lyricsState: lyricsState,
             displayLines: displayLines,
+            displayPlainLyrics: displayPlainLyrics,
+            hasCurrentSong: hasCurrentSong,
             requeryOnly: true,
           );
         },
@@ -569,6 +636,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             details.globalPosition,
             lyricsState: lyricsState,
             displayLines: displayLines,
+            displayPlainLyrics: displayPlainLyrics,
+            hasCurrentSong: hasCurrentSong,
           );
         },
         child: Stack(
@@ -616,6 +685,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           details.globalPosition,
           lyricsState: lyricsState,
           displayLines: displayLines,
+          displayPlainLyrics: displayPlainLyrics,
+          hasCurrentSong: hasCurrentSong,
         );
       },
       child: Stack(
