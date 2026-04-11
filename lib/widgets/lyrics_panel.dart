@@ -147,18 +147,21 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (overlay == null) return;
 
     final items = <PopupMenuEntry<String>>[
-      if (hasCurrentSong)
-        const PopupMenuItem<String>(value: 'fill_lyrics', child: Text('填写歌词')),
+      PopupMenuItem<String>(
+        value: 'fill_lyrics',
+        enabled: hasCurrentSong,
+        child: const Text('填写歌词'),
+      ),
       if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate',
-          enabled: !lyricsState.isLyricsGenerating,
+          enabled: hasCurrentSong && !lyricsState.isLyricsGenerating,
           child: Text(_buildGenerateMenuLabel()),
         ),
       if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate_timeline',
-          enabled: !lyricsState.isLyricsGenerating,
+          enabled: hasCurrentSong && !lyricsState.isLyricsGenerating,
           child: Text(_buildGenerateTimelineMenuLabel()),
         ),
       if (!requeryOnly &&
@@ -168,37 +171,39 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       if (!requeryOnly &&
           _hasTimedLyrics(displayLines) &&
           lyricsState.hasLyrics)
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'adjust_timeline',
+          enabled: hasCurrentSong,
           child: Text('手动调整时间轴'),
         ),
       if (!requeryOnly && _hasTimedLyrics(displayLines))
         PopupMenuItem<String>(
           value: 'toggle_auto_scroll',
+          enabled: hasCurrentSong,
           child: Text(_isAutoScrollPaused ? '恢复自动滚动' : '暂停自动滚动'),
         ),
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'translate',
-          enabled: !lyricsState.isLyricsTranslating,
+          enabled: hasCurrentSong && !lyricsState.isLyricsTranslating,
           child: const Text('翻译歌词'),
         ),
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'clear_lyrics_cache',
-          enabled: lyricsState.hasLyrics,
+          enabled: hasCurrentSong && lyricsState.hasLyrics,
           child: const Text('清除当前歌词缓存'),
         ),
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'clear_translation_cache',
-          enabled: lyricsState.hasLyrics,
+          enabled: hasCurrentSong && lyricsState.hasLyrics,
           child: const Text('清除当前翻译缓存'),
         ),
       if (requeryOnly)
         PopupMenuItem<String>(
           value: 'requery',
-          enabled: lyricsState.hasLyrics,
+          enabled: hasCurrentSong && lyricsState.hasLyrics,
           child: const Text('重新查询'),
         ),
     ];
