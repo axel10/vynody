@@ -256,23 +256,18 @@ extension LyricsControllerUtils on LyricsController {
     final query = await _buildLyricsQueryForSong(song);
     if (query == null) return;
 
-    final syncedLinesJson = lyrics.syncedLines
-        .map((line) => line.toJson())
-        .toList();
     final plainLyrics = lyrics.plainText.trim();
 
     try {
       await _lyricsCacheRepository.saveLyricsCache(
         LyricsCacheRecord(
           cacheKey: query.cacheKey,
-          source: lyrics.source.trim().isEmpty
-              ? 'manual_adjust'
-              : lyrics.source,
+          source: LyricsCacheSource.fromMusicLyricSource(lyrics.source),
           isSynced: lyrics.isSynced,
           syncedLyrics: lyrics.syncedLines.isNotEmpty
               ? _lyricsTextWithTimestamps(lyrics)
               : (plainLyrics.isEmpty ? null : plainLyrics),
-          syncedLines: syncedLinesJson,
+          syncedLines: lyrics.syncedLines,
           timelineOffsetMillis: lyrics.timelineOffset.inMilliseconds,
           updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
         ),

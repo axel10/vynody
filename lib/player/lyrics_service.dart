@@ -335,7 +335,7 @@ class LyricsService {
     try {
       final record = await _cacheRepository.getLyricsCache(query.cacheKey);
       if (record == null) return null;
-      if (ignoreEmptyCache && record.source.trim().toLowerCase() == 'none') {
+      if (ignoreEmptyCache && record.source == LyricsCacheSource.none) {
         return null;
       }
       return _selectionFromRecord(query, record);
@@ -349,7 +349,7 @@ class LyricsService {
     try {
       final record = LyricsCacheRecord(
         cacheKey: query.cacheKey,
-        source: 'none',
+        source: LyricsCacheSource.none,
         isSynced: false,
         syncedLyrics: null,
         syncedLines: const [],
@@ -488,10 +488,10 @@ class LyricsService {
       final lyricsText = result.lyricsText.trim();
       final record = LyricsCacheRecord(
         cacheKey: query.cacheKey,
-        source: result.fromGetApi ? 'get' : 'search',
+        source: LyricsCacheSource.lrclib,
         isSynced: result.isSynced,
         syncedLyrics: result.track.syncedLyrics ?? lyricsText,
-        syncedLines: result.syncedLines.map((line) => line.toJson()).toList(),
+        syncedLines: result.syncedLines,
         timelineOffsetMillis: result.timelineOffset.inMilliseconds,
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
@@ -520,13 +520,11 @@ class LyricsService {
       syncedLyrics: record.syncedLyrics,
     );
 
-    final syncedLines = record.syncedLines
-        .map((item) => LyricLine.fromJson(item))
-        .toList(growable: false);
+    final syncedLines = record.syncedLines;
 
     return LyricSelectionResult(
       track: track,
-      fromGetApi: record.source == 'get',
+      fromGetApi: false,
       source: _sourceFromCacheRecord(record.source),
       score: 100.0,
       breakdown: LyricScoreBreakdown(
@@ -562,7 +560,7 @@ class LyricsService {
     if (record.syncedLines.isEmpty) return '';
 
     return record.syncedLines
-        .map((line) => line['text']?.toString() ?? '')
+        .map((line) => line.text)
         .where((line) => line.trim().isNotEmpty)
         .join('\n')
         .trim();
@@ -666,15 +664,8 @@ class LyricsService {
     );
   }
 
-  String _sourceFromCacheRecord(String source) {
-    final normalized = source.trim().toLowerCase();
-    if (normalized.startsWith('gemini')) {
-      return 'gemini';
-    }
-    if (normalized == 'get' || normalized == 'search') {
-      return 'lrclib';
-    }
-    return normalized.isEmpty ? 'lrclib' : normalized;
+  String _sourceFromCacheRecord(LyricsCacheSource source) {
+    return source.musicLyricSource;
   }
 
   int _compareSelectionResults(LyricSelectionResult a, LyricSelectionResult b) {
@@ -794,7 +785,7 @@ class LyricsService {
     }
 
     buffer.writeln(
-      '[Lyrics] selected id=${result.track.id ?? 'n/a'} score=${result.score.toStringAsFixed(1)} from=${result.fromGetApi ? 'get' : 'search'} synced=${result.isSynced} instrumental=${result.track.instrumental}',
+      '[Lyrics] selected id=${result.track.id ?? 'n/a'} score=${result.score.toStringAsFixed(1)} source=${result.source} synced=${result.isSynced} instrumental=${result.track.instrumental}',
     );
     buffer.writeln(
       '[Lyrics] breakdown title=${result.breakdown.title.toStringAsFixed(1)} artist=${result.breakdown.artist.toStringAsFixed(1)} album=${result.breakdown.album.toStringAsFixed(1)} duration=${result.breakdown.duration.toStringAsFixed(1)} lyrics=${result.breakdown.lyricsQuality.toStringAsFixed(1)} penalty=${result.breakdown.instrumentalPenalty.toStringAsFixed(1)}',

@@ -95,7 +95,7 @@ extension LyricsControllerGeneration on LyricsController {
 
   Future<void> _runGeminiGeneration({
     required MusicFile song,
-    required String databaseSource,
+    required LyricsCacheSource databaseSource,
     required _GeminiGenerationInvoker invoke,
     Map<String, MusicLyricTranslation> Function()? translationProvider,
   }) async {
@@ -181,7 +181,7 @@ extension LyricsControllerGeneration on LyricsController {
     try {
       await _runGeminiGeneration(
         song: song,
-        databaseSource: 'gemini_generate',
+        databaseSource: LyricsCacheSource.geminiGenerate,
         invoke:
             ({
               required onUploadProgress,
@@ -230,7 +230,7 @@ extension LyricsControllerGeneration on LyricsController {
     try {
       await _runGeminiGeneration(
         song: song,
-        databaseSource: 'gemini_timeline',
+        databaseSource: LyricsCacheSource.geminiTimeline,
         translationProvider: () =>
             _currentMusic()?.lyrics?.translations ??
             const <String, MusicLyricTranslation>{},
@@ -276,7 +276,7 @@ extension LyricsControllerGeneration on LyricsController {
     required MusicFile song,
     required String generatedLyrics,
     required List<LyricLine> syncedLines,
-    String source = 'gemini_generate',
+    LyricsCacheSource source = LyricsCacheSource.geminiGenerate,
   }) async {
     try {
       final duration = await _resolveLyricsDuration(song);
@@ -295,7 +295,7 @@ extension LyricsControllerGeneration on LyricsController {
         syncedLyrics: syncedLines.any((line) => line.isTimed)
             ? generatedLyrics
             : null,
-        syncedLines: syncedLines.map((line) => line.toJson()).toList(),
+        syncedLines: syncedLines,
         timelineOffsetMillis: song.lyrics?.timelineOffset.inMilliseconds ?? 0,
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
