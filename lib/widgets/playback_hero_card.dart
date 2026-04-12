@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'dart:ui' show lerpDouble;
 
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
@@ -15,6 +17,8 @@ import '../widgets/mini_player_widgets.dart';
 import '../widgets/waveform_progress_bar.dart';
 
 const String playbackHeroTag = 'player_capsule';
+
+enum _TrackInfoMenuTarget { title, artistAlbum }
 
 class PlaybackHeroCard extends ConsumerWidget {
   const PlaybackHeroCard({
@@ -93,6 +97,103 @@ class PlaybackHeroCard extends ConsumerWidget {
     return lerpDouble(p, l, tLand) ?? p;
   }
 
+  bool _isVisibleTrackValue(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) return false;
+    final lower = trimmed.toLowerCase();
+    return lower != 'unknown' &&
+        lower != 'unknown artist' &&
+        lower != 'unknown album';
+  }
+
+  Future<void> _openFileLocation(String filePath) async {
+    if (!Platform.isWindows || filePath.trim().isEmpty) return;
+
+    final normalizedPath = File(filePath).absolute.path;
+    if (!File(normalizedPath).existsSync()) {
+      debugPrint(
+        '[PlaybackHeroCard] Cannot open file location, file missing: $normalizedPath',
+      );
+      return;
+    }
+    var cmd = 'explorer.exe /select,"$normalizedPath"';
+    try {
+      await Process.run(cmd,[]);
+    } catch (e) {
+      debugPrint('[PlaybackHeroCard] Failed to open file location: $e');
+    }
+  }
+
+  Future<void> _showTrackInfoContextMenu(
+    BuildContext context,
+    Offset globalPosition, {
+    required _TrackInfoMenuTarget target,
+    required MusicFile? currentMusic,
+  }) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
+
+    final titleText = currentMusic?.displayName.trim() ?? '';
+    final artistText = currentMusic?.artist?.trim() ?? '';
+    final albumText = currentMusic?.album?.trim() ?? '';
+    final hasTitle = titleText.isNotEmpty;
+    final hasArtist = _isVisibleTrackValue(artistText);
+    final hasAlbum = _isVisibleTrackValue(albumText);
+    final hasFilePath =
+        currentMusic != null && currentMusic.path.trim().isNotEmpty;
+
+    final items = <PopupMenuEntry<String>>[
+      if (target == _TrackInfoMenuTarget.title)
+        PopupMenuItem<String>(
+          value: 'copy_title',
+          enabled: hasTitle,
+          child: const Text('复制标题'),
+        )
+      else ...[
+        PopupMenuItem<String>(
+          value: 'copy_artist',
+          enabled: hasArtist,
+          child: const Text('复制艺术家'),
+        ),
+        PopupMenuItem<String>(
+          value: 'copy_album',
+          enabled: hasAlbum,
+          child: const Text('复制专辑'),
+        ),
+      ],
+      if (target == _TrackInfoMenuTarget.title && Platform.isWindows) ...[
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'open_file_location',
+          enabled: hasFilePath,
+          child: const Text('打开文件所在位置'),
+        ),
+      ],
+    ];
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromPoints(globalPosition, globalPosition),
+        Offset.zero & overlay.size,
+      ),
+      items: items,
+    );
+
+    if (!context.mounted || selected == null) return;
+
+    if (selected == 'copy_title' && hasTitle) {
+      await Clipboard.setData(ClipboardData(text: titleText));
+    } else if (selected == 'copy_artist' && hasArtist) {
+      await Clipboard.setData(ClipboardData(text: artistText));
+    } else if (selected == 'copy_album' && hasAlbum) {
+      await Clipboard.setData(ClipboardData(text: albumText));
+    } else if (selected == 'open_file_location' && hasFilePath) {
+      await _openFileLocation(currentMusic.path);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Hero(
@@ -157,7 +258,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                                 children: [
                                   Text(
                                     currentMusic?.displayName ??
-                                        AppLocalizations.of(context)!.notSelected,
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.notSelected,
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodySmall!
@@ -228,6 +331,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   Widget _buildFullCard(BuildContext context, WidgetRef ref) {
     const animDuration = Duration(milliseconds: 400);
     const animCurve = Curves.fastOutSlowIn;
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     // 核心动画容器：使用 TweenAnimationBuilder 对 2D 平面上的多个布局变量（尺寸、位置、不透明度）进行线性插值处理。
     // 这使得点击封面切换 `isLyricsMode` 后，UI 元素能平滑移动/缩放，例如：
@@ -567,7 +671,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                         height: infoHeight,
                         child: _buildTrackInfo(
                           context,
-                          ref,
+                          currentMusic,
                           targetInfoAlign,
                           isLyricsMode,
                         ),
@@ -639,11 +743,10 @@ class PlaybackHeroCard extends ConsumerWidget {
 
   Widget _buildTrackInfo(
     BuildContext context,
-    WidgetRef ref,
+    MusicFile? currentMusic,
     TextAlign align,
     bool isLyrics,
   ) {
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
     final l10n = AppLocalizations.of(context)!;
     final title = currentMusic?.displayName ?? l10n.notSelected;
 
@@ -667,35 +770,59 @@ class PlaybackHeroCard extends ConsumerWidget {
           : CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.fastOutSlowIn,
-          textAlign: align,
-          style: Theme.of(context).textTheme.titleLarge!.copyWith(
-            color: Colors.white,
-            fontSize: isLyrics && !isLandscape ? 18 : 22,
-            fontWeight: FontWeight.bold,
-            height: 1.2,
-          ),
-          child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onSecondaryTapDown: (details) {
+            _showTrackInfoContextMenu(
+              context,
+              details.globalPosition,
+              target: _TrackInfoMenuTarget.title,
+              currentMusic: currentMusic,
+            );
+          },
           child: AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 400),
             curve: Curves.fastOutSlowIn,
             textAlign: align,
-            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-              color: Colors.white70,
-              fontSize: isLyrics && !isLandscape ? 13 : 15,
-              height: 1.3,
+            style: Theme.of(context).textTheme.titleLarge!.copyWith(
+              color: Colors.white,
+              fontSize: isLyrics && !isLandscape ? 18 : 22,
+              fontWeight: FontWeight.bold,
+              height: 1.2,
             ),
-            child: Text(
-              hasArtist && hasAlbum
-                  ? '$rawArtist — $rawAlbum'
-                  : (hasArtist ? rawArtist : (hasAlbum ? rawAlbum : 'Unknown')),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: (details) {
+              _showTrackInfoContextMenu(
+                context,
+                details.globalPosition,
+                target: _TrackInfoMenuTarget.artistAlbum,
+                currentMusic: currentMusic,
+              );
+            },
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.fastOutSlowIn,
+              textAlign: align,
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                color: Colors.white70,
+                fontSize: isLyrics && !isLandscape ? 13 : 15,
+                height: 1.3,
+              ),
+              child: Text(
+                hasArtist && hasAlbum
+                    ? '$rawArtist — $rawAlbum'
+                    : (hasArtist
+                          ? rawArtist
+                          : (hasAlbum ? rawAlbum : 'Unknown')),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ),
@@ -749,8 +876,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 ),
                 onPressed: () {
                   final audio = ref.read(audioServiceProvider);
-                  if (audio.settingsService.randomRange == 1 &&
-                      !isRandomMode) {
+                  if (audio.settingsService.randomRange == 1 && !isRandomMode) {
                     final playlistService = ref.read(playlistServiceProvider);
                     final List<MusicFile> allSongs = [];
                     final pathSet = <String>{};
@@ -798,9 +924,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                 (s) => s.isWaveformProgressBarEnabled,
               ),
             );
-            final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
+            final waveform =
+                overrideWaveform ?? currentMusic?.waveform ?? const [];
             final displayProgress =
-                overrideProgress ?? ref.watch(audioProgressProvider).clamp(0.0, 1.0);
+                overrideProgress ??
+                ref.watch(audioProgressProvider).clamp(0.0, 1.0);
 
             if (enabled) {
               return Padding(
@@ -824,7 +952,9 @@ class PlaybackHeroCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                formatDuration(overridePosition ?? ref.watch(audioPositionProvider)),
+                formatDuration(
+                  overridePosition ?? ref.watch(audioPositionProvider),
+                ),
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Text(
@@ -869,13 +999,16 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
               child: IconButton(
                 onPressed: onPlayPause,
-                tooltip: ref.watch(audioIsPlayingProvider) ? l10n.pause : l10n.play,
+                tooltip: ref.watch(audioIsPlayingProvider)
+                    ? l10n.pause
+                    : l10n.play,
                 icon: Icon(
                   ref.watch(audioIsPlayingProvider)
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
                   size: 40,
-                  color: currentThemeColorsMap['darkVibrant'] ??
+                  color:
+                      currentThemeColorsMap['darkVibrant'] ??
                       currentThemeColorsMap['darkMuted'] ??
                       Colors.black,
                 ),
@@ -931,9 +1064,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         Colors.white;
 
     return LyricsPanel(
-      key: ValueKey(
-        '$currentIndex:${currentMusic?.path ?? 'no-track'}',
-      ),
+      key: ValueKey('$currentIndex:${currentMusic?.path ?? 'no-track'}'),
       lyrics: currentMusic?.lyrics,
       position: position,
       accentColor: accent,
