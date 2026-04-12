@@ -37,6 +37,35 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
     });
   }
 
+  void _reorderSelectedIndices(int oldIndex, int newIndex) {
+    if (_selectedIndices.isEmpty) return;
+
+    final updated = <int>{};
+    for (final index in _selectedIndices) {
+      if (index == oldIndex) {
+        updated.add(newIndex);
+      } else if (oldIndex < newIndex) {
+        if (index > oldIndex && index <= newIndex) {
+          updated.add(index - 1);
+        } else {
+          updated.add(index);
+        }
+      } else if (newIndex < oldIndex) {
+        if (index >= newIndex && index < oldIndex) {
+          updated.add(index + 1);
+        } else {
+          updated.add(index);
+        }
+      } else {
+        updated.add(index);
+      }
+    }
+
+    _selectedIndices
+      ..clear()
+      ..addAll(updated);
+  }
+
   void _showCreatePlaylistDialog(BuildContext context) {
     final controller = TextEditingController();
     showDialog(
@@ -401,6 +430,9 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                         itemCount: currentPlaylist.songs.length,
                         onReorder: (oldIndex, newIndex) {
                           if (newIndex > oldIndex) newIndex--;
+                          setState(() {
+                            _reorderSelectedIndices(oldIndex, newIndex);
+                          });
                           playlistService.reorderSongsInPlaylist(
                             currentPlaylist.id,
                             oldIndex,
@@ -408,16 +440,14 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                           );
                         },
                         itemBuilder: (context, index) {
-                            final song = currentPlaylist.songs[index];
-                            final isCurrent =
-                                currentIndex == index &&
-                                currentMusic?.path == song.path;
+                          final song = currentPlaylist.songs[index];
+                          final isCurrent =
+                              currentIndex == index &&
+                              currentMusic?.path == song.path;
                           final isSelected = _selectedIndices.contains(index);
 
                           return GestureDetector(
-                            key: Key(
-                              '${currentPlaylist.id}-${song.path}-$index',
-                            ),
+                            key: ObjectKey(song),
                             onLongPress: () {
                               if (!_isSelectionMode) {
                                 _toggleSelectionMode();
@@ -495,11 +525,11 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                                     ),
                               onTap: _isSelectionMode
                                   ? () => _toggleSelection(index)
-                                    : () {
-                                        audio.playPlaylist(
-                                          currentPlaylist.songs,
-                                          initialIndex: index,
-                                        );
+                                  : () {
+                                      audio.playPlaylist(
+                                        currentPlaylist.songs,
+                                        initialIndex: index,
+                                      );
                                     },
                             ),
                           );

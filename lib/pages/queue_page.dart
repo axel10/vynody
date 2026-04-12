@@ -38,6 +38,35 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     });
   }
 
+  void _reorderSelectedIndices(int oldIndex, int newIndex) {
+    if (_selectedIndices.isEmpty) return;
+
+    final updated = <int>{};
+    for (final index in _selectedIndices) {
+      if (index == oldIndex) {
+        updated.add(newIndex);
+      } else if (oldIndex < newIndex) {
+        if (index > oldIndex && index <= newIndex) {
+          updated.add(index - 1);
+        } else {
+          updated.add(index);
+        }
+      } else if (newIndex < oldIndex) {
+        if (index >= newIndex && index < oldIndex) {
+          updated.add(index + 1);
+        } else {
+          updated.add(index);
+        }
+      } else {
+        updated.add(index);
+      }
+    }
+
+    _selectedIndices
+      ..clear()
+      ..addAll(updated);
+  }
+
   String _buildSongSubtitle(
     BuildContext context,
     MusicFile song,
@@ -243,6 +272,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                   onReorder: (oldIndex, newIndex) {
                     if (_viewIndex != 0) return;
                     if (newIndex > oldIndex) newIndex--;
+                    setState(() {
+                      _reorderSelectedIndices(oldIndex, newIndex);
+                    });
                     ref
                         .read(audioServiceProvider)
                         .moveQueueTrack(oldIndex, newIndex);
@@ -268,7 +300,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                     final isSelected = _selectedIndices.contains(index);
 
                     return GestureDetector(
-                      key: Key('queue-${song.path}-$index'),
+                      key: ObjectKey(song),
                       onLongPress: () {
                         if (!_isSelectionMode) {
                           _toggleSelectionMode();
