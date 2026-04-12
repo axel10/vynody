@@ -149,20 +149,6 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
                               fontSize: 11,
                             ),
                           ),
-                          if (primaryRecording != null &&
-                              primaryRecording.releaseGroups.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                '首个专辑：${primaryRecording.releaseGroups.first.title}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.38),
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
                         ],
                       ),
                     ),
