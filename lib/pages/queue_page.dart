@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
@@ -5,6 +7,7 @@ import '../models/music_file.dart';
 import '../player/audio_riverpod.dart';
 import '../player/scanner_service.dart';
 import '../widgets/song_thumbnail.dart';
+import '../utils/song_context_menu_utils.dart';
 
 // 队列页面
 class QueuePage extends ConsumerStatefulWidget {
@@ -65,6 +68,13 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     _selectedIndices
       ..clear()
       ..addAll(updated);
+  }
+
+  List<MusicFile> _selectedSongsFromDisplay(List<MusicFile> displayQueue) {
+    return _selectedIndices
+        .where((index) => index >= 0 && index < displayQueue.length)
+        .map((index) => displayQueue[index])
+        .toList(growable: false);
   }
 
   String _buildSongSubtitle(
@@ -301,6 +311,24 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
                     return GestureDetector(
                       key: ObjectKey(song),
+                      onSecondaryTapDown: (details) {
+                        final songsToAdd = _selectedIndices.isNotEmpty
+                            ? _selectedSongsFromDisplay(displayQueue)
+                            : <MusicFile>[song];
+                        unawaited(
+                          showSongContextMenu(
+                            context,
+                            details.globalPosition,
+                            song: song,
+                            mode: SongContextMenuMode.full,
+                            onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                              context,
+                              ref.read(playlistServiceProvider),
+                              songsToAdd,
+                            ),
+                          ),
+                        );
+                      },
                       onLongPress: () {
                         if (!_isSelectionMode) {
                           _toggleSelectionMode();

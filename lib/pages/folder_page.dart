@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../l10n/app_localizations.dart';
+import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import '../player/audio_riverpod.dart';
 import '../player/scanner_service.dart';
@@ -22,6 +23,8 @@ class FoldersPage extends ConsumerStatefulWidget {
 
 class _FoldersPageState extends ConsumerState<FoldersPage> {
   final ScrollController _scrollController = ScrollController();
+  bool _isSelectionMode = false;
+  final Set<String> _selectedSongPaths = {};
 
   void _navigateTo(MusicFolder folder, ScannerService scanner) {
     final history = List<MusicFolder>.from(scanner.navigationHistory);
@@ -29,6 +32,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       history.add(scanner.navigationCurrentFolder!);
     }
     scanner.setNavigationState(folder, history);
+    _clearSelection();
     _scrollToTop();
   }
 
@@ -40,6 +44,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       final folder = history.removeLast();
       scanner.setNavigationState(folder, history);
     }
+    _clearSelection();
+    _scrollToTop();
+  }
+
+  void _goHome(ScannerService scanner) {
+    scanner.setNavigationState(null, []);
+    _clearSelection();
     _scrollToTop();
   }
 
@@ -53,6 +64,39 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         );
       }
     });
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedSongPaths.clear();
+      }
+    });
+  }
+
+  void _clearSelection() {
+    if (!_isSelectionMode && _selectedSongPaths.isEmpty) return;
+    setState(() {
+      _isSelectionMode = false;
+      _selectedSongPaths.clear();
+    });
+  }
+
+  void _toggleSelection(String path) {
+    setState(() {
+      if (_selectedSongPaths.contains(path)) {
+        _selectedSongPaths.remove(path);
+      } else {
+        _selectedSongPaths.add(path);
+      }
+    });
+  }
+
+  List<MusicFile> _selectedSongsFromFolder(List<MusicFile> files) {
+    return files
+        .where((file) => _selectedSongPaths.contains(file.path))
+        .toList(growable: false);
   }
 
   @override
@@ -231,6 +275,28 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
           children: [
             if (Platform.isWindows) const SizedBox(height: 32),
             _buildBreadcrumbs(currentFolder, scanner),
+            if (_isSelectionMode)
+              Container(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.selectedSongs(_selectedSongPaths.length),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _toggleSelectionMode,
+                      child: Text(AppLocalizations.of(context)!.cancel),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: ListView(
                 controller: _scrollController,
@@ -294,40 +360,136 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   ),
                   ...currentFolder.files.map(
                     (file) => GestureDetector(
+                      key: ValueKey(file.path),
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
+                        final songsToAdd = _selectedSongPaths.isNotEmpty
+                            ? _selectedSongsFromFolder(currentFolder.files)
+                            : <MusicFile>[file];
                         unawaited(
                           showSongContextMenu(
                             context,
                             details.globalPosition,
                             song: file,
                             mode: SongContextMenuMode.full,
+                            onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                              context,
+                              ref.read(playlistServiceProvider),
+                              songsToAdd,
+                            ),
                           ),
                         );
                       },
                       child: ListTile(
-                        leading: SongThumbnail(path: file.path, id: file.id),
+                        leading: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Opacity(
+                                opacity: _isSelectionMode
+                                    ? (_selectedSongPaths.contains(file.path)
+                                          ? 0.5
+                                          : 0.7)
+                                    : 1.0,
+                                child: SongThumbnail(
+                                  path: file.path,
+                                  id: file.id,
+                                ),
+                              ),
+                              if (_isSelectionMode)
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: SizedBox(
+                                      width: 32,
+                                      height: 32,
+                                      child: Checkbox(
+                                        value: _selectedSongPaths.contains(
+                                          file.path,
+                                        ),
+                                        onChanged: (_) =>
+                                            _toggleSelection(file.path),
+                                        fillColor: WidgetStateProperty.all(
+                                          Colors.white,
+                                        ),
+                                        checkColor: Colors.black,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                         title: Text(file.displayName),
-                        onTap: () async {
-                          // 当用户点击文件页中的一首歌时：
-                          // 1. 获取该歌曲在当前文件夹文件列表中的索引
-                          final index = currentFolder.files.indexOf(file);
-
-                          // 2. 调用音频服务播放整个文件夹的歌单，并从点击的索引处开始播放
-                          // 这会清除当前队列，并将文件夹内的所有歌曲加载进播放队列
-                          await audio.playPlaylist(
-                            currentFolder.files,
-                            initialIndex: index,
-                          );
-
-                          // 3. 如果定义了打开播放页的回调（通常用于弹出播放界面），则执行它
-                          if (mounted) {
-                            await widget.onOpenPlayback?.call();
+                        subtitle: Text(
+                          '${file.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${file.album ?? AppLocalizations.of(context)!.unknownAlbum}',
+                          style: const TextStyle(fontSize: 10),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onLongPress: () {
+                          if (!_isSelectionMode) {
+                            _toggleSelectionMode();
+                            _toggleSelection(file.path);
                           }
                         },
+                        onTap: _isSelectionMode
+                            ? () => _toggleSelection(file.path)
+                            : () async {
+                                final index = currentFolder.files.indexOf(file);
+                                await audio.playPlaylist(
+                                  currentFolder.files,
+                                  initialIndex: index,
+                                );
+                                if (mounted) {
+                                  await widget.onOpenPlayback?.call();
+                                }
+                              },
                       ),
                     ),
                   ),
+                  if (_isSelectionMode)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: _selectedSongPaths.isEmpty
+                                ? null
+                                : () {
+                                    final selectedSongs =
+                                        _selectedSongsFromFolder(
+                                          currentFolder.files,
+                                        );
+                                    showAddSongsToPlaylistDialog(
+                                      context,
+                                      ref.read(playlistServiceProvider),
+                                      selectedSongs,
+                                    );
+                                  },
+                            icon: const Icon(Icons.playlist_add),
+                            label: Text(
+                              AppLocalizations.of(context)!.addToPlaylist,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: _toggleSelectionMode,
+                            child: Text(AppLocalizations.of(context)!.cancel),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -458,8 +620,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     breadcrumbItems.add(
       InkWell(
         onTap: () {
-          scanner.setNavigationState(null, []);
-          _scrollToTop();
+          _goHome(scanner);
         },
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),

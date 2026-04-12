@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
+import '../player/playlist_service.dart';
 
 enum SongContextMenuMode { full, title, artistAlbum }
 
@@ -93,6 +95,7 @@ Future<void> showSongContextMenu(
   Offset globalPosition, {
   required MusicFile? song,
   SongContextMenuMode mode = SongContextMenuMode.full,
+  Future<void> Function()? onAddToPlaylist,
 }) async {
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
   if (overlay == null) return;
@@ -167,6 +170,18 @@ Future<void> showSongContextMenu(
       break;
   }
 
+  if (onAddToPlaylist != null) {
+    if (items.isNotEmpty) {
+      items.add(const PopupMenuDivider());
+    }
+    items.add(
+      PopupMenuItem<String>(
+        value: 'add_to_playlist',
+        child: Text(AppLocalizations.of(context)!.addToPlaylist),
+      ),
+    );
+  }
+
   final selected = await showMenu<String>(
     context: context,
     position: RelativeRect.fromRect(
@@ -199,7 +214,123 @@ Future<void> showSongContextMenu(
         await openSongFileLocation(song.path);
       }
       break;
+    case 'add_to_playlist':
+      if (onAddToPlaylist != null) {
+        await onAddToPlaylist();
+      }
+      break;
   }
+}
+
+Future<void> showAddSongsToPlaylistDialog(
+  BuildContext context,
+  PlaylistService playlistService,
+  List<MusicFile> songs,
+) async {
+  if (songs.isEmpty) return;
+
+  Future<void> addSongsToPlaylist(Playlist playlist) async {
+    await playlistService.addSongsToPlaylist(playlist.id, songs);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(
+            context,
+          )!.addedToPlaylist(songs.length, playlist.name),
+        ),
+      ),
+    );
+  }
+
+  Future<void> showCreatePlaylistDialog() async {
+    final controller = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(AppLocalizations.of(dialogContext)!.createPlaylist),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(dialogContext)!.playlistName,
+            hintText: AppLocalizations.of(dialogContext)!.enterPlaylistName,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppLocalizations.of(dialogContext)!.cancel),
+          ),
+          TextButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+
+              final playlist = await playlistService.createPlaylist(name);
+              if (!context.mounted) return;
+              await playlistService.addSongsToPlaylist(playlist.id, songs);
+              if (!context.mounted) return;
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.createdPlaylist(name, songs.length),
+                  ),
+                ),
+              );
+            },
+            child: Text(AppLocalizations.of(dialogContext)!.createPlaylist),
+          ),
+        ],
+      ),
+    );
+  }
+
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(AppLocalizations.of(dialogContext)!.addToPlaylist),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: 320,
+        child: ListView.builder(
+          itemCount: playlistService.playlists.length,
+          itemBuilder: (itemContext, index) {
+            final playlist = playlistService.playlists[index];
+            return ListTile(
+              leading: const Icon(Icons.playlist_play),
+              title: Text(playlist.name),
+              subtitle: Text(
+                AppLocalizations.of(
+                  itemContext,
+                )!.songCount(playlist.songs.length),
+              ),
+              onTap: () async {
+                Navigator.pop(dialogContext);
+                await addSongsToPlaylist(playlist);
+              },
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: Text(AppLocalizations.of(dialogContext)!.cancel),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop(dialogContext);
+            await showCreatePlaylistDialog();
+          },
+          child: Text(AppLocalizations.of(dialogContext)!.createNewList),
+        ),
+      ],
+    ),
+  );
 }
 
 Future<void> showFolderContextMenu(
