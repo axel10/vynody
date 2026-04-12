@@ -9,6 +9,14 @@ extension LyricsControllerFetch on LyricsController {
   }
 
   Future<void> fetchAndLog(MusicFile song) async {
+    if (_geminiGeneration.isGenerating) {
+      _logDebug(
+        'fetch skipped because Gemini generation is in progress -> '
+        'title="${song.displayName}" path="${song.path}"',
+      );
+      return;
+    }
+
     final queryDuration = await _resolveLyricsDuration(song);
     if (queryDuration == null) {
       _logDebug(
@@ -92,6 +100,10 @@ extension LyricsControllerFetch on LyricsController {
   }
 
   Future<void> retryFetchUntilReady(MusicFile song) async {
+    if (_geminiGeneration.isGenerating) {
+      return;
+    }
+
     final retryId = ++_lyricsRetrySerial;
     for (var attempt = 0; attempt < 12; attempt++) {
       await Future<void>.delayed(const Duration(milliseconds: 150));

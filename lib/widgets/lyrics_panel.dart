@@ -559,9 +559,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     if (!hasRenderableLyrics) {
-      // 只有在已经尝试过联网找歌词、但仍然没有结果时，才显示“生成歌词”按钮。
-      // 这样避免用户在歌词还在加载中时误以为可以直接生成。
-      final canGenerateLyrics = lyricsState.lyricsSearchAttempted;
+      // 已经尝试过联网找歌词，或者当前正在 AI 生成中时，都显示按钮。
+      // 这样在生成过程中也能保留“处理中”的可见反馈。
+      final canGenerateLyrics =
+          lyricsState.lyricsSearchAttempted || lyricsState.isLyricsGenerating;
       return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onSecondaryTapDown: (details) {

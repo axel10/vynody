@@ -360,6 +360,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         _duration > Duration.zero &&
         !hasLyrics &&
         !isLyricsLoading &&
+        !_lyricsState.isLyricsGenerating &&
         !lyricsSearchAttempted &&
         _currentIndex >= 0 &&
         _currentIndex < _queue.length) {
@@ -452,7 +453,8 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (isLyricsActive &&
         currentMusic?.path != null &&
         !hasLyrics &&
-        !isLyricsLoading) {
+        !isLyricsLoading &&
+        !_lyricsState.isLyricsGenerating) {
       final song = (_currentIndex >= 0 && _currentIndex < _queue.length)
           ? _queue[_currentIndex]
           : null;
@@ -640,7 +642,11 @@ class AudioService extends Notifier<AudioSnapshot> {
     await _updatePalette();
 
     if (queueChanged || isCurrentTrack) {
-      if (isCurrentTrack && isLyricsActive) {
+      if (isCurrentTrack &&
+          isLyricsActive &&
+          !hasLyrics &&
+          !isLyricsLoading &&
+          !_lyricsState.isLyricsGenerating) {
         final current = currentMusic;
         if (current != null) {
           unawaited(_lyricsController.fetchAndLog(current));
@@ -818,11 +824,18 @@ class AudioService extends Notifier<AudioSnapshot> {
     // Trigger lyric loading only when lyric mode is active and we still do not
     // have lyrics for this track.
     if (isLyricsActive && !hasLyrics) {
-      _logLyricsDebug(
-        'post-metadata fetch -> title="${song.displayName}" '
-        'duration=$_duration hasLyrics=$hasLyrics loading=$isLyricsLoading',
-      );
-      _lyricsController.scheduleFetch(song);
+      if (_lyricsState.isLyricsGenerating) {
+        _logLyricsDebug(
+          'post-metadata fetch skipped because Gemini generation is active '
+          '-> title="${song.displayName}"',
+        );
+      } else {
+        _logLyricsDebug(
+          'post-metadata fetch -> title="${song.displayName}" '
+          'duration=$_duration hasLyrics=$hasLyrics loading=$isLyricsLoading',
+        );
+        _lyricsController.scheduleFetch(song);
+      }
     }
 
     notifyListeners();
