@@ -95,6 +95,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   late int _currentIndex;
   bool _showVolumeHUD = false;
   Timer? _hudTimer;
+  Timer? _immersiveTabBarTimer;
+  bool _showImmersiveTabBar = true;
   double? _lastVolume;
   // _isFullScreen 决定了标题栏全屏按钮的图标状态（全屏 vs 窗口化）
   // 该状态通过 _syncWindowState() 与原生窗口状态保持同步
@@ -120,7 +122,22 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     }
     final settings = ref.read(settingsServiceProvider);
     if (settings.isImmersiveTabBarEnabled) {
-      settings.resetInactivity();
+      if (!_showImmersiveTabBar) {
+        setState(() {
+          _showImmersiveTabBar = true;
+        });
+      }
+      _immersiveTabBarTimer?.cancel();
+      _immersiveTabBarTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted &&
+            _currentIndex == 1 &&
+            ref.read(settingsServiceProvider).isImmersiveTabBarEnabled) {
+          setState(() {
+            _showImmersiveTabBar = false;
+          });
+        }
+        _immersiveTabBarTimer = null;
+      });
     }
   }
 
@@ -181,6 +198,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       windowManager.removeListener(this);
     }
     _hudTimer?.cancel();
+    _immersiveTabBarTimer?.cancel();
     super.dispose();
   }
 
@@ -514,6 +532,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     final bool isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
     final bool useSidebar = isLandscape;
+    final bool hideImmersiveTabBar =
+        isDesktop &&
+        isPlayback &&
+        settings.isImmersiveTabBarEnabled &&
+        !_showImmersiveTabBar;
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
@@ -596,12 +619,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
-                          width:
-                              (isPlayback &&
-                                  settings.isImmersiveTabBarEnabled &&
-                                  settings.isUserInactive)
-                              ? 0.0
-                              : 80.0,
+                          width: hideImmersiveTabBar ? 0.0 : 80.0,
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             physics: const NeverScrollableScrollPhysics(),
@@ -609,12 +627,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                               width: 80,
                               child: AnimatedOpacity(
                                 duration: const Duration(milliseconds: 500),
-                                opacity:
-                                    (isPlayback &&
-                                        settings.isImmersiveTabBarEnabled &&
-                                        settings.isUserInactive)
-                                    ? 0.0
-                                    : 1.0,
+                                opacity: hideImmersiveTabBar ? 0.0 : 1.0,
                                 child: TweenAnimationBuilder<double>(
                                   duration: const Duration(milliseconds: 120),
                                   curve: Curves.easeOut,

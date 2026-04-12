@@ -292,7 +292,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get immersiveTabBar => '沉浸式标签栏';
 
   @override
-  String get immersiveTabBarDescription => '空闲 3 秒后隐藏导航栏';
+  String get immersiveTabBarDescription => '鼠标移动时显示导航栏，3 秒无操作后隐藏';
 
   @override
   String get sampleStride => '采样步长';

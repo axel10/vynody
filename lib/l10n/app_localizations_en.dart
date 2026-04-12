@@ -295,7 +295,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get immersiveTabBarDescription =>
-      'Hide navigation bar after 3 seconds of inactivity';
+      'Show the navigation bar when the mouse moves, then hide it after 3 seconds of inactivity';
 
   @override
   String get sampleStride => 'Sample Stride';

@@ -396,7 +396,7 @@
   "@immersiveTabBar": {
     "description": "Immersive Tab Bar label"
   },
-  "immersiveTabBarDescription": "空闲 3 秒后隐藏导航栏",
+  "immersiveTabBarDescription": "鼠标移动时显示导航栏，3 秒无操作后隐藏",
   "@immersiveTabBarDescription": {
     "description": "Immersive Tab Bar description"
   },

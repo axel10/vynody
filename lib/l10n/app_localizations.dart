@@ -641,7 +641,7 @@ abstract class AppLocalizations {
   /// Immersive Tab Bar description
   ///
   /// In zh, this message translates to:
-  /// **'空闲 3 秒后隐藏导航栏'**
+  /// **'鼠标移动时显示导航栏，3 秒无操作后隐藏'**
   String get immersiveTabBarDescription;
 
   /// Sample Stride label
