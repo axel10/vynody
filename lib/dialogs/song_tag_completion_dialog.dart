@@ -193,6 +193,37 @@ class _SongTagCompletionSheetState
     return title.trim().toLowerCase().contains(query);
   }
 
+  String _musicBrainzLoadingSubtitle(SongTagCompletionController controller) {
+    if (controller.acoustidResults.isNotEmpty) {
+      return 'MusicBrainz 正在查询中，现有结果会先保留在面板里。';
+    }
+    return 'MusicBrainz 正在查询中，请稍候。';
+  }
+
+  String _musicBrainzEmptySubtitle(
+    SongTagCompletionController controller, {
+    required bool isFilteredSearch,
+  }) {
+    final errorMessage = controller.musicBrainzErrorMessage;
+    if (errorMessage != null && errorMessage.isNotEmpty) {
+      final lower = errorMessage.toLowerCase();
+      if (lower.contains('socketexception') ||
+          lower.contains('connection') ||
+          lower.contains('network') ||
+          lower.contains('timeout') ||
+          lower.contains('dioexception')) {
+        return 'MusicBrainz 请求失败，通常是网络连接不稳定、超时或被服务端拒绝。可以稍后重试。';
+      }
+      return errorMessage;
+    }
+
+    if (isFilteredSearch) {
+      return '当前过滤条件下没有包含该关键词的 release 标题。';
+    }
+
+    return 'MusicBrainz 没有返回可用结果。可以放宽标题、艺人或专辑条件后再试一次。';
+  }
+
   bool _hasMeaningfulText(String? value) {
     if (value == null) return false;
     final trimmed = value.trim();
@@ -654,18 +685,67 @@ class _SongTagCompletionSheetState
     SongTagCompletionController controller,
   ) {
     final filteredMusicBrainzMatches = _filteredMusicBrainzMatches(controller);
+    final hasFilteredMusicBrainzMatches = filteredMusicBrainzMatches.isNotEmpty;
+    final hasAnyResults =
+        controller.acoustidResults.isNotEmpty || hasFilteredMusicBrainzMatches;
+    final isMusicBrainzFilteringEmpty =
+        controller.musicBrainzMatches.isNotEmpty &&
+        _hasMusicBrainzSearchQuery &&
+        filteredMusicBrainzMatches.isEmpty;
 
-    if (controller.isMusicBrainzLoading && controller.isAcoustIDLoading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2.4));
+    if (controller.isMusicBrainzLoading &&
+        controller.acoustidResults.isEmpty &&
+        !hasFilteredMusicBrainzMatches) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 38,
+                height: 38,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.6,
+                  color: const Color(0xFF46D27A).withValues(alpha: 0.95),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                '正在查询 MusicBrainz',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _musicBrainzLoadingSubtitle(controller),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
-    if (controller.errorMessage != null &&
+    if (!controller.isMusicBrainzLoading &&
+        controller.musicBrainzErrorMessage != null &&
         controller.acoustidResults.isEmpty &&
-        filteredMusicBrainzMatches.isEmpty) {
+        !hasFilteredMusicBrainzMatches) {
       return SongTagEmptyState(
         icon: Icons.wifi_off_rounded,
-        title: '检索失败',
-        subtitle: controller.errorMessage!,
+        title: 'MusicBrainz 查询失败',
+        subtitle: _musicBrainzEmptySubtitle(
+          controller,
+          isFilteredSearch: isMusicBrainzFilteringEmpty,
+        ),
         actionLabel: '重试',
         onAction: () {
           _loadMatches();
@@ -675,6 +755,48 @@ class _SongTagCompletionSheetState
     }
 
     final children = <Widget>[];
+
+    if (controller.isMusicBrainzLoading) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: const Color(0xFF46D27A).withValues(alpha: 0.95),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _musicBrainzLoadingSubtitle(controller),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (controller.acoustidResults.isNotEmpty ||
+          hasFilteredMusicBrainzMatches) {
+        children.add(const SizedBox(height: 10));
+      }
+    }
 
     if (controller.isAcoustIDLoading) {
       children.add(
@@ -748,15 +870,15 @@ class _SongTagCompletionSheetState
     }
 
     if (!controller.isMusicBrainzLoading) {
-      if (filteredMusicBrainzMatches.isEmpty &&
-          controller.acoustidResults.isEmpty) {
+      if (!hasAnyResults) {
         return Center(
           child: SongTagEmptyState(
             icon: Icons.search_off_rounded,
             title: _hasMusicBrainzSearchQuery ? '没有找到匹配的 release' : '没有找到匹配结果',
-            subtitle: _hasMusicBrainzSearchQuery
-                ? '当前过滤条件下，没有包含该关键词的 release 标题。'
-                : '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。',
+            subtitle: _musicBrainzEmptySubtitle(
+              controller,
+              isFilteredSearch: isMusicBrainzFilteringEmpty,
+            ),
             actionLabel: _hasMusicBrainzSearchQuery ? '清空搜索' : '重新搜索',
             onAction: () {
               if (_hasMusicBrainzSearchQuery) {
@@ -770,7 +892,7 @@ class _SongTagCompletionSheetState
         );
       }
 
-      if (filteredMusicBrainzMatches.isNotEmpty) {
+      if (hasFilteredMusicBrainzMatches) {
         if (children.isNotEmpty) {
           children.add(
             Padding(

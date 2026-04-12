@@ -55,8 +55,8 @@ abstract class MusicBrainzReleaseGroup with _$MusicBrainzReleaseGroup {
   const factory MusicBrainzReleaseGroup({
     required String key,
     required String title,
-    @Default(<MusicBrainzReleaseMatch>[]) List<MusicBrainzReleaseMatch>
-    releases,
+    @Default(<MusicBrainzReleaseMatch>[])
+    List<MusicBrainzReleaseMatch> releases,
   }) = _MusicBrainzReleaseGroup;
 
   String get thumbnailUrl =>
@@ -82,8 +82,8 @@ abstract class MusicBrainzTrackMatch with _$MusicBrainzTrackMatch {
     required int? trackNumber,
     required int score,
     required String? disambiguation,
-    @Default(<MusicBrainzReleaseMatch>[]) List<MusicBrainzReleaseMatch>
-    releases,
+    @Default(<MusicBrainzReleaseMatch>[])
+    List<MusicBrainzReleaseMatch> releases,
     required Map<String, dynamic> raw,
     required ResolvedCover? resolvedCover,
   }) = _MusicBrainzTrackMatch;
@@ -244,7 +244,8 @@ abstract class ResolvedCover with _$ResolvedCover {
 }
 
 @freezed
-abstract class MusicBrainzTagSelectionResult with _$MusicBrainzTagSelectionResult {
+abstract class MusicBrainzTagSelectionResult
+    with _$MusicBrainzTagSelectionResult {
   const MusicBrainzTagSelectionResult._();
 
   const factory MusicBrainzTagSelectionResult({
@@ -299,14 +300,15 @@ class MusicBrainzTagCompletionService {
       return const [];
     }
 
-    final page = await _searchWithCache(
-      query,
-      limit: desiredCount,
-      offset: 0,
-    );
+    final page = await _searchWithCache(query, limit: desiredCount, offset: 0);
 
     final results = page.matches.toList()
       ..sort((a, b) {
+        final releaseCountCompare = b.releases.length.compareTo(
+          a.releases.length,
+        );
+        if (releaseCountCompare != 0) return releaseCountCompare;
+
         final scoreCompare = b.score.compareTo(a.score);
         if (scoreCompare != 0) return scoreCompare;
 
@@ -431,7 +433,7 @@ class MusicBrainzTagCompletionService {
       return _SearchPage(matches: matches, count: count, offset: offset);
     } catch (e) {
       debugPrint('MusicBrainz search failed for "$query": $e');
-      return _SearchPage(matches: const [], count: null, offset: offset);
+      rethrow;
     }
   }
 
@@ -575,7 +577,6 @@ String? _buildQuery({
   required String? album,
   required int? durationMillis,
 }) {
-
   final titleTerm = _hasMeaningfulText(title)
       ? _fieldTerm('recording', title!)
       : null;

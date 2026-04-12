@@ -26,6 +26,7 @@ class SongTagCompletionController extends ChangeNotifier {
   bool isMusicBrainzLoading = true;
   bool isAcoustIDLoading = true;
   bool isApplying = false;
+  String? musicBrainzErrorMessage;
   String? errorMessage;
 
   int _musicBrainzQueryRevision = 0;
@@ -57,6 +58,7 @@ class SongTagCompletionController extends ChangeNotifier {
 
     final revision = ++_musicBrainzQueryRevision;
     isMusicBrainzLoading = true;
+    musicBrainzErrorMessage = null;
     errorMessage = null;
     _emit();
 
@@ -76,10 +78,11 @@ class SongTagCompletionController extends ChangeNotifier {
       if (_disposed || revision != _musicBrainzQueryRevision) return;
       musicBrainzMatches = results;
       isMusicBrainzLoading = false;
+      musicBrainzErrorMessage = null;
       _emit();
     } catch (e) {
       if (_disposed || revision != _musicBrainzQueryRevision) return;
-      errorMessage = e.toString();
+      musicBrainzErrorMessage = 'MusicBrainz 查询失败：$e';
       isMusicBrainzLoading = false;
       _emit();
     }
