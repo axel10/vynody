@@ -1,0 +1,179 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../models/music_file.dart';
+
+enum SongContextMenuMode { full, title, artistAlbum }
+
+bool isVisibleSongText(String? value) {
+  final trimmed = value?.trim() ?? '';
+  if (trimmed.isEmpty) return false;
+  final lower = trimmed.toLowerCase();
+  return lower != 'unknown' &&
+      lower != 'unknown artist' &&
+      lower != 'unknown album';
+}
+
+Future<void> openSongFileLocation(String filePath) async {
+  if (filePath.trim().isEmpty) return;
+
+  final normalizedPath = File(filePath).absolute.path;
+  if (!File(normalizedPath).existsSync()) {
+    debugPrint(
+      '[SongContextMenu] Cannot open file location, file missing: $normalizedPath',
+    );
+    return;
+  }
+
+  try {
+    if (Platform.isWindows) {
+      final cmd = 'explorer.exe /select,"$normalizedPath"';
+      // windows上只能用Process.run(cmd, [])这种方式打开，不要尝试修改
+      await Process.run(cmd, []);
+    } else if (Platform.isMacOS) {
+      await Process.run('open', ['-R', normalizedPath]);
+    } else if (Platform.isLinux) {
+      final parentDir = File(normalizedPath).parent.path;
+
+      final launchers = <List<String>>[
+        ['nautilus', '--select', normalizedPath],
+        ['dolphin', '--select', normalizedPath],
+        ['nemo', '--no-desktop', normalizedPath],
+        ['thunar', parentDir],
+        ['xdg-open', parentDir],
+      ];
+
+      for (final launcher in launchers) {
+        try {
+          final result = await Process.run(
+            launcher.first,
+            launcher.skip(1).toList(growable: false),
+          );
+          if (result.exitCode == 0) {
+            return;
+          }
+        } catch (_) {
+          // Try the next file manager command.
+        }
+      }
+    }
+  } catch (e) {
+    debugPrint('[SongContextMenu] Failed to open file location: $e');
+  }
+}
+
+Future<void> showSongContextMenu(
+  BuildContext context,
+  Offset globalPosition, {
+  required MusicFile? song,
+  SongContextMenuMode mode = SongContextMenuMode.full,
+}) async {
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+  if (overlay == null) return;
+
+  final titleText = song?.displayName.trim() ?? '';
+  final artistText = song?.artist?.trim() ?? '';
+  final albumText = song?.album?.trim() ?? '';
+  final hasTitle = titleText.isNotEmpty;
+  final hasArtist = isVisibleSongText(artistText);
+  final hasAlbum = isVisibleSongText(albumText);
+  final hasFilePath = song != null && song.path.trim().isNotEmpty;
+  final canOpenLocation =
+      (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
+      hasFilePath;
+
+  final items = <PopupMenuEntry<String>>[];
+
+  switch (mode) {
+    case SongContextMenuMode.full:
+      items.addAll([
+        PopupMenuItem<String>(
+          value: 'open_file_location',
+          enabled: canOpenLocation,
+          child: const Text('打开文件所在位置'),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'copy_title',
+          enabled: hasTitle,
+          child: const Text('复制标题'),
+        ),
+        PopupMenuItem<String>(
+          value: 'copy_album',
+          enabled: hasAlbum,
+          child: const Text('复制专辑'),
+        ),
+        PopupMenuItem<String>(
+          value: 'copy_artist',
+          enabled: hasArtist,
+          child: const Text('复制艺术家'),
+        ),
+      ]);
+      break;
+    case SongContextMenuMode.title:
+      items.addAll([
+        PopupMenuItem<String>(
+          value: 'copy_title',
+          enabled: hasTitle,
+          child: const Text('复制标题'),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'open_file_location',
+          enabled: canOpenLocation,
+          child: const Text('打开文件所在位置'),
+        ),
+      ]);
+      break;
+    case SongContextMenuMode.artistAlbum:
+      items.addAll([
+        PopupMenuItem<String>(
+          value: 'copy_artist',
+          enabled: hasArtist,
+          child: const Text('复制艺术家'),
+        ),
+        PopupMenuItem<String>(
+          value: 'copy_album',
+          enabled: hasAlbum,
+          child: const Text('复制专辑'),
+        ),
+      ]);
+      break;
+  }
+
+  final selected = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromRect(
+      Rect.fromPoints(globalPosition, globalPosition),
+      Offset.zero & overlay.size,
+    ),
+    items: items,
+  );
+
+  if (!context.mounted || selected == null) return;
+
+  switch (selected) {
+    case 'copy_title':
+      if (hasTitle) {
+        await Clipboard.setData(ClipboardData(text: titleText));
+      }
+      break;
+    case 'copy_artist':
+      if (hasArtist) {
+        await Clipboard.setData(ClipboardData(text: artistText));
+      }
+      break;
+    case 'copy_album':
+      if (hasAlbum) {
+        await Clipboard.setData(ClipboardData(text: albumText));
+      }
+      break;
+    case 'open_file_location':
+      if (canOpenLocation) {
+        await openSongFileLocation(song.path);
+      }
+      break;
+  }
+}

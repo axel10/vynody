@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/music_folder.dart';
 import '../player/audio_riverpod.dart';
 import '../player/scanner_service.dart';
+import '../utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
 
 // 目录页
@@ -267,26 +269,39 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                     ),
                   ),
                   ...currentFolder.files.map(
-                    (file) => ListTile(
-                      leading: SongThumbnail(path: file.path, id: file.id),
-                      title: Text(file.displayName),
-                      onTap: () async {
-                        // 当用户点击文件页中的一首歌时：
-                        // 1. 获取该歌曲在当前文件夹文件列表中的索引
-                        final index = currentFolder.files.indexOf(file);
-
-                        // 2. 调用音频服务播放整个文件夹的歌单，并从点击的索引处开始播放
-                        // 这会清除当前队列，并将文件夹内的所有歌曲加载进播放队列
-                        await audio.playPlaylist(
-                          currentFolder.files,
-                          initialIndex: index,
+                    (file) => GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onSecondaryTapDown: (details) {
+                        unawaited(
+                          showSongContextMenu(
+                            context,
+                            details.globalPosition,
+                            song: file,
+                            mode: SongContextMenuMode.full,
+                          ),
                         );
-
-                        // 3. 如果定义了打开播放页的回调（通常用于弹出播放界面），则执行它
-                        if (mounted) {
-                          await widget.onOpenPlayback?.call();
-                        }
                       },
+                      child: ListTile(
+                        leading: SongThumbnail(path: file.path, id: file.id),
+                        title: Text(file.displayName),
+                        onTap: () async {
+                          // 当用户点击文件页中的一首歌时：
+                          // 1. 获取该歌曲在当前文件夹文件列表中的索引
+                          final index = currentFolder.files.indexOf(file);
+
+                          // 2. 调用音频服务播放整个文件夹的歌单，并从点击的索引处开始播放
+                          // 这会清除当前队列，并将文件夹内的所有歌曲加载进播放队列
+                          await audio.playPlaylist(
+                            currentFolder.files,
+                            initialIndex: index,
+                          );
+
+                          // 3. 如果定义了打开播放页的回调（通常用于弹出播放界面），则执行它
+                          if (mounted) {
+                            await widget.onOpenPlayback?.call();
+                          }
+                        },
+                      ),
                     ),
                   ),
                 ],

@@ -1,16 +1,15 @@
-import 'dart:io';
 import 'dart:ui' show lerpDouble;
 
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
+import '../utils/song_context_menu_utils.dart';
 import '../widgets/cover_carousel.dart';
 import '../widgets/lyrics_panel.dart';
 import '../widgets/mini_player_widgets.dart';
@@ -97,101 +96,20 @@ class PlaybackHeroCard extends ConsumerWidget {
     return lerpDouble(p, l, tLand) ?? p;
   }
 
-  bool _isVisibleTrackValue(String? value) {
-    final trimmed = value?.trim() ?? '';
-    if (trimmed.isEmpty) return false;
-    final lower = trimmed.toLowerCase();
-    return lower != 'unknown' &&
-        lower != 'unknown artist' &&
-        lower != 'unknown album';
-  }
-
-  Future<void> _openFileLocation(String filePath) async {
-    if (!Platform.isWindows || filePath.trim().isEmpty) return;
-
-    final normalizedPath = File(filePath).absolute.path;
-    if (!File(normalizedPath).existsSync()) {
-      debugPrint(
-        '[PlaybackHeroCard] Cannot open file location, file missing: $normalizedPath',
-      );
-      return;
-    }
-    var cmd = 'explorer.exe /select,"$normalizedPath"';
-    try {
-      await Process.run(cmd,[]);
-    } catch (e) {
-      debugPrint('[PlaybackHeroCard] Failed to open file location: $e');
-    }
-  }
-
   Future<void> _showTrackInfoContextMenu(
     BuildContext context,
     Offset globalPosition, {
     required _TrackInfoMenuTarget target,
     required MusicFile? currentMusic,
   }) async {
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-
-    final titleText = currentMusic?.displayName.trim() ?? '';
-    final artistText = currentMusic?.artist?.trim() ?? '';
-    final albumText = currentMusic?.album?.trim() ?? '';
-    final hasTitle = titleText.isNotEmpty;
-    final hasArtist = _isVisibleTrackValue(artistText);
-    final hasAlbum = _isVisibleTrackValue(albumText);
-    final hasFilePath =
-        currentMusic != null && currentMusic.path.trim().isNotEmpty;
-
-    final items = <PopupMenuEntry<String>>[
-      if (target == _TrackInfoMenuTarget.title)
-        PopupMenuItem<String>(
-          value: 'copy_title',
-          enabled: hasTitle,
-          child: const Text('复制标题'),
-        )
-      else ...[
-        PopupMenuItem<String>(
-          value: 'copy_artist',
-          enabled: hasArtist,
-          child: const Text('复制艺术家'),
-        ),
-        PopupMenuItem<String>(
-          value: 'copy_album',
-          enabled: hasAlbum,
-          child: const Text('复制专辑'),
-        ),
-      ],
-      if (target == _TrackInfoMenuTarget.title && Platform.isWindows) ...[
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'open_file_location',
-          enabled: hasFilePath,
-          child: const Text('打开文件所在位置'),
-        ),
-      ],
-    ];
-
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromPoints(globalPosition, globalPosition),
-        Offset.zero & overlay.size,
-      ),
-      items: items,
+    await showSongContextMenu(
+      context,
+      globalPosition,
+      song: currentMusic,
+      mode: target == _TrackInfoMenuTarget.title
+          ? SongContextMenuMode.title
+          : SongContextMenuMode.artistAlbum,
     );
-
-    if (!context.mounted || selected == null) return;
-
-    if (selected == 'copy_title' && hasTitle) {
-      await Clipboard.setData(ClipboardData(text: titleText));
-    } else if (selected == 'copy_artist' && hasArtist) {
-      await Clipboard.setData(ClipboardData(text: artistText));
-    } else if (selected == 'copy_album' && hasAlbum) {
-      await Clipboard.setData(ClipboardData(text: albumText));
-    } else if (selected == 'open_file_location' && hasFilePath) {
-      await _openFileLocation(currentMusic.path);
-    }
   }
 
   @override
