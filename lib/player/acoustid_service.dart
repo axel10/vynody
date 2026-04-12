@@ -67,8 +67,9 @@ abstract class AcoustIDRelease with _$AcoustIDRelease {
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
       country: json['country'] as String?,
-      dateLabel: _formatDateLabel(json['date']),
-      trackCount: (json['track_count'] as num?)?.toInt(),
+      dateLabel: _formatDateLabel(json['date'] ?? json['dateLabel']),
+      trackCount: (json['track_count'] as num?)?.toInt() ??
+          (json['trackCount'] as num?)?.toInt(),
       raw: Map<String, dynamic>.from(json),
     );
   }
@@ -103,7 +104,9 @@ abstract class AcoustIDReleaseGroup with _$AcoustIDReleaseGroup {
   String get largeUrl => acoustIDReleaseGroupLargeUrl(id);
 
   factory AcoustIDReleaseGroup.fromJson(Map<String, dynamic> json) {
-    final releases = (json['releases'] as List<dynamic>? ?? const [])
+    final releases = (json['releases'] as List<dynamic>? ??
+            json['releasesJson'] as List<dynamic>? ??
+            const [])
         .whereType<Map<String, dynamic>>()
         .map(AcoustIDRelease.fromJson)
         .toList(growable: false);
@@ -112,7 +115,10 @@ abstract class AcoustIDReleaseGroup with _$AcoustIDReleaseGroup {
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
       type: json['type'] as String?,
-      secondaryTypes: (json['secondarytypes'] as List<dynamic>? ?? const [])
+      secondaryTypes: (json['secondarytypes'] as List<dynamic>? ??
+              json['secondaryTypes'] as List<dynamic>? ??
+              const [])
+          .cast<dynamic>()
           .map((item) => item?.toString() ?? '')
           .where((item) => item.isNotEmpty)
           .toList(growable: false),
@@ -148,14 +154,19 @@ abstract class AcoustIDRecording with _$AcoustIDRecording {
   }) = _AcoustIDRecording;
 
   factory AcoustIDRecording.fromJson(Map<String, dynamic> json) {
-    final artists = <AcoustIDArtist>[];
-    final artistEntries = (json['artists'] as List<dynamic>? ?? const [])
+    final artistEntries = (json['artists'] as List<dynamic>? ??
+            json['artistEntries'] as List<dynamic>? ??
+            const [])
         .whereType<Map<String, dynamic>>()
         .map(AcoustIDArtist.fromJson)
         .toList(growable: false);
-    artists.addAll(artistEntries);
+    final artistName = _joinArtistNames(artistEntries);
+    final rawArtist = json['artist'];
+    final cachedArtist = rawArtist is String ? rawArtist.trim() : '';
 
-    final releaseGroups = (json['releasegroups'] as List<dynamic>? ?? const [])
+    final releaseGroups = (json['releasegroups'] as List<dynamic>? ??
+            json['releaseGroups'] as List<dynamic>? ??
+            const [])
         .whereType<Map<String, dynamic>>()
         .map(AcoustIDReleaseGroup.fromJson)
         .toList(growable: false);
@@ -163,7 +174,7 @@ abstract class AcoustIDRecording with _$AcoustIDRecording {
     return AcoustIDRecording(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
-      artist: _joinArtistNames(artists),
+      artist: cachedArtist.isNotEmpty ? cachedArtist : artistName,
       durationMillis: _durationFromJson(json),
       releaseGroups: releaseGroups,
       raw: Map<String, dynamic>.from(json),
@@ -175,7 +186,16 @@ abstract class AcoustIDRecording with _$AcoustIDRecording {
       'id': id,
       'title': title,
       'artist': artist,
+      'artists': raw['artists'] ??
+          (artist.isNotEmpty
+              ? [
+                  {'name': artist},
+                ]
+              : const []),
+      'duration': durationMillis == null ? null : durationMillis! / 1000.0,
+      'length': durationMillis,
       'durationMillis': durationMillis,
+      'releasegroups': releaseGroups.map((item) => item.toJson()).toList(),
       'releaseGroups': releaseGroups.map((item) => item.toJson()).toList(),
       'raw': raw,
     };
@@ -629,6 +649,11 @@ int? _durationFromJson(Map<String, dynamic> json) {
   final length = json['length'];
   if (length is num) {
     return length.round();
+  }
+
+  final durationMillis = json['durationMillis'];
+  if (durationMillis is num) {
+    return durationMillis.round();
   }
 
   return null;
