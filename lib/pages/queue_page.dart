@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
+import '../models/music_file.dart';
 import '../player/audio_riverpod.dart';
+import '../player/scanner_service.dart';
 import '../widgets/song_thumbnail.dart';
 
 // 队列页面
@@ -34,6 +36,29 @@ class _QueuePageState extends ConsumerState<QueuePage> {
         _selectedIndices.add(index);
       }
     });
+  }
+
+  String _buildSongSubtitle(
+    BuildContext context,
+    MusicFile song,
+    ScannerService scanner,
+  ) {
+    final metadata = scanner.metadataMap[song.path];
+    final artist =
+        metadata?.artist ?? AppLocalizations.of(context)!.unknownArtist;
+    final album = metadata?.album ?? AppLocalizations.of(context)!.unknownAlbum;
+    return '$artist - $album';
+  }
+
+  Widget? _buildDurationTrailing(int? durationMs) {
+    if (durationMs == null) return null;
+    final d = Duration(milliseconds: durationMs);
+    final minutes = d.inMinutes;
+    final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return Text(
+      '$minutes:$seconds',
+      style: const TextStyle(fontSize: 12, color: Colors.grey),
+    );
   }
 
   void _showClearQueueDialog(BuildContext context) {
@@ -116,7 +141,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               Icon(
                 Icons.queue_music,
                 size: 64,
-                color: Colors.grey.withOpacity(0.5),
+                color: Colors.grey.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 16),
               Text(
@@ -218,7 +243,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                   onReorder: (oldIndex, newIndex) {
                     if (_viewIndex != 0) return;
                     if (newIndex > oldIndex) newIndex--;
-                    ref.read(audioServiceProvider).moveQueueTrack(oldIndex, newIndex);
+                    ref
+                        .read(audioServiceProvider)
+                        .moveQueueTrack(oldIndex, newIndex);
                   },
                   itemBuilder: (context, index) {
                     final isHistoryView = _viewIndex == 1;
@@ -293,7 +320,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                           ),
                         ),
                         title: Text(
-                          song.displayName,
+                          song.title ?? song.name,
                           style: TextStyle(
                             color: isCurrent
                                 ? Theme.of(context).colorScheme.primary
@@ -302,8 +329,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                           ),
                         ),
                         subtitle: Text(
-                          scanner.metadataMap[song.path]?.artist ??
-                              AppLocalizations.of(context)!.unknownArtist,
+                          _buildSongSubtitle(context, song, scanner),
                           style: const TextStyle(fontSize: 10),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -313,39 +339,25 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                 index: index,
                                 child: const Icon(Icons.drag_handle),
                               )
-                            : isHistoryView
-                            ? Icon(
-                                Icons.history,
-                                color: isCurrent
-                                    ? Colors.blue
-                                    : Colors.grey.withOpacity(0.3),
-                              )
-                            : isRandomQueueView
-                            ? Icon(
-                                Icons.shuffle,
-                                color: isCurrent
-                                    ? Colors.purpleAccent
-                                    : Colors.grey.withOpacity(0.3),
-                              )
-                            : Icon(
-                                isCurrent
-                                    ? Icons.play_circle
-                                    : Icons.play_circle_outline,
-                                color: isCurrent
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
+                            : _buildDurationTrailing(
+                                scanner.metadataMap[song.path]?.duration,
                               ),
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(index)
                             : () {
                                 if (isHistoryView || isRandomQueueView) {
-                                  final actualIndex = queue
-                                      .indexWhere((s) => s.path == song.path);
+                                  final actualIndex = queue.indexWhere(
+                                    (s) => s.path == song.path,
+                                  );
                                   if (actualIndex >= 0) {
-                                    ref.read(audioServiceProvider).playAtIndex(actualIndex);
+                                    ref
+                                        .read(audioServiceProvider)
+                                        .playAtIndex(actualIndex);
                                   }
                                 } else {
-                                  ref.read(audioServiceProvider).playAtIndex(index);
+                                  ref
+                                      .read(audioServiceProvider)
+                                      .playAtIndex(index);
                                 }
                               },
                       ),
@@ -385,9 +397,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                       i >= 0;
                                       i--
                                     ) {
-                                      ref.read(audioServiceProvider).removeFromPlaylist(
-                                        sortedIndices[i],
-                                      );
+                                      ref
+                                          .read(audioServiceProvider)
+                                          .removeFromPlaylist(sortedIndices[i]);
                                     }
                                     _selectedIndices.clear();
                                     _toggleSelectionMode();

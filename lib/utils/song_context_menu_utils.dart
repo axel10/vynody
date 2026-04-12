@@ -64,6 +64,30 @@ Future<void> openSongFileLocation(String filePath) async {
   }
 }
 
+Future<void> openFolderLocation(String folderPath) async {
+  if (folderPath.trim().isEmpty) return;
+
+  final normalizedPath = Directory(folderPath).absolute.path;
+  if (!Directory(normalizedPath).existsSync()) {
+    debugPrint(
+      '[FolderContextMenu] Cannot open folder location, folder missing: $normalizedPath',
+    );
+    return;
+  }
+
+  try {
+    if (Platform.isWindows) {
+      await Process.run('explorer.exe', [normalizedPath]);
+    } else if (Platform.isMacOS) {
+      await Process.run('open', [normalizedPath]);
+    } else if (Platform.isLinux) {
+      await Process.run('xdg-open', [normalizedPath]);
+    }
+  } catch (e) {
+    debugPrint('[FolderContextMenu] Failed to open folder location: $e');
+  }
+}
+
 Future<void> showSongContextMenu(
   BuildContext context,
   Offset globalPosition, {
@@ -175,5 +199,39 @@ Future<void> showSongContextMenu(
         await openSongFileLocation(song.path);
       }
       break;
+  }
+}
+
+Future<void> showFolderContextMenu(
+  BuildContext context,
+  Offset globalPosition, {
+  required String folderPath,
+}) async {
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+  if (overlay == null) return;
+
+  final canOpenLocation =
+      (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
+      folderPath.trim().isNotEmpty;
+
+  final selected = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromRect(
+      Rect.fromPoints(globalPosition, globalPosition),
+      Offset.zero & overlay.size,
+    ),
+    items: [
+      PopupMenuItem<String>(
+        value: 'open_folder_location',
+        enabled: canOpenLocation,
+        child: const Text('打开文件夹所在位置'),
+      ),
+    ],
+  );
+
+  if (!context.mounted || selected == null) return;
+
+  if (selected == 'open_folder_location' && canOpenLocation) {
+    await openFolderLocation(folderPath);
   }
 }

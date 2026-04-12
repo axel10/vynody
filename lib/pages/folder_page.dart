@@ -180,23 +180,35 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
                 // User Added Root Folders
                 ...scanner.rootFolders.map(
-                  (folder) => ListTile(
-                    leading: const Icon(
-                      Icons.folder_shared,
-                      color: Colors.amber,
-                    ),
-                    title: Text(folder.name),
-                    subtitle: Text(
-                      folder.path,
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    onTap: () => _navigateTo(folder, scanner),
-                    trailing: IconButton(
-                      icon: const Icon(
-                        Icons.remove_circle_outline,
-                        color: Colors.red,
+                  (folder) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onSecondaryTapDown: (details) {
+                      unawaited(
+                        showFolderContextMenu(
+                          context,
+                          details.globalPosition,
+                          folderPath: folder.path,
+                        ),
+                      );
+                    },
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.folder_shared,
+                        color: Colors.amber,
                       ),
-                      onPressed: () => scanner.removeRootPath(folder.path),
+                      title: Text(folder.name),
+                      subtitle: Text(
+                        folder.path,
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      onTap: () => _navigateTo(folder, scanner),
+                      trailing: IconButton(
+                        icon: const Icon(
+                          Icons.remove_circle_outline,
+                          color: Colors.red,
+                        ),
+                        onPressed: () => scanner.removeRootPath(folder.path),
+                      ),
                     ),
                   ),
                 ),
@@ -262,10 +274,22 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                     ),
 
                   ...currentFolder.subFolders.map(
-                    (folder) => ListTile(
-                      leading: const Icon(Icons.folder, color: Colors.amber),
-                      title: Text(folder.name),
-                      onTap: () => _navigateTo(folder, scanner),
+                    (folder) => GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onSecondaryTapDown: (details) {
+                        unawaited(
+                          showFolderContextMenu(
+                            context,
+                            details.globalPosition,
+                            folderPath: folder.path,
+                          ),
+                        );
+                      },
+                      child: ListTile(
+                        leading: const Icon(Icons.folder, color: Colors.amber),
+                        title: Text(folder.name),
+                        onTap: () => _navigateTo(folder, scanner),
+                      ),
                     ),
                   ),
                   ...currentFolder.files.map(
