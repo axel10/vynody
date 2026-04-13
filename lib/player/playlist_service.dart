@@ -114,6 +114,7 @@ class PlaylistService extends ChangeNotifier {
   String? _currentPlaylistId;
   static const String _storageKey = 'playlists';
   static const String _currentPlaylistKey = 'current_playlist_id';
+  static const String favoritePlaylistId = 'favorites';
 
   List<Playlist> get playlists => List.unmodifiable(_playlists);
   Playlist? get currentPlaylist => _currentPlaylistId != null
@@ -132,11 +133,28 @@ class PlaylistService extends ChangeNotifier {
   /// 初始化，加载保存的播放列表
   Future<void> _init() async {
     await _loadPlaylists();
-    // 如果没有播放列表，创建一个默认列表
-    if (_playlists.isEmpty) {
-      _playlists.add(Playlist(id: 'default', name: '默认列表'));
-      await _savePlaylists();
+    // 确保内置列表始终存在，并保持在普通列表之后。
+    final hasDefault = _playlists.any((p) => p.id == 'default');
+    final hasFavorites = _playlists.any((p) => p.id == favoritePlaylistId);
+
+    if (!hasDefault) {
+      _playlists.insert(0, Playlist(id: 'default', name: '默认列表'));
     }
+    if (!hasFavorites) {
+      final favoriteIndex = _playlists.indexWhere((p) => p.id == 'default');
+      final insertIndex = favoriteIndex == -1 ? _playlists.length : favoriteIndex + 1;
+      _playlists.insert(
+        insertIndex,
+        Playlist(id: favoritePlaylistId, name: '收藏'),
+      );
+    }
+
+    if (_playlists.isNotEmpty &&
+        (_currentPlaylistId == null ||
+            !_playlists.any((p) => p.id == _currentPlaylistId))) {
+      _currentPlaylistId = _playlists.first.id;
+    }
+    await _savePlaylists();
     notifyListeners();
   }
 
@@ -191,6 +209,9 @@ class PlaylistService extends ChangeNotifier {
 
   /// 删除播放列表
   Future<void> deletePlaylist(String id) async {
+    if (id == favoritePlaylistId) {
+      return;
+    }
     final index = _playlists.indexWhere((p) => p.id == id);
     if (index != -1) {
       _playlists.removeAt(index);
@@ -204,6 +225,9 @@ class PlaylistService extends ChangeNotifier {
 
   /// 重命名播放列表
   Future<void> renamePlaylist(String id, String newName) async {
+    if (id == favoritePlaylistId) {
+      return;
+    }
     final index = _playlists.indexWhere((p) => p.id == id);
     if (index != -1) {
       _playlists[index].name = newName;
@@ -285,6 +309,54 @@ class PlaylistService extends ChangeNotifier {
       await _savePlaylists();
       notifyListeners();
     }
+  }
+
+  Playlist? get favoritePlaylist {
+    try {
+      return _playlists.firstWhere((p) => p.id == favoritePlaylistId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool isFavoriteSong(MusicFile song) {
+    return favoritePlaylist?.songs.any((item) => item.path == song.path) ?? false;
+  }
+
+  Future<bool> toggleFavoriteSong(MusicFile song) async {
+    final index = _playlists.indexWhere((p) => p.id == favoritePlaylistId);
+    if (index == -1) return false;
+
+    final playlist = _playlists[index];
+    final existingIndex = playlist.songs.indexWhere((item) => item.path == song.path);
+    final wasAdded = existingIndex == -1;
+
+    if (existingIndex == -1) {
+      playlist.songs.add(song);
+    } else {
+      playlist.songs.removeAt(existingIndex);
+    }
+
+    playlist.updatedAt = DateTime.now();
+    await _savePlaylists();
+    notifyListeners();
+    return wasAdded;
+  }
+
+  Future<void> addSongToFavorite(MusicFile song) async {
+    final index = _playlists.indexWhere((p) => p.id == favoritePlaylistId);
+    if (index == -1) return;
+
+    final playlist = _playlists[index];
+    final existingIndex = playlist.songs.indexWhere((item) => item.path == song.path);
+    if (existingIndex == -1) {
+      playlist.songs.add(song);
+    } else {
+      playlist.songs[existingIndex] = song;
+    }
+    playlist.updatedAt = DateTime.now();
+    await _savePlaylists();
+    notifyListeners();
   }
 
   Future<void> updateSongMetadataByPath(

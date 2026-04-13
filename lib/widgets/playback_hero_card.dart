@@ -766,6 +766,9 @@ class PlaybackHeroCard extends ConsumerWidget {
     final playbackMode = ref.watch(audioPlaybackModeProvider);
     final isRandomMode = ref.watch(audioIsRandomModeProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final playlistService = ref.watch(playlistServiceProvider);
+    final isFavorite =
+        currentMusic != null && playlistService.isFavoriteSong(currentMusic);
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
     final duration = ref.watch(audioDurationProvider);
     final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
@@ -784,6 +787,25 @@ class PlaybackHeroCard extends ConsumerWidget {
               tooltip: l10n.more,
             ),
             const SizedBox(width: 16),
+            IconButton(
+              icon: Icon(
+                isFavorite
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                size: 28,
+                color: isFavorite
+                    ? Colors.redAccent
+                    : Colors.white70,
+              ),
+              onPressed: currentMusic == null
+                  ? null
+                  : () async {
+                      final playlistService = ref.read(playlistServiceProvider);
+                      await playlistService.toggleFavoriteSong(currentMusic);
+                    },
+              tooltip: isFavorite ? '取消收藏' : '收藏',
+            ),
+            const SizedBox(width: 8),
             GestureDetector(
               onLongPress: onShowPlaylistModeSelector,
               child: IconButton(

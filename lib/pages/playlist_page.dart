@@ -18,6 +18,10 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
   bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
 
+  bool _isFavoritePlaylist(Playlist playlist) {
+    return playlist.id == PlaylistService.favoritePlaylistId;
+  }
+
   void _toggleSelectionMode() {
     setState(() {
       _isSelectionMode = !_isSelectionMode;
@@ -136,6 +140,9 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
   }
 
   void _showDeletePlaylistDialog(BuildContext context, Playlist playlist) {
+    if (_isFavoritePlaylist(playlist)) {
+      return;
+    }
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -287,7 +294,9 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
             ListTile(
               leading: const Icon(Icons.edit),
               title: Text(AppLocalizations.of(context)!.rename),
+              enabled: !_isFavoritePlaylist(playlist),
               onTap: () {
+                if (_isFavoritePlaylist(playlist)) return;
                 Navigator.pop(context);
                 _showRenamePlaylistDialog(context, playlist);
               },
@@ -295,7 +304,9 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
             ListTile(
               leading: const Icon(Icons.delete),
               title: Text(AppLocalizations.of(context)!.delete),
+              enabled: !_isFavoritePlaylist(playlist),
               onTap: () {
+                if (_isFavoritePlaylist(playlist)) return;
                 Navigator.pop(context);
                 _showDeletePlaylistDialog(context, playlist);
               },
@@ -629,7 +640,14 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
           children: [
             ...playlistService.playlists.map(
               (playlist) => ListTile(
-                leading: const Icon(Icons.playlist_play),
+                leading: Icon(
+                  _isFavoritePlaylist(playlist)
+                      ? Icons.favorite_rounded
+                      : Icons.playlist_play,
+                  color: _isFavoritePlaylist(playlist)
+                      ? Colors.redAccent
+                      : null,
+                ),
                 title: Text(playlist.name),
                 subtitle: Text(
                   AppLocalizations.of(
@@ -677,17 +695,26 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
             const Divider(),
             ...playlistService.playlists.map(
               (playlist) => ListTile(
-                leading: const Icon(Icons.playlist_play),
+                leading: Icon(
+                  _isFavoritePlaylist(playlist)
+                      ? Icons.favorite_rounded
+                      : Icons.playlist_play,
+                  color: _isFavoritePlaylist(playlist)
+                      ? Colors.redAccent
+                      : null,
+                ),
                 title: Text(playlist.name),
                 subtitle: Text(
                   '${AppLocalizations.of(context)!.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.more_vert),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showPlaylistOptions(context, playlist);
-                  },
+                  onPressed: _isFavoritePlaylist(playlist)
+                      ? null
+                      : () {
+                          Navigator.pop(context);
+                          _showPlaylistOptions(context, playlist);
+                        },
                 ),
                 onTap: () {
                   playlistService.setCurrentPlaylist(playlist.id);
