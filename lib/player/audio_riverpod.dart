@@ -5,6 +5,8 @@ import 'audio_snapshot.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../models/music_file.dart';
+import 'acoustid_service.dart';
+import 'gemini_api_key_service.dart';
 import 'playlist_service.dart';
 import 'scanner_service.dart';
 import 'settings_service.dart';
@@ -29,6 +31,16 @@ final scannerServiceProvider = ChangeNotifierProvider<ScannerService>((ref) {
 
 final playlistServiceProvider = ChangeNotifierProvider<PlaylistService>((ref) {
   return PlaylistService();
+});
+
+final geminiApiKeyServiceProvider = Provider<GeminiApiKeyService>((ref) {
+  return GeminiApiKeyService();
+});
+
+final acoustidServiceProvider = Provider<AcoustIDService>((ref) {
+  return AcoustIDService(
+    apiKey: ref.read(settingsServiceProvider).acoustidApiKey,
+  );
 });
 
 final audioServiceWiringProvider = Provider<void>((ref) {
@@ -150,7 +162,9 @@ final audioIsLyricsActiveProvider = Provider<bool>((ref) {
 
 final audioHasSleepTimerProvider = Provider<bool>((ref) {
   return ref.watch(
-    audioSnapshotProvider.select((snapshot) => snapshot.sleepTimerRemaining != null),
+    audioSnapshotProvider.select(
+      (snapshot) => snapshot.sleepTimerRemaining != null,
+    ),
   );
 });
 

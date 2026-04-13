@@ -14,6 +14,7 @@ import '../pages/playback_page.dart';
 import '../pages/playlist_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
+import 'main_layout_riverpod.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/global_drop_target.dart';
@@ -93,10 +94,6 @@ class MainLayout extends ConsumerStatefulWidget {
 
 class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   late int _currentIndex;
-  bool _showVolumeHUD = false;
-  Timer? _hudTimer;
-  Timer? _immersiveTabBarTimer;
-  bool _showImmersiveTabBar = true;
   double? _lastVolume;
   // _isFullScreen 决定了标题栏全屏按钮的图标状态（全屏 vs 窗口化）
   // 该状态通过 _syncWindowState() 与原生窗口状态保持同步
@@ -104,6 +101,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   bool _isMaximized = false;
 
   AudioService get _audioService => ref.read(audioServiceProvider);
+  MainLayoutUiController get _ui =>
+      ref.read(mainLayoutUiControllerProvider.notifier);
 
   void _handleDesktopPointerActivity(PointerEvent event) {
     if (event is PointerDownEvent) {
@@ -122,38 +121,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     }
     final settings = ref.read(settingsServiceProvider);
     if (settings.isImmersiveTabBarEnabled) {
-      if (!_showImmersiveTabBar) {
-        setState(() {
-          _showImmersiveTabBar = true;
-        });
+      if (!ref.read(mainLayoutUiControllerProvider).showImmersiveTabBar) {
+        _ui.showImmersiveTabBar();
       }
-      _immersiveTabBarTimer?.cancel();
-      _immersiveTabBarTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted &&
-            _currentIndex == 1 &&
-            ref.read(settingsServiceProvider).isImmersiveTabBarEnabled) {
-          setState(() {
-            _showImmersiveTabBar = false;
-          });
-        }
-        _immersiveTabBarTimer = null;
-      });
+      _ui.hideImmersiveTabBarAfter(const Duration(seconds: 3));
     }
   }
 
   void _triggerHUD() {
     if (!mounted) return;
-    setState(() {
-      _showVolumeHUD = true;
-    });
-    _hudTimer?.cancel();
-    _hudTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _showVolumeHUD = false;
-        });
-      }
-    });
+    _ui.showVolumeHud();
   }
 
   // 同步当前原生窗口状态到 Flutter UI 状态
@@ -197,8 +174,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       windowManager.removeListener(this);
     }
-    _hudTimer?.cancel();
-    _immersiveTabBarTimer?.cancel();
     super.dispose();
   }
 
@@ -509,6 +484,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
+    final uiState = ref.watch(mainLayoutUiControllerProvider);
     ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
       if (_lastVolume != null && (_lastVolume! - next).abs() > 0.1) {
@@ -536,7 +512,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
         isDesktop &&
         isPlayback &&
         settings.isImmersiveTabBarEnabled &&
-        !_showImmersiveTabBar;
+        !uiState.showImmersiveTabBar;
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
@@ -766,7 +742,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                               ),
                       ),
                     ),
-                    if (_showVolumeHUD) VolumeHUD(volume: _audioService.volume),
+                    if (uiState.showVolumeHud)
+                      VolumeHUD(volume: _audioService.volume),
                   ],
                 ),
                 bottomNavigationBar: useSidebar

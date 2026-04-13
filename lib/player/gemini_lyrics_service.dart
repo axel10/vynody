@@ -28,9 +28,14 @@ class GeminiGenerationResult {
 }
 
 class GeminiLyricsService {
-  GeminiLyricsService({NetworkClient? client})
-    : _client = client ?? NetworkClient.instance,
-      _api = _GeminiLyricsApiClient(client: client);
+  GeminiLyricsService({
+    NetworkClient? client,
+    GeminiApiKeyService? apiKeyService,
+  }) : _client = client ?? NetworkClient.instance,
+       _api = _GeminiLyricsApiClient(
+         client: client,
+         apiKeyService: apiKeyService,
+       );
 
   final NetworkClient _client;
   final _GeminiLyricsApiClient _api;

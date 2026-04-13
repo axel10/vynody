@@ -101,7 +101,9 @@ class SettingsPage extends ConsumerWidget {
                 const SizedBox(height: 4),
                 InkWell(
                   onTap: () async {
-                    final uri = Uri.parse('https://acoustid.org/new-application');
+                    final uri = Uri.parse(
+                      'https://acoustid.org/new-application',
+                    );
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   },
                   child: const Text(
@@ -151,6 +153,7 @@ class SettingsPage extends ConsumerWidget {
               onPressed: () async {
                 final enteredApiKey = await showGeminiApiKeyDialog(
                   context,
+                  ref: ref,
                   initialApiKey: settings.geminiApiKey,
                 );
                 if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {

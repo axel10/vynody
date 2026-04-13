@@ -38,8 +38,6 @@ class PlaybackPage extends ConsumerStatefulWidget {
 class _PlaybackPageState extends ConsumerState<PlaybackPage>
     with SingleTickerProviderStateMixin {
   bool _showVolumeSlider = false;
-  bool _showVisualizer = true;
-  bool _isLyricsMode = false;
   bool _isScrubbingProgress = false;
   double _scrubProgress = 0.0; // Added missing declaration
   Orientation? _lastOrientation;
@@ -55,10 +53,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     _audioService = ref.read(audioServiceProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final audio = _audioService;
-      if (audio == null) return;
-      _showVisualizer = audio.isVisualizerEnabled;
-      _isLyricsMode = ref.read(audioIsLyricsActiveProvider);
       _pendingArtworkBytes = ref.read(audioCurrentMusicProvider)?.artworkBytes;
       ref.read(settingsServiceProvider).resetInactivity();
       if (mounted) {
@@ -123,17 +117,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   /// 当用户点击专辑封面时触发，切换歌词模式显示状态。
   ///
   /// 此函数的执行流程如下：
-  /// 1. 切换当前的 `_isLyricsMode` 布尔值（true -> false 或 false -> true）。
+  /// 1. 切换当前的歌词模式布尔值（true -> false 或 false -> true）。
   /// 2. 调用 `setState()` 触发 UI 重绘。
   /// 3. 重绘过程中，`PlaybackHeroCard` 会接收到新的 `isLyricsMode` 状态。
   /// 4. `PlaybackHeroCard` 内部的 `TweenAnimationBuilder` 会启动一个 400ms 的动画。
   /// 5. 动画根据 `isLyricsMode` 线性插值计算封面、歌曲信息、控制栏及歌词面板的位置和尺寸，
   ///    实现从“普通模式”到“歌词模式”的平滑过渡效果（封面缩小并移至左上角，歌词面板从屏幕下方滑入并变亮）。
   void _toggleLyricsMode() {
-    final nextLyricsMode = !_isLyricsMode;
-    setState(() {
-      _isLyricsMode = nextLyricsMode;
-    });
+    final nextLyricsMode = !ref.read(audioIsLyricsActiveProvider);
     // 延后一帧再通知 Provider，避免和本次切换动画的重建过程抢占同一帧。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -150,10 +141,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   }
 
   Future<void> _toggleVisualizer(AudioService audio) async {
-    final nextVisible = !_showVisualizer;
-    setState(() {
-      _showVisualizer = nextVisible;
-    });
+    final nextVisible = !ref.read(audioIsVisualizerEnabledProvider);
     audio.setVisualizerEnabled(nextVisible);
   }
 
@@ -685,6 +673,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   Widget build(BuildContext context) {
     // Separate UI status from rendering visibility to avoid flicker
     final audio = ref.read(audioServiceProvider);
+    final isLyricsMode = ref.watch(audioIsLyricsActiveProvider);
     final isVisualizerEnabled = ref.watch(audioIsVisualizerEnabledProvider);
     final isTransitioning = ref.watch(audioIsTransitioningProvider);
     final shouldDrawVisualizer = isVisualizerEnabled && !isTransitioning;
@@ -737,7 +726,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                           return PlaybackHeroCard(
                             isMini: false,
                             isLandscape: isLandscape,
-                            isLyricsMode: _isLyricsMode,
+                            isLyricsMode: isLyricsMode,
                             screenWidth: screenWidth,
                             screenHeight: screenHeight,
                             isNext: isNext,
@@ -788,7 +777,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             onTagCompletionLongPress: currentMusic == null
                                 ? null
                                 : () => _showTagSaveMenu(context, audio),
-                            onSleepTimerTap: () => _showSleepTimerSheet(context),
+                            onSleepTimerTap: () =>
+                                _showSleepTimerSheet(context),
                             onEqualizerTap: () => _showEqualizerPanel(context),
                             onCoverTap: _toggleLyricsMode,
                             onPrevious: audio.previous,
@@ -836,10 +826,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                         : _buildBlurredBackground(context),
                   ),
                 ),
-                _buildBackgroundScrim(),
+                _buildBackgroundScrim(isLyricsMode),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
-                _buildLyricsModeScrim(),
+                _buildLyricsModeScrim(isLyricsMode),
                 content,
                 if (_showVolumeSlider)
                   Builder(
@@ -870,12 +860,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     );
   }
 
-  Widget _buildBackgroundScrim() {
+  Widget _buildBackgroundScrim(bool isLyricsMode) {
     return Positioned.fill(
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
-        opacity: _isLyricsMode ? 0.0 : 1.0,
+        opacity: isLyricsMode ? 0.0 : 1.0,
         child: IgnorePointer(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -893,12 +883,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     );
   }
 
-  Widget _buildLyricsModeScrim() {
+  Widget _buildLyricsModeScrim(bool isLyricsMode) {
     return Positioned.fill(
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
-        opacity: _isLyricsMode ? 1.0 : 0.0,
+        opacity: isLyricsMode ? 1.0 : 0.0,
         child: IgnorePointer(
           child: ColoredBox(color: Colors.black.withValues(alpha: 0.28)),
         ),
@@ -920,52 +910,52 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           // 在解码阶段即完成缩小，从而替代之前手动生成的低清图逻辑。
           Builder(
             builder: (context) {
-                final bytes = _pendingArtworkBytes;
-                final Widget content;
+              final bytes = _pendingArtworkBytes;
+              final Widget content;
 
-                if (bytes == null) {
-                  // 如果封面字节尚未准备好（或不存在），则显示纯黑背景。
-                  content = Container(
-                    key: const ValueKey('bg_empty'),
-                    color: Colors.black,
-                    width: double.infinity,
-                    height: double.infinity,
-                  );
-                } else {
-                  // 使用 Image.memory 的高性能解码缩放：
-                  // 通过设置 cacheWidth 或 cacheHeight (200px)，Flutter 会在解码图片时
-                  // 就直接生成小尺寸的内存 Buffer，极大降低了内存占用并加速了后续的毛玻璃滤镜运算。
-                  // 提高解码分辨率以减少边缘模糊导致的暗角问题
-                  final imageProvider = Image.memory(
-                    bytes,
-                    width: double.infinity,
-                    height: double.infinity,
-                    cacheWidth: 300, // 提高解码分辨率以减少边缘暗角
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                    gaplessPlayback: true,
-                    excludeFromSemantics: true,
-                  );
+              if (bytes == null) {
+                // 如果封面字节尚未准备好（或不存在），则显示纯黑背景。
+                content = Container(
+                  key: const ValueKey('bg_empty'),
+                  color: Colors.black,
+                  width: double.infinity,
+                  height: double.infinity,
+                );
+              } else {
+                // 使用 Image.memory 的高性能解码缩放：
+                // 通过设置 cacheWidth 或 cacheHeight (200px)，Flutter 会在解码图片时
+                // 就直接生成小尺寸的内存 Buffer，极大降低了内存占用并加速了后续的毛玻璃滤镜运算。
+                // 提高解码分辨率以减少边缘模糊导致的暗角问题
+                final imageProvider = Image.memory(
+                  bytes,
+                  width: double.infinity,
+                  height: double.infinity,
+                  cacheWidth: 300, // 提高解码分辨率以减少边缘暗角
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.low,
+                  gaplessPlayback: true,
+                  excludeFromSemantics: true,
+                );
 
-                  content = ImageFiltered(
-                    // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
-                    key: ValueKey(bytes.hashCode),
-                    // 减小模糊强度并增加缩放以更好地覆盖边缘
-                    imageFilter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                    child: Transform.scale(scale: 1.2, child: imageProvider),
-                  );
-                }
+                content = ImageFiltered(
+                  // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
+                  key: ValueKey(bytes.hashCode),
+                  // 减小模糊强度并增加缩放以更好地覆盖边缘
+                  imageFilter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                  child: Transform.scale(scale: 1.2, child: imageProvider),
+                );
+              }
 
-                // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
-                // 这种方式避免了传统的“双向淡入淡出（Cross-fade）”可能导致的背景短暂变暗或跳动。
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 1000),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
-                  child: content,
+              // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
+              // 这种方式避免了传统的“双向淡入淡出（Cross-fade）”可能导致的背景短暂变暗或跳动。
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 1000),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+                child: content,
               );
             },
           ),

@@ -6,24 +6,23 @@ import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
-import '../player/settings_service.dart';
 
 final songTagCompletionControllerProvider = ChangeNotifierProvider.autoDispose
     .family<SongTagCompletionController, String>((ref, songPath) {
       return SongTagCompletionController(
         songPath: songPath,
-        settingsService: ref.read(settingsServiceProvider),
+        acoustidService: ref.read(acoustidServiceProvider),
       );
     });
 
 class SongTagCompletionController extends ChangeNotifier {
   SongTagCompletionController({
     required this.songPath,
-    required this.settingsService,
+    required this.acoustidService,
   });
 
   final String songPath;
-  final SettingsService settingsService;
+  final AcoustIDService acoustidService;
   final MusicBrainzTagCompletionService service =
       MusicBrainzTagCompletionService();
 
@@ -104,9 +103,6 @@ class SongTagCompletionController extends ChangeNotifier {
     _emit();
 
     try {
-      final acoustidService = AcoustIDService(
-        apiKey: settingsService.acoustidApiKey,
-      );
       final durationSec = (durationMillis ?? 0) ~/ 1000;
       final results = await acoustidService.lookupByFingerprint(
         filePath: songPath,
@@ -155,7 +151,6 @@ class SongTagCompletionController extends ChangeNotifier {
     _emit();
 
     try {
-      final acoustidService = AcoustIDService(apiKey: '');
       final coverArtBytes = await acoustidService.downloadCoverBytes(
         candidateUrls: [coverLargeUrl, coverThumbnailUrl],
       );

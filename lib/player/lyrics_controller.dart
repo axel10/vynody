@@ -111,7 +111,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       db: _db,
       cacheRepository: _lyricsCacheRepository,
     );
-    _geminiLyricsService = GeminiLyricsService();
+    _geminiLyricsService = ref.read(geminiLyricsServiceProvider);
     return LyricsControllerState(
       lyricsTranslationLanguageCode:
           LanguageCodeUtils.currentSystemLanguageCode(),

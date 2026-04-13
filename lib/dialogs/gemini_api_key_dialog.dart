@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../player/audio_riverpod.dart';
-import '../player/gemini_api_key_service.dart';
 
 Future<String?> showGeminiApiKeyDialog(
   BuildContext context, {
+  required WidgetRef ref,
   required String initialApiKey,
 }) async {
   final controller = TextEditingController(text: initialApiKey);
-  final service = GeminiApiKeyService();
+  final service = ref.read(geminiApiKeyServiceProvider);
 
   try {
     return await showDialog<String?>(
@@ -125,6 +125,7 @@ Future<bool> ensureGeminiApiKey(BuildContext context, WidgetRef ref) async {
 
   final enteredApiKey = await showGeminiApiKeyDialog(
     context,
+    ref: ref,
     initialApiKey: currentApiKey,
   );
   if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {

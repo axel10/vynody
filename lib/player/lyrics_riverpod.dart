@@ -6,6 +6,7 @@ import 'lyrics_controller_dependencies.dart';
 import 'audio_riverpod.dart';
 import 'lyrics_controller.dart';
 import 'lyrics_controller_state.dart';
+import 'gemini_lyrics_service.dart';
 
 final lyricsControllerDependenciesProvider =
     Provider<LyricsControllerDependencies>((ref) {
@@ -13,22 +14,27 @@ final lyricsControllerDependenciesProvider =
       return audioService.lyricsControllerDependencies;
     });
 
+final geminiLyricsServiceProvider = Provider<GeminiLyricsService>((ref) {
+  return GeminiLyricsService(
+    apiKeyService: ref.read(geminiApiKeyServiceProvider),
+  );
+});
+
 final lyricsControllerProvider =
     NotifierProvider<LyricsController, LyricsControllerState>(
       LyricsController.new,
     );
 
-final lyricsDisplayLinesProvider = Provider.family<List<LyricLine>, MusicLyric?>(
-  (ref, baseLyrics) {
-    final liveLines = ref.watch(
-      lyricsControllerProvider.select((state) => state.currentLyricsLines),
-    );
-    if (liveLines.isNotEmpty) {
-      return liveLines;
-    }
-    return baseLyrics?.syncedLines ?? const [];
-  },
-);
+final lyricsDisplayLinesProvider =
+    Provider.family<List<LyricLine>, MusicLyric?>((ref, baseLyrics) {
+      final liveLines = ref.watch(
+        lyricsControllerProvider.select((state) => state.currentLyricsLines),
+      );
+      if (liveLines.isNotEmpty) {
+        return liveLines;
+      }
+      return baseLyrics?.syncedLines ?? const [];
+    });
 
 final lyricsDisplayPlainTextProvider = Provider.family<String, MusicLyric?>((
   ref,

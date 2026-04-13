@@ -13,13 +13,17 @@ class _GeminiFileUploadResult {
 }
 
 class _GeminiLyricsApiClient {
-  _GeminiLyricsApiClient({NetworkClient? client})
-    : _client = client ?? NetworkClient.instance;
+  _GeminiLyricsApiClient({
+    NetworkClient? client,
+    GeminiApiKeyService? apiKeyService,
+  }) : _client = client ?? NetworkClient.instance,
+       _apiKeyService = apiKeyService ?? GeminiApiKeyService();
 
   final NetworkClient _client;
+  final GeminiApiKeyService _apiKeyService;
 
   Future<String?> loadApiKey() async {
-    return GeminiApiKeyService().loadApiKey();
+    return _apiKeyService.loadApiKey();
   }
 
   Future<_GeminiFileUploadResult?> uploadFile({
