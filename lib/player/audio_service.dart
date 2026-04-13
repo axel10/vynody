@@ -52,6 +52,9 @@ class AudioService extends Notifier<AudioSnapshot> {
   late final WaveformService _waveformService;
   ScannerService? _scannerService;
   bool _isLyricsActive = false;
+  Timer? _sleepTimer;
+  DateTime? _sleepTimerEndAt;
+  Duration? _sleepTimerDuration;
   int _lastWaveformChunks = -1;
 
   // 独立的 FFT 输出流（用于迷你播放器）
@@ -70,6 +73,19 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool get isLyricsLoading => _lyricsState.isLyricsLoading;
   bool get hasLyrics => _lyricsState.hasLyrics;
   bool get lyricsSearchAttempted => _lyricsState.lyricsSearchAttempted;
+  Duration? get sleepTimerRemaining {
+    final endAt = _sleepTimerEndAt;
+    if (endAt == null) return null;
+
+    final remaining = endAt.difference(DateTime.now());
+    if (remaining <= Duration.zero) {
+      return Duration.zero;
+    }
+    return remaining;
+  }
+
+  Duration? get sleepTimerDuration => _sleepTimerDuration;
+  bool get hasSleepTimer => _sleepTimerEndAt != null;
 
   @override
   AudioSnapshot build() {
@@ -478,6 +494,72 @@ class AudioService extends Notifier<AudioSnapshot> {
     notifyListeners();
   }
 
+  void _cancelSleepTimer({bool notify = true}) {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerEndAt = null;
+    _sleepTimerDuration = null;
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  void _tickSleepTimer() {
+    final endAt = _sleepTimerEndAt;
+    if (endAt == null) return;
+
+    if (DateTime.now().isBefore(endAt)) {
+      notifyListeners();
+      return;
+    }
+
+    _cancelSleepTimer(notify: false);
+    unawaited(_stopPlaybackForSleepTimer());
+    notifyListeners();
+  }
+
+  Future<void> _stopPlaybackForSleepTimer() async {
+    if (_isPlaying) {
+      await _player.player.pause();
+    }
+  }
+
+  Future<void> startSleepTimer(Duration duration) async {
+    final normalized = Duration(
+      milliseconds: duration.inMilliseconds < 0 ? 0 : duration.inMilliseconds,
+    );
+    if (normalized <= Duration.zero) {
+      await cancelSleepTimer();
+      return;
+    }
+
+    _sleepTimer?.cancel();
+    _sleepTimerDuration = normalized;
+    _sleepTimerEndAt = DateTime.now().add(normalized);
+    _sleepTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _tickSleepTimer();
+    });
+    notifyListeners();
+  }
+
+  Future<void> startSleepTimerUntilCurrentSongEnds() async {
+    final remaining = _duration - _position;
+    final normalized = remaining <= Duration.zero
+        ? Duration.zero
+        : remaining;
+    if (normalized <= Duration.zero) {
+      await cancelSleepTimer();
+      await _stopPlaybackForSleepTimer();
+      return;
+    }
+
+    await startSleepTimer(normalized);
+  }
+
+  Future<void> cancelSleepTimer({bool notify = true}) async {
+    _cancelSleepTimer(notify: notify);
+  }
+
   void moveQueueTrack(int oldIndex, int newIndex) {
     if (oldIndex < 0 ||
         oldIndex >= _queue.length ||
@@ -581,6 +663,8 @@ class AudioService extends Notifier<AudioSnapshot> {
     dynamicEndColor: _dynamicEndColor,
     currentThemeColorsMap: _currentThemeColorsMap,
     isLyricsActive: isLyricsActive,
+    sleepTimerRemaining: sleepTimerRemaining,
+    sleepTimerDuration: sleepTimerDuration,
   );
 
   Uint8List? getCachedArtwork(String? path) {
@@ -1074,6 +1158,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> clearPlaylist() async {
+    _cancelSleepTimer(notify: false);
     _queue.clear();
     await _clearCurrentMusicState();
 
@@ -1335,6 +1420,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void _dispose() {
+    _sleepTimer?.cancel();
     _player.removeListener(_handlePlayerChanges);
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();

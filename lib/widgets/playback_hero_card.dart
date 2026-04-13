@@ -39,6 +39,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.onToggleVisualizer,
     this.onTagCompletionTap,
     this.onTagCompletionLongPress,
+    this.onSleepTimerTap,
     this.onEqualizerTap,
     this.onPrevious,
     this.onPlayPause,
@@ -73,6 +74,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   final VoidCallback? onToggleVisualizer;
   final VoidCallback? onTagCompletionTap;
   final VoidCallback? onTagCompletionLongPress;
+  final VoidCallback? onSleepTimerTap;
   final VoidCallback? onEqualizerTap;
   final VoidCallback? onPrevious;
   final VoidCallback? onPlayPause;
@@ -110,6 +112,18 @@ class PlaybackHeroCard extends ConsumerWidget {
           ? SongContextMenuMode.title
           : SongContextMenuMode.artistAlbum,
     );
+  }
+
+  String _formatSleepTimer(Duration duration) {
+    final safe = duration < Duration.zero ? Duration.zero : duration;
+    final hours = safe.inHours;
+    final minutes = safe.inMinutes.remainder(60);
+    final seconds = safe.inSeconds.remainder(60);
+    return [
+      hours.toString().padLeft(2, '0'),
+      minutes.toString().padLeft(2, '0'),
+      seconds.toString().padLeft(2, '0'),
+    ].join(':');
   }
 
   @override
@@ -754,6 +768,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
     final duration = ref.watch(audioDurationProvider);
+    final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return Column(
@@ -821,6 +836,47 @@ class PlaybackHeroCard extends ConsumerWidget {
               onPressed: onTagCompletionTap,
               onLongPress: onTagCompletionLongPress,
               tooltip: '歌曲标签补全',
+            ),
+            const SizedBox(width: 8),
+            Tooltip(
+              message: sleepTimerRemaining != null
+                  ? '睡眠定时器 ${_formatSleepTimer(sleepTimerRemaining)}'
+                  : '睡眠定时器',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onSleepTimerTap,
+                child: SizedBox(
+                  width: 74,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bedtime_rounded,
+                        size: 28,
+                        color: sleepTimerRemaining != null
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.white70,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        sleepTimerRemaining != null
+                            ? _formatSleepTimer(sleepTimerRemaining)
+                            : '睡眠',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: sleepTimerRemaining != null
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.white70,
+                          fontSize: 10,
+                          height: 1.0,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: 8),
             IconButton(

@@ -23,6 +23,7 @@ import '../models/music_file.dart';
 import '../dialogs/visualizer_options_dialog.dart';
 import '../dialogs/song_tag_edit_dialog.dart';
 import '../dialogs/song_tag_completion_dialog.dart';
+import '../dialogs/sleep_timer_sheet.dart';
 import '../widgets/equalizer_panel.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
@@ -169,6 +170,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => const EqualizerPanel(),
+    );
+  }
+
+  void _showSleepTimerSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => const SleepTimerSheet(),
     );
   }
 
@@ -778,6 +788,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             onTagCompletionLongPress: currentMusic == null
                                 ? null
                                 : () => _showTagSaveMenu(context, audio),
+                            onSleepTimerTap: () => _showSleepTimerSheet(context),
                             onEqualizerTap: () => _showEqualizerPanel(context),
                             onCoverTap: _toggleLyricsMode,
                             onPrevious: audio.previous,

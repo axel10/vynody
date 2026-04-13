@@ -35,6 +35,8 @@ abstract class AudioSnapshot with _$AudioSnapshot {
     required Color? dynamicEndColor,
     @Default(<String, Color>{}) Map<String, Color> currentThemeColorsMap,
     required bool isLyricsActive,
+    required Duration? sleepTimerRemaining,
+    required Duration? sleepTimerDuration,
   }) = _AudioSnapshot;
 
   double get progress =>

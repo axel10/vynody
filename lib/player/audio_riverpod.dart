@@ -148,6 +148,24 @@ final audioIsLyricsActiveProvider = Provider<bool>((ref) {
   );
 });
 
+final audioHasSleepTimerProvider = Provider<bool>((ref) {
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.sleepTimerRemaining != null),
+  );
+});
+
+final audioSleepTimerRemainingProvider = Provider<Duration?>((ref) {
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.sleepTimerRemaining),
+  );
+});
+
+final audioSleepTimerDurationProvider = Provider<Duration?>((ref) {
+  return ref.watch(
+    audioSnapshotProvider.select((snapshot) => snapshot.sleepTimerDuration),
+  );
+});
+
 final audioProgressProvider = Provider<double>((ref) {
   return ref.watch(
     audioSnapshotProvider.select((snapshot) => snapshot.progress),
