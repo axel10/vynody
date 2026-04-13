@@ -1,95 +1,185 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import '../l10n/app_localizations.dart';
+import '../models/music_file.dart';
+import '../models/music_folder.dart';
+import '../player/audio_riverpod.dart';
 import '../player/scanner_service.dart';
-import '../player/audio_service.dart';
+import '../utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
 
 // 目录页
-class FoldersPage extends StatefulWidget {
-  const FoldersPage({super.key});
+class FoldersPage extends ConsumerStatefulWidget {
+  final Future<void> Function()? onOpenPlayback;
+
+  const FoldersPage({super.key, this.onOpenPlayback});
 
   @override
-  State<FoldersPage> createState() => _FoldersPageState();
+  ConsumerState<FoldersPage> createState() => _FoldersPageState();
 }
 
-class _FoldersPageState extends State<FoldersPage> {
-  MusicFolder? _currentFolder;
-  final List<MusicFolder> _history = [];
+class _FoldersPageState extends ConsumerState<FoldersPage> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isSelectionMode = false;
+  final Set<String> _selectedSongPaths = {};
 
-  void _navigateTo(MusicFolder folder) {
-    if (_currentFolder != null) {
-      _history.add(_currentFolder!);
+  void _navigateTo(MusicFolder folder, ScannerService scanner) {
+    final history = List<MusicFolder>.from(scanner.navigationHistory);
+    if (scanner.navigationCurrentFolder != null) {
+      history.add(scanner.navigationCurrentFolder!);
     }
-    setState(() {
-      _currentFolder = folder;
+    scanner.setNavigationState(folder, history);
+    _clearSelection();
+    _scrollToTop();
+  }
+
+  void _goBack(ScannerService scanner) {
+    if (scanner.navigationHistory.isEmpty) {
+      scanner.setNavigationState(null, []);
+    } else {
+      final history = List<MusicFolder>.from(scanner.navigationHistory);
+      final folder = history.removeLast();
+      scanner.setNavigationState(folder, history);
+    }
+    _clearSelection();
+    _scrollToTop();
+  }
+
+  void _goHome(ScannerService scanner) {
+    scanner.setNavigationState(null, []);
+    _clearSelection();
+    _scrollToTop();
+  }
+
+  void _scrollToTop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
-  void _goBack() {
-    if (_history.isNotEmpty) {
-      setState(() {
-        _currentFolder = _history.removeLast();
-      });
-    } else {
-      setState(() {
-        _currentFolder = null;
-      });
-    }
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedSongPaths.clear();
+      }
+    });
+  }
+
+  void _clearSelection() {
+    if (!_isSelectionMode && _selectedSongPaths.isEmpty) return;
+    setState(() {
+      _isSelectionMode = false;
+      _selectedSongPaths.clear();
+    });
+  }
+
+  void _toggleSelection(String path) {
+    setState(() {
+      if (_selectedSongPaths.contains(path)) {
+        _selectedSongPaths.remove(path);
+      } else {
+        _selectedSongPaths.add(path);
+      }
+    });
+  }
+
+  List<MusicFile> _selectedSongsFromFolder(List<MusicFile> files) {
+    return files
+        .where((file) => _selectedSongPaths.contains(file.path))
+        .toList(growable: false);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _pickFolder(ScannerService scanner) async {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     if (selectedDirectory != null) {
-      await scanner.addRootPath(selectedDirectory);
+      if (!mounted) return;
+
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.scanningDirectory),
+        ),
+      );
+
+      final hasMusic = await scanner.addRootPath(selectedDirectory);
+
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            hasMusic
+                ? AppLocalizations.of(context)!.directoryAddedSuccess
+                : AppLocalizations.of(context)!.directoryAddedNoMusic,
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final scanner = context.watch<ScannerService>();
-    final audio = context.read<AudioService>();
+    final scanner = ref.watch(scannerServiceProvider);
+    final audio = ref.read(audioServiceProvider);
 
     // Sync _currentFolder if it's the system root and data has been loaded
-    if (_currentFolder?.path == 'system' &&
+    if (scanner.navigationCurrentFolder?.path == 'system' &&
         scanner.systemMediaFolder != null &&
-        _currentFolder != scanner.systemMediaFolder) {
+        scanner.navigationCurrentFolder != scanner.systemMediaFolder) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          setState(() {
-            _currentFolder = scanner.systemMediaFolder;
-          });
+          scanner.setNavigationState(
+            scanner.systemMediaFolder,
+            List.from(scanner.navigationHistory),
+          );
         }
       });
     }
 
+    final currentFolder = scanner.navigationCurrentFolder;
+
     Widget currentBody;
-    if (_currentFolder == null) {
+    if (currentFolder == null) {
       currentBody = Column(
         children: [
-          if (Platform.isWindows) const SizedBox(height: 32),
           Container(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '扫描目录',
+                    AppLocalizations.of(context)!.scanDirectory,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.sort),
                   onPressed: () => _showSortDialog(context, scanner),
-                  tooltip: '排序',
+                  tooltip: AppLocalizations.of(context)!.sort,
                 ),
               ],
             ),
           ),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.only(bottom: Platform.isWindows ? 84 : 0),
+              controller: _scrollController,
+              padding: const EdgeInsets.only(bottom: 160),
               children: [
                 // System Media Library Item
                 if (!Platform.isWindows)
@@ -98,18 +188,26 @@ class _FoldersPageState extends State<FoldersPage> {
                       Icons.library_music,
                       color: Colors.purple,
                     ),
-                    title: const Text('系统媒体库'),
+                    title: Text(
+                      AppLocalizations.of(context)!.systemMediaLibrary,
+                    ),
                     subtitle: scanner.hasPermission
                         ? null
-                        : const Text(
-                            '需授予权限以扫描本地音乐',
+                        : Text(
+                            AppLocalizations.of(context)!.needPermissionToScan,
                             style: TextStyle(color: Colors.red, fontSize: 12),
                           ),
                     onTap: () {
                       // Navigate to a virtual folder or the real system folder
                       _navigateTo(
                         scanner.systemMediaFolder ??
-                            MusicFolder(path: 'system', name: '系统媒体库'),
+                            MusicFolder(
+                              path: 'system',
+                              name: AppLocalizations.of(
+                                context,
+                              )!.systemMediaLibrary,
+                            ),
+                        scanner,
                       );
                     },
                   ),
@@ -120,29 +218,41 @@ class _FoldersPageState extends State<FoldersPage> {
                     Icons.add_circle_outline,
                     color: Colors.blue,
                   ),
-                  title: const Text('添加根目录'),
+                  title: Text(AppLocalizations.of(context)!.addRootDirectory),
                   onTap: () => _pickFolder(scanner),
                 ),
 
                 // User Added Root Folders
                 ...scanner.rootFolders.map(
-                  (folder) => ListTile(
-                    leading: const Icon(
-                      Icons.folder_shared,
-                      color: Colors.amber,
-                    ),
-                    title: Text(folder.name),
-                    subtitle: Text(
-                      folder.path,
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    onTap: () => _navigateTo(folder),
-                    trailing: IconButton(
-                      icon: const Icon(
-                        Icons.remove_circle_outline,
-                        color: Colors.red,
+                  (folder) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onSecondaryTapDown: (details) {
+                      unawaited(
+                        showFolderContextMenu(
+                          context,
+                          details.globalPosition,
+                          folderPath: folder.path,
+                        ),
+                      );
+                    },
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.folder_shared,
+                        color: Colors.amber,
                       ),
-                      onPressed: () => scanner.removeRootPath(folder.path),
+                      title: Text(folder.name),
+                      subtitle: Text(
+                        folder.path,
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      onTap: () => _navigateTo(folder, scanner),
+                      trailing: IconButton(
+                        icon: const Icon(
+                          Icons.remove_circle_outline,
+                          color: Colors.red,
+                        ),
+                        onPressed: () => scanner.removeRootPath(folder.path),
+                      ),
                     ),
                   ),
                 ),
@@ -152,31 +262,54 @@ class _FoldersPageState extends State<FoldersPage> {
         ],
       );
     } else {
-      currentBody = WillPopScope(
-        onWillPop: () async {
-          if (_history.isNotEmpty || _currentFolder != null) {
-            _goBack();
-            return false;
+      currentBody = PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (scanner.navigationHistory.isNotEmpty ||
+              scanner.navigationCurrentFolder != null) {
+            _goBack(scanner);
           }
-          return true;
         },
         child: Column(
           children: [
             if (Platform.isWindows) const SizedBox(height: 32),
-            _buildBreadcrumbs(_currentFolder!, scanner),
+            _buildBreadcrumbs(currentFolder, scanner),
+            if (_isSelectionMode)
+              Container(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.selectedSongs(_selectedSongPaths.length),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _toggleSelectionMode,
+                      child: Text(AppLocalizations.of(context)!.cancel),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: ListView(
-                padding: EdgeInsets.only(bottom: Platform.isWindows ? 84 : 0),
+                controller: _scrollController,
+                padding: const EdgeInsets.only(bottom: 160),
                 children: [
                   ListTile(
                     leading: const Icon(Icons.arrow_back),
-                    title: const Text('返回上一层'),
-                    onTap: _goBack,
+                    title: Text(AppLocalizations.of(context)!.goBack),
+                    onTap: () => _goBack(scanner),
                   ),
 
                   // Show Permission Button if in system folder and no permission
-                  if (_currentFolder!.path == 'system' &&
-                      !scanner.hasPermission)
+                  if (currentFolder.path == 'system' && !scanner.hasPermission)
                     Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Center(
@@ -188,47 +321,175 @@ class _FoldersPageState extends State<FoldersPage> {
                               color: Colors.grey,
                             ),
                             const SizedBox(height: 16),
-                            const Text('未获得媒体库访问权限'),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.noMediaLibraryPermission,
+                            ),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () =>
                                   scanner.checkAndRequestPermissions(),
-                              child: const Text('给予权限'),
+                              child: Text(
+                                AppLocalizations.of(context)!.grantPermission,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
 
-                  ..._currentFolder!.subFolders.map(
-                    (folder) => ListTile(
-                      leading: const Icon(Icons.folder, color: Colors.amber),
-                      title: Text(folder.name),
-                      onTap: () => _navigateTo(folder),
-                    ),
-                  ),
-                  ..._currentFolder!.files.map(
-                    (file) => ListTile(
-                      leading: SongThumbnail(path: file.path, id: file.id),
-                      title: Text(file.name),
-                      onTap: () {
-                        if (Platform.isAndroid) {
-                          final index = _currentFolder!.files.indexOf(file);
-                          audio.playPlaylist(
-                            _currentFolder!.files,
-                            initialIndex: index,
-                          );
-                        } else {
-                          audio.playFile(file.path, file.name, id: file.id);
-                        }
-                        context.read<PageController>().animateToPage(
-                          1,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
+                  ...currentFolder.subFolders.map(
+                    (folder) => GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onSecondaryTapDown: (details) {
+                        unawaited(
+                          showFolderContextMenu(
+                            context,
+                            details.globalPosition,
+                            folderPath: folder.path,
+                          ),
                         );
                       },
+                      child: ListTile(
+                        leading: const Icon(Icons.folder, color: Colors.amber),
+                        title: Text(folder.name),
+                        onTap: () => _navigateTo(folder, scanner),
+                      ),
                     ),
                   ),
+                  ...currentFolder.files.map(
+                    (file) => GestureDetector(
+                      key: ValueKey(file.path),
+                      behavior: HitTestBehavior.opaque,
+                      onSecondaryTapDown: (details) {
+                        final songsToAdd = _selectedSongPaths.isNotEmpty
+                            ? _selectedSongsFromFolder(currentFolder.files)
+                            : <MusicFile>[file];
+                        unawaited(
+                          showSongContextMenu(
+                            context,
+                            details.globalPosition,
+                            song: file,
+                            mode: SongContextMenuMode.full,
+                            onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                              context,
+                              ref.read(playlistServiceProvider),
+                              songsToAdd,
+                            ),
+                          ),
+                        );
+                      },
+                      child: ListTile(
+                        leading: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Opacity(
+                                opacity: _isSelectionMode
+                                    ? (_selectedSongPaths.contains(file.path)
+                                          ? 0.5
+                                          : 0.7)
+                                    : 1.0,
+                                child: SongThumbnail(
+                                  path: file.path,
+                                  id: file.id,
+                                ),
+                              ),
+                              if (_isSelectionMode)
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: SizedBox(
+                                      width: 32,
+                                      height: 32,
+                                      child: Checkbox(
+                                        value: _selectedSongPaths.contains(
+                                          file.path,
+                                        ),
+                                        onChanged: (_) =>
+                                            _toggleSelection(file.path),
+                                        fillColor: WidgetStateProperty.all(
+                                          Colors.white,
+                                        ),
+                                        checkColor: Colors.black,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        title: Text(file.displayName),
+                        subtitle: Text(
+                          '${file.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${file.album ?? AppLocalizations.of(context)!.unknownAlbum}',
+                          style: const TextStyle(fontSize: 10),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onLongPress: () {
+                          if (!_isSelectionMode) {
+                            _toggleSelectionMode();
+                            _toggleSelection(file.path);
+                          }
+                        },
+                        onTap: _isSelectionMode
+                            ? () => _toggleSelection(file.path)
+                            : () async {
+                                final index = currentFolder.files.indexOf(file);
+                                await audio.playPlaylist(
+                                  currentFolder.files,
+                                  initialIndex: index,
+                                );
+                                if (mounted) {
+                                  await widget.onOpenPlayback?.call();
+                                }
+                              },
+                      ),
+                    ),
+                  ),
+                  if (_isSelectionMode)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: _selectedSongPaths.isEmpty
+                                ? null
+                                : () {
+                                    final selectedSongs =
+                                        _selectedSongsFromFolder(
+                                          currentFolder.files,
+                                        );
+                                    showAddSongsToPlaylistDialog(
+                                      context,
+                                      ref.read(playlistServiceProvider),
+                                      selectedSongs,
+                                    );
+                                  },
+                            icon: const Icon(Icons.playlist_add),
+                            label: Text(
+                              AppLocalizations.of(context)!.addToPlaylist,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: _toggleSelectionMode,
+                            child: Text(AppLocalizations.of(context)!.cancel),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -245,7 +506,7 @@ class _FoldersPageState extends State<FoldersPage> {
             right: 24,
             bottom: 84, // 24 + 60 (NavigationBar height)
             child: FloatingActionButton(
-              tooltip: '重建标签数据库',
+              tooltip: AppLocalizations.of(context)!.rebuildTagDatabase,
               onPressed: () => _showRebuildDialog(context, scanner),
               child: scanner.isScanning
                   ? const SizedBox(
@@ -267,22 +528,28 @@ class _FoldersPageState extends State<FoldersPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('重建数据库'),
-        content: const Text('确定要手动刷新所有歌曲的标签信息吗？这可能需要一些时间来重新加载封面和元数据。'),
+        title: Text(AppLocalizations.of(context)!.rebuildDatabase),
+        content: Text(AppLocalizations.of(context)!.confirmRebuildDatabase),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               scanner.rebuildMetadataDatabase();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('正在重建歌曲标签数据库...')));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.rebuildingDatabase,
+                    ),
+                  ),
+                );
+              }
             },
-            child: const Text('确定'),
+            child: Text(AppLocalizations.of(context)!.confirm),
           ),
         ],
       ),
@@ -296,72 +563,45 @@ class _FoldersPageState extends State<FoldersPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('排序方式'),
+              title: Text(AppLocalizations.of(context)!.sortBy),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  RadioListTile<SortCriteria>(
-                    title: const Text('标题'),
-                    value: SortCriteria.title,
-                    groupValue: scanner.sortCriteria,
+                  RadioGroup(
                     onChanged: (v) {
                       if (v != null) {
                         scanner.setSortCriteria(v);
                         setState(() {});
                       }
                     },
-                  ),
-                  RadioListTile<SortCriteria>(
-                    title: const Text('文件名'),
-                    value: SortCriteria.filename,
                     groupValue: scanner.sortCriteria,
-                    onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortCriteria(v);
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  RadioListTile<SortCriteria>(
-                    title: const Text('轨道号 (Track Number)'),
-                    value: SortCriteria.trackNumber,
-                    groupValue: scanner.sortCriteria,
-                    onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortCriteria(v);
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  const Divider(),
-                  RadioListTile<SortOrder>(
-                    title: const Text('升序'),
-                    value: SortOrder.ascending,
-                    groupValue: scanner.sortOrder,
-                    onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortOrder(v);
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  RadioListTile<SortOrder>(
-                    title: const Text('降序'),
-                    value: SortOrder.descending,
-                    groupValue: scanner.sortOrder,
-                    onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortOrder(v);
-                        setState(() {});
-                      }
-                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          title: Text(AppLocalizations.of(context)!.title),
+                          leading: Radio(value: SortCriteria.title),
+                        ),
+                        ListTile(
+                          title: Text(AppLocalizations.of(context)!.fileName),
+                          leading: Radio(value: SortCriteria.filename),
+                        ),
+
+                        ListTile(
+                          title: Text(
+                            AppLocalizations.of(context)!.trackNumber,
+                          ),
+                          leading: Radio(value: SortCriteria.trackNumber),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('确定'),
+                  child: Text(AppLocalizations.of(context)!.confirm),
                 ),
               ],
             );
@@ -380,10 +620,7 @@ class _FoldersPageState extends State<FoldersPage> {
     breadcrumbItems.add(
       InkWell(
         onTap: () {
-          setState(() {
-            _currentFolder = null;
-            _history.clear();
-          });
+          _goHome(scanner);
         },
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -393,25 +630,26 @@ class _FoldersPageState extends State<FoldersPage> {
     );
 
     // 历史路径段
-    for (int i = 0; i < _history.length; i++) {
-      final folder = _history[i];
+    for (int i = 0; i < scanner.navigationHistory.length; i++) {
+      final folder = scanner.navigationHistory[i];
       breadcrumbItems.add(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Icon(
             Icons.chevron_right,
             size: 20,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
         ),
       );
       breadcrumbItems.add(
         InkWell(
           onTap: () {
-            setState(() {
-              _currentFolder = folder;
-              _history.removeRange(i, _history.length);
-            });
+            scanner.setNavigationState(
+              folder,
+              scanner.navigationHistory.take(i).toList(),
+            );
+            _scrollToTop();
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
@@ -428,7 +666,7 @@ class _FoldersPageState extends State<FoldersPage> {
         child: Icon(
           Icons.chevron_right,
           size: 20,
-          color: theme.colorScheme.onSurface.withOpacity(0.3),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -451,7 +689,7 @@ class _FoldersPageState extends State<FoldersPage> {
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
-          bottom: BorderSide(color: theme.dividerColor.withOpacity(0.05)),
+          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.05)),
         ),
       ),
       child: Row(
@@ -465,7 +703,7 @@ class _FoldersPageState extends State<FoldersPage> {
           IconButton(
             icon: const Icon(Icons.sort),
             onPressed: () => _showSortDialog(context, scanner),
-            tooltip: '排序',
+            tooltip: AppLocalizations.of(context)!.sort,
           ),
         ],
       ),

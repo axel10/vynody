@@ -1,0 +1,472 @@
+{
+  "@@locale": "zh",
+  "appTitle": "Pure Player",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "systemMediaLibrary": "系统媒体库",
+  "@systemMediaLibrary": {
+    "description": "System media library"
+  },
+  "scanningDirectory": "正在扫描目录...",
+  "@scanningDirectory": {
+    "description": "Scanning directory message"
+  },
+  "directoryAddedSuccess": "目录添加成功",
+  "@directoryAddedSuccess": {
+    "description": "Directory added successfully"
+  },
+  "directoryAddedNoMusic": "目录已添加，但未发现可播放音频文件",
+  "@directoryAddedNoMusic": {
+    "description": "Directory added but no audio files found"
+  },
+  "scanDirectory": "扫描目录",
+  "@scanDirectory": {
+    "description": "Scan directory button"
+  },
+  "sort": "排序",
+  "@sort": {
+    "description": "Sort option"
+  },
+  "addRootDirectory": "添加根目录",
+  "@addRootDirectory": {
+    "description": "Add root directory"
+  },
+  "goBack": "返回上一层",
+  "@goBack": {
+    "description": "Go back to parent directory"
+  },
+  "noMediaLibraryPermission": "未获得媒体库访问权限",
+  "@noMediaLibraryPermission": {
+    "description": "No media library permission"
+  },
+  "grantPermission": "给予权限",
+  "@grantPermission": {
+    "description": "Grant permission button"
+  },
+  "needPermissionToScan": "需授予权限以扫描本地音乐",
+  "@needPermissionToScan": {
+    "description": "Need permission to scan local music"
+  },
+  "rebuildTagDatabase": "重建标签数据库",
+  "@rebuildTagDatabase": {
+    "description": "Rebuild tag database"
+  },
+  "rebuildDatabase": "重建数据库",
+  "@rebuildDatabase": {
+    "description": "Rebuild database"
+  },
+  "confirmRebuildDatabase": "确定要手动刷新所有歌曲的标签信息吗？这可能需要一些时间来重新加载封面和元数据。",
+  "@confirmRebuildDatabase": {
+    "description": "Confirm rebuild database message"
+  },
+  "cancel": "取消",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+  "confirm": "确定",
+  "@confirm": {
+    "description": "Confirm button"
+  },
+  "rebuildingDatabase": "正在重建歌曲标签数据库...",
+  "@rebuildingDatabase": {
+    "description": "Rebuilding database message"
+  },
+  "sortBy": "排序方式",
+  "@sortBy": {
+    "description": "Sort by"
+  },
+  "title": "标题",
+  "@title": {
+    "description": "Title"
+  },
+  "fileName": "文件名",
+  "@fileName": {
+    "description": "File name"
+  },
+  "trackNumber": "轨道号",
+  "@trackNumber": {
+    "description": "Track number"
+  },
+  "ascending": "升序",
+  "@ascending": {
+    "description": "Ascending order"
+  },
+  "descending": "降序",
+  "@descending": {
+    "description": "Descending order"
+  },
+  "visualizerSettings": "播放页设置",
+  "@visualizerSettings": {
+    "description": "Visualizer settings"
+  },
+  "algorithm": "频谱",
+  "@algorithm": {
+    "description": "Spectrum tab"
+  },
+  "appearance": "外观",
+  "@appearance": {
+    "description": "Appearance tab"
+  },
+  "spectrumAppearanceGroup": "频谱外观",
+  "@spectrumAppearanceGroup": {
+    "description": "Spectrum appearance group"
+  },
+  "spectrumAdvancedOptions": "频谱高级选项",
+  "@spectrumAdvancedOptions": {
+    "description": "Spectrum advanced options"
+  },
+  "resetAlgorithm": "重置算法",
+  "@resetAlgorithm": {
+    "description": "Reset algorithm button"
+  },
+  "resetAppearance": "重置外观",
+  "@resetAppearance": {
+    "description": "Reset appearance button"
+  },
+  "smoothing": "平滑系数 (Smoothing)",
+  "@smoothing": {
+    "description": "Smoothing coefficient"
+  },
+  "gravity": "重力系数 (Gravity)",
+  "@gravity": {
+    "description": "Gravity coefficient"
+  },
+  "logScale": "对数缩放 (Log Scale)",
+  "@logScale": {
+    "description": "Log scale"
+  },
+  "contrast": "对比度 (Contrast)",
+  "@contrast": {
+    "description": "Contrast"
+  },
+  "normalization": "归一化 (Normalization)",
+  "@normalization": {
+    "description": "Normalization"
+  },
+  "multiplier": "增益 (Multiplier)",
+  "@multiplier": {
+    "description": "Multiplier"
+  },
+  "skipHighFrequency": "跳过高频",
+  "@skipHighFrequency": {
+    "description": "Skip high frequency"
+  },
+  "frequencyGroups": "频率分组 (Frequency Groups)",
+  "@frequencyGroups": {
+    "description": "Frequency groups"
+  },
+  "aggregationMode": "聚合模式 (Aggregation Mode)",
+  "@aggregationMode": {
+    "description": "Aggregation mode"
+  },
+  "opacity": "透明度 (Opacity)",
+  "@opacity": {
+    "description": "Opacity"
+  },
+  "enableGradient": "启用渐变色",
+  "@enableGradient": {
+    "description": "Enable gradient"
+  },
+  "startColor": "起始颜色",
+  "@startColor": {
+    "description": "Start color"
+  },
+  "endColor": "结束颜色",
+  "@endColor": {
+    "description": "End color"
+  },
+  "gradientRangeStop1": "渐变范围 Stop 1",
+  "@gradientRangeStop1": {
+    "description": "Gradient range stop 1"
+  },
+  "gradientRangeStop2": "渐变范围 Stop 2",
+  "@gradientRangeStop2": {
+    "description": "Gradient range stop 2"
+  },
+  "gradientRepeatMode": "渐变重复模式 (TileMode)",
+  "@gradientRepeatMode": {
+    "description": "Gradient repeat mode"
+  },
+  "color": "颜色",
+  "@color": {
+    "description": "Color"
+  },
+  "followCoverColor": "跟随封面变色",
+  "@followCoverColor": {
+    "description": "Follow cover color"
+  },
+  "selectColor": "选择颜色",
+  "@selectColor": {
+    "description": "Select color"
+  },
+  "volume": "音量",
+  "@volume": {
+    "description": "Volume"
+  },
+  "clearQueue": "清空队列",
+  "@clearQueue": {
+    "description": "Clear queue"
+  },
+  "confirmClearQueue": "确定要清空当前队列吗？",
+  "@confirmClearQueue": {
+    "description": "Confirm clear queue message"
+  },
+  "queueCleared": "队列已清空",
+  "@queueCleared": {
+    "description": "Queue cleared message"
+  },
+  "queue": "队列",
+  "@queue": {
+    "description": "Queue"
+  },
+  "queueEmpty": "队列为空",
+  "@queueEmpty": {
+    "description": "Queue is empty"
+  },
+  "selectedSongs": "已选择 {count} 首",
+  "@selectedSongs": {
+    "description": "Selected songs count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unknownArtist": "未知艺术家",
+  "@unknownArtist": {
+    "description": "Unknown artist"
+  },
+  "deletedSongs": "已删除 {count} 首歌曲",
+  "@deletedSongs": {
+    "description": "Deleted songs count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "delete": "删除",
+  "@delete": {
+    "description": "Delete button"
+  },
+  "createPlaylist": "创建播放列表",
+  "@createPlaylist": {
+    "description": "Create playlist"
+  },
+  "playlistName": "播放列表名称",
+  "@playlistName": {
+    "description": "Playlist name"
+  },
+  "enterPlaylistName": "请输入播放列表名称",
+  "@enterPlaylistName": {
+    "description": "Enter playlist name hint"
+  },
+  "renamePlaylist": "重命名播放列表",
+  "@renamePlaylist": {
+    "description": "Rename playlist"
+  },
+  "deletePlaylist": "删除播放列表",
+  "@deletePlaylist": {
+    "description": "Delete playlist"
+  },
+  "confirmDeletePlaylist": "确定要删除播放列表\"{name}\"吗？",
+  "@confirmDeletePlaylist": {
+    "description": "Confirm delete playlist message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addToPlaylist": "添加到播放列表",
+  "@addToPlaylist": {
+    "description": "Add to playlist"
+  },
+  "songCount": "{count} 首歌曲",
+  "@songCount": {
+    "description": "Song count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedToPlaylist": "已添加 {count} 首歌曲到{playlist}",
+  "@addedToPlaylist": {
+    "description": "Added to playlist message",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "playlist": {
+        "type": "String"
+      }
+    }
+  },
+  "createNewList": "新建列表",
+  "@createNewList": {
+    "description": "Create new list"
+  },
+  "createdPlaylist": "已创建播放列表\"{name}\"并添加 {count} 首歌曲",
+  "@createdPlaylist": {
+    "description": "Created playlist message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rename": "重命名",
+  "@rename": {
+    "description": "Rename"
+  },
+  "playlist": "播放列表",
+  "@playlist": {
+    "description": "Playlist"
+  },
+  "emptyList": "列表为空",
+  "@emptyList": {
+    "description": "List is empty"
+  },
+  "dragToAddMusic": "拖入文件或文件夹以添加音乐",
+  "@dragToAddMusic": {
+    "description": "Drag to add music hint"
+  },
+  "unknownAlbum": "未知专辑",
+  "@unknownAlbum": {
+    "description": "Unknown album"
+  },
+  "managePlaylists": "管理播放列表",
+  "@managePlaylists": {
+    "description": "Manage playlists"
+  },
+  "createNewPlaylist": "创建新播放列表",
+  "@createNewPlaylist": {
+    "description": "Create new playlist"
+  },
+  "defaultList": "默认列表",
+  "@defaultList": {
+    "description": "Default playlist"
+  },
+  "playbackMode": "播放模式",
+  "@playbackMode": {
+    "description": "Playback mode"
+  },
+  "playbackOptions": "播放选项",
+  "@playbackOptions": {
+    "description": "Playback options"
+  },
+  "setVisualizerDisplay": "设置频谱显示",
+  "@setVisualizerDisplay": {
+    "description": "Set visualizer display"
+  },
+  "noPlaybackContent": "当前没有播放内容",
+  "@noPlaybackContent": {
+    "description": "No playback content"
+  },
+  "file": "文件",
+  "@file": {
+    "description": "File tab"
+  },
+  "play": "播放",
+  "@play": {
+    "description": "Play tab"
+  },
+  "list": "列表",
+  "@list": {
+    "description": "List tab"
+  },
+  "queueTab": "队列",
+  "@queueTab": {
+    "description": "Queue tab"
+  },
+  "more": "更多",
+  "@more": {
+    "description": "More tab"
+  },
+  "settings": "设置",
+  "@settings": {
+    "description": "Settings"
+  },
+  "immersiveTabBar": "沉浸式标签栏",
+  "@immersiveTabBar": {
+    "description": "Immersive Tab Bar label"
+  },
+  "immersiveTabBarDescription": "鼠标移动时显示导航栏，3 秒无操作后隐藏",
+  "@immersiveTabBarDescription": {
+    "description": "Immersive Tab Bar description"
+  },
+  "sampleStride": "采样步长",
+  "@sampleStride": {
+    "description": "Sample Stride label"
+  },
+  "sampleStrideDescription": "值越大扫描越快但波形精度越低 (默认: 4)",
+  "@sampleStrideDescription": {
+    "description": "Sample Stride description"
+  },
+  "waveformSegments": "波形分段",
+  "@waveformSegments": {
+    "description": "Waveform Segments label"
+  },
+  "waveformSegmentsDescription": "要显示的波形柱数量 (默认: 80)",
+  "@waveformSegmentsDescription": {
+    "description": "Waveform Segments description"
+  },
+  "playbackBackground": "播放页背景",
+  "blurredArtwork": "模糊封面 (默认)",
+  "dynamicMesh": "动态流变 (Apple Music 效果)",
+  "unknown": "未知",
+  "playlistModeSingle": "单曲播放",
+  "playlistModeSingleLoop": "单曲循环",
+  "playlistModeQueue": "播放列表",
+  "playlistModeQueueLoop": "列表循环",
+  "playlistModeAutoQueueLoop": "自动列表循环",
+  "visualizer": "可视化",
+  "previous": "上一首",
+  "next": "下一首",
+  "pause": "暂停",
+  "autoMode": "自动模式",
+  "advancedOptions": "高级选项",
+  "spectrumQuantity": "频谱数量",
+  "speed": "速度",
+  "quantityHigh": "多",
+  "quantityMedium": "中",
+  "quantityLow": "少",
+  "speedFast": "快",
+  "speedMedium": "中",
+  "speedSlow": "慢",
+  "portraitFrequencyGroups": "竖屏频谱数量",
+  "landscapeFrequencyGroups": "横屏频谱数量",
+  "portraitGap": "竖屏频谱间距",
+  "landscapeGap": "横屏频谱间距",
+  "enableWaveformProgressBar": "启用波形进度条",
+  "@enableWaveformProgressBar": {
+    "description": "Enable Waveform Progress Bar label"
+  },
+  "enableWaveformProgressBarDescription": "使用整首歌的波形图代替标准滑块",
+  "randomMode": "随机模式",
+  "randomHistory": "随机历史",
+  "randomRange": "随机范围",
+  "randomMethod": "随机方式",
+  "currentQueue": "当前队列",
+  "globalRange": "全局 (包含所有列表歌曲)",
+  "completeRandom": "完全随机",
+  "shuffleRandom": "洗牌随机",
+  "randomQueue": "随机队列",
+  "notSelected": "未选择音乐",
+  "saveTagsToFile": "保存标签到文件",
+  "saveCurrentTagsToFile": "保存当前歌曲标签到文件",
+  "saveQueueTagsToFile": "保存队列中所有标签到文件",
+  "tagsSaved": "标签保存成功",
+  "tagsSavedCount": "标签已保存 ({count} 首)",
+  "tagsSaveFailed": "保存标签失败",
+  "tagsSaveFailedCount": "{count} 首保存失败",
+  "unsupportedFormat": "{count} 首歌曲格式不支持保存标签 (OGG/Opus)",
+  "unsupportedFormatSingle": "此格式 (OGG/Opus) 不支持保存标签",
+  "savingTags": "正在保存标签...",
+  "noModifiedTagsToSave": "没有需要保存的已修改标签"
+}

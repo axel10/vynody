@@ -1,18 +1,73 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:metadata_god/metadata_god.dart';
-import 'package:provider/provider.dart';
-import 'package:window_manager/window_manager.dart';
-import 'player/audio_service.dart';
-import 'player/scanner_service.dart';
-import 'pages/folder_page.dart';
-import 'pages/playback_page.dart';
-import 'pages/playlist_page.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:windows_single_instance/windows_single_instance.dart';
+import 'l10n/app_localizations.dart';
+import 'pages/main_layout.dart';
+import 'player/audio_riverpod.dart';
+import 'player/settings_service.dart';
+import 'package:smtc_windows/smtc_windows.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+/// 处理从外部（如双击、命令行）打开的文件列表
+/// [args] 是外部传入的路径参数列表
+void handleFileOpen(List<String> args) {
+  if (args.isEmpty) return;
+  final context = navigatorKey.currentContext; // 获取全局导航上下文以访问 Provider
+  if (context == null) return;
+
+  final container = ProviderScope.containerOf(context);
+  final audio = container.read(audioServiceProvider);
+  // 支持的音频格式列表
+  final List<String> audioExtensions = [
+    '.mp3',
+    '.m4a',
+    '.wav',
+    '.flac',
+    '.ogg',
+  ];
+
+  for (var arg in args) {
+    // 处理路径中可能的双引号和两端空格
+    final path = arg.replaceAll('"', '').trim();
+    if (path.isEmpty) continue;
+
+    // 检查文件是否存在
+    if (File(path).existsSync()) {
+      final ext = p.extension(path).toLowerCase();
+      // 如果是支持的音频文件
+      if (audioExtensions.contains(ext)) {
+        // 将文件添加到播放队列并开始播放
+        // append: true 表示将其添加到队列末尾并切换到该歌曲播放
+        audio.playFile(path, p.basename(path), append: true);
+
+        // 自动跳转到播放详情界面（索引为1的 Tab）
+        navigateToMainTab(context, index: 1);
+
+        // 逻辑：匹配到第一个支持的文件即处理并跳出，避免一次打开大量文件导致界面混乱
+        break;
+      }
+    }
+  }
+}
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows) {
+    await WindowsSingleInstance.ensureSingleInstance(
+      args,
+      "custom_identifier",
+      onSecondWindow: (args) {
+        handleFileOpen(args);
+      },
+    );
+  }
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
@@ -31,17 +86,21 @@ void main(List<String> args) async {
     });
   }
 
-  MediaKit.ensureInitialized();
-  if (Platform.isWindows || Platform.isLinux) {
-    MetadataGod.initialize();
+  if (Platform.isWindows) {
+    await SMTCWindows.initialize();
   }
+
+  final settingsService = await SettingsService.init();
+
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AudioService()),
-        ChangeNotifierProvider(create: (_) => ScannerService()),
-      ],
-      child: MyApp(args: args),
+    ProviderScope(
+      overrides: [settingsServiceProvider.overrideWithValue(settingsService)],
+      child: Consumer(
+        builder: (context, ref, _) {
+          ref.watch(audioServiceWiringProvider);
+          return MyApp(args: args);
+        },
+      ),
     ),
   );
 }
@@ -53,7 +112,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const fontFallbacks = [
+      'SourceHanSansCN',
       'MiSans',
+      'Meiryo',
+      'Yu Gothic',
       'HarmonyOS Sans SC',
       'OPPOSans',
       'VivoSans',
@@ -73,7 +135,7 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
-        fontFamily: 'MiSans',
+        fontFamily: 'SourceHanSansCN',
         fontFamilyFallback: fontFallbacks,
       ),
       darkTheme: ThemeData(
@@ -82,179 +144,18 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        fontFamily: 'SourceHanSansCN',
         fontFamilyFallback: fontFallbacks,
       ),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en'), Locale('zh')],
       home: MainLayout(args: args),
-    );
-  }
-}
-
-class MainLayout extends StatefulWidget {
-  final List<String> args;
-  const MainLayout({super.key, required this.args});
-
-  @override
-  State<MainLayout> createState() => _MainLayoutState();
-}
-
-class _MainLayoutState extends State<MainLayout> {
-  late PageController _pageController;
-  int _currentIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: 0);
-
-    // Handle command line arguments on Windows
-    if (Platform.isWindows) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _handleArgs();
-      });
-    }
-  }
-
-  Future<void> _handleArgs() async {
-    final args = widget.args;
-    // On Windows, the first argument is often the executable itself,
-    // but when opening a file, it might be the second.
-    // However, Flutter's Platform.executableArguments might behave differently.
-    // Actually, WindowManager or another package might be better for "open with",
-    // but let's try reading args directly.
-
-    final audio = context.read<AudioService>();
-    final List<String> audioExtensions = [
-      '.mp3',
-      '.m4a',
-      '.wav',
-      '.flac',
-      '.ogg',
-    ];
-
-    for (var arg in args) {
-      if (File(arg).existsSync()) {
-        final ext = p.extension(arg).toLowerCase();
-        if (audioExtensions.contains(ext)) {
-          audio.playFile(arg, p.basename(arg));
-          _onDestinationSelected(1); // Go to playback page
-          break; // Only play the first one for now as per requirement "playlist only contain that music file"
-        }
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _onPageChanged(int index) {
-    if (mounted) {
-      setState(() {
-        _currentIndex = index;
-      });
-    }
-  }
-
-  void _onDestinationSelected(int index) {
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      const FoldersPage(),
-      const PlaybackPage(),
-      const PlaylistPage(),
-    ];
-
-    final bool isPlayback = _currentIndex == 1;
-
-    return ListenableProvider<PageController>.value(
-      value: _pageController,
-      child: Scaffold(
-        extendBody: true,
-        body: Stack(
-          children: [
-            PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              children: pages,
-            ),
-            if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Column(
-                  children: [
-                    DragToMoveArea(
-                      child: SizedBox(
-                        height: 32,
-                        child: WindowCaption(
-                          brightness: isPlayback
-                              ? Brightness.dark
-                              : Theme.of(context).brightness,
-                          backgroundColor: Colors.transparent,
-                          title: const SizedBox(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          height: 60,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-          selectedIndex: _currentIndex,
-          backgroundColor: isPlayback ? Colors.transparent : null,
-          elevation: 0,
-          indicatorColor: isPlayback ? Colors.transparent : null,
-          onDestinationSelected: _onDestinationSelected,
-          destinations: [
-            NavigationDestination(
-              icon: Icon(
-                Icons.folder_outlined,
-                color: isPlayback ? Colors.white70 : null,
-              ),
-              selectedIcon: Icon(
-                Icons.folder,
-                color: isPlayback ? Colors.white : null,
-              ),
-              label: '文件',
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.play_circle_outline,
-                color: isPlayback ? Colors.white70 : null,
-              ),
-              selectedIcon: Icon(
-                Icons.play_circle,
-                color: isPlayback ? Colors.white : null,
-              ),
-              label: '播放',
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.playlist_play_outlined,
-                color: isPlayback ? Colors.white70 : null,
-              ),
-              selectedIcon: Icon(
-                Icons.playlist_play,
-                color: isPlayback ? Colors.white : null,
-              ),
-              label: '列表',
-            ),
-          ],
-        ),
-      ),
+      navigatorKey: navigatorKey,
     );
   }
 }

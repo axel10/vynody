@@ -1,0 +1,868 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:window_manager/window_manager.dart';
+
+import '../l10n/app_localizations.dart';
+import '../player/audio_riverpod.dart';
+import '../player/audio_service.dart';
+import '../pages/folder_page.dart';
+import '../pages/playback_page.dart';
+import '../pages/playlist_page.dart';
+import '../pages/queue_page.dart';
+import '../pages/settings_page.dart';
+import '../widgets/playback_hero_card.dart';
+import '../widgets/volume_controls.dart';
+import '../widgets/global_drop_target.dart';
+import 'dart:async';
+
+Route<void> buildMainLayoutRoute({
+  required List<String> args,
+  required int initialIndex,
+}) {
+  return PageRouteBuilder<void>(
+    settings: RouteSettings(name: 'main-tab-$initialIndex'),
+    pageBuilder: (context, animation, secondaryAnimation) =>
+        MainLayout(args: args, initialIndex: initialIndex),
+    transitionDuration: const Duration(milliseconds: 320),
+    reverseTransitionDuration: const Duration(milliseconds: 320),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return child;
+    },
+  );
+}
+
+Future<void> navigateToMainTab(
+  BuildContext context, {
+  required int index,
+  List<String> args = const [],
+}) {
+  return Navigator.of(
+    context,
+  ).pushReplacement(buildMainLayoutRoute(args: args, initialIndex: index));
+}
+
+class PlayPauseIntent extends Intent {
+  const PlayPauseIntent();
+}
+
+class NextIntent extends Intent {
+  const NextIntent();
+}
+
+class PreviousIntent extends Intent {
+  const PreviousIntent();
+}
+
+class VolumeUpIntent extends Intent {
+  const VolumeUpIntent();
+}
+
+class VolumeDownIntent extends Intent {
+  const VolumeDownIntent();
+}
+
+class MuteIntent extends Intent {
+  const MuteIntent();
+}
+
+class SeekForwardIntent extends Intent {
+  const SeekForwardIntent();
+}
+
+class SeekBackwardIntent extends Intent {
+  const SeekBackwardIntent();
+}
+
+class ToggleFullScreenIntent extends Intent {
+  const ToggleFullScreenIntent();
+}
+
+class MainLayout extends ConsumerStatefulWidget {
+  final List<String> args;
+  final int initialIndex;
+
+  const MainLayout({super.key, required this.args, this.initialIndex = 1});
+
+  @override
+  ConsumerState<MainLayout> createState() => _MainLayoutState();
+}
+
+class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
+  late int _currentIndex;
+  bool _showVolumeHUD = false;
+  Timer? _hudTimer;
+  Timer? _immersiveTabBarTimer;
+  bool _showImmersiveTabBar = true;
+  double? _lastVolume;
+  // _isFullScreen 决定了标题栏全屏按钮的图标状态（全屏 vs 窗口化）
+  // 该状态通过 _syncWindowState() 与原生窗口状态保持同步
+  bool _isFullScreen = false;
+  bool _isMaximized = false;
+
+  AudioService get _audioService => ref.read(audioServiceProvider);
+
+  void _handleDesktopPointerActivity(PointerEvent event) {
+    if (event is PointerDownEvent) {
+      debugPrint('event.buttons: ${event.buttons}');
+      if (event.buttons == 16) {
+        // Forward button
+        _audioService.setVolume((_audioService.volume + 5).roundToDouble());
+      } else if (event.buttons == 8) {
+        // Back button
+        _audioService.setVolume((_audioService.volume - 5).roundToDouble());
+      }
+    }
+
+    if (_currentIndex != 1) {
+      return;
+    }
+    final settings = ref.read(settingsServiceProvider);
+    if (settings.isImmersiveTabBarEnabled) {
+      if (!_showImmersiveTabBar) {
+        setState(() {
+          _showImmersiveTabBar = true;
+        });
+      }
+      _immersiveTabBarTimer?.cancel();
+      _immersiveTabBarTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted &&
+            _currentIndex == 1 &&
+            ref.read(settingsServiceProvider).isImmersiveTabBarEnabled) {
+          setState(() {
+            _showImmersiveTabBar = false;
+          });
+        }
+        _immersiveTabBarTimer = null;
+      });
+    }
+  }
+
+  void _triggerHUD() {
+    if (!mounted) return;
+    setState(() {
+      _showVolumeHUD = true;
+    });
+    _hudTimer?.cancel();
+    _hudTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showVolumeHUD = false;
+        });
+      }
+    });
+  }
+
+  // 同步当前原生窗口状态到 Flutter UI 状态
+  Future<void> _syncWindowState() async {
+    if (!mounted) return;
+
+    final isFull = await windowManager.isFullScreen();
+    final isMax = await windowManager.isMaximized();
+    if (mounted) {
+      if (_isFullScreen != isFull || _isMaximized != isMax) {
+        setState(() {
+          _isFullScreen = isFull;
+          _isMaximized = isMax;
+        });
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _lastVolume = ref.read(audioVolumeProvider);
+
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    if (isDesktop) {
+      windowManager.addListener(this);
+      _syncWindowState();
+    }
+
+    if (Platform.isWindows) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleArgs();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.removeListener(this);
+    }
+    _hudTimer?.cancel();
+    _immersiveTabBarTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void onWindowEnterFullScreen() {
+    // 系统触发进入全屏时同步状态
+    unawaited(_syncWindowState());
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    // 系统触发退出全屏时同步状态
+
+    windowManager.setFullScreen(false);
+    // Future.delayed(Duration(milliseconds: 100));
+    unawaited(_syncWindowState());
+  }
+
+  @override
+  void onWindowMinimize() {
+    unawaited(_syncWindowState());
+  }
+
+  @override
+  void onWindowRestore() {
+    // 窗口从最小化恢复或从最大化恢复时都会触发
+    Future.delayed(const Duration(milliseconds: 50), () {
+      unawaited(_syncWindowState());
+    });
+  }
+
+  @override
+  void onWindowMaximize() {
+    unawaited(_syncWindowState());
+  }
+
+  @override
+  void onWindowUnmaximize() {
+    // 监听窗口取消最大化
+    debugPrint("--- 监听到取消最大化 ---");
+    // 强制执行状态同步，且略微延迟以等待原生 API 状态位翻转
+    Future.delayed(const Duration(milliseconds: 50), () {
+      unawaited(_syncWindowState());
+    });
+  }
+
+  Future<void> _setFullScreen(bool enable) async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      if (enable) {
+        await windowManager.maximize();
+        await windowManager.setFullScreen(true);
+      } else {
+        await windowManager.setFullScreen(false);
+        // 等待原生窗口状态同步，确保 unmaximize 能够正确执行
+        // await Future.delayed(const Duration(milliseconds: 100));
+        await windowManager.unmaximize();
+      }
+    }
+  }
+
+  /// 处理启动时的命令行参数 (初次启动，例如双击打开应用)
+  Future<void> _handleArgs() async {
+    // 无参数直接返回
+    if (widget.args.isEmpty) {
+      return;
+    }
+
+    final audio = ref.read(audioServiceProvider);
+    final List<String> audioExtensions = [
+      '.mp3',
+      '.m4a',
+      '.wav',
+      '.flac',
+      '.ogg',
+    ];
+
+    for (var arg in widget.args) {
+      // 预处理路径字符串
+      final path = arg.replaceAll('"', '').trim();
+      if (path.isEmpty) continue;
+
+      // 文件存在性校验
+      if (File(path).existsSync()) {
+        final ext = p.extension(path).toLowerCase();
+
+        // 匹配后缀
+        if (audioExtensions.contains(ext)) {
+          // 调用播放服务读取音频并播放
+          // append: true 确保该文件插入到底部立刻切歌
+          audio.playFile(path, p.basename(path), append: true);
+
+          if (!mounted) return;
+
+          // 切换到播放详情视图 (索引 1)
+          await navigateToMainTab(context, index: 1);
+
+          // 处理完一个核心音频文件后停止（通常双击只打开一个文件）
+          break;
+        }
+      }
+    }
+  }
+
+  Future<void> _onDestinationSelected(int index) async {
+    if (index == 4) {
+      await _openSettingsPage();
+      return;
+    }
+    if (index == _currentIndex) {
+      return;
+    }
+    await navigateToMainTab(context, index: index);
+  }
+
+  Future<void> _openSettingsPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsPage()),
+    );
+  }
+
+  Widget _buildTooltipIcon({
+    required String message,
+    required IconData icon,
+    Color? color,
+    double? size,
+  }) {
+    return Tooltip(
+      message: message,
+      child: Icon(icon, color: color, size: size),
+    );
+  }
+
+  Widget _buildCurrentPage(bool isDesktop, bool useSidebar) {
+    final bool isPlayback = _currentIndex == 1;
+    final double leftPadding = (useSidebar && !isPlayback) ? 80.0 : 0.0;
+
+    switch (_currentIndex) {
+      case 0:
+        return Padding(
+          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
+          child: FoldersPage(onOpenPlayback: () => _onDestinationSelected(1)),
+        );
+      case 1:
+        return const PlaybackPage();
+      case 2:
+        return Padding(
+          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
+          child: const PlaylistPage(),
+        );
+      case 3:
+        return Padding(
+          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
+          child: const QueuePage(),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  List<NavigationDestination> _buildBottomDestinations(
+    BuildContext context,
+    bool isPlayback,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      NavigationDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.file,
+          icon: Icons.folder_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.file,
+          icon: Icons.folder,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: l10n.file,
+      ),
+      NavigationDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.play,
+          icon: Icons.play_circle_outline,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.play,
+          icon: Icons.play_circle,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: l10n.play,
+      ),
+      NavigationDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.list,
+          icon: Icons.playlist_play_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.list,
+          icon: Icons.playlist_play,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: l10n.list,
+      ),
+      NavigationDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.queueTab,
+          icon: Icons.queue_music_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.queueTab,
+          icon: Icons.queue_music,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: l10n.queueTab,
+      ),
+      NavigationDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.settings,
+          icon: Icons.settings_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.settings,
+          icon: Icons.settings,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: l10n.settings,
+      ),
+    ];
+  }
+
+  List<NavigationRailDestination> _buildRailDestinations(
+    BuildContext context,
+    bool isPlayback,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      NavigationRailDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.file,
+          icon: Icons.folder_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.file,
+          icon: Icons.folder,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: Text(l10n.file),
+      ),
+      NavigationRailDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.play,
+          icon: Icons.play_circle_outline,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.play,
+          icon: Icons.play_circle,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: Text(l10n.play),
+      ),
+      NavigationRailDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.list,
+          icon: Icons.playlist_play_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.list,
+          icon: Icons.playlist_play,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: Text(l10n.list),
+      ),
+      NavigationRailDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.queueTab,
+          icon: Icons.queue_music_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.queueTab,
+          icon: Icons.queue_music,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: Text(l10n.queueTab),
+      ),
+      NavigationRailDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.settings,
+          icon: Icons.settings_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.settings,
+          icon: Icons.settings,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: Text(l10n.settings),
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<double>(audioVolumeProvider, (previous, next) {
+      if (!mounted) return;
+      if (_lastVolume != null && (_lastVolume! - next).abs() > 0.1) {
+        _triggerHUD();
+      }
+      _lastVolume = next;
+    });
+
+    final settings = ref.watch(settingsServiceProvider);
+    final theme = Theme.of(context);
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final bool isPlayback = _currentIndex == 1;
+    final navBgBaseColor =
+        theme.navigationBarTheme.backgroundColor ?? theme.colorScheme.surface;
+    final navIndicatorBaseColor =
+        theme.navigationBarTheme.indicatorColor ??
+        theme.colorScheme.secondaryContainer;
+    final navBgOpacityTarget = isPlayback ? 0.0 : 1.0;
+
+    final bool isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final bool useSidebar = isLandscape;
+    final bool hideImmersiveTabBar =
+        isDesktop &&
+        isPlayback &&
+        settings.isImmersiveTabBarEnabled &&
+        !_showImmersiveTabBar;
+
+    return Shortcuts(
+      shortcuts: <ShortcutActivator, Intent>{
+        const SingleActivator(LogicalKeyboardKey.space):
+            const PlayPauseIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowRight, control: true):
+            const NextIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true):
+            const PreviousIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowUp, control: true):
+            const VolumeUpIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowDown, control: true):
+            const VolumeDownIntent(),
+        const SingleActivator(LogicalKeyboardKey.keyM, control: true):
+            const MuteIntent(),
+        const SingleActivator(LogicalKeyboardKey.arrowLeft):
+            const SeekBackwardIntent(),
+        const SingleActivator(LogicalKeyboardKey.f11):
+            const ToggleFullScreenIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          PlayPauseIntent: CallbackAction<PlayPauseIntent>(
+            onInvoke: (_) => _audioService.togglePlay(),
+          ),
+          NextIntent: CallbackAction<NextIntent>(
+            onInvoke: (_) => _audioService.next(),
+          ),
+          PreviousIntent: CallbackAction<PreviousIntent>(
+            onInvoke: (_) => _audioService.previous(),
+          ),
+          VolumeUpIntent: CallbackAction<VolumeUpIntent>(
+            onInvoke: (_) => _audioService.setVolume(
+              (_audioService.volume + 5).roundToDouble(),
+            ),
+          ),
+          VolumeDownIntent: CallbackAction<VolumeDownIntent>(
+            onInvoke: (_) => _audioService.setVolume(
+              (_audioService.volume - 5).roundToDouble(),
+            ),
+          ),
+          MuteIntent: CallbackAction<MuteIntent>(
+            onInvoke: (_) => _audioService.toggleMute(),
+          ),
+          SeekForwardIntent: CallbackAction<SeekForwardIntent>(
+            onInvoke: (_) =>
+                _audioService.seekRelative(const Duration(seconds: 5)),
+          ),
+          SeekBackwardIntent: CallbackAction<SeekBackwardIntent>(
+            onInvoke: (_) =>
+                _audioService.seekRelative(const Duration(seconds: -5)),
+          ),
+          ToggleFullScreenIntent: CallbackAction<ToggleFullScreenIntent>(
+            onInvoke: (_) async {
+              await _setFullScreen(!_isFullScreen);
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: GlobalDropTarget(
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: _handleDesktopPointerActivity,
+              onPointerMove: _handleDesktopPointerActivity,
+              onPointerHover: _handleDesktopPointerActivity,
+              child: Scaffold(
+                extendBody: true,
+                body: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: _buildCurrentPage(isDesktop, useSidebar),
+                    ),
+                    if (useSidebar)
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          width: hideImmersiveTabBar ? 0.0 : 80.0,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: SizedBox(
+                              width: 80,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 500),
+                                opacity: hideImmersiveTabBar ? 0.0 : 1.0,
+                                child: TweenAnimationBuilder<double>(
+                                  duration: const Duration(milliseconds: 120),
+                                  curve: Curves.easeOut,
+                                  tween: Tween<double>(
+                                    begin: 1.0,
+                                    end: navBgOpacityTarget,
+                                  ),
+                                  builder: (context, animatedOpacity, child) {
+                                    return NavigationRail(
+                                      leading: isDesktop
+                                          ? const SizedBox(height: 32)
+                                          : null,
+                                      backgroundColor: Color.lerp(
+                                        Colors.transparent,
+                                        navBgBaseColor,
+                                        animatedOpacity,
+                                      ),
+                                      selectedIndex: _currentIndex,
+                                      onDestinationSelected:
+                                          _onDestinationSelected,
+                                      labelType: NavigationRailLabelType.none,
+                                      indicatorColor: Color.lerp(
+                                        Colors.transparent,
+                                        navIndicatorBaseColor,
+                                        animatedOpacity,
+                                      ),
+                                      destinations: _buildRailDestinations(
+                                        context,
+                                        isPlayback,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (isDesktop)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Column(
+                          children: [
+                            DragToMoveArea(
+                              child: SizedBox(
+                                height: 32,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    _WindowButton(
+                                      icon: _isFullScreen
+                                          ? Icons.fullscreen_exit
+                                          : Icons.fullscreen,
+                                      brightness: isPlayback
+                                          ? Brightness.dark
+                                          : theme.brightness,
+                                      onPressed: () =>
+                                          _setFullScreen(!_isFullScreen),
+                                    ),
+                                    _WindowButton(
+                                      icon: Icons.remove,
+                                      brightness: isPlayback
+                                          ? Brightness.dark
+                                          : theme.brightness,
+                                      onPressed: () async {
+                                        if (_isFullScreen) {
+                                          await _setFullScreen(false);
+                                        }
+                                        await windowManager.minimize();
+                                      },
+                                    ),
+                                    _WindowButton(
+                                      icon: _isMaximized
+                                          ? Icons.filter_none
+                                          : Icons.crop_square,
+                                      iconSize: 14,
+                                      brightness: isPlayback
+                                          ? Brightness.dark
+                                          : theme.brightness,
+                                      onPressed: () async {
+                                        if (_isFullScreen) {
+                                          await _setFullScreen(false);
+                                        } else if (_isMaximized) {
+                                          await windowManager.unmaximize();
+                                        } else {
+                                          await windowManager.maximize();
+                                        }
+                                      },
+                                    ),
+                                    _WindowButton(
+                                      icon: Icons.close,
+                                      isClose: true,
+                                      brightness: isPlayback
+                                          ? Brightness.dark
+                                          : theme.brightness,
+                                      onPressed: windowManager.close,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Positioned(
+                      bottom: useSidebar ? 20 : 80,
+                      left: (useSidebar && !isPlayback) ? 80 : 0,
+                      right: 0,
+                      child: Center(
+                        child: !isPlayback
+                            ? Builder(
+                                builder: (context) {
+                                  final audio = ref.read(audioServiceProvider);
+                                  return Container(
+                                    key: const ValueKey('dynamic-island'),
+                                    constraints: BoxConstraints(
+                                      maxWidth:
+                                          MediaQuery.of(context).size.width *
+                                          0.9,
+                                    ),
+                                    child: PlaybackHeroCard(
+                                      isMini: true,
+                                      onMiniTap: () =>
+                                          _onDestinationSelected(1),
+                                      onPrevious: audio.previous,
+                                      onPlayPause: audio.togglePlay,
+                                      onNext: audio.next,
+                                    ),
+                                  );
+                                },
+                              )
+                            : const SizedBox.shrink(
+                                key: ValueKey('empty-island'),
+                              ),
+                      ),
+                    ),
+                    if (_showVolumeHUD) VolumeHUD(volume: _audioService.volume),
+                  ],
+                ),
+                bottomNavigationBar: useSidebar
+                    ? null
+                    : AnimatedOpacity(
+                        duration: const Duration(milliseconds: 500),
+                        opacity:
+                            (isPlayback &&
+                                settings.isImmersiveTabBarEnabled &&
+                                settings.isUserInactive)
+                            ? 0.0
+                            : 1.0,
+                        child: TweenAnimationBuilder<double>(
+                          duration: const Duration(milliseconds: 120),
+                          curve: Curves.easeOut,
+                          tween: Tween<double>(
+                            begin: 1.0,
+                            end: navBgOpacityTarget,
+                          ),
+                          builder: (context, animatedOpacity, child) {
+                            return NavigationBar(
+                              height: 60,
+                              labelBehavior:
+                                  NavigationDestinationLabelBehavior.alwaysHide,
+                              selectedIndex: _currentIndex,
+                              backgroundColor: Color.lerp(
+                                Colors.transparent,
+                                navBgBaseColor,
+                                animatedOpacity,
+                              ),
+                              elevation: 0,
+                              indicatorColor: Color.lerp(
+                                Colors.transparent,
+                                navIndicatorBaseColor,
+                                animatedOpacity,
+                              ),
+                              onDestinationSelected: _onDestinationSelected,
+                              destinations: _buildBottomDestinations(
+                                context,
+                                isPlayback,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WindowButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Brightness brightness;
+  final bool isClose;
+  final double iconSize;
+
+  const _WindowButton({
+    required this.icon,
+    required this.onPressed,
+    required this.brightness,
+    this.isClose = false,
+    this.iconSize = 18,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color iconColor = brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
+
+    Color? hoverColor;
+    if (isClose) {
+      hoverColor = Colors.red.withValues(alpha: 0.8);
+    } else {
+      hoverColor = brightness == Brightness.dark
+          ? Colors.white.withValues(alpha: 0.1)
+          : Colors.black.withValues(alpha: 0.05);
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        hoverColor: hoverColor,
+        child: Container(
+          width: 46,
+          height: 32,
+          alignment: Alignment.center,
+          child: Icon(icon, size: iconSize, color: isClose ? null : iconColor),
+        ),
+      ),
+    );
+  }
+}

@@ -1,3 +1,4 @@
+api_keys.json
 # Miscellaneous
 *.class
 *.log
@@ -11,7 +12,7 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
-
+bak
 # IntelliJ related
 *.iml
 *.ipr
