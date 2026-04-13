@@ -542,19 +542,6 @@ class AudioService extends Notifier<AudioSnapshot> {
     notifyListeners();
   }
 
-  Future<void> startSleepTimerUntilCurrentSongEnds() async {
-    final remaining = _duration - _position;
-    final normalized = remaining <= Duration.zero
-        ? Duration.zero
-        : remaining;
-    if (normalized <= Duration.zero) {
-      await cancelSleepTimer();
-      await _stopPlaybackForSleepTimer();
-      return;
-    }
-
-    await startSleepTimer(normalized);
-  }
 
   Future<void> cancelSleepTimer({bool notify = true}) async {
     _cancelSleepTimer(notify: notify);

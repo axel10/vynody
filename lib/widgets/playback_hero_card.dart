@@ -857,22 +857,20 @@ class PlaybackHeroCard extends ConsumerWidget {
                             ? Theme.of(context).colorScheme.primary
                             : Colors.white70,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        sleepTimerRemaining != null
-                            ? _formatSleepTimer(sleepTimerRemaining)
-                            : '睡眠',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: sleepTimerRemaining != null
-                              ? Theme.of(context).colorScheme.primary
-                              : Colors.white70,
-                          fontSize: 10,
-                          height: 1.0,
-                          fontWeight: FontWeight.w600,
+                      if (sleepTimerRemaining != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _formatSleepTimer(sleepTimerRemaining),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 10,
+                            height: 1.0,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

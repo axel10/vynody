@@ -55,12 +55,6 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
     Navigator.of(context).pop();
   }
 
-  Future<void> _startUntilCurrentSongEnds() async {
-    final audio = ref.read(audioServiceProvider);
-    await audio.startSleepTimerUntilCurrentSongEnds();
-    if (!mounted) return;
-    Navigator.of(context).pop();
-  }
 
   Future<void> _endTimer() async {
     final audio = ref.read(audioServiceProvider);
@@ -84,15 +78,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final currentSong = ref.watch(audioCurrentMusicProvider);
     final remaining = ref.watch(audioSleepTimerRemainingProvider);
-    final duration = ref.watch(audioDurationProvider);
-    final position = ref.watch(audioPositionProvider);
-    final hasSong = currentSong != null;
-    final remainingForCurrentSong = duration - position;
-    final songEndDuration = remainingForCurrentSong <= Duration.zero
-        ? Duration.zero
-        : remainingForCurrentSong;
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -112,11 +98,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
             duration: const Duration(milliseconds: 220),
             child: _mode == _SleepTimerSheetMode.active
                 ? _buildActiveView(context, remaining)
-                : _buildConfigureView(
-                    context,
-                    hasSong: hasSong,
-                    songEndDuration: songEndDuration,
-                  ),
+                : _buildConfigureView(context),
           ),
         ),
       ),
@@ -144,11 +126,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
     );
   }
 
-  Widget _buildConfigureView(
-    BuildContext context, {
-    required bool hasSong,
-    required Duration songEndDuration,
-  }) {
+  Widget _buildConfigureView(BuildContext context) {
     return Column(
       key: const ValueKey('configure'),
       mainAxisSize: MainAxisSize.min,
@@ -165,37 +143,30 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: SizedBox(
             height: 210,
-            child: CupertinoTimerPicker(
-              mode: CupertinoTimerPickerMode.hms,
-              initialTimerDuration: _selectedDuration,
-              minuteInterval: 1,
-              secondInterval: 1,
-              alignment: Alignment.center,
-              onTimerDurationChanged: (value) {
-                setState(() {
-                  _selectedDuration = value;
-                });
-              },
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(
+                dragDevices: {
+                  PointerDeviceKind.touch,
+                  PointerDeviceKind.mouse,
+                  PointerDeviceKind.trackpad,
+                  PointerDeviceKind.stylus,
+                },
+              ),
+              child: CupertinoTimerPicker(
+                mode: CupertinoTimerPickerMode.hms,
+                initialTimerDuration: _selectedDuration,
+                minuteInterval: 1,
+                secondInterval: 1,
+                alignment: Alignment.center,
+                onTimerDurationChanged: (value) {
+                  setState(() {
+                    _selectedDuration = value;
+                  });
+                },
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        if (hasSong)
-          OutlinedButton.icon(
-            onPressed: songEndDuration <= Duration.zero
-                ? null
-                : _startUntilCurrentSongEnds,
-            icon: const Icon(Icons.skip_next_rounded),
-            label: Text(
-              '当前歌曲播放结束时停止 ${_formatDuration(songEndDuration)}',
-            ),
-          )
-        else
-          OutlinedButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.skip_next_rounded),
-            label: const Text('当前歌曲播放结束时停止'),
-          ),
         const SizedBox(height: 10),
         Row(
           children: [
