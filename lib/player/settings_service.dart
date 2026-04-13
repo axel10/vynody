@@ -7,6 +7,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
   static const String geminiApiKeyStorageKey = 'gemini_api_key';
+  static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
+  static const String _builtInAcoustidApiKey = 'Ipn7b42Ekp';
   static const int _fixedSampleStride = 8;
 
   // Visualizer styling keys
@@ -115,6 +117,15 @@ class SettingsService extends ChangeNotifier {
   int get waveformChunks => _waveformChunks;
   bool get isUserInactive => _isUserInactive;
   String get geminiApiKey => _prefs.getString(geminiApiKeyStorageKey) ?? '';
+  bool get hasCustomAcoustidApiKey =>
+      _prefs.containsKey(acoustidApiKeyStorageKey);
+  String get acoustidApiKey {
+    final stored = _prefs.getString(acoustidApiKeyStorageKey)?.trim();
+    if (stored != null && stored.isNotEmpty) {
+      return stored;
+    }
+    return _builtInAcoustidApiKey;
+  }
 
   Color get visualizerColor => _visualizerColor;
   double get visualizerOpacity => _visualizerOpacity;
@@ -194,6 +205,21 @@ class SettingsService extends ChangeNotifier {
       _prefs.remove(geminiApiKeyStorageKey);
     } else {
       _prefs.setString(geminiApiKeyStorageKey, normalized);
+    }
+    notifyListeners();
+  }
+
+  set acoustidApiKey(String value) {
+    final normalized = value.trim();
+    final current = acoustidApiKey;
+    if (current == normalized) {
+      return;
+    }
+
+    if (normalized.isEmpty) {
+      _prefs.remove(acoustidApiKeyStorageKey);
+    } else {
+      _prefs.setString(acoustidApiKeyStorageKey, normalized);
     }
     notifyListeners();
   }

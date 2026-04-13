@@ -7,6 +7,7 @@ import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
+import '../pages/settings_page.dart';
 import 'song_tag_completion_widgets.dart';
 import 'song_tag_musicbrainz_cards.dart';
 import 'song_tag_acoustid_cards.dart';
@@ -46,6 +47,7 @@ class _SongTagCompletionSheetState
   final Set<String> _expandedAcoustIDIds = <String>{};
   final Set<String> _expandedReleaseGroupIds = <String>{};
   final Set<String> _expandedMusicBrainzRecordingIds = <String>{};
+  String? _lastAcoustIDClientErrorMessage;
   final Set<_SummaryCondition> _disabledSummaryConditions =
       <_SummaryCondition>{};
   final Map<_SummaryCondition, String> _editedSummaryConditionTexts =
@@ -370,8 +372,30 @@ class _SongTagCompletionSheetState
   }
 
   Future<void> _loadAcoustIDResult() async {
+    _lastAcoustIDClientErrorMessage = null;
     final durationSec = (_fileMetadata?.duration ?? widget.durationMillis ?? 0);
     await _controller.loadAcoustIDResult(durationMillis: durationSec);
+
+    final acoustidErrorMessage = _controller.acoustidClientErrorMessage;
+    if (mounted &&
+        acoustidErrorMessage != null &&
+        acoustidErrorMessage != _lastAcoustIDClientErrorMessage) {
+      _lastAcoustIDClientErrorMessage = acoustidErrorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(acoustidErrorMessage),
+          action: SnackBarAction(
+            label: '去设置页',
+            onPressed: () {
+              Navigator.of(
+                context,
+                rootNavigator: true,
+              ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
+            },
+          ),
+        ),
+      );
+    }
 
     if (!mounted) return;
     setState(() {

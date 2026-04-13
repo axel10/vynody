@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   proxy_setting_windows
   screen_retriever_windows
   sqlite3_flutter_libs
+  url_launcher_windows
   window_manager
   windows_single_instance
   windows_taskbar

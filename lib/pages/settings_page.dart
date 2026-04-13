@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../dialogs/acoustid_api_key_dialog.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
 import '../player/audio_riverpod.dart';
 import '../l10n/app_localizations.dart';
@@ -79,6 +81,59 @@ class SettingsPage extends ConsumerWidget {
             onChanged: (value) {
               settings.isWaveformProgressBarEnabled = value;
             },
+          ),
+          ListTile(
+            isThreeLine: true,
+            leading: const Icon(Icons.fingerprint, color: Colors.white),
+            title: const Text(
+              'AcoustID API Key',
+              style: TextStyle(color: Colors.white),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  settings.hasCustomAcoustidApiKey
+                      ? '已保存自定义 key，音频指纹识别会优先使用它。'
+                      : '当前使用应用内置的默认 key，建议申请你自己的 key 后替换。',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 4),
+                InkWell(
+                  onTap: () async {
+                    final uri = Uri.parse('https://acoustid.org/api-key');
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  },
+                  child: const Text(
+                    '申请 API key: https://acoustid.org/api-key',
+                    style: TextStyle(
+                      color: Colors.lightBlueAccent,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            trailing: FilledButton.tonal(
+              onPressed: () async {
+                final enteredApiKey = await showAcoustidApiKeyDialog(
+                  context,
+                  initialApiKey: settings.hasCustomAcoustidApiKey
+                      ? settings.acoustidApiKey
+                      : '',
+                );
+                if (enteredApiKey == null) {
+                  return;
+                }
+
+                settings.acoustidApiKey = enteredApiKey;
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('AcoustID API Key 已保存')),
+                );
+              },
+              child: Text(settings.hasCustomAcoustidApiKey ? '修改' : '填写'),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.smart_toy_outlined, color: Colors.white),

@@ -24,14 +24,25 @@ String acoustIDReleaseThumbnailUrl(String releaseId) =>
 String acoustIDReleaseLargeUrl(String releaseId) =>
     'https://coverartarchive.org/release/$releaseId/front';
 
+class AcoustIDClientException implements Exception {
+  const AcoustIDClientException({
+    required this.statusCode,
+    required this.message,
+  });
+
+  final int statusCode;
+  final String message;
+
+  @override
+  String toString() => 'AcoustIDClientException($statusCode): $message';
+}
+
 @freezed
 abstract class AcoustIDArtist with _$AcoustIDArtist {
   const AcoustIDArtist._();
 
-  const factory AcoustIDArtist({
-    required String id,
-    required String name,
-  }) = _AcoustIDArtist;
+  const factory AcoustIDArtist({required String id, required String name}) =
+      _AcoustIDArtist;
 
   factory AcoustIDArtist.fromJson(Map<String, dynamic> json) {
     return AcoustIDArtist(
@@ -68,7 +79,8 @@ abstract class AcoustIDRelease with _$AcoustIDRelease {
       title: json['title'] as String? ?? '',
       country: json['country'] as String?,
       dateLabel: _formatDateLabel(json['date'] ?? json['dateLabel']),
-      trackCount: (json['track_count'] as num?)?.toInt() ??
+      trackCount:
+          (json['track_count'] as num?)?.toInt() ??
           (json['trackCount'] as num?)?.toInt(),
       raw: Map<String, dynamic>.from(json),
     );
@@ -104,24 +116,26 @@ abstract class AcoustIDReleaseGroup with _$AcoustIDReleaseGroup {
   String get largeUrl => acoustIDReleaseGroupLargeUrl(id);
 
   factory AcoustIDReleaseGroup.fromJson(Map<String, dynamic> json) {
-    final releases = (json['releases'] as List<dynamic>? ??
-            json['releasesJson'] as List<dynamic>? ??
-            const [])
-        .whereType<Map<String, dynamic>>()
-        .map(AcoustIDRelease.fromJson)
-        .toList(growable: false);
+    final releases =
+        (json['releases'] as List<dynamic>? ??
+                json['releasesJson'] as List<dynamic>? ??
+                const [])
+            .whereType<Map<String, dynamic>>()
+            .map(AcoustIDRelease.fromJson)
+            .toList(growable: false);
 
     return AcoustIDReleaseGroup(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
       type: json['type'] as String?,
-      secondaryTypes: (json['secondarytypes'] as List<dynamic>? ??
-              json['secondaryTypes'] as List<dynamic>? ??
-              const [])
-          .cast<dynamic>()
-          .map((item) => item?.toString() ?? '')
-          .where((item) => item.isNotEmpty)
-          .toList(growable: false),
+      secondaryTypes:
+          (json['secondarytypes'] as List<dynamic>? ??
+                  json['secondaryTypes'] as List<dynamic>? ??
+                  const [])
+              .cast<dynamic>()
+              .map((item) => item?.toString() ?? '')
+              .where((item) => item.isNotEmpty)
+              .toList(growable: false),
       releases: releases,
       raw: Map<String, dynamic>.from(json),
     );
@@ -148,28 +162,29 @@ abstract class AcoustIDRecording with _$AcoustIDRecording {
     required String title,
     required String artist,
     int? durationMillis,
-    @Default(<AcoustIDReleaseGroup>[]) List<AcoustIDReleaseGroup>
-    releaseGroups,
+    @Default(<AcoustIDReleaseGroup>[]) List<AcoustIDReleaseGroup> releaseGroups,
     required Map<String, dynamic> raw,
   }) = _AcoustIDRecording;
 
   factory AcoustIDRecording.fromJson(Map<String, dynamic> json) {
-    final artistEntries = (json['artists'] as List<dynamic>? ??
-            json['artistEntries'] as List<dynamic>? ??
-            const [])
-        .whereType<Map<String, dynamic>>()
-        .map(AcoustIDArtist.fromJson)
-        .toList(growable: false);
+    final artistEntries =
+        (json['artists'] as List<dynamic>? ??
+                json['artistEntries'] as List<dynamic>? ??
+                const [])
+            .whereType<Map<String, dynamic>>()
+            .map(AcoustIDArtist.fromJson)
+            .toList(growable: false);
     final artistName = _joinArtistNames(artistEntries);
     final rawArtist = json['artist'];
     final cachedArtist = rawArtist is String ? rawArtist.trim() : '';
 
-    final releaseGroups = (json['releasegroups'] as List<dynamic>? ??
-            json['releaseGroups'] as List<dynamic>? ??
-            const [])
-        .whereType<Map<String, dynamic>>()
-        .map(AcoustIDReleaseGroup.fromJson)
-        .toList(growable: false);
+    final releaseGroups =
+        (json['releasegroups'] as List<dynamic>? ??
+                json['releaseGroups'] as List<dynamic>? ??
+                const [])
+            .whereType<Map<String, dynamic>>()
+            .map(AcoustIDReleaseGroup.fromJson)
+            .toList(growable: false);
 
     return AcoustIDRecording(
       id: json['id'] as String? ?? '',
@@ -186,7 +201,8 @@ abstract class AcoustIDRecording with _$AcoustIDRecording {
       'id': id,
       'title': title,
       'artist': artist,
-      'artists': raw['artists'] ??
+      'artists':
+          raw['artists'] ??
           (artist.isNotEmpty
               ? [
                   {'name': artist},
@@ -501,6 +517,18 @@ class AcoustIDService {
         results: detailedResults,
       );
       return detailedResults;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+        throw AcoustIDClientException(
+          statusCode: statusCode,
+          message: _extractErrorMessage(e),
+        );
+      }
+      debugPrint('AcoustID lookup failed: $e');
+      return const [];
+    } on AcoustIDClientException {
+      rethrow;
     } catch (e) {
       debugPrint('AcoustID lookup failed: $e');
       return const [];
@@ -577,6 +605,16 @@ class AcoustIDService {
         fallbackScore: fallbackScore,
       );
       return result.hasRecordings ? result : null;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+        throw AcoustIDClientException(
+          statusCode: statusCode,
+          message: _extractErrorMessage(e),
+        );
+      }
+      debugPrint('AcoustID track lookup failed for $trackId: $e');
+      return null;
     } catch (e) {
       debugPrint('AcoustID track lookup failed for $trackId: $e');
       return null;
@@ -663,4 +701,25 @@ Map<String, dynamic>? _asMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) return Map<String, dynamic>.from(value);
   return null;
+}
+
+String _extractErrorMessage(DioException error) {
+  final response = error.response;
+  final responseData = response?.data;
+  if (responseData is Map) {
+    final errorMap = responseData['error'];
+    if (errorMap is Map) {
+      final message = errorMap['message']?.toString().trim();
+      if (message != null && message.isNotEmpty) {
+        return message;
+      }
+    }
+  }
+
+  final message = error.message?.trim();
+  if (message != null && message.isNotEmpty) {
+    return message;
+  }
+
+  return 'AcoustID 请求失败';
 }

@@ -1,23 +1,29 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+import '../player/audio_riverpod.dart';
 import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
+import '../player/settings_service.dart';
 
 final songTagCompletionControllerProvider = ChangeNotifierProvider.autoDispose
     .family<SongTagCompletionController, String>((ref, songPath) {
-      return SongTagCompletionController(songPath: songPath);
+      return SongTagCompletionController(
+        songPath: songPath,
+        settingsService: ref.read(settingsServiceProvider),
+      );
     });
 
 class SongTagCompletionController extends ChangeNotifier {
-  SongTagCompletionController({required this.songPath});
+  SongTagCompletionController({
+    required this.songPath,
+    required this.settingsService,
+  });
 
   final String songPath;
+  final SettingsService settingsService;
   final MusicBrainzTagCompletionService service =
       MusicBrainzTagCompletionService();
 
@@ -28,6 +34,7 @@ class SongTagCompletionController extends ChangeNotifier {
   bool isApplying = false;
   String? musicBrainzErrorMessage;
   String? errorMessage;
+  String? acoustidClientErrorMessage;
 
   int _musicBrainzQueryRevision = 0;
   bool _disposed = false;
@@ -92,32 +99,14 @@ class SongTagCompletionController extends ChangeNotifier {
     if (_disposed) return;
 
     isAcoustIDLoading = true;
+    acoustidClientErrorMessage = null;
+    acoustidResults = const [];
     _emit();
 
     try {
-      final apiKeyFile = File('api_keys.json');
-      String apiKey;
-      if (await apiKeyFile.exists()) {
-        final content = await apiKeyFile.readAsString();
-        final json = jsonDecode(content) as Map<String, dynamic>;
-        apiKey = json['AcoustID_API_KEY'] as String? ?? '';
-      } else {
-        debugPrint('AcoustID: api_keys.json not found');
-        if (_disposed) return;
-        isAcoustIDLoading = false;
-        _emit();
-        return;
-      }
-
-      if (apiKey.isEmpty) {
-        debugPrint('AcoustID: API key is empty');
-        if (_disposed) return;
-        isAcoustIDLoading = false;
-        _emit();
-        return;
-      }
-
-      final acoustidService = AcoustIDService(apiKey: apiKey);
+      final acoustidService = AcoustIDService(
+        apiKey: settingsService.acoustidApiKey,
+      );
       final durationSec = (durationMillis ?? 0) ~/ 1000;
       final results = await acoustidService.lookupByFingerprint(
         filePath: songPath,
@@ -126,6 +115,13 @@ class SongTagCompletionController extends ChangeNotifier {
 
       if (_disposed) return;
       acoustidResults = results;
+      isAcoustIDLoading = false;
+      _emit();
+    } on AcoustIDClientException catch (e) {
+      debugPrint('AcoustID: client error ${e.statusCode}: ${e.message}');
+      if (_disposed) return;
+      acoustidClientErrorMessage =
+          'AcoustID 请求返回 ${e.statusCode}。请申请你自己的 AcoustID API key 并填入设置页。';
       isAcoustIDLoading = false;
       _emit();
     } catch (e) {
