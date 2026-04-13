@@ -751,6 +751,55 @@ class ScannerService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearWaveformCache() {
+    bool changed = false;
+
+    final keysToClear = <String>[];
+    for (final entry in _metadataMap.entries) {
+      final metadata = entry.value;
+      if (metadata.waveformBlob != null) {
+        keysToClear.add(entry.key);
+      }
+    }
+
+    for (final key in keysToClear) {
+      final metadata = _metadataMap[key];
+      if (metadata == null) continue;
+      _metadataMap[key] = metadata.copyWith(waveformBlob: null);
+      changed = true;
+    }
+
+    for (final root in _rootFolders) {
+      changed = _clearWaveformCacheInFolder(root) || changed;
+    }
+
+    if (_systemMediaFolder != null) {
+      changed = _clearWaveformCacheInFolder(_systemMediaFolder!) || changed;
+    }
+
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  bool _clearWaveformCacheInFolder(MusicFolder folder) {
+    bool changed = false;
+
+    for (var i = 0; i < folder.files.length; i++) {
+      final file = folder.files[i];
+      if (file.waveformBlob != null) {
+        folder.files[i] = file.copyWith(waveformBlob: null);
+        changed = true;
+      }
+    }
+
+    for (final subFolder in folder.subFolders) {
+      changed = _clearWaveformCacheInFolder(subFolder) || changed;
+    }
+
+    return changed;
+  }
+
   void _updateMusicFileInFolder(
     MusicFolder folder,
     SongMetadata metadata, {

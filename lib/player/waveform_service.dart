@@ -2,6 +2,7 @@
 ///
 /// 提供歌曲波形图的获取、计算、缓存同步以及 BLOB 数据的序列化与反序列化。
 library;
+
 import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
 import 'metadata_database.dart';
@@ -15,7 +16,7 @@ class WaveformService {
   Future<List<double>> getWaveform({
     required String path,
     int expectedChunks = 80,
-    int sampleStride = 3,
+    int sampleStride = 8,
   }) async {
     final songMetadata = await db.getSongMetadata(path);
     if (songMetadata != null && songMetadata.waveformBlob != null) {
@@ -47,7 +48,6 @@ class WaveformService {
       final updated = songMetadata.copyWith(waveformBlob: blob);
       await db.insertOrUpdateSong(updated);
     }
-
 
     return waveform;
   }

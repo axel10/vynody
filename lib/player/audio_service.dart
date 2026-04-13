@@ -52,6 +52,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   late final WaveformService _waveformService;
   ScannerService? _scannerService;
   bool _isLyricsActive = false;
+  int _lastWaveformChunks = -1;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -90,6 +91,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       settingsService: settingsService,
     );
     _waveformService = WaveformService(db: _db, player: _player);
+    _lastWaveformChunks = settingsService.waveformChunks;
 
     _windowsIntegration = Platform.isWindows
         ? WindowsIntegrationService(this)
@@ -99,6 +101,13 @@ class AudioService extends Notifier<AudioSnapshot> {
         : null;
     _player.addListener(_handlePlayerChanges);
     settingsService.addListener(() {
+      final currentWaveformChunks = settingsService.waveformChunks;
+      if (_lastWaveformChunks != currentWaveformChunks) {
+        _lastWaveformChunks = currentWaveformChunks;
+        unawaited(_handleWaveformChunkChange());
+        return;
+      }
+
       unawaited(_refreshCurrentWaveform());
     });
     ref.onDispose(_dispose);
@@ -305,7 +314,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<List<double>> getWaveform({
     int expectedChunks = 80,
-    int sampleStride = 3,
+    int sampleStride = 8,
   }) async {
     final path = currentMusic?.path;
     if (path == null) return [];
@@ -683,6 +692,33 @@ class AudioService extends Notifier<AudioSnapshot> {
           notifyListeners();
         }
       }
+    }
+  }
+
+  Future<void> _handleWaveformChunkChange() async {
+    await _db.clearWaveformCache();
+    _clearInMemoryWaveformCache();
+    _scannerService?.clearWaveformCache();
+    unawaited(ref.read(playlistServiceProvider).clearWaveformCache());
+
+    if (settingsService.isWaveformProgressBarEnabled) {
+      await _refreshCurrentWaveform();
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void _clearInMemoryWaveformCache() {
+    bool changed = false;
+    for (var i = 0; i < _queue.length; i++) {
+      if (_queue[i].waveformBlob != null) {
+        _queue[i] = _queue[i].copyWith(waveformBlob: null);
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      notifyListeners();
     }
   }
 

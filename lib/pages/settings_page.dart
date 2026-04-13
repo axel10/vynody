@@ -33,40 +33,6 @@ class SettingsPage extends ConsumerWidget {
           ),
           ListTile(
             title: Text(
-              l10n.sampleStride,
-              style: const TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              l10n.sampleStrideDescription,
-              style: const TextStyle(color: Colors.white70),
-            ),
-            trailing: SizedBox(
-              width: 120,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove, color: Colors.white),
-                    onPressed: settings.sampleStride > 1
-                        ? () => settings.sampleStride--
-                        : null,
-                  ),
-                  Text(
-                    '${settings.sampleStride}',
-                    style: const TextStyle(fontSize: 16, color: Colors.white),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    onPressed: settings.sampleStride < 20
-                        ? () => settings.sampleStride++
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          ListTile(
-            title: Text(
               l10n.waveformSegments,
               style: const TextStyle(color: Colors.white),
             ),

@@ -564,6 +564,13 @@ class MetadataDatabase {
     await db.delete('songs');
   }
 
+  Future<void> clearWaveformCache() async {
+    final db = await database;
+    await db.rawUpdate(
+      'UPDATE songs SET waveformBlob = NULL WHERE waveformBlob IS NOT NULL',
+    );
+  }
+
   Future<void> clearLyricsCache() async {
     final db = await database;
     await db.delete('lyrics_cache');

@@ -6,6 +6,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
+  static const int _fixedSampleStride = 8;
 
   // Visualizer styling keys
   static const String _keyVisColor = 'visualizer_color';
@@ -32,13 +33,13 @@ class SettingsService extends ChangeNotifier {
       'visualizer_landscape_frequency_groups';
   static const String _keyPortraitGap = 'visualizer_portrait_gap';
   static const String _keyLandscapeGap = 'visualizer_landscape_gap';
-  static const String _keyIsWaveformProgressBarEnabled = 'waveform_progress_bar_enabled';
+  static const String _keyIsWaveformProgressBarEnabled =
+      'waveform_progress_bar_enabled';
   static const String _keyRandomRange = 'random_range';
   static const String _keyRandomMethod = 'random_method';
 
   final SharedPreferences _prefs;
   bool _isImmersiveTabBarEnabled;
-  int _sampleStride;
   int _waveformChunks;
   bool _isUserInactive = false;
   Timer? _inactivityTimer;
@@ -69,7 +70,6 @@ class SettingsService extends ChangeNotifier {
 
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
-      _sampleStride = _prefs.getInt(_keySampleStride) ?? 4,
       _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 80 {
     _visualizerColor = Color(_prefs.getInt(_keyVisColor) ?? Colors.white.value);
     _visualizerOpacity = _prefs.getDouble(_keyVisOpacity) ?? 0.2;
@@ -95,18 +95,20 @@ class SettingsService extends ChangeNotifier {
     _autoSpectrumQuantity =
         _prefs.getString(_keyAutoSpectrumQuantity) ?? 'high';
     _autoSpeed = _prefs.getString(_keyAutoSpeed) ?? 'medium';
-    _portraitFrequencyGroups = _prefs.getInt(_keyPortraitFrequencyGroups) ?? 100;
+    _portraitFrequencyGroups =
+        _prefs.getInt(_keyPortraitFrequencyGroups) ?? 100;
     _landscapeFrequencyGroups =
         _prefs.getInt(_keyLandscapeFrequencyGroups) ?? 172;
     _portraitGap = _prefs.getDouble(_keyPortraitGap) ?? 1.0;
     _landscapeGap = _prefs.getDouble(_keyLandscapeGap) ?? 2.0;
-    _isWaveformProgressBarEnabled = _prefs.getBool(_keyIsWaveformProgressBarEnabled) ?? false;
+    _isWaveformProgressBarEnabled =
+        _prefs.getBool(_keyIsWaveformProgressBarEnabled) ?? false;
     _randomRange = _prefs.getInt(_keyRandomRange) ?? 0;
     _randomMethod = _prefs.getInt(_keyRandomMethod) ?? 1; // Default to shuffle
   }
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
-  int get sampleStride => _sampleStride;
+  int get sampleStride => _fixedSampleStride;
   int get waveformChunks => _waveformChunks;
   bool get isUserInactive => _isUserInactive;
 
@@ -164,12 +166,14 @@ class SettingsService extends ChangeNotifier {
   }
 
   set sampleStride(int value) {
-    _sampleStride = value;
-    _prefs.setInt(_keySampleStride, value);
+    _prefs.setInt(_keySampleStride, _fixedSampleStride);
     notifyListeners();
   }
 
   set waveformChunks(int value) {
+    if (_waveformChunks == value) {
+      return;
+    }
     _waveformChunks = value;
     _prefs.setInt(_keyWaveformChunks, value);
     notifyListeners();
@@ -323,7 +327,7 @@ class SettingsService extends ChangeNotifier {
     _prefs.setBool(_keyIsWaveformProgressBarEnabled, value);
     notifyListeners();
   }
-  
+
   set randomRange(int value) {
     _randomRange = value;
     _prefs.setInt(_keyRandomRange, value);

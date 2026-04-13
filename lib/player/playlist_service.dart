@@ -328,4 +328,24 @@ class PlaylistService extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> clearWaveformCache() async {
+    bool changed = false;
+
+    for (final playlist in _playlists) {
+      for (var i = 0; i < playlist.songs.length; i++) {
+        final song = playlist.songs[i];
+        if (song.waveformBlob != null) {
+          playlist.songs[i] = song.copyWith(waveformBlob: null);
+          playlist.updatedAt = DateTime.now();
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      await _savePlaylists();
+      notifyListeners();
+    }
+  }
 }
