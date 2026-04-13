@@ -820,10 +820,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   )
                 else
                   _buildBlurredBackground(context),
-                if (!_isLyricsMode) _buildBackgroundScrim(),
+                _buildBackgroundScrim(),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
-                if (_isLyricsMode) _buildLyricsModeScrim(),
+                _buildLyricsModeScrim(),
                 content,
                 if (_showVolumeSlider)
                   Builder(
@@ -856,15 +856,20 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
   Widget _buildBackgroundScrim() {
     return Positioned.fill(
-      child: IgnorePointer(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              colors: [
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.20),
-              ],
-              stops: const [0.1, 1.0],
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+        opacity: _isLyricsMode ? 0.0 : 1.0,
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.20),
+                ],
+                stops: const [0.1, 1.0],
+              ),
             ),
           ),
         ),
@@ -874,8 +879,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
   Widget _buildLyricsModeScrim() {
     return Positioned.fill(
-      child: IgnorePointer(
-        child: ColoredBox(color: Colors.black.withValues(alpha: 0.28)),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+        opacity: _isLyricsMode ? 1.0 : 0.0,
+        child: IgnorePointer(
+          child: ColoredBox(color: Colors.black.withValues(alpha: 0.28)),
+        ),
       ),
     );
   }
