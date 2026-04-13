@@ -17,53 +17,9 @@ class _GeminiLyricsApiClient {
     : _client = client ?? NetworkClient.instance;
 
   final NetworkClient _client;
-  String? _cachedApiKey;
 
   Future<String?> loadApiKey() async {
-    if (_cachedApiKey != null) return _cachedApiKey;
-
-    final candidates = <File>[];
-
-    var currentDir = Directory.current.absolute;
-    for (var i = 0; i < 5; i++) {
-      candidates.add(File(p.join(currentDir.path, 'api_keys.json')));
-      final parent = currentDir.parent;
-      if (parent.path == currentDir.path) {
-        break;
-      }
-      currentDir = parent;
-    }
-
-    var executableDir = File(Platform.resolvedExecutable).parent.absolute;
-    for (var i = 0; i < 3; i++) {
-      candidates.add(File(p.join(executableDir.path, 'api_keys.json')));
-      final parent = executableDir.parent;
-      if (parent.path == executableDir.path) {
-        break;
-      }
-      executableDir = parent;
-    }
-
-    for (final file in candidates) {
-      if (!await file.exists()) continue;
-      try {
-        final content = await file.readAsString();
-        final jsonData = jsonDecode(content);
-        if (jsonData is Map<String, dynamic>) {
-          final key = jsonData['GEMINI_API_KEY']?.toString().trim();
-          if (key != null && key.isNotEmpty) {
-            _cachedApiKey = key;
-            return key;
-          }
-        }
-      } catch (e) {
-        debugPrint(
-          '[GeminiLyrics] failed to read api key from ${file.path}: $e',
-        );
-      }
-    }
-
-    return null;
+    return GeminiApiKeyService().loadApiKey();
   }
 
   Future<_GeminiFileUploadResult?> uploadFile({

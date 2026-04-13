@@ -6,6 +6,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
+  static const String geminiApiKeyStorageKey = 'gemini_api_key';
   static const int _fixedSampleStride = 8;
 
   // Visualizer styling keys
@@ -71,14 +72,16 @@ class SettingsService extends ChangeNotifier {
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
       _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 80 {
-    _visualizerColor = Color(_prefs.getInt(_keyVisColor) ?? Colors.white.value);
+    _visualizerColor = Color(
+      _prefs.getInt(_keyVisColor) ?? Colors.white.toARGB32(),
+    );
     _visualizerOpacity = _prefs.getDouble(_keyVisOpacity) ?? 0.2;
     _isVisualizerGradientEnabled = _prefs.getBool(_keyVisGradient) ?? false;
     _visualizerStartColor = Color(
-      _prefs.getInt(_keyVisStartColor) ?? Colors.blue.value,
+      _prefs.getInt(_keyVisStartColor) ?? Colors.blue.toARGB32(),
     );
     _visualizerEndColor = Color(
-      _prefs.getInt(_keyVisEndColor) ?? Colors.purple.value,
+      _prefs.getInt(_keyVisEndColor) ?? Colors.purple.toARGB32(),
     );
     _visualizerGradientStop1 = _prefs.getDouble(_keyVisGradientStop1) ?? 0.0;
     _visualizerGradientStop2 = _prefs.getDouble(_keyVisGradientStop2) ?? 1.0;
@@ -111,6 +114,7 @@ class SettingsService extends ChangeNotifier {
   int get sampleStride => _fixedSampleStride;
   int get waveformChunks => _waveformChunks;
   bool get isUserInactive => _isUserInactive;
+  String get geminiApiKey => _prefs.getString(geminiApiKeyStorageKey) ?? '';
 
   Color get visualizerColor => _visualizerColor;
   double get visualizerOpacity => _visualizerOpacity;
@@ -179,6 +183,21 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  set geminiApiKey(String value) {
+    final normalized = value.trim();
+    final current = geminiApiKey;
+    if (current == normalized) {
+      return;
+    }
+
+    if (normalized.isEmpty) {
+      _prefs.remove(geminiApiKeyStorageKey);
+    } else {
+      _prefs.setString(geminiApiKeyStorageKey, normalized);
+    }
+    notifyListeners();
+  }
+
   set isUserInactive(bool value) {
     if (_isUserInactive != value) {
       _isUserInactive = value;
@@ -210,7 +229,7 @@ class SettingsService extends ChangeNotifier {
 
   set visualizerColor(Color value) {
     _visualizerColor = value;
-    _prefs.setInt(_keyVisColor, value.value);
+    _prefs.setInt(_keyVisColor, value.toARGB32());
     notifyListeners();
   }
 
@@ -228,13 +247,13 @@ class SettingsService extends ChangeNotifier {
 
   set visualizerStartColor(Color value) {
     _visualizerStartColor = value;
-    _prefs.setInt(_keyVisStartColor, value.value);
+    _prefs.setInt(_keyVisStartColor, value.toARGB32());
     notifyListeners();
   }
 
   set visualizerEndColor(Color value) {
     _visualizerEndColor = value;
-    _prefs.setInt(_keyVisEndColor, value.value);
+    _prefs.setInt(_keyVisEndColor, value.toARGB32());
     notifyListeners();
   }
 

@@ -6,6 +6,7 @@ import 'package:dio/dio.dart' show Headers, ResponseType;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import 'gemini_api_key_service.dart';
 import '../utils/network_client.dart';
 import '../utils/lrc_utils.dart';
 

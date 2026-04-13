@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
+import '../dialogs/gemini_api_key_dialog.dart';
 import '../player/audio_riverpod.dart';
 import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
@@ -91,6 +92,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         ],
       ),
     );
+  }
+
+  Future<bool> _ensureGeminiApiKey() async {
+    return ensureGeminiApiKey(context, ref);
   }
 
   String _buildGenerateMenuLabel() {
@@ -227,11 +232,20 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         _scheduleScrollIfNeeded(force: true);
       }
     } else if (selected == 'generate') {
-      await _lyricsControllerActions.regenerateLyricsForCurrentSong();
+      if (await _ensureGeminiApiKey()) {
+        if (!mounted) return;
+        await _lyricsControllerActions.regenerateLyricsForCurrentSong();
+      }
     } else if (selected == 'generate_timeline') {
-      await _lyricsControllerActions.generateTimelineForCurrentSong();
+      if (await _ensureGeminiApiKey()) {
+        if (!mounted) return;
+        await _lyricsControllerActions.generateTimelineForCurrentSong();
+      }
     } else if (selected == 'translate') {
-      await _lyricsControllerActions.translateLyricsForCurrentSong();
+      if (await _ensureGeminiApiKey()) {
+        if (!mounted) return;
+        await _lyricsControllerActions.translateLyricsForCurrentSong();
+      }
     } else if (selected == 'clear_lyrics_cache') {
       await _lyricsControllerActions.clearLyricsCacheForCurrentSong();
     } else if (selected == 'clear_translation_cache') {
@@ -600,8 +614,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                           onPressed: lyricsState.isLyricsGenerating
                               ? null
                               : () async {
-                                  await _lyricsControllerActions
-                                      .regenerateLyricsForCurrentSong();
+                                  if (await _ensureGeminiApiKey()) {
+                                    if (!mounted) return;
+                                    await _lyricsControllerActions
+                                        .regenerateLyricsForCurrentSong();
+                                  }
                                 },
                           style: FilledButton.styleFrom(
                             backgroundColor: accent.withValues(alpha: 0.95),
