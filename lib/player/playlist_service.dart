@@ -46,9 +46,6 @@ class Playlist {
                   themeColorsBlob: s['themeColorsBlob'] != null
                       ? base64Decode(s['themeColorsBlob'] as String)
                       : null,
-                  waveformBlob: s['waveformBlob'] != null
-                      ? base64Decode(s['waveformBlob'] as String)
-                      : null,
                 ),
               )
               .toList() ??
@@ -84,9 +81,6 @@ class Playlist {
               'artworkHeight': s.artworkHeight,
               'themeColorsBlob': s.themeColorsBlob != null
                   ? base64Encode(s.themeColorsBlob!)
-                  : null,
-              'waveformBlob': s.waveformBlob != null
-                  ? base64Encode(s.waveformBlob!)
                   : null,
             },
           )
@@ -313,33 +307,12 @@ class PlaylistService extends ChangeNotifier {
           artworkWidth: metadata.artworkWidth,
           artworkHeight: metadata.artworkHeight,
           themeColorsBlob: metadata.themeColorsBlob,
-          waveformBlob: metadata.waveformBlob,
           artworkBytes: artworkBytes,
           lastModifiedTime: metadata.lastModifiedTime,
         );
 
         playlist.updatedAt = DateTime.now();
         changed = true;
-      }
-    }
-
-    if (changed) {
-      await _savePlaylists();
-      notifyListeners();
-    }
-  }
-
-  Future<void> clearWaveformCache() async {
-    bool changed = false;
-
-    for (final playlist in _playlists) {
-      for (var i = 0; i < playlist.songs.length; i++) {
-        final song = playlist.songs[i];
-        if (song.waveformBlob != null) {
-          playlist.songs[i] = song.copyWith(waveformBlob: null);
-          playlist.updatedAt = DateTime.now();
-          changed = true;
-        }
       }
     }
 

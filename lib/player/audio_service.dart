@@ -698,8 +698,6 @@ class AudioService extends Notifier<AudioSnapshot> {
   Future<void> _handleWaveformChunkChange() async {
     await _db.clearWaveformCache();
     _clearInMemoryWaveformCache();
-    _scannerService?.clearWaveformCache();
-    unawaited(ref.read(playlistServiceProvider).clearWaveformCache());
 
     if (settingsService.isWaveformProgressBarEnabled) {
       await _refreshCurrentWaveform();
