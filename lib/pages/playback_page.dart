@@ -21,6 +21,7 @@ import '../utils/playback_utils.dart';
 import '../player/playlist_service.dart';
 import '../models/music_file.dart';
 import '../dialogs/visualizer_options_dialog.dart';
+import '../dialogs/song_tag_edit_dialog.dart';
 import '../dialogs/song_tag_completion_dialog.dart';
 import '../widgets/equalizer_panel.dart';
 
@@ -178,6 +179,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     final song = ref.read(audioCurrentMusicProvider);
     if (song == null) return;
     final duration = ref.read(audioDurationProvider);
+    final messenger = ScaffoldMessenger.of(context);
 
     final result = await showModalBottomSheet<MusicBrainzTagSelectionResult>(
       context: context,
@@ -192,38 +194,66 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       ),
     );
 
-    if (result == null || !context.mounted) return;
+    if (result == null || !mounted) return;
 
+    await _applySongMetadataResult(
+      messenger,
+      audio: audio,
+      metadata: result.metadata,
+      artworkBytes: result.artworkBytes,
+      successMessage: result.artworkBytes != null
+          ? '标签已补全并保存，封面已下载到临时目录'
+          : '标签已补全并保存',
+    );
+  }
+
+  Future<void> _showSongTagEditSheet(
+    BuildContext context,
+    AudioService audio,
+  ) async {
+    final song = ref.read(audioCurrentMusicProvider);
+    if (song == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+
+    final result = await showSongTagEditSheet(context, song: song);
+    if (result == null || !mounted) return;
+
+    await _applySongMetadataResult(
+      messenger,
+      audio: audio,
+      metadata: result.metadata,
+      artworkBytes: result.artworkBytes,
+      successMessage: result.savedToSourceFile
+          ? '歌曲标签已保存到源文件和 App'
+          : '歌曲标签已保存到 App',
+    );
+  }
+
+  Future<void> _applySongMetadataResult(
+    ScaffoldMessengerState messenger, {
+    required AudioService audio,
+    required SongMetadata metadata,
+    required Uint8List? artworkBytes,
+    required String successMessage,
+  }) async {
     final scanner = ref.read(scannerServiceProvider);
     final playlistService = ref.read(playlistServiceProvider);
 
-    await audio.applyUpdatedSongMetadata(
-      result.metadata,
-      artworkBytes: result.artworkBytes,
-    );
-    scanner.updateMetadataForPath(
-      result.metadata,
-      artworkBytes: result.artworkBytes,
-    );
+    await audio.applyUpdatedSongMetadata(metadata, artworkBytes: artworkBytes);
+    scanner.updateMetadataForPath(metadata, artworkBytes: artworkBytes);
     await playlistService.updateSongMetadataByPath(
-      result.metadata,
-      artworkBytes: result.artworkBytes,
+      metadata,
+      artworkBytes: artworkBytes,
     );
 
-    if (context.mounted && result.artworkBytes != null) {
+    if (mounted && artworkBytes != null) {
       setState(() {
-        _pendingArtworkBytes = result.artworkBytes;
+        _pendingArtworkBytes = artworkBytes;
       });
     }
 
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.artworkBytes != null ? '标签已补全并保存，封面已下载到临时目录' : '标签已补全并保存',
-          ),
-        ),
-      );
+    if (mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(successMessage)));
     }
   }
 
@@ -243,6 +273,22 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              leading: const Icon(
+                Icons.edit_rounded,
+                color: Colors.orangeAccent,
+              ),
+              title: const Text(
+                '编辑歌曲标签',
+                style: TextStyle(color: Colors.white),
+              ),
+              enabled: currentSong != null,
+              onTap: () {
+                Navigator.pop(dialogContext);
+                _showSongTagEditSheet(context, audio);
+              },
+            ),
+            const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.music_note, color: Colors.blueAccent),
               title: Text(

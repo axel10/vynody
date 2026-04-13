@@ -151,6 +151,7 @@ class MetadataHelper {
     int? artworkWidth,
     int? artworkHeight,
     SongMetadata? existingMetadata,
+    bool writeToFile = true,
   }) async {
     try {
       final db = MetadataDatabase();
@@ -227,14 +228,16 @@ class MetadataHelper {
         genres: genres ?? base.genres,
       );
 
-      final fileUpdated = await _writeSelectionMetadataToFile(
-        filePath: filePath,
-        metadata: updated,
-        artworkBytes: artworkBytes,
-      );
+      if (writeToFile) {
+        final fileUpdated = await _writeSelectionMetadataToFile(
+          filePath: filePath,
+          metadata: updated,
+          artworkBytes: artworkBytes,
+        );
 
-      if (!fileUpdated) {
-        return null;
+        if (!fileUpdated) {
+          return null;
+        }
       }
 
       await db.insertOrUpdateSong(updated);
