@@ -210,7 +210,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       if (requeryOnly)
         PopupMenuItem<String>(
           value: 'requery',
-          enabled: hasCurrentSong && lyricsState.hasLyrics,
+          enabled:
+              hasCurrentSong &&
+              !lyricsState.isLyricsLoading &&
+              !lyricsState.isLyricsGenerating,
           child: const Text('重新查询'),
         ),
     ];
@@ -570,15 +573,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
 
-    if (lyricsState.isLyricsLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     if (!hasRenderableLyrics) {
-      // 已经尝试过联网找歌词，或者当前正在 AI 生成中时，都显示按钮。
-      // 这样在生成过程中也能保留“处理中”的可见反馈。
+      // 正在查找、已经尝试过联网找歌词，或者当前正在 AI 生成中时，都显示按钮。
+      // 这样在查找中也能切到 AI 生成流程。
       final canGenerateLyrics =
-          lyricsState.lyricsSearchAttempted || lyricsState.isLyricsGenerating;
+          lyricsState.isLyricsLoading ||
+          lyricsState.lyricsSearchAttempted ||
+          lyricsState.isLyricsGenerating;
       return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onSecondaryTapDown: (details) {
@@ -600,8 +601,20 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (lyricsState.isLyricsLoading &&
+                        !lyricsState.isLyricsGenerating) ...[
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(accent),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     Text(
-                      '暂无歌词',
+                      lyricsState.isLyricsLoading ? '正在查找歌词' : '暂无歌词',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 16,
@@ -619,7 +632,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                                   if (await _ensureGeminiApiKey()) {
                                     if (!mounted) return;
                                     await _lyricsControllerActions
-                                        .regenerateLyricsForCurrentSong();
+                                        .generateLyricsForCurrentSong();
                                   }
                                 },
                           style: FilledButton.styleFrom(

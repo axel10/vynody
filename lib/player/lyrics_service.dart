@@ -152,6 +152,7 @@ class LyricsService {
   Future<LyricSelectionResult?> fetchBestLyrics({
     required LyricsQuery query,
     bool debugLog = false,
+    CancelToken? cancelToken,
   }) async {
     // 对原始查询进行统一清洗，确保“查询键”与“保存键”逻辑完全一致。
     // 解决如“Song [Live]”与“Song”因为括号过滤逻辑不一导致的缓存不命中问题。
@@ -168,10 +169,18 @@ class LyricsService {
 
     final cacheKey = normalizedQuery.cacheKey;
 
+    _logDebug(
+      'fetch entry -> key="$cacheKey" title="${normalizedQuery.title}" '
+      'artist="${normalizedQuery.artist ?? ''}" album="${normalizedQuery.album ?? ''}" '
+      'duration=${normalizedQuery.duration?.inSeconds ?? 'n/a'}s '
+      'cancelToken=${cancelToken == null ? 'none' : identityHashCode(cancelToken)}',
+    );
+
     // 先尝试原始查询键，兼容 Gemini 生成结果按“当前曲目原始元数据”写入的缓存。
     // 再回退到规范化后的查询键，保持既有 LRCLib 缓存命中逻辑不变。
     final cachedFromDb = await _loadFromDatabase(query, ignoreEmptyCache: true);
     if (cachedFromDb != null) {
+      _logDebug('fetch cache hit -> key="$cacheKey" source=raw-db');
       if (debugLog) {
         debugPrintSelection(query, cachedFromDb, source: 'sqlite');
       }
@@ -182,6 +191,7 @@ class LyricsService {
     // 这里只保留数据库层的查找逻辑。
     final normalizedCachedFromDb = await _loadFromDatabase(normalizedQuery);
     if (normalizedCachedFromDb != null) {
+      _logDebug('fetch cache hit -> key="$cacheKey" source=normalized-db');
       if (debugLog) {
         debugPrintSelection(
           normalizedQuery,
@@ -195,6 +205,7 @@ class LyricsService {
     // 3. 合并正在进行的相同请求：防止同一首歌短时间内多次发起网络搜索请求
     final existing = _inFlight[cacheKey];
     if (existing != null) {
+      _logDebug('fetch joined in-flight request -> key="$cacheKey"');
       final result = await existing;
       if (debugLog) {
         debugPrintSelection(query, result, source: 'in-flight');
@@ -203,10 +214,16 @@ class LyricsService {
     }
 
     // 4. 发起异步网络搜索任务
-    final future = _fetchBestLyricsInternal(normalizedQuery).whenComplete(() {
-      _inFlight.remove(cacheKey);
-    });
+    final future =
+        _fetchBestLyricsInternal(
+          normalizedQuery,
+          cancelToken: cancelToken,
+        ).whenComplete(() {
+          _inFlight.remove(cacheKey);
+        });
     _inFlight[cacheKey] = future;
+
+    _logDebug('fetch queued network pipeline -> key="$cacheKey"');
 
     final result = await future;
 
@@ -225,19 +242,27 @@ class LyricsService {
   /// - 评分系统综合考虑：标题相似度(45%)、歌手(25%)、专辑(15%)、时长(10%)、同步性(5%)。
   /// - 只有综合评分高于阈值（默认 65 分）或时长偏差极小（3秒内）的结果才会作为最佳候选项保存至本地数据库并返回。
   Future<LyricSelectionResult?> _fetchBestLyricsInternal(
-    LyricsQuery query,
-  ) async {
+    LyricsQuery query, {
+    CancelToken? cancelToken,
+  }) async {
+    _logDebug(
+      'pipeline start -> title="${query.title}" artist="${query.artist ?? ''}" '
+      'album="${query.album ?? ''}" duration=${query.duration?.inSeconds ?? 'n/a'}s',
+    );
     final primaryResult = await _fetchBestLyricsOnce(
       query,
       cacheQuery: query,
       cacheEmptyResult: false,
+      cancelToken: cancelToken,
     );
     if (primaryResult != null) {
+      _logDebug('pipeline success on primary query -> title="${query.title}"');
       return primaryResult;
     }
 
     final fallbackQuery = _buildTitleOnlyFallbackQuery(query);
     if (fallbackQuery == null) {
+      _logDebug('pipeline stop -> no title-only fallback for "${query.title}"');
       await _saveEmptyToDatabase(query);
       return null;
     }
@@ -251,6 +276,11 @@ class LyricsService {
       fallbackQuery,
       cacheQuery: query,
       cacheEmptyResult: true,
+      cancelToken: cancelToken,
+    );
+    _logDebug(
+      'pipeline fallback result -> title="${query.title}" '
+      'found=${fallbackResult != null}',
     );
     return fallbackResult;
   }
@@ -259,22 +289,42 @@ class LyricsService {
     LyricsQuery query, {
     required LyricsQuery cacheQuery,
     required bool cacheEmptyResult,
+    CancelToken? cancelToken,
   }) async {
     final completeQuery = _buildCompleteQuery(query);
     if (completeQuery != null) {
-      final direct = await _fetchGet(completeQuery);
+      _logDebug(
+        'phase get -> title="${completeQuery.title}" '
+        'artist="${completeQuery.artist ?? ''}" '
+        'duration=${completeQuery.duration?.inSeconds ?? 'n/a'}s',
+      );
+      final direct = await _fetchGet(completeQuery, cancelToken: cancelToken);
       if (direct != null) {
         final scored = _scoreCandidate(completeQuery, direct, fromGetApi: true);
         if (scored != null && scored.score >= _acceptThreshold) {
+          _logDebug(
+            'phase get accepted -> title="${completeQuery.title}" '
+            'score=${scored.score.toStringAsFixed(1)}',
+          );
           await _saveToDatabase(query: cacheQuery, result: scored);
           return scored;
         }
+        _logDebug(
+          'phase get rejected -> title="${completeQuery.title}" '
+          'accepted=${scored != null} score=${scored?.score.toStringAsFixed(1) ?? 'n/a'}',
+        );
       }
     }
 
     final searchQuery = _buildSearchQuery(query);
-    final searchResults = await _search(searchQuery);
+    _logDebug(
+      'phase search -> title="${searchQuery.title}" '
+      'artist="${searchQuery.artist ?? ''}" '
+      'duration=${searchQuery.duration?.inSeconds ?? 'n/a'}s',
+    );
+    final searchResults = await _search(searchQuery, cancelToken: cancelToken);
     if (searchResults.isEmpty) {
+      _logDebug('phase search empty -> title="${searchQuery.title}"');
       if (cacheEmptyResult) {
         await _saveEmptyToDatabase(cacheQuery);
       }
@@ -290,6 +340,7 @@ class LyricsService {
     }
 
     if (scoredResults.isEmpty) {
+      _logDebug('phase scoring empty -> title="${searchQuery.title}"');
       if (cacheEmptyResult) {
         await _saveEmptyToDatabase(cacheQuery);
       }
@@ -298,6 +349,11 @@ class LyricsService {
 
     scoredResults.sort(_compareSelectionResults);
     var bestCandidate = scoredResults.first;
+    _logDebug(
+      'phase scored -> title="${searchQuery.title}" '
+      'bestScore=${bestCandidate.score.toStringAsFixed(1)} '
+      'durationDiff=${bestCandidate.durationDiffSeconds}s',
+    );
 
     if (bestCandidate.score < _acceptThreshold) {
       // 检查是否有时间极其接近的（3秒内）作为兜底
@@ -317,6 +373,10 @@ class LyricsService {
         });
         bestCandidate = fallbackCandidates.first;
       } else {
+        _logDebug(
+          'phase rejected all -> title="${searchQuery.title}" '
+          'bestScore=${bestCandidate.score.toStringAsFixed(1)}',
+        );
         if (cacheEmptyResult) {
           await _saveEmptyToDatabase(cacheQuery);
         }
@@ -324,6 +384,10 @@ class LyricsService {
       }
     }
 
+    _logDebug(
+      'phase accepted -> title="${searchQuery.title}" '
+      'source=${bestCandidate.source} score=${bestCandidate.score.toStringAsFixed(1)}',
+    );
     await _saveToDatabase(query: cacheQuery, result: bestCandidate);
     return bestCandidate;
   }
@@ -421,8 +485,16 @@ class LyricsService {
     );
   }
 
-  Future<LyricTrack?> _fetchGet(LyricsQuery query) async {
+  Future<LyricTrack?> _fetchGet(
+    LyricsQuery query, {
+    CancelToken? cancelToken,
+  }) async {
     try {
+      _logDebug(
+        'http get start -> track="${query.title}" artist="${query.artist ?? ''}" '
+        'duration=${query.duration?.inSeconds ?? 'n/a'}s '
+        'cancelToken=${cancelToken == null ? 'none' : identityHashCode(cancelToken)}',
+      );
       final response = await _client.get(
         'https://lrclib.net/api/get',
         queryParameters: {
@@ -430,14 +502,23 @@ class LyricsService {
           'artist_name': query.artist,
           'duration': query.duration?.inSeconds,
         }..removeWhere((_, value) => value == null),
+        cancelToken: cancelToken,
       );
 
       final data = response.data;
       if (data is Map<String, dynamic>) {
         final track = LyricTrack.fromJson(data);
+        _logDebug(
+          'http get done -> track="${query.title}" '
+          'hasLyrics=${track.hasLyrics} synced=${track.hasSyncedLyrics}',
+        );
         return track.hasLyrics ? track : null;
       }
     } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        _logDebug('http get canceled -> track="${query.title}"');
+        return null;
+      }
       if (e.response?.statusCode != 404) {
         debugPrint('[Lyrics] GET failed for "${query.title}": ${e.message}');
       }
@@ -447,7 +528,10 @@ class LyricsService {
     return null;
   }
 
-  Future<List<LyricTrack>> _search(LyricsQuery query) async {
+  Future<List<LyricTrack>> _search(
+    LyricsQuery query, {
+    CancelToken? cancelToken,
+  }) async {
     try {
       final params =
           <String, dynamic>{
@@ -462,17 +546,30 @@ class LyricsService {
       final response = await _client.get(
         'https://lrclib.net/api/search',
         queryParameters: params,
+        cancelToken: cancelToken,
+      );
+      _logDebug(
+        'http search done -> track="${query.title}" '
+        'resultType=${response.data.runtimeType}',
       );
 
       final data = response.data;
       if (data is List) {
-        return data
+        final tracks = data
             .whereType<Map>()
             .map((item) => LyricTrack.fromJson(Map<String, dynamic>.from(item)))
             .where((track) => track.hasLyrics)
             .toList();
+        _logDebug(
+          'http search parsed -> track="${query.title}" count=${tracks.length}',
+        );
+        return tracks;
       }
     } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        _logDebug('http search canceled -> track="${query.title}"');
+        return const [];
+      }
       debugPrint('[Lyrics] SEARCH failed for "${query.title}": ${e.message}');
     } catch (e) {
       debugPrint('[Lyrics] SEARCH error for "${query.title}": $e');

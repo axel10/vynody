@@ -17,6 +17,16 @@ extension LyricsControllerFetch on LyricsController {
       return;
     }
 
+    _lyricsFetchCancelToken?.cancel('replaced by a newer lyrics request');
+    final cancelToken = CancelToken();
+    _lyricsFetchCancelToken = cancelToken;
+    _isLyricsLoading = true;
+
+    _logDebug(
+      'fetch request created -> title="${song.displayName}" '
+      'path="${song.path}" cancelToken=${identityHashCode(cancelToken)}',
+    );
+
     final queryDuration = await _resolveLyricsDuration(song);
     if (queryDuration == null) {
       _logDebug(
@@ -24,6 +34,9 @@ extension LyricsControllerFetch on LyricsController {
         'path="${song.path}" playerDuration=${_playerDuration()} '
         'songDuration=${song.durationMillis}',
       );
+      if (_lyricsFetchCancelToken == cancelToken) {
+        _lyricsFetchCancelToken = null;
+      }
       _isLyricsLoading = false;
       return;
     }
@@ -42,11 +55,18 @@ extension LyricsControllerFetch on LyricsController {
     _logDebug(
       'fetch start -> title="${song.displayName}" path="${song.path}" '
       'queryDuration=$queryDuration playerDuration=${_playerDuration()} '
-      'requestId=$requestId',
+      'requestId=$requestId cancelToken=${identityHashCode(cancelToken)}',
     );
 
     try {
-      final result = await _lyricsService.fetchBestLyrics(query: query);
+      _logDebug(
+        'fetch dispatching to lyrics service -> requestId=$requestId '
+        'path="${song.path}"',
+      );
+      final result = await _lyricsService.fetchBestLyrics(
+        query: query,
+        cancelToken: cancelToken,
+      );
       if (requestId != _lyricsRequestSerial ||
           _currentMusic()?.path != song.path) {
         _logDebug(
@@ -88,7 +108,27 @@ extension LyricsControllerFetch on LyricsController {
       }
 
       _bumpRevision();
+      _logDebug(
+        'fetch completed -> title="${song.displayName}" requestId=$requestId '
+        'hasLyrics=${result != null && result.track.hasLyrics} '
+        'source=${result?.source ?? 'none'}',
+      );
       _lyricsService.debugPrintSelection(query, result);
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        _logDebug(
+          'fetch canceled -> title="${song.displayName}" '
+          'path="${song.path}" requestId=$requestId '
+          'cancelToken=${identityHashCode(cancelToken)}',
+        );
+        return;
+      }
+      debugPrint('[LyricsController] Failed to fetch lyrics: $e');
+      if (requestId == _lyricsRequestSerial &&
+          _currentMusic()?.path == song.path) {
+        _isLyricsLoading = false;
+        _lyricsSearchAttempted = true;
+      }
     } catch (e) {
       debugPrint('[LyricsController] Failed to fetch lyrics: $e');
       if (requestId == _lyricsRequestSerial &&
@@ -96,11 +136,22 @@ extension LyricsControllerFetch on LyricsController {
         _isLyricsLoading = false;
         _lyricsSearchAttempted = true;
       }
+    } finally {
+      if (_lyricsFetchCancelToken == cancelToken) {
+        _logDebug(
+          'fetch cleanup -> title="${song.displayName}" requestId=$requestId '
+          'cancelToken=${identityHashCode(cancelToken)}',
+        );
+        _lyricsFetchCancelToken = null;
+      }
     }
   }
 
   Future<void> retryFetchUntilReady(MusicFile song) async {
     if (_geminiGeneration.isGenerating) {
+      return;
+    }
+    if (_isLyricsLoading || _lyricsFetchCancelToken != null) {
       return;
     }
 
@@ -113,10 +164,19 @@ extension LyricsControllerFetch on LyricsController {
         return;
       }
       if (_hasLyrics || _isLyricsLoading || _lyricsSearchAttempted) {
+        _logDebug(
+          'retry aborted because state changed -> title="${song.displayName}" '
+          'attempt=${attempt + 1} retryId=$retryId loading=$_isLyricsLoading '
+          'searched=$_lyricsSearchAttempted hasLyrics=$_hasLyrics',
+        );
         return;
       }
 
       if (await _resolveLyricsDuration(song) != null) {
+        _logDebug(
+          'retry triggering fetch -> title="${song.displayName}" '
+          'attempt=${attempt + 1} retryId=$retryId',
+        );
         unawaited(fetchAndLog(song));
         return;
       }
@@ -124,6 +184,7 @@ extension LyricsControllerFetch on LyricsController {
   }
 
   Future<void> clearAllLyricsCache() async {
+    _cancelOngoingLyricsFetch(reason: 'lyrics cache cleared');
     await _lyricsCacheRepository.clearAllLyricsCaches();
 
     final queue = _queue();
@@ -170,8 +231,7 @@ extension LyricsControllerFetch on LyricsController {
 
     if (_currentMusic()?.path != song.path) return;
 
-    _lyricsRequestSerial++;
-    _lyricsRetrySerial++;
+    _cancelOngoingLyricsFetch(reason: 'lyrics cache cleared for current song');
     _clearLyricsStateForPath(song.path);
     _lyricsTranslationStatus = '';
     _bumpRevision();

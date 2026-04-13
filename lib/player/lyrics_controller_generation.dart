@@ -9,10 +9,8 @@ extension LyricsControllerGeneration on LyricsController {
   }) {
     // 生成流程开始后，先让任何尚未完成的 lrclib 拉取失效，
     // 避免它们在 AI 结果出来后“晚到覆盖”当前歌词。
-    _lyricsRequestSerial++;
-    _lyricsRetrySerial++;
+    _cancelOngoingLyricsFetch(reason: 'lyrics generation started');
     _geminiGeneration.start();
-    _isLyricsLoading = false;
     _lyricsSearchAttempted = true;
     _startLyricsGenerationStatus(statusLabel);
     _setLyricsGenerating(

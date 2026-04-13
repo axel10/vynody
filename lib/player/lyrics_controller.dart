@@ -7,6 +7,7 @@ import '../models/lyric_line.dart';
 import '../models/music_file.dart';
 import '../models/music_lyric.dart';
 import '../models/music_lyric_translation.dart';
+import '../utils/network_client.dart';
 import '../utils/language_code_utils.dart';
 import '../utils/lrc_utils.dart';
 import '../utils/lyrics_id_utils.dart';
@@ -93,6 +94,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
   final Set<String> _translationInFlightKeys = <String>{};
   int _lyricsRetrySerial = 0;
   final _GeminiGenerationRuntime _geminiGeneration = _GeminiGenerationRuntime();
+  CancelToken? _lyricsFetchCancelToken;
 
   @override
   LyricsControllerState build() {
@@ -208,6 +210,14 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   void _bumpRevision() {
     state = state.copyWith(revision: state.revision + 1);
+  }
+
+  void _cancelOngoingLyricsFetch({String? reason}) {
+    _lyricsRequestSerial++;
+    _lyricsRetrySerial++;
+    _lyricsFetchCancelToken?.cancel(reason ?? 'lyrics generation started');
+    _lyricsFetchCancelToken = null;
+    _isLyricsLoading = false;
   }
 
   void setTranslationLanguageCode(String languageCode) {
