@@ -52,13 +52,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     super.dispose();
   }
 
-  Widget _buildTranslationIndicator(
+  Widget _buildActivityIndicator(
     Color accent,
     LyricsControllerState lyricsState,
   ) {
-    if (!lyricsState.isLyricsTranslating) return const SizedBox.shrink();
+    final status = lyricsState.isLyricsTranslating
+        ? lyricsState.lyricsTranslationStatus.trim()
+        : (lyricsState.isLyricsGenerating
+              ? lyricsState.lyricsGenerationStatus.trim()
+              : '');
+    if (status.isEmpty) return const SizedBox.shrink();
 
-    final status = lyricsState.lyricsTranslationStatus.trim();
     return Positioned(
       top: 12,
       right: 12,
@@ -73,22 +77,20 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               valueColor: AlwaysStoppedAnimation<Color>(accent),
             ),
           ),
-          if (status.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 180),
-              child: Text(
-                status,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.75),
-                  fontSize: 12,
-                  height: 1.0,
-                ),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 180),
+            child: Text(
+              status,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.75),
+                fontSize: 12,
+                height: 1.0,
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -643,8 +645,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 ),
               ),
             ),
-            if (lyricsState.isLyricsTranslating)
-              _buildTranslationIndicator(accent, lyricsState),
+            if (lyricsState.isLyricsTranslating ||
+                lyricsState.isLyricsGenerating)
+              _buildActivityIndicator(accent, lyricsState),
           ],
         ),
       );
@@ -691,8 +694,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 ),
               ),
             ),
-            if (lyricsState.isLyricsTranslating)
-              _buildTranslationIndicator(accent, lyricsState),
+            if (lyricsState.isLyricsTranslating ||
+                lyricsState.isLyricsGenerating)
+              _buildActivityIndicator(accent, lyricsState),
           ],
         ),
       );
@@ -818,8 +822,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               },
             ),
           ),
-          if (lyricsState.isLyricsTranslating)
-            _buildTranslationIndicator(accent, lyricsState),
+          if (lyricsState.isLyricsTranslating || lyricsState.isLyricsGenerating)
+            _buildActivityIndicator(accent, lyricsState),
         ],
       ),
     );

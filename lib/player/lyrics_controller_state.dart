@@ -14,6 +14,7 @@ abstract class LyricsControllerState with _$LyricsControllerState {
     @Default(false) bool isLyricsLoading,
     @Default(false) bool isLyricsTranslating,
     @Default('') String lyricsTranslationStatus,
+    @Default('') String lyricsGenerationStatus,
     @Default(false) bool hasLyrics,
     @Default(false) bool lyricsSearchAttempted,
     @Default(<LyricLine>[]) List<LyricLine> currentLyricsLines,

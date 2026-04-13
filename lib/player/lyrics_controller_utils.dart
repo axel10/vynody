@@ -144,6 +144,7 @@ extension LyricsControllerUtils on LyricsController {
     _isLyricsLoading = false;
     _isLyricsTranslating = false;
     _lyricsTranslationStatus = '';
+    _clearLyricsGenerationStatus();
     _lyricsSearchAttempted = true;
     _currentLyricsLines = filledLyrics.syncedLines;
     _currentLyricsText = filledLyrics.plainText;

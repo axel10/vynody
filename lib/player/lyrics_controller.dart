@@ -130,6 +130,10 @@ class LyricsController extends Notifier<LyricsControllerState> {
     state = state.copyWith(lyricsTranslationStatus: value);
   }
 
+  set _lyricsGenerationStatus(String value) {
+    state = state.copyWith(lyricsGenerationStatus: value);
+  }
+
   bool get _hasLyrics => state.hasLyrics;
   set _hasLyrics(bool value) {
     state = state.copyWith(hasLyrics: value);
@@ -160,6 +164,14 @@ class LyricsController extends Notifier<LyricsControllerState> {
       lyricsGenerationPhase: phase ?? state.lyricsGenerationPhase,
       lyricsGenerationProgress: progress ?? state.lyricsGenerationProgress,
     );
+  }
+
+  void _startLyricsGenerationStatus(String status) {
+    _lyricsGenerationStatus = status;
+  }
+
+  void _clearLyricsGenerationStatus() {
+    _lyricsGenerationStatus = '';
   }
 
   void _setGenerationStage(String stage) {
@@ -200,7 +212,8 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   void setTranslationLanguageCode(String languageCode) {
     final normalized = LanguageCodeUtils.normalizeLanguageCode(languageCode);
-    if (normalized.isEmpty || normalized == state.lyricsTranslationLanguageCode) {
+    if (normalized.isEmpty ||
+        normalized == state.lyricsTranslationLanguageCode) {
       return;
     }
     state = state.copyWith(lyricsTranslationLanguageCode: normalized);

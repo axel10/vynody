@@ -3,7 +3,10 @@ part of 'lyrics_controller.dart';
 // ignore_for_file: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
 
 extension LyricsControllerGeneration on LyricsController {
-  _GeminiGenerationSession _beginGeminiGeneration(MusicFile song) {
+  _GeminiGenerationSession _beginGeminiGeneration(
+    MusicFile song, {
+    required String statusLabel,
+  }) {
     // 生成流程开始后，先让任何尚未完成的 lrclib 拉取失效，
     // 避免它们在 AI 结果出来后“晚到覆盖”当前歌词。
     _lyricsRequestSerial++;
@@ -11,6 +14,7 @@ extension LyricsControllerGeneration on LyricsController {
     _geminiGeneration.start();
     _isLyricsLoading = false;
     _lyricsSearchAttempted = true;
+    _startLyricsGenerationStatus(statusLabel);
     _setLyricsGenerating(
       true,
       phase: LyricsGenerationPhase.uploading,
@@ -96,15 +100,17 @@ extension LyricsControllerGeneration on LyricsController {
       phase: LyricsGenerationPhase.idle,
       progress: 0.0,
     );
+    _clearLyricsGenerationStatus();
   }
 
   Future<void> _runGeminiGeneration({
     required MusicFile song,
     required LyricsCacheSource databaseSource,
+    required String statusLabel,
     required _GeminiGenerationInvoker invoke,
     Map<String, MusicLyricTranslation> Function()? translationProvider,
   }) async {
-    final session = _beginGeminiGeneration(song);
+    final session = _beginGeminiGeneration(song, statusLabel: statusLabel);
     try {
       final generatedText = await invoke(
         onUploadProgress: (progress) {
@@ -187,6 +193,7 @@ extension LyricsControllerGeneration on LyricsController {
       await _runGeminiGeneration(
         song: song,
         databaseSource: LyricsCacheSource.geminiGenerate,
+        statusLabel: '正在生成歌词',
         invoke:
             ({
               required onUploadProgress,
@@ -236,6 +243,7 @@ extension LyricsControllerGeneration on LyricsController {
       await _runGeminiGeneration(
         song: song,
         databaseSource: LyricsCacheSource.geminiTimeline,
+        statusLabel: '正在生成时间轴',
         translationProvider: () =>
             _currentMusic()?.lyrics?.translations ??
             const <String, MusicLyricTranslation>{},
