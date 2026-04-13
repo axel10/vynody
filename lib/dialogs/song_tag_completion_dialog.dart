@@ -46,7 +46,6 @@ class _SongTagCompletionSheetState
   final Set<String> _expandedAcoustIDIds = <String>{};
   final Set<String> _expandedReleaseGroupIds = <String>{};
   final Set<String> _expandedMusicBrainzRecordingIds = <String>{};
-  final Set<String> _expandedMusicBrainzReleaseGroupIds = <String>{};
   final Set<_SummaryCondition> _disabledSummaryConditions =
       <_SummaryCondition>{};
   final Map<_SummaryCondition, String> _editedSummaryConditionTexts =
@@ -161,32 +160,29 @@ class _SongTagCompletionSheetState
 
     final query = _musicBrainzSearchQuery;
     return controller.musicBrainzMatches
-        .where(
-          (match) => _filteredMusicBrainzReleaseGroups(match, query).isNotEmpty,
-        )
+        .where((match) => _musicBrainzMatchMatchesQuery(match, query))
         .toList(growable: false);
   }
 
-  List<MusicBrainzReleaseGroup> _filteredMusicBrainzReleaseGroups(
-    MusicBrainzTrackMatch match, [
-    String? query,
-  ]) {
-    final normalizedQuery = (query ?? _musicBrainzSearchQuery)
-        .trim()
-        .toLowerCase();
-    if (normalizedQuery.isEmpty) return match.releaseGroups;
+  bool _musicBrainzMatchMatchesQuery(
+    MusicBrainzTrackMatch match,
+    String query,
+  ) {
+    if (_musicBrainzReleaseTitleMatches(match.title, query) ||
+        _musicBrainzReleaseTitleMatches(match.artist, query) ||
+        (match.album != null &&
+            _musicBrainzReleaseTitleMatches(match.album!, query))) {
+      return true;
+    }
 
-    return match.releaseGroups
-        .where((group) {
-          if (_musicBrainzReleaseTitleMatches(group.title, normalizedQuery)) {
-            return true;
-          }
-          return group.releases.any(
-            (release) =>
-                _musicBrainzReleaseTitleMatches(release.title, normalizedQuery),
-          );
-        })
-        .toList(growable: false);
+    return match.releases.any(
+      (release) =>
+          _musicBrainzReleaseTitleMatches(release.title, query) ||
+          (release.country != null &&
+              _musicBrainzReleaseTitleMatches(release.country!, query)) ||
+          (release.dateLabel != null &&
+              _musicBrainzReleaseTitleMatches(release.dateLabel!, query)),
+    );
   }
 
   bool _musicBrainzReleaseTitleMatches(String title, String query) {
@@ -370,7 +366,6 @@ class _SongTagCompletionSheetState
     if (!mounted) return;
     setState(() {
       _expandedMusicBrainzRecordingIds.clear();
-      _expandedMusicBrainzReleaseGroupIds.clear();
     });
   }
 
@@ -924,24 +919,12 @@ class _SongTagCompletionSheetState
               isExpanded: _expandedMusicBrainzRecordingIds.contains(
                 recordingKey,
               ),
-              releaseGroups: _filteredMusicBrainzReleaseGroups(match),
-              isReleaseGroupExpanded: (groupKey) =>
-                  _expandedMusicBrainzReleaseGroupIds.contains(groupKey),
               onToggleExpanded: () {
                 setState(() {
                   if (_expandedMusicBrainzRecordingIds.contains(recordingKey)) {
                     _expandedMusicBrainzRecordingIds.remove(recordingKey);
                   } else {
                     _expandedMusicBrainzRecordingIds.add(recordingKey);
-                  }
-                });
-              },
-              onToggleReleaseGroupExpanded: (groupKey) {
-                setState(() {
-                  if (_expandedMusicBrainzReleaseGroupIds.contains(groupKey)) {
-                    _expandedMusicBrainzReleaseGroupIds.remove(groupKey);
-                  } else {
-                    _expandedMusicBrainzReleaseGroupIds.add(groupKey);
                   }
                 });
               },
