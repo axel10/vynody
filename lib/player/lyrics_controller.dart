@@ -26,7 +26,7 @@ part 'lyrics_controller_translation.dart';
 part 'lyrics_controller_utils.dart';
 
 typedef _GeminiGenerationInvoker =
-    Future<String?> Function({
+    Future<GeminiGenerationResult> Function({
       required void Function(double progress) onUploadProgress,
       required void Function(String stage) onStageChanged,
       required void Function(String partialText, bool isFinal) onProgress,

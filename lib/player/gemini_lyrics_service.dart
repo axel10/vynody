@@ -13,6 +13,20 @@ import '../utils/lrc_utils.dart';
 part 'gemini_lyrics_api_client.dart';
 part 'gemini_lyrics_stream_parser.dart';
 
+class GeminiGenerationResult {
+  const GeminiGenerationResult.success(this.text)
+    : errorMessage = null,
+      isSuccess = true;
+
+  const GeminiGenerationResult.failure(this.errorMessage)
+    : text = null,
+      isSuccess = false;
+
+  final String? text;
+  final String? errorMessage;
+  final bool isSuccess;
+}
+
 class GeminiLyricsService {
   GeminiLyricsService({NetworkClient? client})
     : _client = client ?? NetworkClient.instance,
@@ -179,7 +193,7 @@ class GeminiLyricsService {
     return false;
   }
 
-  Future<String?> generateLyricsFromFile({
+  Future<GeminiGenerationResult> generateLyricsFromFile({
     required String filePath,
     String? songTitle,
     String modelId = 'gemini-3.1-flash-lite-preview',
@@ -190,13 +204,13 @@ class GeminiLyricsService {
     final apiKey = await _api.loadApiKey();
     if (apiKey == null || apiKey.isEmpty) {
       debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip generation.');
-      return null;
+      return const GeminiGenerationResult.failure('未找到 Gemini API Key，无法生成歌词。');
     }
 
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[GeminiLyrics] file not found for generation: $filePath');
-      return null;
+      return const GeminiGenerationResult.failure('本地歌曲文件不存在，无法生成歌词。');
     }
 
     final mimeType = _api.mimeTypeForFilePath(filePath);
@@ -222,7 +236,7 @@ class GeminiLyricsService {
     );
   }
 
-  Future<String?> generateTimelineFromLyrics({
+  Future<GeminiGenerationResult> generateTimelineFromLyrics({
     required String filePath,
     required String lyrics,
     String? songTitle,
@@ -234,20 +248,22 @@ class GeminiLyricsService {
     final apiKey = await _api.loadApiKey();
     if (apiKey == null || apiKey.isEmpty) {
       debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip timeline.');
-      return null;
+      return const GeminiGenerationResult.failure(
+        '未找到 Gemini API Key，无法生成时间轴。',
+      );
     }
 
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[GeminiLyrics] file not found for timeline: $filePath');
-      return null;
+      return const GeminiGenerationResult.failure('本地歌曲文件不存在，无法生成时间轴。');
     }
 
     final mimeType = _api.mimeTypeForFilePath(filePath);
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       debugPrint('[GeminiLyrics] no usable lyrics for timeline generation.');
-      return null;
+      return const GeminiGenerationResult.failure('没有可用歌词，无法生成时间轴。');
     }
 
     // final normalizedTitle = songTitle?.trim();
@@ -278,7 +294,7 @@ class GeminiLyricsService {
     );
   }
 
-  Future<String?> _generateFromUploadedFile({
+  Future<GeminiGenerationResult> _generateFromUploadedFile({
     required File file,
     required String apiKey,
     required String mimeType,
@@ -303,7 +319,7 @@ class GeminiLyricsService {
       );
       if (uploadedFile == null) {
         debugPrint('[GeminiLyrics] 文件上传失败: $filePath');
-        return null;
+        return const GeminiGenerationResult.failure('文件上传失败，请重试。');
       }
 
       onStageChanged?.call('processing');
@@ -320,9 +336,40 @@ class GeminiLyricsService {
           '[GeminiLyrics] file never became ACTIVE after upload: '
           'name=$fileName uri=$fileUri',
         );
-        return null;
+        return const GeminiGenerationResult.failure('上传后的文件未能就绪，请稍后重试。');
       }
+      return _generateWithUploadedFileUri(
+        apiKey: apiKey,
+        fileUri: fileUri,
+        filePath: filePath,
+        fileName: fileName,
+        mimeType: mimeType,
+        modelId: modelId,
+        prompt: prompt,
+        preserveTimestamps: preserveTimestamps,
+        onProgress: onProgress,
+      );
+    } catch (e) {
+      return GeminiGenerationResult.failure(
+        _formatGenerationErrorMessage(e, fallback: '生成歌词时发生未知错误。'),
+      );
+    }
+  }
 
+  Future<GeminiGenerationResult> _generateWithUploadedFileUri({
+    required String apiKey,
+    required String fileUri,
+    required String filePath,
+    required String fileName,
+    required String mimeType,
+    required String modelId,
+    required String prompt,
+    required bool preserveTimestamps,
+    void Function(String partialText, bool isFinal)? onProgress,
+  }) async {
+    String? lastErrorMessage;
+
+    for (var attempt = 1; attempt <= 3; attempt++) {
       final requestData = {
         'contents': [
           {
@@ -339,6 +386,7 @@ class GeminiLyricsService {
 
       // 这里使用 streamGenerateContent，是为了让结果在模型生成时就能逐步回传给界面。
       debugPrint('[GeminiLyrics] generation request model=$modelId');
+      debugPrint('[GeminiLyrics] generation request attempt=$attempt');
       debugPrint('[GeminiLyrics] generation request filePath=$filePath');
       debugPrint('[GeminiLyrics] generation request fileName=$fileName');
       debugPrint('[GeminiLyrics] generation request mimeType=$mimeType');
@@ -347,107 +395,137 @@ class GeminiLyricsService {
         '[GeminiLyrics] generation request payload=${jsonEncode(requestData)}',
       );
 
-      final response = await _client.post(
-        'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent',
-        queryParameters: {'key': apiKey},
-        data: requestData,
-        options: Options(
-          responseType: ResponseType.stream,
-          contentType: Headers.jsonContentType,
-        ),
-      );
-
-      final body = response.data;
-      if (body == null || body.stream == null) {
-        debugPrint('[GeminiLyrics] Empty streaming body.');
-        return null;
-      }
-
-      debugPrint('[GeminiLyrics] generation stream connected');
-      onStageChanged?.call('generating');
-
-      final generatedBuffer = StringBuffer();
-      String lastEmitted = '';
-
-      void emitProgress({bool force = false}) {
-        final current = LrcUtils.cleanGeneratedLyricsText(
-          generatedBuffer.toString(),
-        );
-        if (current.isEmpty) return;
-        if (!force && current == lastEmitted) return;
-        lastEmitted = current;
-        onProgress?.call(current, false);
-      }
-
-      final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
       try {
-        await for (final line in textStream.transform(const LineSplitter())) {
-          final trimmed = line.trim();
-          if (trimmed.isEmpty) continue;
+        final response = await _client.post(
+          'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent',
+          queryParameters: {'key': apiKey},
+          data: requestData,
+          options: Options(
+            responseType: ResponseType.stream,
+            contentType: Headers.jsonContentType,
+          ),
+        );
 
-          final data = trimmed.startsWith('data:')
-              ? trimmed.substring(5).trim()
-              : trimmed;
-          if (data.isEmpty || data == '[DONE]') {
-            if (data == '[DONE]') break;
+        final body = response.data;
+        if (body == null || body.stream == null) {
+          lastErrorMessage = 'Gemini 返回了空流响应。';
+          debugPrint('[GeminiLyrics] Empty streaming body.');
+          if (attempt < 3) {
+            debugPrint(
+              '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
+              'reason=$lastErrorMessage',
+            );
             continue;
           }
-
-          final chunk = _streamParser.extractText(data);
-          if (chunk == null || chunk.isEmpty) continue;
-          generatedBuffer.write(chunk);
-          emitProgress();
+          return GeminiGenerationResult.failure('生成歌词失败：$lastErrorMessage');
         }
-      } finally {
-        emitProgress(force: true);
-      }
 
-      final generatedText = _streamParser.extractText(
-        generatedBuffer.toString(),
-      );
-      final cleanedText = LrcUtils.cleanGeneratedLyricsText(
-        generatedText ?? generatedBuffer.toString(),
-      );
-      final finalText = preserveTimestamps
-          ? cleanedText
-          : _stripTimestamps(cleanedText);
-      if (finalText.isEmpty) {
-        debugPrint('[GeminiLyrics] empty lyrics response.');
-        debugPrint(
-          '[GeminiLyrics] raw generate response: ${generatedBuffer.toString()}',
+        debugPrint('[GeminiLyrics] generation stream connected');
+        final generatedBuffer = StringBuffer();
+        String lastEmitted = '';
+
+        void emitProgress({bool force = false}) {
+          final current = LrcUtils.cleanGeneratedLyricsText(
+            generatedBuffer.toString(),
+          );
+          if (current.isEmpty) return;
+          if (!force && current == lastEmitted) return;
+          lastEmitted = current;
+          onProgress?.call(current, false);
+        }
+
+        final textStream = body.stream.cast<List<int>>().transform(
+          utf8.decoder,
         );
-        return null;
+        try {
+          await for (final line in textStream.transform(const LineSplitter())) {
+            final trimmed = line.trim();
+            if (trimmed.isEmpty) continue;
+
+            final data = trimmed.startsWith('data:')
+                ? trimmed.substring(5).trim()
+                : trimmed;
+            if (data.isEmpty || data == '[DONE]') {
+              if (data == '[DONE]') break;
+              continue;
+            }
+
+            final chunk = _streamParser.extractText(data);
+            if (chunk == null || chunk.isEmpty) continue;
+            generatedBuffer.write(chunk);
+            emitProgress();
+          }
+        } finally {
+          emitProgress(force: true);
+        }
+
+        final generatedText = _streamParser.extractText(
+          generatedBuffer.toString(),
+        );
+        final cleanedText = LrcUtils.cleanGeneratedLyricsText(
+          generatedText ?? generatedBuffer.toString(),
+        );
+        final finalText = preserveTimestamps
+            ? cleanedText
+            : _stripTimestamps(cleanedText);
+        if (finalText.isEmpty) {
+          lastErrorMessage = 'Gemini 返回了空响应。';
+          debugPrint('[GeminiLyrics] empty lyrics response.');
+          debugPrint(
+            '[GeminiLyrics] raw generate response: ${generatedBuffer.toString()}',
+          );
+          if (attempt < 3) {
+            debugPrint(
+              '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
+              'reason=$lastErrorMessage',
+            );
+            continue;
+          }
+          return GeminiGenerationResult.failure('生成歌词失败：$lastErrorMessage');
+        }
+
+        // 最终结果会再做一次清洗，去掉代码块、杂项前缀和非 LRC 内容。
+        debugPrint('[GeminiLyrics] final generated lyrics:');
+        debugPrint(finalText);
+        onProgress?.call(finalText, true);
+        return GeminiGenerationResult.success(finalText);
+      } on DioException catch (e) {
+        lastErrorMessage = _formatGenerationErrorMessage(e);
+        debugPrint('[GeminiLyrics] generation failed: ${e.message}');
+        debugPrint(
+          '[GeminiLyrics] generation status: ${e.response?.statusCode}',
+        );
+        debugPrint('[GeminiLyrics] generation response: ${e.response?.data}');
+        debugPrint(
+          '[GeminiLyrics] generation request path: ${e.requestOptions.path}',
+        );
+        debugPrint(
+          '[GeminiLyrics] generation request query: ${e.requestOptions.queryParameters}',
+        );
+        debugPrint(
+          '[GeminiLyrics] generation request headers: ${e.requestOptions.headers}',
+        );
+        debugPrint(
+          '[GeminiLyrics] generation request data: ${e.requestOptions.data}',
+        );
+        debugPrint(
+          '[GeminiLyrics] generation response data: ${e.response?.data}',
+        );
+      } catch (e) {
+        lastErrorMessage = _formatGenerationErrorMessage(e);
+        debugPrint('[GeminiLyrics] generation error: $e');
       }
 
-      // 最终结果会再做一次清洗，去掉代码块、杂项前缀和非 LRC 内容。
-      debugPrint('[GeminiLyrics] final generated lyrics:');
-      debugPrint(finalText);
-      onProgress?.call(finalText, true);
-      return finalText;
-    } on DioException catch (e) {
-      debugPrint('[GeminiLyrics] generation failed: ${e.message}');
-      debugPrint('[GeminiLyrics] generation status: ${e.response?.statusCode}');
-      debugPrint('[GeminiLyrics] generation response: ${e.response?.data}');
-      debugPrint(
-        '[GeminiLyrics] generation request path: ${e.requestOptions.path}',
-      );
-      debugPrint(
-        '[GeminiLyrics] generation request query: ${e.requestOptions.queryParameters}',
-      );
-      debugPrint(
-        '[GeminiLyrics] generation request headers: ${e.requestOptions.headers}',
-      );
-      debugPrint(
-        '[GeminiLyrics] generation request data: ${e.requestOptions.data}',
-      );
-      debugPrint(
-        '[GeminiLyrics] generation response data: ${e.response?.data}',
-      );
-    } catch (e) {
-      debugPrint('[GeminiLyrics] generation error: $e');
+      if (attempt < 3) {
+        debugPrint(
+          '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
+          'reason=$lastErrorMessage',
+        );
+        continue;
+      }
     }
 
-    return null;
+    return GeminiGenerationResult.failure('生成歌词失败：$lastErrorMessage');
   }
 
   List<String> _splitLyricsLines(String lyrics) {
@@ -464,6 +542,42 @@ class GeminiLyricsService {
 
   bool _hasTimestampedLyrics(String lyrics) {
     return _timestampLinePattern.hasMatch(lyrics);
+  }
+
+  String _formatGenerationErrorMessage(Object error, {String? fallback}) {
+    if (error is DioException) {
+      final response = error.response;
+      final statusCode = response?.statusCode;
+      final responseData = response?.data;
+
+      if (responseData is Map) {
+        final errorMap = responseData['error'];
+        if (errorMap is Map) {
+          final message = errorMap['message']?.toString().trim();
+          if (message != null && message.isNotEmpty) {
+            if (statusCode == null) {
+              return message;
+            }
+            return '($statusCode) $message';
+          }
+        }
+      }
+
+      final message = error.message?.trim();
+      if (message != null && message.isNotEmpty) {
+        if (statusCode == null) {
+          return message;
+        }
+        return '($statusCode) $message';
+      }
+    }
+
+    final text = error.toString().trim();
+    if (text.isNotEmpty) {
+      return text;
+    }
+
+    return fallback ?? '未知错误';
   }
 
   String _stripTimestamps(String text) {

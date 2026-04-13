@@ -101,7 +101,7 @@ extension LyricsControllerGeneration on LyricsController {
     _clearLyricsGenerationStatus();
   }
 
-  Future<void> _runGeminiGeneration({
+  Future<String?> _runGeminiGeneration({
     required MusicFile song,
     required LyricsCacheSource databaseSource,
     required String statusLabel,
@@ -110,7 +110,7 @@ extension LyricsControllerGeneration on LyricsController {
   }) async {
     final session = _beginGeminiGeneration(song, statusLabel: statusLabel);
     try {
-      final generatedText = await invoke(
+      final result = await invoke(
         onUploadProgress: (progress) {
           if (!_isActiveGeminiGeneration(session)) {
             return;
@@ -145,15 +145,17 @@ extension LyricsControllerGeneration on LyricsController {
       );
 
       if (!_isActiveGeminiGeneration(session)) {
-        return;
+        return null;
       }
 
-      if (generatedText == null || generatedText.trim().isEmpty) {
-        return;
+      if (!result.isSuccess ||
+          result.text == null ||
+          result.text!.trim().isEmpty) {
+        return result.errorMessage ?? '生成失败。';
       }
 
       final lyrics = _buildGeneratedLyrics(
-        text: generatedText,
+        text: result.text!,
         source: 'gemini',
         timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
         translations:
@@ -168,27 +170,28 @@ extension LyricsControllerGeneration on LyricsController {
         syncedLines: lyrics.syncedLines,
         source: databaseSource,
       );
+      return null;
     } finally {
       _finalizeGeminiGeneration(session);
     }
   }
 
-  Future<void> generateLyricsForCurrentSong() async {
+  Future<String?> generateLyricsForCurrentSong() async {
     final song = _currentMusic();
     if (song == null) {
       debugPrint('[LyricsController] generate lyrics skipped: no current song');
-      return;
+      return '没有可用的当前歌曲。';
     }
     if (_geminiGeneration.isGenerating) {
       debugPrint(
         '[LyricsController] generate lyrics skipped: already generating '
         'path=${song.path}',
       );
-      return;
+      return '歌词正在生成中，请稍后再试。';
     }
 
     try {
-      await _runGeminiGeneration(
+      return await _runGeminiGeneration(
         song: song,
         databaseSource: LyricsCacheSource.geminiGenerate,
         statusLabel: '正在生成歌词',
@@ -209,23 +212,24 @@ extension LyricsControllerGeneration on LyricsController {
       );
     } catch (e) {
       debugPrint('[LyricsController] Failed to generate lyrics: $e');
+      return '生成歌词时发生错误：$e';
     }
   }
 
-  Future<void> generateTimelineForCurrentSong() async {
+  Future<String?> generateTimelineForCurrentSong() async {
     final song = _currentMusic();
     if (song == null) {
       debugPrint(
         '[LyricsController] generate timeline skipped: no current song',
       );
-      return;
+      return '没有可用的当前歌曲。';
     }
     if (_geminiGeneration.isGenerating) {
       debugPrint(
         '[LyricsController] generate timeline skipped: already generating '
         'path=${song.path}',
       );
-      return;
+      return '歌词正在生成中，请稍后再试。';
     }
 
     final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
@@ -234,11 +238,11 @@ extension LyricsControllerGeneration on LyricsController {
         '[LyricsController] generate timeline skipped: no usable lyrics '
         'path=${song.path}',
       );
-      return;
+      return '没有可用于生成时间轴的歌词。';
     }
 
     try {
-      await _runGeminiGeneration(
+      return await _runGeminiGeneration(
         song: song,
         databaseSource: LyricsCacheSource.geminiTimeline,
         statusLabel: '正在生成时间轴',
@@ -263,24 +267,25 @@ extension LyricsControllerGeneration on LyricsController {
       );
     } catch (e) {
       debugPrint('[LyricsController] Failed to generate timeline: $e');
+      return '生成时间轴时发生错误：$e';
     }
   }
 
-  Future<void> regenerateLyricsForCurrentSong() async {
+  Future<String?> regenerateLyricsForCurrentSong() async {
     final song = _currentMusic();
     if (song == null) {
       debugPrint(
         '[LyricsController] regenerate lyrics skipped: no current song',
       );
-      return;
+      return '没有可用的当前歌曲。';
     }
 
     await clearLyricsCacheForCurrentSong();
     if (_currentMusic()?.path != song.path) {
-      return;
+      return '当前歌曲已切换，重新生成已取消。';
     }
 
-    await generateLyricsForCurrentSong();
+    return generateLyricsForCurrentSong();
   }
 
   Future<void> _saveGeneratedLyricsToDatabase({

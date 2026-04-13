@@ -100,6 +100,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     return ensureGeminiApiKey(context, ref);
   }
 
+  void _showGenerationErrorSnack(String message) {
+    if (!mounted || message.trim().isEmpty) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message.trim())));
+  }
+
   String _buildGenerateMenuLabel() {
     final source = widget.lyrics?.source.trim().toLowerCase() ?? '';
     if (source.startsWith('gemini')) {
@@ -239,12 +246,20 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     } else if (selected == 'generate') {
       if (await _ensureGeminiApiKey()) {
         if (!mounted) return;
-        await _lyricsControllerActions.regenerateLyricsForCurrentSong();
+        final errorMessage = await _lyricsControllerActions
+            .regenerateLyricsForCurrentSong();
+        if (errorMessage != null) {
+          _showGenerationErrorSnack(errorMessage);
+        }
       }
     } else if (selected == 'generate_timeline') {
       if (await _ensureGeminiApiKey()) {
         if (!mounted) return;
-        await _lyricsControllerActions.generateTimelineForCurrentSong();
+        final errorMessage = await _lyricsControllerActions
+            .generateTimelineForCurrentSong();
+        if (errorMessage != null) {
+          _showGenerationErrorSnack(errorMessage);
+        }
       }
     } else if (selected == 'translate') {
       if (await _ensureGeminiApiKey()) {
@@ -631,8 +646,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                               : () async {
                                   if (await _ensureGeminiApiKey()) {
                                     if (!mounted) return;
-                                    await _lyricsControllerActions
-                                        .generateLyricsForCurrentSong();
+                                    final errorMessage =
+                                        await _lyricsControllerActions
+                                            .generateLyricsForCurrentSong();
+                                    if (errorMessage != null) {
+                                      _showGenerationErrorSnack(errorMessage);
+                                    }
                                   }
                                 },
                           style: FilledButton.styleFrom(
