@@ -94,7 +94,9 @@ void main(List<String> args) async {
 
   runApp(
     ProviderScope(
-      overrides: [settingsServiceProvider.overrideWithValue(settingsService)],
+      overrides: [
+        settingsServiceProvider.overrideWith((ref) => settingsService),
+      ],
       child: Consumer(
         builder: (context, ref, _) {
           ref.watch(audioServiceWiringProvider);

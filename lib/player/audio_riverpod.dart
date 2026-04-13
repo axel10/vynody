@@ -9,7 +9,7 @@ import 'playlist_service.dart';
 import 'scanner_service.dart';
 import 'settings_service.dart';
 
-final settingsServiceProvider = Provider<SettingsService>((ref) {
+final settingsServiceProvider = ChangeNotifierProvider<SettingsService>((ref) {
   throw UnimplementedError(
     'settingsServiceProvider must be overridden before use',
   );
