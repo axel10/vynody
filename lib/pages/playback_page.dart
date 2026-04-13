@@ -825,12 +825,17 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                if (backgroundType == 1)
-                  const Positioned.fill(
-                    child: RepaintBoundary(child: DynamicMeshBackground()),
-                  )
-                else
-                  _buildBlurredBackground(context),
+                Positioned.fill(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 800),
+                    child: backgroundType == 1
+                        ? const RepaintBoundary(
+                            key: ValueKey('fluid_bg'),
+                            child: DynamicMeshBackground(),
+                          )
+                        : _buildBlurredBackground(context),
+                  ),
+                ),
                 _buildBackgroundScrim(),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
@@ -906,15 +911,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   /// 该组件实现了当音乐切换或封面更新时，背景图的平滑过渡效果。
   /// 使用 _pendingArtworkBytes，在轮播动画完成后才更新背景。
   Widget _buildBlurredBackground(BuildContext context) {
-    return Positioned.fill(
-      child: RepaintBoundary(
-        child: Stack(
-          children: [
-            // 简化后的背景渲染逻辑：在轮播动画完成后才更新背景。
-            // 拿到原始大图后，利用 Image.memory 的 cacheWidth/cacheHeight 属性
-            // 在解码阶段即完成缩小，从而替代之前手动生成的低清图逻辑。
-            Builder(
-              builder: (context) {
+    return RepaintBoundary(
+      key: const ValueKey('blurred_bg'),
+      child: Stack(
+        children: [
+          // 简化后的背景渲染逻辑：在轮播动画完成后才更新背景。
+          // 拿到原始大图后，利用 Image.memory 的 cacheWidth/cacheHeight 属性
+          // 在解码阶段即完成缩小，从而替代之前手动生成的低清图逻辑。
+          Builder(
+            builder: (context) {
                 final bytes = _pendingArtworkBytes;
                 final Widget content;
 
@@ -961,11 +966,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                     return FadeTransition(opacity: animation, child: child);
                   },
                   child: content,
-                );
-              },
-            ),
-          ],
-        ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
