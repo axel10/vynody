@@ -8,7 +8,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyWaveformChunks = 'waveform_chunks';
   static const String geminiApiKeyStorageKey = 'gemini_api_key';
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
-  static const String _builtInAcoustidApiKey = 'Ipn7b42Ekp';
+  static const String _builtInAcoustidApiKey = 'raGXgwxqws';
   static const int _fixedSampleStride = 8;
 
   // Visualizer styling keys

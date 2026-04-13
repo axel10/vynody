@@ -101,11 +101,11 @@ class SettingsPage extends ConsumerWidget {
                 const SizedBox(height: 4),
                 InkWell(
                   onTap: () async {
-                    final uri = Uri.parse('https://acoustid.org/api-key');
+                    final uri = Uri.parse('https://acoustid.org/new-application');
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   },
                   child: const Text(
-                    '申请 API key: https://acoustid.org/api-key',
+                    '申请 API key: https://acoustid.org/new-application',
                     style: TextStyle(
                       color: Colors.lightBlueAccent,
                       decoration: TextDecoration.underline,

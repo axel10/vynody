@@ -61,7 +61,6 @@ dependencies:
   window_manager: ^0.5.1
   desktop_drop: ^0.7.0
   collection: ^1.19.1
-  fftea: ^1.5.0+1
 
   audio_core: 
     path: ./audio_core
