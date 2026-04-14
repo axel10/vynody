@@ -272,13 +272,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.7.0"
-  detect_proxy_setting:
-    dependency: "direct main"
-    description:
-      path: "plugin/proxy_setting/packages/detect_proxy_setting"
-      relative: true
-    source: path
-    version: "0.0.9"
   device_info_plus:
     dependency: "direct main"
     description:
@@ -941,41 +934,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "6.5.0"
-  proxy_setting_android:
-    dependency: transitive
+  proxy_getter:
+    dependency: "direct main"
     description:
-      path: "plugin/proxy_setting/packages/proxy_setting_android"
+      path: proxy_getter
       relative: true
     source: path
-    version: "0.0.6"
-  proxy_setting_ios:
-    dependency: transitive
-    description:
-      path: "plugin/proxy_setting/packages/proxy_setting_ios"
-      relative: true
-    source: path
-    version: "0.0.5"
-  proxy_setting_macos:
-    dependency: transitive
-    description:
-      path: "plugin/proxy_setting/packages/proxy_setting_macos"
-      relative: true
-    source: path
-    version: "0.0.6"
-  proxy_setting_platform_interface:
-    dependency: transitive
-    description:
-      path: "plugin/proxy_setting/packages/proxy_setting_platform_interface"
-      relative: true
-    source: path
-    version: "0.0.3"
-  proxy_setting_windows:
-    dependency: transitive
-    description:
-      path: "plugin/proxy_setting/packages/proxy_setting_windows"
-      relative: true
-    source: path
-    version: "0.0.5"
+    version: "0.0.1"
   pub_semver:
     dependency: transitive
     description:
@@ -1551,5 +1516,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.11.1 <4.0.0"
+  dart: ">=3.11.4 <4.0.0"
   flutter: ">=3.38.4"
