@@ -1418,6 +1418,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _sleepTimer?.cancel();
     _player.removeListener(_handlePlayerChanges);
     settingsService.removeListener(_settingsListener);
+    _queueProcessor.dispose();
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();
     _player.dispose();

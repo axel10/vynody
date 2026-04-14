@@ -25,6 +25,7 @@ class PlaybackQueueProcessor {
   int _currentProcessId = 0;
   bool _isProcessing = false;
   bool _isPaused = false;
+  bool _disposed = false;
   bool get isProcessing => _isProcessing;
   bool get isPaused => _isPaused;
 
@@ -46,7 +47,7 @@ class PlaybackQueueProcessor {
   }
 
   Future<void> _waitUntilResumed() async {
-    while (_isPaused) {
+    while (_isPaused && !_disposed) {
       await Future.delayed(const Duration(milliseconds: 500));
     }
   }
@@ -71,6 +72,7 @@ class PlaybackQueueProcessor {
     required Function(String path, Map<String, dynamic> updates) onUpdate,
     Function(String path, Uint8List bytes)? onHdArtworkLoaded,
   }) async {
+    if (_disposed) return;
     // If already processing, we signal to stop the current one and start fresh with new priority
     _currentProcessId++;
     final int myId = _currentProcessId;
@@ -88,6 +90,7 @@ class PlaybackQueueProcessor {
       final List<MusicFile> sortedList = List.from(playlist);
       int currentIndex = -1;
       if (currentFilePath != null) {
+        if (_disposed) return;
         currentIndex = playlist.indexWhere((s) => s.path == currentFilePath);
         if (currentIndex != -1) {
           final Set<String> processed = <String>{};
@@ -124,7 +127,7 @@ class PlaybackQueueProcessor {
       // We look at the top 15 songs from our sorted list (which includes current and upcoming).
       final int topCount = math.min(15, sortedList.length);
       for (int i = 0; i < topCount; i++) {
-        if (myId != _currentProcessId) return;
+        if (_disposed || myId != _currentProcessId) return;
         final song = sortedList[i];
         
         // Skip if already has artwork bytes in memory
@@ -171,7 +174,7 @@ class PlaybackQueueProcessor {
       // Phase 2: SLOW PASS - Process thumbnails, colors and waveforms
       for (final song in sortedList) {
         // Check if we've been superseded by a newer request
-        if (myId != _currentProcessId) {
+        if (_disposed || myId != _currentProcessId) {
           debugPrint(
             'Background process $myId superseded by $_currentProcessId, exiting.',
           );
@@ -196,6 +199,7 @@ class PlaybackQueueProcessor {
           if (needsWaveform ||
               needsThemeColor ||
               existing.thumbnailPath == null) {
+            if (_disposed) return;
             
             debugPrint(
               'Background processing (Thumbnail/Colors/Waveform): ${song.path}',
@@ -208,6 +212,7 @@ class PlaybackQueueProcessor {
                 song.path,
                 generateThumbnail: false,
               );
+              if (_disposed) return;
               m = result?.$1;
             }
 
@@ -223,6 +228,7 @@ class PlaybackQueueProcessor {
                     MetadataHelper.readMetadataIsolate,
                     song.path,
                   );
+                  if (_disposed) return;
                   final artworkData =
                       rawMetadata.pictures.isNotEmpty
                           ? rawMetadata.pictures.first.bytes
@@ -235,6 +241,7 @@ class PlaybackQueueProcessor {
                           artworkData,
                           saveLarge: !Platform.isWindows,
                         );
+                    if (_disposed) return;
 
                     if (artworkInfo != null) {
                       final thumbPath =
@@ -266,11 +273,13 @@ class PlaybackQueueProcessor {
                   final colorSourcePath =
                       meta.thumbnailPath ?? meta.artworkPath;
                   if (colorSourcePath != null) {
+                    if (_disposed) return;
                     final imageProvider = FileImage(File(colorSourcePath));
                     final palette = await PaletteGenerator.fromImageProvider(
                       imageProvider,
                       maximumColorCount: 20,
                     );
+                    if (_disposed) return;
                     final themeColorsBlob = ThemeColorHelper.paletteToBlob(
                       palette,
                     );
@@ -300,6 +309,7 @@ class PlaybackQueueProcessor {
                     sampleStride: settingsService.sampleStride,
                     filePath: song.path,
                   );
+                  if (_disposed) return;
 
                   if (waveform.isNotEmpty) {
                     final float32List = Float32List.fromList(
@@ -332,5 +342,9 @@ class PlaybackQueueProcessor {
       _isProcessing = false;
       debugPrint('Background queue processing finished');
     }
+  }
+
+  void dispose() {
+    _disposed = true;
   }
 }
