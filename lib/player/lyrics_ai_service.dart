@@ -21,8 +21,8 @@ class _LyricsAiCredentials {
 }
 
 class LyricsAiService {
-  static const String _primaryGeminiModelId = 'gemini-2.5-flash';
-  static const String _fallbackGeminiModelId = 'gemini-3-flash-preview';
+  static const String _primaryGeminiModelId = 'gemini-3.1-flash-lite-preview';
+  static const String _fallbackGeminiModelId = 'gemini-2.5-flash';
 
   LyricsAiService({
     NetworkClient? client,
