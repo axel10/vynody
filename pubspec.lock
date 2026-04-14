@@ -51,10 +51,9 @@ packages:
   audio_metadata_reader:
     dependency: "direct main"
     description:
-      name: audio_metadata_reader
-      sha256: b7cecf78178075c8f8281ae184ae81d137eb6e751f5d193334984eb732662ee0
-      url: "https://pub.flutter-io.cn"
-    source: hosted
+      path: "../audio_metadata_reader"
+      relative: true
+    source: path
     version: "1.4.2"
   audio_service:
     dependency: "direct main"
