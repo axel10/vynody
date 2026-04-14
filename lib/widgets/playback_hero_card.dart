@@ -341,8 +341,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final pLyricsLyricsWidth = width - 32.0;
                 final pLyricsLyricsHeight =
                     height -
-                    pLyricsLyricsTop -
-                    (isImmersiveActive ? 0.0 : 8.0);
+                    pLyricsLyricsTop;
                 final pLyricsLyricsOpacity = 1.0;
 
                 // ---------------- Landscape Normal ----------------
