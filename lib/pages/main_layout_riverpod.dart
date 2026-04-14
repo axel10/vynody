@@ -22,10 +22,12 @@ class MainLayoutUiState {
 class MainLayoutUiController extends Notifier<MainLayoutUiState> {
   Timer? _hudTimer;
   Timer? _immersiveTabBarTimer;
+  bool _disposed = false;
 
   @override
   MainLayoutUiState build() {
     ref.onDispose(() {
+      _disposed = true;
       _hudTimer?.cancel();
       _immersiveTabBarTimer?.cancel();
     });
@@ -36,6 +38,7 @@ class MainLayoutUiController extends Notifier<MainLayoutUiState> {
     state = state.copyWith(showVolumeHud: true);
     _hudTimer?.cancel();
     _hudTimer = Timer(const Duration(seconds: 2), () {
+      if (_disposed) return;
       state = state.copyWith(showVolumeHud: false);
     });
   }
@@ -48,6 +51,7 @@ class MainLayoutUiController extends Notifier<MainLayoutUiState> {
   void hideImmersiveTabBarAfter(Duration delay) {
     _immersiveTabBarTimer?.cancel();
     _immersiveTabBarTimer = Timer(delay, () {
+      if (_disposed) return;
       state = state.copyWith(showImmersiveTabBar: false);
     });
   }

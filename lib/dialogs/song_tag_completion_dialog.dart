@@ -41,6 +41,7 @@ class _SongTagCompletionSheetState
   final TextEditingController _musicBrainzSearchController =
       TextEditingController();
   final FocusNode _musicBrainzSearchFocusNode = FocusNode();
+  late final SongTagCompletionController _controller;
 
   bool _isMusicBrainzSearchExpanded = false;
   SongMetadata? _fileMetadata;
@@ -56,6 +57,9 @@ class _SongTagCompletionSheetState
   @override
   void initState() {
     super.initState();
+    _controller = ref.read(
+      songTagCompletionControllerProvider(widget.songPath),
+    );
     _musicBrainzSearchController.addListener(_onMusicBrainzSearchChanged);
     _loadInitialData();
   }
@@ -72,9 +76,6 @@ class _SongTagCompletionSheetState
     if (!mounted) return;
     setState(() {});
   }
-
-  SongTagCompletionController get _controller =>
-      ref.read(songTagCompletionControllerProvider(widget.songPath));
 
   Future<void> _loadInitialData() async {
     if (!mounted) return;

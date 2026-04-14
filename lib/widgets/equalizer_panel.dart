@@ -21,8 +21,10 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final audio = ref.read(audioServiceProvider);
       audio.ensureEqualizerBandCount(bandCount);
+      if (!mounted) return;
       setState(() {
         _frequencies = audio.getEqualizerBandCenters(bandCount: bandCount);
       });

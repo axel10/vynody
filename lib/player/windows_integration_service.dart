@@ -140,7 +140,12 @@ class WindowsIntegrationService {
     _taskbarInitScheduled = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_disposed) {
+        _taskbarInitScheduled = false;
+        return;
+      }
       await _retrySetThumbnailToolbar();
+      if (_disposed) return;
       // 无论成功与否，都重置标志以便下次可以重新尝试
       // （例如窗口重新显示时）
       _taskbarInitScheduled = false;

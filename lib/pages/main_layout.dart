@@ -164,6 +164,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
 
     if (Platform.isWindows) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         _handleArgs();
       });
     }
@@ -237,7 +238,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   /// 处理启动时的命令行参数 (初次启动，例如双击打开应用)
   Future<void> _handleArgs() async {
     // 无参数直接返回
-    if (widget.args.isEmpty) {
+    if (!mounted || widget.args.isEmpty) {
       return;
     }
 

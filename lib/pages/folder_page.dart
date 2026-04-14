@@ -56,6 +56,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   void _scrollToTop() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           0,
