@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:oktoast/oktoast.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -129,35 +130,37 @@ class MyApp extends StatelessWidget {
       'sans-serif',
     ];
 
-    return MaterialApp(
-      title: 'Pure Player',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.light,
+    return OKToast(
+      child: MaterialApp(
+        title: 'Pure Player',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+            brightness: Brightness.light,
+          ),
+          useMaterial3: true,
+          fontFamily: 'SourceHanSansCN',
+          fontFamilyFallback: fontFallbacks,
         ),
-        useMaterial3: true,
-        fontFamily: 'SourceHanSansCN',
-        fontFamilyFallback: fontFallbacks,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+          fontFamily: 'SourceHanSansCN',
+          fontFamilyFallback: fontFallbacks,
         ),
-        useMaterial3: true,
-        fontFamily: 'SourceHanSansCN',
-        fontFamilyFallback: fontFallbacks,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('zh')],
+        home: MainLayout(args: args),
+        navigatorKey: navigatorKey,
       ),
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en'), Locale('zh')],
-      home: MainLayout(args: args),
-      navigatorKey: navigatorKey,
     );
   }
 }

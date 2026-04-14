@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
+import 'package:oktoast/oktoast.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
@@ -12,6 +13,7 @@ import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
 import '../player/lyrics_generation_phase.dart';
 import '../player/lyrics_riverpod.dart';
+import '../player/settings_service.dart';
 
 class LyricsPanel extends rpod.ConsumerStatefulWidget {
   const LyricsPanel({
@@ -34,10 +36,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
   static const double _timelineOffsetStepSeconds = 0.1;
+  static const double _statusToastTopOffset = 30.0;
+  static const Duration _statusToastAnimationDuration = Duration(
+    milliseconds: 180,
+  );
   final ScrollController _scrollController = ScrollController();
   int _lastActiveIndex = -1;
   bool _isAutoScrollPaused = false;
   double _timelineOffsetSeconds = 0.0;
+  rpod.ProviderSubscription<LyricsControllerState>? _lyricsStateSubscription;
+  ToastFuture? _statusToast;
+  String? _statusToastSignature;
 
   LyricsController get _lyricsControllerActions =>
       ref.read(lyricsControllerProvider.notifier);
@@ -47,51 +56,182 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _timelineOffsetSeconds = _timelineOffsetToSeconds(
+      widget.lyrics?.timelineOffset,
+    );
+    _lyricsStateSubscription = ref.listenManual(lyricsControllerProvider, (
+      previous,
+      next,
+    ) {
+      _syncStatusToast(next);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncStatusToast(ref.read(lyricsControllerProvider));
+      _scheduleScrollIfNeeded(force: true);
+    });
+  }
+
+  @override
   void dispose() {
+    _lyricsStateSubscription?.close();
+    _dismissStatusToast();
     _scrollController.dispose();
     super.dispose();
   }
 
-  Widget _buildActivityIndicator(
-    Color accent,
+  void _dismissStatusToast({bool showAnim = false}) {
+    _statusToast?.dismiss(showAnim: showAnim);
+    _statusToast = null;
+    _statusToastSignature = null;
+  }
+
+  void _syncStatusToast(LyricsControllerState lyricsState) {
+    final payload = _buildStatusToastPayload(lyricsState);
+    if (payload == null) {
+      if (_statusToast != null || _statusToastSignature != null) {
+        _dismissStatusToast();
+      }
+      return;
+    }
+
+    if (_statusToastSignature == payload.signature &&
+        _statusToast?.mounted == true) {
+      return;
+    }
+
+    _dismissStatusToast();
+    _statusToastSignature = payload.signature;
+    _statusToast = showToastWidget(
+      _buildStatusToastWidget(payload),
+      context: context,
+      duration: Duration.zero,
+      position: ToastPosition.top.copyWith(
+        align: Alignment.topCenter,
+        offset: _statusToastTopOffset,
+      ),
+      dismissOtherToast: false,
+      handleTouch: false,
+      animationDuration: _statusToastAnimationDuration,
+      animationCurve: Curves.easeOutCubic,
+    );
+  }
+
+  _LyricsStatusToastPayload? _buildStatusToastPayload(
     LyricsControllerState lyricsState,
   ) {
-    final status = lyricsState.isLyricsTranslating
-        ? lyricsState.lyricsTranslationStatus.trim()
-        : (lyricsState.isLyricsGenerating
-              ? lyricsState.lyricsGenerationStatus.trim()
-              : '');
-    if (status.isEmpty) return const SizedBox.shrink();
+    if (!lyricsState.isLyricsGenerating && !lyricsState.isLyricsTranslating) {
+      return null;
+    }
 
-    return Positioned(
-      top: 12,
-      right: 12,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(accent),
+    if (lyricsState.isLyricsTranslating) {
+      final status = lyricsState.lyricsTranslationStatus.trim().isNotEmpty
+          ? lyricsState.lyricsTranslationStatus.trim()
+          : '正在翻译歌词';
+      const modelLabel = 'Gemma 4 31B IT';
+      return _LyricsStatusToastPayload(
+        signature: 'translate|$modelLabel|$status',
+        modelLabel: modelLabel,
+        statusLabel: status,
+      );
+    }
+
+    final settings = ref.read(settingsServiceProvider);
+    final modelLabel = switch (settings.lyricsAiProvider) {
+      LyricsAiProvider.googleAiStudio => 'Gemini 2.5 Flash',
+      LyricsAiProvider.openRouter =>
+        'OpenRouter · Gemini 3.1 Flash Lite Preview',
+    };
+    final taskLabel = lyricsState.lyricsGenerationStatus.trim().isNotEmpty
+        ? lyricsState.lyricsGenerationStatus.trim()
+        : '正在生成歌词';
+    final phaseLabel = switch (lyricsState.lyricsGenerationPhase) {
+      LyricsGenerationPhase.uploading => '上传中',
+      LyricsGenerationPhase.processing => '处理中',
+      LyricsGenerationPhase.generating => '生成中',
+      LyricsGenerationPhase.idle => '',
+    };
+    final statusLabel = phaseLabel.isEmpty
+        ? taskLabel
+        : '$taskLabel · $phaseLabel';
+    return _LyricsStatusToastPayload(
+      signature: 'generate|$modelLabel|$statusLabel',
+      modelLabel: modelLabel,
+      statusLabel: statusLabel,
+    );
+  }
+
+  Widget _buildStatusToastWidget(_LyricsStatusToastPayload payload) {
+    final theme = Theme.of(context);
+    final accent = widget.accentColor ?? theme.colorScheme.primary;
+    final surface = theme.colorScheme.surfaceContainerHighest;
+    final spinnerColor = accent.withValues(alpha: 0.9);
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 360),
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: surface.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accent.withValues(alpha: 0.22)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.28),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
-          ),
-          const SizedBox(width: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 180),
-            child: Text(
-              status,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.75),
-                fontSize: 12,
-                height: 1.0,
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: null,
+                valueColor: AlwaysStoppedAnimation<Color>(spinnerColor),
+                backgroundColor: Colors.white.withValues(alpha: 0.12),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    payload.modelLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    payload.statusLabel,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.78),
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -151,17 +291,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       _timelineOffsetSeconds = newOffset;
     }
     _scheduleScrollIfNeeded();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _timelineOffsetSeconds = _timelineOffsetToSeconds(
-      widget.lyrics?.timelineOffset,
-    );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scheduleScrollIfNeeded(force: true);
-    });
   }
 
   Future<void> _showContextMenu(
@@ -694,9 +823,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 ),
               ),
             ),
-            if (lyricsState.isLyricsTranslating ||
-                lyricsState.isLyricsGenerating)
-              _buildActivityIndicator(accent, lyricsState),
           ],
         ),
       );
@@ -743,9 +869,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 ),
               ),
             ),
-            if (lyricsState.isLyricsTranslating ||
-                lyricsState.isLyricsGenerating)
-              _buildActivityIndicator(accent, lyricsState),
           ],
         ),
       );
@@ -871,10 +994,20 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               },
             ),
           ),
-          if (lyricsState.isLyricsTranslating || lyricsState.isLyricsGenerating)
-            _buildActivityIndicator(accent, lyricsState),
         ],
       ),
     );
   }
+}
+
+class _LyricsStatusToastPayload {
+  const _LyricsStatusToastPayload({
+    required this.signature,
+    required this.modelLabel,
+    required this.statusLabel,
+  });
+
+  final String signature;
+  final String modelLabel;
+  final String statusLabel;
 }

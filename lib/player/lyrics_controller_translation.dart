@@ -21,7 +21,7 @@ extension LyricsControllerTranslation on LyricsController {
 
     if (_lyricsGeneration.isGenerating && _currentMusic()?.path == song.path) {
       _isLyricsTranslating = true;
-      _lyricsTranslationStatus = '正在翻译';
+      _lyricsTranslationStatus = '正在翻译歌词';
       await _waitForLyricsGenerationToFinish(song.path);
     }
 
@@ -95,7 +95,7 @@ extension LyricsControllerTranslation on LyricsController {
 
     _translationInFlightKeys.add(request.translationKey);
     _isLyricsTranslating = true;
-    _lyricsTranslationStatus = '正在翻译';
+    _lyricsTranslationStatus = '正在翻译歌词';
 
     try {
       final success = await _lyricsAiService.translateLyricsStream(
