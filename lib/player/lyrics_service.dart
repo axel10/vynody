@@ -176,7 +176,7 @@ class LyricsService {
       'cancelToken=${cancelToken == null ? 'none' : identityHashCode(cancelToken)}',
     );
 
-    // 先尝试原始查询键，兼容 Gemini 生成结果按“当前曲目原始元数据”写入的缓存。
+    // 先尝试原始查询键，兼容 AI 生成结果按“当前曲目原始元数据”写入的缓存。
     // 再回退到规范化后的查询键，保持既有 LRCLib 缓存命中逻辑不变。
     final cachedFromDb = await _loadFromDatabase(query, ignoreEmptyCache: true);
     if (cachedFromDb != null) {

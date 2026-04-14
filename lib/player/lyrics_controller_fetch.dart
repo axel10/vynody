@@ -9,9 +9,9 @@ extension LyricsControllerFetch on LyricsController {
   }
 
   Future<void> fetchAndLog(MusicFile song) async {
-    if (_geminiGeneration.isGenerating) {
+    if (_lyricsGeneration.isGenerating) {
       _logDebug(
-        'fetch skipped because Gemini generation is in progress -> '
+        'fetch skipped because lyrics generation is in progress -> '
         'title="${song.displayName}" path="${song.path}"',
       );
       return;
@@ -148,7 +148,7 @@ extension LyricsControllerFetch on LyricsController {
   }
 
   Future<void> retryFetchUntilReady(MusicFile song) async {
-    if (_geminiGeneration.isGenerating) {
+    if (_lyricsGeneration.isGenerating) {
       return;
     }
     if (_isLyricsLoading || _lyricsFetchCancelToken != null) {

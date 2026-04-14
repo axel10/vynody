@@ -1,32 +1,31 @@
-part of 'ai_lyrics_service.dart';
+import 'dart:io';
 
-class _GeminiFileUploadResult {
+import 'package:dio/dio.dart' show Headers, Options;
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
+
+import '../utils/network_client.dart';
+
+class GeminiFileUploadResult {
   final String name;
   final String uri;
   final String? state;
 
-  const _GeminiFileUploadResult({
+  const GeminiFileUploadResult({
     required this.name,
     required this.uri,
     this.state,
   });
 }
 
-class _GeminiLyricsApiClient {
-  _GeminiLyricsApiClient({
+class GeminiLyricsApiClient {
+  GeminiLyricsApiClient({
     NetworkClient? client,
-    AIApiKeyService? apiKeyService,
-  }) : _client = client ?? NetworkClient.instance,
-       _apiKeyService = apiKeyService ?? AIApiKeyService();
+  }) : _client = client ?? NetworkClient.instance;
 
   final NetworkClient _client;
-  final AIApiKeyService _apiKeyService;
 
-  Future<String?> loadApiKey() async {
-    return _apiKeyService.loadApiKey();
-  }
-
-  Future<_GeminiFileUploadResult?> uploadFile({
+  Future<GeminiFileUploadResult?> uploadFile({
     required File file,
     required String apiKey,
     required String mimeType,
@@ -87,7 +86,7 @@ class _GeminiLyricsApiClient {
     );
     debugPrint('[GeminiLyrics] upload response data=${uploadResponse.data}');
 
-    final uploadedFile = parseUploadedFile(uploadResponse.data);
+    final uploadedFile = _parseUploadedFile(uploadResponse.data);
     if (uploadedFile == null) {
       throw Exception('未能从 Gemini 上传响应中解析文件信息');
     }
@@ -124,7 +123,7 @@ class _GeminiLyricsApiClient {
     return false;
   }
 
-  Future<_GeminiFileUploadResult?> fetchFileInfo(
+  Future<GeminiFileUploadResult?> fetchFileInfo(
     String fileName,
     String apiKey,
   ) async {
@@ -132,10 +131,10 @@ class _GeminiLyricsApiClient {
       'https://generativelanguage.googleapis.com/v1beta/$fileName',
       queryParameters: {'key': apiKey},
     );
-    return parseUploadedFile(response.data);
+    return _parseUploadedFile(response.data);
   }
 
-  _GeminiFileUploadResult? parseUploadedFile(dynamic data) {
+  GeminiFileUploadResult? _parseUploadedFile(dynamic data) {
     if (data is! Map) return null;
 
     final root = data['file'];
@@ -147,7 +146,7 @@ class _GeminiLyricsApiClient {
     }
 
     final state = fileMap['state']?.toString();
-    return _GeminiFileUploadResult(name: name, uri: uri, state: state);
+    return GeminiFileUploadResult(name: name, uri: uri, state: state);
   }
 
   String mimeTypeForFilePath(String filePath) {

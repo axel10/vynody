@@ -1,6 +1,6 @@
-part of 'ai_lyrics_service.dart';
+import 'dart:convert';
 
-class _GeminiStreamTextParser {
+class LyricsAiStreamTextParser {
   String? extractText(dynamic raw) {
     if (raw is Map || raw is List) {
       final extracted = _extractTextFromDecoded(raw);

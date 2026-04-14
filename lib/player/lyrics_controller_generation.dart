@@ -2,15 +2,49 @@ part of 'lyrics_controller.dart';
 
 // ignore_for_file: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
 
+typedef _LyricsGenerationInvoker =
+    Future<LyricsGenerationResult> Function({
+      required void Function(double progress) onUploadProgress,
+      required void Function(String stage) onStageChanged,
+      required void Function(String partialText, bool isFinal) onProgress,
+    });
+
+class _LyricsGenerationSession {
+  _LyricsGenerationSession({required this.id, required this.songPath});
+
+  final int id;
+  final String songPath;
+}
+
+class _LyricsGenerationRuntime {
+  int serial = 0;
+  Completer<void>? completer;
+
+  bool get isGenerating => completer != null;
+
+  void start() {
+    serial++;
+    completer = Completer<void>();
+  }
+
+  void finish() {
+    final currentCompleter = completer;
+    if (currentCompleter != null && !currentCompleter.isCompleted) {
+      currentCompleter.complete();
+    }
+    completer = null;
+  }
+}
+
 extension LyricsControllerGeneration on LyricsController {
-  _GeminiGenerationSession _beginGeminiGeneration(
+  _LyricsGenerationSession _beginLyricsGeneration(
     MusicFile song, {
     required String statusLabel,
   }) {
     // 生成流程开始后，先让任何尚未完成的 lrclib 拉取失效，
     // 避免它们在 AI 结果出来后“晚到覆盖”当前歌词。
     _cancelOngoingLyricsFetch(reason: 'lyrics generation started');
-    _geminiGeneration.start();
+    _lyricsGeneration.start();
     _lyricsSearchAttempted = true;
     _startLyricsGenerationStatus(statusLabel);
     _setLyricsGenerating(
@@ -19,22 +53,22 @@ extension LyricsControllerGeneration on LyricsController {
       progress: 0.0,
     );
 
-    return _GeminiGenerationSession(
-      id: _geminiGeneration.serial,
+    return _LyricsGenerationSession(
+      id: _lyricsGeneration.serial,
       songPath: song.path,
     );
   }
 
-  bool _isActiveGeminiGeneration(_GeminiGenerationSession session) {
-    return session.id == _geminiGeneration.serial &&
+  bool _isActiveLyricsGeneration(_LyricsGenerationSession session) {
+    return session.id == _lyricsGeneration.serial &&
         _currentMusic()?.path == session.songPath;
   }
 
-  void _updateGeminiGenerationStage(
-    _GeminiGenerationSession session,
+  void _updateLyricsGenerationStage(
+    _LyricsGenerationSession session,
     String stage,
   ) {
-    if (!_isActiveGeminiGeneration(session)) return;
+    if (!_isActiveLyricsGeneration(session)) return;
 
     _setGenerationStage(stage);
   }
@@ -61,11 +95,11 @@ extension LyricsControllerGeneration on LyricsController {
   }
 
   void _publishGeneratedLyrics(
-    _GeminiGenerationSession session, {
+    _LyricsGenerationSession session, {
     required MusicFile song,
     required MusicLyric lyrics,
   }) {
-    if (!_isActiveGeminiGeneration(session)) return;
+    if (!_isActiveLyricsGeneration(session)) return;
 
     _hasLyrics = true;
     _isLyricsLoading = false;
@@ -89,10 +123,10 @@ extension LyricsControllerGeneration on LyricsController {
     _bumpRevision();
   }
 
-  void _finalizeGeminiGeneration(_GeminiGenerationSession session) {
-    if (session.id != _geminiGeneration.serial) return;
+  void _finalizeLyricsGeneration(_LyricsGenerationSession session) {
+    if (session.id != _lyricsGeneration.serial) return;
 
-    _geminiGeneration.finish();
+    _lyricsGeneration.finish();
     _setLyricsGenerating(
       false,
       phase: LyricsGenerationPhase.idle,
@@ -101,18 +135,18 @@ extension LyricsControllerGeneration on LyricsController {
     _clearLyricsGenerationStatus();
   }
 
-  Future<String?> _runGeminiGeneration({
+  Future<String?> _runLyricsGeneration({
     required MusicFile song,
     required LyricsCacheSource databaseSource,
     required String statusLabel,
-    required _GeminiGenerationInvoker invoke,
+    required _LyricsGenerationInvoker invoke,
     Map<String, MusicLyricTranslation> Function()? translationProvider,
   }) async {
-    final session = _beginGeminiGeneration(song, statusLabel: statusLabel);
+    final session = _beginLyricsGeneration(song, statusLabel: statusLabel);
     try {
       final result = await invoke(
         onUploadProgress: (progress) {
-          if (!_isActiveGeminiGeneration(session)) {
+          if (!_isActiveLyricsGeneration(session)) {
             return;
           }
 
@@ -123,10 +157,10 @@ extension LyricsControllerGeneration on LyricsController {
           );
         },
         onStageChanged: (stage) {
-          _updateGeminiGenerationStage(session, stage);
+          _updateLyricsGenerationStage(session, stage);
         },
         onProgress: (partialText, isFinal) {
-          if (!_isActiveGeminiGeneration(session)) {
+          if (!_isActiveLyricsGeneration(session)) {
             return;
           }
 
@@ -144,7 +178,7 @@ extension LyricsControllerGeneration on LyricsController {
         },
       );
 
-      if (!_isActiveGeminiGeneration(session)) {
+      if (!_isActiveLyricsGeneration(session)) {
         return null;
       }
 
@@ -172,7 +206,7 @@ extension LyricsControllerGeneration on LyricsController {
       );
       return null;
     } finally {
-      _finalizeGeminiGeneration(session);
+      _finalizeLyricsGeneration(session);
     }
   }
 
@@ -182,7 +216,7 @@ extension LyricsControllerGeneration on LyricsController {
       debugPrint('[LyricsController] generate lyrics skipped: no current song');
       return '没有可用的当前歌曲。';
     }
-    if (_geminiGeneration.isGenerating) {
+    if (_lyricsGeneration.isGenerating) {
       debugPrint(
         '[LyricsController] generate lyrics skipped: already generating '
         'path=${song.path}',
@@ -191,7 +225,7 @@ extension LyricsControllerGeneration on LyricsController {
     }
 
     try {
-      return await _runGeminiGeneration(
+      return await _runLyricsGeneration(
         song: song,
         databaseSource: LyricsCacheSource.geminiGenerate,
         statusLabel: '正在生成歌词',
@@ -201,7 +235,7 @@ extension LyricsControllerGeneration on LyricsController {
               required onStageChanged,
               required onProgress,
             }) {
-              return _geminiLyricsService.generateLyricsFromFile(
+              return _lyricsAiService.generateLyricsFromFile(
                 filePath: song.path,
                 songTitle: song.title,
                 onUploadProgress: onUploadProgress,
@@ -224,7 +258,7 @@ extension LyricsControllerGeneration on LyricsController {
       );
       return '没有可用的当前歌曲。';
     }
-    if (_geminiGeneration.isGenerating) {
+    if (_lyricsGeneration.isGenerating) {
       debugPrint(
         '[LyricsController] generate timeline skipped: already generating '
         'path=${song.path}',
@@ -242,7 +276,7 @@ extension LyricsControllerGeneration on LyricsController {
     }
 
     try {
-      return await _runGeminiGeneration(
+      return await _runLyricsGeneration(
         song: song,
         databaseSource: LyricsCacheSource.geminiTimeline,
         statusLabel: '正在生成时间轴',
@@ -255,7 +289,7 @@ extension LyricsControllerGeneration on LyricsController {
               required onStageChanged,
               required onProgress,
             }) {
-              return _geminiLyricsService.generateTimelineFromLyrics(
+              return _lyricsAiService.generateTimelineFromLyrics(
                 filePath: song.path,
                 lyrics: sourceLyrics,
                 songTitle: song.title,

@@ -13,10 +13,11 @@ import '../utils/lrc_utils.dart';
 import '../utils/lyrics_id_utils.dart';
 import 'audio_riverpod.dart';
 import 'settings_service.dart';
-import 'ai_lyrics_service.dart';
+import 'lyrics_ai_service.dart';
 import 'lyrics_cache_repository.dart';
 import 'lyrics_controller_state.dart';
 import 'lyrics_generation_phase.dart';
+import 'lyrics_generation_result.dart';
 import 'lyrics_riverpod.dart';
 import 'lyrics_service.dart';
 import 'metadata_database.dart';
@@ -26,20 +27,6 @@ part 'lyrics_controller_fetch.dart';
 part 'lyrics_controller_generation.dart';
 part 'lyrics_controller_translation.dart';
 part 'lyrics_controller_utils.dart';
-
-typedef _GeminiGenerationInvoker =
-    Future<GeminiGenerationResult> Function({
-      required void Function(double progress) onUploadProgress,
-      required void Function(String stage) onStageChanged,
-      required void Function(String partialText, bool isFinal) onProgress,
-    });
-
-class _GeminiGenerationSession {
-  _GeminiGenerationSession({required this.id, required this.songPath});
-
-  final int id;
-  final String songPath;
-}
 
 class _LyricsTranslationRequest {
   _LyricsTranslationRequest({
@@ -59,26 +46,6 @@ class _LyricsTranslationRequest {
   final String translationKey;
 }
 
-class _GeminiGenerationRuntime {
-  int serial = 0;
-  Completer<void>? completer;
-
-  bool get isGenerating => completer != null;
-
-  void start() {
-    serial++;
-    completer = Completer<void>();
-  }
-
-  void finish() {
-    final currentCompleter = completer;
-    if (currentCompleter != null && !currentCompleter.isCompleted) {
-      currentCompleter.complete();
-    }
-    completer = null;
-  }
-}
-
 class LyricsController extends Notifier<LyricsControllerState> {
   late final MetadataDatabase _db;
   late final MusicFile? Function() _currentMusic;
@@ -89,14 +56,14 @@ class LyricsController extends Notifier<LyricsControllerState> {
   late final void Function(String path, int durationMillis) _cacheSongDuration;
   late final LyricsCacheRepository _lyricsCacheRepository;
   late final LyricsService _lyricsService;
-  late final AILyricsService _geminiLyricsService;
+  late final LyricsAiService _lyricsAiService;
   late final SettingsService _settingsService;
 
   int _lyricsRequestSerial = 0;
   final Set<String> _translatedLyricsKeys = <String>{};
   final Set<String> _translationInFlightKeys = <String>{};
   int _lyricsRetrySerial = 0;
-  final _GeminiGenerationRuntime _geminiGeneration = _GeminiGenerationRuntime();
+  final _LyricsGenerationRuntime _lyricsGeneration = _LyricsGenerationRuntime();
   CancelToken? _lyricsFetchCancelToken;
 
   @override
@@ -115,7 +82,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       cacheRepository: _lyricsCacheRepository,
     );
     _settingsService = ref.read(settingsServiceProvider);
-    _geminiLyricsService = ref.read(geminiLyricsServiceProvider);
+    _lyricsAiService = ref.read(lyricsAiServiceProvider);
     return LyricsControllerState(
       lyricsTranslationLanguageCode:
           LanguageCodeUtils.currentSystemLanguageCode(),

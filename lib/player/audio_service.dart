@@ -938,7 +938,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (isLyricsActive && !hasLyrics) {
       if (_lyricsState.isLyricsGenerating) {
         _logLyricsDebug(
-          'post-metadata fetch skipped because Gemini generation is active '
+          'post-metadata fetch skipped because lyrics generation is active '
           '-> title="${song.displayName}"',
         );
       } else {

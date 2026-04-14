@@ -2,32 +2,16 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dio/dio.dart' show Headers, ResponseType;
+import 'package:dio/dio.dart' show DioException, Headers, ResponseType;
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
 
-import 'ai_api_key_service.dart';
-import 'settings_service.dart';
-import '../utils/network_client.dart';
 import '../utils/lrc_utils.dart';
-
-part 'ai_lyrics_api_client.dart';
-part 'ai_lyrics_openrouter.dart';
-part 'ai_lyrics_stream_parser.dart';
-
-class GeminiGenerationResult {
-  const GeminiGenerationResult.success(this.text)
-    : errorMessage = null,
-      isSuccess = true;
-
-  const GeminiGenerationResult.failure(this.errorMessage)
-    : text = null,
-      isSuccess = false;
-
-  final String? text;
-  final String? errorMessage;
-  final bool isSuccess;
-}
+import '../utils/network_client.dart';
+import 'lyrics_ai_api_client.dart';
+import 'lyrics_ai_openrouter.dart';
+import 'lyrics_ai_stream_parser.dart';
+import 'lyrics_generation_result.dart';
+import 'settings_service.dart';
 
 class _LyricsAiCredentials {
   const _LyricsAiCredentials({required this.provider, required this.apiKey});
@@ -36,29 +20,26 @@ class _LyricsAiCredentials {
   final String apiKey;
 }
 
-class AILyricsService {
+class LyricsAiService {
   static const String _primaryGeminiModelId = 'gemini-3-flash-preview';
   static const String _fallbackGeminiModelId = 'gemini-2.5-flash';
-  static const String _openRouterTextModelId =
-      'google/gemini-3.1-flash-lite-preview';
-  static const String _openRouterAudioModelId =
-      'google/gemini-3.1-flash-lite-preview';
 
-  AILyricsService({
+  LyricsAiService({
     NetworkClient? client,
-    AIApiKeyService? apiKeyService,
     required SettingsService settingsService,
   }) : _client = client ?? NetworkClient.instance,
-       _api = _GeminiLyricsApiClient(
+       _settingsService = settingsService,
+       _geminiApiClient = GeminiLyricsApiClient(client: client),
+       _openRouterClient = LyricsAiOpenRouterClient(
          client: client,
-         apiKeyService: apiKeyService,
-       ),
-       _settingsService = settingsService;
+         streamParser: LyricsAiStreamTextParser(),
+       );
 
   final NetworkClient _client;
-  final _GeminiLyricsApiClient _api;
   final SettingsService _settingsService;
-  final _GeminiStreamTextParser _streamParser = _GeminiStreamTextParser();
+  final GeminiLyricsApiClient _geminiApiClient;
+  final LyricsAiOpenRouterClient _openRouterClient;
+  final LyricsAiStreamTextParser _streamParser = LyricsAiStreamTextParser();
   static final RegExp _lineSplitPattern = RegExp(r'\r?\n');
   static final RegExp _timestampLinePattern = RegExp(
     r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
@@ -95,7 +76,7 @@ class AILyricsService {
   }) async {
     final apiKey = _settingsService.geminiApiKey.trim();
     if (apiKey.isEmpty) {
-      debugPrint('[GeminiLyrics] gemini API key not found, skip translation.');
+      debugPrint('[LyricsAi] gemini API key not found, skip translation.');
       return false;
     }
 
@@ -113,7 +94,7 @@ class AILyricsService {
 
     final targetLineCount = compactSourceLines.length;
     if (targetLineCount == 0) {
-      debugPrint('[GeminiLyrics] no usable lyrics after stripping timestamps.');
+      debugPrint('[LyricsAi] no usable lyrics after stripping timestamps.');
       return false;
     }
     final targetLanguageName = _targetLanguageName(targetLanguageCode);
@@ -146,7 +127,7 @@ class AILyricsService {
 
     try {
       debugPrint(
-        '[GeminiLyrics] request start, lyrics length=${lyrics.length}',
+        '[LyricsAi] request start, lyrics length=${lyrics.length}',
       );
       final response = await _client.post(
         url,
@@ -160,11 +141,11 @@ class AILyricsService {
 
       final body = response.data;
       if (body == null || body.stream == null) {
-        debugPrint('[GeminiLyrics] Empty streaming body.');
+        debugPrint('[LyricsAi] Empty streaming body.');
         return false;
       }
 
-      debugPrint('[GeminiLyrics] stream connected');
+      debugPrint('[LyricsAi] stream connected');
       final translatedBuffer = StringBuffer();
       var lastPrintedLength = -1;
       var lastProgressSnapshot = '';
@@ -197,7 +178,7 @@ class AILyricsService {
           lastProgressSnapshot = snapshot;
           onProgress(visibleLines, snapshot);
         }
-        debugPrint('[GeminiLyrics] translated: $current');
+        debugPrint('[LyricsAi] translated: $current');
       }
 
       printTimer = Timer.periodic(const Duration(seconds: 2), (_) {
@@ -232,14 +213,14 @@ class AILyricsService {
       emitProgress(force: true);
       return true;
     } on DioException catch (e) {
-      debugPrint('[GeminiLyrics] request failed: ${e.message}');
+      debugPrint('[LyricsAi] request failed: ${e.message}');
     } catch (e) {
-      debugPrint('[GeminiLyrics] translation failed: $e');
+      debugPrint('[LyricsAi] translation failed: $e');
     }
     return false;
   }
 
-  Future<GeminiGenerationResult> generateLyricsFromFile({
+  Future<LyricsGenerationResult> generateLyricsFromFile({
     required String filePath,
     String? songTitle,
     String modelId = _primaryGeminiModelId,
@@ -249,8 +230,8 @@ class AILyricsService {
   }) async {
     final credentials = await _loadGenerationCredentials();
     if (credentials == null) {
-      debugPrint('[GeminiLyrics] active API key not found, skip generation.');
-      return GeminiGenerationResult.failure(
+      debugPrint('[LyricsAi] active API key not found, skip generation.');
+      return LyricsGenerationResult.failure(
         _missingApiKeyMessage(
           _settingsService.lyricsAiProvider,
           action: '生成歌词',
@@ -259,7 +240,7 @@ class AILyricsService {
     }
 
     if (credentials.provider == LyricsAiProvider.openRouter) {
-      return _generateLyricsFromFileOpenRouter(
+      return _openRouterClient.generateLyricsFromFile(
         apiKey: credentials.apiKey,
         filePath: filePath,
         songTitle: songTitle,
@@ -273,11 +254,13 @@ class AILyricsService {
 
     final file = File(filePath);
     if (!await file.exists()) {
-      debugPrint('[GeminiLyrics] file not found for generation: $filePath');
-      return const GeminiGenerationResult.failure('本地歌曲文件不存在，无法生成歌词。');
+      debugPrint('[LyricsAi] file not found for generation: $filePath');
+      return const LyricsGenerationResult.failure(
+        '本地歌曲文件不存在，无法生成歌词。',
+      );
     }
 
-    final mimeType = _api.mimeTypeForFilePath(filePath);
+    final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
     final normalizedTitle = songTitle?.trim();
     final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
         ? ''
@@ -300,7 +283,7 @@ class AILyricsService {
     );
   }
 
-  Future<GeminiGenerationResult> generateTimelineFromLyrics({
+  Future<LyricsGenerationResult> generateTimelineFromLyrics({
     required String filePath,
     required String lyrics,
     String? songTitle,
@@ -311,8 +294,8 @@ class AILyricsService {
   }) async {
     final credentials = await _loadGenerationCredentials();
     if (credentials == null) {
-      debugPrint('[GeminiLyrics] active API key not found, skip timeline.');
-      return GeminiGenerationResult.failure(
+      debugPrint('[LyricsAi] active API key not found, skip timeline.');
+      return LyricsGenerationResult.failure(
         _missingApiKeyMessage(
           _settingsService.lyricsAiProvider,
           action: '生成时间轴',
@@ -321,7 +304,7 @@ class AILyricsService {
     }
 
     if (credentials.provider == LyricsAiProvider.openRouter) {
-      return _generateTimelineFromLyricsOpenRouter(
+      return _openRouterClient.generateTimelineFromLyrics(
         apiKey: credentials.apiKey,
         filePath: filePath,
         lyrics: lyrics,
@@ -335,27 +318,26 @@ class AILyricsService {
 
     final file = File(filePath);
     if (!await file.exists()) {
-      debugPrint('[GeminiLyrics] file not found for timeline: $filePath');
-      return const GeminiGenerationResult.failure('本地歌曲文件不存在，无法生成时间轴。');
+      debugPrint('[LyricsAi] file not found for timeline: $filePath');
+      return const LyricsGenerationResult.failure(
+        '本地歌曲文件不存在，无法生成时间轴。',
+      );
     }
 
-    final mimeType = _api.mimeTypeForFilePath(filePath);
+    final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
-      debugPrint('[GeminiLyrics] no usable lyrics for timeline generation.');
-      return const GeminiGenerationResult.failure('没有可用歌词，无法生成时间轴。');
+      debugPrint('[LyricsAi] no usable lyrics for timeline generation.');
+      return const LyricsGenerationResult.failure(
+        '没有可用歌词，无法生成时间轴。',
+      );
     }
 
-    // final normalizedTitle = songTitle?.trim();
-    // final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
-    //     ? ''
-    //     : '这首歌的标题是《$normalizedTitle》。';
     final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
     final promptPrefix = hasOriginalTimestamps
         ? '这是这首歌的歌词和源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
         : '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
     final prompt =
-        // '$titleHint'
         '$promptPrefix\n'
         '```text\n'
         '$normalizedLyrics\n'
@@ -374,7 +356,7 @@ class AILyricsService {
     );
   }
 
-  Future<GeminiGenerationResult> _generateFromUploadedFile({
+  Future<LyricsGenerationResult> _generateFromUploadedFile({
     required File file,
     required String apiKey,
     required String mimeType,
@@ -390,33 +372,35 @@ class AILyricsService {
       onStageChanged?.call('uploading');
       // 先把本地文件上传到 Gemini 文件服务，后续生成请求只引用文件 URI。
       // 这样模型可以直接读取整份输入，而不是只靠 prompt 猜测。
-      debugPrint('[GeminiLyrics] 开始上传文件: $filePath');
-      final uploadedFile = await _api.uploadFile(
+      debugPrint('[LyricsAi] 开始上传文件: $filePath');
+      final uploadedFile = await _geminiApiClient.uploadFile(
         file: file,
         apiKey: apiKey,
         mimeType: mimeType,
         onUploadProgress: onUploadProgress,
       );
       if (uploadedFile == null) {
-        debugPrint('[GeminiLyrics] 文件上传失败: $filePath');
-        return const GeminiGenerationResult.failure('文件上传失败，请重试。');
+        debugPrint('[LyricsAi] 文件上传失败: $filePath');
+        return const LyricsGenerationResult.failure('文件上传失败，请重试。');
       }
 
       onStageChanged?.call('processing');
 
       final fileName = uploadedFile.name;
       final fileUri = uploadedFile.uri;
-      final isActive = await _api.waitForFileActive(
+      final isActive = await _geminiApiClient.waitForFileActive(
         fileName: fileName,
         apiKey: apiKey,
         initialState: uploadedFile.state,
       );
       if (!isActive) {
         debugPrint(
-          '[GeminiLyrics] file never became ACTIVE after upload: '
+          '[LyricsAi] file never became ACTIVE after upload: '
           'name=$fileName uri=$fileUri',
         );
-        return const GeminiGenerationResult.failure('上传后的文件未能就绪，请稍后重试。');
+        return const LyricsGenerationResult.failure(
+          '上传后的文件未能就绪，请稍后重试。',
+        );
       }
       return _generateWithUploadedFileUri(
         apiKey: apiKey,
@@ -430,13 +414,13 @@ class AILyricsService {
         onProgress: onProgress,
       );
     } catch (e) {
-      return GeminiGenerationResult.failure(
+      return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(e, fallback: '生成歌词时发生未知错误。'),
       );
     }
   }
 
-  Future<GeminiGenerationResult> _generateWithUploadedFileUri({
+  Future<LyricsGenerationResult> _generateWithUploadedFileUri({
     required String apiKey,
     required String fileUri,
     required String filePath,
@@ -472,15 +456,13 @@ class AILyricsService {
         };
 
         // 这里使用 streamGenerateContent，是为了让结果在模型生成时就能逐步回传给界面。
-        debugPrint('[GeminiLyrics] generation request model=$effectiveModelId');
-        debugPrint('[GeminiLyrics] generation request attempt=$attempt');
-        debugPrint('[GeminiLyrics] generation request filePath=$filePath');
-        debugPrint('[GeminiLyrics] generation request fileName=$fileName');
-        debugPrint('[GeminiLyrics] generation request mimeType=$mimeType');
-        debugPrint('[GeminiLyrics] generation request fileUri=$fileUri');
-        debugPrint(
-          '[GeminiLyrics] generation request payload=${jsonEncode(requestData)}',
-        );
+        debugPrint('[LyricsAi] generation request model=$effectiveModelId');
+        debugPrint('[LyricsAi] generation request attempt=$attempt');
+        debugPrint('[LyricsAi] generation request filePath=$filePath');
+        debugPrint('[LyricsAi] generation request fileName=$fileName');
+        debugPrint('[LyricsAi] generation request mimeType=$mimeType');
+        debugPrint('[LyricsAi] generation request fileUri=$fileUri');
+        debugPrint('[LyricsAi] generation request payload=${jsonEncode(requestData)}');
 
         try {
           final response = await _client.post(
@@ -496,10 +478,10 @@ class AILyricsService {
           final body = response.data;
           if (body == null || body.stream == null) {
             lastErrorMessage = 'Gemini 返回了空流响应。';
-            debugPrint('[GeminiLyrics] Empty streaming body.');
+            debugPrint('[LyricsAi] Empty streaming body.');
             if (attempt < 3) {
               debugPrint(
-                '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
+                '[LyricsAi] generation retry scheduled attempt=${attempt + 1} '
                 'reason=$lastErrorMessage',
               );
               continue;
@@ -507,7 +489,7 @@ class AILyricsService {
             break;
           }
 
-          debugPrint('[GeminiLyrics] generation stream connected');
+          debugPrint('[LyricsAi] generation stream connected');
           final generatedBuffer = StringBuffer();
           String lastEmitted = '';
 
@@ -525,9 +507,7 @@ class AILyricsService {
             utf8.decoder,
           );
           try {
-            await for (final line in textStream.transform(
-              const LineSplitter(),
-            )) {
+            await for (final line in textStream.transform(const LineSplitter())) {
               final trimmed = line.trim();
               if (trimmed.isEmpty) continue;
 
@@ -548,9 +528,7 @@ class AILyricsService {
             emitProgress(force: true);
           }
 
-          final generatedText = _streamParser.extractText(
-            generatedBuffer.toString(),
-          );
+          final generatedText = _streamParser.extractText(generatedBuffer.toString());
           final cleanedText = LrcUtils.cleanGeneratedLyricsText(
             generatedText ?? generatedBuffer.toString(),
           );
@@ -559,13 +537,13 @@ class AILyricsService {
               : _stripTimestamps(cleanedText);
           if (finalText.isEmpty) {
             lastErrorMessage = 'Gemini 返回了空响应。';
-            debugPrint('[GeminiLyrics] empty lyrics response.');
+            debugPrint('[LyricsAi] empty lyrics response.');
             debugPrint(
-              '[GeminiLyrics] raw generate response: ${generatedBuffer.toString()}',
+              '[LyricsAi] raw generate response: ${generatedBuffer.toString()}',
             );
             if (attempt < 3) {
               debugPrint(
-                '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
+                '[LyricsAi] generation retry scheduled attempt=${attempt + 1} '
                 'reason=$lastErrorMessage',
               );
               continue;
@@ -574,31 +552,31 @@ class AILyricsService {
           }
 
           // 最终结果会再做一次清洗，去掉代码块、杂项前缀和非 LRC 内容。
-          debugPrint('[GeminiLyrics] final generated lyrics:');
+          debugPrint('[LyricsAi] final generated lyrics:');
           debugPrint(finalText);
           onProgress?.call(finalText, true);
-          return GeminiGenerationResult.success(finalText);
+          return LyricsGenerationResult.success(finalText);
         } on DioException catch (e) {
           lastErrorMessage = _formatGenerationErrorMessage(e);
-          debugPrint('[GeminiLyrics] generation failed: ${e.message}');
+          debugPrint('[LyricsAi] generation failed: ${e.message}');
           debugPrint(
-            '[GeminiLyrics] generation status: ${e.response?.statusCode}',
+            '[LyricsAi] generation status: ${e.response?.statusCode}',
           );
-          debugPrint('[GeminiLyrics] generation response: ${e.response?.data}');
+          debugPrint('[LyricsAi] generation response: ${e.response?.data}');
           debugPrint(
-            '[GeminiLyrics] generation request path: ${e.requestOptions.path}',
-          );
-          debugPrint(
-            '[GeminiLyrics] generation request query: ${e.requestOptions.queryParameters}',
+            '[LyricsAi] generation request path: ${e.requestOptions.path}',
           );
           debugPrint(
-            '[GeminiLyrics] generation request headers: ${e.requestOptions.headers}',
+            '[LyricsAi] generation request query: ${e.requestOptions.queryParameters}',
           );
           debugPrint(
-            '[GeminiLyrics] generation request data: ${e.requestOptions.data}',
+            '[LyricsAi] generation request headers: ${e.requestOptions.headers}',
           );
           debugPrint(
-            '[GeminiLyrics] generation response data: ${e.response?.data}',
+            '[LyricsAi] generation request data: ${e.requestOptions.data}',
+          );
+          debugPrint(
+            '[LyricsAi] generation response data: ${e.response?.data}',
           );
 
           final statusCode = e.response?.statusCode;
@@ -607,7 +585,7 @@ class AILyricsService {
             // 这里只切换模型并重试同一个 fileUri，不会重新上传文件。
             shouldTryNextModel = true;
             debugPrint(
-              '[GeminiLyrics] model downgraded to $_fallbackGeminiModelId '
+              '[LyricsAi] model downgraded to $_fallbackGeminiModelId '
               'after status=$statusCode, reusing fileUri=$fileUri.',
             );
             break;
@@ -616,17 +594,17 @@ class AILyricsService {
           if (effectiveModelId == _fallbackGeminiModelId) {
             final specialMessage = _fallbackFailureMessageForStatus(statusCode);
             if (specialMessage != null) {
-              return GeminiGenerationResult.failure(specialMessage);
+              return LyricsGenerationResult.failure(specialMessage);
             }
           }
         } catch (e) {
           lastErrorMessage = _formatGenerationErrorMessage(e);
-          debugPrint('[GeminiLyrics] generation error: $e');
+          debugPrint('[LyricsAi] generation error: $e');
         }
 
         if (attempt < 3) {
           debugPrint(
-            '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
+            '[LyricsAi] generation retry scheduled attempt=${attempt + 1} '
             'reason=$lastErrorMessage',
           );
           continue;
@@ -639,7 +617,7 @@ class AILyricsService {
       break;
     }
 
-    return GeminiGenerationResult.failure('生成歌词失败：$lastErrorMessage');
+    return LyricsGenerationResult.failure('生成歌词失败：$lastErrorMessage');
   }
 
   List<String> _splitLyricsLines(String lyrics) {

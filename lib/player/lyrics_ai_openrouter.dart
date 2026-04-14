@@ -1,7 +1,32 @@
-part of 'ai_lyrics_service.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
-extension on AILyricsService {
-  Future<GeminiGenerationResult> _generateLyricsFromFileOpenRouter({
+import 'package:dio/dio.dart' show DioException, Headers, Options, ResponseType;
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
+
+import '../utils/lrc_utils.dart';
+import '../utils/network_client.dart';
+import 'lyrics_ai_stream_parser.dart';
+import 'lyrics_generation_result.dart';
+
+class LyricsAiOpenRouterClient {
+  LyricsAiOpenRouterClient({
+    NetworkClient? client,
+    LyricsAiStreamTextParser? streamParser,
+  }) : _client = client ?? NetworkClient.instance,
+       _streamParser = streamParser ?? LyricsAiStreamTextParser();
+
+  final NetworkClient _client;
+  final LyricsAiStreamTextParser _streamParser;
+
+  static const String audioModelId =
+      'google/gemini-3.1-flash-lite-preview';
+  static const String textModelId =
+      'google/gemini-3.1-flash-lite-preview';
+
+  Future<LyricsGenerationResult> generateLyricsFromFile({
     required String apiKey,
     required String filePath,
     String? songTitle,
@@ -12,7 +37,9 @@ extension on AILyricsService {
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[OpenRouterLyrics] file not found for generation: $filePath');
-      return const GeminiGenerationResult.failure('本地歌曲文件不存在，无法生成歌词。');
+      return const LyricsGenerationResult.failure(
+        '本地歌曲文件不存在，无法生成歌词。',
+      );
     }
 
     final normalizedTitle = songTitle?.trim();
@@ -29,13 +56,13 @@ extension on AILyricsService {
       onUploadProgress?.call(1.0);
       final fileBytes = await file.readAsBytes();
       final audioFormat = _audioFormatForFilePath(filePath);
-      final requestData = _buildOpenRouterAudioRequestData(
+      final requestData = _buildAudioRequestData(
         prompt: prompt,
         audioBase64: base64Encode(fileBytes),
         audioFormat: audioFormat,
         stream: true,
       );
-      _logOpenRouterRequest(
+      _logRequest(
         action: 'generate_lyrics',
         requestData: requestData,
         prompt: prompt,
@@ -49,7 +76,7 @@ extension on AILyricsService {
 
       final generatedBuffer = StringBuffer();
       String lastEmitted = '';
-      await _streamOpenRouterTextResponse(
+      await _streamTextResponse(
         apiKey: apiKey,
         requestData: requestData,
         onChunk: (chunk) {
@@ -65,28 +92,126 @@ extension on AILyricsService {
         },
       );
 
-      final generatedText = _streamParser.extractText(
-        generatedBuffer.toString(),
-      );
+      final generatedText = _streamParser.extractText(generatedBuffer.toString());
       final cleanedText = LrcUtils.cleanGeneratedLyricsText(
         generatedText ?? generatedBuffer.toString(),
       );
       if (cleanedText.trim().isEmpty) {
-        return const GeminiGenerationResult.failure('OpenRouter 返回了空响应。');
+        return const LyricsGenerationResult.failure('OpenRouter 返回了空响应。');
       }
 
       debugPrint('[OpenRouterLyrics] final generated lyrics:');
       debugPrint(cleanedText);
       onProgress?.call(cleanedText, true);
-      return GeminiGenerationResult.success(cleanedText);
+      return LyricsGenerationResult.success(cleanedText);
     } catch (e) {
-      return GeminiGenerationResult.failure(
+      return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(e, fallback: '生成歌词时发生未知错误。'),
       );
     }
   }
 
-  Map<String, dynamic> _buildOpenRouterAudioRequestData({
+  Future<LyricsGenerationResult> generateTimelineFromLyrics({
+    required String apiKey,
+    required String filePath,
+    required String lyrics,
+    void Function(double progress)? onUploadProgress,
+    void Function(String stage)? onStageChanged,
+    void Function(String partialText, bool isFinal)? onProgress,
+  }) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      debugPrint('[OpenRouterLyrics] file not found for timeline: $filePath');
+      return const LyricsGenerationResult.failure(
+        '本地歌曲文件不存在，无法生成时间轴。',
+      );
+    }
+
+    final normalizedLyrics = lyrics.trim();
+    if (normalizedLyrics.isEmpty) {
+      debugPrint(
+        '[OpenRouterLyrics] no usable lyrics for timeline generation.',
+      );
+      return const LyricsGenerationResult.failure('没有可用歌词，无法生成时间轴。');
+    }
+
+    final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
+    final promptPrefix = hasOriginalTimestamps
+        ? '这是这首歌的歌词和源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
+        : '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
+    final prompt =
+        '$promptPrefix\n'
+        '```text\n'
+        '$normalizedLyrics\n'
+        '```';
+
+    try {
+      onStageChanged?.call('generating');
+      onUploadProgress?.call(1.0);
+      final requestData = {
+        'model': textModelId,
+        'messages': [
+          {
+            'role': 'user',
+            'content': [
+              {'type': 'input_text', 'text': prompt},
+            ],
+          },
+        ],
+        'stream': true,
+      };
+      _logRequest(
+        action: 'generate_timeline',
+        requestData: requestData,
+        prompt: prompt,
+        extra: {
+          'filePath': filePath,
+          'sourceLength': normalizedLyrics.length,
+          'hasOriginalTimestamps': hasOriginalTimestamps,
+        },
+      );
+
+      final generatedBuffer = StringBuffer();
+      String lastEmitted = '';
+      await _streamTextResponse(
+        apiKey: apiKey,
+        requestData: requestData,
+        onChunk: (chunk) {
+          _logChunk('generate_timeline', chunk);
+          generatedBuffer.write(chunk);
+          final current = LrcUtils.cleanGeneratedLyricsText(
+            generatedBuffer.toString(),
+          );
+          if (current.isEmpty || current == lastEmitted) {
+            return;
+          }
+          lastEmitted = current;
+          onProgress?.call(current, false);
+        },
+      );
+
+      final generatedText = _streamParser.extractText(generatedBuffer.toString());
+      final cleanedText = LrcUtils.cleanGeneratedLyricsText(
+        generatedText ?? generatedBuffer.toString(),
+      );
+      debugPrint(
+        '[OpenRouterLyrics] timeline completed -> '
+        'rawLength=${generatedBuffer.length} cleanedLength=${cleanedText.length}',
+      );
+      if (cleanedText.trim().isEmpty) {
+        return const LyricsGenerationResult.failure('OpenRouter 返回了空响应。');
+      }
+
+      onProgress?.call(cleanedText, true);
+      return LyricsGenerationResult.success(cleanedText);
+    } catch (e) {
+      return LyricsGenerationResult.failure(
+        _formatGenerationErrorMessage(e, fallback: '生成时间轴时发生未知错误。'),
+      );
+    }
+  }
+
+  Map<String, dynamic> _buildAudioRequestData({
     required String prompt,
     required String audioBase64,
     required String audioFormat,
@@ -94,7 +219,7 @@ extension on AILyricsService {
     bool enableReasoning = true,
   }) {
     return {
-      'model': AILyricsService._openRouterAudioModelId,
+      'model': audioModelId,
       'messages': [
         {
           'role': 'user',
@@ -112,107 +237,7 @@ extension on AILyricsService {
     };
   }
 
-  Future<GeminiGenerationResult> _generateTimelineFromLyricsOpenRouter({
-    required String apiKey,
-    required String filePath,
-    required String lyrics,
-    void Function(double progress)? onUploadProgress,
-    void Function(String stage)? onStageChanged,
-    void Function(String partialText, bool isFinal)? onProgress,
-  }) async {
-    final file = File(filePath);
-    if (!await file.exists()) {
-      debugPrint('[OpenRouterLyrics] file not found for timeline: $filePath');
-      return const GeminiGenerationResult.failure('本地歌曲文件不存在，无法生成时间轴。');
-    }
-
-    final normalizedLyrics = lyrics.trim();
-    if (normalizedLyrics.isEmpty) {
-      debugPrint(
-        '[OpenRouterLyrics] no usable lyrics for timeline generation.',
-      );
-      return const GeminiGenerationResult.failure('没有可用歌词，无法生成时间轴。');
-    }
-
-    final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
-    final promptPrefix = hasOriginalTimestamps
-        ? '这是这首歌的歌词和源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
-        : '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
-    final prompt =
-        '$promptPrefix\n'
-        '```text\n'
-        '$normalizedLyrics\n'
-        '```';
-
-    try {
-      onStageChanged?.call('generating');
-      onUploadProgress?.call(1.0);
-      final requestData = {
-        'model': AILyricsService._openRouterTextModelId,
-        'messages': [
-          {
-            'role': 'user',
-            'content': [
-              {'type': 'input_text', 'text': prompt},
-            ],
-          },
-        ],
-        'stream': true,
-      };
-      _logOpenRouterRequest(
-        action: 'generate_timeline',
-        requestData: requestData,
-        prompt: prompt,
-        extra: {
-          'filePath': filePath,
-          'sourceLength': normalizedLyrics.length,
-          'hasOriginalTimestamps': hasOriginalTimestamps,
-        },
-      );
-
-      final generatedBuffer = StringBuffer();
-      String lastEmitted = '';
-      await _streamOpenRouterTextResponse(
-        apiKey: apiKey,
-        requestData: requestData,
-        onChunk: (chunk) {
-          _logOpenRouterChunk('generate_timeline', chunk);
-          generatedBuffer.write(chunk);
-          final current = LrcUtils.cleanGeneratedLyricsText(
-            generatedBuffer.toString(),
-          );
-          if (current.isEmpty || current == lastEmitted) {
-            return;
-          }
-          lastEmitted = current;
-          onProgress?.call(current, false);
-        },
-      );
-
-      final generatedText = _streamParser.extractText(
-        generatedBuffer.toString(),
-      );
-      final cleanedText = LrcUtils.cleanGeneratedLyricsText(
-        generatedText ?? generatedBuffer.toString(),
-      );
-      debugPrint(
-        '[OpenRouterLyrics] timeline completed -> '
-        'rawLength=${generatedBuffer.length} cleanedLength=${cleanedText.length}',
-      );
-      if (cleanedText.trim().isEmpty) {
-        return const GeminiGenerationResult.failure('OpenRouter 返回了空响应。');
-      }
-
-      onProgress?.call(cleanedText, true);
-      return GeminiGenerationResult.success(cleanedText);
-    } catch (e) {
-      return GeminiGenerationResult.failure(
-        _formatGenerationErrorMessage(e, fallback: '生成时间轴时发生未知错误。'),
-      );
-    }
-  }
-
-  Future<void> _streamOpenRouterTextResponse({
+  Future<void> _streamTextResponse({
     required String apiKey,
     required Map<String, dynamic> requestData,
     required void Function(String chunk) onChunk,
@@ -272,7 +297,7 @@ extension on AILyricsService {
     debugPrint('[OpenRouterLyrics] stream completed');
   }
 
-  void _logOpenRouterRequest({
+  void _logRequest({
     required String action,
     required Map<String, dynamic> requestData,
     required String prompt,
@@ -288,11 +313,11 @@ extension on AILyricsService {
     );
     debugPrint(
       '[OpenRouterLyrics] $action request payload -> '
-      '${jsonEncode(_sanitizeOpenRouterRequestData(requestData))}',
+      '${jsonEncode(_sanitizeRequestData(requestData))}',
     );
   }
 
-  void _logOpenRouterChunk(String action, String chunk) {
+  void _logChunk(String action, String chunk) {
     debugPrint(
       '[OpenRouterLyrics] $action chunk -> '
       'length=${chunk.length} preview=${_truncateForLog(chunk, maxLength: 200)}',
@@ -305,7 +330,7 @@ extension on AILyricsService {
     return '${text.substring(0, maxLength)}...';
   }
 
-  Map<String, dynamic> _sanitizeOpenRouterRequestData(
+  Map<String, dynamic> _sanitizeRequestData(
     Map<String, dynamic> requestData,
   ) {
     return requestData.map((key, value) {
@@ -375,5 +400,47 @@ extension on AILyricsService {
       default:
         return 'wav';
     }
+  }
+
+  bool _hasTimestampedLyrics(String lyrics) {
+    return RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]').hasMatch(
+      lyrics,
+    );
+  }
+
+  String _formatGenerationErrorMessage(Object error, {String? fallback}) {
+    if (error is DioException) {
+      final response = error.response;
+      final statusCode = response?.statusCode;
+      final responseData = response?.data;
+
+      if (responseData is Map) {
+        final errorMap = responseData['error'];
+        if (errorMap is Map) {
+          final message = errorMap['message']?.toString().trim();
+          if (message != null && message.isNotEmpty) {
+            if (statusCode == null) {
+              return message;
+            }
+            return '($statusCode) $message';
+          }
+        }
+      }
+
+      final message = error.message?.trim();
+      if (message != null && message.isNotEmpty) {
+        if (statusCode == null) {
+          return message;
+        }
+        return '($statusCode) $message';
+      }
+    }
+
+    final text = error.toString().trim();
+    if (text.isNotEmpty) {
+      return text;
+    }
+
+    return fallback ?? '未知错误';
   }
 }

@@ -19,7 +19,7 @@ extension LyricsControllerTranslation on LyricsController {
       );
     }
 
-    if (_geminiGeneration.isGenerating && _currentMusic()?.path == song.path) {
+    if (_lyricsGeneration.isGenerating && _currentMusic()?.path == song.path) {
       _isLyricsTranslating = true;
       _lyricsTranslationStatus = '正在翻译';
       await _waitForLyricsGenerationToFinish(song.path);
@@ -98,7 +98,7 @@ extension LyricsControllerTranslation on LyricsController {
     _lyricsTranslationStatus = '正在翻译';
 
     try {
-      final success = await _geminiLyricsService.translateLyricsStream(
+      final success = await _lyricsAiService.translateLyricsStream(
         lyrics: request.sourceLyrics,
         targetLanguageCode: request.languageCode,
         onProgress: (translatedLines, translatedText) {
@@ -171,9 +171,9 @@ extension LyricsControllerTranslation on LyricsController {
   }
 
   Future<void> _waitForLyricsGenerationToFinish(String songPath) async {
-    while (_geminiGeneration.isGenerating &&
+    while (_lyricsGeneration.isGenerating &&
         _currentMusic()?.path == songPath) {
-      final completer = _geminiGeneration.completer;
+      final completer = _lyricsGeneration.completer;
       if (completer == null) {
         await Future<void>.delayed(const Duration(milliseconds: 100));
         continue;
