@@ -42,8 +42,6 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryRecording = result.primaryRecording;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Material(
@@ -395,8 +393,8 @@ class SongTagAcoustIDReleaseGroupRow extends StatelessWidget {
                 child: SizedBox(
                   width: 52,
                   height: 52,
-                  child: Image.network(
-                    releaseGroup.thumbnailUrl,
+                  child: ProxyNetworkImage(
+                    url: releaseGroup.thumbnailUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: Colors.white.withValues(alpha: 0.04),
@@ -406,21 +404,6 @@ class SongTagAcoustIDReleaseGroupRow extends StatelessWidget {
                         size: 22,
                       ),
                     ),
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Center(
-                        child: SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.4,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white.withValues(alpha: 0.18),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
                   ),
                 ),
               ),
@@ -565,8 +548,8 @@ class SongTagAcoustIDReleaseRow extends StatelessWidget {
                 child: SizedBox(
                   width: 42,
                   height: 42,
-                  child: Image.network(
-                    release.thumbnailUrl,
+                  child: ProxyNetworkImage(
+                    url: release.thumbnailUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: Colors.white.withValues(alpha: 0.05),
@@ -576,21 +559,6 @@ class SongTagAcoustIDReleaseRow extends StatelessWidget {
                         size: 20,
                       ),
                     ),
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Center(
-                        child: SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.3,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white.withValues(alpha: 0.18),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
                   ),
                 ),
               ),

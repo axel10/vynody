@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 
 import '../player/acoustid_service.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
+import '../utils/network_client.dart';
 
 class SongTagScoreBadge extends StatelessWidget {
   const SongTagScoreBadge({super.key, required this.score});
@@ -183,6 +187,139 @@ class SongTagEmptyState extends StatelessWidget {
   }
 }
 
+class ProxyNetworkImage extends StatefulWidget {
+  const ProxyNetworkImage({
+    super.key,
+    required this.url,
+    this.fit = BoxFit.cover,
+    this.errorBuilder,
+    this.frameDuration = const Duration(milliseconds: 300),
+  });
+
+  final String url;
+  final BoxFit fit;
+  final Widget Function(
+    BuildContext context,
+    Object error,
+    StackTrace? stackTrace,
+  )?
+  errorBuilder;
+  final Duration frameDuration;
+
+  @override
+  State<ProxyNetworkImage> createState() => _ProxyNetworkImageState();
+}
+
+class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
+  static final Map<String, Uint8List> _imageCache = {};
+  static final Map<String, Future<Uint8List?>> _inFlight = {};
+
+  Uint8List? _bytes;
+  Object? _error;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProxyNetworkImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      _bytes = null;
+      _error = null;
+      _isLoading = true;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final cached = _imageCache[widget.url];
+    if (cached != null) {
+      if (!mounted) return;
+      setState(() {
+        _bytes = cached;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final inFlight = _inFlight[widget.url];
+    final future = inFlight ?? _fetchBytes(widget.url);
+    _inFlight[widget.url] = future;
+
+    try {
+      final bytes = await future;
+      if (!mounted) return;
+      setState(() {
+        _bytes = bytes;
+        _isLoading = false;
+        if (bytes != null && bytes.isNotEmpty) {
+          _imageCache[widget.url] = bytes;
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error;
+        _isLoading = false;
+      });
+    } finally {
+      if (_inFlight[widget.url] == future) {
+        _inFlight.remove(widget.url);
+      }
+    }
+  }
+
+  Future<Uint8List?> _fetchBytes(String url) async {
+    final response = await NetworkClient.instance.get<List<int>>(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final data = response.data ?? const <int>[];
+    if (data.isEmpty) return null;
+    return Uint8List.fromList(data);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Center(
+        child: SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.5,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Colors.white.withValues(alpha: 0.15),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final bytes = _bytes;
+    if (bytes == null || bytes.isEmpty) {
+      final error = _error ?? StateError('Failed to load image bytes.');
+      return widget.errorBuilder?.call(context, error, null) ??
+          const Icon(Icons.image_not_supported_outlined, color: Colors.white24);
+    }
+
+    return AnimatedOpacity(
+      opacity: 1,
+      duration: widget.frameDuration,
+      curve: Curves.easeOut,
+      child: Image.memory(
+        bytes,
+        fit: widget.fit,
+        gaplessPlayback: true,
+      ),
+    );
+  }
+}
+
 class SongTagMatchCoverImage extends StatefulWidget {
   const SongTagMatchCoverImage({
     super.key,
@@ -248,38 +385,14 @@ class _SongTagMatchCoverImageState extends State<SongTagMatchCoverImage> {
     final resolvedCover = _resolvedCover;
     if (resolvedCover != null && resolvedCover.thumbnailUrl != null) {
       final url = resolvedCover.thumbnailUrl!;
-      return Image.network(
-        url,
+      return ProxyNetworkImage(
+        url: url,
         fit: BoxFit.cover,
-        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          if (wasSynchronouslyLoaded) return child;
-          return AnimatedOpacity(
-            opacity: frame == null ? 0 : 1,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            child: child,
-          );
-        },
         errorBuilder: (context, error, stackTrace) => const Icon(
           Icons.music_note_rounded,
           color: Colors.white24,
           size: 24,
         ),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(
-            child: SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 1.5,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.white.withValues(alpha: 0.15),
-                ),
-              ),
-            ),
-          );
-        },
       );
     }
 
@@ -310,38 +423,14 @@ class SongTagAcoustIDCoverImage extends StatelessWidget {
     }
 
     return Center(
-      child: Image.network(
-        url,
+      child: ProxyNetworkImage(
+        url: url,
         fit: BoxFit.cover,
-        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          if (wasSynchronouslyLoaded) return child;
-          return AnimatedOpacity(
-            opacity: frame == null ? 0 : 1,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            child: child,
-          );
-        },
         errorBuilder: (context, error, stackTrace) => const Icon(
           Icons.fingerprint_rounded,
           color: Color(0xFF46D27A),
           size: 28,
         ),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(
-            child: SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 1.5,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Color(0xFF46D27A).withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          );
-        },
       ),
     );
   }

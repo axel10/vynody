@@ -239,8 +239,8 @@ class SongTagMusicBrainzReleaseItem extends StatelessWidget {
                 child: SizedBox(
                   width: 38,
                   height: 38,
-                  child: Image.network(
-                    release.thumbnailUrl,
+                  child: ProxyNetworkImage(
+                    url: release.thumbnailUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: Colors.white.withValues(alpha: 0.05),
