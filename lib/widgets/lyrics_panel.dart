@@ -851,7 +851,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
-                  vertical: 24,
+                  vertical: 16,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -897,7 +897,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             child: ListView.builder(
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               itemExtent: _itemExtent,
               itemCount: displayLines.length,
               itemBuilder: (context, index) {

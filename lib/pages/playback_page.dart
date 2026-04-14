@@ -704,7 +704,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
           final content = SafeArea(
             child: Padding(
-              padding: EdgeInsets.all(isLandscape ? 32.0 : 24.0),
+              padding: EdgeInsets.fromLTRB(
+                isLandscape ? 32.0 : 24.0,
+                isLyricsMode ? 16.0 : (isLandscape ? 32.0 : 24.0),
+                isLandscape ? 32.0 : 24.0,
+                isLyricsMode ? 0.0 : (isLandscape ? 32.0 : 24.0),
+              ),
               child: Column(
                 children: [
                   if (Platform.isWindows) const SizedBox(height: 32),
