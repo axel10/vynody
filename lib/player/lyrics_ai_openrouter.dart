@@ -25,6 +25,7 @@ class LyricsAiOpenRouterClient {
       'google/gemini-3.1-flash-lite-preview';
   static const String textModelId =
       'google/gemini-3.1-flash-lite-preview';
+  static const String textModelDisplayName = 'Gemini 3.1 Flash Lite Preview';
 
   Future<LyricsGenerationResult> generateLyricsFromFile({
     required String apiKey,

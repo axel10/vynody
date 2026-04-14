@@ -29,12 +29,17 @@ extension LyricsAiProviderX on LyricsAiProvider {
 }
 
 class SettingsService extends ChangeNotifier {
+  static const String defaultGeminiPrimaryModelId =
+      'gemini-3.1-flash-lite-preview';
+  static const String defaultGeminiFallbackModelId = 'gemini-2.5-flash';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
   static const String geminiApiKeyStorageKey = 'gemini_api_key';
   static const String openRouterApiKeyStorageKey = 'openrouter_api_key';
   static const String _keyLyricsAiProvider = 'lyrics_ai_provider';
+  static const String _keyGeminiPrimaryModelId = 'gemini_primary_model_id';
+  static const String _keyGeminiFallbackModelId = 'gemini_fallback_model_id';
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
   static const String _builtInAcoustidApiKey = 'raGXgwxqws';
   static const int _fixedSampleStride = 8;
@@ -75,6 +80,8 @@ class SettingsService extends ChangeNotifier {
   bool _isUserInactive = false;
   Timer? _inactivityTimer;
   LyricsAiProvider _lyricsAiProvider;
+  String _geminiPrimaryModelId;
+  String _geminiFallbackModelId;
 
   // Visualizer styling state
   late Color _visualizerColor;
@@ -100,11 +107,27 @@ class SettingsService extends ChangeNotifier {
   late int _randomRange; // 0: current, 1: global
   late int _randomMethod; // 0: complete, 1: shuffle
 
+  static String _initialModelId(String? value, String defaultValue) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return defaultValue;
+    }
+    return normalized;
+  }
+
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
       _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 80,
       _lyricsAiProvider = LyricsAiProviderX.fromStorageValue(
         _prefs.getString(_keyLyricsAiProvider),
+      ),
+      _geminiPrimaryModelId = _initialModelId(
+        _prefs.getString(_keyGeminiPrimaryModelId),
+        defaultGeminiPrimaryModelId,
+      ),
+      _geminiFallbackModelId = _initialModelId(
+        _prefs.getString(_keyGeminiFallbackModelId),
+        defaultGeminiFallbackModelId,
       ) {
     _visualizerColor = Color(
       _prefs.getInt(_keyVisColor) ?? Colors.white.toARGB32(),
@@ -149,6 +172,8 @@ class SettingsService extends ChangeNotifier {
   int get waveformChunks => _waveformChunks;
   bool get isUserInactive => _isUserInactive;
   LyricsAiProvider get lyricsAiProvider => _lyricsAiProvider;
+  String get geminiPrimaryModelId => _geminiPrimaryModelId;
+  String get geminiFallbackModelId => _geminiFallbackModelId;
   String get geminiApiKey => _prefs.getString(geminiApiKeyStorageKey) ?? '';
   String get openRouterApiKey =>
       _prefs.getString(openRouterApiKeyStorageKey) ?? '';
@@ -172,6 +197,29 @@ class SettingsService extends ChangeNotifier {
   bool get hasGeminiTranslationApiKey => geminiApiKey.trim().isNotEmpty;
   bool get hasCustomAcoustidApiKey =>
       _prefs.containsKey(acoustidApiKeyStorageKey);
+  static String geminiModelDisplayName(String modelId) {
+    switch (modelId.trim()) {
+      case defaultGeminiPrimaryModelId:
+        return 'Gemini 3.1 Flash Lite Preview';
+      case defaultGeminiFallbackModelId:
+        return 'Gemini 2.5 Flash';
+      default:
+        return modelId.trim().isEmpty ? '未选择模型' : modelId.trim();
+    }
+  }
+
+  static String geminiModelSelectionLabel({
+    required String primaryModelId,
+    required String fallbackModelId,
+  }) {
+    final primaryLabel = geminiModelDisplayName(primaryModelId);
+    final fallbackLabel = geminiModelDisplayName(fallbackModelId);
+    if (primaryLabel == fallbackLabel) {
+      return primaryLabel;
+    }
+    return '$primaryLabel / $fallbackLabel';
+  }
+
   String get acoustidApiKey {
     final stored = _prefs.getString(acoustidApiKeyStorageKey)?.trim();
     if (stored != null && stored.isNotEmpty) {
@@ -284,6 +332,41 @@ class SettingsService extends ChangeNotifier {
     _lyricsAiProvider = value;
     _prefs.setString(_keyLyricsAiProvider, value.storageValue);
     notifyListeners();
+  }
+
+  set geminiPrimaryModelId(String value) {
+    final normalized = value.trim();
+    final current = geminiPrimaryModelId;
+    if (current == normalized || normalized.isEmpty) {
+      if (normalized.isEmpty && current.isNotEmpty) {
+        return;
+      }
+      return;
+    }
+
+    _geminiPrimaryModelId = normalized;
+    _prefs.setString(_keyGeminiPrimaryModelId, normalized);
+    notifyListeners();
+  }
+
+  set geminiFallbackModelId(String value) {
+    final normalized = value.trim();
+    final current = geminiFallbackModelId;
+    if (current == normalized || normalized.isEmpty) {
+      if (normalized.isEmpty && current.isNotEmpty) {
+        return;
+      }
+      return;
+    }
+
+    _geminiFallbackModelId = normalized;
+    _prefs.setString(_keyGeminiFallbackModelId, normalized);
+    notifyListeners();
+  }
+
+  void resetGeminiModels() {
+    geminiPrimaryModelId = defaultGeminiPrimaryModelId;
+    geminiFallbackModelId = defaultGeminiFallbackModelId;
   }
 
   set acoustidApiKey(String value) {

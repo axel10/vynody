@@ -51,7 +51,7 @@ class AIApiKeyService {
     }
   }
 
-  List<String> _extractModels(dynamic data) {
+  List<GeminiModelInfo> _extractModels(dynamic data) {
     if (data is! Map) return const [];
     final models = data['models'];
     if (models is! List) return const [];
@@ -59,13 +59,20 @@ class AIApiKeyService {
     return models
         .map((item) {
           if (item is Map) {
-            return item['displayName']?.toString().trim() ??
-                item['name']?.toString().trim() ??
-                '';
+            final rawName = item['name']?.toString().trim() ?? '';
+            final modelId = rawName.isEmpty
+                ? ''
+                : rawName.contains('/')
+                    ? rawName.split('/').last.trim()
+                    : rawName;
+            final displayName =
+                item['displayName']?.toString().trim() ?? modelId;
+            return GeminiModelInfo(id: modelId, displayName: displayName);
           }
-          return item?.toString().trim() ?? '';
+          final fallbackId = item?.toString().trim() ?? '';
+          return GeminiModelInfo(id: fallbackId, displayName: fallbackId);
         })
-        .where((value) => value.isNotEmpty)
+        .where((value) => value.id.isNotEmpty)
         .toList(growable: false);
   }
 
@@ -108,5 +115,14 @@ class GeminiApiKeyTestResult {
 
   final bool success;
   final String message;
-  final List<String> models;
+  final List<GeminiModelInfo> models;
+}
+
+class GeminiModelInfo {
+  const GeminiModelInfo({required this.id, required this.displayName});
+
+  final String id;
+  final String displayName;
+
+  String get label => displayName.trim().isNotEmpty ? displayName : id;
 }

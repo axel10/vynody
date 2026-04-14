@@ -21,9 +21,6 @@ class _LyricsAiCredentials {
 }
 
 class LyricsAiService {
-  static const String _primaryGeminiModelId = 'gemini-3.1-flash-lite-preview';
-  static const String _fallbackGeminiModelId = 'gemini-2.5-flash';
-
   LyricsAiService({
     NetworkClient? client,
     required SettingsService settingsService,
@@ -44,6 +41,18 @@ class LyricsAiService {
   static final RegExp _timestampLinePattern = RegExp(
     r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
   );
+
+  String get _primaryGeminiModelId => _settingsService.geminiPrimaryModelId;
+  String get _fallbackGeminiModelId => _settingsService.geminiFallbackModelId;
+
+  String get activeModelLabel {
+    return switch (_settingsService.lyricsAiProvider) {
+      LyricsAiProvider.googleAiStudio =>
+        'Google AI Studio · ${SettingsService.geminiModelDisplayName(_primaryGeminiModelId)}',
+      LyricsAiProvider.openRouter =>
+        'OpenRouter · ${LyricsAiOpenRouterClient.textModelDisplayName}',
+    };
+  }
 
   Future<_LyricsAiCredentials?> _loadGenerationCredentials() async {
     final provider = _settingsService.lyricsAiProvider;
@@ -223,7 +232,7 @@ class LyricsAiService {
   Future<LyricsGenerationResult> generateLyricsFromFile({
     required String filePath,
     String? songTitle,
-    String modelId = _primaryGeminiModelId,
+    String? modelId,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -261,6 +270,9 @@ class LyricsAiService {
     }
 
     final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
+    final effectiveModelId = modelId?.trim().isNotEmpty == true
+        ? modelId!.trim()
+        : _primaryGeminiModelId;
     final normalizedTitle = songTitle?.trim();
     final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
         ? ''
@@ -274,7 +286,9 @@ class LyricsAiService {
       file: file,
       apiKey: apiKey,
       mimeType: mimeType,
-      modelId: modelId,
+      modelId: effectiveModelId,
+      primaryModelId: _primaryGeminiModelId,
+      fallbackModelId: _fallbackGeminiModelId,
       prompt: prompt,
       preserveTimestamps: true,
       onUploadProgress: onUploadProgress,
@@ -287,7 +301,7 @@ class LyricsAiService {
     required String filePath,
     required String lyrics,
     String? songTitle,
-    String modelId = _primaryGeminiModelId,
+    String? modelId,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -325,6 +339,9 @@ class LyricsAiService {
     }
 
     final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
+    final effectiveModelId = modelId?.trim().isNotEmpty == true
+        ? modelId!.trim()
+        : _primaryGeminiModelId;
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       debugPrint('[LyricsAi] no usable lyrics for timeline generation.');
@@ -347,7 +364,9 @@ class LyricsAiService {
       file: file,
       apiKey: apiKey,
       mimeType: mimeType,
-      modelId: modelId,
+      modelId: effectiveModelId,
+      primaryModelId: _primaryGeminiModelId,
+      fallbackModelId: _fallbackGeminiModelId,
       prompt: prompt,
       preserveTimestamps: true,
       onUploadProgress: onUploadProgress,
@@ -361,6 +380,8 @@ class LyricsAiService {
     required String apiKey,
     required String mimeType,
     required String modelId,
+    required String primaryModelId,
+    required String fallbackModelId,
     required String prompt,
     required bool preserveTimestamps,
     void Function(double progress)? onUploadProgress,
@@ -409,6 +430,8 @@ class LyricsAiService {
         fileName: fileName,
         mimeType: mimeType,
         modelId: modelId,
+        primaryModelId: primaryModelId,
+        fallbackModelId: fallbackModelId,
         prompt: prompt,
         preserveTimestamps: preserveTimestamps,
         onProgress: onProgress,
@@ -427,6 +450,8 @@ class LyricsAiService {
     required String fileName,
     required String mimeType,
     required String modelId,
+    required String primaryModelId,
+    required String fallbackModelId,
     required String prompt,
     required bool preserveTimestamps,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -434,7 +459,7 @@ class LyricsAiService {
     String? lastErrorMessage;
     final modelCandidates = <String>[
       modelId,
-      if (modelId == _primaryGeminiModelId) _fallbackGeminiModelId,
+      if (modelId == primaryModelId) fallbackModelId,
     ];
 
     for (final effectiveModelId in modelCandidates) {
@@ -580,18 +605,18 @@ class LyricsAiService {
           );
 
           final statusCode = e.response?.statusCode;
-          if (effectiveModelId == _primaryGeminiModelId &&
+          if (effectiveModelId == primaryModelId &&
               _shouldUseFallbackModel(statusCode)) {
             // 这里只切换模型并重试同一个 fileUri，不会重新上传文件。
             shouldTryNextModel = true;
             debugPrint(
-              '[LyricsAi] model downgraded to $_fallbackGeminiModelId '
+              '[LyricsAi] model downgraded to $fallbackModelId '
               'after status=$statusCode, reusing fileUri=$fileUri.',
             );
             break;
           }
 
-          if (effectiveModelId == _fallbackGeminiModelId) {
+          if (effectiveModelId == fallbackModelId) {
             final specialMessage = _fallbackFailureMessageForStatus(statusCode);
             if (specialMessage != null) {
               return LyricsGenerationResult.failure(specialMessage);

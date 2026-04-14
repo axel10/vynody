@@ -13,7 +13,6 @@ import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
 import '../player/lyrics_generation_phase.dart';
 import '../player/lyrics_riverpod.dart';
-import '../player/settings_service.dart';
 
 class LyricsPanel extends rpod.ConsumerStatefulWidget {
   const LyricsPanel({
@@ -138,12 +137,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       );
     }
 
-    final settings = ref.read(settingsServiceProvider);
-    final modelLabel = switch (settings.lyricsAiProvider) {
-      LyricsAiProvider.googleAiStudio => 'Gemini 2.5 Flash',
-      LyricsAiProvider.openRouter =>
-        'OpenRouter · Gemini 3.1 Flash Lite Preview',
-    };
+    final modelLabel = ref.read(lyricsAiServiceProvider).activeModelLabel;
     final taskLabel = lyricsState.lyricsGenerationStatus.trim().isNotEmpty
         ? lyricsState.lyricsGenerationStatus.trim()
         : '正在生成歌词';

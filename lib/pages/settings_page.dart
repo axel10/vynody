@@ -1,17 +1,240 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../dialogs/acoustid_api_key_dialog.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
+import '../l10n/app_localizations.dart';
+import '../player/ai_api_key_service.dart';
 import '../player/audio_riverpod.dart';
 import '../player/settings_service.dart';
-import '../l10n/app_localizations.dart';
 
-class SettingsPage extends ConsumerWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends ConsumerState<SettingsPage> {
+  static const List<GeminiModelInfo> _defaultGeminiModels = [
+    GeminiModelInfo(
+      id: SettingsService.defaultGeminiPrimaryModelId,
+      displayName: 'Gemini 3.1 Flash Lite Preview',
+    ),
+    GeminiModelInfo(
+      id: SettingsService.defaultGeminiFallbackModelId,
+      displayName: 'Gemini 2.5 Flash',
+    ),
+  ];
+
+  List<GeminiModelInfo> _geminiModels = const [];
+  bool _isLoadingGeminiModels = false;
+
+  List<GeminiModelInfo> _mergedGeminiModels(SettingsService settings) {
+    final merged = <String, GeminiModelInfo>{};
+    for (final model in _defaultGeminiModels) {
+      merged[model.id] = model;
+    }
+    for (final model in _geminiModels) {
+      merged[model.id] = model;
+    }
+
+    final primaryId = settings.geminiPrimaryModelId.trim();
+    final fallbackId = settings.geminiFallbackModelId.trim();
+    if (primaryId.isNotEmpty && !merged.containsKey(primaryId)) {
+      merged[primaryId] = GeminiModelInfo(
+        id: primaryId,
+        displayName: SettingsService.geminiModelDisplayName(primaryId),
+      );
+    }
+    if (fallbackId.isNotEmpty && !merged.containsKey(fallbackId)) {
+      merged[fallbackId] = GeminiModelInfo(
+        id: fallbackId,
+        displayName: SettingsService.geminiModelDisplayName(fallbackId),
+      );
+    }
+
+    return merged.values.toList(growable: false);
+  }
+
+  Future<void> _fetchGeminiModelList() async {
+    final settings = ref.read(settingsServiceProvider);
+    final apiKey = settings.geminiApiKey.trim();
+    if (apiKey.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先填写 Google AI Studio API Key')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoadingGeminiModels = true;
+    });
+
+    final result = await ref.read(geminiApiKeyServiceProvider).testConnection(
+      apiKey,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingGeminiModels = false;
+      if (result.success) {
+        _geminiModels = result.models;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.message)),
+    );
+  }
+
+  void _restoreDefaultGeminiModels() {
+    final settings = ref.read(settingsServiceProvider);
+    settings.resetGeminiModels();
+    setState(() {
+      _geminiModels = const [];
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('已恢复默认 Gemini 模型')),
+    );
+  }
+
+  Widget _buildGeminiModelSection(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    final options = _mergedGeminiModels(settings);
+    final primaryValue = settings.geminiPrimaryModelId;
+    final fallbackValue = settings.geminiFallbackModelId;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Gemini 模型',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              '这里的两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: primaryValue.isEmpty ? null : primaryValue,
+              dropdownColor: const Color(0xFF1E1E1E),
+              decoration: const InputDecoration(
+                labelText: '主模型',
+                labelStyle: TextStyle(color: Colors.white70),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white24),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white54),
+                ),
+              ),
+              iconEnabledColor: Colors.white,
+              style: const TextStyle(color: Colors.white),
+              isExpanded: true,
+              items: options
+                  .map(
+                    (model) => DropdownMenuItem<String>(
+                      value: model.id,
+                      child: Text(
+                        model.label,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value == null) return;
+                settings.geminiPrimaryModelId = value;
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: fallbackValue.isEmpty ? null : fallbackValue,
+              dropdownColor: const Color(0xFF1E1E1E),
+              decoration: const InputDecoration(
+                labelText: '备用模型',
+                labelStyle: TextStyle(color: Colors.white70),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white24),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white54),
+                ),
+              ),
+              iconEnabledColor: Colors.white,
+              style: const TextStyle(color: Colors.white),
+              isExpanded: true,
+              items: options
+                  .map(
+                    (model) => DropdownMenuItem<String>(
+                      value: model.id,
+                      child: Text(
+                        model.label,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value == null) return;
+                settings.geminiFallbackModelId = value;
+              },
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: _isLoadingGeminiModels
+                      ? null
+                      : _fetchGeminiModelList,
+                  icon: _isLoadingGeminiModels
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.download),
+                  label: Text(
+                    _isLoadingGeminiModels ? '获取中...' : '获取模型列表',
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _restoreDefaultGeminiModels,
+                  icon: const Icon(Icons.restart_alt),
+                  label: const Text('恢复默认'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsServiceProvider);
     final l10n = AppLocalizations.of(context)!;
 
@@ -205,6 +428,8 @@ class SettingsPage extends ConsumerWidget {
               child: Text(settings.geminiApiKey.trim().isEmpty ? '填写' : '修改'),
             ),
           ),
+          if (settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio)
+            _buildGeminiModelSection(context, settings),
           ListTile(
             isThreeLine: true,
             leading: const Icon(Icons.fingerprint, color: Colors.white),
