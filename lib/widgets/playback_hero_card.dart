@@ -321,11 +321,11 @@ class PlaybackHeroCard extends ConsumerWidget {
 
                 // ---------------- Portrait Lyrics ----------------
                 final pLyricsCoverSide = math.min(104.0, width * 0.28);
-                final pLyricsCoverTop = 16.0;
-                final pLyricsCoverLeft = 16.0;
+                const pLyricsCoverTop = 12.0;
+                const pLyricsCoverLeft = 12.0;
 
-                final pLyricsInfoTop = 16.0;
-                final pLyricsInfoLeft = 16.0 + pLyricsCoverSide + 14.0;
+                const pLyricsInfoTop = 12.0;
+                final pLyricsInfoLeft = pLyricsCoverLeft + pLyricsCoverSide + 14.0;
                 final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0;
                 final pLyricsInfoHeight = pLyricsCoverSide;
 
@@ -374,7 +374,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   lColWidth * 0.8,
                   height * 0.45,
                 );
-                final lLyricsCoverTop = 16.0;
+                final lLyricsCoverTop = 12.0;
                 final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
 
                 final lLyricsInfoTop =
