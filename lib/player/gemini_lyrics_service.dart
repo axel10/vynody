@@ -377,175 +377,193 @@ class GeminiLyricsService {
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
     String? lastErrorMessage;
-    var effectiveModelId = modelId;
+    final modelCandidates = <String>[
+      modelId,
+      if (modelId == _primaryGeminiModelId) _fallbackGeminiModelId,
+    ];
 
-    for (var attempt = 1; attempt <= 3; attempt++) {
-      final requestData = {
-        'contents': [
-          {
-            'role': 'user',
-            'parts': [
-              {'text': prompt},
-              {
-                'file_data': {'mime_type': mimeType, 'file_uri': fileUri},
-              },
-            ],
-          },
-        ],
-      };
+    for (final effectiveModelId in modelCandidates) {
+      var shouldTryNextModel = false;
 
-      // 这里使用 streamGenerateContent，是为了让结果在模型生成时就能逐步回传给界面。
-      debugPrint('[GeminiLyrics] generation request model=$effectiveModelId');
-      debugPrint('[GeminiLyrics] generation request attempt=$attempt');
-      debugPrint('[GeminiLyrics] generation request filePath=$filePath');
-      debugPrint('[GeminiLyrics] generation request fileName=$fileName');
-      debugPrint('[GeminiLyrics] generation request mimeType=$mimeType');
-      debugPrint('[GeminiLyrics] generation request fileUri=$fileUri');
-      debugPrint(
-        '[GeminiLyrics] generation request payload=${jsonEncode(requestData)}',
-      );
+      for (var attempt = 1; attempt <= 3; attempt++) {
+        final requestData = {
+          'contents': [
+            {
+              'role': 'user',
+              'parts': [
+                {'text': prompt},
+                {
+                  'file_data': {'mime_type': mimeType, 'file_uri': fileUri},
+                },
+              ],
+            },
+          ],
+        };
 
-      try {
-        final response = await _client.post(
-          'https://generativelanguage.googleapis.com/v1beta/models/$effectiveModelId:streamGenerateContent',
-          queryParameters: {'key': apiKey},
-          data: requestData,
-          options: Options(
-            responseType: ResponseType.stream,
-            contentType: Headers.jsonContentType,
-          ),
+        // 这里使用 streamGenerateContent，是为了让结果在模型生成时就能逐步回传给界面。
+        debugPrint('[GeminiLyrics] generation request model=$effectiveModelId');
+        debugPrint('[GeminiLyrics] generation request attempt=$attempt');
+        debugPrint('[GeminiLyrics] generation request filePath=$filePath');
+        debugPrint('[GeminiLyrics] generation request fileName=$fileName');
+        debugPrint('[GeminiLyrics] generation request mimeType=$mimeType');
+        debugPrint('[GeminiLyrics] generation request fileUri=$fileUri');
+        debugPrint(
+          '[GeminiLyrics] generation request payload=${jsonEncode(requestData)}',
         );
 
-        final body = response.data;
-        if (body == null || body.stream == null) {
-          lastErrorMessage = 'Gemini 返回了空流响应。';
-          debugPrint('[GeminiLyrics] Empty streaming body.');
-          if (attempt < 3) {
-            debugPrint(
-              '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
-              'reason=$lastErrorMessage',
-            );
-            continue;
-          }
-          return GeminiGenerationResult.failure('生成歌词失败：$lastErrorMessage');
-        }
-
-        debugPrint('[GeminiLyrics] generation stream connected');
-        final generatedBuffer = StringBuffer();
-        String lastEmitted = '';
-
-        void emitProgress({bool force = false}) {
-          final current = LrcUtils.cleanGeneratedLyricsText(
-            generatedBuffer.toString(),
-          );
-          if (current.isEmpty) return;
-          if (!force && current == lastEmitted) return;
-          lastEmitted = current;
-          onProgress?.call(current, false);
-        }
-
-        final textStream = body.stream.cast<List<int>>().transform(
-          utf8.decoder,
-        );
         try {
-          await for (final line in textStream.transform(const LineSplitter())) {
-            final trimmed = line.trim();
-            if (trimmed.isEmpty) continue;
+          final response = await _client.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/$effectiveModelId:streamGenerateContent',
+            queryParameters: {'key': apiKey},
+            data: requestData,
+            options: Options(
+              responseType: ResponseType.stream,
+              contentType: Headers.jsonContentType,
+            ),
+          );
 
-            final data = trimmed.startsWith('data:')
-                ? trimmed.substring(5).trim()
-                : trimmed;
-            if (data.isEmpty || data == '[DONE]') {
-              if (data == '[DONE]') break;
+          final body = response.data;
+          if (body == null || body.stream == null) {
+            lastErrorMessage = 'Gemini 返回了空流响应。';
+            debugPrint('[GeminiLyrics] Empty streaming body.');
+            if (attempt < 3) {
+              debugPrint(
+                '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
+                'reason=$lastErrorMessage',
+              );
               continue;
             }
-
-            final chunk = _streamParser.extractText(data);
-            if (chunk == null || chunk.isEmpty) continue;
-            generatedBuffer.write(chunk);
-            emitProgress();
+            break;
           }
-        } finally {
-          emitProgress(force: true);
-        }
 
-        final generatedText = _streamParser.extractText(
-          generatedBuffer.toString(),
-        );
-        final cleanedText = LrcUtils.cleanGeneratedLyricsText(
-          generatedText ?? generatedBuffer.toString(),
-        );
-        final finalText = preserveTimestamps
-            ? cleanedText
-            : _stripTimestamps(cleanedText);
-        if (finalText.isEmpty) {
-          lastErrorMessage = 'Gemini 返回了空响应。';
-          debugPrint('[GeminiLyrics] empty lyrics response.');
-          debugPrint(
-            '[GeminiLyrics] raw generate response: ${generatedBuffer.toString()}',
-          );
-          if (attempt < 3) {
-            debugPrint(
-              '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
-              'reason=$lastErrorMessage',
+          debugPrint('[GeminiLyrics] generation stream connected');
+          final generatedBuffer = StringBuffer();
+          String lastEmitted = '';
+
+          void emitProgress({bool force = false}) {
+            final current = LrcUtils.cleanGeneratedLyricsText(
+              generatedBuffer.toString(),
             );
-            continue;
+            if (current.isEmpty) return;
+            if (!force && current == lastEmitted) return;
+            lastEmitted = current;
+            onProgress?.call(current, false);
           }
-          return GeminiGenerationResult.failure('生成歌词失败：$lastErrorMessage');
+
+          final textStream = body.stream.cast<List<int>>().transform(
+            utf8.decoder,
+          );
+          try {
+            await for (final line in textStream.transform(const LineSplitter())) {
+              final trimmed = line.trim();
+              if (trimmed.isEmpty) continue;
+
+              final data = trimmed.startsWith('data:')
+                  ? trimmed.substring(5).trim()
+                  : trimmed;
+              if (data.isEmpty || data == '[DONE]') {
+                if (data == '[DONE]') break;
+                continue;
+              }
+
+              final chunk = _streamParser.extractText(data);
+              if (chunk == null || chunk.isEmpty) continue;
+              generatedBuffer.write(chunk);
+              emitProgress();
+            }
+          } finally {
+            emitProgress(force: true);
+          }
+
+          final generatedText = _streamParser.extractText(
+            generatedBuffer.toString(),
+          );
+          final cleanedText = LrcUtils.cleanGeneratedLyricsText(
+            generatedText ?? generatedBuffer.toString(),
+          );
+          final finalText = preserveTimestamps
+              ? cleanedText
+              : _stripTimestamps(cleanedText);
+          if (finalText.isEmpty) {
+            lastErrorMessage = 'Gemini 返回了空响应。';
+            debugPrint('[GeminiLyrics] empty lyrics response.');
+            debugPrint(
+              '[GeminiLyrics] raw generate response: ${generatedBuffer.toString()}',
+            );
+            if (attempt < 3) {
+              debugPrint(
+                '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
+                'reason=$lastErrorMessage',
+              );
+              continue;
+            }
+            break;
+          }
+
+          // 最终结果会再做一次清洗，去掉代码块、杂项前缀和非 LRC 内容。
+          debugPrint('[GeminiLyrics] final generated lyrics:');
+          debugPrint(finalText);
+          onProgress?.call(finalText, true);
+          return GeminiGenerationResult.success(finalText);
+        } on DioException catch (e) {
+          lastErrorMessage = _formatGenerationErrorMessage(e);
+          debugPrint('[GeminiLyrics] generation failed: ${e.message}');
+          debugPrint(
+            '[GeminiLyrics] generation status: ${e.response?.statusCode}',
+          );
+          debugPrint('[GeminiLyrics] generation response: ${e.response?.data}');
+          debugPrint(
+            '[GeminiLyrics] generation request path: ${e.requestOptions.path}',
+          );
+          debugPrint(
+            '[GeminiLyrics] generation request query: ${e.requestOptions.queryParameters}',
+          );
+          debugPrint(
+            '[GeminiLyrics] generation request headers: ${e.requestOptions.headers}',
+          );
+          debugPrint(
+            '[GeminiLyrics] generation request data: ${e.requestOptions.data}',
+          );
+          debugPrint(
+            '[GeminiLyrics] generation response data: ${e.response?.data}',
+          );
+
+          final statusCode = e.response?.statusCode;
+          if (effectiveModelId == _primaryGeminiModelId &&
+              _shouldUseFallbackModel(statusCode)) {
+            // 这里只切换模型并重试同一个 fileUri，不会重新上传文件。
+            shouldTryNextModel = true;
+            debugPrint(
+              '[GeminiLyrics] model downgraded to $_fallbackGeminiModelId '
+              'after status=$statusCode, reusing fileUri=$fileUri.',
+            );
+            break;
+          }
+
+          if (effectiveModelId == _fallbackGeminiModelId) {
+            final specialMessage = _fallbackFailureMessageForStatus(statusCode);
+            if (specialMessage != null) {
+              return GeminiGenerationResult.failure(specialMessage);
+            }
+          }
+        } catch (e) {
+          lastErrorMessage = _formatGenerationErrorMessage(e);
+          debugPrint('[GeminiLyrics] generation error: $e');
         }
 
-        // 最终结果会再做一次清洗，去掉代码块、杂项前缀和非 LRC 内容。
-        debugPrint('[GeminiLyrics] final generated lyrics:');
-        debugPrint(finalText);
-        onProgress?.call(finalText, true);
-        return GeminiGenerationResult.success(finalText);
-      } on DioException catch (e) {
-        lastErrorMessage = _formatGenerationErrorMessage(e);
-        debugPrint('[GeminiLyrics] generation failed: ${e.message}');
-        debugPrint(
-          '[GeminiLyrics] generation status: ${e.response?.statusCode}',
-        );
-        debugPrint('[GeminiLyrics] generation response: ${e.response?.data}');
-        debugPrint(
-          '[GeminiLyrics] generation request path: ${e.requestOptions.path}',
-        );
-        debugPrint(
-          '[GeminiLyrics] generation request query: ${e.requestOptions.queryParameters}',
-        );
-        debugPrint(
-          '[GeminiLyrics] generation request headers: ${e.requestOptions.headers}',
-        );
-        debugPrint(
-          '[GeminiLyrics] generation request data: ${e.requestOptions.data}',
-        );
-        debugPrint(
-          '[GeminiLyrics] generation response data: ${e.response?.data}',
-        );
-
-        final statusCode = e.response?.statusCode;
-        final shouldDowngrade = statusCode == 503 &&
-            effectiveModelId == _primaryGeminiModelId;
-        if (shouldDowngrade) {
-          // 这里只切换模型并重试同一个 fileUri，不会重新上传文件。
-          effectiveModelId = _fallbackGeminiModelId;
+        if (attempt < 3) {
           debugPrint(
-            '[GeminiLyrics] model downgraded to $effectiveModelId after 503, '
-            'reusing fileUri=$fileUri.',
+            '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
+            'reason=$lastErrorMessage',
           );
           continue;
         }
-      } catch (e) {
-        lastErrorMessage = _formatGenerationErrorMessage(e);
-        debugPrint('[GeminiLyrics] generation error: $e');
       }
 
-      if (attempt < 3) {
-        debugPrint(
-          '[GeminiLyrics] generation retry scheduled attempt=${attempt + 1} '
-          'reason=$lastErrorMessage',
-        );
+      if (shouldTryNextModel) {
         continue;
       }
+      break;
     }
 
     return GeminiGenerationResult.failure('生成歌词失败：$lastErrorMessage');
@@ -601,6 +619,24 @@ class GeminiLyricsService {
     }
 
     return fallback ?? '未知错误';
+  }
+
+  bool _shouldUseFallbackModel(int? statusCode) {
+    return statusCode == 429 || _isServerError(statusCode);
+  }
+
+  bool _isServerError(int? statusCode) {
+    return statusCode != null && statusCode >= 500 && statusCode < 600;
+  }
+
+  String? _fallbackFailureMessageForStatus(int? statusCode) {
+    if (statusCode == 429) {
+      return '今天额度已用完，请等待明天额度恢复再试';
+    }
+    if (_isServerError(statusCode)) {
+      return '谷歌AI服务遭遇大量请求，暂时不可用';
+    }
+    return null;
   }
 
   String _stripTimestamps(String text) {
