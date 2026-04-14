@@ -11,7 +11,9 @@ import '../utils/network_client.dart';
 import '../utils/language_code_utils.dart';
 import '../utils/lrc_utils.dart';
 import '../utils/lyrics_id_utils.dart';
-import 'gemini_lyrics_service.dart';
+import 'audio_riverpod.dart';
+import 'settings_service.dart';
+import 'ai_lyrics_service.dart';
 import 'lyrics_cache_repository.dart';
 import 'lyrics_controller_state.dart';
 import 'lyrics_generation_phase.dart';
@@ -87,7 +89,8 @@ class LyricsController extends Notifier<LyricsControllerState> {
   late final void Function(String path, int durationMillis) _cacheSongDuration;
   late final LyricsCacheRepository _lyricsCacheRepository;
   late final LyricsService _lyricsService;
-  late final GeminiLyricsService _geminiLyricsService;
+  late final AILyricsService _geminiLyricsService;
+  late final SettingsService _settingsService;
 
   int _lyricsRequestSerial = 0;
   final Set<String> _translatedLyricsKeys = <String>{};
@@ -111,6 +114,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       db: _db,
       cacheRepository: _lyricsCacheRepository,
     );
+    _settingsService = ref.read(settingsServiceProvider);
     _geminiLyricsService = ref.read(geminiLyricsServiceProvider);
     return LyricsControllerState(
       lyricsTranslationLanguageCode:
@@ -210,6 +214,10 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   void _bumpRevision() {
     state = state.copyWith(revision: state.revision + 1);
+  }
+
+  String _lyricsProviderTag() {
+    return _settingsService.lyricsAiProvider.storageValue;
   }
 
   void _cancelOngoingLyricsFetch({String? reason}) {

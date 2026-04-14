@@ -3,15 +3,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/network_client.dart';
 import 'settings_service.dart';
 
-class GeminiApiKeyService {
-  GeminiApiKeyService({NetworkClient? client})
+class OpenRouterApiKeyService {
+  OpenRouterApiKeyService({NetworkClient? client})
     : _client = client ?? NetworkClient.instance;
 
   final NetworkClient _client;
 
   Future<String?> loadApiKey() async {
     final prefs = await SharedPreferences.getInstance();
-    final storedKey = prefs.getString(SettingsService.geminiApiKeyStorageKey);
+    final storedKey = prefs.getString(
+      SettingsService.openRouterApiKeyStorageKey,
+    );
     final normalizedStoredKey = storedKey?.trim();
     if (normalizedStoredKey != null && normalizedStoredKey.isNotEmpty) {
       return normalizedStoredKey;
@@ -20,10 +22,10 @@ class GeminiApiKeyService {
     return null;
   }
 
-  Future<GeminiApiKeyTestResult> testConnection(String apiKey) async {
+  Future<OpenRouterApiKeyTestResult> testConnection(String apiKey) async {
     final normalizedKey = apiKey.trim();
     if (normalizedKey.isEmpty) {
-      return const GeminiApiKeyTestResult(
+      return const OpenRouterApiKeyTestResult(
         success: false,
         message: '请输入 API key。',
       );
@@ -31,12 +33,17 @@ class GeminiApiKeyService {
 
     try {
       final response = await _client.get(
-        'https://generativelanguage.googleapis.com/v1beta/models',
-        queryParameters: {'key': normalizedKey},
+        'https://openrouter.ai/api/v1/models',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $normalizedKey',
+            'Content-Type': 'application/json',
+          },
+        ),
       );
 
       final models = _extractModels(response.data);
-      return GeminiApiKeyTestResult(
+      return OpenRouterApiKeyTestResult(
         success: true,
         message: models.isEmpty
             ? '连接成功，已通过验证。'
@@ -44,7 +51,7 @@ class GeminiApiKeyService {
         models: models,
       );
     } catch (e) {
-      return GeminiApiKeyTestResult(
+      return OpenRouterApiKeyTestResult(
         success: false,
         message: _formatErrorMessage(e),
       );
@@ -53,14 +60,14 @@ class GeminiApiKeyService {
 
   List<String> _extractModels(dynamic data) {
     if (data is! Map) return const [];
-    final models = data['models'];
+    final models = data['data'];
     if (models is! List) return const [];
 
     return models
         .map((item) {
           if (item is Map) {
-            return item['displayName']?.toString().trim() ??
-                item['name']?.toString().trim() ??
+            return item['name']?.toString().trim() ??
+                item['id']?.toString().trim() ??
                 '';
           }
           return item?.toString().trim() ?? '';
@@ -99,8 +106,8 @@ class GeminiApiKeyService {
   }
 }
 
-class GeminiApiKeyTestResult {
-  const GeminiApiKeyTestResult({
+class OpenRouterApiKeyTestResult {
+  const OpenRouterApiKeyTestResult({
     required this.success,
     required this.message,
     this.models = const [],

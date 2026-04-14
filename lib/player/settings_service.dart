@@ -2,11 +2,39 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum LyricsAiProvider { googleAiStudio, openRouter }
+
+extension LyricsAiProviderX on LyricsAiProvider {
+  String get storageValue => switch (this) {
+    LyricsAiProvider.googleAiStudio => 'google_ai_studio',
+    LyricsAiProvider.openRouter => 'openrouter',
+  };
+
+  String get displayName => switch (this) {
+    LyricsAiProvider.googleAiStudio => 'Google AI Studio',
+    LyricsAiProvider.openRouter => 'OpenRouter',
+  };
+
+  static LyricsAiProvider fromStorageValue(String? value) {
+    switch (value?.trim().toLowerCase()) {
+      case 'openrouter':
+        return LyricsAiProvider.openRouter;
+      case 'google_ai_studio':
+      case 'google':
+      case 'gemini':
+      default:
+        return LyricsAiProvider.googleAiStudio;
+    }
+  }
+}
+
 class SettingsService extends ChangeNotifier {
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
   static const String geminiApiKeyStorageKey = 'gemini_api_key';
+  static const String openRouterApiKeyStorageKey = 'openrouter_api_key';
+  static const String _keyLyricsAiProvider = 'lyrics_ai_provider';
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
   static const String _builtInAcoustidApiKey = 'raGXgwxqws';
   static const int _fixedSampleStride = 8;
@@ -46,6 +74,7 @@ class SettingsService extends ChangeNotifier {
   int _waveformChunks;
   bool _isUserInactive = false;
   Timer? _inactivityTimer;
+  LyricsAiProvider _lyricsAiProvider;
 
   // Visualizer styling state
   late Color _visualizerColor;
@@ -73,7 +102,10 @@ class SettingsService extends ChangeNotifier {
 
   SettingsService(this._prefs)
     : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
-      _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 80 {
+      _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 80,
+      _lyricsAiProvider = LyricsAiProviderX.fromStorageValue(
+        _prefs.getString(_keyLyricsAiProvider),
+      ) {
     _visualizerColor = Color(
       _prefs.getInt(_keyVisColor) ?? Colors.white.toARGB32(),
     );
@@ -116,7 +148,28 @@ class SettingsService extends ChangeNotifier {
   int get sampleStride => _fixedSampleStride;
   int get waveformChunks => _waveformChunks;
   bool get isUserInactive => _isUserInactive;
+  LyricsAiProvider get lyricsAiProvider => _lyricsAiProvider;
   String get geminiApiKey => _prefs.getString(geminiApiKeyStorageKey) ?? '';
+  String get openRouterApiKey =>
+      _prefs.getString(openRouterApiKeyStorageKey) ?? '';
+  bool get hasCustomGoogleAiStudioApiKey =>
+      _prefs.containsKey(geminiApiKeyStorageKey);
+  bool get hasCustomOpenRouterApiKey =>
+      _prefs.containsKey(openRouterApiKeyStorageKey);
+  String get activeLyricsGenerationApiKey {
+    return switch (_lyricsAiProvider) {
+      LyricsAiProvider.googleAiStudio => geminiApiKey,
+      LyricsAiProvider.openRouter => openRouterApiKey,
+    };
+  }
+
+  String get activeLyricsApiKey => activeLyricsGenerationApiKey;
+
+  bool get hasActiveLyricsGenerationApiKey =>
+      activeLyricsGenerationApiKey.trim().isNotEmpty;
+  bool get hasActiveLyricsApiKey => hasActiveLyricsGenerationApiKey;
+  String get activeGeminiTranslationApiKey => geminiApiKey;
+  bool get hasGeminiTranslationApiKey => geminiApiKey.trim().isNotEmpty;
   bool get hasCustomAcoustidApiKey =>
       _prefs.containsKey(acoustidApiKeyStorageKey);
   String get acoustidApiKey {
@@ -206,6 +259,30 @@ class SettingsService extends ChangeNotifier {
     } else {
       _prefs.setString(geminiApiKeyStorageKey, normalized);
     }
+    notifyListeners();
+  }
+
+  set openRouterApiKey(String value) {
+    final normalized = value.trim();
+    final current = openRouterApiKey;
+    if (current == normalized) {
+      return;
+    }
+
+    if (normalized.isEmpty) {
+      _prefs.remove(openRouterApiKeyStorageKey);
+    } else {
+      _prefs.setString(openRouterApiKeyStorageKey, normalized);
+    }
+    notifyListeners();
+  }
+
+  set lyricsAiProvider(LyricsAiProvider value) {
+    if (_lyricsAiProvider == value) {
+      return;
+    }
+    _lyricsAiProvider = value;
+    _prefs.setString(_keyLyricsAiProvider, value.storageValue);
     notifyListeners();
   }
 

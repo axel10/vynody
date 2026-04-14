@@ -134,7 +134,7 @@ extension LyricsControllerGeneration on LyricsController {
           if (progressText.isEmpty) return;
           final progressLyrics = _buildGeneratedLyrics(
             text: progressText,
-            source: 'gemini',
+            source: _lyricsProviderTag(),
             timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
             translations:
                 translationProvider?.call() ??
@@ -156,7 +156,7 @@ extension LyricsControllerGeneration on LyricsController {
 
       final lyrics = _buildGeneratedLyrics(
         text: result.text!,
-        source: 'gemini',
+        source: _lyricsProviderTag(),
         timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
         translations:
             translationProvider?.call() ??

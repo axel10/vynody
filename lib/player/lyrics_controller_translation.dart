@@ -230,12 +230,16 @@ extension LyricsControllerTranslation on LyricsController {
       languageCode: languageCode,
       translatedText: translatedText,
       translatedLines: normalizedLines,
-      provider: 'gemini',
+      provider: _translationProviderTag(),
       updatedAt: DateTime.now(),
     );
   }
 
   String _lyricsTranslationCacheKey(String cacheKey, String languageCode) {
     return '$cacheKey|$languageCode';
+  }
+
+  String _translationProviderTag() {
+    return LyricsAiProvider.googleAiStudio.storageValue;
   }
 }

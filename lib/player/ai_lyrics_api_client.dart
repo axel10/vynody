@@ -1,4 +1,4 @@
-part of 'gemini_lyrics_service.dart';
+part of 'ai_lyrics_service.dart';
 
 class _GeminiFileUploadResult {
   final String name;
@@ -15,12 +15,12 @@ class _GeminiFileUploadResult {
 class _GeminiLyricsApiClient {
   _GeminiLyricsApiClient({
     NetworkClient? client,
-    GeminiApiKeyService? apiKeyService,
+    AIApiKeyService? apiKeyService,
   }) : _client = client ?? NetworkClient.instance,
-       _apiKeyService = apiKeyService ?? GeminiApiKeyService();
+       _apiKeyService = apiKeyService ?? AIApiKeyService();
 
   final NetworkClient _client;
-  final GeminiApiKeyService _apiKeyService;
+  final AIApiKeyService _apiKeyService;
 
   Future<String?> loadApiKey() async {
     return _apiKeyService.loadApiKey();

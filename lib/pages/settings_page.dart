@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../dialogs/acoustid_api_key_dialog.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
 import '../player/audio_riverpod.dart';
+import '../player/settings_service.dart';
 import '../l10n/app_localizations.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -82,6 +83,128 @@ class SettingsPage extends ConsumerWidget {
               settings.isWaveformProgressBarEnabled = value;
             },
           ),
+          const Divider(height: 1),
+          ListTile(
+            title: const Text(
+              '歌词生成 AI 提供方',
+              style: TextStyle(color: Colors.white),
+            ),
+            subtitle: const Text(
+              '这里只影响歌词生成和时间轴生成。翻译始终走 Gemini。',
+              style: TextStyle(color: Colors.white70),
+            ),
+            trailing: DropdownButtonHideUnderline(
+              child: DropdownButton<LyricsAiProvider>(
+                value: settings.lyricsAiProvider,
+                dropdownColor: const Color(0xFF1E1E1E),
+                iconEnabledColor: Colors.white,
+                style: const TextStyle(color: Colors.white),
+                onChanged: (value) {
+                  if (value == null) return;
+                  settings.lyricsAiProvider = value;
+                },
+                items: LyricsAiProvider.values
+                    .map(
+                      (provider) => DropdownMenuItem<LyricsAiProvider>(
+                        value: provider,
+                        child: Text(provider.displayName),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          ),
+          ListTile(
+            isThreeLine: true,
+            leading: const Icon(Icons.key, color: Colors.white),
+            title: Text(
+              '${settings.lyricsAiProvider.displayName} API Key',
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio
+                  ? (settings.geminiApiKey.trim().isEmpty
+                        ? '当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。'
+                        : '已保存 Google AI Studio key，可用于歌词生成和时间轴生成。')
+                  : (settings.openRouterApiKey.trim().isEmpty
+                        ? '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。'
+                        : '已保存 OpenRouter key，可用于歌词生成和时间轴生成。'),
+              style: const TextStyle(color: Colors.white70),
+            ),
+            trailing: FilledButton.tonal(
+              onPressed: () async {
+                final enteredApiKey = await showLyricsProviderApiKeyDialog(
+                  context,
+                  ref: ref,
+                  provider: settings.lyricsAiProvider,
+                  initialApiKey: switch (settings.lyricsAiProvider) {
+                    LyricsAiProvider.googleAiStudio => settings.geminiApiKey,
+                    LyricsAiProvider.openRouter => settings.openRouterApiKey,
+                  },
+                );
+                if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+                  return;
+                }
+
+                switch (settings.lyricsAiProvider) {
+                  case LyricsAiProvider.googleAiStudio:
+                    settings.geminiApiKey = enteredApiKey;
+                    break;
+                  case LyricsAiProvider.openRouter:
+                    settings.openRouterApiKey = enteredApiKey;
+                    break;
+                }
+
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${settings.lyricsAiProvider.displayName} API Key 已保存',
+                    ),
+                  ),
+                );
+              },
+              child: Text(switch (settings.lyricsAiProvider) {
+                LyricsAiProvider.googleAiStudio =>
+                  settings.geminiApiKey.trim().isEmpty ? '填写' : '修改',
+                LyricsAiProvider.openRouter =>
+                  settings.openRouterApiKey.trim().isEmpty ? '填写' : '修改',
+              }),
+            ),
+          ),
+          ListTile(
+            isThreeLine: true,
+            leading: const Icon(Icons.translate, color: Colors.white),
+            title: const Text(
+              'Gemini 翻译 API Key',
+              style: TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              settings.geminiApiKey.trim().isEmpty
+                  ? '翻译功能一律走 Gemini。这里未保存 key 时，翻译会先弹窗提示。'
+                  : '已保存 Gemini key，可用于歌词翻译。',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            trailing: FilledButton.tonal(
+              onPressed: () async {
+                final enteredApiKey = await showGeminiApiKeyDialog(
+                  context,
+                  ref: ref,
+                  initialApiKey: settings.geminiApiKey,
+                );
+                if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+                  return;
+                }
+
+                settings.geminiApiKey = enteredApiKey;
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Gemini API Key 已保存')),
+                );
+              },
+              child: Text(settings.geminiApiKey.trim().isEmpty ? '填写' : '修改'),
+            ),
+          ),
           ListTile(
             isThreeLine: true,
             leading: const Icon(Icons.fingerprint, color: Colors.white),
@@ -135,38 +258,6 @@ class SettingsPage extends ConsumerWidget {
                 );
               },
               child: Text(settings.hasCustomAcoustidApiKey ? '修改' : '填写'),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.smart_toy_outlined, color: Colors.white),
-            title: const Text(
-              'Google AI Studio API Key',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              settings.geminiApiKey.trim().isEmpty
-                  ? '未保存到本机设置，生成和翻译时会先弹窗提示。'
-                  : '已保存到本机设置，可直接用于 Gemini 相关功能。',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            trailing: FilledButton.tonal(
-              onPressed: () async {
-                final enteredApiKey = await showGeminiApiKeyDialog(
-                  context,
-                  ref: ref,
-                  initialApiKey: settings.geminiApiKey,
-                );
-                if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
-                  return;
-                }
-
-                settings.geminiApiKey = enteredApiKey;
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Google AI Studio API Key 已保存')),
-                );
-              },
-              child: Text(settings.geminiApiKey.trim().isEmpty ? '填写' : '修改'),
             ),
           ),
         ],

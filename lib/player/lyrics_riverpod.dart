@@ -6,7 +6,7 @@ import 'lyrics_controller_dependencies.dart';
 import 'audio_riverpod.dart';
 import 'lyrics_controller.dart';
 import 'lyrics_controller_state.dart';
-import 'gemini_lyrics_service.dart';
+import 'ai_lyrics_service.dart';
 
 final lyricsControllerDependenciesProvider =
     Provider<LyricsControllerDependencies>((ref) {
@@ -14,9 +14,10 @@ final lyricsControllerDependenciesProvider =
       return audioService.lyricsControllerDependencies;
     });
 
-final geminiLyricsServiceProvider = Provider<GeminiLyricsService>((ref) {
-  return GeminiLyricsService(
+final geminiLyricsServiceProvider = Provider<AILyricsService>((ref) {
+  return AILyricsService(
     apiKeyService: ref.read(geminiApiKeyServiceProvider),
+    settingsService: ref.read(settingsServiceProvider),
   );
 });
 

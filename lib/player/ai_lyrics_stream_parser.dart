@@ -1,4 +1,4 @@
-part of 'gemini_lyrics_service.dart';
+part of 'ai_lyrics_service.dart';
 
 class _GeminiStreamTextParser {
   String? extractText(dynamic raw) {
@@ -46,7 +46,8 @@ class _GeminiStreamTextParser {
   String? _extractTextFromDecoded(dynamic decoded) {
     if (decoded is Map) {
       for (final entry in decoded.entries) {
-        if (entry.key == 'text' && entry.value is String) {
+        if ((entry.key == 'text' || entry.key == 'content') &&
+            entry.value is String) {
           final text = entry.value as String;
           if (text.isNotEmpty) return text;
         }

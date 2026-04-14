@@ -6,12 +6,14 @@ import 'package:dio/dio.dart' show Headers, ResponseType;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
-import 'gemini_api_key_service.dart';
+import 'ai_api_key_service.dart';
+import 'settings_service.dart';
 import '../utils/network_client.dart';
 import '../utils/lrc_utils.dart';
 
-part 'gemini_lyrics_api_client.dart';
-part 'gemini_lyrics_stream_parser.dart';
+part 'ai_lyrics_api_client.dart';
+part 'ai_lyrics_openrouter.dart';
+part 'ai_lyrics_stream_parser.dart';
 
 class GeminiGenerationResult {
   const GeminiGenerationResult.success(this.text)
@@ -27,27 +29,62 @@ class GeminiGenerationResult {
   final bool isSuccess;
 }
 
-class GeminiLyricsService {
-  static const String _primaryGeminiModelId =
-      'gemini-3-flash-preview';
-  static const String _fallbackGeminiModelId = 'gemini-2.5-flash';
+class _LyricsAiCredentials {
+  const _LyricsAiCredentials({required this.provider, required this.apiKey});
 
-  GeminiLyricsService({
+  final LyricsAiProvider provider;
+  final String apiKey;
+}
+
+class AILyricsService {
+  static const String _primaryGeminiModelId = 'gemini-3-flash-preview';
+  static const String _fallbackGeminiModelId = 'gemini-2.5-flash';
+  static const String _openRouterTextModelId =
+      'google/gemini-3.1-flash-lite-preview';
+  static const String _openRouterAudioModelId =
+      'google/gemini-3.1-flash-lite-preview';
+
+  AILyricsService({
     NetworkClient? client,
-    GeminiApiKeyService? apiKeyService,
+    AIApiKeyService? apiKeyService,
+    required SettingsService settingsService,
   }) : _client = client ?? NetworkClient.instance,
        _api = _GeminiLyricsApiClient(
          client: client,
          apiKeyService: apiKeyService,
-       );
+       ),
+       _settingsService = settingsService;
 
   final NetworkClient _client;
   final _GeminiLyricsApiClient _api;
+  final SettingsService _settingsService;
   final _GeminiStreamTextParser _streamParser = _GeminiStreamTextParser();
   static final RegExp _lineSplitPattern = RegExp(r'\r?\n');
   static final RegExp _timestampLinePattern = RegExp(
     r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
   );
+
+  Future<_LyricsAiCredentials?> _loadGenerationCredentials() async {
+    final provider = _settingsService.lyricsAiProvider;
+    final apiKey = _settingsService.activeLyricsGenerationApiKey.trim();
+    if (apiKey.isEmpty) {
+      return null;
+    }
+
+    return _LyricsAiCredentials(provider: provider, apiKey: apiKey);
+  }
+
+  String _providerLabel(LyricsAiProvider provider) {
+    return provider.displayName;
+  }
+
+  String _missingApiKeyMessage(
+    LyricsAiProvider provider, {
+    required String action,
+  }) {
+    final providerName = _providerLabel(provider);
+    return '未找到 $providerName API Key，无法$action。';
+  }
 
   Future<bool> translateLyricsStream({
     required String lyrics,
@@ -56,9 +93,9 @@ class GeminiLyricsService {
     onProgress,
     String modelId = 'gemma-4-31b-it',
   }) async {
-    final apiKey = await _api.loadApiKey();
-    if (apiKey == null || apiKey.isEmpty) {
-      debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip translation.');
+    final apiKey = _settingsService.geminiApiKey.trim();
+    if (apiKey.isEmpty) {
+      debugPrint('[GeminiLyrics] gemini API key not found, skip translation.');
       return false;
     }
 
@@ -210,11 +247,29 @@ class GeminiLyricsService {
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
-    final apiKey = await _api.loadApiKey();
-    if (apiKey == null || apiKey.isEmpty) {
-      debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip generation.');
-      return const GeminiGenerationResult.failure('未找到 Gemini API Key，无法生成歌词。');
+    final credentials = await _loadGenerationCredentials();
+    if (credentials == null) {
+      debugPrint('[GeminiLyrics] active API key not found, skip generation.');
+      return GeminiGenerationResult.failure(
+        _missingApiKeyMessage(
+          _settingsService.lyricsAiProvider,
+          action: '生成歌词',
+        ),
+      );
     }
+
+    if (credentials.provider == LyricsAiProvider.openRouter) {
+      return _generateLyricsFromFileOpenRouter(
+        apiKey: credentials.apiKey,
+        filePath: filePath,
+        songTitle: songTitle,
+        onUploadProgress: onUploadProgress,
+        onStageChanged: onStageChanged,
+        onProgress: onProgress,
+      );
+    }
+
+    final apiKey = credentials.apiKey;
 
     final file = File(filePath);
     if (!await file.exists()) {
@@ -254,13 +309,29 @@ class GeminiLyricsService {
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
-    final apiKey = await _api.loadApiKey();
-    if (apiKey == null || apiKey.isEmpty) {
-      debugPrint('[GeminiLyrics] GEMINI_API_KEY not found, skip timeline.');
-      return const GeminiGenerationResult.failure(
-        '未找到 Gemini API Key，无法生成时间轴。',
+    final credentials = await _loadGenerationCredentials();
+    if (credentials == null) {
+      debugPrint('[GeminiLyrics] active API key not found, skip timeline.');
+      return GeminiGenerationResult.failure(
+        _missingApiKeyMessage(
+          _settingsService.lyricsAiProvider,
+          action: '生成时间轴',
+        ),
       );
     }
+
+    if (credentials.provider == LyricsAiProvider.openRouter) {
+      return _generateTimelineFromLyricsOpenRouter(
+        apiKey: credentials.apiKey,
+        filePath: filePath,
+        lyrics: lyrics,
+        onUploadProgress: onUploadProgress,
+        onStageChanged: onStageChanged,
+        onProgress: onProgress,
+      );
+    }
+
+    final apiKey = credentials.apiKey;
 
     final file = File(filePath);
     if (!await file.exists()) {
@@ -454,7 +525,9 @@ class GeminiLyricsService {
             utf8.decoder,
           );
           try {
-            await for (final line in textStream.transform(const LineSplitter())) {
+            await for (final line in textStream.transform(
+              const LineSplitter(),
+            )) {
               final trimmed = line.trim();
               if (trimmed.isEmpty) continue;
 

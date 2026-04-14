@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../models/music_file.dart';
 import 'acoustid_service.dart';
-import 'gemini_api_key_service.dart';
+import 'ai_api_key_service.dart';
+import 'openrouter_api_key_service.dart';
 import 'playlist_service.dart';
 import 'scanner_service.dart';
 import 'settings_service.dart';
@@ -33,8 +34,14 @@ final playlistServiceProvider = ChangeNotifierProvider<PlaylistService>((ref) {
   return PlaylistService();
 });
 
-final geminiApiKeyServiceProvider = Provider<GeminiApiKeyService>((ref) {
-  return GeminiApiKeyService();
+final geminiApiKeyServiceProvider = Provider<AIApiKeyService>((ref) {
+  return AIApiKeyService();
+});
+
+final openRouterApiKeyServiceProvider = Provider<OpenRouterApiKeyService>((
+  ref,
+) {
+  return OpenRouterApiKeyService();
 });
 
 final acoustidServiceProvider = Provider<AcoustIDService>((ref) {

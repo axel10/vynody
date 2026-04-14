@@ -96,6 +96,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     );
   }
 
+  Future<bool> _ensureLyricsApiKey() async {
+    return ensureLyricsGenerationApiKey(context, ref);
+  }
+
   Future<bool> _ensureGeminiApiKey() async {
     return ensureGeminiApiKey(context, ref);
   }
@@ -107,18 +111,29 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     ).showSnackBar(SnackBar(content: Text(message.trim())));
   }
 
-  String _buildGenerateMenuLabel() {
+  String _lyricsSourceLabel() {
     final source = widget.lyrics?.source.trim().toLowerCase() ?? '';
-    if (source.startsWith('gemini')) {
-      return '重新生成歌词（来源gemini）';
+    if (source.startsWith('openrouter')) {
+      return 'OpenRouter';
+    }
+    if (source.startsWith('google') || source.startsWith('gemini')) {
+      return 'Google AI Studio';
+    }
+    return 'AI';
+  }
+
+  String _buildGenerateMenuLabel() {
+    final sourceLabel = _lyricsSourceLabel();
+    if (sourceLabel != 'AI') {
+      return '重新生成歌词（来源$sourceLabel）';
     }
     return '使用AI生成歌词（来源是lrclib）';
   }
 
   String _buildGenerateTimelineMenuLabel() {
-    final source = widget.lyrics?.source.trim().toLowerCase() ?? '';
-    if (source.startsWith('gemini')) {
-      return '重新生成时间轴（来源gemini）';
+    final sourceLabel = _lyricsSourceLabel();
+    if (sourceLabel != 'AI') {
+      return '重新生成时间轴（来源$sourceLabel）';
     }
     return '使用AI生成时间轴';
   }
@@ -244,7 +259,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         _scheduleScrollIfNeeded(force: true);
       }
     } else if (selected == 'generate') {
-      if (await _ensureGeminiApiKey()) {
+      if (await _ensureLyricsApiKey()) {
         if (!mounted) return;
         final errorMessage = await _lyricsControllerActions
             .regenerateLyricsForCurrentSong();
@@ -253,7 +268,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
       }
     } else if (selected == 'generate_timeline') {
-      if (await _ensureGeminiApiKey()) {
+      if (await _ensureLyricsApiKey()) {
         if (!mounted) return;
         final errorMessage = await _lyricsControllerActions
             .generateTimelineForCurrentSong();
@@ -644,7 +659,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                           onPressed: lyricsState.isLyricsGenerating
                               ? null
                               : () async {
-                                  if (await _ensureGeminiApiKey()) {
+                                  if (await _ensureLyricsApiKey()) {
                                     if (!mounted) return;
                                     final errorMessage =
                                         await _lyricsControllerActions
