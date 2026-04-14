@@ -227,7 +227,7 @@ extension LyricsControllerGeneration on LyricsController {
     try {
       return await _runLyricsGeneration(
         song: song,
-        databaseSource: LyricsCacheSource.geminiGenerate,
+        databaseSource: LyricsCacheSource.aiGenerate,
         statusLabel: '正在生成歌词',
         invoke:
             ({
@@ -278,7 +278,7 @@ extension LyricsControllerGeneration on LyricsController {
     try {
       return await _runLyricsGeneration(
         song: song,
-        databaseSource: LyricsCacheSource.geminiTimeline,
+        databaseSource: LyricsCacheSource.aiTimeline,
         statusLabel: '正在生成时间轴',
         translationProvider: () =>
             _currentMusic()?.lyrics?.translations ??
@@ -326,7 +326,7 @@ extension LyricsControllerGeneration on LyricsController {
     required MusicFile song,
     required String generatedLyrics,
     required List<LyricLine> syncedLines,
-    LyricsCacheSource source = LyricsCacheSource.geminiGenerate,
+    LyricsCacheSource source = LyricsCacheSource.aiGenerate,
   }) async {
     try {
       final duration = await _resolveLyricsDuration(song);

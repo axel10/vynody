@@ -90,7 +90,7 @@ class SettingsPage extends ConsumerWidget {
               style: TextStyle(color: Colors.white),
             ),
             subtitle: const Text(
-              '这里只影响歌词生成和时间轴生成。翻译始终走 Gemini。',
+              '这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio',
               style: TextStyle(color: Colors.white70),
             ),
             trailing: DropdownButtonHideUnderline(
@@ -176,13 +176,13 @@ class SettingsPage extends ConsumerWidget {
             isThreeLine: true,
             leading: const Icon(Icons.translate, color: Colors.white),
             title: const Text(
-              'Gemini 翻译 API Key',
+              'Google AI Studio 翻译 API Key',
               style: TextStyle(color: Colors.white),
             ),
             subtitle: Text(
               settings.geminiApiKey.trim().isEmpty
-                  ? '翻译功能一律走 Gemini。这里未保存 key 时，翻译会先弹窗提示。'
-                  : '已保存 Gemini key，可用于歌词翻译。',
+                  ? '翻译功能一律走 Google AI Studio。这里未保存 key 时，翻译会先弹窗提示。'
+                  : '已保存 Google AI Studio key，可用于歌词翻译。',
               style: const TextStyle(color: Colors.white70),
             ),
             trailing: FilledButton.tonal(

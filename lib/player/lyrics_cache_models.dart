@@ -4,9 +4,9 @@ import '../models/lyric_line.dart';
 
 enum LyricsCacheSource {
   none,
-  geminiGenerate,
-  geminiTimeline,
-  gemini,
+  aiGenerate,
+  aiTimeline,
+  ai,
   manualAdjust,
   lrclib;
 
@@ -19,11 +19,14 @@ enum LyricsCacheSource {
       case 'none':
         return LyricsCacheSource.none;
       case 'gemini_generate':
-        return LyricsCacheSource.geminiGenerate;
+      case 'ai_generate':
+        return LyricsCacheSource.aiGenerate;
       case 'gemini_timeline':
-        return LyricsCacheSource.geminiTimeline;
+      case 'ai_timeline':
+        return LyricsCacheSource.aiTimeline;
       case 'gemini':
-        return LyricsCacheSource.gemini;
+      case 'ai':
+        return LyricsCacheSource.ai;
       case 'manual_adjust':
         return LyricsCacheSource.manualAdjust;
       case 'lrclib':
@@ -37,7 +40,8 @@ enum LyricsCacheSource {
     final normalized = value?.trim().toLowerCase() ?? '';
     switch (normalized) {
       case 'gemini':
-        return LyricsCacheSource.gemini;
+      case 'ai':
+        return LyricsCacheSource.ai;
       case 'lrclib':
       case 'get':
       case 'search':
@@ -47,9 +51,11 @@ enum LyricsCacheSource {
       case 'none':
         return LyricsCacheSource.none;
       case 'gemini_generate':
-        return LyricsCacheSource.geminiGenerate;
+      case 'ai_generate':
+        return LyricsCacheSource.aiGenerate;
       case 'gemini_timeline':
-        return LyricsCacheSource.geminiTimeline;
+      case 'ai_timeline':
+        return LyricsCacheSource.aiTimeline;
       default:
         return normalized.isEmpty
             ? LyricsCacheSource.manualAdjust
@@ -60,9 +66,9 @@ enum LyricsCacheSource {
   String get dbValue {
     return switch (this) {
       LyricsCacheSource.none => 'none',
-      LyricsCacheSource.geminiGenerate => 'gemini_generate',
-      LyricsCacheSource.geminiTimeline => 'gemini_timeline',
-      LyricsCacheSource.gemini => 'gemini',
+      LyricsCacheSource.aiGenerate => 'ai_generate',
+      LyricsCacheSource.aiTimeline => 'ai_timeline',
+      LyricsCacheSource.ai => 'ai',
       LyricsCacheSource.manualAdjust => 'manual_adjust',
       LyricsCacheSource.lrclib => 'lrclib',
     };
@@ -71,19 +77,22 @@ enum LyricsCacheSource {
   String get musicLyricSource {
     return switch (this) {
       LyricsCacheSource.none => 'none',
-      LyricsCacheSource.geminiGenerate => 'gemini',
-      LyricsCacheSource.geminiTimeline => 'gemini',
-      LyricsCacheSource.gemini => 'gemini',
+      LyricsCacheSource.aiGenerate => 'ai',
+      LyricsCacheSource.aiTimeline => 'ai',
+      LyricsCacheSource.ai => 'ai',
       LyricsCacheSource.manualAdjust => 'manual_adjust',
       LyricsCacheSource.lrclib => 'lrclib',
     };
   }
 
-  bool get isGeminiSource {
-    return this == LyricsCacheSource.geminiGenerate ||
-        this == LyricsCacheSource.geminiTimeline ||
-        this == LyricsCacheSource.gemini;
+  bool get isAiSource {
+    return this == LyricsCacheSource.aiGenerate ||
+        this == LyricsCacheSource.aiTimeline ||
+        this == LyricsCacheSource.ai;
   }
+
+  @Deprecated('Use isAiSource')
+  bool get isGeminiSource => isAiSource;
 }
 
 class LyricsCacheRecord {

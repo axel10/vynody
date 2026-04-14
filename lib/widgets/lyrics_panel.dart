@@ -116,8 +116,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (source.startsWith('openrouter')) {
       return 'OpenRouter';
     }
-    if (source.startsWith('google') || source.startsWith('gemini')) {
-      return 'Google AI Studio';
+    if (source.startsWith('ai') ||
+        source.startsWith('google') ||
+        source.startsWith('gemini')) {
+      return 'AI';
     }
     return 'AI';
   }
