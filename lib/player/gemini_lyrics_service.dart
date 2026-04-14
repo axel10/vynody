@@ -28,6 +28,10 @@ class GeminiGenerationResult {
 }
 
 class GeminiLyricsService {
+  static const String _primaryGeminiModelId =
+      'gemini-3-flash-preview';
+  static const String _fallbackGeminiModelId = 'gemini-2.5-flash';
+
   GeminiLyricsService({
     NetworkClient? client,
     GeminiApiKeyService? apiKeyService,
@@ -201,7 +205,7 @@ class GeminiLyricsService {
   Future<GeminiGenerationResult> generateLyricsFromFile({
     required String filePath,
     String? songTitle,
-    String modelId = 'gemini-3.1-flash-lite-preview',
+    String modelId = _primaryGeminiModelId,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -245,7 +249,7 @@ class GeminiLyricsService {
     required String filePath,
     required String lyrics,
     String? songTitle,
-    String modelId = 'gemini-3.1-flash-lite-preview',
+    String modelId = _primaryGeminiModelId,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -373,6 +377,7 @@ class GeminiLyricsService {
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
     String? lastErrorMessage;
+    var effectiveModelId = modelId;
 
     for (var attempt = 1; attempt <= 3; attempt++) {
       final requestData = {
@@ -390,7 +395,7 @@ class GeminiLyricsService {
       };
 
       // 这里使用 streamGenerateContent，是为了让结果在模型生成时就能逐步回传给界面。
-      debugPrint('[GeminiLyrics] generation request model=$modelId');
+      debugPrint('[GeminiLyrics] generation request model=$effectiveModelId');
       debugPrint('[GeminiLyrics] generation request attempt=$attempt');
       debugPrint('[GeminiLyrics] generation request filePath=$filePath');
       debugPrint('[GeminiLyrics] generation request fileName=$fileName');
@@ -402,7 +407,7 @@ class GeminiLyricsService {
 
       try {
         final response = await _client.post(
-          'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/$effectiveModelId:streamGenerateContent',
           queryParameters: {'key': apiKey},
           data: requestData,
           options: Options(
@@ -516,6 +521,19 @@ class GeminiLyricsService {
         debugPrint(
           '[GeminiLyrics] generation response data: ${e.response?.data}',
         );
+
+        final statusCode = e.response?.statusCode;
+        final shouldDowngrade = statusCode == 503 &&
+            effectiveModelId == _primaryGeminiModelId;
+        if (shouldDowngrade) {
+          // 这里只切换模型并重试同一个 fileUri，不会重新上传文件。
+          effectiveModelId = _fallbackGeminiModelId;
+          debugPrint(
+            '[GeminiLyrics] model downgraded to $effectiveModelId after 503, '
+            'reusing fileUri=$fileUri.',
+          );
+          continue;
+        }
       } catch (e) {
         lastErrorMessage = _formatGenerationErrorMessage(e);
         debugPrint('[GeminiLyrics] generation error: $e');
