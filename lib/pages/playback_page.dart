@@ -702,7 +702,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             });
           }
 
+          final settings = ref.watch(settingsServiceProvider);
+          final isImmersiveActive =
+              settings.isImmersiveTabBarEnabled && settings.isUserInactive;
+
           final content = SafeArea(
+            bottom: !(isLyricsMode && !isLandscape && isImmersiveActive),
             child: Padding(
               padding: EdgeInsets.fromLTRB(
                 isLandscape ? 32.0 : 24.0,
@@ -732,6 +737,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             isMini: false,
                             isLandscape: isLandscape,
                             isLyricsMode: isLyricsMode,
+                            isImmersiveActive: isImmersiveActive,
                             screenWidth: screenWidth,
                             screenHeight: screenHeight,
                             isNext: isNext,
