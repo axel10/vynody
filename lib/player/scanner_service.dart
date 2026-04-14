@@ -21,6 +21,7 @@ enum SortOrder { ascending, descending }
 
 class ScannerService extends ChangeNotifier {
   AudioCoreController? _playerController;
+  StreamSubscription? _mediaObserverSubscription;
   final List<String> _rootPaths = [];
   final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
@@ -175,7 +176,9 @@ class ScannerService extends ChangeNotifier {
       const mediaObserverChannel = EventChannel(
         'com.example.pure_player/media_observer',
       );
-      mediaObserverChannel.receiveBroadcastStream().listen(
+      _mediaObserverSubscription = mediaObserverChannel
+          .receiveBroadcastStream()
+          .listen(
         (event) {
           if (event == 'media_changed' && !_isScanning) {
             debugPrint(
@@ -914,5 +917,11 @@ class ScannerService extends ChangeNotifier {
     }
 
     return normalizedPath;
+  }
+
+  @override
+  void dispose() {
+    _mediaObserverSubscription?.cancel();
+    super.dispose();
   }
 }

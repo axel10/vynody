@@ -56,6 +56,8 @@ class AudioService extends Notifier<AudioSnapshot> {
   DateTime? _sleepTimerEndAt;
   Duration? _sleepTimerDuration;
   int _lastWaveformChunks = -1;
+  bool _disposed = false;
+  late final VoidCallback _settingsListener;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -116,7 +118,8 @@ class AudioService extends Notifier<AudioSnapshot> {
         ? AndroidIntegrationService(this)
         : null;
     _player.addListener(_handlePlayerChanges);
-    settingsService.addListener(() {
+    _settingsListener = () {
+      if (_disposed) return;
       final currentWaveformChunks = settingsService.waveformChunks;
       if (_lastWaveformChunks != currentWaveformChunks) {
         _lastWaveformChunks = currentWaveformChunks;
@@ -125,11 +128,14 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
 
       unawaited(_refreshCurrentWaveform());
-    });
+    };
+    settingsService.addListener(_settingsListener);
     ref.onDispose(_dispose);
     unawaited(
       _player.initialize().then((_) {
+        if (_disposed) return;
         _visualizerOptions.loadOptions().then((_) => notifyListeners());
+        if (_disposed) return;
         _initializeMiniPlayerFftStream();
       }),
     );
@@ -137,6 +143,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void notifyListeners() {
+    if (_disposed) return;
     state = snapshot;
   }
 
@@ -1407,8 +1414,10 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void _dispose() {
+    _disposed = true;
     _sleepTimer?.cancel();
     _player.removeListener(_handlePlayerChanges);
+    settingsService.removeListener(_settingsListener);
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();
     _player.dispose();
