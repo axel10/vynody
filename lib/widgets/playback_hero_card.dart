@@ -779,23 +779,20 @@ class PlaybackHeroCard extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             IconButton(
               icon: const Icon(Icons.more_horiz, color: Colors.white70),
               onPressed: onShowMoreMenu,
               tooltip: l10n.more,
             ),
-            const SizedBox(width: 16),
             IconButton(
               icon: Icon(
                 isFavorite
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
                 size: 28,
-                color: isFavorite
-                    ? Colors.redAccent
-                    : Colors.white70,
+                color: isFavorite ? Colors.redAccent : Colors.white70,
               ),
               onPressed: currentMusic == null
                   ? null
@@ -805,7 +802,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                     },
               tooltip: isFavorite ? '取消收藏' : '收藏',
             ),
-            const SizedBox(width: 8),
             GestureDetector(
               onLongPress: onShowPlaylistModeSelector,
               child: IconButton(
@@ -818,7 +814,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                 tooltip: getPlaylistModeName(playbackMode, l10n),
               ),
             ),
-            const SizedBox(width: 8),
             GestureDetector(
               onLongPress: onShowRandomModeSelector,
               child: IconButton(
@@ -848,7 +843,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                 tooltip: l10n.randomMode,
               ),
             ),
-            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(
                 Icons.auto_fix_high_rounded,
@@ -859,7 +853,6 @@ class PlaybackHeroCard extends ConsumerWidget {
               onLongPress: onTagCompletionLongPress,
               tooltip: '歌曲标签补全',
             ),
-            const SizedBox(width: 8),
             Tooltip(
               message: sleepTimerRemaining != null
                   ? '睡眠定时器 ${_formatSleepTimer(sleepTimerRemaining)}'
@@ -898,7 +891,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(
                 Icons.tune_rounded,
