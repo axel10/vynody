@@ -747,6 +747,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       displayLines: displayLines,
       hasTimedLyrics: hasTimedLyrics,
       activeIndex: focusedIndex,
+      isAutoScrollPaused: _isAutoScrollPaused,
       scrollController: _scrollController,
       itemExtent: _itemExtent,
       scrollBehavior: _lyricsScrollBehavior(context),

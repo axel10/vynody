@@ -168,6 +168,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.displayLines,
     required this.hasTimedLyrics,
     required this.activeIndex,
+    required this.isAutoScrollPaused,
     required this.scrollController,
     required this.itemExtent,
     required this.scrollBehavior,
@@ -184,6 +185,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final List<LyricLine> displayLines;
   final bool hasTimedLyrics;
   final int activeIndex;
+  final bool isAutoScrollPaused;
   final ScrollController scrollController;
   final double itemExtent;
   final ScrollBehavior scrollBehavior;
@@ -198,10 +200,10 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onVerticalDragStart: onVerticalDragStart,
-      onVerticalDragUpdate: onVerticalDragUpdate,
-      onVerticalDragEnd: onVerticalDragEnd,
-      onVerticalDragCancel: onVerticalDragCancel,
+      onVerticalDragStart: isAutoScrollPaused ? null : onVerticalDragStart,
+      onVerticalDragUpdate: isAutoScrollPaused ? null : onVerticalDragUpdate,
+      onVerticalDragEnd: isAutoScrollPaused ? null : onVerticalDragEnd,
+      onVerticalDragCancel: isAutoScrollPaused ? null : onVerticalDragCancel,
       onSecondaryTapDown: onSecondaryTapDown,
       child: Column(
         children: [
@@ -213,7 +215,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                 child: ListView.builder(
                   controller: scrollController,
                   clipBehavior: Clip.none,
-                  physics: const NeverScrollableScrollPhysics(),
+                  physics: isAutoScrollPaused
+                      ? const BouncingScrollPhysics()
+                      : const NeverScrollableScrollPhysics(),
                   // padding: const EdgeInsets.symmetric(horizontal: 8),
                   itemExtent: itemExtent,
                   itemCount: displayLines.length,
