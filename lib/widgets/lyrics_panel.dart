@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
 import 'package:oktoast/oktoast.dart';
@@ -32,6 +33,7 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
 
 class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   static const double _itemExtent = 72.0;
+  static const double _lyricsListVerticalPadding = 16.0;
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
   static const double _timelineOffsetStepSeconds = 0.1;
@@ -42,6 +44,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   final ScrollController _scrollController = ScrollController();
   int _lastActiveIndex = -1;
   bool _isAutoScrollPaused = false;
+  bool _isUserScrubbingLyrics = false;
   double _timelineOffsetSeconds = 0.0;
   rpod.ProviderSubscription<LyricsControllerState>? _lyricsStateSubscription;
   ToastFuture? _statusToast;
@@ -52,6 +55,18 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   List<LyricLine> _displayLinesForCurrentLyrics() {
     return ref.read(lyricsDisplayLinesProvider(widget.lyrics));
+  }
+
+  ScrollBehavior _lyricsScrollBehavior(BuildContext context) {
+    return ScrollConfiguration.of(context).copyWith(
+      scrollbars: false,
+      dragDevices: {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      },
+    );
   }
 
   @override
@@ -499,7 +514,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     List<LyricLine>? displayLines,
   }) {
     final lines = displayLines ?? _displayLinesForCurrentLyrics();
-    if (lines.isEmpty || !_hasTimedLyrics(lines) || _isAutoScrollPaused) {
+    if (lines.isEmpty ||
+        !_hasTimedLyrics(lines) ||
+        _isAutoScrollPaused ||
+        _isUserScrubbingLyrics) {
       return;
     }
 
@@ -518,12 +536,66 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           maxExtent,
         ),
       );
-      _scrollController.animateTo(
-        target,
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
+      unawaited(
+        _scrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+        ),
       );
     });
+  }
+
+  bool _handleLyricsScrollNotification(
+    ScrollNotification notification,
+    List<LyricLine> displayLines,
+  ) {
+    if (!_hasTimedLyrics(displayLines)) return false;
+
+    if (notification is ScrollStartNotification &&
+        notification.dragDetails != null) {
+      if (!_isUserScrubbingLyrics && mounted) {
+        setState(() {
+          _isUserScrubbingLyrics = true;
+        });
+      }
+      return false;
+    }
+
+    if (notification is ScrollEndNotification && _isUserScrubbingLyrics) {
+      final target = _seekPositionForScrollMetrics(
+        notification.metrics,
+        displayLines,
+      );
+      if (_isUserScrubbingLyrics && mounted) {
+        setState(() {
+          _isUserScrubbingLyrics = false;
+        });
+      }
+      if (target != null) {
+        unawaited(ref.read(audioServiceProvider).seek(target));
+      }
+      return false;
+    }
+
+    return false;
+  }
+
+  Duration? _seekPositionForScrollMetrics(
+    ScrollMetrics metrics,
+    List<LyricLine> displayLines,
+  ) {
+    if (displayLines.isEmpty || !_hasTimedLyrics(displayLines)) return null;
+
+    final centeredOffset =
+        metrics.pixels +
+        metrics.viewportDimension / 2 -
+        _lyricsListVerticalPadding;
+    final centeredIndex = ((centeredOffset / _itemExtent).round()).clamp(
+      0,
+      displayLines.length - 1,
+    );
+    return displayLines[centeredIndex].timestamp;
   }
 
   int _activeLineIndex(List<LyricLine> displayLines) {
@@ -838,9 +910,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         child: Stack(
           children: [
             ScrollConfiguration(
-              behavior: ScrollConfiguration.of(
-                context,
-              ).copyWith(scrollbars: false),
+              behavior: _lyricsScrollBehavior(context),
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
@@ -884,109 +954,105 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       },
       child: Stack(
         children: [
-          ScrollConfiguration(
-            behavior: ScrollConfiguration.of(
-              context,
-            ).copyWith(scrollbars: false),
-            child: ListView.builder(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-              itemExtent: _itemExtent,
-              itemCount: displayLines.length,
-              itemBuilder: (context, index) {
-                final line = displayLines[index];
-                final translated =
-                    lyrics
-                        ?.translatedLineAt(
-                          index,
-                          lyricsState.lyricsTranslationLanguageCode,
-                        )
-                        .trim() ??
-                    '';
-                final activeIndex = _activeLineIndex(displayLines);
-                final distance = (index - activeIndex).abs();
-                final isActive = hasTimedLyrics && index == activeIndex;
-                final isNear = hasTimedLyrics && distance <= 1;
+          NotificationListener<ScrollNotification>(
+            onNotification: (notification) =>
+                _handleLyricsScrollNotification(notification, displayLines),
+            child: ScrollConfiguration(
+              behavior: _lyricsScrollBehavior(context),
+              child: ListView.builder(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: _lyricsListVerticalPadding,
+                ),
+                itemExtent: _itemExtent,
+                itemCount: displayLines.length,
+                itemBuilder: (context, index) {
+                  final line = displayLines[index];
+                  final translated =
+                      lyrics
+                          ?.translatedLineAt(
+                            index,
+                            lyricsState.lyricsTranslationLanguageCode,
+                          )
+                          .trim() ??
+                      '';
+                  final activeIndex = _activeLineIndex(displayLines);
+                  final distance = (index - activeIndex).abs();
+                  final isActive = hasTimedLyrics && index == activeIndex;
+                  final isNear = hasTimedLyrics && distance <= 1;
 
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? accent.withValues(alpha: 0.12)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            width: isActive ? 6 : 0,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: accent,
-                              borderRadius: BorderRadius.circular(999),
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? accent.withValues(alpha: 0.12)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 220),
+                                style: Theme.of(context).textTheme.bodyLarge!
+                                    .copyWith(
+                                      color: isActive
+                                          ? Colors.white
+                                          : Colors.white.withValues(
+                                              alpha: isNear ? 0.72 : 0.46,
+                                            ),
+                                      fontSize: isActive ? 18 : 16,
+                                      fontWeight: isActive
+                                          ? FontWeight.w700
+                                          : FontWeight.w400,
+                                      height: 1.4,
+                                      leadingDistribution:
+                                          TextLeadingDistribution.even,
+                                    ),
+                                child: _AutoSizeSingleLineText(
+                                  line.text,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
-                          ),
-                          if (isActive) const SizedBox(width: 8),
-                          Expanded(
-                            child: AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 220),
-                              style: Theme.of(context).textTheme.bodyLarge!
-                                  .copyWith(
-                                    color: isActive
-                                        ? Colors.white
-                                        : Colors.white.withValues(
-                                            alpha: isNear ? 0.72 : 0.46,
-                                          ),
-                                    fontSize: isActive ? 18 : 16,
-                                    fontWeight: isActive
-                                        ? FontWeight.w700
-                                        : FontWeight.w400,
-                                    height: 1.4,
-                                    leadingDistribution:
-                                        TextLeadingDistribution.even,
-                                  ),
-                              child: _AutoSizeSingleLineText(
-                                line.text,
-                                textAlign: TextAlign.center,
+                          ],
+                        ),
+                        if (translated.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              translated,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.62),
+                                fontSize: 13,
+                                height: 1.3,
+                                leadingDistribution:
+                                    TextLeadingDistribution.even,
                               ),
                             ),
                           ),
                         ],
-                      ),
-                      if (translated.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            translated,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.62),
-                              fontSize: 13,
-                              height: 1.3,
-                              leadingDistribution: TextLeadingDistribution.even,
-                            ),
-                          ),
-                        ),
                       ],
-                    ],
-                  ),
-                );
-              },
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ],
