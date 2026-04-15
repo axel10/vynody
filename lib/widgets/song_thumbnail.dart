@@ -53,7 +53,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final scanner = ref.read(scannerServiceProvider);
-        scanner.loadMetadataForPath(widget.path);
+        scanner.loadThumbnailForPath(widget.path);
       }
     });
   }

@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:io';
 import 'dart:async';
 import 'package:audio_core/audio_core.dart';
@@ -33,40 +32,99 @@ class ScanProgress {
 }
 
 class _ScanProgressState {
-  _ScanProgressState({int metadataConcurrency = 4})
-    : metadataRunner = _ConcurrentTaskRunner(metadataConcurrency);
+  _ScanProgressState({
+    int metadataConcurrency = 4,
+    required int Function(String a, String b) comparePaths,
+  }) : metadataRunner = _PriorityTaskRunner(
+         metadataConcurrency,
+         comparePaths: comparePaths,
+       );
 
   int discoveredCount = 0;
   int processedCount = 0;
-  final _ConcurrentTaskRunner metadataRunner;
+  final _PriorityTaskRunner metadataRunner;
   final List<Future<void>> pendingMetadataTasks = [];
+  final List<String> pendingThumbnailPaths = [];
 }
 
-class _ConcurrentTaskRunner {
-  _ConcurrentTaskRunner(int maxConcurrent)
-    : maxConcurrent = maxConcurrent < 1 ? 1 : maxConcurrent;
+class _PriorityTaskRunner {
+  _PriorityTaskRunner(
+    int maxConcurrent, {
+    required this.comparePaths,
+  }) : maxConcurrent = maxConcurrent < 1 ? 1 : maxConcurrent;
 
   final int maxConcurrent;
+  final int Function(String a, String b) comparePaths;
   int _running = 0;
-  final Queue<Completer<void>> _waitQueue = Queue<Completer<void>>();
+  int _sequence = 0;
+  final List<_QueuedTask<dynamic>> _queue = [];
 
-  Future<T> run<T>(Future<T> Function() task) async {
-    if (_running >= maxConcurrent) {
-      final waiter = Completer<void>();
-      _waitQueue.addLast(waiter);
-      await waiter.future;
-    }
+  Future<T> run<T>(String path, Future<T> Function() task) {
+    final completer = Completer<T>();
+    _queue.add(
+      _QueuedTask<T>(
+        path: path,
+        sequence: _sequence++,
+        completer: completer,
+        task: task,
+      ),
+    );
+    _pump();
+    return completer.future;
+  }
 
-    _running++;
-    try {
-      return await task();
-    } finally {
-      _running--;
-      if (_waitQueue.isNotEmpty) {
-        _waitQueue.removeFirst().complete();
-      }
+  void _pump() {
+    while (_running < maxConcurrent && _queue.isNotEmpty) {
+      final nextIndex = _selectNextIndex();
+      final next = _queue.removeAt(nextIndex);
+      _running++;
+      unawaited(_execute(next));
     }
   }
+
+  int _selectNextIndex() {
+    var bestIndex = 0;
+    for (var i = 1; i < _queue.length; i++) {
+      final candidate = _queue[i];
+      final best = _queue[bestIndex];
+      final pathCompare = comparePaths(candidate.path, best.path);
+      if (pathCompare < 0 ||
+          (pathCompare == 0 && candidate.sequence < best.sequence)) {
+        bestIndex = i;
+      }
+    }
+    return bestIndex;
+  }
+
+  Future<void> _execute<T>(_QueuedTask<T> entry) async {
+    try {
+      final result = await entry.task();
+      if (!entry.completer.isCompleted) {
+        entry.completer.complete(result);
+      }
+    } catch (e, st) {
+      if (!entry.completer.isCompleted) {
+        entry.completer.completeError(e, st);
+      }
+    } finally {
+      _running--;
+      _pump();
+    }
+  }
+}
+
+class _QueuedTask<T> {
+  _QueuedTask({
+    required this.path,
+    required this.sequence,
+    required this.completer,
+    required this.task,
+  });
+
+  final String path;
+  final int sequence;
+  final Completer<T> completer;
+  final Future<T> Function() task;
 }
 
 class ScannerService extends ChangeNotifier {
@@ -553,7 +611,10 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
-    final scanState = _ScanProgressState(metadataConcurrency: 4);
+    final scanState = _ScanProgressState(
+      metadataConcurrency: 4,
+      comparePaths: _compareScanFilePriority,
+    );
 
     for (final entry in entries) {
       final currentEntry = entry;
@@ -561,7 +622,7 @@ class ScannerService extends ChangeNotifier {
       if (path == null) continue;
 
       scanState.pendingMetadataTasks.add(
-        scanState.metadataRunner.run(() async {
+        scanState.metadataRunner.run(path, () async {
           await _waitUntilResumed();
           try {
             await MetadataHelper.processMetadata(
@@ -772,6 +833,7 @@ class ScannerService extends ChangeNotifier {
     required String fallbackArtist,
     required int? fallbackDuration,
     int? fallbackTrackNumber,
+    bool generateThumbnail = false,
   }) async {
     final db = MetadataDatabase();
     final existing = await db.getSongMetadata(filePath);
@@ -792,7 +854,7 @@ class ScannerService extends ChangeNotifier {
     final result = await MetadataHelper.processMetadata(
       filePath,
       songId: songId,
-      generateThumbnail: false,
+      generateThumbnail: generateThumbnail,
     );
     if (result != null) {
       return result.$1;
@@ -820,7 +882,10 @@ class ScannerService extends ChangeNotifier {
 
     try {
       if (await _checkPermissions()) {
-        final scanState = _ScanProgressState(metadataConcurrency: 4);
+        final scanState = _ScanProgressState(
+          metadataConcurrency: 4,
+          comparePaths: _compareScanFilePriority,
+        );
         final scanRoots = _computeScanRoots(_rootPaths);
         scanRoots.sort(_compareScanPathPriority);
         for (final path in scanRoots) {
@@ -847,6 +912,11 @@ class ScannerService extends ChangeNotifier {
         }
 
         await Future.wait(scanState.pendingMetadataTasks);
+        if (Platform.isWindows && scanState.pendingThumbnailPaths.isNotEmpty) {
+          unawaited(
+            _backgroundThumbnailRebuild(scanState.pendingThumbnailPaths),
+          );
+        }
 
         final presentPaths = <String>{};
         for (final root in _scannedRootFolders) {
@@ -922,11 +992,14 @@ class ScannerService extends ChangeNotifier {
       'Starting background metadata rebuild for ${allFilePaths.length} files',
     );
 
-    final scanState = _ScanProgressState(metadataConcurrency: 4);
+    final scanState = _ScanProgressState(
+      metadataConcurrency: 4,
+      comparePaths: _compareScanFilePriority,
+    );
 
     for (final path in allFilePaths) {
       scanState.pendingMetadataTasks.add(
-        scanState.metadataRunner.run(() async {
+        scanState.metadataRunner.run(path, () async {
           await _waitUntilResumed();
           try {
             final result = await MetadataHelper.processMetadata(path);
@@ -946,6 +1019,45 @@ class ScannerService extends ChangeNotifier {
     debugPrint('Background metadata rebuild completed');
   }
 
+  Future<void> _backgroundThumbnailRebuild(List<String> filePaths) async {
+    if (filePaths.isEmpty) return;
+
+    final paths = filePaths.toList()..sort(_compareScanFilePriority);
+
+    debugPrint(
+      'Starting background thumbnail rebuild for ${paths.length} files',
+    );
+
+    final scanState = _ScanProgressState(
+      metadataConcurrency: 4,
+      comparePaths: _compareScanFilePriority,
+    );
+
+    for (final path in paths) {
+      scanState.pendingMetadataTasks.add(
+        scanState.metadataRunner.run(path, () async {
+          await _waitUntilResumed();
+          try {
+            final result = await MetadataHelper.processMetadata(
+              path,
+              generateThumbnail: true,
+            );
+            final metadata = result?.$1;
+            if (metadata != null) {
+              _updateMetadataForPath(metadata, notify: false);
+            }
+          } catch (e) {
+            debugPrint('Error in background thumbnail rebuild for $path: $e');
+          }
+        }),
+      );
+    }
+
+    await Future.wait(scanState.pendingMetadataTasks);
+    notifyListeners();
+    debugPrint('Background thumbnail rebuild completed');
+  }
+
   void _collectFilePaths(MusicFolder folder, Set<String> out) {
     for (final file in folder.files) {
       out.add(_normalizePath(file.path));
@@ -956,11 +1068,10 @@ class ScannerService extends ChangeNotifier {
   }
 
   /// Loads metadata for a single path from the DB (or processes it fresh) and
-  /// caches it in [metadataMap]. Safe to call multiple times — exits early if
-  /// the path is already in the map or if the platform is not Windows.
+  /// caches it in [metadataMap]. Safe to call multiple times.
   Future<void> loadMetadataForPath(String path) async {
     final cached = _metadataMap[path];
-    if (cached != null && (cached.thumbnailPath?.isNotEmpty ?? false)) {
+    if (cached != null) {
       return;
     }
 
@@ -968,17 +1079,35 @@ class ScannerService extends ChangeNotifier {
     // Try DB first (cheapest); fall back to full processing if not found.
     SongMetadata? metadata = await db.getSongMetadata(path);
     final result = metadata == null
-        ? await MetadataHelper.processMetadata(path, generateThumbnail: true)
+        ? await MetadataHelper.processMetadata(path, generateThumbnail: false)
         : null;
     metadata ??= result?.$1;
 
-    if (metadata != null && !(metadata.thumbnailPath?.isNotEmpty ?? false)) {
-      final refreshed = await MetadataHelper.processMetadata(
-        path,
-        generateThumbnail: true,
-      );
-      metadata = refreshed?.$1 ?? metadata;
+    if (metadata != null) {
+      _metadataMap[path] = metadata;
+      notifyListeners();
     }
+  }
+
+  Future<void> loadThumbnailForPath(String path) async {
+    final cached = _metadataMap[path];
+    if (cached != null && (cached.thumbnailPath?.isNotEmpty ?? false)) {
+      return;
+    }
+
+    final db = MetadataDatabase();
+    SongMetadata? metadata = await db.getSongMetadata(path);
+    if (metadata != null && (metadata.thumbnailPath?.isNotEmpty ?? false)) {
+      _metadataMap[path] = metadata;
+      notifyListeners();
+      return;
+    }
+
+    final result = await MetadataHelper.processMetadata(
+      path,
+      generateThumbnail: true,
+    );
+    metadata = result?.$1 ?? metadata;
 
     if (metadata != null) {
       _metadataMap[path] = metadata;
@@ -995,15 +1124,28 @@ class ScannerService extends ChangeNotifier {
     Uint8List? artworkBytes,
     bool notify = true,
   }) {
-    _metadataMap[metadata.path] = metadata.copyWith(waveformBlob: null);
+    final existing = _metadataMap[metadata.path];
+    final mergedMetadata = metadata.copyWith(
+      thumbnailPath: metadata.thumbnailPath ?? existing?.thumbnailPath,
+      artworkPath: metadata.artworkPath ?? existing?.artworkPath,
+      artworkWidth: metadata.artworkWidth ?? existing?.artworkWidth,
+      artworkHeight: metadata.artworkHeight ?? existing?.artworkHeight,
+      themeColorsBlob: metadata.themeColorsBlob ?? existing?.themeColorsBlob,
+      waveformBlob: null,
+    );
+    _metadataMap[metadata.path] = mergedMetadata;
 
     for (final root in _scannedRootFolders) {
-      _updateMusicFileInFolder(root, metadata, artworkBytes: artworkBytes);
+      _updateMusicFileInFolder(
+        root,
+        mergedMetadata,
+        artworkBytes: artworkBytes,
+      );
     }
     if (_systemMediaFolder != null) {
       _updateMusicFileInFolder(
         _systemMediaFolder!,
-        metadata,
+        mergedMetadata,
         artworkBytes: artworkBytes,
       );
     }
@@ -1028,11 +1170,11 @@ class ScannerService extends ChangeNotifier {
           artist: metadata.artist,
           album: metadata.album,
           trackNumber: metadata.trackNumber,
-          thumbnailPath: metadata.thumbnailPath,
-          artworkPath: metadata.artworkPath,
-          artworkWidth: metadata.artworkWidth,
-          artworkHeight: metadata.artworkHeight,
-          themeColorsBlob: metadata.themeColorsBlob,
+          thumbnailPath: metadata.thumbnailPath ?? file.thumbnailPath,
+          artworkPath: metadata.artworkPath ?? file.artworkPath,
+          artworkWidth: metadata.artworkWidth ?? file.artworkWidth,
+          artworkHeight: metadata.artworkHeight ?? file.artworkHeight,
+          themeColorsBlob: metadata.themeColorsBlob ?? file.themeColorsBlob,
           waveformBlob: null,
           artworkBytes: artworkBytes,
           lastModifiedTime: metadata.lastModifiedTime,
@@ -1082,6 +1224,9 @@ class ScannerService extends ChangeNotifier {
       directories.sort(
         (a, b) => _compareScanPathPriority(a.path, b.path),
       );
+      audioFiles.sort(
+        (a, b) => _compareScanFilePriority(a.path, b.path),
+      );
 
       for (final entity in audioFiles) {
         final filePath = entity.path;
@@ -1094,7 +1239,7 @@ class ScannerService extends ChangeNotifier {
 
         if (Platform.isWindows) {
           scanState.pendingMetadataTasks.add(
-            scanState.metadataRunner.run(() async {
+            scanState.metadataRunner.run(filePath, () async {
               await _waitUntilResumed();
               try {
                 final metadata = await _resolveScannedMetadata(
@@ -1103,6 +1248,7 @@ class ScannerService extends ChangeNotifier {
                   fallbackAlbum: '',
                   fallbackArtist: '',
                   fallbackDuration: null,
+                  generateThumbnail: false,
                 );
                 _updateMetadataForPath(metadata, notify: false);
               } catch (e) {
@@ -1113,6 +1259,7 @@ class ScannerService extends ChangeNotifier {
               }
             }),
           );
+          scanState.pendingThumbnailPaths.add(filePath);
         }
       }
 
