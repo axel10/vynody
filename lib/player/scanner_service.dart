@@ -37,8 +37,6 @@ class _ScanProgressState {
   _ScanProgressState({
     int metadataConcurrency = 4,
     required int Function(String a, String b) comparePaths,
-    this.discoveredCount = 0,
-    this.preprocessedCount = 0,
   }) : metadataRunner = _PriorityTaskRunner(
          metadataConcurrency,
          comparePaths: comparePaths,
@@ -50,7 +48,6 @@ class _ScanProgressState {
   final _PriorityTaskRunner metadataRunner;
   final List<Future<void>> pendingMetadataTasks = [];
   final List<String> pendingMetadataPaths = [];
-  final List<String> pendingThumbnailPaths = [];
 }
 
 class _PriorityTaskRunner {
@@ -129,6 +126,25 @@ class _QueuedTask<T> {
   final int sequence;
   final Completer<T> completer;
   final Future<T> Function() task;
+}
+
+enum _ScanFileStage { full, imageOnly, unchanged }
+
+class _ScanFileClassification {
+  _ScanFileClassification({
+    required this.existingMetadataByPath,
+    required this.stageByPath,
+  });
+
+  final Map<String, SongMetadata> existingMetadataByPath;
+  final Map<String, _ScanFileStage> stageByPath;
+
+  List<String> pathsFor(_ScanFileStage stage) {
+    return stageByPath.entries
+        .where((entry) => entry.value == stage)
+        .map((entry) => entry.key)
+        .toList(growable: false);
+  }
 }
 
 class ScannerService extends ChangeNotifier {
@@ -664,6 +680,200 @@ class ScannerService extends ChangeNotifier {
     await Future.wait(scanState.pendingMetadataTasks);
   }
 
+  Future<Map<String, int?>> _loadLastModifiedTimes(
+    Iterable<String> filePaths,
+  ) async {
+    final normalizedPaths = <String>[];
+    final seen = <String>{};
+
+    for (final path in filePaths) {
+      final normalized = _normalizePath(path);
+      if (normalized.isEmpty) continue;
+
+      final lookupKey = _pathLookupKey(normalized);
+      if (seen.add(lookupKey)) {
+        normalizedPaths.add(normalized);
+      }
+    }
+
+    final lastModifiedByPath = <String, int?>{};
+    if (normalizedPaths.isEmpty) {
+      return lastModifiedByPath;
+    }
+
+    const batchSize = 128;
+    for (var start = 0; start < normalizedPaths.length; start += batchSize) {
+      final end = start + batchSize < normalizedPaths.length
+          ? start + batchSize
+          : normalizedPaths.length;
+      final chunk = normalizedPaths.sublist(start, end);
+
+      final results = await Future.wait(
+        chunk.map((path) async {
+          try {
+            final lastModified = await File(path).lastModified();
+            return MapEntry(
+              _pathLookupKey(path),
+              lastModified.millisecondsSinceEpoch,
+            );
+          } catch (_) {
+            return MapEntry<String, int?>(_pathLookupKey(path), null);
+          }
+        }),
+      );
+
+      for (final entry in results) {
+        lastModifiedByPath[entry.key] = entry.value;
+      }
+    }
+
+    return lastModifiedByPath;
+  }
+
+  Future<_ScanFileClassification> _classifyDiscoveredFiles(
+    List<String> filePaths,
+  ) async {
+    if (filePaths.isEmpty) {
+      return _ScanFileClassification(
+        existingMetadataByPath: const {},
+        stageByPath: const {},
+      );
+    }
+
+    final existingMetadataByPath = await MetadataDatabase()
+        .getSongMetadataByPaths(filePaths);
+    final lastModifiedByPath = await _loadLastModifiedTimes(filePaths);
+
+    final stageByPath = <String, _ScanFileStage>{};
+    final seen = <String>{};
+
+    for (final path in filePaths) {
+      final lookupKey = _pathLookupKey(path);
+      if (!seen.add(lookupKey)) {
+        continue;
+      }
+
+      final existing = existingMetadataByPath[lookupKey];
+      final currentLastModified = lastModifiedByPath[lookupKey];
+      final textScanned = existing?.metadataTextScanned;
+      final imgScanned = existing?.metadataImgScanned;
+
+      if (existing != null &&
+          currentLastModified != null &&
+          textScanned == currentLastModified &&
+          imgScanned == currentLastModified) {
+        stageByPath[path] = _ScanFileStage.unchanged;
+      } else if (existing != null &&
+          currentLastModified != null &&
+          textScanned == currentLastModified &&
+          imgScanned != currentLastModified) {
+        stageByPath[path] = _ScanFileStage.imageOnly;
+      } else {
+        stageByPath[path] = _ScanFileStage.full;
+      }
+    }
+
+    return _ScanFileClassification(
+      existingMetadataByPath: existingMetadataByPath,
+      stageByPath: stageByPath,
+    );
+  }
+
+  void _seedMetadataFromDatabase(
+    Map<String, SongMetadata> existingMetadataByPath,
+  ) {
+    for (final metadata in existingMetadataByPath.values) {
+      _updateMetadataForPath(metadata, notify: false);
+    }
+  }
+
+  Future<void> _preprocessChangedFiles(
+    List<String> fullPaths,
+    _ScanProgressState scanState, {
+    required Map<String, SongMetadata> existingMetadataByPath,
+  }) async {
+    if (fullPaths.isEmpty) return;
+
+    final db = MetadataDatabase();
+    final sortedPaths = fullPaths.toList()..sort(_compareScanFilePriority);
+
+    const batchSize = 200;
+    for (var start = 0; start < sortedPaths.length; start += batchSize) {
+      final end = start + batchSize < sortedPaths.length
+          ? start + batchSize
+          : sortedPaths.length;
+      final chunk = sortedPaths.sublist(start, end);
+
+      final results = await MetadataHelper.readMetadataBatch(
+        chunk,
+        getImage: false,
+      );
+
+      for (final result in results) {
+        final filePath = result['path'] as String? ?? '';
+        if (filePath.isEmpty) continue;
+
+        try {
+          final existing =
+              existingMetadataByPath[_pathLookupKey(filePath)] ??
+              await db.getSongMetadata(filePath);
+          final metadata = _buildScannedMetadataFromBatchResult(
+            filePath,
+            result,
+            existing: existing,
+          );
+          await db.insertOrUpdateSong(metadata);
+          _updateMetadataForPath(metadata, notify: false);
+          scanState.preprocessedCount++;
+        } catch (e) {
+          debugPrint('Metadata batch scan error for $filePath: $e');
+        } finally {
+          _emitScanProgress(scanState, filePath);
+        }
+      }
+    }
+  }
+
+  Future<void> _applyArtworkAndThemeToChangedFiles(
+    List<String> imageOnlyPaths,
+    _ScanProgressState scanState,
+  ) async {
+    if (imageOnlyPaths.isEmpty) return;
+
+    final db = MetadataDatabase();
+    final sortedPaths = imageOnlyPaths.toList()
+      ..sort(_compareScanFilePriority);
+
+    for (final filePath in sortedPaths) {
+      try {
+        final baseMetadata =
+            _metadataMap[filePath] ?? await db.getSongMetadata(filePath);
+        if (baseMetadata == null) {
+          continue;
+        }
+
+        final artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(
+          filePath,
+        );
+        final updatedMetadata = await MetadataHelper
+            .applyArtworkAndThemeToMetadata(
+              metadata: baseMetadata,
+              artworkBytes: artworkBytes,
+              saveLarge: !Platform.isWindows,
+            );
+
+        if (updatedMetadata != null) {
+          _updateMetadataForPath(updatedMetadata, notify: false);
+        }
+        scanState.completedCount++;
+      } catch (e) {
+        debugPrint('Artwork/theme scan error for $filePath: $e');
+      } finally {
+        _emitScanProgress(scanState, filePath);
+      }
+    }
+  }
+
   MusicFolder _organizeAndroidMediaLibrary(
     List<AndroidMediaLibraryEntry> entries,
     Map<String, SongMetadata> metadataByPath,
@@ -894,55 +1104,13 @@ class ScannerService extends ChangeNotifier {
       themeColorsBlob: existing?.themeColorsBlob,
       waveformBlob: existing?.waveformBlob,
       lastModifiedTime: lastModified,
+      metadataTextScanned: lastModified,
+      metadataImgScanned: existing?.metadataImgScanned,
       createdAt: existing?.createdAt ?? now,
       genres: existing?.genres,
     );
 
     return song;
-  }
-
-  Future<void> _applyBatchMetadataResults(
-    List<String> filePaths,
-    _ScanProgressState scanState,
-  ) async {
-    if (filePaths.isEmpty) return;
-
-    final db = MetadataDatabase();
-    final sortedPaths = filePaths.toList()..sort(_compareScanFilePriority);
-
-    const batchSize = 200;
-    for (var start = 0; start < sortedPaths.length; start += batchSize) {
-      final end = start + batchSize < sortedPaths.length
-          ? start + batchSize
-          : sortedPaths.length;
-      final chunk = sortedPaths.sublist(start, end);
-
-      final results = await MetadataHelper.readMetadataBatch(
-        chunk,
-        getImage: false,
-      );
-
-      for (final result in results) {
-        final filePath = result['path'] as String? ?? '';
-        if (filePath.isEmpty) continue;
-
-        try {
-          final existing = await db.getSongMetadata(filePath);
-          final metadata = _buildScannedMetadataFromBatchResult(
-            filePath,
-            result,
-            existing: existing,
-          );
-          await db.insertOrUpdateSong(metadata);
-          _updateMetadataForPath(metadata, notify: false);
-          scanState.preprocessedCount++;
-        } catch (e) {
-          debugPrint('Metadata batch scan error for $filePath: $e');
-        } finally {
-          _emitScanProgress(scanState, filePath);
-        }
-      }
-    }
   }
 
   Future<void> scan() async {
@@ -984,8 +1152,23 @@ class ScannerService extends ChangeNotifier {
           await _scanDirectoryInto(rootFolder, path, scanState);
         }
 
-        await _applyBatchMetadataResults(
-          scanState.pendingMetadataPaths,
+        final discoveredPaths = scanState.pendingMetadataPaths.toList(
+          growable: false,
+        );
+        final classification = await _classifyDiscoveredFiles(discoveredPaths);
+        _seedMetadataFromDatabase(classification.existingMetadataByPath);
+
+        final fullPaths = classification.pathsFor(_ScanFileStage.full);
+        final imageOnlyPaths = classification.pathsFor(_ScanFileStage.imageOnly);
+
+        await _preprocessChangedFiles(
+          fullPaths,
+          scanState,
+          existingMetadataByPath: classification.existingMetadataByPath,
+        );
+
+        await _applyArtworkAndThemeToChangedFiles(
+          [...fullPaths, ...imageOnlyPaths],
           scanState,
         );
 
@@ -1015,15 +1198,6 @@ class ScannerService extends ChangeNotifier {
           scopeRoots: _rootPaths,
           presentPaths: presentPaths,
         );
-        if (scanState.pendingThumbnailPaths.isNotEmpty) {
-          unawaited(
-            _backgroundThumbnailRebuild(
-              scanState.pendingThumbnailPaths,
-              discoveredCount: scanState.discoveredCount,
-              preprocessedCount: scanState.preprocessedCount,
-            ),
-          );
-        }
       } else {
         debugPrint('Scan aborted: Permission not granted.');
       }
@@ -1042,109 +1216,7 @@ class ScannerService extends ChangeNotifier {
       await MetadataHelper.clearThumbnails();
       _metadataMap.clear();
       await scan();
-
-      // Background process to collect all files and update metadata
-      unawaited(_backgroundMetadataRebuild());
     }
-  }
-
-  Future<void> _backgroundMetadataRebuild() async {
-    final List<String> allFilePaths = [];
-
-    void collectFiles(MusicFolder folder) {
-      for (final file in folder.files) {
-        allFilePaths.add(file.path);
-      }
-      for (final subFolder in folder.subFolders) {
-        collectFiles(subFolder);
-      }
-    }
-
-    for (final root in _scannedRootFolders) {
-      collectFiles(root);
-    }
-
-    if (allFilePaths.isEmpty) return;
-
-    allFilePaths.sort(_compareScanFilePriority);
-
-    debugPrint(
-      'Starting background metadata rebuild for ${allFilePaths.length} files',
-    );
-
-    final scanState = _ScanProgressState(
-      metadataConcurrency: 4,
-      comparePaths: _compareScanFilePriority,
-    );
-
-    for (final path in allFilePaths) {
-      scanState.pendingMetadataTasks.add(
-        scanState.metadataRunner.run(path, () async {
-          await _waitUntilResumed();
-          try {
-            final result = await MetadataHelper.processMetadata(path);
-            final metadata = result?.$1;
-            if (metadata != null) {
-              _updateMetadataForPath(metadata, notify: false);
-            }
-          } catch (e) {
-            debugPrint('Error in background metadata rebuild for $path: $e');
-          }
-        }),
-      );
-    }
-
-    await Future.wait(scanState.pendingMetadataTasks);
-    notifyListeners();
-    debugPrint('Background metadata rebuild completed');
-  }
-
-  Future<void> _backgroundThumbnailRebuild(
-    List<String> filePaths, {
-    required int discoveredCount,
-    required int preprocessedCount,
-  }) async {
-    if (filePaths.isEmpty) return;
-
-    final paths = filePaths.toList()..sort(_compareScanFilePriority);
-
-    debugPrint(
-      'Starting background thumbnail rebuild for ${paths.length} files',
-    );
-
-    final scanState = _ScanProgressState(
-      metadataConcurrency: 1,
-      comparePaths: _compareScanFilePriority,
-      discoveredCount: discoveredCount,
-      preprocessedCount: preprocessedCount,
-    );
-
-    for (final path in paths) {
-      scanState.pendingMetadataTasks.add(
-        scanState.metadataRunner.run(path, () async {
-          await _waitUntilResumed();
-          try {
-            final result = await MetadataHelper.processMetadata(
-              path,
-              generateThumbnail: true,
-            );
-            final metadata = result?.$1;
-            if (metadata != null) {
-              _updateMetadataForPath(metadata, notify: false);
-            }
-            scanState.completedCount++;
-          } catch (e) {
-            debugPrint('Error in background thumbnail rebuild for $path: $e');
-          } finally {
-            _emitScanProgress(scanState, path);
-          }
-        }),
-      );
-    }
-
-    await Future.wait(scanState.pendingMetadataTasks);
-    notifyListeners();
-    debugPrint('Background thumbnail rebuild completed');
   }
 
   void _collectFilePaths(MusicFolder folder, Set<String> out) {
@@ -1323,7 +1395,6 @@ class ScannerService extends ChangeNotifier {
         hasContent = true;
 
         scanState.pendingMetadataPaths.add(filePath);
-        scanState.pendingThumbnailPaths.add(filePath);
       }
 
       for (final entity in directories) {
@@ -1402,6 +1473,11 @@ class ScannerService extends ChangeNotifier {
       normalized = normalized.substring(0, normalized.length - 1);
     }
     return normalized;
+  }
+
+  String _pathLookupKey(String path) {
+    final normalized = _normalizePath(path);
+    return Platform.isWindows ? normalized.toLowerCase() : normalized;
   }
 
   List<String> _normalizeDeclaredRootPaths(Iterable<String> paths) {

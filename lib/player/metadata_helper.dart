@@ -224,6 +224,11 @@ class MetadataHelper {
         artworkHeight: resolvedArtworkHeight,
         themeColorsBlob: themeColorsBlob,
         lastModifiedTime: now,
+        metadataTextScanned: now,
+        metadataImgScanned:
+            artworkBytes != null && artworkBytes.isNotEmpty
+            ? now
+            : base.metadataImgScanned,
         createdAt: base.createdAt ?? now,
         genres: genres ?? base.genres,
       );
@@ -362,6 +367,9 @@ class MetadataHelper {
         trackNumber: trackNumber,
         themeColorsBlob: themeColorsBlob,
         lastModifiedTime: lastModified,
+        metadataTextScanned: lastModified,
+        metadataImgScanned:
+            generateThumbnail ? lastModified : existing?.metadataImgScanned,
         createdAt: createdAt,
       );
 
@@ -441,6 +449,61 @@ class MetadataHelper {
       debugPrint('Error saving artwork: $e');
       return null;
     }
+  }
+
+  /// Applies artwork and theme colors to an already preprocessed metadata row.
+  /// This keeps the text-tag preprocessing and artwork generation as two
+  /// separate steps for the scanner pipeline.
+  static Future<SongMetadata?> applyArtworkAndThemeToMetadata({
+    required SongMetadata metadata,
+    Uint8List? artworkBytes,
+    bool saveLarge = true,
+  }) async {
+    if (artworkBytes == null || artworkBytes.isEmpty) {
+      final updated = metadata.copyWith(
+        metadataImgScanned: metadata.lastModifiedTime,
+      );
+      final db = MetadataDatabase();
+      await db.insertOrUpdateSong(updated);
+      return updated;
+    }
+
+    final artworkInfo = await saveArtworkAndThumbnail(
+      metadata.path,
+      artworkBytes,
+      saveLarge: saveLarge,
+    );
+    if (artworkInfo == null) {
+      return null;
+    }
+
+    Uint8List? themeColorsBlob;
+    final thumbnailPath = artworkInfo['thumbnailPath'] as String?;
+    if (thumbnailPath != null && thumbnailPath.isNotEmpty) {
+      try {
+        final imageProvider = FileImage(File(thumbnailPath));
+        final palette = await PaletteGenerator.fromImageProvider(
+          imageProvider,
+          maximumColorCount: 20,
+        );
+        themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
+      } catch (e) {
+        debugPrint('Error generating theme color for ${metadata.path}: $e');
+      }
+    }
+
+      final updated = metadata.copyWith(
+      artworkPath: artworkInfo['artworkPath'] as String?,
+      thumbnailPath: thumbnailPath,
+      artworkWidth: artworkInfo['width'] as int?,
+      artworkHeight: artworkInfo['height'] as int?,
+      themeColorsBlob: themeColorsBlob,
+      metadataImgScanned: metadata.lastModifiedTime,
+    );
+
+    final db = MetadataDatabase();
+    await db.insertOrUpdateSong(updated);
+    return updated;
   }
 
   static Map<String, dynamic>? _processImageWindowsIsolate(Uint8List data) {

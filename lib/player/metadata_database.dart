@@ -30,6 +30,8 @@ abstract class SongMetadata with _$SongMetadata {
     Uint8List? themeColorsBlob,
     Uint8List? waveformBlob,
     int? lastModifiedTime,
+    int? metadataTextScanned,
+    int? metadataImgScanned,
     int? createdAt,
     List<String>? genres,
   }) = _SongMetadata;
@@ -55,6 +57,8 @@ abstract class SongMetadata with _$SongMetadata {
       'themeColorsBlob': themeColorsBlob,
       'waveformBlob': waveformBlob,
       'lastModifiedTime': lastModifiedTime,
+      'metadataTextScanned': metadataTextScanned,
+      'metadataImgScanned': metadataImgScanned,
       'createdAt': createdAt,
       'genres': genres != null ? jsonEncode(genres) : null,
     };
@@ -83,6 +87,8 @@ abstract class SongMetadata with _$SongMetadata {
       themeColorsBlob: map['themeColorsBlob'] as Uint8List?,
       waveformBlob: map['waveformBlob'] as Uint8List?,
       lastModifiedTime: map['lastModifiedTime'],
+      metadataTextScanned: map['metadataTextScanned'],
+      metadataImgScanned: map['metadataImgScanned'],
       createdAt: map['createdAt'],
       genres: genres,
     );
@@ -188,7 +194,7 @@ class MetadataDatabase {
     return await factory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 17,
+        version: 18,
         onCreate: (db, version) async {
           await db.execute('''
           CREATE TABLE songs (
@@ -206,6 +212,8 @@ class MetadataDatabase {
             themeColorsBlob BLOB,
             waveformBlob BLOB,
             lastModifiedTime INTEGER,
+            metadataTextScanned INTEGER,
+            metadataImgScanned INTEGER,
             createdAt INTEGER,
             genres TEXT
           )
@@ -421,6 +429,26 @@ class MetadataDatabase {
               );
             }
           }
+          if (oldVersion < 18) {
+            if (!await _columnExists(
+              db,
+              'songs',
+              'metadataTextScanned',
+            )) {
+              await db.execute(
+                'ALTER TABLE songs ADD COLUMN metadataTextScanned INTEGER',
+              );
+            }
+            if (!await _columnExists(
+              db,
+              'songs',
+              'metadataImgScanned',
+            )) {
+              await db.execute(
+                'ALTER TABLE songs ADD COLUMN metadataImgScanned INTEGER',
+              );
+            }
+          }
         },
       ),
     );
@@ -566,6 +594,51 @@ class MetadataDatabase {
     return null;
   }
 
+  Future<Map<String, SongMetadata>> getSongMetadataByPaths(
+    Iterable<String> paths,
+  ) async {
+    final normalizedPaths = <String>[];
+    final seen = <String>{};
+
+    for (final path in paths) {
+      final normalized = _normalizePath(path);
+      if (normalized.isEmpty) continue;
+
+      final lookupKey = _pathLookupKey(normalized);
+      if (seen.add(lookupKey)) {
+        normalizedPaths.add(normalized);
+      }
+    }
+
+    if (normalizedPaths.isEmpty) {
+      return {};
+    }
+
+    final db = await database;
+    final result = <String, SongMetadata>{};
+
+    const batchSize = 300;
+    for (var start = 0; start < normalizedPaths.length; start += batchSize) {
+      final end = start + batchSize < normalizedPaths.length
+          ? start + batchSize
+          : normalizedPaths.length;
+      final chunk = normalizedPaths.sublist(start, end);
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      final rows = await db.query(
+        'songs',
+        where: 'path IN ($placeholders)',
+        whereArgs: chunk,
+      );
+
+      for (final row in rows) {
+        final metadata = SongMetadata.fromMap(row);
+        result[_pathLookupKey(metadata.path)] = metadata;
+      }
+    }
+
+    return result;
+  }
+
   Future<int> deleteSongsMissingFromPaths({
     required Iterable<String> scopeRoots,
     required Iterable<String> presentPaths,
@@ -665,6 +738,11 @@ class MetadataDatabase {
       normalized = normalized.substring(0, normalized.length - 1);
     }
     return normalized;
+  }
+
+  String _pathLookupKey(String path) {
+    final normalized = _normalizePath(path);
+    return Platform.isWindows ? normalized.toLowerCase() : normalized;
   }
 
   bool _pathsEqual(String left, String right) {
