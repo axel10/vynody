@@ -196,7 +196,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
             child: ListView.builder(
               controller: scrollController,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.only(left: 8, right: 8, bottom: 60),
               itemExtent: itemExtent,
               itemCount: displayLines.length,
               itemBuilder: (context, index) {
