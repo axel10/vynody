@@ -261,7 +261,7 @@ class LyricsAiService {
     }
 
     if (credentials.provider == LyricsAiProvider.openRouter) {
-      return _openRouterClient.generateLyricsFromFile(
+      final result = await _openRouterClient.generateLyricsFromFile(
         apiKey: credentials.apiKey,
         filePath: filePath,
         songTitle: songTitle,
@@ -269,6 +269,7 @@ class LyricsAiService {
         onStageChanged: onStageChanged,
         onProgress: onProgress,
       );
+      return _normalizeGenerationResult(result);
     }
 
     final apiKey = credentials.apiKey;
@@ -329,7 +330,7 @@ class LyricsAiService {
       );
     }
 
-    return _generateFromUploadedFile(
+    final result = await _generateFromUploadedFile(
       file: file,
       apiKey: apiKey,
       mimeType: mimeType,
@@ -343,6 +344,7 @@ class LyricsAiService {
       onStageChanged: onStageChanged,
       onProgress: onProgress,
     );
+    return _normalizeGenerationResult(result);
   }
 
   Future<LyricsGenerationResult> generateTimelineFromLyrics({
@@ -366,7 +368,7 @@ class LyricsAiService {
     }
 
     if (credentials.provider == LyricsAiProvider.openRouter) {
-      return _openRouterClient.generateTimelineFromLyrics(
+      final result = await _openRouterClient.generateTimelineFromLyrics(
         apiKey: credentials.apiKey,
         filePath: filePath,
         lyrics: lyrics,
@@ -374,6 +376,7 @@ class LyricsAiService {
         onStageChanged: onStageChanged,
         onProgress: onProgress,
       );
+      return _normalizeGenerationResult(result);
     }
 
     final apiKey = credentials.apiKey;
@@ -441,7 +444,7 @@ class LyricsAiService {
       );
     }
 
-    return _generateFromUploadedFile(
+    final result = await _generateFromUploadedFile(
       file: file,
       apiKey: apiKey,
       mimeType: mimeType,
@@ -455,6 +458,7 @@ class LyricsAiService {
       onStageChanged: onStageChanged,
       onProgress: onProgress,
     );
+    return _normalizeGenerationResult(result);
   }
 
   Future<LyricsGenerationResult> _generateFromUploadedFile({
@@ -525,10 +529,13 @@ class LyricsAiService {
           debugPrint(
             '[LyricsAi] switching to OpenRouter after Gemini 429/5xx failure.',
           );
-          return openRouterFallbackGenerator(fallbackApiKey);
+          final fallbackResult = await openRouterFallbackGenerator(
+            fallbackApiKey,
+          );
+          return _normalizeGenerationResult(fallbackResult);
         }
       }
-      return generationOutcome.result;
+      return _normalizeGenerationResult(generationOutcome.result);
     } catch (e) {
       return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(e, fallback: '生成歌词时发生未知错误。'),
@@ -660,7 +667,10 @@ class LyricsAiService {
           final finalText = preserveTimestamps
               ? cleanedText
               : _stripTimestamps(cleanedText);
-          if (finalText.isEmpty) {
+          final normalizedFinalText = preserveTimestamps
+              ? LrcUtils.normalizeGeneratedLyricsText(finalText)
+              : finalText;
+          if (normalizedFinalText.isEmpty) {
             lastErrorMessage = 'Gemini 返回了空响应。';
             debugPrint('[LyricsAi] empty lyrics response.');
             debugPrint(
@@ -678,10 +688,10 @@ class LyricsAiService {
 
           // 最终结果会再做一次清洗，去掉代码块、杂项前缀和非 LRC 内容。
           debugPrint('[LyricsAi] final generated lyrics:');
-          debugPrint(finalText);
-          onProgress?.call(finalText, true);
+          debugPrint(normalizedFinalText);
+          onProgress?.call(normalizedFinalText, true);
           return _LyricsGenerationOutcome(
-            result: LyricsGenerationResult.success(finalText),
+            result: LyricsGenerationResult.success(normalizedFinalText),
           );
         } on DioException catch (e) {
           lastErrorMessage = _formatGenerationErrorMessage(e);
@@ -831,6 +841,22 @@ class LyricsAiService {
 
   String _stripTimestamps(String text) {
     return LrcUtils.stripTimestamps(text);
+  }
+
+  LyricsGenerationResult _normalizeGenerationResult(
+    LyricsGenerationResult result,
+  ) {
+    final text = result.text;
+    if (!result.isSuccess || text == null) {
+      return result;
+    }
+
+    final normalizedText = LrcUtils.normalizeGeneratedLyricsText(text);
+    if (normalizedText.trim().isEmpty || normalizedText.trim() == text.trim()) {
+      return result;
+    }
+
+    return LyricsGenerationResult.success(normalizedText);
   }
 
   String _visibleTranslationText(

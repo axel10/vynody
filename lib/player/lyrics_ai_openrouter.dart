@@ -21,10 +21,8 @@ class LyricsAiOpenRouterClient {
   final NetworkClient _client;
   final LyricsAiStreamTextParser _streamParser;
 
-  static const String audioModelId =
-      'google/gemini-3.1-flash-lite-preview';
-  static const String textModelId =
-      'google/gemini-3.1-flash-lite-preview';
+  static const String audioModelId = 'google/gemini-3.1-flash-lite-preview';
+  static const String textModelId = 'google/gemini-3.1-flash-lite-preview';
   static const String textModelDisplayName = 'Gemini 3.1 Flash Lite Preview';
 
   Future<LyricsGenerationResult> generateLyricsFromFile({
@@ -38,9 +36,7 @@ class LyricsAiOpenRouterClient {
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[OpenRouterLyrics] file not found for generation: $filePath');
-      return const LyricsGenerationResult.failure(
-        '本地歌曲文件不存在，无法生成歌词。',
-      );
+      return const LyricsGenerationResult.failure('本地歌曲文件不存在，无法生成歌词。');
     }
 
     final normalizedTitle = songTitle?.trim();
@@ -93,18 +89,21 @@ class LyricsAiOpenRouterClient {
         },
       );
 
-      final generatedText = _streamParser.extractText(generatedBuffer.toString());
+      final generatedText = _streamParser.extractText(
+        generatedBuffer.toString(),
+      );
       final cleanedText = LrcUtils.cleanGeneratedLyricsText(
         generatedText ?? generatedBuffer.toString(),
       );
-      if (cleanedText.trim().isEmpty) {
+      final normalizedText = LrcUtils.normalizeGeneratedLyricsText(cleanedText);
+      if (normalizedText.trim().isEmpty) {
         return const LyricsGenerationResult.failure('OpenRouter 返回了空响应。');
       }
 
       debugPrint('[OpenRouterLyrics] final generated lyrics:');
-      debugPrint(cleanedText);
-      onProgress?.call(cleanedText, true);
-      return LyricsGenerationResult.success(cleanedText);
+      debugPrint(normalizedText);
+      onProgress?.call(normalizedText, true);
+      return LyricsGenerationResult.success(normalizedText);
     } catch (e) {
       return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(e, fallback: '生成歌词时发生未知错误。'),
@@ -123,9 +122,7 @@ class LyricsAiOpenRouterClient {
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[OpenRouterLyrics] file not found for timeline: $filePath');
-      return const LyricsGenerationResult.failure(
-        '本地歌曲文件不存在，无法生成时间轴。',
-      );
+      return const LyricsGenerationResult.failure('本地歌曲文件不存在，无法生成时间轴。');
     }
 
     final normalizedLyrics = lyrics.trim();
@@ -191,20 +188,23 @@ class LyricsAiOpenRouterClient {
         },
       );
 
-      final generatedText = _streamParser.extractText(generatedBuffer.toString());
+      final generatedText = _streamParser.extractText(
+        generatedBuffer.toString(),
+      );
       final cleanedText = LrcUtils.cleanGeneratedLyricsText(
         generatedText ?? generatedBuffer.toString(),
       );
+      final normalizedText = LrcUtils.normalizeGeneratedLyricsText(cleanedText);
       debugPrint(
         '[OpenRouterLyrics] timeline completed -> '
-        'rawLength=${generatedBuffer.length} cleanedLength=${cleanedText.length}',
+        'rawLength=${generatedBuffer.length} cleanedLength=${normalizedText.length}',
       );
-      if (cleanedText.trim().isEmpty) {
+      if (normalizedText.trim().isEmpty) {
         return const LyricsGenerationResult.failure('OpenRouter 返回了空响应。');
       }
 
-      onProgress?.call(cleanedText, true);
-      return LyricsGenerationResult.success(cleanedText);
+      onProgress?.call(normalizedText, true);
+      return LyricsGenerationResult.success(normalizedText);
     } catch (e) {
       return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(e, fallback: '生成时间轴时发生未知错误。'),
@@ -331,9 +331,7 @@ class LyricsAiOpenRouterClient {
     return '${text.substring(0, maxLength)}...';
   }
 
-  Map<String, dynamic> _sanitizeRequestData(
-    Map<String, dynamic> requestData,
-  ) {
+  Map<String, dynamic> _sanitizeRequestData(Map<String, dynamic> requestData) {
     return requestData.map((key, value) {
       if (key != 'messages' || value is! List) {
         return MapEntry(key, value);
@@ -404,9 +402,7 @@ class LyricsAiOpenRouterClient {
   }
 
   bool _hasTimestampedLyrics(String lyrics) {
-    return RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]').hasMatch(
-      lyrics,
-    );
+    return RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]').hasMatch(lyrics);
   }
 
   String _formatGenerationErrorMessage(Object error, {String? fallback}) {

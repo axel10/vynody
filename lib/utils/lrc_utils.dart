@@ -113,4 +113,79 @@ class LrcUtils {
 
     return unwrapped.trim();
   }
+
+  static String normalizeGeneratedLyricsText(String? text) {
+    final cleaned = cleanGeneratedLyricsText(text);
+    if (cleaned.isEmpty) return '';
+    if (!_timestampLinePattern.hasMatch(cleaned)) return cleaned;
+
+    final normalizedLines = <String>[];
+    for (final rawLine in cleaned.split(RegExp(r'\r?\n'))) {
+      final expandedLines = _expandPackedTimestampLine(rawLine);
+      if (expandedLines.isEmpty) {
+        final line = rawLine.trim();
+        if (line.isNotEmpty) {
+          normalizedLines.add(line);
+        }
+        continue;
+      }
+
+      normalizedLines.addAll(expandedLines);
+    }
+
+    return normalizedLines.join('\n').trim();
+  }
+
+  static List<String> _expandPackedTimestampLine(String rawLine) {
+    final line = rawLine.trim();
+    if (line.isEmpty) return const [];
+
+    final normalized = normalizeLrcLine(line);
+    if (normalized == null || normalized.isEmpty) return const [];
+
+    final matches = _timestampLinePattern
+        .allMatches(normalized)
+        .toList(growable: false);
+    if (matches.isEmpty) return const [];
+
+    final expandedLines = <String>[];
+    final timestampGroup = <String>[];
+    var lastTimestampEnd = matches.first.end;
+
+    String timestampText(int index) {
+      return matches[index].group(0)!.trim();
+    }
+
+    void emitGroup(String text) {
+      final normalizedText = text.trim();
+      if (normalizedText.isEmpty || timestampGroup.isEmpty) {
+        timestampGroup.clear();
+        return;
+      }
+
+      for (final timestamp in timestampGroup) {
+        expandedLines.add('$timestamp $normalizedText'.trim());
+      }
+      timestampGroup.clear();
+    }
+
+    timestampGroup.add(timestampText(0));
+
+    for (var i = 1; i < matches.length; i++) {
+      final match = matches[i];
+      final betweenText = normalized
+          .substring(lastTimestampEnd, match.start)
+          .trim();
+      if (betweenText.isEmpty) {
+        timestampGroup.add(timestampText(i));
+      } else {
+        emitGroup(betweenText);
+        timestampGroup.add(timestampText(i));
+      }
+      lastTimestampEnd = match.end;
+    }
+
+    emitGroup(normalized.substring(lastTimestampEnd));
+    return expandedLines;
+  }
 }
