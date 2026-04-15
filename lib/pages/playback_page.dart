@@ -744,7 +744,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             isMini: false,
                             isLandscape: isLandscape,
                             isLyricsMode: isLyricsMode,
-                            isImmersiveActive: isImmersiveActive,
                             screenWidth: screenWidth,
                             screenHeight: screenHeight,
                             isNext: isNext,

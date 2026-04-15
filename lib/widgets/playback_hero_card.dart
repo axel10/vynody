@@ -52,13 +52,11 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.overrideProgress,
     this.overridePosition,
     this.overrideWaveform,
-    this.isImmersiveActive = false,
   });
 
   final bool isMini;
   final bool isLyricsMode;
   final bool isLandscape;
-  final bool isImmersiveActive;
   final double? screenWidth;
   final double? screenHeight;
   final bool isNext;
@@ -325,7 +323,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                 const pLyricsCoverLeft = 12.0;
 
                 const pLyricsInfoTop = 12.0;
-                final pLyricsInfoLeft = pLyricsCoverLeft + pLyricsCoverSide + 14.0;
+                final pLyricsInfoLeft =
+                    pLyricsCoverLeft + pLyricsCoverSide + 14.0;
                 final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0;
                 final pLyricsInfoHeight = pLyricsCoverSide;
 
@@ -339,9 +338,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     pLyricsCoverTop + pLyricsCoverSide + 16.0;
                 final pLyricsLyricsLeft = 16.0;
                 final pLyricsLyricsWidth = width - 32.0;
-                final pLyricsLyricsHeight =
-                    height -
-                    pLyricsLyricsTop;
+                final pLyricsLyricsHeight = height - pLyricsLyricsTop;
                 final pLyricsLyricsOpacity = 1.0;
 
                 // ---------------- Landscape Normal ----------------
