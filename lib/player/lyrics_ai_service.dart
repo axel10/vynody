@@ -20,6 +20,16 @@ class _LyricsAiCredentials {
   final String apiKey;
 }
 
+class _LyricsGenerationOutcome {
+  const _LyricsGenerationOutcome({
+    required this.result,
+    this.shouldFallbackToOpenRouter = false,
+  });
+
+  final LyricsGenerationResult result;
+  final bool shouldFallbackToOpenRouter;
+}
+
 class LyricsAiService {
   LyricsAiService({
     NetworkClient? client,
@@ -46,6 +56,10 @@ class LyricsAiService {
   String get _fallbackGeminiModelId => _settingsService.geminiFallbackModelId;
 
   String get activeModelLabel {
+    if (_settingsService.shouldAutoSwitchLyricsProvider) {
+      return 'Google AI Studio → OpenRouter · '
+          '${SettingsService.geminiModelDisplayName(_primaryGeminiModelId)}';
+    }
     return switch (_settingsService.lyricsAiProvider) {
       LyricsAiProvider.googleAiStudio =>
         'Google AI Studio · ${SettingsService.geminiModelDisplayName(_primaryGeminiModelId)}',
@@ -135,9 +149,7 @@ class LyricsAiService {
         'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent';
 
     try {
-      debugPrint(
-        '[LyricsAi] request start, lyrics length=${lyrics.length}',
-      );
+      debugPrint('[LyricsAi] request start, lyrics length=${lyrics.length}');
       final response = await _client.post(
         url,
         data: requestData,
@@ -264,9 +276,7 @@ class LyricsAiService {
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[LyricsAi] file not found for generation: $filePath');
-      return const LyricsGenerationResult.failure(
-        '本地歌曲文件不存在，无法生成歌词。',
-      );
+      return const LyricsGenerationResult.failure('本地歌曲文件不存在，无法生成歌词。');
     }
 
     final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
@@ -282,6 +292,43 @@ class LyricsAiService {
         '输出这首歌的完整的带时间轴的标准LRC格式歌词,每一行歌词前面都带有一个方括号包裹的时间点，格式通常为：[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。'
         '仅输出结果不输出其他内容。';
 
+    if (_settingsService.shouldAutoSwitchLyricsProvider) {
+      final googleApiKey = _settingsService.geminiApiKey.trim();
+      if (googleApiKey.isEmpty) {
+        debugPrint('[LyricsAi] google API key not found, skip generation.');
+        return LyricsGenerationResult.failure(
+          _missingApiKeyMessage(
+            LyricsAiProvider.googleAiStudio,
+            action: '生成歌词',
+          ),
+        );
+      }
+
+      return _generateFromUploadedFile(
+        file: file,
+        apiKey: googleApiKey,
+        mimeType: mimeType,
+        modelId: effectiveModelId,
+        primaryModelId: _primaryGeminiModelId,
+        fallbackModelId: _fallbackGeminiModelId,
+        prompt: prompt,
+        preserveTimestamps: true,
+        openRouterFallbackGenerator: (apiKey) {
+          return _openRouterClient.generateLyricsFromFile(
+            apiKey: apiKey,
+            filePath: filePath,
+            songTitle: songTitle,
+            onUploadProgress: onUploadProgress,
+            onStageChanged: onStageChanged,
+            onProgress: onProgress,
+          );
+        },
+        onUploadProgress: onUploadProgress,
+        onStageChanged: onStageChanged,
+        onProgress: onProgress,
+      );
+    }
+
     return _generateFromUploadedFile(
       file: file,
       apiKey: apiKey,
@@ -291,6 +338,7 @@ class LyricsAiService {
       fallbackModelId: _fallbackGeminiModelId,
       prompt: prompt,
       preserveTimestamps: true,
+      openRouterFallbackGenerator: null,
       onUploadProgress: onUploadProgress,
       onStageChanged: onStageChanged,
       onProgress: onProgress,
@@ -333,9 +381,7 @@ class LyricsAiService {
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[LyricsAi] file not found for timeline: $filePath');
-      return const LyricsGenerationResult.failure(
-        '本地歌曲文件不存在，无法生成时间轴。',
-      );
+      return const LyricsGenerationResult.failure('本地歌曲文件不存在，无法生成时间轴。');
     }
 
     final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
@@ -345,9 +391,7 @@ class LyricsAiService {
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       debugPrint('[LyricsAi] no usable lyrics for timeline generation.');
-      return const LyricsGenerationResult.failure(
-        '没有可用歌词，无法生成时间轴。',
-      );
+      return const LyricsGenerationResult.failure('没有可用歌词，无法生成时间轴。');
     }
 
     final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
@@ -360,6 +404,43 @@ class LyricsAiService {
         '$normalizedLyrics\n'
         '```';
 
+    if (_settingsService.shouldAutoSwitchLyricsProvider) {
+      final googleApiKey = _settingsService.geminiApiKey.trim();
+      if (googleApiKey.isEmpty) {
+        debugPrint('[LyricsAi] google API key not found, skip timeline.');
+        return LyricsGenerationResult.failure(
+          _missingApiKeyMessage(
+            LyricsAiProvider.googleAiStudio,
+            action: '生成时间轴',
+          ),
+        );
+      }
+
+      return _generateFromUploadedFile(
+        file: file,
+        apiKey: googleApiKey,
+        mimeType: mimeType,
+        modelId: effectiveModelId,
+        primaryModelId: _primaryGeminiModelId,
+        fallbackModelId: _fallbackGeminiModelId,
+        prompt: prompt,
+        preserveTimestamps: true,
+        openRouterFallbackGenerator: (apiKey) {
+          return _openRouterClient.generateTimelineFromLyrics(
+            apiKey: apiKey,
+            filePath: filePath,
+            lyrics: lyrics,
+            onUploadProgress: onUploadProgress,
+            onStageChanged: onStageChanged,
+            onProgress: onProgress,
+          );
+        },
+        onUploadProgress: onUploadProgress,
+        onStageChanged: onStageChanged,
+        onProgress: onProgress,
+      );
+    }
+
     return _generateFromUploadedFile(
       file: file,
       apiKey: apiKey,
@@ -369,6 +450,7 @@ class LyricsAiService {
       fallbackModelId: _fallbackGeminiModelId,
       prompt: prompt,
       preserveTimestamps: true,
+      openRouterFallbackGenerator: null,
       onUploadProgress: onUploadProgress,
       onStageChanged: onStageChanged,
       onProgress: onProgress,
@@ -384,6 +466,8 @@ class LyricsAiService {
     required String fallbackModelId,
     required String prompt,
     required bool preserveTimestamps,
+    Future<LyricsGenerationResult> Function(String apiKey)?
+    openRouterFallbackGenerator,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -419,11 +503,9 @@ class LyricsAiService {
           '[LyricsAi] file never became ACTIVE after upload: '
           'name=$fileName uri=$fileUri',
         );
-        return const LyricsGenerationResult.failure(
-          '上传后的文件未能就绪，请稍后重试。',
-        );
+        return const LyricsGenerationResult.failure('上传后的文件未能就绪，请稍后重试。');
       }
-      return _generateWithUploadedFileUri(
+      final generationOutcome = await _generateWithUploadedFileUri(
         apiKey: apiKey,
         fileUri: fileUri,
         filePath: filePath,
@@ -436,6 +518,17 @@ class LyricsAiService {
         preserveTimestamps: preserveTimestamps,
         onProgress: onProgress,
       );
+      if (generationOutcome.shouldFallbackToOpenRouter &&
+          openRouterFallbackGenerator != null) {
+        final fallbackApiKey = _settingsService.openRouterApiKey.trim();
+        if (fallbackApiKey.isNotEmpty) {
+          debugPrint(
+            '[LyricsAi] switching to OpenRouter after Gemini 429/5xx failure.',
+          );
+          return openRouterFallbackGenerator(fallbackApiKey);
+        }
+      }
+      return generationOutcome.result;
     } catch (e) {
       return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(e, fallback: '生成歌词时发生未知错误。'),
@@ -443,7 +536,7 @@ class LyricsAiService {
     }
   }
 
-  Future<LyricsGenerationResult> _generateWithUploadedFileUri({
+  Future<_LyricsGenerationOutcome> _generateWithUploadedFileUri({
     required String apiKey,
     required String fileUri,
     required String filePath,
@@ -457,6 +550,7 @@ class LyricsAiService {
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
     String? lastErrorMessage;
+    var lastFailureEligibleForFallback = false;
     final modelCandidates = <String>[
       modelId,
       if (modelId == primaryModelId) fallbackModelId,
@@ -487,7 +581,9 @@ class LyricsAiService {
         debugPrint('[LyricsAi] generation request fileName=$fileName');
         debugPrint('[LyricsAi] generation request mimeType=$mimeType');
         debugPrint('[LyricsAi] generation request fileUri=$fileUri');
-        debugPrint('[LyricsAi] generation request payload=${jsonEncode(requestData)}');
+        debugPrint(
+          '[LyricsAi] generation request payload=${jsonEncode(requestData)}',
+        );
 
         try {
           final response = await _client.post(
@@ -532,7 +628,9 @@ class LyricsAiService {
             utf8.decoder,
           );
           try {
-            await for (final line in textStream.transform(const LineSplitter())) {
+            await for (final line in textStream.transform(
+              const LineSplitter(),
+            )) {
               final trimmed = line.trim();
               if (trimmed.isEmpty) continue;
 
@@ -553,7 +651,9 @@ class LyricsAiService {
             emitProgress(force: true);
           }
 
-          final generatedText = _streamParser.extractText(generatedBuffer.toString());
+          final generatedText = _streamParser.extractText(
+            generatedBuffer.toString(),
+          );
           final cleanedText = LrcUtils.cleanGeneratedLyricsText(
             generatedText ?? generatedBuffer.toString(),
           );
@@ -580,13 +680,16 @@ class LyricsAiService {
           debugPrint('[LyricsAi] final generated lyrics:');
           debugPrint(finalText);
           onProgress?.call(finalText, true);
-          return LyricsGenerationResult.success(finalText);
+          return _LyricsGenerationOutcome(
+            result: LyricsGenerationResult.success(finalText),
+          );
         } on DioException catch (e) {
           lastErrorMessage = _formatGenerationErrorMessage(e);
-          debugPrint('[LyricsAi] generation failed: ${e.message}');
-          debugPrint(
-            '[LyricsAi] generation status: ${e.response?.statusCode}',
+          lastFailureEligibleForFallback = _shouldUseFallbackModel(
+            e.response?.statusCode,
           );
+          debugPrint('[LyricsAi] generation failed: ${e.message}');
+          debugPrint('[LyricsAi] generation status: ${e.response?.statusCode}');
           debugPrint('[LyricsAi] generation response: ${e.response?.data}');
           debugPrint(
             '[LyricsAi] generation request path: ${e.requestOptions.path}',
@@ -619,7 +722,12 @@ class LyricsAiService {
           if (effectiveModelId == fallbackModelId) {
             final specialMessage = _fallbackFailureMessageForStatus(statusCode);
             if (specialMessage != null) {
-              return LyricsGenerationResult.failure(specialMessage);
+              return _LyricsGenerationOutcome(
+                result: LyricsGenerationResult.failure(specialMessage),
+                shouldFallbackToOpenRouter:
+                    _settingsService.shouldAutoSwitchLyricsProvider &&
+                    _settingsService.openRouterApiKey.trim().isNotEmpty,
+              );
             }
           }
         } catch (e) {
@@ -642,7 +750,13 @@ class LyricsAiService {
       break;
     }
 
-    return LyricsGenerationResult.failure('生成歌词失败：$lastErrorMessage');
+    return _LyricsGenerationOutcome(
+      result: LyricsGenerationResult.failure('生成歌词失败：$lastErrorMessage'),
+      shouldFallbackToOpenRouter:
+          lastFailureEligibleForFallback &&
+          _settingsService.shouldAutoSwitchLyricsProvider &&
+          _settingsService.openRouterApiKey.trim().isNotEmpty,
+    );
   }
 
   List<String> _splitLyricsLines(String lyrics) {

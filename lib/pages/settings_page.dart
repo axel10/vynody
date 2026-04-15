@@ -73,9 +73,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _isLoadingGeminiModels = true;
     });
 
-    final result = await ref.read(geminiApiKeyServiceProvider).testConnection(
-      apiKey,
-    );
+    final result = await ref
+        .read(geminiApiKeyServiceProvider)
+        .testConnection(apiKey);
     if (!mounted) return;
 
     setState(() {
@@ -85,9 +85,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       }
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(result.message)));
   }
 
   void _restoreDefaultGeminiModels() {
@@ -96,9 +96,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     setState(() {
       _geminiModels = const [];
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已恢复默认 Gemini 模型')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('已恢复默认 Gemini 模型')));
   }
 
   Widget _buildGeminiModelSection(
@@ -155,10 +155,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   .map(
                     (model) => DropdownMenuItem<String>(
                       value: model.id,
-                      child: Text(
-                        model.label,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text(model.label, overflow: TextOverflow.ellipsis),
                     ),
                   )
                   .toList(growable: false),
@@ -188,10 +185,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   .map(
                     (model) => DropdownMenuItem<String>(
                       value: model.id,
-                      child: Text(
-                        model.label,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text(model.label, overflow: TextOverflow.ellipsis),
                     ),
                   )
                   .toList(growable: false),
@@ -216,9 +210,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.download),
-                  label: Text(
-                    _isLoadingGeminiModels ? '获取中...' : '获取模型列表',
-                  ),
+                  label: Text(_isLoadingGeminiModels ? '获取中...' : '获取模型列表'),
                 ),
                 OutlinedButton.icon(
                   onPressed: _restoreDefaultGeminiModels,
@@ -307,6 +299,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             },
           ),
           const Divider(height: 1),
+                    if (settings.canAutoSwitchLyricsProvider)
+            SwitchListTile(
+              title: const Text(
+                '自动切换歌词供应商',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。',
+                style: TextStyle(color: Colors.white70),
+              ),
+              value: settings.isLyricsAiAutoSwitchEnabled,
+              onChanged: (value) {
+                settings.isLyricsAiAutoSwitchEnabled = value;
+              },
+            ),
+
           ListTile(
             title: const Text(
               '歌词生成 AI 提供方',

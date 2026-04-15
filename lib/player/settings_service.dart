@@ -38,6 +38,8 @@ class SettingsService extends ChangeNotifier {
   static const String geminiApiKeyStorageKey = 'gemini_api_key';
   static const String openRouterApiKeyStorageKey = 'openrouter_api_key';
   static const String _keyLyricsAiProvider = 'lyrics_ai_provider';
+  static const String _keyLyricsAiAutoSwitchEnabled =
+      'lyrics_ai_auto_switch_enabled';
   static const String _keyGeminiPrimaryModelId = 'gemini_primary_model_id';
   static const String _keyGeminiFallbackModelId = 'gemini_fallback_model_id';
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
@@ -80,6 +82,7 @@ class SettingsService extends ChangeNotifier {
   bool _isUserInactive = false;
   Timer? _inactivityTimer;
   LyricsAiProvider _lyricsAiProvider;
+  bool _isLyricsAiAutoSwitchEnabled;
   String _geminiPrimaryModelId;
   String _geminiFallbackModelId;
 
@@ -121,6 +124,8 @@ class SettingsService extends ChangeNotifier {
       _lyricsAiProvider = LyricsAiProviderX.fromStorageValue(
         _prefs.getString(_keyLyricsAiProvider),
       ),
+      _isLyricsAiAutoSwitchEnabled =
+          _prefs.getBool(_keyLyricsAiAutoSwitchEnabled) ?? false,
       _geminiPrimaryModelId = _initialModelId(
         _prefs.getString(_keyGeminiPrimaryModelId),
         defaultGeminiPrimaryModelId,
@@ -172,6 +177,7 @@ class SettingsService extends ChangeNotifier {
   int get waveformChunks => _waveformChunks;
   bool get isUserInactive => _isUserInactive;
   LyricsAiProvider get lyricsAiProvider => _lyricsAiProvider;
+  bool get isLyricsAiAutoSwitchEnabled => _isLyricsAiAutoSwitchEnabled;
   String get geminiPrimaryModelId => _geminiPrimaryModelId;
   String get geminiFallbackModelId => _geminiFallbackModelId;
   String get geminiApiKey => _prefs.getString(geminiApiKeyStorageKey) ?? '';
@@ -181,6 +187,11 @@ class SettingsService extends ChangeNotifier {
       _prefs.containsKey(geminiApiKeyStorageKey);
   bool get hasCustomOpenRouterApiKey =>
       _prefs.containsKey(openRouterApiKeyStorageKey);
+  bool get hasBothLyricsGenerationApiKeys =>
+      geminiApiKey.trim().isNotEmpty && openRouterApiKey.trim().isNotEmpty;
+  bool get canAutoSwitchLyricsProvider => hasBothLyricsGenerationApiKeys;
+  bool get shouldAutoSwitchLyricsProvider =>
+      _isLyricsAiAutoSwitchEnabled && hasBothLyricsGenerationApiKeys;
   String get activeLyricsGenerationApiKey {
     return switch (_lyricsAiProvider) {
       LyricsAiProvider.googleAiStudio => geminiApiKey,
@@ -331,6 +342,15 @@ class SettingsService extends ChangeNotifier {
     }
     _lyricsAiProvider = value;
     _prefs.setString(_keyLyricsAiProvider, value.storageValue);
+    notifyListeners();
+  }
+
+  set isLyricsAiAutoSwitchEnabled(bool value) {
+    if (_isLyricsAiAutoSwitchEnabled == value) {
+      return;
+    }
+    _isLyricsAiAutoSwitchEnabled = value;
+    _prefs.setBool(_keyLyricsAiAutoSwitchEnabled, value);
     notifyListeners();
   }
 
