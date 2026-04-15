@@ -34,6 +34,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   Timer? _scanToastUpdateTimer;
   ScanProgress? _pendingScanProgress;
   DateTime? _lastScanToastUpdateAt;
+  AppLocalizations? _l10n;
+  ScannerService? _scanner;
   final ValueNotifier<_ScanToastState?> _scanToastState =
       ValueNotifier<_ScanToastState?>(null);
 
@@ -98,10 +100,11 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   void _ensureScanToastVisible() {
     if (_scanToast?.mounted == true) return;
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = _l10n;
+    if (l10n == null) return;
     _scanToastState.value = const _ScanToastState(
       fileName: '',
-      processedCount: 0,
+      discoveredLabelText: '',
       processedLabel: '',
     );
     _scanToast = showToastWidget(
@@ -127,7 +130,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   void _handleScannerChanged() {
-    final scanner = ref.read(scannerServiceProvider);
+    final scanner = _scanner;
+    if (scanner == null) return;
     final isScanning = scanner.isScanning;
     if (_wasScanning && !isScanning) {
       _dismissScanToast();
@@ -162,17 +166,15 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   void _flushPendingScanProgress() {
     final progress = _pendingScanProgress;
-    if (progress == null || !mounted) return;
+    final l10n = _l10n;
+    if (progress == null || l10n == null) return;
 
     _pendingScanProgress = null;
-    final l10n = AppLocalizations.of(context);
     _ensureScanToastVisible();
     _scanToastState.value = _ScanToastState(
       fileName: p.basename(progress.filePath),
-      processedCount: progress.processedCount,
-      processedLabel: l10n == null
-          ? 'Processed ${progress.processedCount} files'
-          : l10n.filesProcessed(progress.processedCount),
+      discoveredLabelText: l10n.filesDiscovered(progress.discoveredCount),
+      processedLabel: l10n.filesProcessed(progress.processedCount),
     );
     _lastScanToastUpdateAt = DateTime.now();
   }
@@ -194,22 +196,26 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _l10n = AppLocalizations.of(context);
+  }
+
+  @override
   void initState() {
     super.initState();
-    final scanner = ref.read(scannerServiceProvider);
-    _wasScanning = scanner.isScanning;
-    scanner.addListener(_handleScannerChanged);
-    _scanProgressSubscription = ref
-        .read(scannerServiceProvider)
-        .scanProgressStream
-        .listen(_showScanProgressToast);
+    _scanner = ref.read(scannerServiceProvider);
+    _wasScanning = _scanner!.isScanning;
+    _scanner!.addListener(_handleScannerChanged);
+    _scanProgressSubscription =
+        _scanner!.scanProgressStream.listen(_showScanProgressToast);
   }
 
   @override
   void dispose() {
     _scanToastUpdateTimer?.cancel();
-    ref.read(scannerServiceProvider).removeListener(_handleScannerChanged);
     _scanProgressSubscription?.cancel();
+    _scanner?.removeListener(_handleScannerChanged);
     _dismissScanToast();
     _scanToastState.dispose();
     _scrollController.dispose();
@@ -833,6 +839,7 @@ class _ScanProgressToast extends StatelessWidget {
       valueListenable: stateListenable,
       builder: (context, state, _) {
         final fileName = state?.fileName ?? '';
+        final discoveredLabel = state?.discoveredLabelText ?? '';
         final processedLabel = state?.processedLabel ?? '';
 
         return Material(
@@ -885,6 +892,16 @@ class _ScanProgressToast extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
+                        discoveredLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: onSurface.withValues(alpha: 0.8),
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
                         processedLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -919,11 +936,11 @@ class _ScanProgressToast extends StatelessWidget {
 class _ScanToastState {
   const _ScanToastState({
     required this.fileName,
-    required this.processedCount,
+    required this.discoveredLabelText,
     required this.processedLabel,
   });
 
   final String fileName;
-  final int processedCount;
+  final String discoveredLabelText;
   final String processedLabel;
 }

@@ -19,7 +19,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String filesProcessed(Object count) {
-    return 'Processed $count files';
+    return 'Metadata processed for $count files';
+  }
+
+  @override
+  String filesDiscovered(Object count) {
+    return 'Discovered $count files';
   }
 
   @override

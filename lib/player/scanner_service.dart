@@ -22,15 +22,21 @@ enum SortOrder { ascending, descending }
 
 class ScanProgress {
   final String filePath;
+  final int discoveredCount;
   final int processedCount;
 
-  const ScanProgress({required this.filePath, required this.processedCount});
+  const ScanProgress({
+    required this.filePath,
+    required this.discoveredCount,
+    required this.processedCount,
+  });
 }
 
 class _ScanProgressState {
   _ScanProgressState({int metadataConcurrency = 4})
     : metadataRunner = _ConcurrentTaskRunner(metadataConcurrency);
 
+  int discoveredCount = 0;
   int processedCount = 0;
   final _ConcurrentTaskRunner metadataRunner;
   final List<Future<void>> pendingMetadataTasks = [];
@@ -816,6 +822,7 @@ class ScannerService extends ChangeNotifier {
       if (await _checkPermissions()) {
         final scanState = _ScanProgressState(metadataConcurrency: 4);
         final scanRoots = _computeScanRoots(_rootPaths);
+        scanRoots.sort(_compareScanPathPriority);
         for (final path in scanRoots) {
           debugPrint('Starting scan at: $path');
 
@@ -908,6 +915,8 @@ class ScannerService extends ChangeNotifier {
     }
 
     if (allFilePaths.isEmpty) return;
+
+    allFilePaths.sort(_compareScanFilePriority);
 
     debugPrint(
       'Starting background metadata rebuild for ${allFilePaths.length} files',
@@ -1054,65 +1063,77 @@ class ScannerService extends ChangeNotifier {
           .toList();
       debugPrint('Scanning $path: Found ${entities.length} entities');
 
+      final directories = <Directory>[];
+      final audioFiles = <File>[];
+
       for (var entity in entities) {
         if (entity is Directory) {
           // Avoid hidden directories/system folders
           if (p.basename(entity.path).startsWith('.')) continue;
-
-          final subFolder = MusicFolder(
-            path: entity.path,
-            name: _displayNameForPath(entity.path),
-          );
-          folder.subFolders.add(subFolder);
-          final subFolderHasContent = await _scanDirectoryInto(
-            subFolder,
-            entity.path,
-            scanState,
-          );
-          if (subFolderHasContent) {
-            hasContent = true;
-          } else {
-            folder.subFolders.removeWhere(
-              (existing) => _pathsEqual(existing.path, subFolder.path),
-            );
-            notifyListeners();
-          }
+          directories.add(entity);
         } else if (entity is File) {
           final ext = p.extension(entity.path).toLowerCase();
           if (_audioExtensions.contains(ext)) {
-            final filePath = entity.path;
-            folder.files.add(
-              MusicFile(path: filePath, name: p.basename(filePath), id: null),
-            );
-            scanState.processedCount++;
-            _scanProgressController.add(
-              ScanProgress(
-                filePath: filePath,
-                processedCount: scanState.processedCount,
-              ),
-            );
-            hasContent = true;
-
-            if (Platform.isWindows) {
-              scanState.pendingMetadataTasks.add(
-                scanState.metadataRunner.run(() async {
-                  await _waitUntilResumed();
-                  try {
-                    final metadata = await _resolveScannedMetadata(
-                      filePath,
-                      fallbackTitle: p.basenameWithoutExtension(filePath),
-                      fallbackAlbum: '',
-                      fallbackArtist: '',
-                      fallbackDuration: null,
-                    );
-                    _updateMetadataForPath(metadata, notify: false);
-                  } catch (e) {
-                    debugPrint('Metadata scan error for $filePath: $e');
-                  }
-                }),
-              );
-            }
+            audioFiles.add(entity);
           }
+        }
+      }
+
+      directories.sort(
+        (a, b) => _compareScanPathPriority(a.path, b.path),
+      );
+
+      for (final entity in audioFiles) {
+        final filePath = entity.path;
+        folder.files.add(
+          MusicFile(path: filePath, name: p.basename(filePath), id: null),
+        );
+        scanState.discoveredCount++;
+        _emitScanProgress(scanState, filePath);
+        hasContent = true;
+
+        if (Platform.isWindows) {
+          scanState.pendingMetadataTasks.add(
+            scanState.metadataRunner.run(() async {
+              await _waitUntilResumed();
+              try {
+                final metadata = await _resolveScannedMetadata(
+                  filePath,
+                  fallbackTitle: p.basenameWithoutExtension(filePath),
+                  fallbackAlbum: '',
+                  fallbackArtist: '',
+                  fallbackDuration: null,
+                );
+                _updateMetadataForPath(metadata, notify: false);
+              } catch (e) {
+                debugPrint('Metadata scan error for $filePath: $e');
+              } finally {
+                scanState.processedCount++;
+                _emitScanProgress(scanState, filePath);
+              }
+            }),
+          );
+        }
+      }
+
+      for (final entity in directories) {
+        final subFolder = MusicFolder(
+          path: entity.path,
+          name: _displayNameForPath(entity.path),
+        );
+        folder.subFolders.add(subFolder);
+        final subFolderHasContent = await _scanDirectoryInto(
+          subFolder,
+          entity.path,
+          scanState,
+        );
+        if (subFolderHasContent) {
+          hasContent = true;
+        } else {
+          folder.subFolders.removeWhere(
+            (existing) => _pathsEqual(existing.path, subFolder.path),
+          );
+          notifyListeners();
         }
       }
     } catch (e) {
@@ -1121,6 +1142,42 @@ class ScannerService extends ChangeNotifier {
 
     _sortFolderRecursive(folder);
     return hasContent;
+  }
+
+  void _emitScanProgress(_ScanProgressState scanState, String filePath) {
+    _scanProgressController.add(
+      ScanProgress(
+        filePath: filePath,
+        discoveredCount: scanState.discoveredCount,
+        processedCount: scanState.processedCount,
+      ),
+    );
+  }
+
+  int _compareScanPathPriority(String a, String b) {
+    final currentPath = _navigationCurrentFolder?.path;
+    if (currentPath != null) {
+      final aPriority = _pathContains(a, currentPath) ? 0 : 1;
+      final bPriority = _pathContains(b, currentPath) ? 0 : 1;
+      if (aPriority != bPriority) {
+        return aPriority.compareTo(bPriority);
+      }
+    }
+
+    return compareNatural(a.toLowerCase(), b.toLowerCase());
+  }
+
+  int _compareScanFilePriority(String a, String b) {
+    final currentPath = _navigationCurrentFolder?.path;
+    if (currentPath != null) {
+      final aPriority = _pathContains(currentPath, p.dirname(a)) ? 0 : 1;
+      final bPriority = _pathContains(currentPath, p.dirname(b)) ? 0 : 1;
+      if (aPriority != bPriority) {
+        return aPriority.compareTo(bPriority);
+      }
+    }
+
+    return compareNatural(a.toLowerCase(), b.toLowerCase());
   }
 
   String _normalizePath(String path) {

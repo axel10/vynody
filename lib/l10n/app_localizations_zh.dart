@@ -19,7 +19,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String filesProcessed(Object count) {
-    return '已处理 $count 个文件';
+    return '已处理元数据 $count 个文件';
+  }
+
+  @override
+  String filesDiscovered(Object count) {
+    return '已发现 $count 个文件';
   }
 
   @override

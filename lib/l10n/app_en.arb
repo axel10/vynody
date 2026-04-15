@@ -3,9 +3,16 @@
   "appTitle": "Pure Player",
   "systemMediaLibrary": "System Media Library",
   "scanningDirectory": "Scanning directory...",
-  "filesProcessed": "Processed {count} files",
+  "filesProcessed": "Metadata processed for {count} files",
   "@filesProcessed": {
-    "description": "Scanning progress toast message showing how many files have been processed",
+    "description": "Scanning progress toast message showing how many files have had metadata processed",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "filesDiscovered": "Discovered {count} files",
+  "@filesDiscovered": {
+    "description": "Scanning progress toast message showing how many files have been discovered",
     "placeholders": {
       "count": {}
     }
