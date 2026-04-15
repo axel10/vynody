@@ -116,17 +116,23 @@ abstract class AppLocalizations {
   /// **'正在扫描目录...'**
   String get scanningDirectory;
 
-  /// Scanning progress toast message showing how many files have had metadata processed
+  /// Scanning progress toast message showing how many files have had text metadata preprocessed
   ///
   /// In zh, this message translates to:
-  /// **'已处理元数据 {count} 个文件'**
-  String filesProcessed(Object count);
+  /// **'预处理 {count} '**
+  String filesPreprocessed(Object count);
 
   /// Scanning progress toast message showing how many files have been discovered
   ///
   /// In zh, this message translates to:
-  /// **'已发现 {count} 个文件'**
+  /// **'已发现 {count} '**
   String filesDiscovered(Object count);
+
+  /// Scanning progress toast message showing how many songs have been fully processed with thumbnails and theme colors
+  ///
+  /// In zh, this message translates to:
+  /// **'完整处理 {count} '**
+  String filesFullyProcessed(Object count);
 
   /// Directory added successfully
   ///

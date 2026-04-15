@@ -12,16 +12,23 @@
   "@scanningDirectory": {
     "description": "Scanning directory message"
   },
-  "filesProcessed": "已处理元数据 {count} 个文件",
-  "@filesProcessed": {
-    "description": "Scanning progress toast message showing how many files have had metadata processed",
+  "filesPreprocessed": "预处理 {count} ",
+  "@filesPreprocessed": {
+    "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
     "placeholders": {
       "count": {}
     }
   },
-  "filesDiscovered": "已发现 {count} 个文件",
+  "filesDiscovered": "已发现 {count} ",
   "@filesDiscovered": {
     "description": "Scanning progress toast message showing how many files have been discovered",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "filesFullyProcessed": "完整处理 {count} ",
+  "@filesFullyProcessed": {
+    "description": "Scanning progress toast message showing how many songs have been fully processed with thumbnails and theme colors",
     "placeholders": {
       "count": {}
     }

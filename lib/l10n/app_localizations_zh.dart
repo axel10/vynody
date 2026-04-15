@@ -18,13 +18,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanningDirectory => '正在扫描目录...';
 
   @override
-  String filesProcessed(Object count) {
-    return '已处理元数据 $count 个文件';
+  String filesPreprocessed(Object count) {
+    return '预处理 $count ';
   }
 
   @override
   String filesDiscovered(Object count) {
-    return '已发现 $count 个文件';
+    return '已发现 $count ';
+  }
+
+  @override
+  String filesFullyProcessed(Object count) {
+    return '完整处理 $count ';
   }
 
   @override

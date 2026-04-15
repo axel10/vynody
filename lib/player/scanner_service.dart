@@ -22,12 +22,14 @@ enum SortOrder { ascending, descending }
 class ScanProgress {
   final String filePath;
   final int discoveredCount;
-  final int processedCount;
+  final int preprocessedCount;
+  final int completedCount;
 
   const ScanProgress({
     required this.filePath,
     required this.discoveredCount,
-    required this.processedCount,
+    required this.preprocessedCount,
+    required this.completedCount,
   });
 }
 
@@ -35,13 +37,16 @@ class _ScanProgressState {
   _ScanProgressState({
     int metadataConcurrency = 4,
     required int Function(String a, String b) comparePaths,
+    this.discoveredCount = 0,
+    this.preprocessedCount = 0,
   }) : metadataRunner = _PriorityTaskRunner(
          metadataConcurrency,
          comparePaths: comparePaths,
        );
 
   int discoveredCount = 0;
-  int processedCount = 0;
+  int preprocessedCount = 0;
+  int completedCount = 0;
   final _PriorityTaskRunner metadataRunner;
   final List<Future<void>> pendingMetadataTasks = [];
   final List<String> pendingMetadataPaths = [];
@@ -930,10 +935,10 @@ class ScannerService extends ChangeNotifier {
           );
           await db.insertOrUpdateSong(metadata);
           _updateMetadataForPath(metadata, notify: false);
+          scanState.preprocessedCount++;
         } catch (e) {
           debugPrint('Metadata batch scan error for $filePath: $e');
         } finally {
-          scanState.processedCount++;
           _emitScanProgress(scanState, filePath);
         }
       }
@@ -1012,7 +1017,11 @@ class ScannerService extends ChangeNotifier {
         );
         if (scanState.pendingThumbnailPaths.isNotEmpty) {
           unawaited(
-            _backgroundThumbnailRebuild(scanState.pendingThumbnailPaths),
+            _backgroundThumbnailRebuild(
+              scanState.pendingThumbnailPaths,
+              discoveredCount: scanState.discoveredCount,
+              preprocessedCount: scanState.preprocessedCount,
+            ),
           );
         }
       } else {
@@ -1090,7 +1099,11 @@ class ScannerService extends ChangeNotifier {
     debugPrint('Background metadata rebuild completed');
   }
 
-  Future<void> _backgroundThumbnailRebuild(List<String> filePaths) async {
+  Future<void> _backgroundThumbnailRebuild(
+    List<String> filePaths, {
+    required int discoveredCount,
+    required int preprocessedCount,
+  }) async {
     if (filePaths.isEmpty) return;
 
     final paths = filePaths.toList()..sort(_compareScanFilePriority);
@@ -1102,6 +1115,8 @@ class ScannerService extends ChangeNotifier {
     final scanState = _ScanProgressState(
       metadataConcurrency: 1,
       comparePaths: _compareScanFilePriority,
+      discoveredCount: discoveredCount,
+      preprocessedCount: preprocessedCount,
     );
 
     for (final path in paths) {
@@ -1117,8 +1132,11 @@ class ScannerService extends ChangeNotifier {
             if (metadata != null) {
               _updateMetadataForPath(metadata, notify: false);
             }
+            scanState.completedCount++;
           } catch (e) {
             debugPrint('Error in background thumbnail rebuild for $path: $e');
+          } finally {
+            _emitScanProgress(scanState, path);
           }
         }),
       );
@@ -1341,7 +1359,8 @@ class ScannerService extends ChangeNotifier {
       ScanProgress(
         filePath: filePath,
         discoveredCount: scanState.discoveredCount,
-        processedCount: scanState.processedCount,
+        preprocessedCount: scanState.preprocessedCount,
+        completedCount: scanState.completedCount,
       ),
     );
   }

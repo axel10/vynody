@@ -18,13 +18,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanningDirectory => 'Scanning directory...';
 
   @override
-  String filesProcessed(Object count) {
-    return 'Metadata processed for $count files';
+  String filesPreprocessed(Object count) {
+    return 'Preprocessed $count songs';
   }
 
   @override
   String filesDiscovered(Object count) {
     return 'Discovered $count files';
+  }
+
+  @override
+  String filesFullyProcessed(Object count) {
+    return 'Fully processed $count songs';
   }
 
   @override

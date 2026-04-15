@@ -105,7 +105,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     _scanToastState.value = const _ScanToastState(
       fileName: '',
       discoveredLabelText: '',
-      processedLabel: '',
+      preprocessedLabelText: '',
+      completedLabelText: '',
     );
     _scanToast = showToastWidget(
       _ScanProgressToast(
@@ -174,7 +175,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     _scanToastState.value = _ScanToastState(
       fileName: p.basename(progress.filePath),
       discoveredLabelText: l10n.filesDiscovered(progress.discoveredCount),
-      processedLabel: l10n.filesProcessed(progress.processedCount),
+      preprocessedLabelText: l10n.filesPreprocessed(progress.preprocessedCount),
+      completedLabelText: l10n.filesFullyProcessed(progress.completedCount),
     );
     _lastScanToastUpdateAt = DateTime.now();
   }
@@ -207,8 +209,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     _scanner = ref.read(scannerServiceProvider);
     _wasScanning = _scanner!.isScanning;
     _scanner!.addListener(_handleScannerChanged);
-    _scanProgressSubscription =
-        _scanner!.scanProgressStream.listen(_showScanProgressToast);
+    _scanProgressSubscription = _scanner!.scanProgressStream.listen(
+      _showScanProgressToast,
+    );
   }
 
   @override
@@ -840,7 +843,13 @@ class _ScanProgressToast extends StatelessWidget {
       builder: (context, state, _) {
         final fileName = state?.fileName ?? '';
         final discoveredLabel = state?.discoveredLabelText ?? '';
-        final processedLabel = state?.processedLabel ?? '';
+        final preprocessedLabel = state?.preprocessedLabelText ?? '';
+        final completedLabel = state?.completedLabelText ?? '';
+        final summaryText = [
+          discoveredLabel,
+          preprocessedLabel,
+          completedLabel,
+        ].where((text) => text.isNotEmpty).join(' · ');
 
         return Material(
           color: Colors.transparent,
@@ -892,17 +901,7 @@ class _ScanProgressToast extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        discoveredLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: onSurface.withValues(alpha: 0.8),
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        processedLabel,
+                        summaryText,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -937,10 +936,12 @@ class _ScanToastState {
   const _ScanToastState({
     required this.fileName,
     required this.discoveredLabelText,
-    required this.processedLabel,
+    required this.preprocessedLabelText,
+    required this.completedLabelText,
   });
 
   final String fileName;
   final String discoveredLabelText;
-  final String processedLabel;
+  final String preprocessedLabelText;
+  final String completedLabelText;
 }
