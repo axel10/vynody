@@ -953,7 +953,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                                     fontWeight: isActive
                                         ? FontWeight.w700
                                         : FontWeight.w400,
-                                    height: 1.2,
+                                    height: 1.4,
+                                    leadingDistribution:
+                                        TextLeadingDistribution.even,
                                   ),
                               child: Text(
                                 line.text,
@@ -977,7 +979,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.62),
                               fontSize: 13,
-                              height: 1.1,
+                              height: 1.3,
+                              leadingDistribution: TextLeadingDistribution.even,
                             ),
                           ),
                         ),
