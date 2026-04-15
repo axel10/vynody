@@ -717,7 +717,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                 isLyricsMode
                     ? (isLandscape ? 24.0 : 16.0)
                     : (isLandscape ? 32.0 : 24.0),
-                isLyricsMode ? 0.0 : (isLandscape ? 32.0 : 24.0),
+                0,
               ),
               child: Column(
                 children: [

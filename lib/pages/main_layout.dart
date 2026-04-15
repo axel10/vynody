@@ -514,6 +514,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
         isPlayback &&
         settings.isImmersiveTabBarEnabled &&
         !uiState.showImmersiveTabBar;
+    final bool useOverlayBottomNav =
+        !useSidebar && isPlayback && settings.isImmersiveTabBarEnabled;
 
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
@@ -745,54 +747,85 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                     ),
                     if (uiState.showVolumeHud)
                       VolumeHUD(volume: _audioService.volume),
+                    if (useOverlayBottomNav)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: SafeArea(
+                          top: false,
+                          child: _buildBottomNavigationBar(
+                            context,
+                            isPlayback: isPlayback,
+                            navBgBaseColor: navBgBaseColor,
+                            navIndicatorBaseColor: navIndicatorBaseColor,
+                            navBgOpacityTarget: navBgOpacityTarget,
+                            isHidden:
+                                settings.isImmersiveTabBarEnabled &&
+                                settings.isUserInactive,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-                bottomNavigationBar: useSidebar
+                bottomNavigationBar: useSidebar || useOverlayBottomNav
                     ? null
-                    : AnimatedOpacity(
-                        duration: const Duration(milliseconds: 500),
-                        opacity:
-                            (isPlayback &&
-                                settings.isImmersiveTabBarEnabled &&
-                                settings.isUserInactive)
-                            ? 0.0
-                            : 1.0,
-                        child: TweenAnimationBuilder<double>(
-                          duration: const Duration(milliseconds: 120),
-                          curve: Curves.easeOut,
-                          tween: Tween<double>(
-                            begin: 1.0,
-                            end: navBgOpacityTarget,
-                          ),
-                          builder: (context, animatedOpacity, child) {
-                            return NavigationBar(
-                              height: 60,
-                              labelBehavior:
-                                  NavigationDestinationLabelBehavior.alwaysHide,
-                              selectedIndex: _currentIndex,
-                              backgroundColor: Color.lerp(
-                                Colors.transparent,
-                                navBgBaseColor,
-                                animatedOpacity,
-                              ),
-                              elevation: 0,
-                              indicatorColor: Color.lerp(
-                                Colors.transparent,
-                                navIndicatorBaseColor,
-                                animatedOpacity,
-                              ),
-                              onDestinationSelected: _onDestinationSelected,
-                              destinations: _buildBottomDestinations(
-                                context,
-                                isPlayback,
-                              ),
-                            );
-                          },
-                        ),
+                    : _buildBottomNavigationBar(
+                        context,
+                        isPlayback: isPlayback,
+                        navBgBaseColor: navBgBaseColor,
+                        navIndicatorBaseColor: navIndicatorBaseColor,
+                        navBgOpacityTarget: navBgOpacityTarget,
+                        isHidden:
+                            isPlayback &&
+                            settings.isImmersiveTabBarEnabled &&
+                            settings.isUserInactive,
                       ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar(
+    BuildContext context, {
+    required bool isPlayback,
+    required Color navBgBaseColor,
+    required Color navIndicatorBaseColor,
+    required double navBgOpacityTarget,
+    required bool isHidden,
+  }) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 500),
+      opacity: isHidden ? 0.0 : 1.0,
+      child: IgnorePointer(
+        ignoring: isHidden,
+        child: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
+          builder: (context, animatedOpacity, child) {
+            return NavigationBar(
+              height: 60,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+              selectedIndex: _currentIndex,
+              backgroundColor: Color.lerp(
+                Colors.transparent,
+                navBgBaseColor,
+                animatedOpacity,
+              ),
+              elevation: 0,
+              indicatorColor: Color.lerp(
+                Colors.transparent,
+                navIndicatorBaseColor,
+                animatedOpacity,
+              ),
+              onDestinationSelected: _onDestinationSelected,
+              destinations: _buildBottomDestinations(context, isPlayback),
+            );
+          },
         ),
       ),
     );
