@@ -272,6 +272,11 @@ class MetadataHelper {
     }
 
     try {
+      final existingArtworkPath = existing?.artworkPath;
+      final existingThumbnailPath = existing?.thumbnailPath;
+      final existingArtworkWidth = existing?.artworkWidth;
+      final existingArtworkHeight = existing?.artworkHeight;
+      final existingThemeColorsBlob = existing?.themeColorsBlob;
       Uint8List? artworkData;
       String? title;
       String? album;
@@ -327,6 +332,12 @@ class MetadataHelper {
             debugPrint('Error generating theme color for $filePath: $e');
           }
         }
+      } else if (!generateThumbnail && existing != null) {
+        artworkPath = existingArtworkPath;
+        thumbnailPath = existingThumbnailPath;
+        artworkWidth = existingArtworkWidth;
+        artworkHeight = existingArtworkHeight;
+        themeColorsBlob = existingThemeColorsBlob;
       }
 
       // 如果是更新现有记录，保留原有的 createdAt；否则使用当前时间

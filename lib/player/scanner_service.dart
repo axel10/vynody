@@ -317,22 +317,27 @@ class ScannerService extends ChangeNotifier {
         }
 
         _metadataMap.clear();
+        final metadataByPath = <String, SongMetadata>{};
         for (final entry in scanResult.entries) {
           final filePath = _androidEntryFilePath(entry);
           if (filePath == null) continue;
-          _metadataMap[filePath] = SongMetadata(
-            path: filePath,
-            title: entry.label,
-            album: entry.album ?? '',
-            artist: entry.artist ?? '',
-            duration: entry.duration.inMilliseconds,
-            artworkPath: null,
-            thumbnailPath: null,
-            trackNumber: null,
+          final metadata = await _resolveScannedMetadata(
+            filePath,
+            songId: int.tryParse(entry.id),
+            fallbackTitle: entry.label,
+            fallbackAlbum: entry.album ?? '',
+            fallbackArtist: entry.artist ?? '',
+            fallbackDuration: entry.duration.inMilliseconds,
+            fallbackTrackNumber: null,
           );
+          metadataByPath[filePath] = metadata;
+          _metadataMap[filePath] = metadata.copyWith(waveformBlob: null);
         }
 
-        _systemMediaFolder = _organizeAndroidMediaLibrary(scanResult.entries);
+        _systemMediaFolder = _organizeAndroidMediaLibrary(
+          scanResult.entries,
+          metadataByPath,
+        );
         if (_systemMediaFolder != null) {
           _sortFolderRecursive(_systemMediaFolder!);
         }
@@ -351,20 +356,22 @@ class ScannerService extends ChangeNotifier {
         );
 
         _metadataMap.clear();
+        final metadataByPath = <String, SongMetadata>{};
         for (final song in songs) {
-          _metadataMap[song.data] = SongMetadata(
-            path: song.data,
-            title: song.title,
-            album: song.album ?? '',
-            artist: song.artist ?? '',
-            duration: song.duration,
-            artworkPath: null,
-            thumbnailPath: null,
-            trackNumber: song.track,
+          final metadata = await _resolveScannedMetadata(
+            song.data,
+            songId: song.id,
+            fallbackTitle: song.title,
+            fallbackAlbum: song.album ?? '',
+            fallbackArtist: song.artist ?? '',
+            fallbackDuration: song.duration,
+            fallbackTrackNumber: song.track,
           );
+          metadataByPath[song.data] = metadata;
+          _metadataMap[song.data] = metadata.copyWith(waveformBlob: null);
         }
 
-        _systemMediaFolder = _organizeSongsIntoFolders(songs);
+        _systemMediaFolder = _organizeSongsIntoFolders(songs, metadataByPath);
         if (_systemMediaFolder != null) {
           _sortFolderRecursive(_systemMediaFolder!);
         }
@@ -479,6 +486,7 @@ class ScannerService extends ChangeNotifier {
 
   MusicFolder _organizeAndroidMediaLibrary(
     List<AndroidMediaLibraryEntry> entries,
+    Map<String, SongMetadata> metadataByPath,
   ) {
     final root = MusicFolder(path: 'system', name: '系统媒体库');
     final nodes = <String, MusicFolder>{'': root};
@@ -487,7 +495,11 @@ class ScannerService extends ChangeNotifier {
       final filePath = _androidEntryFilePath(entry);
       if (filePath == null) continue;
 
-      final file = _musicFileFromAndroidEntry(entry, path: filePath);
+      final file = _musicFileFromAndroidEntry(
+        entry,
+        path: filePath,
+        metadata: metadataByPath[filePath],
+      );
       final folderPath = _normalizeAndroidFolderPath(entry.folderPath);
       if (folderPath.isEmpty) {
         root.files.add(file);
@@ -515,22 +527,17 @@ class ScannerService extends ChangeNotifier {
     return root;
   }
 
-  MusicFolder _organizeSongsIntoFolders(List<SongModel> songs) {
+  MusicFolder _organizeSongsIntoFolders(
+    List<SongModel> songs,
+    Map<String, SongMetadata> metadataByPath,
+  ) {
     final Map<String, List<MusicFile>> folderFiles = {};
     final Set<String> allPaths = {};
 
     for (final song in songs) {
       final path = song.data;
-      final file = MusicFile(
-        path: path,
-        name: p.basename(path),
-        title: song.title,
-        artist: song.artist,
-        album: song.album,
-        trackNumber: song.track,
-        durationMillis: song.duration,
-        id: song.id,
-      );
+      final metadata = metadataByPath[path];
+      final file = _musicFileFromSongModel(song, metadata: metadata);
       final dirPath = p.dirname(path);
 
       folderFiles.putIfAbsent(dirPath, () => []).add(file);
@@ -594,21 +601,49 @@ class ScannerService extends ChangeNotifier {
   MusicFile _musicFileFromAndroidEntry(
     AndroidMediaLibraryEntry entry, {
     required String path,
+    SongMetadata? metadata,
   }) {
     final parsedId = int.tryParse(entry.id);
     final displayName = entry.displayName?.trim();
+    final resolvedMetadata = metadata;
     return MusicFile(
       path: path,
       name: displayName != null && displayName.isNotEmpty
           ? displayName
           : p.basename(path),
-      title: entry.title.trim().isEmpty ? null : entry.title,
-      artist: entry.artist,
-      album: entry.album,
-      trackNumber: null,
-      durationMillis: entry.duration.inMilliseconds,
+      title: _cleanText(resolvedMetadata?.title ?? entry.title),
+      artist: _cleanText(resolvedMetadata?.artist ?? entry.artist),
+      album: _cleanText(resolvedMetadata?.album ?? entry.album),
+      trackNumber: resolvedMetadata?.trackNumber,
+      durationMillis:
+          resolvedMetadata?.duration ?? entry.duration.inMilliseconds,
       id: parsedId,
       mediaUri: entry.uri,
+      thumbnailPath: resolvedMetadata?.thumbnailPath,
+      artworkPath: resolvedMetadata?.artworkPath,
+      artworkWidth: resolvedMetadata?.artworkWidth,
+      artworkHeight: resolvedMetadata?.artworkHeight,
+      themeColorsBlob: resolvedMetadata?.themeColorsBlob,
+      lastModifiedTime: resolvedMetadata?.lastModifiedTime,
+    );
+  }
+
+  MusicFile _musicFileFromSongModel(SongModel song, {SongMetadata? metadata}) {
+    return MusicFile(
+      path: song.data,
+      name: p.basename(song.data),
+      title: _cleanText(metadata?.title ?? song.title),
+      artist: _cleanText(metadata?.artist ?? song.artist),
+      album: _cleanText(metadata?.album ?? song.album),
+      trackNumber: metadata?.trackNumber ?? song.track,
+      durationMillis: metadata?.duration ?? song.duration,
+      id: song.id,
+      thumbnailPath: metadata?.thumbnailPath,
+      artworkPath: metadata?.artworkPath,
+      artworkWidth: metadata?.artworkWidth,
+      artworkHeight: metadata?.artworkHeight,
+      themeColorsBlob: metadata?.themeColorsBlob,
+      lastModifiedTime: metadata?.lastModifiedTime,
     );
   }
 
@@ -626,6 +661,58 @@ class ScannerService extends ChangeNotifier {
     return cleaned.endsWith('/')
         ? cleaned.substring(0, cleaned.length - 1)
         : cleaned;
+  }
+
+  String? _cleanText(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed;
+  }
+
+  Future<SongMetadata> _resolveScannedMetadata(
+    String filePath, {
+    int? songId,
+    required String fallbackTitle,
+    required String fallbackAlbum,
+    required String fallbackArtist,
+    required int? fallbackDuration,
+    int? fallbackTrackNumber,
+  }) async {
+    final db = MetadataDatabase();
+    final existing = await db.getSongMetadata(filePath);
+    if (existing != null) {
+      try {
+        final lastModified = (await File(
+          filePath,
+        ).lastModified()).millisecondsSinceEpoch;
+        if (existing.lastModifiedTime == lastModified) {
+          return existing;
+        }
+      } catch (e) {
+        debugPrint('Failed to read last modified time for $filePath: $e');
+        return existing;
+      }
+    }
+
+    final result = await MetadataHelper.processMetadata(
+      filePath,
+      songId: songId,
+      generateThumbnail: false,
+    );
+    if (result != null) {
+      return result.$1;
+    }
+
+    return existing ??
+        SongMetadata(
+          path: filePath,
+          title:
+              _cleanText(fallbackTitle) ?? p.basenameWithoutExtension(filePath),
+          album: _cleanText(fallbackAlbum) ?? 'Unknown Album',
+          artist: _cleanText(fallbackArtist) ?? 'Unknown Artist',
+          duration: fallbackDuration,
+          trackNumber: fallbackTrackNumber,
+        );
   }
 
   Future<void> scan() async {
@@ -656,6 +743,33 @@ class ScannerService extends ChangeNotifier {
             folder ?? MusicFolder(path: path, name: _displayNameForPath(path)),
           );
         }
+
+        final presentPaths = <String>{};
+        for (final root in _scannedRootFolders) {
+          _collectFilePaths(root, presentPaths);
+        }
+        final normalizedPresentPaths = presentPaths
+            .map(_normalizePath)
+            .where((path) => path.isNotEmpty)
+            .toSet();
+        final presentPathIndex = Platform.isWindows
+            ? normalizedPresentPaths.map((path) => path.toLowerCase()).toSet()
+            : normalizedPresentPaths;
+        _metadataMap.removeWhere((path, _) {
+          final normalizedPath = _normalizePath(path);
+          return _rootPaths.any(
+                (root) => _pathContains(root, normalizedPath),
+              ) &&
+              !presentPathIndex.contains(
+                Platform.isWindows
+                    ? normalizedPath.toLowerCase()
+                    : normalizedPath,
+              );
+        });
+        await MetadataDatabase().deleteSongsMissingFromPaths(
+          scopeRoots: _rootPaths,
+          presentPaths: presentPaths,
+        );
       } else {
         debugPrint('Scan aborted: Permission not granted.');
       }
@@ -718,6 +832,15 @@ class ScannerService extends ChangeNotifier {
       }
     }
     debugPrint('Background metadata rebuild completed');
+  }
+
+  void _collectFilePaths(MusicFolder folder, Set<String> out) {
+    for (final file in folder.files) {
+      out.add(_normalizePath(file.path));
+    }
+    for (final subFolder in folder.subFolders) {
+      _collectFilePaths(subFolder, out);
+    }
   }
 
   /// Loads metadata for a single path from the DB (or processes it fresh) and
@@ -838,26 +961,24 @@ class ScannerService extends ChangeNotifier {
             int? lastModifiedTime;
 
             if (Platform.isWindows) {
-              // Avoid expensive per-file parsing during directory crawl.
-              // Thumbnail/title metadata is loaded lazily when list items build.
-              final metadata = await MetadataDatabase().getSongMetadata(
+              final metadata = await _resolveScannedMetadata(
                 entity.path,
+                fallbackTitle: p.basenameWithoutExtension(entity.path),
+                fallbackAlbum: '',
+                fallbackArtist: '',
+                fallbackDuration: null,
               );
-              if (metadata != null) {
-                _metadataMap[entity.path] = metadata.copyWith(
-                  waveformBlob: null,
-                );
-                title = metadata.title;
-                artist = metadata.artist;
-                album = metadata.album;
-                trackNumber = metadata.trackNumber;
-                thumbnailPath = metadata.thumbnailPath;
-                artworkPath = metadata.artworkPath;
-                artworkWidth = metadata.artworkWidth;
-                artworkHeight = metadata.artworkHeight;
-                themeColorsBlob = metadata.themeColorsBlob;
-                lastModifiedTime = metadata.lastModifiedTime;
-              }
+              _metadataMap[entity.path] = metadata.copyWith(waveformBlob: null);
+              title = metadata.title;
+              artist = metadata.artist;
+              album = metadata.album;
+              trackNumber = metadata.trackNumber;
+              thumbnailPath = metadata.thumbnailPath;
+              artworkPath = metadata.artworkPath;
+              artworkWidth = metadata.artworkWidth;
+              artworkHeight = metadata.artworkHeight;
+              themeColorsBlob = metadata.themeColorsBlob;
+              lastModifiedTime = metadata.lastModifiedTime;
             }
 
             files.add(

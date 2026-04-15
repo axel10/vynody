@@ -559,6 +559,48 @@ class MetadataDatabase {
     return null;
   }
 
+  Future<int> deleteSongsMissingFromPaths({
+    required Iterable<String> scopeRoots,
+    required Iterable<String> presentPaths,
+  }) async {
+    final normalizedPresentPaths = presentPaths
+        .map(_normalizePath)
+        .where((path) => path.isNotEmpty)
+        .map((path) => Platform.isWindows ? path.toLowerCase() : path)
+        .toSet();
+    final normalizedScopeRoots = scopeRoots
+        .map(_normalizePath)
+        .where((path) => path.isNotEmpty)
+        .toList();
+
+    if (normalizedScopeRoots.isEmpty) return 0;
+
+    final db = await database;
+    final rows = await db.query('songs', columns: ['path']);
+    final missingPaths = <String>[];
+
+    for (final row in rows) {
+      final path = row['path'] as String?;
+      if (path == null || path.isEmpty) continue;
+      final normalizedPath = _normalizePath(path);
+      final normalizedLookup = Platform.isWindows
+          ? normalizedPath.toLowerCase()
+          : normalizedPath;
+      if (normalizedPresentPaths.contains(normalizedLookup)) continue;
+      if (!_isWithinAnyRoot(normalizedPath, normalizedScopeRoots)) continue;
+      missingPaths.add(normalizedPath);
+    }
+
+    if (missingPaths.isEmpty) return 0;
+
+    final batch = db.batch();
+    for (final path in missingPaths) {
+      batch.delete('songs', where: 'path = ?', whereArgs: [path]);
+    }
+    await batch.commit(noResult: true);
+    return missingPaths.length;
+  }
+
   Future<void> clearAll() async {
     final db = await database;
     await db.delete('songs');
@@ -603,5 +645,39 @@ class MetadataDatabase {
       where: 'cacheKey = ?',
       whereArgs: [normalizedCacheKey],
     );
+  }
+
+  String _normalizePath(String path) {
+    var normalized = p.normalize(path.trim());
+    if (Platform.isWindows) {
+      normalized = normalized.replaceAll('/', r'\');
+      if (normalized.length > 3 && normalized.endsWith(r'\')) {
+        normalized = normalized.substring(0, normalized.length - 1);
+      }
+    } else if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    return normalized;
+  }
+
+  bool _pathsEqual(String left, String right) {
+    final normalizedLeft = _normalizePath(left);
+    final normalizedRight = _normalizePath(right);
+    if (Platform.isWindows) {
+      return normalizedLeft.toLowerCase() == normalizedRight.toLowerCase();
+    }
+    return normalizedLeft == normalizedRight;
+  }
+
+  bool _isWithinAnyRoot(String path, List<String> roots) {
+    for (final root in roots) {
+      if (_pathsEqual(path, root)) return true;
+      if (Platform.isWindows) {
+        if (p.isWithin(root.toLowerCase(), path.toLowerCase())) return true;
+      } else if (p.isWithin(root, path)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
