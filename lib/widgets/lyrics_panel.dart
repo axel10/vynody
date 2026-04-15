@@ -742,7 +742,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         : activeIndex;
 
     return LyricsPanelTimedLyricsView(
-      accentColor: accent,
       lyrics: lyrics,
       lyricsState: lyricsState,
       displayLines: displayLines,

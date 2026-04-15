@@ -135,7 +135,7 @@ class LyricsPanelPlainLyricsView extends StatelessWidget {
               ),
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                // padding: const EdgeInsets.symmetric(horizontal: 120),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -163,7 +163,6 @@ class LyricsPanelPlainLyricsView extends StatelessWidget {
 class LyricsPanelTimedLyricsView extends StatelessWidget {
   const LyricsPanelTimedLyricsView({
     super.key,
-    required this.accentColor,
     required this.lyrics,
     required this.lyricsState,
     required this.displayLines,
@@ -180,7 +179,6 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.bottomSpacerHeight,
   });
 
-  final Color accentColor;
   final MusicLyric? lyrics;
   final LyricsControllerState lyricsState;
   final List<LyricLine> displayLines;
@@ -214,7 +212,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                 controller: scrollController,
                 clipBehavior: Clip.hardEdge,
                 physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                // padding: const EdgeInsets.symmetric(horizontal: 8),
                 itemExtent: itemExtent,
                 itemCount: displayLines.length,
                 itemBuilder: (context, index) {
@@ -234,7 +232,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
+                      // horizontal: 8,
                       vertical: 6,
                     ),
                     child: Center(

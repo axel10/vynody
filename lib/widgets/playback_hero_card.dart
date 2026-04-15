@@ -25,8 +25,6 @@ class PlaybackHeroCard extends ConsumerWidget {
     required this.isMini,
     this.isLyricsMode = false,
     this.isLandscape = false,
-    this.screenWidth,
-    this.screenHeight,
     this.isNext = true,
     this.showVisualizerToggle = true,
     this.onShowMoreMenu,
@@ -58,8 +56,6 @@ class PlaybackHeroCard extends ConsumerWidget {
   final bool isMini;
   final bool isLyricsMode;
   final bool isLandscape;
-  final double? screenWidth;
-  final double? screenHeight;
   final bool isNext;
   final List<double>? overrideWaveform;
   final double? overrideProgress;

@@ -36,12 +36,11 @@ class PlaybackPage extends ConsumerStatefulWidget {
 }
 
 class _PlaybackPageState extends ConsumerState<PlaybackPage>
-    with SingleTickerProviderStateMixin {
+    {
   bool _showVolumeSlider = false;
   bool _isScrubbingProgress = false;
   double _scrubProgress = 0.0; // Added missing declaration
   Orientation? _lastOrientation;
-  Timer? _inactivityTimer; // Added missing declaration
   Uint8List? _pendingArtworkBytes;
 
   SettingsService? _settingsService;
@@ -69,7 +68,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
   @override
   void dispose() {
-    _inactivityTimer?.cancel();
     // 延迟重置，避免在 dispose 过程中触发 notifyListeners 导致的 "locked" 错误
     final settings = _settingsService;
     if (settings != null) {
@@ -691,9 +689,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
         builder: (context, orientation) {
           final isLandscape = orientation == Orientation.landscape;
 
-          final screenWidth = MediaQuery.of(context).size.width;
-          final screenHeight = MediaQuery.of(context).size.height;
-
           if (_lastOrientation != orientation) {
             _lastOrientation = orientation;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -747,8 +742,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             isMini: false,
                             isLandscape: isLandscape,
                             isLyricsMode: isLyricsMode,
-                            screenWidth: screenWidth,
-                            screenHeight: screenHeight,
                             isNext: isNext,
                             lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
                             overrideProgress: _isScrubbingProgress
