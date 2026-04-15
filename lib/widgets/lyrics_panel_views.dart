@@ -254,6 +254,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                               child: AutoSizeSingleLineText(
                                 line.text,
                                 textAlign: TextAlign.center,
+                                maxLines: 2,
                               ),
                             ),
                           ),

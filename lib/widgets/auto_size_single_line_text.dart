@@ -3,10 +3,16 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class AutoSizeSingleLineText extends StatelessWidget {
-  const AutoSizeSingleLineText(this.text, {super.key, required this.textAlign});
+  const AutoSizeSingleLineText(
+    this.text, {
+    super.key,
+    required this.textAlign,
+    this.maxLines = 1,
+  });
 
   final String text;
   final TextAlign textAlign;
+  final int maxLines;
 
   static const double _minScaleFactor = 0.82;
   static const double _absoluteMinFontSize = 12.0;
@@ -29,9 +35,9 @@ class AutoSizeSingleLineText extends StatelessWidget {
         return Text(
           text,
           textAlign: textAlign,
-          maxLines: 1,
+          maxLines: maxLines,
           overflow: TextOverflow.ellipsis,
-          softWrap: false,
+          softWrap: maxLines > 1,
           style: style.copyWith(fontSize: targetFontSize),
         );
       },
@@ -96,7 +102,7 @@ class AutoSizeSingleLineText extends StatelessWidget {
         style: style.copyWith(fontSize: fontSize),
       ),
       textDirection: Directionality.of(context),
-      maxLines: 1,
+      maxLines: maxLines,
       ellipsis: '…',
       textScaler: MediaQuery.textScalerOf(context),
     )..layout(maxWidth: maxWidth);

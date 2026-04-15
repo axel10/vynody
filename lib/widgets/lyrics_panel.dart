@@ -36,7 +36,7 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
 }
 
 class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
-  static const double _itemExtent = 72.0;
+  static const double _itemExtent = 88.0;
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
   static const double _statusToastTopOffset = 30.0;
@@ -505,10 +505,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     _dragDistancePixels += delta;
     final targetIndex =
-        (startLine - (_dragDistancePixels / _itemExtent).round()).clamp(
-          0,
-          displayLines.length - 1,
-        ).toInt();
+        (startLine - (_dragDistancePixels / _itemExtent).round())
+            .clamp(0, displayLines.length - 1)
+            .toInt();
 
     if (_dragCurrentLine != targetIndex) {
       if (mounted) {
