@@ -18,6 +18,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanningDirectory => '正在扫描目录...';
 
   @override
+  String filesProcessed(Object count) {
+    return '已处理 $count 个文件';
+  }
+
+  @override
   String get directoryAddedSuccess => '目录添加成功';
 
   @override

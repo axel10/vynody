@@ -12,6 +12,13 @@
   "@scanningDirectory": {
     "description": "Scanning directory message"
   },
+  "filesProcessed": "已处理 {count} 个文件",
+  "@filesProcessed": {
+    "description": "Scanning progress toast message showing how many files have been processed",
+    "placeholders": {
+      "count": {}
+    }
+  },
   "directoryAddedSuccess": "目录添加成功",
   "@directoryAddedSuccess": {
     "description": "Directory added successfully"

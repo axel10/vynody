@@ -3,6 +3,13 @@
   "appTitle": "Pure Player",
   "systemMediaLibrary": "System Media Library",
   "scanningDirectory": "Scanning directory...",
+  "filesProcessed": "Processed {count} files",
+  "@filesProcessed": {
+    "description": "Scanning progress toast message showing how many files have been processed",
+    "placeholders": {
+      "count": {}
+    }
+  },
   "directoryAddedSuccess": "Directory added successfully",
   "directoryAddedNoMusic": "Directory added, but no playable audio files found",
   "scanDirectory": "Scan Directory",

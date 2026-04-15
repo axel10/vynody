@@ -19,9 +19,22 @@ enum SortCriteria { title, filename, trackNumber }
 
 enum SortOrder { ascending, descending }
 
+class ScanProgress {
+  final String filePath;
+  final int processedCount;
+
+  const ScanProgress({required this.filePath, required this.processedCount});
+}
+
+class _ScanProgressState {
+  int processedCount = 0;
+}
+
 class ScannerService extends ChangeNotifier {
   AudioCoreController? _playerController;
   StreamSubscription? _mediaObserverSubscription;
+  final StreamController<ScanProgress> _scanProgressController =
+      StreamController<ScanProgress>.broadcast();
   final List<String> _rootPaths = [];
   final List<MusicFolder> _scannedRootFolders = [];
   final List<MusicFolder> _rootFolders = [];
@@ -41,6 +54,7 @@ class ScannerService extends ChangeNotifier {
   List<MusicFolder> get rootFolders => List.unmodifiable(_rootFolders);
   bool get isScanning => _isScanning;
   bool get isBackgroundTaskPaused => _isBackgroundTaskPaused;
+  Stream<ScanProgress> get scanProgressStream => _scanProgressController.stream;
 
   // Navigation state for FoldersPage
   MusicFolder? _navigationCurrentFolder;
@@ -725,9 +739,18 @@ class ScannerService extends ChangeNotifier {
 
     try {
       if (await _checkPermissions()) {
+        final scanState = _ScanProgressState();
         final scanRoots = _computeScanRoots(_rootPaths);
         for (final path in scanRoots) {
           debugPrint('Starting scan at: $path');
+
+          final rootFolder = MusicFolder(
+            path: path,
+            name: _displayNameForPath(path),
+          );
+          _scannedRootFolders.add(rootFolder);
+          _rebuildDisplayedRootFolders();
+          notifyListeners();
 
           if (Platform.isAndroid) {
             // Trigger media scanner for each root path on startup
@@ -738,10 +761,7 @@ class ScannerService extends ChangeNotifier {
             }
           }
 
-          final folder = await _scanDirectory(path);
-          _scannedRootFolders.add(
-            folder ?? MusicFolder(path: path, name: _displayNameForPath(path)),
-          );
+          await _scanDirectoryInto(rootFolder, path, scanState);
         }
 
         final presentPaths = <String>{};
@@ -921,15 +941,18 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  Future<MusicFolder?> _scanDirectory(String path) async {
+  Future<bool> _scanDirectoryInto(
+    MusicFolder folder,
+    String path,
+    _ScanProgressState scanState,
+  ) async {
     final dir = Directory(path);
     if (!await dir.exists()) {
       debugPrint('Directory does not exist: $path');
-      return null;
+      return false;
     }
 
-    final List<MusicFolder> subFolders = [];
-    final List<MusicFile> files = [];
+    bool hasContent = false;
 
     try {
       final List<FileSystemEntity> entities = await dir
@@ -942,9 +965,23 @@ class ScannerService extends ChangeNotifier {
           // Avoid hidden directories/system folders
           if (p.basename(entity.path).startsWith('.')) continue;
 
-          final subFolder = await _scanDirectory(entity.path);
-          if (subFolder != null && !subFolder.isEmpty) {
-            subFolders.add(subFolder);
+          final subFolder = MusicFolder(
+            path: entity.path,
+            name: _displayNameForPath(entity.path),
+          );
+          folder.subFolders.add(subFolder);
+          final subFolderHasContent = await _scanDirectoryInto(
+            subFolder,
+            entity.path,
+            scanState,
+          );
+          if (subFolderHasContent) {
+            hasContent = true;
+          } else {
+            folder.subFolders.removeWhere(
+              (existing) => _pathsEqual(existing.path, subFolder.path),
+            );
+            notifyListeners();
           }
         } else if (entity is File) {
           final ext = p.extension(entity.path).toLowerCase();
@@ -981,7 +1018,7 @@ class ScannerService extends ChangeNotifier {
               lastModifiedTime = metadata.lastModifiedTime;
             }
 
-            files.add(
+            folder.files.add(
               MusicFile(
                 path: entity.path,
                 name: p.basename(entity.path),
@@ -998,6 +1035,15 @@ class ScannerService extends ChangeNotifier {
                 id: null,
               ),
             );
+            scanState.processedCount++;
+            _scanProgressController.add(
+              ScanProgress(
+                filePath: entity.path,
+                processedCount: scanState.processedCount,
+              ),
+            );
+            hasContent = true;
+            notifyListeners();
           }
         }
       }
@@ -1005,16 +1051,8 @@ class ScannerService extends ChangeNotifier {
       debugPrint('Error listing directory $path: $e');
     }
 
-    if (subFolders.isEmpty && files.isEmpty) return null;
-
-    return MusicFolder(
-      path: path,
-      name: _displayNameForPath(path),
-      subFolders: subFolders
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
-      files: files
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
-    );
+    _sortFolderRecursive(folder);
+    return hasContent;
   }
 
   String _normalizePath(String path) {
@@ -1162,6 +1200,7 @@ class ScannerService extends ChangeNotifier {
   @override
   void dispose() {
     _mediaObserverSubscription?.cancel();
+    _scanProgressController.close();
     super.dispose();
   }
 }

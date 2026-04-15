@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:oktoast/oktoast.dart';
+import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
@@ -25,6 +27,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
+  StreamSubscription<ScanProgress>? _scanProgressSubscription;
 
   void _navigateTo(MusicFolder folder, ScannerService scanner) {
     final history = List<MusicFolder>.from(scanner.navigationHistory);
@@ -84,6 +87,23 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     });
   }
 
+  void _showScanProgressToast(ScanProgress progress) {
+    if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    showToastWidget(
+      _ScanProgressToast(
+        fileName: p.basename(progress.filePath),
+        label: l10n.scanningDirectory,
+        processedLabel: l10n.filesProcessed(progress.processedCount),
+      ),
+      position: ToastPosition.top.copyWith(offset: 28),
+      duration: const Duration(milliseconds: 1100),
+      dismissOtherToast: true,
+      animationDuration: const Duration(milliseconds: 180),
+    );
+  }
+
   void _toggleSelection(String path) {
     setState(() {
       if (_selectedSongPaths.contains(path)) {
@@ -101,7 +121,17 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _scanProgressSubscription = ref
+        .read(scannerServiceProvider)
+        .scanProgressStream
+        .listen(_showScanProgressToast);
+  }
+
+  @override
   void dispose() {
+    _scanProgressSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -111,18 +141,10 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     if (selectedDirectory != null) {
       if (!mounted) return;
 
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.scanningDirectory),
-        ),
-      );
-
       final hasMusic = await scanner.addRootPath(selectedDirectory);
 
       if (!mounted) return;
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             hasMusic
@@ -705,6 +727,104 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
             tooltip: AppLocalizations.of(context)!.sort,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ScanProgressToast extends StatelessWidget {
+  const _ScanProgressToast({
+    required this.fileName,
+    required this.label,
+    required this.processedLabel,
+  });
+
+  final String fileName;
+  final String label;
+  final String processedLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = isDark ? const Color(0xFF1F1F1F) : Colors.white;
+    final onSurface = isDark ? Colors.white : Colors.black;
+    final accent = theme.colorScheme.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 360),
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accent.withValues(alpha: 0.22)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.14),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: null,
+                valueColor: AlwaysStoppedAnimation<Color>(accent),
+                backgroundColor: onSurface.withValues(alpha: 0.12),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: onSurface,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    processedLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: onSurface.withValues(alpha: 0.8),
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    fileName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: accent,
+                      fontWeight: FontWeight.w600,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -18,6 +18,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanningDirectory => 'Scanning directory...';
 
   @override
+  String filesProcessed(Object count) {
+    return 'Processed $count files';
+  }
+
+  @override
   String get directoryAddedSuccess => 'Directory added successfully';
 
   @override
