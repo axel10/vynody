@@ -1,32 +1,69 @@
-part of 'lyrics_controller.dart';
+import 'dart:async';
 
-// ignore_for_file: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+import 'package:flutter/foundation.dart';
 
-extension LyricsControllerTranslation on LyricsController {
+import '../models/music_file.dart';
+import '../models/music_lyric.dart';
+import '../models/music_lyric_translation.dart';
+import '../utils/language_code_utils.dart';
+import 'lyrics_cache_models.dart';
+import 'lyrics_controller_context.dart';
+import 'lyrics_controller_utils.dart';
+import 'settings_service.dart';
+
+class _LyricsTranslationRequest {
+  _LyricsTranslationRequest({
+    required this.songPath,
+    required this.cacheKey,
+    required this.languageCode,
+    required this.sourceLyrics,
+    required this.lyricsId,
+    required this.translationKey,
+  });
+
+  final String songPath;
+  final String cacheKey;
+  final String languageCode;
+  final String sourceLyrics;
+  final String lyricsId;
+  final String translationKey;
+}
+
+class LyricsTranslationCoordinator {
+  LyricsTranslationCoordinator(this._context, this._support);
+
+  final LyricsControllerContext _context;
+  final LyricsControllerSupport _support;
+
   Future<void> translateLyricsForCurrentSong({
     String? targetLanguageCode,
   }) async {
-    final song = _currentMusic();
-    if (song == null || _isLyricsTranslating) return;
+    final song = _context.currentMusic();
+    if (song == null || _context.state.isLyricsTranslating) return;
 
     final normalizedLanguageCode = LanguageCodeUtils.normalizeLanguageCode(
-      targetLanguageCode ?? state.lyricsTranslationLanguageCode,
+      targetLanguageCode ?? _context.state.lyricsTranslationLanguageCode,
     );
     if (normalizedLanguageCode.isEmpty) return;
-    if (state.lyricsTranslationLanguageCode != normalizedLanguageCode) {
-      state = state.copyWith(
-        lyricsTranslationLanguageCode: normalizedLanguageCode,
+    if (_context.state.lyricsTranslationLanguageCode !=
+        normalizedLanguageCode) {
+      _context.setLyricsTranslationStatus('');
+      _context.setState(
+        _context.state.copyWith(
+          lyricsTranslationLanguageCode: normalizedLanguageCode,
+        ),
       );
     }
 
-    if (_lyricsGeneration.isGenerating && _currentMusic()?.path == song.path) {
-      _isLyricsTranslating = true;
-      _lyricsTranslationStatus = '正在翻译歌词';
+    if (_context.lyricsGeneration.isGenerating &&
+        _context.currentMusic()?.path == song.path) {
+      _context.setIsLyricsTranslating(true);
+      _context.setLyricsTranslationStatus('正在翻译歌词');
       await _waitForLyricsGenerationToFinish(song.path);
     }
 
     try {
-      final currentSong = _currentMusic();
+      final currentSong = _context.currentMusic();
       if (currentSong == null || currentSong.path != song.path) return;
 
       final sourceLyrics = _lyricsSourceForTranslation(currentSong);
@@ -41,8 +78,8 @@ extension LyricsControllerTranslation on LyricsController {
 
       await _runLyricsTranslationRequest(request);
     } finally {
-      _isLyricsTranslating = false;
-      _lyricsTranslationStatus = '';
+      _context.setIsLyricsTranslating(false);
+      _context.setLyricsTranslationStatus('');
     }
   }
 
@@ -51,10 +88,10 @@ extension LyricsControllerTranslation on LyricsController {
     required String normalizedLanguageCode,
     required String sourceLyrics,
   }) async {
-    final query = await _buildLyricsQueryForSong(song);
+    final query = await _support.buildLyricsQueryForSong(song);
     if (query == null) return null;
 
-    final lyricsId = _lyricsIdForSong(song, sourceLyrics: sourceLyrics);
+    final lyricsId = _support.lyricsIdForSong(song, sourceLyrics: sourceLyrics);
     if (lyricsId.isEmpty) return null;
 
     final translationKey = _lyricsTranslationCacheKey(
@@ -64,19 +101,19 @@ extension LyricsControllerTranslation on LyricsController {
 
     final currentLyrics = song.lyrics;
     if (currentLyrics != null && !currentLyrics.hasId) {
-      _replaceCurrentSongIfPath(
+      _support.replaceCurrentSongIfPath(
         song.path,
         (queueSong) =>
             queueSong.copyWith(lyrics: currentLyrics.copyWith(id: lyricsId)),
       );
     }
 
-    if (_translationInFlightKeys.contains(translationKey)) return null;
+    if (_context.translationInFlightKeys.contains(translationKey)) return null;
     if (currentLyrics?.translationFor(normalizedLanguageCode)?.hasContent ==
         true) {
       return null;
     }
-    if (_translatedLyricsKeys.contains(translationKey)) return null;
+    if (_context.translatedLyricsKeys.contains(translationKey)) return null;
 
     return _LyricsTranslationRequest(
       songPath: song.path,
@@ -91,14 +128,16 @@ extension LyricsControllerTranslation on LyricsController {
   Future<void> _runLyricsTranslationRequest(
     _LyricsTranslationRequest request,
   ) async {
-    if (_translationInFlightKeys.contains(request.translationKey)) return;
+    if (_context.translationInFlightKeys.contains(request.translationKey)) {
+      return;
+    }
 
-    _translationInFlightKeys.add(request.translationKey);
-    _isLyricsTranslating = true;
-    _lyricsTranslationStatus = '正在翻译歌词';
+    _context.translationInFlightKeys.add(request.translationKey);
+    _context.setIsLyricsTranslating(true);
+    _context.setLyricsTranslationStatus('正在翻译歌词');
 
     try {
-      final success = await _lyricsAiService.translateLyricsStream(
+      final success = await _context.lyricsAiService.translateLyricsStream(
         lyrics: request.sourceLyrics,
         targetLanguageCode: request.languageCode,
         onProgress: (translatedLines, translatedText) {
@@ -112,7 +151,7 @@ extension LyricsControllerTranslation on LyricsController {
         },
       );
       if (success) {
-        _translatedLyricsKeys.add(request.translationKey);
+        _context.translatedLyricsKeys.add(request.translationKey);
         await _saveTranslatedLyricsToDatabase(
           songPath: request.songPath,
           cacheKey: request.cacheKey,
@@ -120,16 +159,16 @@ extension LyricsControllerTranslation on LyricsController {
         );
       }
     } finally {
-      _translationInFlightKeys.remove(request.translationKey);
+      _context.translationInFlightKeys.remove(request.translationKey);
     }
   }
 
   String _lyricsSourceForTranslation(MusicFile song) {
     final lyrics = song.lyrics;
     if (lyrics?.syncedLines.isNotEmpty == true) {
-      return _lyricsTextWithTimestamps(lyrics!);
+      return _support.lyricsTextWithTimestamps(lyrics!);
     }
-    return _currentLyricsText.trim();
+    return _context.state.currentLyricsText.trim();
   }
 
   void _syncTranslatedLyricsToCurrentSong(
@@ -140,7 +179,7 @@ extension LyricsControllerTranslation on LyricsController {
     String translatedText,
   ) {
     MusicFile? updatedSong;
-    _replaceCurrentSongIfPath(songPath, (currentSong) {
+    _support.replaceCurrentSongIfPath(songPath, (currentSong) {
       final existingLyrics = currentSong.lyrics ?? const MusicLyric();
       final existingTranslation = existingLyrics.translationFor(languageCode);
       final updatedTranslation = _buildLyricsTranslation(
@@ -167,13 +206,13 @@ extension LyricsControllerTranslation on LyricsController {
     });
 
     if (updatedSong == null) return;
-    _bumpRevision();
+    _context.bumpRevision();
   }
 
   Future<void> _waitForLyricsGenerationToFinish(String songPath) async {
-    while (_lyricsGeneration.isGenerating &&
-        _currentMusic()?.path == songPath) {
-      final completer = _lyricsGeneration.completer;
+    while (_context.lyricsGeneration.isGenerating &&
+        _context.currentMusic()?.path == songPath) {
+      final completer = _context.lyricsGeneration.completer;
       if (completer == null) {
         await Future<void>.delayed(const Duration(milliseconds: 100));
         continue;
@@ -193,7 +232,7 @@ extension LyricsControllerTranslation on LyricsController {
     required String languageCode,
   }) async {
     try {
-      final current = _currentMusic();
+      final current = _context.currentMusic();
       if (current == null || current.path != songPath) return;
 
       final lyrics = current.lyrics;
@@ -212,7 +251,7 @@ extension LyricsControllerTranslation on LyricsController {
             translation.updatedAt?.millisecondsSinceEpoch ??
             DateTime.now().millisecondsSinceEpoch,
       );
-      await _lyricsCacheRepository.saveLyricsTranslationCache(record);
+      await _context.lyricsCacheRepository.saveLyricsTranslationCache(record);
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache translated lyrics: $e');
     }

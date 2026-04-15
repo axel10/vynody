@@ -1,6 +1,19 @@
-part of 'lyrics_controller.dart';
+import 'dart:async';
 
-// ignore_for_file: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+import 'package:flutter/foundation.dart';
+
+import '../models/lyric_line.dart';
+import '../models/music_file.dart';
+import '../models/music_lyric.dart';
+import '../models/music_lyric_translation.dart';
+import '../utils/lrc_utils.dart';
+import '../utils/lyrics_id_utils.dart';
+import 'lyrics_cache_models.dart';
+import 'lyrics_controller_context.dart';
+import 'lyrics_controller_utils.dart';
+import 'lyrics_generation_phase.dart';
+import 'lyrics_generation_result.dart';
+import 'lyrics_service.dart';
 
 typedef _LyricsGenerationInvoker =
     Future<LyricsGenerationResult> Function({
@@ -16,52 +29,35 @@ class _LyricsGenerationSession {
   final String songPath;
 }
 
-class _LyricsGenerationRuntime {
-  int serial = 0;
-  Completer<void>? completer;
+class LyricsGenerationCoordinator {
+  LyricsGenerationCoordinator(this._context, this._support);
 
-  bool get isGenerating => completer != null;
+  final LyricsControllerContext _context;
+  final LyricsControllerSupport _support;
 
-  void start() {
-    serial++;
-    completer = Completer<void>();
-  }
-
-  void finish() {
-    final currentCompleter = completer;
-    if (currentCompleter != null && !currentCompleter.isCompleted) {
-      currentCompleter.complete();
-    }
-    completer = null;
-  }
-}
-
-extension LyricsControllerGeneration on LyricsController {
   _LyricsGenerationSession _beginLyricsGeneration(
     MusicFile song, {
     required String statusLabel,
   }) {
-    // 生成流程开始后，先让任何尚未完成的 lrclib 拉取失效，
-    // 避免它们在 AI 结果出来后“晚到覆盖”当前歌词。
-    _cancelOngoingLyricsFetch(reason: 'lyrics generation started');
-    _lyricsGeneration.start();
-    _lyricsSearchAttempted = true;
-    _startLyricsGenerationStatus(statusLabel);
-    _setLyricsGenerating(
+    _support.cancelOngoingLyricsFetch(reason: 'lyrics generation started');
+    _context.lyricsGeneration.start();
+    _context.setLyricsSearchAttempted(true);
+    _context.startLyricsGenerationStatus(statusLabel);
+    _context.setLyricsGenerating(
       true,
       phase: LyricsGenerationPhase.uploading,
       progress: 0.0,
     );
 
     return _LyricsGenerationSession(
-      id: _lyricsGeneration.serial,
+      id: _context.lyricsGeneration.serial,
       songPath: song.path,
     );
   }
 
   bool _isActiveLyricsGeneration(_LyricsGenerationSession session) {
-    return session.id == _lyricsGeneration.serial &&
-        _currentMusic()?.path == session.songPath;
+    return session.id == _context.lyricsGeneration.serial &&
+        _context.currentMusic()?.path == session.songPath;
   }
 
   void _updateLyricsGenerationStage(
@@ -69,8 +65,7 @@ extension LyricsControllerGeneration on LyricsController {
     String stage,
   ) {
     if (!_isActiveLyricsGeneration(session)) return;
-
-    _setGenerationStage(stage);
+    _support.setGenerationStage(stage);
   }
 
   MusicLyric _buildGeneratedLyrics({
@@ -86,7 +81,7 @@ extension LyricsControllerGeneration on LyricsController {
       id: LyricsIdUtils.fromLyricsText(normalizedText),
       syncedLines: generatedLines.isNotEmpty
           ? generatedLines
-          : _buildLyricsLines(const [], normalizedText),
+          : _support.buildLyricsLines(const [], normalizedText),
       plainText: normalizedText,
       source: source,
       timelineOffset: timelineOffset,
@@ -101,38 +96,38 @@ extension LyricsControllerGeneration on LyricsController {
   }) {
     if (!_isActiveLyricsGeneration(session)) return;
 
-    _hasLyrics = true;
-    _isLyricsLoading = false;
-    _setLyricsGenerating(
+    _context.setHasLyrics(true);
+    _context.setIsLyricsLoading(false);
+    _context.setLyricsGenerating(
       true,
       phase: LyricsGenerationPhase.generating,
       progress: 1.0,
     );
-    _lyricsSearchAttempted = true;
-    _currentLyricsLines = lyrics.syncedLines;
-    _currentLyricsText = lyrics.plainText;
+    _context.setLyricsSearchAttempted(true);
+    _context.setCurrentLyricsLines(lyrics.syncedLines);
+    _context.setCurrentLyricsText(lyrics.plainText);
 
-    final updated = _replaceCurrentSongIfPath(
+    final updated = _support.replaceCurrentSongIfPath(
       song.path,
       (currentSong) => currentSong.copyWith(lyrics: lyrics),
     );
     if (updated != null) {
-      unawaited(restoreCachedTranslations(updated));
+      unawaited(_support.restoreCachedTranslations(updated));
     }
 
-    _bumpRevision();
+    _context.bumpRevision();
   }
 
   void _finalizeLyricsGeneration(_LyricsGenerationSession session) {
-    if (session.id != _lyricsGeneration.serial) return;
+    if (session.id != _context.lyricsGeneration.serial) return;
 
-    _lyricsGeneration.finish();
-    _setLyricsGenerating(
+    _context.lyricsGeneration.finish();
+    _context.setLyricsGenerating(
       false,
       phase: LyricsGenerationPhase.idle,
       progress: 0.0,
     );
-    _clearLyricsGenerationStatus();
+    _context.clearLyricsGenerationStatus();
   }
 
   Future<String?> _runLyricsGeneration({
@@ -150,7 +145,7 @@ extension LyricsControllerGeneration on LyricsController {
             return;
           }
 
-          _setLyricsGenerating(
+          _context.setLyricsGenerating(
             true,
             phase: LyricsGenerationPhase.uploading,
             progress: progress.clamp(0.0, 1.0),
@@ -168,7 +163,7 @@ extension LyricsControllerGeneration on LyricsController {
           if (progressText.isEmpty) return;
           final progressLyrics = _buildGeneratedLyrics(
             text: progressText,
-            source: _lyricsProviderTag(),
+            source: _support.lyricsProviderTag(),
             timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
             translations:
                 translationProvider?.call() ??
@@ -190,7 +185,7 @@ extension LyricsControllerGeneration on LyricsController {
 
       final lyrics = _buildGeneratedLyrics(
         text: result.text!,
-        source: _lyricsProviderTag(),
+        source: _support.lyricsProviderTag(),
         timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
         translations:
             translationProvider?.call() ??
@@ -211,12 +206,12 @@ extension LyricsControllerGeneration on LyricsController {
   }
 
   Future<String?> generateLyricsForCurrentSong() async {
-    final song = _currentMusic();
+    final song = _context.currentMusic();
     if (song == null) {
       debugPrint('[LyricsController] generate lyrics skipped: no current song');
       return '没有可用的当前歌曲。';
     }
-    if (_lyricsGeneration.isGenerating) {
+    if (_context.lyricsGeneration.isGenerating) {
       debugPrint(
         '[LyricsController] generate lyrics skipped: already generating '
         'path=${song.path}',
@@ -235,7 +230,7 @@ extension LyricsControllerGeneration on LyricsController {
               required onStageChanged,
               required onProgress,
             }) {
-              return _lyricsAiService.generateLyricsFromFile(
+              return _context.lyricsAiService.generateLyricsFromFile(
                 filePath: song.path,
                 songTitle: song.title,
                 onUploadProgress: onUploadProgress,
@@ -251,14 +246,14 @@ extension LyricsControllerGeneration on LyricsController {
   }
 
   Future<String?> generateTimelineForCurrentSong() async {
-    final song = _currentMusic();
+    final song = _context.currentMusic();
     if (song == null) {
       debugPrint(
         '[LyricsController] generate timeline skipped: no current song',
       );
       return '没有可用的当前歌曲。';
     }
-    if (_lyricsGeneration.isGenerating) {
+    if (_context.lyricsGeneration.isGenerating) {
       debugPrint(
         '[LyricsController] generate timeline skipped: already generating '
         'path=${song.path}',
@@ -281,7 +276,7 @@ extension LyricsControllerGeneration on LyricsController {
         databaseSource: LyricsCacheSource.aiTimeline,
         statusLabel: '正在生成时间轴',
         translationProvider: () =>
-            _currentMusic()?.lyrics?.translations ??
+            _context.currentMusic()?.lyrics?.translations ??
             const <String, MusicLyricTranslation>{},
         invoke:
             ({
@@ -289,7 +284,7 @@ extension LyricsControllerGeneration on LyricsController {
               required onStageChanged,
               required onProgress,
             }) {
-              return _lyricsAiService.generateTimelineFromLyrics(
+              return _context.lyricsAiService.generateTimelineFromLyrics(
                 filePath: song.path,
                 lyrics: sourceLyrics,
                 songTitle: song.title,
@@ -306,7 +301,7 @@ extension LyricsControllerGeneration on LyricsController {
   }
 
   Future<String?> regenerateLyricsForCurrentSong() async {
-    final song = _currentMusic();
+    final song = _context.currentMusic();
     if (song == null) {
       debugPrint(
         '[LyricsController] regenerate lyrics skipped: no current song',
@@ -314,8 +309,8 @@ extension LyricsControllerGeneration on LyricsController {
       return '没有可用的当前歌曲。';
     }
 
-    await clearLyricsCacheForCurrentSong();
-    if (_currentMusic()?.path != song.path) {
+    _support.clearLyricsStateForPath(song.path);
+    if (_context.currentMusic()?.path != song.path) {
       return '当前歌曲已切换，重新生成已取消。';
     }
 
@@ -329,13 +324,13 @@ extension LyricsControllerGeneration on LyricsController {
     LyricsCacheSource source = LyricsCacheSource.aiGenerate,
   }) async {
     try {
-      final duration = await _resolveLyricsDuration(song);
+      final duration = await _support.resolveLyricsDuration(song);
       final query = LyricsQuery(
         filePath: song.path,
         fileName: song.name,
-        title: _lyricsTitleForQuery(song),
-        artist: _lyricsArtistForQuery(song),
-        album: _lyricsAlbumForQuery(song),
+        title: _support.lyricsTitleForQuery(song),
+        artist: _support.lyricsArtistForQuery(song),
+        album: _support.lyricsAlbumForQuery(song),
         duration: duration,
       );
       final record = LyricsCacheRecord(
@@ -349,7 +344,7 @@ extension LyricsControllerGeneration on LyricsController {
         timelineOffsetMillis: song.lyrics?.timelineOffset.inMilliseconds ?? 0,
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
-      await _lyricsCacheRepository.saveLyricsCache(record);
+      await _context.lyricsCacheRepository.saveLyricsCache(record);
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache generated lyrics: $e');
     }
@@ -362,11 +357,9 @@ extension LyricsControllerGeneration on LyricsController {
   String _timelineSourceLyricsForSong(MusicFile song) {
     final lyrics = song.lyrics;
     if (lyrics != null && lyrics.plainText.trim().isNotEmpty) {
-      // 保留原始 LRC 文本，让“重新生成时间轴”有机会基于现有时间戳修正，
-      // 而不是把已有时间轴先清掉再重打一次。
       return lyrics.plainText.trim();
     }
 
-    return _currentLyricsText.trim();
+    return _context.getState().currentLyricsText.trim();
   }
 }

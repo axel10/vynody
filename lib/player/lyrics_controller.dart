@@ -5,46 +5,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_file.dart';
-import '../models/music_lyric.dart';
-import '../models/music_lyric_translation.dart';
-import '../utils/network_client.dart';
 import '../utils/language_code_utils.dart';
-import '../utils/lrc_utils.dart';
-import '../utils/lyrics_id_utils.dart';
 import 'audio_riverpod.dart';
-import 'settings_service.dart';
 import 'lyrics_ai_service.dart';
 import 'lyrics_cache_repository.dart';
+import 'lyrics_controller_context.dart';
+import 'lyrics_controller_fetch.dart';
+import 'lyrics_controller_generation.dart';
 import 'lyrics_controller_state.dart';
-import 'lyrics_generation_phase.dart';
-import 'lyrics_generation_result.dart';
+import 'lyrics_controller_translation.dart';
+import 'lyrics_controller_utils.dart';
 import 'lyrics_riverpod.dart';
 import 'lyrics_service.dart';
 import 'metadata_database.dart';
-import 'metadata_helper.dart';
-
-part 'lyrics_controller_fetch.dart';
-part 'lyrics_controller_generation.dart';
-part 'lyrics_controller_translation.dart';
-part 'lyrics_controller_utils.dart';
-
-class _LyricsTranslationRequest {
-  _LyricsTranslationRequest({
-    required this.songPath,
-    required this.cacheKey,
-    required this.languageCode,
-    required this.sourceLyrics,
-    required this.lyricsId,
-    required this.translationKey,
-  });
-
-  final String songPath;
-  final String cacheKey;
-  final String languageCode;
-  final String sourceLyrics;
-  final String lyricsId;
-  final String translationKey;
-}
+import 'lyrics_generation_phase.dart';
+import 'settings_service.dart';
 
 class LyricsController extends Notifier<LyricsControllerState> {
   late final MetadataDatabase _db;
@@ -58,13 +33,11 @@ class LyricsController extends Notifier<LyricsControllerState> {
   late final LyricsService _lyricsService;
   late final LyricsAiService _lyricsAiService;
   late final SettingsService _settingsService;
-
-  int _lyricsRequestSerial = 0;
-  final Set<String> _translatedLyricsKeys = <String>{};
-  final Set<String> _translationInFlightKeys = <String>{};
-  int _lyricsRetrySerial = 0;
-  final _LyricsGenerationRuntime _lyricsGeneration = _LyricsGenerationRuntime();
-  CancelToken? _lyricsFetchCancelToken;
+  late final LyricsControllerContext _context;
+  late final LyricsControllerSupport _support;
+  late final LyricsFetchCoordinator _fetchCoordinator;
+  late final LyricsGenerationCoordinator _generationCoordinator;
+  late final LyricsTranslationCoordinator _translationCoordinator;
 
   @override
   LyricsControllerState build() {
@@ -83,18 +56,49 @@ class LyricsController extends Notifier<LyricsControllerState> {
     );
     _settingsService = ref.read(settingsServiceProvider);
     _lyricsAiService = ref.read(lyricsAiServiceProvider);
+    _context = LyricsControllerContext(
+      db: _db,
+      currentMusic: _currentMusic,
+      queue: _queue,
+      currentIndex: _currentIndex,
+      playerDuration: _playerDuration,
+      isLyricsActive: _isLyricsActive,
+      cacheSongDuration: _cacheSongDuration,
+      lyricsCacheRepository: _lyricsCacheRepository,
+      lyricsService: _lyricsService,
+      lyricsAiService: _lyricsAiService,
+      settingsService: _settingsService,
+      getState: () => state,
+      setState: (newState) => state = newState,
+      clearState: ({bool notify = false}) => clearState(notify: notify),
+      setIsLyricsLoading: (value) => _isLyricsLoading = value,
+      setIsLyricsTranslating: (value) => _isLyricsTranslating = value,
+      setLyricsTranslationStatus: (value) => _lyricsTranslationStatus = value,
+      setLyricsGenerationStatus: (value) => _lyricsGenerationStatus = value,
+      setHasLyrics: (value) => _hasLyrics = value,
+      setLyricsSearchAttempted: (value) => _lyricsSearchAttempted = value,
+      setCurrentLyricsLines: (value) => _currentLyricsLines = value,
+      setCurrentLyricsText: (value) => _currentLyricsText = value,
+      setLyricsGenerating: _setLyricsGenerating,
+      startLyricsGenerationStatus: _startLyricsGenerationStatus,
+      clearLyricsGenerationStatus: _clearLyricsGenerationStatus,
+      bumpRevision: _bumpRevision,
+      logDebug: _logDebug,
+    );
+    _support = LyricsControllerSupport(_context);
+    _fetchCoordinator = LyricsFetchCoordinator(_context, _support);
+    _generationCoordinator = LyricsGenerationCoordinator(_context, _support);
+    _translationCoordinator = LyricsTranslationCoordinator(_context, _support);
     return LyricsControllerState(
       lyricsTranslationLanguageCode:
           LanguageCodeUtils.currentSystemLanguageCode(),
     );
   }
 
-  bool get _isLyricsLoading => state.isLyricsLoading;
   set _isLyricsLoading(bool value) {
     state = state.copyWith(isLyricsLoading: value);
   }
 
-  bool get _isLyricsTranslating => state.isLyricsTranslating;
   set _isLyricsTranslating(bool value) {
     state = state.copyWith(isLyricsTranslating: value);
   }
@@ -107,22 +111,18 @@ class LyricsController extends Notifier<LyricsControllerState> {
     state = state.copyWith(lyricsGenerationStatus: value);
   }
 
-  bool get _hasLyrics => state.hasLyrics;
   set _hasLyrics(bool value) {
     state = state.copyWith(hasLyrics: value);
   }
 
-  bool get _lyricsSearchAttempted => state.lyricsSearchAttempted;
   set _lyricsSearchAttempted(bool value) {
     state = state.copyWith(lyricsSearchAttempted: value);
   }
 
-  List<LyricLine> get _currentLyricsLines => state.currentLyricsLines;
   set _currentLyricsLines(List<LyricLine> value) {
     state = state.copyWith(currentLyricsLines: value);
   }
 
-  String get _currentLyricsText => state.currentLyricsText;
   set _currentLyricsText(String value) {
     state = state.copyWith(currentLyricsText: value);
   }
@@ -147,52 +147,8 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _lyricsGenerationStatus = '';
   }
 
-  void _setGenerationStage(String stage) {
-    switch (stage) {
-      case 'uploading':
-        _setLyricsGenerating(
-          true,
-          phase: LyricsGenerationPhase.uploading,
-          progress: 0.0,
-        );
-        return;
-      case 'processing':
-        _setLyricsGenerating(
-          true,
-          phase: LyricsGenerationPhase.processing,
-          progress: 1.0,
-        );
-        return;
-      case 'generating':
-        _setLyricsGenerating(
-          true,
-          phase: LyricsGenerationPhase.generating,
-          progress: 1.0,
-        );
-        return;
-      default:
-        _setLyricsGenerating(
-          false,
-          phase: LyricsGenerationPhase.idle,
-          progress: 0.0,
-        );
-    }
-  }
-
   void _bumpRevision() {
     state = state.copyWith(revision: state.revision + 1);
-  }
-
-  String _lyricsProviderTag() {
-    return _settingsService.lyricsAiProvider.storageValue;
-  }
-
-  void _cancelOngoingLyricsFetch({String? reason}) {
-    _lyricsRequestSerial++;
-    _lyricsRetrySerial++;
-    _lyricsFetchCancelToken?.cancel(reason ?? 'lyrics generation started');
-    _lyricsFetchCancelToken = null;
-    _isLyricsLoading = false;
   }
 
   void setTranslationLanguageCode(String languageCode) {
@@ -224,11 +180,80 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _currentLyricsLines = songLyrics.syncedLines;
     _currentLyricsText = songLyrics.plainText;
     _lyricsSearchAttempted = true;
-    unawaited(restoreCachedTranslations(song));
+    unawaited(_support.restoreCachedTranslations(song));
     _logDebug(
       'lyrics restored from cache -> title="${song.displayName}" '
       'lines=${songLyrics.syncedLines.length} synced=${songLyrics.isSynced}',
     );
     _bumpRevision();
+  }
+
+  void scheduleFetch(MusicFile song) {
+    _fetchCoordinator.scheduleFetch(song);
+  }
+
+  Future<void> fetchAndLog(MusicFile song) {
+    return _fetchCoordinator.fetchAndLog(song);
+  }
+
+  Future<void> retryFetchUntilReady(MusicFile song) {
+    return _fetchCoordinator.retryFetchUntilReady(song);
+  }
+
+  Future<void> clearAllLyricsCache() {
+    return _fetchCoordinator.clearAllLyricsCache();
+  }
+
+  Future<void> clearLyricsCacheForCurrentSong() {
+    return _fetchCoordinator.clearLyricsCacheForCurrentSong();
+  }
+
+  Future<void> clearTranslationCacheForCurrentSong() {
+    return _fetchCoordinator.clearTranslationCacheForCurrentSong();
+  }
+
+  Future<void> requeryLyricsForCurrentSong() {
+    return _fetchCoordinator.requeryLyricsForCurrentSong();
+  }
+
+  Future<void> clearTranslationCache() {
+    return _fetchCoordinator.clearTranslationCache();
+  }
+
+  Future<void> restoreCachedTranslations(MusicFile song) {
+    return _fetchCoordinator.restoreCachedTranslations(song);
+  }
+
+  Future<String?> generateLyricsForCurrentSong() {
+    return _generationCoordinator.generateLyricsForCurrentSong();
+  }
+
+  Future<String?> generateTimelineForCurrentSong() {
+    return _generationCoordinator.generateTimelineForCurrentSong();
+  }
+
+  Future<String?> regenerateLyricsForCurrentSong() {
+    return _generationCoordinator.regenerateLyricsForCurrentSong();
+  }
+
+  Future<void> translateLyricsForCurrentSong({String? targetLanguageCode}) {
+    return _translationCoordinator.translateLyricsForCurrentSong(
+      targetLanguageCode: targetLanguageCode,
+    );
+  }
+
+  Future<void> updateLyricsTimelineOffsetForCurrentSong(
+    Duration timelineOffset,
+  ) {
+    return _support.updateLyricsTimelineOffsetForCurrentSong(timelineOffset);
+  }
+
+  Future<void> fillLyricsForCurrentSong(String lyricsText) {
+    return _support.fillLyricsForCurrentSong(lyricsText);
+  }
+
+  void _logDebug(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[AudioService][Lyrics] $message');
   }
 }

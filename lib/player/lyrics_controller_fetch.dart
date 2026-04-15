@@ -1,100 +1,119 @@
-part of 'lyrics_controller.dart';
+import 'dart:async';
 
-// ignore_for_file: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
-extension LyricsControllerFetch on LyricsController {
+import '../models/music_file.dart';
+import '../models/music_lyric.dart';
+import '../models/music_lyric_translation.dart';
+import '../utils/lyrics_id_utils.dart';
+import 'lyrics_controller_context.dart';
+import 'lyrics_controller_utils.dart';
+import 'lyrics_generation_phase.dart';
+import 'lyrics_service.dart';
+
+class LyricsFetchCoordinator {
+  LyricsFetchCoordinator(this._context, this._support);
+
+  final LyricsControllerContext _context;
+  final LyricsControllerSupport _support;
+
   void scheduleFetch(MusicFile song) {
     unawaited(fetchAndLog(song));
     unawaited(retryFetchUntilReady(song));
   }
 
   Future<void> fetchAndLog(MusicFile song) async {
-    if (_lyricsGeneration.isGenerating) {
-      _logDebug(
+    if (_context.lyricsGeneration.isGenerating) {
+      _support.logDebug(
         'fetch skipped because lyrics generation is in progress -> '
         'title="${song.displayName}" path="${song.path}"',
       );
       return;
     }
 
-    _lyricsFetchCancelToken?.cancel('replaced by a newer lyrics request');
+    _context.lyricsFetchCancelToken?.cancel(
+      'replaced by a newer lyrics request',
+    );
     final cancelToken = CancelToken();
-    _lyricsFetchCancelToken = cancelToken;
-    _isLyricsLoading = true;
+    _context.lyricsFetchCancelToken = cancelToken;
+    _context.setIsLyricsLoading(true);
 
-    _logDebug(
+    _support.logDebug(
       'fetch request created -> title="${song.displayName}" '
       'path="${song.path}" cancelToken=${identityHashCode(cancelToken)}',
     );
 
-    final queryDuration = await _resolveLyricsDuration(song);
+    final queryDuration = await _support.resolveLyricsDuration(song);
     if (queryDuration == null) {
-      _logDebug(
+      _support.logDebug(
         'fetch skipped, duration not ready -> title="${song.displayName}" '
-        'path="${song.path}" playerDuration=${_playerDuration()} '
+        'path="${song.path}" playerDuration=${_context.playerDuration()} '
         'songDuration=${song.durationMillis}',
       );
-      if (_lyricsFetchCancelToken == cancelToken) {
-        _lyricsFetchCancelToken = null;
+      if (_context.lyricsFetchCancelToken == cancelToken) {
+        _context.lyricsFetchCancelToken = null;
       }
-      _isLyricsLoading = false;
+      _context.setIsLyricsLoading(false);
       return;
     }
 
-    final requestId = ++_lyricsRequestSerial;
+    final requestId = ++_context.lyricsRequestSerial;
     final query = LyricsQuery(
       filePath: song.path,
       fileName: song.name,
-      title: _lyricsTitleForQuery(song),
-      artist: _lyricsArtistForQuery(song),
-      album: _lyricsAlbumForQuery(song),
+      title: _support.lyricsTitleForQuery(song),
+      artist: _support.lyricsArtistForQuery(song),
+      album: _support.lyricsAlbumForQuery(song),
       duration: queryDuration,
     );
 
-    _isLyricsLoading = true;
-    _logDebug(
+    _context.setIsLyricsLoading(true);
+    _support.logDebug(
       'fetch start -> title="${song.displayName}" path="${song.path}" '
-      'queryDuration=$queryDuration playerDuration=${_playerDuration()} '
+      'queryDuration=$queryDuration playerDuration=${_context.playerDuration()} '
       'requestId=$requestId cancelToken=${identityHashCode(cancelToken)}',
     );
 
     try {
-      _logDebug(
+      _support.logDebug(
         'fetch dispatching to lyrics service -> requestId=$requestId '
         'path="${song.path}"',
       );
-      final result = await _lyricsService.fetchBestLyrics(
+      final result = await _context.lyricsService.fetchBestLyrics(
         query: query,
         cancelToken: cancelToken,
       );
-      if (requestId != _lyricsRequestSerial ||
-          _currentMusic()?.path != song.path) {
-        _logDebug(
+      if (requestId != _context.lyricsRequestSerial ||
+          _context.currentMusic()?.path != song.path) {
+        _support.logDebug(
           'fetch ignored due to stale request -> title="${song.displayName}" '
-          'requestId=$requestId latest=$_lyricsRequestSerial '
-          'currentPath="${_currentMusic()?.path}"',
+          'requestId=$requestId latest=${_context.lyricsRequestSerial} '
+          'currentPath="${_context.currentMusic()?.path}"',
         );
         return;
       }
 
-      _isLyricsLoading = false;
-      _lyricsSearchAttempted = true;
-      _hasLyrics = result != null && result.track.hasLyrics;
-      _currentLyricsLines = _buildLyricsLines(
-        result?.syncedLines ?? const [],
-        result?.lyricsText ?? '',
+      _context.setIsLyricsLoading(false);
+      _context.setLyricsSearchAttempted(true);
+      _context.setHasLyrics(result != null && result.track.hasLyrics);
+      _context.setCurrentLyricsLines(
+        _support.buildLyricsLines(
+          result?.syncedLines ?? const [],
+          result?.lyricsText ?? '',
+        ),
       );
-      _currentLyricsText = result?.lyricsText ?? '';
+      _context.setCurrentLyricsText(result?.lyricsText ?? '');
 
-      final updated = _replaceCurrentSongIfPath(
+      final updated = _support.replaceCurrentSongIfPath(
         song.path,
         (currentSong) => currentSong.copyWith(
           lyrics: MusicLyric(
             id:
                 result?.track.lyricsId ??
-                LyricsIdUtils.fromLyricsText(_currentLyricsText),
-            syncedLines: _currentLyricsLines,
-            plainText: _currentLyricsText,
+                LyricsIdUtils.fromLyricsText(_context.state.currentLyricsText),
+            syncedLines: _context.state.currentLyricsLines,
+            plainText: _context.state.currentLyricsText,
             source: result?.source ?? 'lrclib',
             timelineOffset:
                 result?.timelineOffset ??
@@ -104,19 +123,19 @@ extension LyricsControllerFetch on LyricsController {
         ),
       );
       if (updated != null) {
-        unawaited(restoreCachedTranslations(updated));
+        unawaited(_support.restoreCachedTranslations(updated));
       }
 
-      _bumpRevision();
-      _logDebug(
+      _context.bumpRevision();
+      _support.logDebug(
         'fetch completed -> title="${song.displayName}" requestId=$requestId '
         'hasLyrics=${result != null && result.track.hasLyrics} '
         'source=${result?.source ?? 'none'}',
       );
-      _lyricsService.debugPrintSelection(query, result);
+      _context.lyricsService.debugPrintSelection(query, result);
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) {
-        _logDebug(
+        _support.logDebug(
           'fetch canceled -> title="${song.displayName}" '
           'path="${song.path}" requestId=$requestId '
           'cancelToken=${identityHashCode(cancelToken)}',
@@ -124,56 +143,60 @@ extension LyricsControllerFetch on LyricsController {
         return;
       }
       debugPrint('[LyricsController] Failed to fetch lyrics: $e');
-      if (requestId == _lyricsRequestSerial &&
-          _currentMusic()?.path == song.path) {
-        _isLyricsLoading = false;
-        _lyricsSearchAttempted = true;
+      if (requestId == _context.lyricsRequestSerial &&
+          _context.currentMusic()?.path == song.path) {
+        _context.setIsLyricsLoading(false);
+        _context.setLyricsSearchAttempted(true);
       }
     } catch (e) {
       debugPrint('[LyricsController] Failed to fetch lyrics: $e');
-      if (requestId == _lyricsRequestSerial &&
-          _currentMusic()?.path == song.path) {
-        _isLyricsLoading = false;
-        _lyricsSearchAttempted = true;
+      if (requestId == _context.lyricsRequestSerial &&
+          _context.currentMusic()?.path == song.path) {
+        _context.setIsLyricsLoading(false);
+        _context.setLyricsSearchAttempted(true);
       }
     } finally {
-      if (_lyricsFetchCancelToken == cancelToken) {
-        _logDebug(
+      if (_context.lyricsFetchCancelToken == cancelToken) {
+        _support.logDebug(
           'fetch cleanup -> title="${song.displayName}" requestId=$requestId '
           'cancelToken=${identityHashCode(cancelToken)}',
         );
-        _lyricsFetchCancelToken = null;
+        _context.lyricsFetchCancelToken = null;
       }
     }
   }
 
   Future<void> retryFetchUntilReady(MusicFile song) async {
-    if (_lyricsGeneration.isGenerating) {
+    if (_context.lyricsGeneration.isGenerating) {
       return;
     }
-    if (_isLyricsLoading || _lyricsFetchCancelToken != null) {
+    if (_context.state.isLyricsLoading ||
+        _context.lyricsFetchCancelToken != null) {
       return;
     }
 
-    final retryId = ++_lyricsRetrySerial;
+    final retryId = ++_context.lyricsRetrySerial;
     for (var attempt = 0; attempt < 12; attempt++) {
       await Future<void>.delayed(const Duration(milliseconds: 150));
 
-      if (retryId != _lyricsRetrySerial) return;
-      if (!_isLyricsActive() || _currentMusic()?.path != song.path) {
+      if (retryId != _context.lyricsRetrySerial) return;
+      if (!_context.isLyricsActive() ||
+          _context.currentMusic()?.path != song.path) {
         return;
       }
-      if (_hasLyrics || _isLyricsLoading || _lyricsSearchAttempted) {
-        _logDebug(
+      if (_context.state.hasLyrics ||
+          _context.state.isLyricsLoading ||
+          _context.state.lyricsSearchAttempted) {
+        _support.logDebug(
           'retry aborted because state changed -> title="${song.displayName}" '
-          'attempt=${attempt + 1} retryId=$retryId loading=$_isLyricsLoading '
-          'searched=$_lyricsSearchAttempted hasLyrics=$_hasLyrics',
+          'attempt=${attempt + 1} retryId=$retryId loading=${_context.state.isLyricsLoading} '
+          'searched=${_context.state.lyricsSearchAttempted} hasLyrics=${_context.state.hasLyrics}',
         );
         return;
       }
 
-      if (await _resolveLyricsDuration(song) != null) {
-        _logDebug(
+      if (await _support.resolveLyricsDuration(song) != null) {
+        _support.logDebug(
           'retry triggering fetch -> title="${song.displayName}" '
           'attempt=${attempt + 1} retryId=$retryId',
         );
@@ -184,96 +207,104 @@ extension LyricsControllerFetch on LyricsController {
   }
 
   Future<void> clearAllLyricsCache() async {
-    _cancelOngoingLyricsFetch(reason: 'lyrics cache cleared');
-    await _lyricsCacheRepository.clearAllLyricsCaches();
+    _support.cancelOngoingLyricsFetch(reason: 'lyrics cache cleared');
+    await _context.lyricsCacheRepository.clearAllLyricsCaches();
 
-    final queue = _queue();
+    final queue = _context.queue();
     for (var i = 0; i < queue.length; i++) {
       final song = queue[i];
       if (song.lyrics == null) continue;
-      queue[i] = _copySongWithLyrics(song, null);
+      queue[i] = _support.copySongWithLyrics(song, null);
     }
 
-    _translatedLyricsKeys.clear();
-    _translationInFlightKeys.clear();
-    _lyricsTranslationStatus = '';
-    _hasLyrics = false;
-    _isLyricsLoading = false;
-    _isLyricsTranslating = false;
-    _setLyricsGenerating(
+    _context.translatedLyricsKeys.clear();
+    _context.translationInFlightKeys.clear();
+    _context.setLyricsTranslationStatus('');
+    _context.setHasLyrics(false);
+    _context.setIsLyricsLoading(false);
+    _context.setIsLyricsTranslating(false);
+    _context.setLyricsGenerating(
       false,
       phase: LyricsGenerationPhase.idle,
       progress: 0.0,
     );
-    _lyricsSearchAttempted = false;
-    _currentLyricsLines = const [];
-    _currentLyricsText = '';
-    _bumpRevision();
+    _context.setLyricsSearchAttempted(false);
+    _context.setCurrentLyricsLines(const []);
+    _context.setCurrentLyricsText('');
+    _context.bumpRevision();
 
-    final current = _currentMusic();
-    if (_isLyricsActive() && current != null) {
+    final current = _context.currentMusic();
+    if (_context.isLyricsActive() && current != null) {
       scheduleFetch(current);
     }
   }
 
   Future<void> clearLyricsCacheForCurrentSong() async {
-    final song = _currentMusic();
+    final song = _context.currentMusic();
     if (song == null) return;
 
-    final cacheKey = await _lyricsCacheKeyForSong(song);
+    final cacheKey = await _support.lyricsCacheKeyForSong(song);
     if (cacheKey.isNotEmpty) {
-      await _lyricsCacheRepository.clearAllLyricsCachesByKey(cacheKey);
-      _translatedLyricsKeys.removeWhere((key) => key.startsWith('$cacheKey|'));
-      _translationInFlightKeys.removeWhere(
+      await _context.lyricsCacheRepository.clearAllLyricsCachesByKey(cacheKey);
+      _context.translatedLyricsKeys.removeWhere(
+        (key) => key.startsWith('$cacheKey|'),
+      );
+      _context.translationInFlightKeys.removeWhere(
         (key) => key.startsWith('$cacheKey|'),
       );
     }
 
-    if (_currentMusic()?.path != song.path) return;
+    if (_context.currentMusic()?.path != song.path) return;
 
-    _cancelOngoingLyricsFetch(reason: 'lyrics cache cleared for current song');
-    _clearLyricsStateForPath(song.path);
-    _lyricsTranslationStatus = '';
-    _bumpRevision();
+    _support.cancelOngoingLyricsFetch(
+      reason: 'lyrics cache cleared for current song',
+    );
+    _support.clearLyricsStateForPath(song.path);
+    _context.setLyricsTranslationStatus('');
+    _context.bumpRevision();
   }
 
   Future<void> clearTranslationCacheForCurrentSong() async {
-    final song = _currentMusic();
+    final song = _context.currentMusic();
     if (song == null) return;
 
-    final cacheKey = await _lyricsCacheKeyForSong(song);
+    final cacheKey = await _support.lyricsCacheKeyForSong(song);
     if (cacheKey.isNotEmpty) {
-      await _lyricsCacheRepository.clearLyricsTranslationCacheByKey(cacheKey);
-      _translatedLyricsKeys.removeWhere((key) => key.startsWith('$cacheKey|'));
-      _translationInFlightKeys.removeWhere(
+      await _context.lyricsCacheRepository.clearLyricsTranslationCacheByKey(
+        cacheKey,
+      );
+      _context.translatedLyricsKeys.removeWhere(
+        (key) => key.startsWith('$cacheKey|'),
+      );
+      _context.translationInFlightKeys.removeWhere(
         (key) => key.startsWith('$cacheKey|'),
       );
     }
 
-    if (_currentMusic()?.path != song.path) return;
+    if (_context.currentMusic()?.path != song.path) return;
 
-    _clearTranslationStateForPath(song.path);
-    _lyricsTranslationStatus = '';
-    _bumpRevision();
+    _support.clearTranslationStateForPath(song.path);
+    _context.setLyricsTranslationStatus('');
+    _context.bumpRevision();
   }
 
   Future<void> requeryLyricsForCurrentSong() async {
-    final song = _currentMusic();
+    final song = _context.currentMusic();
     if (song == null) return;
 
     await clearLyricsCacheForCurrentSong();
-    if (_currentMusic()?.path != song.path) return;
+    if (_context.currentMusic()?.path != song.path) return;
     scheduleFetch(song);
   }
 
   Future<void> clearTranslationCache() async {
-    await _lyricsCacheRepository.clearLyricsTranslationCache();
+    await _context.lyricsCacheRepository.clearLyricsTranslationCache();
 
-    _translatedLyricsKeys.clear();
-    _translationInFlightKeys.clear();
-    _lyricsTranslationStatus = '';
+    _context.translatedLyricsKeys.clear();
+    _context.translationInFlightKeys.clear();
+    _context.setLyricsTranslationStatus('');
 
-    final queue = _queue();
+    final queue = _context.queue();
     for (var i = 0; i < queue.length; i++) {
       final song = queue[i];
       final lyrics = song.lyrics;
@@ -286,70 +317,10 @@ extension LyricsControllerFetch on LyricsController {
       );
     }
 
-    _bumpRevision();
+    _context.bumpRevision();
   }
 
   Future<void> restoreCachedTranslations(MusicFile song) async {
-    final lyrics = song.lyrics;
-    if (lyrics == null) return;
-
-    final query = await _buildLyricsQueryForSong(song);
-    if (query == null) return;
-
-    try {
-      final cachedTranslations = await _lyricsCacheRepository
-          .getLyricsTranslationCaches(query.cacheKey);
-      if (cachedTranslations.isEmpty) return;
-
-      final preferredLanguageCode =
-          LanguageCodeUtils.currentSystemLanguageCode();
-      cachedTranslations.sort((a, b) {
-        final aPreferred = a.languageCode == preferredLanguageCode;
-        final bPreferred = b.languageCode == preferredLanguageCode;
-        if (aPreferred != bPreferred) {
-          return aPreferred ? -1 : 1;
-        }
-        return b.updatedAtMillis.compareTo(a.updatedAtMillis);
-      });
-
-      final updatedTranslations = Map<String, MusicLyricTranslation>.from(
-        lyrics.translations,
-      );
-      var changed = false;
-
-      for (final record in cachedTranslations) {
-        if (updatedTranslations.containsKey(record.languageCode)) continue;
-        final translation = MusicLyricTranslation(
-          languageCode: record.languageCode,
-          translatedText: record.translatedText,
-          translatedLines: record.translatedLines,
-          provider: record.provider,
-          updatedAt: DateTime.fromMillisecondsSinceEpoch(
-            record.updatedAtMillis,
-          ),
-        );
-        final existing = updatedTranslations[record.languageCode];
-        if (existing == translation) continue;
-        updatedTranslations[record.languageCode] = translation;
-        changed = true;
-      }
-
-      if (!changed) return;
-
-      final queue = _queue();
-      for (var i = 0; i < queue.length; i++) {
-        final queuedSong = queue[i];
-        if (queuedSong.path != song.path) continue;
-        final queuedLyrics = queuedSong.lyrics;
-        if (queuedLyrics == null) continue;
-        queue[i] = queuedSong.copyWith(
-          lyrics: queuedLyrics.copyWith(translations: updatedTranslations),
-        );
-      }
-
-      _bumpRevision();
-    } catch (e) {
-      debugPrint('[LyricsController] Failed to restore translated lyrics: $e');
-    }
+    await _support.restoreCachedTranslations(song);
   }
 }
