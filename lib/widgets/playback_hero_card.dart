@@ -385,7 +385,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final lLyricsControlsLeft = 16.0;
                 final lLyricsControlsWidth = lColWidth - 32.0;
                 final lLyricsControlsHeight =
-                    height - lLyricsControlsTop - 16.0;
+                    height - lLyricsControlsTop - 32.0; // 播放控件歌词模式下底部预留 32 的空白
                 final lLyricsControlsOpacity = 1.0;
 
                 final lLyricsLyricsTop = 16.0;
