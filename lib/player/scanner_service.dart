@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:io';
 import 'dart:async';
 import 'package:audio_core/audio_core.dart';
@@ -27,7 +28,39 @@ class ScanProgress {
 }
 
 class _ScanProgressState {
+  _ScanProgressState({int metadataConcurrency = 4})
+    : metadataRunner = _ConcurrentTaskRunner(metadataConcurrency);
+
   int processedCount = 0;
+  final _ConcurrentTaskRunner metadataRunner;
+  final List<Future<void>> pendingMetadataTasks = [];
+}
+
+class _ConcurrentTaskRunner {
+  _ConcurrentTaskRunner(int maxConcurrent)
+    : maxConcurrent = maxConcurrent < 1 ? 1 : maxConcurrent;
+
+  final int maxConcurrent;
+  int _running = 0;
+  final Queue<Completer<void>> _waitQueue = Queue<Completer<void>>();
+
+  Future<T> run<T>(Future<T> Function() task) async {
+    if (_running >= maxConcurrent) {
+      final waiter = Completer<void>();
+      _waitQueue.addLast(waiter);
+      await waiter.future;
+    }
+
+    _running++;
+    try {
+      return await task();
+    } finally {
+      _running--;
+      if (_waitQueue.isNotEmpty) {
+        _waitQueue.removeFirst().complete();
+      }
+    }
+  }
 }
 
 class ScannerService extends ChangeNotifier {
@@ -40,6 +73,10 @@ class ScannerService extends ChangeNotifier {
   final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
   bool _isBackgroundTaskPaused = false;
+  Timer? _metadataNotifyTimer;
+  Timer? _scanNotifyTimer;
+  bool _scanNotifyPending = false;
+  bool _isDisposed = false;
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -100,6 +137,36 @@ class ScannerService extends ChangeNotifier {
   ScannerService() {
     _init();
     _setupMediaObserver();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_isDisposed) return;
+
+    if (!_isScanning) {
+      super.notifyListeners();
+      return;
+    }
+
+    _scanNotifyPending = true;
+    if (_scanNotifyTimer?.isActive ?? false) {
+      return;
+    }
+
+    _scanNotifyTimer = Timer(const Duration(seconds: 1), () {
+      _scanNotifyTimer = null;
+      if (_isDisposed || !_scanNotifyPending) {
+        return;
+      }
+      _scanNotifyPending = false;
+      super.notifyListeners();
+    });
+  }
+
+  void _flushScanNotifications() {
+    _scanNotifyTimer?.cancel();
+    _scanNotifyTimer = null;
+    _scanNotifyPending = false;
   }
 
   void setPlayerController(AudioCoreController? controller) {
@@ -480,22 +547,30 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
-    for (final entry in entries) {
-      await _waitUntilResumed();
-      final path = filePathOf(entry);
-      if (path == null) continue;
-      try {
-        await MetadataHelper.processMetadata(
-          path,
-          songId: songIdOf(entry),
-          generateThumbnail: false,
-        );
-      } catch (e) {
-        debugPrint('Background processing error for $path: $e');
-      }
+    final scanState = _ScanProgressState(metadataConcurrency: 4);
 
-      await Future.delayed(const Duration(milliseconds: 100));
+    for (final entry in entries) {
+      final currentEntry = entry;
+      final path = filePathOf(currentEntry);
+      if (path == null) continue;
+
+      scanState.pendingMetadataTasks.add(
+        scanState.metadataRunner.run(() async {
+          await _waitUntilResumed();
+          try {
+            await MetadataHelper.processMetadata(
+              path,
+              songId: songIdOf(currentEntry),
+              generateThumbnail: false,
+            );
+          } catch (e) {
+            debugPrint('Background processing error for $path: $e');
+          }
+        }),
+      );
     }
+
+    await Future.wait(scanState.pendingMetadataTasks);
   }
 
   MusicFolder _organizeAndroidMediaLibrary(
@@ -739,7 +814,7 @@ class ScannerService extends ChangeNotifier {
 
     try {
       if (await _checkPermissions()) {
-        final scanState = _ScanProgressState();
+        final scanState = _ScanProgressState(metadataConcurrency: 4);
         final scanRoots = _computeScanRoots(_rootPaths);
         for (final path in scanRoots) {
           debugPrint('Starting scan at: $path');
@@ -763,6 +838,8 @@ class ScannerService extends ChangeNotifier {
 
           await _scanDirectoryInto(rootFolder, path, scanState);
         }
+
+        await Future.wait(scanState.pendingMetadataTasks);
 
         final presentPaths = <String>{};
         for (final root in _scannedRootFolders) {
@@ -797,6 +874,7 @@ class ScannerService extends ChangeNotifier {
       debugPrint('Scan error: $e');
     } finally {
       _isScanning = false;
+      _flushScanNotifications();
       _sortAndNotify();
     }
   }
@@ -835,22 +913,27 @@ class ScannerService extends ChangeNotifier {
       'Starting background metadata rebuild for ${allFilePaths.length} files',
     );
 
-    // Process in batches or one by one
-    for (final path in allFilePaths) {
-      await _waitUntilResumed();
-      try {
-        final result = await MetadataHelper.processMetadata(path);
-        SongMetadata? metadata = result?.$1;
+    final scanState = _ScanProgressState(metadataConcurrency: 4);
 
-        // Metadata update (to update UI metadataMap)
-        if (metadata != null) {
-          _metadataMap[path] = metadata;
-          notifyListeners();
-        }
-      } catch (e) {
-        debugPrint('Error in background metadata rebuild for $path: $e');
-      }
+    for (final path in allFilePaths) {
+      scanState.pendingMetadataTasks.add(
+        scanState.metadataRunner.run(() async {
+          await _waitUntilResumed();
+          try {
+            final result = await MetadataHelper.processMetadata(path);
+            final metadata = result?.$1;
+            if (metadata != null) {
+              _updateMetadataForPath(metadata, notify: false);
+            }
+          } catch (e) {
+            debugPrint('Error in background metadata rebuild for $path: $e');
+          }
+        }),
+      );
     }
+
+    await Future.wait(scanState.pendingMetadataTasks);
+    notifyListeners();
     debugPrint('Background metadata rebuild completed');
   }
 
@@ -895,9 +978,16 @@ class ScannerService extends ChangeNotifier {
   }
 
   void updateMetadataForPath(SongMetadata metadata, {Uint8List? artworkBytes}) {
+    _updateMetadataForPath(metadata, artworkBytes: artworkBytes);
+  }
+
+  void _updateMetadataForPath(
+    SongMetadata metadata, {
+    Uint8List? artworkBytes,
+    bool notify = true,
+  }) {
     _metadataMap[metadata.path] = metadata.copyWith(waveformBlob: null);
 
-    // Update MusicFile objects in the tree if they exist
     for (final root in _scannedRootFolders) {
       _updateMusicFileInFolder(root, metadata, artworkBytes: artworkBytes);
     }
@@ -909,7 +999,11 @@ class ScannerService extends ChangeNotifier {
       );
     }
 
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    } else {
+      _scheduleMetadataNotify();
+    }
   }
 
   void _updateMusicFileInFolder(
@@ -986,64 +1080,38 @@ class ScannerService extends ChangeNotifier {
         } else if (entity is File) {
           final ext = p.extension(entity.path).toLowerCase();
           if (_audioExtensions.contains(ext)) {
-            String? title;
-            String? artist;
-            String? album;
-            int? trackNumber;
-            String? thumbnailPath;
-            String? artworkPath;
-            int? artworkWidth;
-            int? artworkHeight;
-            Uint8List? themeColorsBlob;
-            int? lastModifiedTime;
-
-            if (Platform.isWindows) {
-              final metadata = await _resolveScannedMetadata(
-                entity.path,
-                fallbackTitle: p.basenameWithoutExtension(entity.path),
-                fallbackAlbum: '',
-                fallbackArtist: '',
-                fallbackDuration: null,
-              );
-              _metadataMap[entity.path] = metadata.copyWith(waveformBlob: null);
-              title = metadata.title;
-              artist = metadata.artist;
-              album = metadata.album;
-              trackNumber = metadata.trackNumber;
-              thumbnailPath = metadata.thumbnailPath;
-              artworkPath = metadata.artworkPath;
-              artworkWidth = metadata.artworkWidth;
-              artworkHeight = metadata.artworkHeight;
-              themeColorsBlob = metadata.themeColorsBlob;
-              lastModifiedTime = metadata.lastModifiedTime;
-            }
-
+            final filePath = entity.path;
             folder.files.add(
-              MusicFile(
-                path: entity.path,
-                name: p.basename(entity.path),
-                title: title,
-                artist: artist,
-                album: album,
-                trackNumber: trackNumber,
-                thumbnailPath: thumbnailPath,
-                artworkPath: artworkPath,
-                artworkWidth: artworkWidth,
-                artworkHeight: artworkHeight,
-                themeColorsBlob: themeColorsBlob,
-                lastModifiedTime: lastModifiedTime,
-                id: null,
-              ),
+              MusicFile(path: filePath, name: p.basename(filePath), id: null),
             );
             scanState.processedCount++;
             _scanProgressController.add(
               ScanProgress(
-                filePath: entity.path,
+                filePath: filePath,
                 processedCount: scanState.processedCount,
               ),
             );
             hasContent = true;
-            notifyListeners();
+
+            if (Platform.isWindows) {
+              scanState.pendingMetadataTasks.add(
+                scanState.metadataRunner.run(() async {
+                  await _waitUntilResumed();
+                  try {
+                    final metadata = await _resolveScannedMetadata(
+                      filePath,
+                      fallbackTitle: p.basenameWithoutExtension(filePath),
+                      fallbackAlbum: '',
+                      fallbackArtist: '',
+                      fallbackDuration: null,
+                    );
+                    _updateMetadataForPath(metadata, notify: false);
+                  } catch (e) {
+                    debugPrint('Metadata scan error for $filePath: $e');
+                  }
+                }),
+              );
+            }
           }
         }
       }
@@ -1197,9 +1265,25 @@ class ScannerService extends ChangeNotifier {
     return normalizedPath;
   }
 
+  void _scheduleMetadataNotify() {
+    if (_metadataNotifyTimer?.isActive ?? false) {
+      return;
+    }
+
+    _metadataNotifyTimer = Timer(const Duration(milliseconds: 150), () {
+      _metadataNotifyTimer = null;
+      if (!_isScanning) {
+        notifyListeners();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _isDisposed = true;
     _mediaObserverSubscription?.cancel();
+    _metadataNotifyTimer?.cancel();
+    _scanNotifyTimer?.cancel();
     _scanProgressController.close();
     super.dispose();
   }

@@ -31,6 +31,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   StreamSubscription<ScanProgress>? _scanProgressSubscription;
   ToastFuture? _scanToast;
   bool _wasScanning = false;
+  Timer? _scanToastUpdateTimer;
+  ScanProgress? _pendingScanProgress;
+  DateTime? _lastScanToastUpdateAt;
   final ValueNotifier<_ScanToastState?> _scanToastState =
       ValueNotifier<_ScanToastState?>(null);
 
@@ -114,6 +117,10 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   void _dismissScanToast() {
+    _scanToastUpdateTimer?.cancel();
+    _scanToastUpdateTimer = null;
+    _pendingScanProgress = null;
+    _lastScanToastUpdateAt = null;
     _scanToast?.dismiss(showAnim: false);
     _scanToast = null;
     _scanToastState.value = null;
@@ -131,6 +138,33 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   void _showScanProgressToast(ScanProgress progress) {
     if (!mounted) return;
 
+    _pendingScanProgress = progress;
+
+    final now = DateTime.now();
+    final lastUpdate = _lastScanToastUpdateAt;
+    final elapsed = lastUpdate == null ? null : now.difference(lastUpdate);
+
+    if (_scanToastUpdateTimer?.isActive ?? false) {
+      return;
+    }
+
+    if (elapsed == null || elapsed >= const Duration(seconds: 1)) {
+      _flushPendingScanProgress();
+      return;
+    }
+
+    _scanToastUpdateTimer = Timer(const Duration(seconds: 1) - elapsed, () {
+      _scanToastUpdateTimer = null;
+      if (!mounted) return;
+      _flushPendingScanProgress();
+    });
+  }
+
+  void _flushPendingScanProgress() {
+    final progress = _pendingScanProgress;
+    if (progress == null || !mounted) return;
+
+    _pendingScanProgress = null;
     final l10n = AppLocalizations.of(context);
     _ensureScanToastVisible();
     _scanToastState.value = _ScanToastState(
@@ -140,6 +174,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
           ? 'Processed ${progress.processedCount} files'
           : l10n.filesProcessed(progress.processedCount),
     );
+    _lastScanToastUpdateAt = DateTime.now();
   }
 
   void _toggleSelection(String path) {
@@ -172,6 +207,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   @override
   void dispose() {
+    _scanToastUpdateTimer?.cancel();
     ref.read(scannerServiceProvider).removeListener(_handleScannerChanged);
     _scanProgressSubscription?.cancel();
     _dismissScanToast();
