@@ -340,12 +340,16 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final pLyricsLyricsOpacity = 1.0;
 
                 // ---------------- Landscape Normal ----------------
+                const landscapeNormalLift = 30.0;
+                const landscapeLyricsLift = 0.0;
                 final lNormalCoverSide = math.min(width * 0.42, height * 0.85);
-                final lNormalCoverTop = (height - lNormalCoverSide) / 2;
+                final lNormalCoverTop =
+                    (height - lNormalCoverSide) / 2 - landscapeNormalLift;
                 final lNormalCoverLeft =
                     width * 0.05 + (width * 0.45 - lNormalCoverSide) / 2;
 
-                final lNormalInfoTop = height * 0.5 - 100 - 45;
+                final lNormalInfoTop =
+                    height * 0.5 - 100 - 45 - landscapeNormalLift;
                 final lNormalInfoLeft = width * 0.5;
                 final lNormalInfoWidth = width * 0.45;
                 final lNormalInfoHeight = 90.0;
@@ -369,7 +373,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   lColWidth * 0.8,
                   height * 0.45,
                 );
-                final lLyricsCoverTop = 12.0;
+                final lLyricsCoverTop = 12.0 - landscapeLyricsLift;
                 final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
 
                 final lLyricsInfoTop =
