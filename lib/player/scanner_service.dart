@@ -23,6 +23,7 @@ class ScannerService extends ChangeNotifier {
   AudioCoreController? _playerController;
   StreamSubscription? _mediaObserverSubscription;
   final List<String> _rootPaths = [];
+  final List<MusicFolder> _scannedRootFolders = [];
   final List<MusicFolder> _rootFolders = [];
   bool _isScanning = false;
   bool _isBackgroundTaskPaused = false;
@@ -106,10 +107,11 @@ class ScannerService extends ChangeNotifier {
   }
 
   void _sortAndNotify() {
-    _sortFolders(_rootFolders);
+    _sortFolders(_scannedRootFolders);
     if (_systemMediaFolder != null) {
       _sortFolderRecursive(_systemMediaFolder!);
     }
+    _rebuildDisplayedRootFolders();
     notifyListeners();
   }
 
@@ -179,25 +181,25 @@ class ScannerService extends ChangeNotifier {
       _mediaObserverSubscription = mediaObserverChannel
           .receiveBroadcastStream()
           .listen(
-        (event) {
-          if (event == 'media_changed' && !_isScanning) {
-            debugPrint(
-              'Media library change detected, re-scanning system media...',
-            );
-            scanSystemMedia();
-          }
-        },
-        onError: (err) {
-          debugPrint('Media observer error: $err');
-        },
-      );
+            (event) {
+              if (event == 'media_changed' && !_isScanning) {
+                debugPrint(
+                  'Media library change detected, re-scanning system media...',
+                );
+                scanSystemMedia();
+              }
+            },
+            onError: (err) {
+              debugPrint('Media observer error: $err');
+            },
+          );
     }
   }
 
   Future<void> _loadRootPaths() async {
     final prefs = await SharedPreferences.getInstance();
     final paths = prefs.getStringList('root_paths') ?? [];
-    final normalizedPaths = paths.map(_normalizePath).toSet().toList();
+    final normalizedPaths = _normalizeDeclaredRootPaths(paths);
     _rootPaths.clear();
     _rootPaths.addAll(normalizedPaths);
     notifyListeners();
@@ -218,14 +220,21 @@ class ScannerService extends ChangeNotifier {
 
   Future<bool> addRootPath(String path) async {
     final normalizedPath = _normalizePath(path);
-    if (_rootPaths.any((existing) => _pathsEqual(existing, normalizedPath))) {
+    final existingRoot = _rootPaths.firstWhereOrNull(
+      (existing) => _pathsEqual(existing, normalizedPath),
+    );
+    if (existingRoot != null) {
       final existingFolder = _rootFolders.firstWhereOrNull(
-        (folder) => _pathsEqual(folder.path, normalizedPath),
+        (folder) => _pathsEqual(folder.path, existingRoot),
       );
       return existingFolder != null && !existingFolder.isEmpty;
     }
 
     _rootPaths.add(normalizedPath);
+    final normalizedRoots = _normalizeDeclaredRootPaths(_rootPaths);
+    _rootPaths
+      ..clear()
+      ..addAll(normalizedRoots);
     await _saveRootPaths();
     notifyListeners();
 
@@ -248,6 +257,10 @@ class ScannerService extends ChangeNotifier {
   Future<void> removeRootPath(String path) async {
     final normalizedPath = _normalizePath(path);
     _rootPaths.removeWhere((existing) => _pathsEqual(existing, normalizedPath));
+    final normalizedRoots = _normalizeDeclaredRootPaths(_rootPaths);
+    _rootPaths
+      ..clear()
+      ..addAll(normalizedRoots);
     await _saveRootPaths();
     _rootFolders.removeWhere((f) => _pathsEqual(f.path, normalizedPath));
     notifyListeners();
@@ -619,12 +632,14 @@ class ScannerService extends ChangeNotifier {
     if (_rootPaths.isEmpty) return;
 
     _isScanning = true;
+    _scannedRootFolders.clear();
     _rootFolders.clear();
     notifyListeners();
 
     try {
       if (await _checkPermissions()) {
-        for (final path in _rootPaths) {
+        final scanRoots = _computeScanRoots(_rootPaths);
+        for (final path in scanRoots) {
           debugPrint('Starting scan at: $path');
 
           if (Platform.isAndroid) {
@@ -637,7 +652,7 @@ class ScannerService extends ChangeNotifier {
           }
 
           final folder = await _scanDirectory(path);
-          _rootFolders.add(
+          _scannedRootFolders.add(
             folder ?? MusicFolder(path: path, name: _displayNameForPath(path)),
           );
         }
@@ -676,7 +691,7 @@ class ScannerService extends ChangeNotifier {
       }
     }
 
-    for (final root in _rootFolders) {
+    for (final root in _scannedRootFolders) {
       collectFiles(root);
     }
 
@@ -740,7 +755,7 @@ class ScannerService extends ChangeNotifier {
     _metadataMap[metadata.path] = metadata.copyWith(waveformBlob: null);
 
     // Update MusicFile objects in the tree if they exist
-    for (final root in _rootFolders) {
+    for (final root in _scannedRootFolders) {
       _updateMusicFileInFolder(root, metadata, artworkBytes: artworkBytes);
     }
     if (_systemMediaFolder != null) {
@@ -894,6 +909,81 @@ class ScannerService extends ChangeNotifier {
     return normalized;
   }
 
+  List<String> _normalizeDeclaredRootPaths(Iterable<String> paths) {
+    final normalizedPaths = paths
+        .map(_normalizePath)
+        .where((path) => path.isNotEmpty)
+        .toList();
+
+    final result = <String>[];
+    for (final path in normalizedPaths) {
+      if (result.any((existing) => _pathsEqual(existing, path))) {
+        continue;
+      }
+      result.add(path);
+    }
+
+    return result;
+  }
+
+  List<String> _computeScanRoots(Iterable<String> paths) {
+    final normalizedPaths = _normalizeDeclaredRootPaths(paths);
+    normalizedPaths.sort((a, b) => a.length.compareTo(b.length));
+
+    final result = <String>[];
+    for (final path in normalizedPaths) {
+      if (result.any((existing) => _pathContains(existing, path))) {
+        continue;
+      }
+      result.add(path);
+    }
+
+    return result;
+  }
+
+  void _rebuildDisplayedRootFolders() {
+    final displayedRoots = <MusicFolder>[];
+    for (final path in _rootPaths) {
+      final folder =
+          _resolveFolderForPath(path) ??
+          MusicFolder(path: path, name: _displayNameForPath(path));
+      displayedRoots.add(folder);
+    }
+    _rootFolders
+      ..clear()
+      ..addAll(displayedRoots);
+    _rootFolders.sort(
+      (a, b) => compareNatural(a.name.toLowerCase(), b.name.toLowerCase()),
+    );
+  }
+
+  MusicFolder? _resolveFolderForPath(String path) {
+    final normalizedPath = _normalizePath(path);
+
+    for (final root in _scannedRootFolders) {
+      final resolved = _findFolderInTree(root, normalizedPath);
+      if (resolved != null) return resolved;
+    }
+
+    if (_systemMediaFolder != null) {
+      final resolved = _findFolderInTree(_systemMediaFolder!, normalizedPath);
+      if (resolved != null) return resolved;
+    }
+
+    return null;
+  }
+
+  MusicFolder? _findFolderInTree(MusicFolder folder, String path) {
+    if (_pathsEqual(folder.path, path)) return folder;
+
+    for (final subFolder in folder.subFolders) {
+      final resolved = _findFolderInTree(subFolder, path);
+      if (resolved != null) return resolved;
+    }
+
+    return null;
+  }
+
   bool _pathsEqual(String left, String right) {
     final normalizedLeft = _normalizePath(left);
     final normalizedRight = _normalizePath(right);
@@ -901,6 +991,35 @@ class ScannerService extends ChangeNotifier {
       return normalizedLeft.toLowerCase() == normalizedRight.toLowerCase();
     }
     return normalizedLeft == normalizedRight;
+  }
+
+  bool _pathContains(String parent, String child) {
+    final normalizedParent = _normalizePath(parent);
+    final normalizedChild = _normalizePath(child);
+
+    if (_pathsEqual(normalizedParent, normalizedChild)) {
+      return true;
+    }
+
+    if (Platform.isWindows) {
+      return p.isWithin(
+        normalizedParent.toLowerCase(),
+        normalizedChild.toLowerCase(),
+      );
+    }
+
+    return p.isWithin(normalizedParent, normalizedChild);
+  }
+
+  bool isShortcutRoot(String path) {
+    final normalizedPath = _normalizePath(path);
+    final declaredMatch = _rootPaths.any(
+      (existing) => _pathsEqual(existing, normalizedPath),
+    );
+    if (!declaredMatch) return false;
+
+    final scanRoots = _computeScanRoots(_rootPaths);
+    return !scanRoots.any((existing) => _pathsEqual(existing, normalizedPath));
   }
 
   String _displayNameForPath(String path) {

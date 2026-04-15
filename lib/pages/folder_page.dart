@@ -224,8 +224,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 ),
 
                 // User Added Root Folders
-                ...scanner.rootFolders.map(
-                  (folder) => GestureDetector(
+                ...scanner.rootFolders.map((folder) {
+                  final isShortcut = scanner.isShortcutRoot(folder.path);
+                  return GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onSecondaryTapDown: (details) {
                       unawaited(
@@ -237,15 +238,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       );
                     },
                     child: ListTile(
-                      leading: const Icon(
-                        Icons.folder_shared,
-                        color: Colors.amber,
+                      leading: Icon(
+                        isShortcut ? Icons.shortcut : Icons.folder_shared,
+                        color: isShortcut ? Colors.blue : Colors.amber,
                       ),
                       title: Text(folder.name),
-                      subtitle: Text(
-                        folder.path,
-                        style: const TextStyle(fontSize: 11),
-                      ),
+                      subtitle: Text(folder.path),
                       onTap: () => _navigateTo(folder, scanner),
                       trailing: IconButton(
                         icon: const Icon(
@@ -255,8 +253,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         onPressed: () => scanner.removeRootPath(folder.path),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ],
             ),
           ),
