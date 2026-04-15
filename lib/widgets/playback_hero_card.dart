@@ -52,6 +52,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.overrideProgress,
     this.overridePosition,
     this.overrideWaveform,
+    this.lyricsBottomSpacerHeight = 0.0,
   });
 
   final bool isMini;
@@ -84,6 +85,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   final ValueChanged<double>? onVolumeScroll;
   final VoidCallback? onCoverTap;
   final VoidCallback? onCarouselAnimationComplete;
+  final double lyricsBottomSpacerHeight;
 
   double _lerp2D(
     double pN,
@@ -729,7 +731,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
-                child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ),
@@ -1069,6 +1075,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       lyrics: currentMusic?.lyrics,
       position: position,
       accentColor: accent,
+      bottomSpacerHeight: lyricsBottomSpacerHeight,
     );
   }
 

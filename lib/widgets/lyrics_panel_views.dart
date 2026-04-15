@@ -16,6 +16,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
     required this.onGeneratePressed,
     required this.generateButtonLabel,
     required this.onSecondaryTapDown,
+    required this.bottomSpacerHeight,
   });
 
   final Color accentColor;
@@ -25,69 +26,77 @@ class LyricsPanelEmptyState extends StatelessWidget {
   final Future<void> Function() onGeneratePressed;
   final String generateButtonLabel;
   final GestureTapDownCallback onSecondaryTapDown;
+  final double bottomSpacerHeight;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onSecondaryTapDown: onSecondaryTapDown,
-      child: Stack(
+      child: Column(
         children: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isLoading && !isGenerating) ...[
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(accentColor),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  Text(
-                    isLoading ? '正在查找歌词' : '暂无歌词',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 16,
-                    ),
-                  ),
-                  if (canGenerateLyrics) ...[
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      height: 42,
-                      child: FilledButton.icon(
-                        onPressed: isGenerating
-                            ? null
-                            : () => onGeneratePressed(),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: accentColor.withValues(alpha: 0.95),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isLoading && !isGenerating) ...[
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            accentColor,
+                          ),
                         ),
-                        icon: isGenerating
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                ),
-                              )
-                            : const Icon(Icons.auto_awesome, size: 18),
-                        label: Text(generateButtonLabel),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    Text(
+                      isLoading ? '正在查找歌词' : '暂无歌词',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 16,
                       ),
                     ),
+                    if (canGenerateLyrics) ...[
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        height: 42,
+                        child: FilledButton.icon(
+                          onPressed: isGenerating
+                              ? null
+                              : () => onGeneratePressed(),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: accentColor.withValues(
+                              alpha: 0.95,
+                            ),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                          ),
+                          icon: isGenerating
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                  ),
+                                )
+                              : const Icon(Icons.auto_awesome, size: 18),
+                          label: Text(generateButtonLabel),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
+          SizedBox(height: bottomSpacerHeight),
         ],
       ),
     );
@@ -99,47 +108,52 @@ class LyricsPanelPlainLyricsView extends StatelessWidget {
     super.key,
     required this.displayPlainLyrics,
     required this.onSecondaryTapDown,
+    required this.bottomSpacerHeight,
   });
 
   final String displayPlainLyrics;
   final GestureTapDownCallback onSecondaryTapDown;
+  final double bottomSpacerHeight;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onSecondaryTapDown: onSecondaryTapDown,
-      child: Stack(
+      child: Column(
         children: [
-          ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(
-              scrollbars: false,
-              dragDevices: {
-                PointerDeviceKind.touch,
-                PointerDeviceKind.mouse,
-                PointerDeviceKind.trackpad,
-                PointerDeviceKind.stylus,
-              },
-            ),
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SelectableText(
-                    displayPlainLyrics,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      fontSize: 18,
-                      height: 1.6,
+          Expanded(
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(
+                scrollbars: false,
+                dragDevices: {
+                  PointerDeviceKind.touch,
+                  PointerDeviceKind.mouse,
+                  PointerDeviceKind.trackpad,
+                  PointerDeviceKind.stylus,
+                },
+              ),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SelectableText(
+                      displayPlainLyrics,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 18,
+                        height: 1.6,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
+          SizedBox(height: bottomSpacerHeight),
         ],
       ),
     );
@@ -163,6 +177,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.onVerticalDragEnd,
     required this.onVerticalDragCancel,
     required this.onSecondaryTapDown,
+    required this.bottomSpacerHeight,
   });
 
   final Color accentColor;
@@ -179,6 +194,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final GestureDragEndCallback onVerticalDragEnd;
   final VoidCallback onVerticalDragCancel;
   final GestureTapDownCallback onSecondaryTapDown;
+  final double bottomSpacerHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -189,104 +205,109 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
       onVerticalDragEnd: onVerticalDragEnd,
       onVerticalDragCancel: onVerticalDragCancel,
       onSecondaryTapDown: onSecondaryTapDown,
-      child: Stack(
+      child: Column(
         children: [
-          ScrollConfiguration(
-            behavior: scrollBehavior,
-            child: ListView.builder(
-              controller: scrollController,
-              clipBehavior: Clip.hardEdge,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(left: 8, right: 8, bottom: 60),
-              itemExtent: itemExtent,
-              itemCount: displayLines.length,
-              itemBuilder: (context, index) {
-                final line = displayLines[index];
-                final translated =
-                    lyrics
-                        ?.translatedLineAt(
-                          index,
-                          lyricsState.lyricsTranslationLanguageCode,
-                        )
-                        .trim() ??
-                    '';
-                final distance = (index - activeIndex).abs();
-                final isActive = hasTimedLyrics && index == activeIndex;
-                final isNear = hasTimedLyrics && distance <= 1 && !isActive;
-                final targetScale = isActive ? 1.12 : 1.0;
+          Expanded(
+            child: ScrollConfiguration(
+              behavior: scrollBehavior,
+              child: ListView.builder(
+                controller: scrollController,
+                clipBehavior: Clip.hardEdge,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemExtent: itemExtent,
+                itemCount: displayLines.length,
+                itemBuilder: (context, index) {
+                  final line = displayLines[index];
+                  final translated =
+                      lyrics
+                          ?.translatedLineAt(
+                            index,
+                            lyricsState.lyricsTranslationLanguageCode,
+                          )
+                          .trim() ??
+                      '';
+                  final distance = (index - activeIndex).abs();
+                  final isActive = hasTimedLyrics && index == activeIndex;
+                  final isNear = hasTimedLyrics && distance <= 1 && !isActive;
+                  final targetScale = isActive ? 1.12 : 1.0;
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                  child: Center(
-                    child: AnimatedScale(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOutCubic,
-                      scale: targetScale,
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: DefaultTextStyle(
-                                  style: Theme.of(context).textTheme.bodyLarge!
-                                      .copyWith(
-                                        color: isActive
-                                            ? Colors.white
-                                            : Colors.white.withValues(
-                                                alpha: isNear ? 0.72 : 0.46,
-                                              ),
-                                        fontSize: 16,
-                                        fontWeight: isActive
-                                            ? FontWeight.w700
-                                            : FontWeight.w400,
-                                        height: 1.4,
-                                        leadingDistribution:
-                                            TextLeadingDistribution.even,
-                                      ),
-                                  child: AutoSizeSingleLineText(
-                                    line.text,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    child: Center(
+                      child: AnimatedScale(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        scale: targetScale,
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: DefaultTextStyle(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge!
+                                        .copyWith(
+                                          color: isActive
+                                              ? Colors.white
+                                              : Colors.white.withValues(
+                                                  alpha: isNear ? 0.72 : 0.46,
+                                                ),
+                                          fontSize: 16,
+                                          fontWeight: isActive
+                                              ? FontWeight.w700
+                                              : FontWeight.w400,
+                                          height: 1.4,
+                                          leadingDistribution:
+                                              TextLeadingDistribution.even,
+                                        ),
+                                    child: AutoSizeSingleLineText(
+                                      line.text,
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (translated.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Text(
+                                  translated,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.62),
+                                    fontSize: 13,
+                                    height: 1.3,
+                                    leadingDistribution:
+                                        TextLeadingDistribution.even,
                                   ),
                                 ),
                               ),
                             ],
-                          ),
-                          if (translated.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: Text(
-                                translated,
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.62),
-                                  fontSize: 13,
-                                  height: 1.3,
-                                  leadingDistribution:
-                                      TextLeadingDistribution.even,
-                                ),
-                              ),
-                            ),
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
+          SizedBox(height: bottomSpacerHeight),
         ],
       ),
     );

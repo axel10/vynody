@@ -706,6 +706,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           final isImmersiveActive =
               settings.isImmersiveTabBarEnabled && settings.isUserInactive;
           final shouldReserveBottomNavSpace = !isLyricsMode && !isLandscape;
+          final lyricsBottomSpacerHeight = isLandscape
+              ? 0.0
+              : (isImmersiveActive ? 0.0 : 60.0);
 
           final content = SafeArea(
             bottom: !(isLyricsMode && !isLandscape && isImmersiveActive),
@@ -747,6 +750,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             screenWidth: screenWidth,
                             screenHeight: screenHeight,
                             isNext: isNext,
+                            lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
                             overrideProgress: _isScrubbingProgress
                                 ? _scrubProgress
                                 : null,
