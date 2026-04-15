@@ -15,7 +15,9 @@ class LyricsStatusToast extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final surface = theme.colorScheme.surfaceContainerHighest;
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = isDark ? const Color(0xFF1F1F1F) : Colors.white;
+    final onSurface = isDark ? Colors.white : Colors.black;
     final spinnerColor = accentColor.withValues(alpha: 0.9);
 
     return Material(
@@ -25,12 +27,12 @@ class LyricsStatusToast extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: surface.withValues(alpha: 0.94),
+          color: surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: accentColor.withValues(alpha: 0.22)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.28),
+              color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.14),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -47,7 +49,7 @@ class LyricsStatusToast extends StatelessWidget {
                 strokeWidth: 2,
                 value: null,
                 valueColor: AlwaysStoppedAnimation<Color>(spinnerColor),
-                backgroundColor: Colors.white.withValues(alpha: 0.12),
+                backgroundColor: onSurface.withValues(alpha: 0.12),
               ),
             ),
             const SizedBox(width: 12),
@@ -61,7 +63,7 @@ class LyricsStatusToast extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color: Colors.white,
+                      color: onSurface,
                       fontWeight: FontWeight.w700,
                       height: 1.1,
                     ),
@@ -72,7 +74,7 @@ class LyricsStatusToast extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.78),
+                      color: onSurface.withValues(alpha: 0.8),
                       height: 1.25,
                     ),
                   ),
@@ -99,7 +101,9 @@ class LyricsSeekToast extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final surface = theme.colorScheme.surfaceContainerHighest;
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = isDark ? const Color(0xFF1F1F1F) : Colors.white;
+    final onSurface = isDark ? Colors.white : Colors.black;
 
     return Material(
       color: Colors.transparent,
@@ -108,12 +112,12 @@ class LyricsSeekToast extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: surface.withValues(alpha: 0.94),
+          color: surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: accentColor.withValues(alpha: 0.24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.24),
+              color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.12),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),
@@ -127,7 +131,7 @@ class LyricsSeekToast extends StatelessWidget {
             Text(
               '目标时间 ${_formatDuration(target)}',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: Colors.white,
+                color: onSurface,
                 fontWeight: FontWeight.w700,
                 height: 1.1,
               ),

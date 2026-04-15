@@ -112,45 +112,57 @@ class MyApp extends StatelessWidget {
   final List<String> args;
   const MyApp({super.key, required this.args});
 
+  static const fontFallbacks = [
+    'SourceHanSansCN',
+    'MiSans',
+    'Meiryo',
+    'Yu Gothic',
+    'HarmonyOS Sans SC',
+    'OPPOSans',
+    'VivoSans',
+    'OnePlus Sans',
+    'SamsungOne',
+    'PingFang SC',
+    'Heiti SC',
+    'Microsoft YaHei',
+    'sans-serif',
+  ];
+
+  ThemeData _buildTheme(Brightness brightness) {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: Colors.deepPurple,
+      brightness: brightness,
+    );
+    final isDark = brightness == Brightness.dark;
+    final snackBarBackground = isDark ? const Color(0xFF1F1F1F) : Colors.white;
+    final snackBarForeground = isDark ? Colors.white : Colors.black;
+
+    return ThemeData(
+      colorScheme: colorScheme,
+      useMaterial3: true,
+      fontFamily: 'SourceHanSansCN',
+      fontFamilyFallback: fontFallbacks,
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: snackBarBackground,
+        contentTextStyle: TextStyle(
+          color: snackBarForeground,
+          fontWeight: FontWeight.w600,
+        ),
+        actionTextColor: snackBarForeground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 0,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    const fontFallbacks = [
-      'SourceHanSansCN',
-      'MiSans',
-      'Meiryo',
-      'Yu Gothic',
-      'HarmonyOS Sans SC',
-      'OPPOSans',
-      'VivoSans',
-      'OnePlus Sans',
-      'SamsungOne',
-      'PingFang SC',
-      'Heiti SC',
-      'Microsoft YaHei',
-      'sans-serif',
-    ];
-
     return OKToast(
       child: MaterialApp(
         title: 'Pure Player',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-          fontFamily: 'SourceHanSansCN',
-          fontFamilyFallback: fontFallbacks,
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-          fontFamily: 'SourceHanSansCN',
-          fontFamilyFallback: fontFallbacks,
-        ),
+        theme: _buildTheme(Brightness.light),
+        darkTheme: _buildTheme(Brightness.dark),
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
