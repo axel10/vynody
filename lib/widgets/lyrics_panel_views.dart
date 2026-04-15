@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -125,7 +123,7 @@ class LyricsPanelPlainLyricsView extends StatelessWidget {
             ),
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -157,12 +155,14 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.displayLines,
     required this.hasTimedLyrics,
     required this.activeIndex,
-    required this.seekPreviewIndex,
     required this.scrollController,
     required this.itemExtent,
     required this.scrollBehavior,
+    required this.onVerticalDragStart,
+    required this.onVerticalDragUpdate,
+    required this.onVerticalDragEnd,
+    required this.onVerticalDragCancel,
     required this.onSecondaryTapDown,
-    required this.onScrollNotification,
   });
 
   final Color accentColor;
@@ -171,162 +171,120 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final List<LyricLine> displayLines;
   final bool hasTimedLyrics;
   final int activeIndex;
-  final int? seekPreviewIndex;
   final ScrollController scrollController;
   final double itemExtent;
   final ScrollBehavior scrollBehavior;
+  final GestureDragStartCallback onVerticalDragStart;
+  final GestureDragUpdateCallback onVerticalDragUpdate;
+  final GestureDragEndCallback onVerticalDragEnd;
+  final VoidCallback onVerticalDragCancel;
   final GestureTapDownCallback onSecondaryTapDown;
-  final NotificationListenerCallback<ScrollNotification> onScrollNotification;
-
-  static const double _lyricsListVerticalPadding = 16.0;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
+      onVerticalDragStart: onVerticalDragStart,
+      onVerticalDragUpdate: onVerticalDragUpdate,
+      onVerticalDragEnd: onVerticalDragEnd,
+      onVerticalDragCancel: onVerticalDragCancel,
       onSecondaryTapDown: onSecondaryTapDown,
       child: Stack(
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final edgePadding = _lyricsListEdgePadding(constraints.maxHeight);
-              return NotificationListener<ScrollNotification>(
-                onNotification: onScrollNotification,
-                child: ScrollConfiguration(
-                  behavior: scrollBehavior,
-                  child: ListView.builder(
-                    controller: scrollController,
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: edgePadding,
-                    ),
-                    itemExtent: itemExtent,
-                    itemCount: displayLines.length,
-                    itemBuilder: (context, index) {
-                      final line = displayLines[index];
-                      final translated =
-                          lyrics
-                              ?.translatedLineAt(
-                                index,
-                                lyricsState.lyricsTranslationLanguageCode,
-                              )
-                              .trim() ??
-                          '';
-                      final isSeekPreview =
-                          hasTimedLyrics && index == seekPreviewIndex;
-                      final distance = (index - activeIndex).abs();
-                      final isActive =
-                          hasTimedLyrics &&
-                          index == activeIndex &&
-                          !isSeekPreview;
-                      final isNear =
-                          hasTimedLyrics &&
-                          distance <= 1 &&
-                          !isSeekPreview &&
-                          !isActive;
+          ScrollConfiguration(
+            behavior: scrollBehavior,
+            child: ListView.builder(
+              controller: scrollController,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              itemExtent: itemExtent,
+              itemCount: displayLines.length,
+              itemBuilder: (context, index) {
+                final line = displayLines[index];
+                final translated =
+                    lyrics
+                        ?.translatedLineAt(
+                          index,
+                          lyricsState.lyricsTranslationLanguageCode,
+                        )
+                        .trim() ??
+                    '';
+                final distance = (index - activeIndex).abs();
+                final isActive = hasTimedLyrics && index == activeIndex;
+                final isNear = hasTimedLyrics && distance <= 1 && !isActive;
 
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOutCubic,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSeekPreview
-                              ? accentColor.withValues(alpha: 0.22)
-                              : isActive
-                              ? accentColor.withValues(alpha: 0.12)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: AnimatedDefaultTextStyle(
-                                    duration: const Duration(milliseconds: 220),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge!
-                                        .copyWith(
-                                          color: isSeekPreview
-                                              ? accentColor
-                                              : isActive
-                                              ? Colors.white
-                                              : Colors.white.withValues(
-                                                  alpha: isNear ? 0.72 : 0.46,
-                                                ),
-                                          fontSize: isSeekPreview || isActive
-                                              ? 18
-                                              : 16,
-                                          fontWeight: isSeekPreview
-                                              ? FontWeight.w800
-                                              : isActive
-                                              ? FontWeight.w700
-                                              : FontWeight.w400,
-                                          height: 1.4,
-                                          leadingDistribution:
-                                              TextLeadingDistribution.even,
-                                        ),
-                                    child: AutoSizeSingleLineText(
-                                      line.text,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (translated.isNotEmpty) ...[
-                              const SizedBox(height: 3),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: Text(
-                                  translated,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: isSeekPreview
-                                        ? accentColor.withValues(alpha: 0.92)
-                                        : Colors.white.withValues(alpha: 0.62),
-                                    fontSize: 13,
-                                    height: 1.3,
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? accentColor.withValues(alpha: 0.12)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 220),
+                              style: Theme.of(context).textTheme.bodyLarge!
+                                  .copyWith(
+                                    color: isActive
+                                        ? Colors.white
+                                        : Colors.white.withValues(
+                                            alpha: isNear ? 0.72 : 0.46,
+                                          ),
+                                    fontSize: isActive ? 18 : 16,
+                                    fontWeight: isActive
+                                        ? FontWeight.w700
+                                        : FontWeight.w400,
+                                    height: 1.4,
                                     leadingDistribution:
                                         TextLeadingDistribution.even,
                                   ),
-                                ),
+                              child: AutoSizeSingleLineText(
+                                line.text,
+                                textAlign: TextAlign.center,
                               ),
-                            ],
-                          ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (translated.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            translated,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.62),
+                              fontSize: 13,
+                              height: 1.3,
+                              leadingDistribution: TextLeadingDistribution.even,
+                            ),
+                          ),
                         ),
-                      );
-                    },
+                      ],
+                    ],
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  double _lyricsListEdgePadding(double viewportHeight) {
-    if (!viewportHeight.isFinite || viewportHeight <= 0) {
-      return _lyricsListVerticalPadding;
-    }
-
-    return math.max(
-      _lyricsListVerticalPadding,
-      viewportHeight / 2 - itemExtent / 2,
     );
   }
 }
