@@ -611,11 +611,15 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
       final viewportHeight = _scrollController.position.viewportDimension;
+      final edgePadding = _lyricsListEdgePadding(viewportHeight);
       final maxExtent = _scrollController.position.maxScrollExtent;
       final target = math.max(
         0.0,
         math.min(
-          activeIndex * _itemExtent - viewportHeight / 2 + _itemExtent / 2,
+          edgePadding +
+              activeIndex * _itemExtent -
+              viewportHeight / 2 +
+              _itemExtent / 2,
           maxExtent,
         ),
       );
@@ -761,10 +765,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   ) {
     if (displayLines.isEmpty || !_hasTimedLyrics(displayLines)) return null;
 
+    final edgePadding = _lyricsListEdgePadding(metrics.viewportDimension);
     final centeredOffset =
         metrics.pixels +
         metrics.viewportDimension / 2 -
-        _lyricsListVerticalPadding;
+        edgePadding -
+        _itemExtent / 2;
     return ((centeredOffset / _itemExtent).round()).clamp(
       0,
       displayLines.length - 1,
@@ -795,6 +801,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   bool _hasTimedLyrics(List<LyricLine> displayLines) {
     return displayLines.any((line) => line.isTimed);
+  }
+
+  double _lyricsListEdgePadding(double viewportHeight) {
+    if (!viewportHeight.isFinite || viewportHeight <= 0) {
+      return _lyricsListVerticalPadding;
+    }
+
+    return math.max(
+      _lyricsListVerticalPadding,
+      viewportHeight / 2 - _itemExtent / 2,
+    );
   }
 
   int get _adjustedPositionMilliseconds {
@@ -1129,122 +1146,133 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       },
       child: Stack(
         children: [
-          NotificationListener<ScrollNotification>(
-            onNotification: (notification) =>
-                _handleLyricsScrollNotification(notification, displayLines),
-            child: ScrollConfiguration(
-              behavior: _lyricsScrollBehavior(context),
-              child: ListView.builder(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: _lyricsListVerticalPadding,
-                ),
-                itemExtent: _itemExtent,
-                itemCount: displayLines.length,
-                itemBuilder: (context, index) {
-                  final line = displayLines[index];
-                  final translated =
-                      lyrics
-                          ?.translatedLineAt(
-                            index,
-                            lyricsState.lyricsTranslationLanguageCode,
-                          )
-                          .trim() ??
-                      '';
-                  final isSeekPreview =
-                      hasTimedLyrics && index == seekPreviewIndex;
-                  final distance = (index - activeIndex).abs();
-                  final isActive =
-                      hasTimedLyrics && index == activeIndex && !isSeekPreview;
-                  final isNear =
-                      hasTimedLyrics &&
-                      distance <= 1 &&
-                      !isSeekPreview &&
-                      !isActive;
-
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final edgePadding = _lyricsListEdgePadding(constraints.maxHeight);
+              return NotificationListener<ScrollNotification>(
+                onNotification: (notification) =>
+                    _handleLyricsScrollNotification(notification, displayLines),
+                child: ScrollConfiguration(
+                  behavior: _lyricsScrollBehavior(context),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.symmetric(
                       horizontal: 8,
-                      vertical: 6,
+                      vertical: edgePadding,
                     ),
-                    decoration: BoxDecoration(
-                      color: isSeekPreview
-                          ? accent.withValues(alpha: 0.22)
-                          : isActive
-                          ? accent.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
+                    itemExtent: _itemExtent,
+                    itemCount: displayLines.length,
+                    itemBuilder: (context, index) {
+                      final line = displayLines[index];
+                      final translated =
+                          lyrics
+                              ?.translatedLineAt(
+                                index,
+                                lyricsState.lyricsTranslationLanguageCode,
+                              )
+                              .trim() ??
+                          '';
+                      final isSeekPreview =
+                          hasTimedLyrics && index == seekPreviewIndex;
+                      final distance = (index - activeIndex).abs();
+                      final isActive =
+                          hasTimedLyrics &&
+                          index == activeIndex &&
+                          !isSeekPreview;
+                      final isNear =
+                          hasTimedLyrics &&
+                          distance <= 1 &&
+                          !isSeekPreview &&
+                          !isActive;
+
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSeekPreview
+                              ? accent.withValues(alpha: 0.22)
+                              : isActive
+                              ? accent.withValues(alpha: 0.12)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Expanded(
-                              child: AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 220),
-                                style: Theme.of(context).textTheme.bodyLarge!
-                                    .copyWith(
-                                      color: isSeekPreview
-                                          ? accent
-                                          : isActive
-                                          ? Colors.white
-                                          : Colors.white.withValues(
-                                              alpha: isNear ? 0.72 : 0.46,
-                                            ),
-                                      fontSize: isSeekPreview || isActive
-                                          ? 18
-                                          : 16,
-                                      fontWeight: isSeekPreview
-                                          ? FontWeight.w800
-                                          : isActive
-                                          ? FontWeight.w700
-                                          : FontWeight.w400,
-                                      height: 1.4,
-                                      leadingDistribution:
-                                          TextLeadingDistribution.even,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: AnimatedDefaultTextStyle(
+                                    duration: const Duration(milliseconds: 220),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge!
+                                        .copyWith(
+                                          color: isSeekPreview
+                                              ? accent
+                                              : isActive
+                                              ? Colors.white
+                                              : Colors.white.withValues(
+                                                  alpha: isNear ? 0.72 : 0.46,
+                                                ),
+                                          fontSize: isSeekPreview || isActive
+                                              ? 18
+                                              : 16,
+                                          fontWeight: isSeekPreview
+                                              ? FontWeight.w800
+                                              : isActive
+                                              ? FontWeight.w700
+                                              : FontWeight.w400,
+                                          height: 1.4,
+                                          leadingDistribution:
+                                              TextLeadingDistribution.even,
+                                        ),
+                                    child: _AutoSizeSingleLineText(
+                                      line.text,
+                                      textAlign: TextAlign.center,
                                     ),
-                                child: _AutoSizeSingleLineText(
-                                  line.text,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (translated.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Text(
+                                  translated,
                                   textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isSeekPreview
+                                        ? accent.withValues(alpha: 0.92)
+                                        : Colors.white.withValues(alpha: 0.62),
+                                    fontSize: 13,
+                                    height: 1.3,
+                                    leadingDistribution:
+                                        TextLeadingDistribution.even,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
-                        if (translated.isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              translated,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: isSeekPreview
-                                    ? accent.withValues(alpha: 0.92)
-                                    : Colors.white.withValues(alpha: 0.62),
-                                fontSize: 13,
-                                height: 1.3,
-                                leadingDistribution:
-                                    TextLeadingDistribution.even,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
