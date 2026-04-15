@@ -26,12 +26,14 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
     required this.position,
     this.accentColor,
     this.bottomSpacerHeight = 0.0,
+    this.bottomTabBarHeight = 0.0,
   });
 
   final MusicLyric? lyrics;
   final Duration position;
   final Color? accentColor;
   final double bottomSpacerHeight;
+  final double bottomTabBarHeight;
 
   @override
   rpod.ConsumerState<LyricsPanel> createState() => _LyricsPanelState();
@@ -694,6 +696,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         canGenerateLyrics: canGenerateLyrics,
         generateButtonLabel: _buildGenerateButtonLabel(lyricsState),
         bottomSpacerHeight: widget.bottomSpacerHeight,
+        bottomTabBarHeight: widget.bottomTabBarHeight,
         onGeneratePressed: () async {
           if (await _ensureLyricsApiKey()) {
             if (!mounted) return;

@@ -51,6 +51,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.overridePosition,
     this.overrideWaveform,
     this.lyricsBottomSpacerHeight = 0.0,
+    this.lyricsBottomTabBarHeight = 0.0,
   });
 
   final bool isMini;
@@ -82,6 +83,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   final VoidCallback? onCoverTap;
   final VoidCallback? onCarouselAnimationComplete;
   final double lyricsBottomSpacerHeight;
+  final double lyricsBottomTabBarHeight;
 
   double _lerp2D(
     double pN,
@@ -1076,6 +1078,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       position: position,
       accentColor: accent,
       bottomSpacerHeight: lyricsBottomSpacerHeight,
+      bottomTabBarHeight: lyricsBottomTabBarHeight,
     );
   }
 

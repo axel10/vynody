@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -17,6 +19,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
     required this.generateButtonLabel,
     required this.onSecondaryTapDown,
     required this.bottomSpacerHeight,
+    required this.bottomTabBarHeight,
   });
 
   final Color accentColor;
@@ -27,6 +30,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
   final String generateButtonLabel;
   final GestureTapDownCallback onSecondaryTapDown;
   final double bottomSpacerHeight;
+  final double bottomTabBarHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +100,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: bottomSpacerHeight),
+          SizedBox(height: math.max(bottomSpacerHeight, bottomTabBarHeight)),
         ],
       ),
     );

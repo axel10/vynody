@@ -35,8 +35,7 @@ class PlaybackPage extends ConsumerStatefulWidget {
   ConsumerState<PlaybackPage> createState() => _PlaybackPageState();
 }
 
-class _PlaybackPageState extends ConsumerState<PlaybackPage>
-    {
+class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   bool _showVolumeSlider = false;
   bool _isScrubbingProgress = false;
   double _scrubProgress = 0.0; // Added missing declaration
@@ -704,6 +703,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           final lyricsBottomSpacerHeight = isLandscape
               ? 0.0
               : (isImmersiveActive ? 0.0 : 60.0);
+          final lyricsBottomTabBarHeight = isLandscape ? 0.0 : 60.0;
 
           final content = SafeArea(
             bottom: !(isLyricsMode && !isLandscape && isImmersiveActive),
@@ -744,6 +744,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             isLyricsMode: isLyricsMode,
                             isNext: isNext,
                             lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
+                            lyricsBottomTabBarHeight: lyricsBottomTabBarHeight,
                             overrideProgress: _isScrubbingProgress
                                 ? _scrubProgress
                                 : null,
