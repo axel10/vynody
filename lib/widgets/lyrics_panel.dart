@@ -14,6 +14,7 @@ import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
 import '../player/lyrics_generation_phase.dart';
 import '../player/lyrics_riverpod.dart';
+import '../utils/playback_utils.dart';
 
 class LyricsPanel extends rpod.ConsumerStatefulWidget {
   const LyricsPanel({
@@ -37,18 +38,27 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
   static const double _timelineOffsetStepSeconds = 0.1;
+  static const double _lyricsSeekActivationThreshold = 12.0;
   static const double _statusToastTopOffset = 30.0;
+  static const double _seekToastTopOffset = 88.0;
   static const Duration _statusToastAnimationDuration = Duration(
     milliseconds: 180,
+  );
+  static const Duration _seekToastAnimationDuration = Duration(
+    milliseconds: 160,
   );
   final ScrollController _scrollController = ScrollController();
   int _lastActiveIndex = -1;
   bool _isAutoScrollPaused = false;
   bool _isUserScrubbingLyrics = false;
   double _timelineOffsetSeconds = 0.0;
+  double? _scrubStartPixels;
+  int? _seekPreviewIndex;
   rpod.ProviderSubscription<LyricsControllerState>? _lyricsStateSubscription;
   ToastFuture? _statusToast;
   String? _statusToastSignature;
+  ToastFuture? _seekToast;
+  String? _seekToastSignature;
 
   LyricsController get _lyricsControllerActions =>
       ref.read(lyricsControllerProvider.notifier);
@@ -100,6 +110,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _statusToast?.dismiss(showAnim: showAnim);
     _statusToast = null;
     _statusToastSignature = null;
+  }
+
+  void _dismissSeekToast({bool showAnim = false}) {
+    _seekToast?.dismiss(showAnim: showAnim);
+    _seekToast = null;
+    _seekToastSignature = null;
   }
 
   void _syncStatusToast(LyricsControllerState lyricsState) {
@@ -237,6 +253,71 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _syncSeekToast(Duration target) {
+    final signature = target.inMilliseconds.toString();
+    if (_seekToastSignature == signature && _seekToast?.mounted == true) {
+      return;
+    }
+
+    _dismissSeekToast();
+    _seekToastSignature = signature;
+    _seekToast = showToastWidget(
+      _buildSeekToastWidget(target),
+      context: context,
+      duration: Duration.zero,
+      position: ToastPosition.top.copyWith(
+        align: Alignment.topCenter,
+        offset: _seekToastTopOffset,
+      ),
+      dismissOtherToast: false,
+      handleTouch: false,
+      animationDuration: _seekToastAnimationDuration,
+      animationCurve: Curves.easeOutCubic,
+    );
+  }
+
+  Widget _buildSeekToastWidget(Duration target) {
+    final theme = Theme.of(context);
+    final accent = widget.accentColor ?? theme.colorScheme.primary;
+    final surface = theme.colorScheme.surfaceContainerHighest;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 240),
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: surface.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: accent.withValues(alpha: 0.24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.24),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.schedule_rounded, size: 18, color: accent),
+            const SizedBox(width: 10),
+            Text(
+              '目标时间 ${formatDuration(target)}',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
               ),
             ),
           ],
@@ -397,6 +478,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       });
       if (!_isAutoScrollPaused) {
         _scheduleScrollIfNeeded(force: true);
+      } else {
+        _clearLyricsScrubPreview();
       }
     } else if (selected == 'generate') {
       if (await _ensureLyricsApiKey()) {
@@ -546,6 +629,81 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     });
   }
 
+  void _beginLyricsScrub(ScrollMetrics metrics) {
+    _scrubStartPixels = metrics.pixels;
+    _seekPreviewIndex = null;
+    _dismissSeekToast();
+  }
+
+  void _clearLyricsScrubPreview({bool dismissToast = true}) {
+    _scrubStartPixels = null;
+
+    if (_isUserScrubbingLyrics) {
+      if (mounted) {
+        setState(() {
+          _isUserScrubbingLyrics = false;
+        });
+      } else {
+        _isUserScrubbingLyrics = false;
+      }
+    }
+
+    if (_seekPreviewIndex != null) {
+      if (mounted) {
+        setState(() {
+          _seekPreviewIndex = null;
+        });
+      } else {
+        _seekPreviewIndex = null;
+      }
+    }
+
+    if (dismissToast) {
+      _dismissSeekToast();
+    }
+  }
+
+  void _updateLyricsScrubPreview(
+    ScrollMetrics metrics,
+    List<LyricLine> displayLines,
+  ) {
+    if (_isAutoScrollPaused) return;
+
+    final startPixels = _scrubStartPixels;
+    if (startPixels == null) return;
+
+    final draggedDistance = (metrics.pixels - startPixels).abs();
+    if (draggedDistance < _lyricsSeekActivationThreshold) {
+      return;
+    }
+
+    final targetIndex = _seekLineIndexForScrollMetrics(metrics, displayLines);
+    if (targetIndex == null) return;
+
+    final target = displayLines[targetIndex].timestamp;
+    if (!_isUserScrubbingLyrics) {
+      if (mounted) {
+        setState(() {
+          _isUserScrubbingLyrics = true;
+        });
+      } else {
+        _isUserScrubbingLyrics = true;
+      }
+    }
+
+    if (_seekPreviewIndex != targetIndex) {
+      if (mounted) {
+        setState(() {
+          _seekPreviewIndex = targetIndex;
+        });
+      } else {
+        _seekPreviewIndex = targetIndex;
+      }
+    }
+
+    _syncSeekToast(target);
+  }
+
   bool _handleLyricsScrollNotification(
     ScrollNotification notification,
     List<LyricLine> displayLines,
@@ -554,27 +712,33 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     if (notification is ScrollStartNotification &&
         notification.dragDetails != null) {
-      if (!_isUserScrubbingLyrics && mounted) {
-        setState(() {
-          _isUserScrubbingLyrics = true;
-        });
+      if (_isAutoScrollPaused) {
+        return false;
       }
+      _beginLyricsScrub(notification.metrics);
       return false;
     }
 
-    if (notification is ScrollEndNotification && _isUserScrubbingLyrics) {
-      final target = _seekPositionForScrollMetrics(
-        notification.metrics,
-        displayLines,
-      );
-      if (_isUserScrubbingLyrics && mounted) {
-        setState(() {
-          _isUserScrubbingLyrics = false;
-        });
+    if (notification is ScrollUpdateNotification &&
+        notification.dragDetails != null) {
+      _updateLyricsScrubPreview(notification.metrics, displayLines);
+      return false;
+    }
+
+    if (notification is ScrollEndNotification) {
+      if (_isUserScrubbingLyrics && !_isAutoScrollPaused) {
+        final target = _seekPositionForScrollMetrics(
+          notification.metrics,
+          displayLines,
+        );
+        _clearLyricsScrubPreview();
+        if (target != null) {
+          unawaited(ref.read(audioServiceProvider).seek(target));
+        }
+        return false;
       }
-      if (target != null) {
-        unawaited(ref.read(audioServiceProvider).seek(target));
-      }
+
+      _clearLyricsScrubPreview();
       return false;
     }
 
@@ -585,17 +749,26 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     ScrollMetrics metrics,
     List<LyricLine> displayLines,
   ) {
+    final centeredIndex = _seekLineIndexForScrollMetrics(metrics, displayLines);
+    if (centeredIndex == null) return null;
+
+    return displayLines[centeredIndex].timestamp;
+  }
+
+  int? _seekLineIndexForScrollMetrics(
+    ScrollMetrics metrics,
+    List<LyricLine> displayLines,
+  ) {
     if (displayLines.isEmpty || !_hasTimedLyrics(displayLines)) return null;
 
     final centeredOffset =
         metrics.pixels +
         metrics.viewportDimension / 2 -
         _lyricsListVerticalPadding;
-    final centeredIndex = ((centeredOffset / _itemExtent).round()).clamp(
+    return ((centeredOffset / _itemExtent).round()).clamp(
       0,
       displayLines.length - 1,
     );
-    return displayLines[centeredIndex].timestamp;
   }
 
   int _activeLineIndex(List<LyricLine> displayLines) {
@@ -939,6 +1112,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     _scheduleScrollIfNeeded(displayLines: displayLines);
+    final activeIndex = _activeLineIndex(displayLines);
+    final seekPreviewIndex = _seekPreviewIndex;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -978,10 +1153,16 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                           )
                           .trim() ??
                       '';
-                  final activeIndex = _activeLineIndex(displayLines);
+                  final isSeekPreview =
+                      hasTimedLyrics && index == seekPreviewIndex;
                   final distance = (index - activeIndex).abs();
-                  final isActive = hasTimedLyrics && index == activeIndex;
-                  final isNear = hasTimedLyrics && distance <= 1;
+                  final isActive =
+                      hasTimedLyrics && index == activeIndex && !isSeekPreview;
+                  final isNear =
+                      hasTimedLyrics &&
+                      distance <= 1 &&
+                      !isSeekPreview &&
+                      !isActive;
 
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
@@ -992,7 +1173,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: isActive
+                      color: isSeekPreview
+                          ? accent.withValues(alpha: 0.22)
+                          : isActive
                           ? accent.withValues(alpha: 0.12)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(14),
@@ -1008,13 +1191,19 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                                 duration: const Duration(milliseconds: 220),
                                 style: Theme.of(context).textTheme.bodyLarge!
                                     .copyWith(
-                                      color: isActive
+                                      color: isSeekPreview
+                                          ? accent
+                                          : isActive
                                           ? Colors.white
                                           : Colors.white.withValues(
                                               alpha: isNear ? 0.72 : 0.46,
                                             ),
-                                      fontSize: isActive ? 18 : 16,
-                                      fontWeight: isActive
+                                      fontSize: isSeekPreview || isActive
+                                          ? 18
+                                          : 16,
+                                      fontWeight: isSeekPreview
+                                          ? FontWeight.w800
+                                          : isActive
                                           ? FontWeight.w700
                                           : FontWeight.w400,
                                       height: 1.4,
@@ -1039,7 +1228,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.62),
+                                color: isSeekPreview
+                                    ? accent.withValues(alpha: 0.92)
+                                    : Colors.white.withValues(alpha: 0.62),
                                 fontSize: 13,
                                 height: 1.3,
                                 leadingDistribution:
