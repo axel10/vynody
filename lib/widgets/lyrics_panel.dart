@@ -9,12 +9,15 @@ import 'package:oktoast/oktoast.dart';
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
+import '../dialogs/manual_lyrics_dialog.dart';
+import '../dialogs/timeline_adjustment_dialog.dart';
 import '../player/audio_riverpod.dart';
 import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
 import '../player/lyrics_generation_phase.dart';
 import '../player/lyrics_riverpod.dart';
-import '../utils/playback_utils.dart';
+import 'lyrics_panel_toasts.dart';
+import 'lyrics_panel_views.dart';
 
 class LyricsPanel extends rpod.ConsumerStatefulWidget {
   const LyricsPanel({
@@ -37,7 +40,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   static const double _lyricsListVerticalPadding = 16.0;
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
-  static const double _timelineOffsetStepSeconds = 0.1;
   static const double _lyricsSeekActivationThreshold = 12.0;
   static const double _statusToastTopOffset = 30.0;
   static const double _seekToastTopOffset = 88.0;
@@ -135,7 +137,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _dismissStatusToast();
     _statusToastSignature = payload.signature;
     _statusToast = showToastWidget(
-      _buildStatusToastWidget(payload),
+      LyricsStatusToast(
+        modelLabel: payload.modelLabel,
+        statusLabel: payload.statusLabel,
+        accentColor:
+            widget.accentColor ?? Theme.of(context).colorScheme.primary,
+      ),
       context: context,
       duration: Duration.zero,
       position: ToastPosition.top.copyWith(
@@ -188,79 +195,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     );
   }
 
-  Widget _buildStatusToastWidget(_LyricsStatusToastPayload payload) {
-    final theme = Theme.of(context);
-    final accent = widget.accentColor ?? theme.colorScheme.primary;
-    final surface = theme.colorScheme.surfaceContainerHighest;
-    final spinnerColor = accent.withValues(alpha: 0.9);
-
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 360),
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: surface.withValues(alpha: 0.94),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accent.withValues(alpha: 0.22)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.28),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                value: null,
-                valueColor: AlwaysStoppedAnimation<Color>(spinnerColor),
-                backgroundColor: Colors.white.withValues(alpha: 0.12),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    payload.modelLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    payload.statusLabel,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.78),
-                      height: 1.25,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _syncSeekToast(Duration target) {
     final signature = target.inMilliseconds.toString();
     if (_seekToastSignature == signature && _seekToast?.mounted == true) {
@@ -270,7 +204,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _dismissSeekToast();
     _seekToastSignature = signature;
     _seekToast = showToastWidget(
-      _buildSeekToastWidget(target),
+      LyricsSeekToast(
+        target: target,
+        accentColor:
+            widget.accentColor ?? Theme.of(context).colorScheme.primary,
+      ),
       context: context,
       duration: Duration.zero,
       position: ToastPosition.top.copyWith(
@@ -281,48 +219,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       handleTouch: false,
       animationDuration: _seekToastAnimationDuration,
       animationCurve: Curves.easeOutCubic,
-    );
-  }
-
-  Widget _buildSeekToastWidget(Duration target) {
-    final theme = Theme.of(context);
-    final accent = widget.accentColor ?? theme.colorScheme.primary;
-    final surface = theme.colorScheme.surfaceContainerHighest;
-
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 240),
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: surface.withValues(alpha: 0.94),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: accent.withValues(alpha: 0.24)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.24),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.schedule_rounded, size: 18, color: accent),
-            const SizedBox(width: 10),
-            Text(
-              '目标时间 ${formatDuration(target)}',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                height: 1.1,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -518,56 +414,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   }
 
   Future<void> _showManualLyricsDialog(String initialLyrics) async {
-    final controller = TextEditingController(text: initialLyrics);
-    final submittedLyrics = await showDialog<String?>(
-      context: context,
-      builder: (dialogContext) {
-        var currentValue = initialLyrics;
-
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            final canSave = currentValue.trim().isNotEmpty;
-            return AlertDialog(
-              title: const Text('填写歌词'),
-              content: SizedBox(
-                width: 520,
-                child: TextField(
-                  controller: controller,
-                  autofocus: true,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.newline,
-                  maxLines: 14,
-                  minLines: 8,
-                  decoration: const InputDecoration(
-                    hintText: '在这里粘贴或输入歌词，支持多行文本',
-                    alignLabelWithHint: true,
-                  ),
-                  onChanged: (value) {
-                    setDialogState(() {
-                      currentValue = value;
-                    });
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('取消'),
-                ),
-                FilledButton(
-                  onPressed: canSave
-                      ? () =>
-                            Navigator.of(dialogContext).pop(currentValue.trim())
-                      : null,
-                  child: const Text('确认'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+    final submittedLyrics = await showManualLyricsDialog(
+      context,
+      initialLyrics: initialLyrics,
     );
-    controller.dispose();
 
     if (!mounted || submittedLyrics == null) return;
 
@@ -835,27 +685,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     return (clamped * 10).roundToDouble() / 10.0;
   }
 
-  String _timelineOffsetLabel(double seconds) {
-    final normalized = _normalizeTimelineOffsetSeconds(seconds);
-    if (normalized == 0) {
-      return '当前偏移：0.0 秒';
-    }
-
-    final direction = normalized > 0 ? '延后' : '提前';
-    return '当前偏移：$direction ${normalized.abs().toStringAsFixed(1)} 秒';
-  }
-
   Future<void> _showTimelineAdjustmentPanel(
     List<LyricLine> displayLines,
   ) async {
     if (!_hasTimedLyrics(displayLines)) return;
-
-    final theme = Theme.of(context);
-    final initialValue = _normalizeTimelineOffsetSeconds(
-      _timelineOffsetSeconds,
-    );
-    var dialogValue = initialValue;
-    StateSetter? dialogSetState;
 
     Future<void> commitOffset(double value) async {
       final normalized = _normalizeTimelineOffsetSeconds(value);
@@ -870,106 +703,20 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       );
     }
 
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('手动调整时间轴'),
-          content: StatefulBuilder(
-            builder: (context, setDialogState) {
-              dialogSetState = setDialogState;
-              final label = _timelineOffsetLabel(dialogValue);
-              return ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      '向右拖动会让歌词整体延后，向左拖动会让歌词整体提前。',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      label,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Slider(
-                      value: dialogValue,
-                      min: _timelineOffsetMinSeconds,
-                      max: _timelineOffsetMaxSeconds,
-                      divisions:
-                          ((_timelineOffsetMaxSeconds -
-                                      _timelineOffsetMinSeconds) /
-                                  _timelineOffsetStepSeconds)
-                              .round(),
-                      label: label,
-                      onChanged: (value) {
-                        final snapped = _normalizeTimelineOffsetSeconds(value);
-                        setDialogState(() {
-                          dialogValue = snapped;
-                        });
-                        setState(() {
-                          _timelineOffsetSeconds = snapped;
-                        });
-                      },
-                      onChangeEnd: (value) {
-                        unawaited(commitOffset(value));
-                      },
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '提前 30.0 秒',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          '延后 30.0 秒',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: dialogValue == 0
-                  ? null
-                  : () {
-                      final snapped = _normalizeTimelineOffsetSeconds(0);
-                      dialogSetState?.call(() {
-                        dialogValue = snapped;
-                      });
-                      setState(() {
-                        _timelineOffsetSeconds = snapped;
-                      });
-                      unawaited(commitOffset(snapped));
-                    },
-              child: const Text('重置'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('关闭'),
-            ),
-          ],
-        );
+    await showTimelineAdjustmentDialog(
+      context,
+      initialTimelineOffsetSeconds: _timelineOffsetSeconds,
+      onPreviewChanged: (timelineOffsetSeconds) {
+        if (!mounted) return;
+        if (_timelineOffsetSeconds == timelineOffsetSeconds) {
+          return;
+        }
+        setState(() {
+          _timelineOffsetSeconds = timelineOffsetSeconds;
+        });
+      },
+      onCommit: (timelineOffset) async {
+        await commitOffset(timelineOffset.inMilliseconds / 1000.0);
       },
     );
   }
@@ -991,14 +738,26 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
 
     if (!hasRenderableLyrics) {
-      // 正在查找、已经尝试过联网找歌词，或者当前正在 AI 生成中时，都显示按钮。
-      // 这样在查找中也能切到 AI 生成流程。
       final canGenerateLyrics =
           lyricsState.isLyricsLoading ||
           lyricsState.lyricsSearchAttempted ||
           lyricsState.isLyricsGenerating;
-      return GestureDetector(
-        behavior: HitTestBehavior.translucent,
+      return LyricsPanelEmptyState(
+        accentColor: accent,
+        isLoading: lyricsState.isLyricsLoading,
+        isGenerating: lyricsState.isLyricsGenerating,
+        canGenerateLyrics: canGenerateLyrics,
+        generateButtonLabel: _buildGenerateButtonLabel(lyricsState),
+        onGeneratePressed: () async {
+          if (await _ensureLyricsApiKey()) {
+            if (!mounted) return;
+            final errorMessage = await _lyricsControllerActions
+                .generateLyricsForCurrentSong();
+            if (errorMessage != null) {
+              _showGenerationErrorSnack(errorMessage);
+            }
+          }
+        },
         onSecondaryTapDown: (details) {
           _showContextMenu(
             context,
@@ -1010,83 +769,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             requeryOnly: true,
           );
         },
-        child: Stack(
-          children: [
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (lyricsState.isLyricsLoading &&
-                        !lyricsState.isLyricsGenerating) ...[
-                      SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(accent),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    Text(
-                      lyricsState.isLyricsLoading ? '正在查找歌词' : '暂无歌词',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 16,
-                      ),
-                    ),
-                    if (canGenerateLyrics) ...[
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        height: 42,
-                        child: FilledButton.icon(
-                          // 这里直接调 controller，避免再经由 AudioService 兜一层。
-                          onPressed: lyricsState.isLyricsGenerating
-                              ? null
-                              : () async {
-                                  if (await _ensureLyricsApiKey()) {
-                                    if (!mounted) return;
-                                    final errorMessage =
-                                        await _lyricsControllerActions
-                                            .generateLyricsForCurrentSong();
-                                    if (errorMessage != null) {
-                                      _showGenerationErrorSnack(errorMessage);
-                                    }
-                                  }
-                                },
-                          style: FilledButton.styleFrom(
-                            backgroundColor: accent.withValues(alpha: 0.95),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 18),
-                          ),
-                          icon: lyricsState.isLyricsGenerating
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                  ),
-                                )
-                              : const Icon(Icons.auto_awesome, size: 18),
-                          label: Text(_buildGenerateButtonLabel(lyricsState)),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       );
     }
 
     if (displayLines.isEmpty) {
-      return GestureDetector(
-        behavior: HitTestBehavior.translucent,
+      return LyricsPanelPlainLyricsView(
+        displayPlainLyrics: displayPlainLyrics,
         onSecondaryTapDown: (details) {
           _showContextMenu(
             context,
@@ -1097,34 +785,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             hasCurrentSong: hasCurrentSong,
           );
         },
-        child: Stack(
-          children: [
-            ScrollConfiguration(
-              behavior: _lyricsScrollBehavior(context),
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SelectableText(
-                      displayPlainLyrics,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        fontSize: 18,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       );
     }
 
@@ -1132,8 +792,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final activeIndex = _activeLineIndex(displayLines);
     final seekPreviewIndex = _seekPreviewIndex;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
+    return LyricsPanelTimedLyricsView(
+      accentColor: accent,
+      lyrics: lyrics,
+      lyricsState: lyricsState,
+      displayLines: displayLines,
+      hasTimedLyrics: hasTimedLyrics,
+      activeIndex: activeIndex,
+      seekPreviewIndex: seekPreviewIndex,
+      scrollController: _scrollController,
+      itemExtent: _itemExtent,
+      scrollBehavior: _lyricsScrollBehavior(context),
       onSecondaryTapDown: (details) {
         _showContextMenu(
           context,
@@ -1144,241 +813,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           hasCurrentSong: hasCurrentSong,
         );
       },
-      child: Stack(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final edgePadding = _lyricsListEdgePadding(constraints.maxHeight);
-              return NotificationListener<ScrollNotification>(
-                onNotification: (notification) =>
-                    _handleLyricsScrollNotification(notification, displayLines),
-                child: ScrollConfiguration(
-                  behavior: _lyricsScrollBehavior(context),
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: edgePadding,
-                    ),
-                    itemExtent: _itemExtent,
-                    itemCount: displayLines.length,
-                    itemBuilder: (context, index) {
-                      final line = displayLines[index];
-                      final translated =
-                          lyrics
-                              ?.translatedLineAt(
-                                index,
-                                lyricsState.lyricsTranslationLanguageCode,
-                              )
-                              .trim() ??
-                          '';
-                      final isSeekPreview =
-                          hasTimedLyrics && index == seekPreviewIndex;
-                      final distance = (index - activeIndex).abs();
-                      final isActive =
-                          hasTimedLyrics &&
-                          index == activeIndex &&
-                          !isSeekPreview;
-                      final isNear =
-                          hasTimedLyrics &&
-                          distance <= 1 &&
-                          !isSeekPreview &&
-                          !isActive;
-
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOutCubic,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSeekPreview
-                              ? accent.withValues(alpha: 0.22)
-                              : isActive
-                              ? accent.withValues(alpha: 0.12)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: AnimatedDefaultTextStyle(
-                                    duration: const Duration(milliseconds: 220),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge!
-                                        .copyWith(
-                                          color: isSeekPreview
-                                              ? accent
-                                              : isActive
-                                              ? Colors.white
-                                              : Colors.white.withValues(
-                                                  alpha: isNear ? 0.72 : 0.46,
-                                                ),
-                                          fontSize: isSeekPreview || isActive
-                                              ? 18
-                                              : 16,
-                                          fontWeight: isSeekPreview
-                                              ? FontWeight.w800
-                                              : isActive
-                                              ? FontWeight.w700
-                                              : FontWeight.w400,
-                                          height: 1.4,
-                                          leadingDistribution:
-                                              TextLeadingDistribution.even,
-                                        ),
-                                    child: _AutoSizeSingleLineText(
-                                      line.text,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (translated.isNotEmpty) ...[
-                              const SizedBox(height: 3),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: Text(
-                                  translated,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: isSeekPreview
-                                        ? accent.withValues(alpha: 0.92)
-                                        : Colors.white.withValues(alpha: 0.62),
-                                    fontSize: 13,
-                                    height: 1.3,
-                                    leadingDistribution:
-                                        TextLeadingDistribution.even,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      onScrollNotification: (notification) =>
+          _handleLyricsScrollNotification(notification, displayLines),
     );
-  }
-}
-
-class _AutoSizeSingleLineText extends StatelessWidget {
-  const _AutoSizeSingleLineText(this.text, {required this.textAlign});
-
-  final String text;
-  final TextAlign textAlign;
-
-  static const double _minScaleFactor = 0.82;
-  static const double _absoluteMinFontSize = 12.0;
-  static const double _fontSizeStep = 0.5;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final style = DefaultTextStyle.of(context).style;
-        final baseFontSize = style.fontSize ?? 14.0;
-        final targetFontSize = _resolveFontSize(
-          context: context,
-          text: text,
-          style: style,
-          maxWidth: constraints.maxWidth,
-          baseFontSize: baseFontSize,
-        );
-
-        return Text(
-          text,
-          textAlign: textAlign,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          softWrap: false,
-          style: style.copyWith(fontSize: targetFontSize),
-        );
-      },
-    );
-  }
-
-  double _resolveFontSize({
-    required BuildContext context,
-    required String text,
-    required TextStyle style,
-    required double maxWidth,
-    required double baseFontSize,
-  }) {
-    if (!maxWidth.isFinite || maxWidth <= 0) {
-      return baseFontSize;
-    }
-
-    final minFontSize = math.max(
-      baseFontSize * _minScaleFactor,
-      _absoluteMinFontSize,
-    );
-
-    if (_fits(
-      context: context,
-      text: text,
-      style: style,
-      fontSize: baseFontSize,
-      maxWidth: maxWidth,
-    )) {
-      return baseFontSize;
-    }
-
-    for (
-      double fontSize = baseFontSize - _fontSizeStep;
-      fontSize >= minFontSize;
-      fontSize -= _fontSizeStep
-    ) {
-      if (_fits(
-        context: context,
-        text: text,
-        style: style,
-        fontSize: fontSize,
-        maxWidth: maxWidth,
-      )) {
-        return fontSize;
-      }
-    }
-
-    return minFontSize;
-  }
-
-  bool _fits({
-    required BuildContext context,
-    required String text,
-    required TextStyle style,
-    required double fontSize,
-    required double maxWidth,
-  }) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: style.copyWith(fontSize: fontSize),
-      ),
-      textDirection: Directionality.of(context),
-      maxLines: 1,
-      ellipsis: '…',
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout(maxWidth: maxWidth);
-    return !painter.didExceedMaxLines;
   }
 }
 
