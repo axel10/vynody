@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -28,6 +29,10 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
   StreamSubscription<ScanProgress>? _scanProgressSubscription;
+  ToastFuture? _scanToast;
+  bool _wasScanning = false;
+  final ValueNotifier<_ScanToastState?> _scanToastState =
+      ValueNotifier<_ScanToastState?>(null);
 
   void _navigateTo(MusicFolder folder, ScannerService scanner) {
     final history = List<MusicFolder>.from(scanner.navigationHistory);
@@ -87,20 +92,53 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     });
   }
 
+  void _ensureScanToastVisible() {
+    if (_scanToast?.mounted == true) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    _scanToastState.value = const _ScanToastState(
+      fileName: '',
+      processedCount: 0,
+      processedLabel: '',
+    );
+    _scanToast = showToastWidget(
+      _ScanProgressToast(
+        stateListenable: _scanToastState,
+        label: l10n.scanningDirectory,
+      ),
+      position: ToastPosition.top.copyWith(offset: 28),
+      duration: const Duration(days: 1),
+      dismissOtherToast: true,
+      animationDuration: const Duration(milliseconds: 180),
+    );
+  }
+
+  void _dismissScanToast() {
+    _scanToast?.dismiss(showAnim: false);
+    _scanToast = null;
+    _scanToastState.value = null;
+  }
+
+  void _handleScannerChanged() {
+    final scanner = ref.read(scannerServiceProvider);
+    final isScanning = scanner.isScanning;
+    if (_wasScanning && !isScanning) {
+      _dismissScanToast();
+    }
+    _wasScanning = isScanning;
+  }
+
   void _showScanProgressToast(ScanProgress progress) {
     if (!mounted) return;
 
-    final l10n = AppLocalizations.of(context)!;
-    showToastWidget(
-      _ScanProgressToast(
-        fileName: p.basename(progress.filePath),
-        label: l10n.scanningDirectory,
-        processedLabel: l10n.filesProcessed(progress.processedCount),
-      ),
-      position: ToastPosition.top.copyWith(offset: 28),
-      duration: const Duration(milliseconds: 1100),
-      dismissOtherToast: true,
-      animationDuration: const Duration(milliseconds: 180),
+    final l10n = AppLocalizations.of(context);
+    _ensureScanToastVisible();
+    _scanToastState.value = _ScanToastState(
+      fileName: p.basename(progress.filePath),
+      processedCount: progress.processedCount,
+      processedLabel: l10n == null
+          ? 'Processed ${progress.processedCount} files'
+          : l10n.filesProcessed(progress.processedCount),
     );
   }
 
@@ -123,6 +161,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   @override
   void initState() {
     super.initState();
+    final scanner = ref.read(scannerServiceProvider);
+    _wasScanning = scanner.isScanning;
+    scanner.addListener(_handleScannerChanged);
     _scanProgressSubscription = ref
         .read(scannerServiceProvider)
         .scanProgressStream
@@ -131,7 +172,10 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   @override
   void dispose() {
+    ref.read(scannerServiceProvider).removeListener(_handleScannerChanged);
     _scanProgressSubscription?.cancel();
+    _dismissScanToast();
+    _scanToastState.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -734,14 +778,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
 class _ScanProgressToast extends StatelessWidget {
   const _ScanProgressToast({
-    required this.fileName,
     required this.label,
-    required this.processedLabel,
+    required this.stateListenable,
   });
 
-  final String fileName;
   final String label;
-  final String processedLabel;
+  final ValueListenable<_ScanToastState?> stateListenable;
 
   @override
   Widget build(BuildContext context) {
@@ -751,81 +793,101 @@ class _ScanProgressToast extends StatelessWidget {
     final onSurface = isDark ? Colors.white : Colors.black;
     final accent = theme.colorScheme.primary;
 
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 360),
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accent.withValues(alpha: 0.22)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.14),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+    return ValueListenableBuilder<_ScanToastState?>(
+      valueListenable: stateListenable,
+      builder: (context, state, _) {
+        final fileName = state?.fileName ?? '';
+        final processedLabel = state?.processedLabel ?? '';
+
+        return Material(
+          color: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 360),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: accent.withValues(alpha: 0.22)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.14),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                value: null,
-                valueColor: AlwaysStoppedAnimation<Color>(accent),
-                backgroundColor: onSurface.withValues(alpha: 0.12),
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    value: null,
+                    valueColor: AlwaysStoppedAnimation<Color>(accent),
+                    backgroundColor: onSurface.withValues(alpha: 0.12),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: onSurface,
+                          fontWeight: FontWeight.w700,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        processedLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: onSurface.withValues(alpha: 0.8),
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        fileName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: accent,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: onSurface,
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    processedLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: onSurface.withValues(alpha: 0.8),
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    fileName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: accent,
-                      fontWeight: FontWeight.w600,
-                      height: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
+}
+
+class _ScanToastState {
+  const _ScanToastState({
+    required this.fileName,
+    required this.processedCount,
+    required this.processedLabel,
+  });
+
+  final String fileName;
+  final int processedCount;
+  final String processedLabel;
 }
