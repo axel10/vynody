@@ -316,23 +316,16 @@ class ScannerService extends ChangeNotifier {
           return;
         }
 
-        _metadataMap.clear();
-        final metadataByPath = <String, SongMetadata>{};
-        for (final entry in scanResult.entries) {
-          final filePath = _androidEntryFilePath(entry);
-          if (filePath == null) continue;
-          final metadata = await _resolveScannedMetadata(
-            filePath,
-            songId: int.tryParse(entry.id),
-            fallbackTitle: entry.label,
-            fallbackAlbum: entry.album ?? '',
-            fallbackArtist: entry.artist ?? '',
-            fallbackDuration: entry.duration.inMilliseconds,
-            fallbackTrackNumber: null,
-          );
-          metadataByPath[filePath] = metadata;
-          _metadataMap[filePath] = metadata.copyWith(waveformBlob: null);
-        }
+        final metadataByPath = await _buildScannedMetadataMap(
+          scanResult.entries,
+          filePathOf: _androidEntryFilePath,
+          songIdOf: (entry) => int.tryParse(entry.id),
+          fallbackTitleOf: (entry) => entry.label,
+          fallbackAlbumOf: (entry) => entry.album ?? '',
+          fallbackArtistOf: (entry) => entry.artist ?? '',
+          fallbackDurationOf: (entry) => entry.duration.inMilliseconds,
+          fallbackTrackNumberOf: (_) => null,
+        );
 
         _systemMediaFolder = _organizeAndroidMediaLibrary(
           scanResult.entries,
@@ -355,21 +348,16 @@ class ScannerService extends ChangeNotifier {
           ignoreCase: true,
         );
 
-        _metadataMap.clear();
-        final metadataByPath = <String, SongMetadata>{};
-        for (final song in songs) {
-          final metadata = await _resolveScannedMetadata(
-            song.data,
-            songId: song.id,
-            fallbackTitle: song.title,
-            fallbackAlbum: song.album ?? '',
-            fallbackArtist: song.artist ?? '',
-            fallbackDuration: song.duration,
-            fallbackTrackNumber: song.track,
-          );
-          metadataByPath[song.data] = metadata;
-          _metadataMap[song.data] = metadata.copyWith(waveformBlob: null);
-        }
+        final metadataByPath = await _buildScannedMetadataMap(
+          songs,
+          filePathOf: (song) => song.data,
+          songIdOf: (song) => song.id,
+          fallbackTitleOf: (song) => song.title,
+          fallbackAlbumOf: (song) => song.album ?? '',
+          fallbackArtistOf: (song) => song.artist ?? '',
+          fallbackDurationOf: (song) => song.duration,
+          fallbackTrackNumberOf: (song) => song.track,
+        );
 
         _systemMediaFolder = _organizeSongsIntoFolders(songs, metadataByPath);
         if (_systemMediaFolder != null) {
@@ -409,50 +397,60 @@ class ScannerService extends ChangeNotifier {
   Future<void> _processAndSaveAndroidSongsBackground(
     List<AndroidMediaLibraryEntry> entries,
   ) async {
-    final player = _playerController;
-    if (player == null) {
-      debugPrint('Player controller not set for background scanning');
-      return;
-    }
-
-    try {
-      // Ensure the shared player is initialized (idempotent)
-      await player.initialize();
-    } catch (e) {
-      debugPrint(
-        'Failed to initialize shared player for background scanning: $e',
-      );
-      return;
-    }
-
-    try {
-      for (final entry in entries) {
-        await _waitUntilResumed();
-        final path = _androidEntryFilePath(entry);
-        if (path == null) continue;
-        try {
-          // Use the unified MetadataHelper to process metadata.
-          // This will extract tags, save thumbnails, and generate theme colors.
-          await MetadataHelper.processMetadata(
-            path,
-            songId: int.tryParse(entry.id),
-            generateThumbnail: false,
-          );
-
-          // Metadata processing finishes here. No waveform extraction during initial scan.
-        } catch (e) {
-          debugPrint('Background processing error for $path: $e');
-        }
-
-        // Yield to event loop to avoid UI jank
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-    } finally {
-      // We no longer dispose the shared player here
-    }
+    await _processEntriesBackground(
+      entries,
+      filePathOf: _androidEntryFilePath,
+      songIdOf: (entry) => int.tryParse(entry.id),
+    );
   }
 
   Future<void> _processAndSaveIosSongsBackground(List<SongModel> songs) async {
+    await _processEntriesBackground(
+      songs,
+      filePathOf: (song) => song.data,
+      songIdOf: (song) => song.id,
+    );
+  }
+
+  Future<Map<String, SongMetadata>> _buildScannedMetadataMap<T>(
+    Iterable<T> entries, {
+    required String? Function(T entry) filePathOf,
+    required int? Function(T entry) songIdOf,
+    required String Function(T entry) fallbackTitleOf,
+    required String Function(T entry) fallbackAlbumOf,
+    required String Function(T entry) fallbackArtistOf,
+    required int? Function(T entry) fallbackDurationOf,
+    required int? Function(T entry) fallbackTrackNumberOf,
+  }) async {
+    _metadataMap.clear();
+    final metadataByPath = <String, SongMetadata>{};
+
+    for (final entry in entries) {
+      final filePath = filePathOf(entry);
+      if (filePath == null) continue;
+
+      final metadata = await _resolveScannedMetadata(
+        filePath,
+        songId: songIdOf(entry),
+        fallbackTitle: fallbackTitleOf(entry),
+        fallbackAlbum: fallbackAlbumOf(entry),
+        fallbackArtist: fallbackArtistOf(entry),
+        fallbackDuration: fallbackDurationOf(entry),
+        fallbackTrackNumber: fallbackTrackNumberOf(entry),
+      );
+
+      metadataByPath[filePath] = metadata;
+      _metadataMap[filePath] = metadata.copyWith(waveformBlob: null);
+    }
+
+    return metadataByPath;
+  }
+
+  Future<void> _processEntriesBackground<T>(
+    Iterable<T> entries, {
+    required String? Function(T entry) filePathOf,
+    required int? Function(T entry) songIdOf,
+  }) async {
     final player = _playerController;
     if (player == null) {
       debugPrint('Player controller not set for background scanning');
@@ -468,16 +466,18 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
-    for (final song in songs) {
+    for (final entry in entries) {
       await _waitUntilResumed();
+      final path = filePathOf(entry);
+      if (path == null) continue;
       try {
         await MetadataHelper.processMetadata(
-          song.data,
-          songId: song.id,
+          path,
+          songId: songIdOf(entry),
           generateThumbnail: false,
         );
       } catch (e) {
-        debugPrint('Background processing error for ${song.data}: $e');
+        debugPrint('Background processing error for $path: $e');
       }
 
       await Future.delayed(const Duration(milliseconds: 100));
