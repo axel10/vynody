@@ -705,6 +705,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           final settings = ref.watch(settingsServiceProvider);
           final isImmersiveActive =
               settings.isImmersiveTabBarEnabled && settings.isUserInactive;
+          final shouldReserveBottomNavSpace = !isLyricsMode && !isLandscape;
 
           final content = SafeArea(
             bottom: !(isLyricsMode && !isLandscape && isImmersiveActive),
@@ -719,9 +720,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                 isLyricsMode
                     ? (isLandscape ? 24.0 : 16.0)
                     : (isLandscape ? 32.0 : 24.0),
-                (!isLyricsMode && !isLandscape && !isImmersiveActive)
-                    ? 60.0
-                    : 0.0,
+                shouldReserveBottomNavSpace ? 60.0 : 0.0,
               ),
               child: Column(
                 children: [
