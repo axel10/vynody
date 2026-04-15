@@ -195,6 +195,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
             behavior: scrollBehavior,
             child: ListView.builder(
               controller: scrollController,
+              clipBehavior: Clip.hardEdge,
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.only(left: 8, right: 8, bottom: 60),
               itemExtent: itemExtent,
@@ -212,73 +213,75 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                 final distance = (index - activeIndex).abs();
                 final isActive = hasTimedLyrics && index == activeIndex;
                 final isNear = hasTimedLyrics && distance <= 1 && !isActive;
+                final targetScale = isActive ? 1.12 : 1.0;
 
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.center,
+                return Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 6,
                   ),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? accentColor.withValues(alpha: 0.12)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
+                  child: Center(
+                    child: AnimatedScale(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
+                      scale: targetScale,
+                      alignment: Alignment.center,
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Expanded(
-                            child: AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 220),
-                              style: Theme.of(context).textTheme.bodyLarge!
-                                  .copyWith(
-                                    color: isActive
-                                        ? Colors.white
-                                        : Colors.white.withValues(
-                                            alpha: isNear ? 0.72 : 0.46,
-                                          ),
-                                    fontSize: isActive ? 18 : 16,
-                                    fontWeight: isActive
-                                        ? FontWeight.w700
-                                        : FontWeight.w400,
-                                    height: 1.4,
-                                    leadingDistribution:
-                                        TextLeadingDistribution.even,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: DefaultTextStyle(
+                                  style: Theme.of(context).textTheme.bodyLarge!
+                                      .copyWith(
+                                        color: isActive
+                                            ? Colors.white
+                                            : Colors.white.withValues(
+                                                alpha: isNear ? 0.72 : 0.46,
+                                              ),
+                                        fontSize: 16,
+                                        fontWeight: isActive
+                                            ? FontWeight.w700
+                                            : FontWeight.w400,
+                                        height: 1.4,
+                                        leadingDistribution:
+                                            TextLeadingDistribution.even,
+                                      ),
+                                  child: AutoSizeSingleLineText(
+                                    line.text,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
                                   ),
-                              child: AutoSizeSingleLineText(
-                                line.text,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (translated.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Text(
+                                translated,
                                 textAlign: TextAlign.center,
-                                maxLines: 2,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.62),
+                                  fontSize: 13,
+                                  height: 1.3,
+                                  leadingDistribution:
+                                      TextLeadingDistribution.even,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
-                      if (translated.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            translated,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.62),
-                              fontSize: 13,
-                              height: 1.3,
-                              leadingDistribution: TextLeadingDistribution.even,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
                 );
               },
