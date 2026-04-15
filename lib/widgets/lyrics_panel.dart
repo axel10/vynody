@@ -891,7 +891,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             child: ListView.builder(
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
               itemExtent: _itemExtent,
               itemCount: displayLines.length,
               itemBuilder: (context, index) {
@@ -914,7 +914,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                   curve: Curves.easeOutCubic,
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
+                    horizontal: 8,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
@@ -957,11 +957,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                                     leadingDistribution:
                                         TextLeadingDistribution.even,
                                   ),
-                              child: Text(
+                              child: _AutoSizeSingleLineText(
                                 line.text,
                                 textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
@@ -970,7 +968,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                       if (translated.isNotEmpty) ...[
                         const SizedBox(height: 3),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             translated,
                             textAlign: TextAlign.center,
@@ -994,6 +992,108 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         ],
       ),
     );
+  }
+}
+
+class _AutoSizeSingleLineText extends StatelessWidget {
+  const _AutoSizeSingleLineText(this.text, {required this.textAlign});
+
+  final String text;
+  final TextAlign textAlign;
+
+  static const double _minScaleFactor = 0.82;
+  static const double _absoluteMinFontSize = 12.0;
+  static const double _fontSizeStep = 0.5;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final style = DefaultTextStyle.of(context).style;
+        final baseFontSize = style.fontSize ?? 14.0;
+        final targetFontSize = _resolveFontSize(
+          context: context,
+          text: text,
+          style: style,
+          maxWidth: constraints.maxWidth,
+          baseFontSize: baseFontSize,
+        );
+
+        return Text(
+          text,
+          textAlign: textAlign,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+          style: style.copyWith(fontSize: targetFontSize),
+        );
+      },
+    );
+  }
+
+  double _resolveFontSize({
+    required BuildContext context,
+    required String text,
+    required TextStyle style,
+    required double maxWidth,
+    required double baseFontSize,
+  }) {
+    if (!maxWidth.isFinite || maxWidth <= 0) {
+      return baseFontSize;
+    }
+
+    final minFontSize = math.max(
+      baseFontSize * _minScaleFactor,
+      _absoluteMinFontSize,
+    );
+
+    if (_fits(
+      context: context,
+      text: text,
+      style: style,
+      fontSize: baseFontSize,
+      maxWidth: maxWidth,
+    )) {
+      return baseFontSize;
+    }
+
+    for (
+      double fontSize = baseFontSize - _fontSizeStep;
+      fontSize >= minFontSize;
+      fontSize -= _fontSizeStep
+    ) {
+      if (_fits(
+        context: context,
+        text: text,
+        style: style,
+        fontSize: fontSize,
+        maxWidth: maxWidth,
+      )) {
+        return fontSize;
+      }
+    }
+
+    return minFontSize;
+  }
+
+  bool _fits({
+    required BuildContext context,
+    required String text,
+    required TextStyle style,
+    required double fontSize,
+    required double maxWidth,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: style.copyWith(fontSize: fontSize),
+      ),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+      ellipsis: '…',
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: maxWidth);
+    return !painter.didExceedMaxLines;
   }
 }
 
