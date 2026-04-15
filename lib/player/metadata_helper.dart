@@ -285,8 +285,13 @@ class MetadataHelper {
       int? trackNumber;
 
       try {
-        // 2. 在 Isolate 中读取文件 ID3 标签 and 原始封面字节，避免 UI 卡顿
-        final metadata = await compute(readMetadataIsolate, filePath);
+        // 2. 在 Isolate 中读取文件标签；只有需要缩略图时才取封面字节
+        final metadata = await compute(
+          generateThumbnail
+              ? readMetadataWithImageIsolate
+              : readMetadataIsolate,
+          filePath,
+        );
         title = metadata.title;
         album = metadata.album;
         artist = metadata.artist;
@@ -529,7 +534,7 @@ class MetadataHelper {
   /// 解码文件内嵌封面，分辨率限制在 [maxWidth] * [maxHeight]
   static Future<Uint8List?> decodeEmbeddedArtwork(String filePath) async {
     try {
-      final metadata = await compute(readMetadataIsolate, filePath);
+      final metadata = await compute(readMetadataWithImageIsolate, filePath);
       if (metadata.pictures.isEmpty) return null;
 
       return metadata.pictures.first.bytes;
@@ -567,7 +572,75 @@ class MetadataHelper {
   }
 
   static AudioMetadata readMetadataIsolate(String path) {
+    return readMetadata(File(path), getImage: false);
+  }
+
+  static AudioMetadata readMetadataWithImageIsolate(String path) {
     return readMetadata(File(path), getImage: true);
+  }
+
+  static Future<List<Map<String, dynamic>>> readMetadataBatch(
+    List<String> filePaths, {
+    bool getImage = false,
+  }) {
+    if (filePaths.isEmpty) {
+      return SynchronousFuture<List<Map<String, dynamic>>>(const []);
+    }
+
+    return compute(_readMetadataBatchIsolate, <String, dynamic>{
+      'paths': filePaths,
+      'getImage': getImage,
+    });
+  }
+
+  static List<Map<String, dynamic>> _readMetadataBatchIsolate(
+    Map<String, dynamic> args,
+  ) {
+    final paths = (args['paths'] as List).cast<String>();
+    final getImage = args['getImage'] as bool? ?? false;
+    return paths
+        .map((path) {
+          final file = File(path);
+          try {
+            final metadata = readMetadata(file, getImage: getImage);
+            final lastModified = file.lastModifiedSync().millisecondsSinceEpoch;
+            return <String, dynamic>{
+              'path': path,
+              'title': metadata.title,
+              'album': metadata.album,
+              'artist': metadata.artist,
+              'duration': metadata.duration?.inMilliseconds,
+              'trackNumber': metadata.trackNumber,
+              'lastModifiedTime': lastModified,
+              'artworkBytes': getImage && metadata.pictures.isNotEmpty
+                  ? metadata.pictures.first.bytes
+                  : null,
+              'error': null,
+            };
+          } catch (e) {
+            final lastModified = _safeLastModifiedMillis(file);
+            return <String, dynamic>{
+              'path': path,
+              'title': null,
+              'album': null,
+              'artist': null,
+              'duration': null,
+              'trackNumber': null,
+              'lastModifiedTime': lastModified,
+              'artworkBytes': null,
+              'error': e.toString(),
+            };
+          }
+        })
+        .toList(growable: false);
+  }
+
+  static int? _safeLastModifiedMillis(File file) {
+    try {
+      return file.lastModifiedSync().millisecondsSinceEpoch;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Saves metadata to a single audio file.
