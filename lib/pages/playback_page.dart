@@ -708,7 +708,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
           final content = SafeArea(
             bottom: !(isLyricsMode && !isLandscape && isImmersiveActive),
-            child: Padding(
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.fastOutSlowIn,
               padding: EdgeInsets.fromLTRB(
                 isLyricsMode
                     ? (isLandscape ? 24.0 : 16.0)
@@ -717,7 +719,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                 isLyricsMode
                     ? (isLandscape ? 24.0 : 16.0)
                     : (isLandscape ? 32.0 : 24.0),
-                0,
+                (!isLyricsMode && !isLandscape && !isImmersiveActive)
+                    ? 60.0
+                    : 0.0,
               ),
               child: Column(
                 children: [
