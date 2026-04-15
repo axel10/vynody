@@ -299,21 +299,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             },
           ),
           const Divider(height: 1),
-                    if (settings.canAutoSwitchLyricsProvider)
-            SwitchListTile(
-              title: const Text(
-                '自动切换歌词供应商',
-                style: TextStyle(color: Colors.white),
-              ),
-              subtitle: const Text(
-                '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。',
-                style: TextStyle(color: Colors.white70),
-              ),
-              value: settings.isLyricsAiAutoSwitchEnabled,
-              onChanged: (value) {
-                settings.isLyricsAiAutoSwitchEnabled = value;
-              },
+          SwitchListTile(
+            title: const Text(
+              '自动切换歌词供应商',
+              style: TextStyle(color: Colors.white),
             ),
+            subtitle: Text(
+              settings.canAutoSwitchLyricsProvider
+                  ? '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。'
+                  : '请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            value: settings.isLyricsAiAutoSwitchEnabled,
+            onChanged: settings.canAutoSwitchLyricsProvider
+                ? (value) {
+                    settings.isLyricsAiAutoSwitchEnabled = value;
+                  }
+                : null,
+          ),
 
           ListTile(
             title: const Text(
