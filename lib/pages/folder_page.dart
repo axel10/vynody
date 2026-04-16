@@ -28,6 +28,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
+  bool _isRootSelectionMode = false;
+  final Set<String> _selectedRootPaths = {};
   StreamSubscription<ScanProgress>? _scanProgressSubscription;
   ToastFuture? _scanToast;
   bool _wasScanning = false;
@@ -45,7 +47,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       history.add(scanner.navigationCurrentFolder!);
     }
     scanner.setNavigationState(folder, history);
-    _clearSelection();
+    _clearAllSelection();
     _scrollToTop();
   }
 
@@ -57,13 +59,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       final folder = history.removeLast();
       scanner.setNavigationState(folder, history);
     }
-    _clearSelection();
+    _clearAllSelection();
     _scrollToTop();
   }
 
   void _goHome(ScannerService scanner) {
     scanner.setNavigationState(null, []);
-    _clearSelection();
+    _clearAllSelection();
     _scrollToTop();
   }
 
@@ -89,11 +91,27 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     });
   }
 
-  void _clearSelection() {
-    if (!_isSelectionMode && _selectedSongPaths.isEmpty) return;
+  void _toggleRootSelectionMode() {
+    setState(() {
+      _isRootSelectionMode = !_isRootSelectionMode;
+      if (!_isRootSelectionMode) {
+        _selectedRootPaths.clear();
+      }
+    });
+  }
+
+  void _clearAllSelection() {
+    final shouldClearSongSelection =
+        _isSelectionMode || _selectedSongPaths.isNotEmpty;
+    final shouldClearRootSelection =
+        _isRootSelectionMode || _selectedRootPaths.isNotEmpty;
+    if (!shouldClearSongSelection && !shouldClearRootSelection) return;
+
     setState(() {
       _isSelectionMode = false;
       _selectedSongPaths.clear();
+      _isRootSelectionMode = false;
+      _selectedRootPaths.clear();
     });
   }
 
@@ -193,6 +211,39 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     });
   }
 
+  void _toggleRootSelection(String path) {
+    setState(() {
+      if (_selectedRootPaths.contains(path)) {
+        _selectedRootPaths.remove(path);
+      } else {
+        _selectedRootPaths.add(path);
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedRootFolders(ScannerService scanner) async {
+    if (_selectedRootPaths.isEmpty) return;
+
+    final selectedCount = _selectedRootPaths.length;
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final paths = _selectedRootPaths.toList(growable: false);
+    await scanner.removeRootPaths(paths);
+    if (!mounted) return;
+
+    setState(() {
+      _selectedRootPaths.clear();
+      _isRootSelectionMode = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isZh ? '已删除 $selectedCount 个目录' : '$selectedCount folders deleted',
+        ),
+      ),
+    );
+  }
+
   List<MusicFile> _selectedSongsFromFolder(List<MusicFile> files) {
     return files
         .where((file) => _selectedSongPaths.contains(file.path))
@@ -270,107 +321,180 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
     Widget currentBody;
     if (currentFolder == null) {
-      currentBody = Column(
+      final isZh = Localizations.localeOf(context).languageCode == 'zh';
+      final selectionLabel = isZh
+          ? '已选中 ${_selectedRootPaths.length} 个目录'
+          : '${_selectedRootPaths.length} folders selected';
+      final rootListBottomPadding = _isRootSelectionMode ? 224.0 : 160.0;
+      currentBody = Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    AppLocalizations.of(context)!.scanDirectory,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.sort),
-                  onPressed: () => _showSortDialog(context, scanner),
-                  tooltip: AppLocalizations.of(context)!.sort,
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              controller: _scrollController,
-              padding: const EdgeInsets.only(bottom: 160),
-              children: [
-                // System Media Library Item
-                if (!Platform.isWindows)
-                  ListTile(
-                    leading: const Icon(
-                      Icons.library_music,
-                      color: Colors.purple,
+          Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(context)!.scanDirectory,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    title: Text(
-                      AppLocalizations.of(context)!.systemMediaLibrary,
+                    IconButton(
+                      icon: const Icon(Icons.sort),
+                      onPressed: () => _showSortDialog(context, scanner),
+                      tooltip: AppLocalizations.of(context)!.sort,
                     ),
-                    subtitle: scanner.hasPermission
-                        ? null
-                        : Text(
-                            AppLocalizations.of(context)!.needPermissionToScan,
-                            style: TextStyle(color: Colors.red, fontSize: 12),
-                          ),
-                    onTap: () {
-                      // Navigate to a virtual folder or the real system folder
-                      _navigateTo(
-                        scanner.systemMediaFolder ??
-                            MusicFolder(
-                              path: 'system',
-                              name: AppLocalizations.of(
-                                context,
-                              )!.systemMediaLibrary,
-                            ),
-                        scanner,
-                      );
-                    },
-                  ),
-
-                // Add Root Directory Item
+                  ],
+                ),
+              ),
+              if (!Platform.isWindows)
                 ListTile(
                   leading: const Icon(
-                    Icons.add_circle_outline,
-                    color: Colors.blue,
+                    Icons.library_music,
+                    color: Colors.purple,
                   ),
-                  title: Text(AppLocalizations.of(context)!.addRootDirectory),
-                  onTap: () => _pickFolder(scanner),
+                  title: Text(AppLocalizations.of(context)!.systemMediaLibrary),
+                  subtitle: scanner.hasPermission
+                      ? null
+                      : Text(
+                          AppLocalizations.of(context)!.needPermissionToScan,
+                          style: TextStyle(color: Colors.red, fontSize: 12),
+                        ),
+                  onTap: () {
+                    _navigateTo(
+                      scanner.systemMediaFolder ??
+                          MusicFolder(
+                            path: 'system',
+                            name: AppLocalizations.of(
+                              context,
+                            )!.systemMediaLibrary,
+                          ),
+                      scanner,
+                    );
+                  },
                 ),
-
-                // User Added Root Folders
-                ...scanner.rootFolders.map((folder) {
-                  final isShortcut = scanner.isShortcutRoot(folder.path);
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onSecondaryTapDown: (details) {
-                      unawaited(
-                        showFolderContextMenu(
+              ListTile(
+                leading: const Icon(
+                  Icons.add_circle_outline,
+                  color: Colors.blue,
+                ),
+                title: Text(AppLocalizations.of(context)!.addRootDirectory),
+                onTap: () => _pickFolder(scanner),
+              ),
+              Expanded(
+                child: ReorderableListView.builder(
+                  buildDefaultDragHandles: false,
+                  scrollController: _scrollController,
+                  padding: EdgeInsets.only(bottom: rootListBottomPadding),
+                  itemCount: scanner.rootFolders.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (!_isRootSelectionMode) return;
+                    if (newIndex > oldIndex) newIndex--;
+                    unawaited(scanner.moveRootPath(oldIndex, newIndex));
+                  },
+                  itemBuilder: (context, index) {
+                    final folder = scanner.rootFolders[index];
+                    final isShortcut = scanner.isShortcutRoot(folder.path);
+                    final isSelected = _selectedRootPaths.contains(folder.path);
+                    return GestureDetector(
+                      key: ValueKey(folder.path),
+                      behavior: HitTestBehavior.opaque,
+                      onSecondaryTapDown: (details) {
+                        unawaited(
+                          showFolderContextMenu(
+                            context,
+                            details.globalPosition,
+                            folderPath: folder.path,
+                          ),
+                        );
+                      },
+                      onLongPress: () {
+                        if (!_isRootSelectionMode) {
+                          setState(() {
+                            _isRootSelectionMode = true;
+                            _selectedRootPaths.add(folder.path);
+                          });
+                        } else {
+                          _toggleRootSelection(folder.path);
+                        }
+                      },
+                      child: ListTile(
+                        selected: _isRootSelectionMode && isSelected,
+                        selectedTileColor: Theme.of(
                           context,
-                          details.globalPosition,
-                          folderPath: folder.path,
-                        ),
-                      );
-                    },
-                    child: ListTile(
-                      leading: Icon(
-                        isShortcut ? Icons.shortcut : Icons.folder_shared,
-                        color: isShortcut ? Colors.blue : Colors.amber,
+                        ).colorScheme.primaryContainer.withValues(alpha: 0.45),
+                        leading: _isRootSelectionMode
+                            ? Checkbox(
+                                value: isSelected,
+                                onChanged: (_) =>
+                                    _toggleRootSelection(folder.path),
+                              )
+                            : Icon(
+                                isShortcut
+                                    ? Icons.shortcut
+                                    : Icons.folder_shared,
+                                color: isShortcut ? Colors.blue : Colors.amber,
+                              ),
+                        title: Text(folder.name),
+                        subtitle: Text(folder.path),
+                        onTap: _isRootSelectionMode
+                            ? () => _toggleRootSelection(folder.path)
+                            : () => _navigateTo(folder, scanner),
+                        trailing: _isRootSelectionMode
+                            ? ReorderableDragStartListener(
+                                index: index,
+                                child: const Icon(Icons.drag_handle),
+                              )
+                            : null,
                       ),
-                      title: Text(folder.name),
-                      subtitle: Text(folder.path),
-                      onTap: () => _navigateTo(folder, scanner),
-                      trailing: IconButton(
-                        icon: const Icon(
-                          Icons.remove_circle_outline,
-                          color: Colors.red,
-                        ),
-                        onPressed: () => scanner.removeRootPath(folder.path),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          if (_isRootSelectionMode)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Material(
+                elevation: 8,
+                child: Container(
+                  color: Theme.of(context).colorScheme.surface,
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Text(selectionLabel),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: _selectedRootPaths.isEmpty
+                                ? null
+                                : () => _deleteSelectedRootFolders(scanner),
+                            icon: const Icon(Icons.delete),
+                            label: Text(AppLocalizations.of(context)!.delete),
+                          ),
+                          TextButton(
+                            onPressed: _toggleRootSelectionMode,
+                            child: Text(AppLocalizations.of(context)!.cancel),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                }),
-              ],
+                  ),
+                ),
+              ),
             ),
-          ),
         ],
       );
     } else {

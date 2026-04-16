@@ -425,14 +425,31 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> removeRootPath(String path) async {
-    final normalizedPath = _normalizePath(path);
-    _rootPaths.removeWhere((existing) => _pathsEqual(existing, normalizedPath));
-    final normalizedRoots = _normalizeDeclaredRootPaths(_rootPaths);
-    _rootPaths
-      ..clear()
-      ..addAll(normalizedRoots);
+    await removeRootPaths([path]);
+  }
+
+  Future<void> removeRootPaths(Iterable<String> paths) async {
+    final normalizedTargets = _normalizeDeclaredRootPaths(paths);
+    if (normalizedTargets.isEmpty) return;
+
+    _rootPaths.removeWhere(
+      (existing) =>
+          normalizedTargets.any((target) => _pathsEqual(existing, target)),
+    );
+    _rebuildDisplayedRootFolders();
     await _saveRootPaths();
-    _rootFolders.removeWhere((f) => _pathsEqual(f.path, normalizedPath));
+    notifyListeners();
+  }
+
+  Future<void> moveRootPath(int oldIndex, int newIndex) async {
+    if (oldIndex < 0 || oldIndex >= _rootPaths.length) return;
+    if (newIndex < 0 || newIndex > _rootPaths.length) return;
+    if (oldIndex == newIndex) return;
+
+    final movedPath = _rootPaths.removeAt(oldIndex);
+    _rootPaths.insert(newIndex, movedPath);
+    _rebuildDisplayedRootFolders();
+    await _saveRootPaths();
     notifyListeners();
   }
 
@@ -1596,9 +1613,6 @@ class ScannerService extends ChangeNotifier {
     _rootFolders
       ..clear()
       ..addAll(displayedRoots);
-    _rootFolders.sort(
-      (a, b) => compareNatural(a.name.toLowerCase(), b.name.toLowerCase()),
-    );
   }
 
   MusicFolder? _resolveFolderForPath(String path) {
