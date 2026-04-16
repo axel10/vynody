@@ -15,6 +15,7 @@ import '../pages/playlist_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
 import 'main_layout_riverpod.dart';
+import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/global_drop_target.dart';
@@ -92,13 +93,9 @@ class MainLayout extends ConsumerStatefulWidget {
   ConsumerState<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
+class _MainLayoutState extends ConsumerState<MainLayout> {
   late int _currentIndex;
   double? _lastVolume;
-  // _isFullScreen 决定了标题栏全屏按钮的图标状态（全屏 vs 窗口化）
-  // 该状态通过 _syncWindowState() 与原生窗口状态保持同步
-  bool _isFullScreen = false;
-  bool _isMaximized = false;
 
   AudioService get _audioService => ref.read(audioServiceProvider);
   MainLayoutUiController get _ui =>
@@ -133,34 +130,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     _ui.showVolumeHud();
   }
 
-  // 同步当前原生窗口状态到 Flutter UI 状态
-  Future<void> _syncWindowState() async {
-    if (!mounted) return;
-
-    final isFull = await windowManager.isFullScreen();
-    final isMax = await windowManager.isMaximized();
-    if (mounted) {
-      if (_isFullScreen != isFull || _isMaximized != isMax) {
-        setState(() {
-          _isFullScreen = isFull;
-          _isMaximized = isMax;
-        });
-      }
-    }
-  }
-
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _lastVolume = ref.read(audioVolumeProvider);
-
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-    if (isDesktop) {
-      windowManager.addListener(this);
-      _syncWindowState();
-    }
 
     if (Platform.isWindows) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -172,53 +146,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
 
   @override
   void dispose() {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      windowManager.removeListener(this);
-    }
     super.dispose();
-  }
-
-  @override
-  void onWindowEnterFullScreen() {
-    // 系统触发进入全屏时同步状态
-    unawaited(_syncWindowState());
-  }
-
-  @override
-  void onWindowLeaveFullScreen() {
-    // 系统触发退出全屏时同步状态
-
-    windowManager.setFullScreen(false);
-    // Future.delayed(Duration(milliseconds: 100));
-    unawaited(_syncWindowState());
-  }
-
-  @override
-  void onWindowMinimize() {
-    unawaited(_syncWindowState());
-  }
-
-  @override
-  void onWindowRestore() {
-    // 窗口从最小化恢复或从最大化恢复时都会触发
-    Future.delayed(const Duration(milliseconds: 50), () {
-      unawaited(_syncWindowState());
-    });
-  }
-
-  @override
-  void onWindowMaximize() {
-    unawaited(_syncWindowState());
-  }
-
-  @override
-  void onWindowUnmaximize() {
-    // 监听窗口取消最大化
-    debugPrint("--- 监听到取消最大化 ---");
-    // 强制执行状态同步，且略微延迟以等待原生 API 状态位翻转
-    Future.delayed(const Duration(milliseconds: 50), () {
-      unawaited(_syncWindowState());
-    });
   }
 
   Future<void> _setFullScreen(bool enable) async {
@@ -290,10 +218,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   }
 
   Future<void> _openSettingsPage() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SettingsPage()),
-    );
+    if (_currentIndex == 4) return;
+    setState(() {
+      _currentIndex = 4;
+    });
   }
 
   Widget _buildTooltipIcon({
@@ -329,6 +257,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
         return Padding(
           padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
           child: const QueuePage(),
+        );
+      case 4:
+        return Padding(
+          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
+          child: const SettingsPage(showDesktopTitleBar: false),
         );
       default:
         return const SizedBox.shrink();
@@ -570,7 +503,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
           ),
           ToggleFullScreenIntent: CallbackAction<ToggleFullScreenIntent>(
             onInvoke: (_) async {
-              await _setFullScreen(!_isFullScreen);
+              final isFullScreen = await windowManager.isFullScreen();
+              await _setFullScreen(!isFullScreen);
               return null;
             },
           ),
@@ -650,67 +584,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                         top: 0,
                         left: 0,
                         right: 0,
-                        child: Column(
-                          children: [
-                            DragToMoveArea(
-                              child: SizedBox(
-                                height: 32,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    _WindowButton(
-                                      icon: _isFullScreen
-                                          ? Icons.fullscreen_exit
-                                          : Icons.fullscreen,
-                                      brightness: isPlayback
-                                          ? Brightness.dark
-                                          : theme.brightness,
-                                      onPressed: () =>
-                                          _setFullScreen(!_isFullScreen),
-                                    ),
-                                    _WindowButton(
-                                      icon: Icons.remove,
-                                      brightness: isPlayback
-                                          ? Brightness.dark
-                                          : theme.brightness,
-                                      onPressed: () async {
-                                        if (_isFullScreen) {
-                                          await _setFullScreen(false);
-                                        }
-                                        await windowManager.minimize();
-                                      },
-                                    ),
-                                    _WindowButton(
-                                      icon: _isMaximized
-                                          ? Icons.filter_none
-                                          : Icons.crop_square,
-                                      iconSize: 14,
-                                      brightness: isPlayback
-                                          ? Brightness.dark
-                                          : theme.brightness,
-                                      onPressed: () async {
-                                        if (_isFullScreen) {
-                                          await _setFullScreen(false);
-                                        } else if (_isMaximized) {
-                                          await windowManager.unmaximize();
-                                        } else {
-                                          await windowManager.maximize();
-                                        }
-                                      },
-                                    ),
-                                    _WindowButton(
-                                      icon: Icons.close,
-                                      isClose: true,
-                                      brightness: isPlayback
-                                          ? Brightness.dark
-                                          : theme.brightness,
-                                      onPressed: windowManager.close,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+                        child: DesktopWindowTitleBar(
+                          brightness: isPlayback
+                              ? Brightness.dark
+                              : theme.brightness,
                         ),
                       ),
                     Positioned(
@@ -826,52 +703,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
               destinations: _buildBottomDestinations(context, isPlayback),
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-class _WindowButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-  final Brightness brightness;
-  final bool isClose;
-  final double iconSize;
-
-  const _WindowButton({
-    required this.icon,
-    required this.onPressed,
-    required this.brightness,
-    this.isClose = false,
-    this.iconSize = 18,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Color iconColor = brightness == Brightness.dark
-        ? Colors.white
-        : Colors.black87;
-
-    Color? hoverColor;
-    if (isClose) {
-      hoverColor = Colors.red.withValues(alpha: 0.8);
-    } else {
-      hoverColor = brightness == Brightness.dark
-          ? Colors.white.withValues(alpha: 0.1)
-          : Colors.black.withValues(alpha: 0.05);
-    }
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        hoverColor: hoverColor,
-        child: Container(
-          width: 46,
-          height: 32,
-          alignment: Alignment.center,
-          child: Icon(icon, size: iconSize, color: isClose ? null : iconColor),
         ),
       ),
     );
