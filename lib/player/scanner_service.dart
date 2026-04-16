@@ -16,6 +16,7 @@ import 'package:worker_manager/worker_manager.dart';
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import 'scanner_navigation_state.dart';
+import 'music_file_utils.dart';
 import 'scanner_path_utils.dart';
 import 'scanner_scan_support.dart';
 import 'metadata_database.dart';
@@ -36,11 +37,16 @@ class ScannerService extends ChangeNotifier {
   final List<String> _rootPaths = [];
   final List<MusicFolder> _scannedRootFolders = [];
   final List<MusicFolder> _rootFolders = [];
+  final Map<String, StreamSubscription<FileSystemEvent>>
+  _rootWatchSubscriptions = {};
   bool _isScanning = false;
   bool _isBackgroundTaskPaused = false;
   Timer? _metadataNotifyTimer;
   Timer? _scanNotifyTimer;
+  Timer? _rootRescanTimer;
   bool _scanNotifyPending = false;
+  bool _rootRescanPending = false;
+  bool _lastNotifiedScanningState = false;
   bool _isDisposed = false;
 
   MusicFolder? _systemMediaFolder;
@@ -81,14 +87,6 @@ class ScannerService extends ChangeNotifier {
 
   Map<String, SongMetadata> get metadataMap => _metadataMap;
 
-  final List<String> _audioExtensions = [
-    '.mp3',
-    '.m4a',
-    '.wav',
-    '.flac',
-    '.ogg',
-  ];
-
   ScannerService() {
     _navigationState.addListener(_handleNavigationChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -100,6 +98,15 @@ class ScannerService extends ChangeNotifier {
   @override
   void notifyListeners() {
     if (_isDisposed) return;
+
+    if (_isScanning != _lastNotifiedScanningState) {
+      _lastNotifiedScanningState = _isScanning;
+      _scanNotifyTimer?.cancel();
+      _scanNotifyTimer = null;
+      _scanNotifyPending = false;
+      super.notifyListeners();
+      return;
+    }
 
     if (!_isScanning) {
       super.notifyListeners();
@@ -151,6 +158,7 @@ class ScannerService extends ChangeNotifier {
       _sortFolderRecursive(_systemMediaFolder!);
     }
     _rebuildDisplayedRootFolders();
+    _syncNavigationStateToLatestTree();
     notifyListeners();
   }
 
@@ -235,12 +243,54 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
+  Future<void> _refreshRootWatchers() async {
+    if (_isDisposed) return;
+
+    final desiredRoots = _computeScanRoots(_rootPaths);
+    final desiredKeys = desiredRoots.map(_pathLookupKey).toSet();
+
+    final existingKeys = _rootWatchSubscriptions.keys.toSet();
+    final unchanged =
+        existingKeys.length == desiredKeys.length &&
+        existingKeys.containsAll(desiredKeys);
+    if (unchanged) {
+      return;
+    }
+
+    for (final subscription in _rootWatchSubscriptions.values) {
+      await subscription.cancel();
+    }
+    _rootWatchSubscriptions.clear();
+
+    for (final root in desiredRoots) {
+      final directory = Directory(root);
+      if (!directory.existsSync()) {
+        continue;
+      }
+
+      final key = _pathLookupKey(root);
+      _rootWatchSubscriptions[key] = directory
+          .watch(recursive: true)
+          .listen(
+            (event) {
+              if (_shouldRescanForEvent(event)) {
+                _scheduleRootRescan();
+              }
+            },
+            onError: (err) {
+              debugPrint('Root watcher error for $root: $err');
+            },
+          );
+    }
+  }
+
   Future<void> _loadRootPaths() async {
     final prefs = await SharedPreferences.getInstance();
     final paths = prefs.getStringList('root_paths') ?? [];
     final normalizedPaths = _normalizeDeclaredRootPaths(paths);
     _rootPaths.clear();
     _rootPaths.addAll(normalizedPaths);
+    await _refreshRootWatchers();
     notifyListeners();
   }
 
@@ -275,6 +325,7 @@ class ScannerService extends ChangeNotifier {
       ..clear()
       ..addAll(normalizedRoots);
     await _saveRootPaths();
+    await _refreshRootWatchers();
     notifyListeners();
 
     if (Platform.isAndroid) {
@@ -307,6 +358,7 @@ class ScannerService extends ChangeNotifier {
     );
     _rebuildDisplayedRootFolders();
     await _saveRootPaths();
+    await _refreshRootWatchers();
     notifyListeners();
   }
 
@@ -319,6 +371,7 @@ class ScannerService extends ChangeNotifier {
     _rootPaths.insert(newIndex, movedPath);
     _rebuildDisplayedRootFolders();
     await _saveRootPaths();
+    await _refreshRootWatchers();
     notifyListeners();
   }
 
@@ -430,6 +483,43 @@ class ScannerService extends ChangeNotifier {
 
   void _handleNavigationChanged() {
     notifyListeners();
+  }
+
+  bool _shouldRescanForEvent(FileSystemEvent event) {
+    final path = event.path.trim();
+    if (path.isEmpty) return false;
+    if (event.isDirectory) {
+      return true;
+    }
+    if ((event.type & FileSystemEvent.create) != 0 ||
+        (event.type & FileSystemEvent.delete) != 0 ||
+        (event.type & FileSystemEvent.move) != 0) {
+      return true;
+    }
+    return MusicFileUtils.isMusicFilePath(path);
+  }
+
+  void _scheduleRootRescan() {
+    if (_isDisposed) return;
+
+    _rootRescanPending = true;
+    if (_isScanning) {
+      return;
+    }
+
+    if (_rootRescanTimer?.isActive ?? false) {
+      return;
+    }
+
+    _rootRescanTimer = Timer(const Duration(seconds: 1), () {
+      _rootRescanTimer = null;
+      if (_isDisposed || !_rootRescanPending || _isScanning) {
+        return;
+      }
+
+      _rootRescanPending = false;
+      unawaited(scan());
+    });
   }
 
   void pauseBackgroundTasks() {
@@ -1076,6 +1166,10 @@ class ScannerService extends ChangeNotifier {
 
   Future<void> scan() async {
     if (_rootPaths.isEmpty) return;
+    if (_isScanning) {
+      _rootRescanPending = true;
+      return;
+    }
 
     _isScanning = true;
     _scannedRootFolders.clear();
@@ -1120,9 +1214,7 @@ class ScannerService extends ChangeNotifier {
         _seedMetadataFromDatabase(classification.existingMetadataByPath);
 
         final fullPaths = classification.pathsFor(ScanFileStage.full);
-        final imageOnlyPaths = classification.pathsFor(
-          ScanFileStage.imageOnly,
-        );
+        final imageOnlyPaths = classification.pathsFor(ScanFileStage.imageOnly);
 
         await _preprocessChangedFiles(
           fullPaths,
@@ -1170,6 +1262,9 @@ class ScannerService extends ChangeNotifier {
       _isScanning = false;
       _flushScanNotifications();
       _sortAndNotify();
+      if (_rootRescanPending && !_isDisposed) {
+        _scheduleRootRescan();
+      }
     }
   }
 
@@ -1379,8 +1474,7 @@ class ScannerService extends ChangeNotifier {
           if (p.basename(entity.path).startsWith('.')) continue;
           directories.add(entity);
         } else if (entity is File) {
-          final ext = p.extension(entity.path).toLowerCase();
-          if (_audioExtensions.contains(ext)) {
+          if (MusicFileUtils.isMusicFilePath(entity.path)) {
             audioFiles.add(entity);
           }
         }
@@ -1473,6 +1567,44 @@ class ScannerService extends ChangeNotifier {
       ..addAll(displayedRoots);
   }
 
+  void _syncNavigationStateToLatestTree() {
+    MusicFolder? resolveFolder(MusicFolder? folder) {
+      if (folder == null) return null;
+      if (folder.path == 'system') {
+        return _systemMediaFolder;
+      }
+      return _resolveFolderForPath(folder.path);
+    }
+
+    final currentFolder = _navigationState.currentFolder;
+    final resolvedCurrentFolder = resolveFolder(currentFolder);
+
+    final resolvedHistory = <MusicFolder>[];
+    for (final folder in _navigationState.history) {
+      final resolved = resolveFolder(folder);
+      if (resolved != null) {
+        resolvedHistory.add(resolved);
+      }
+    }
+
+    if (resolvedCurrentFolder == null && currentFolder != null) {
+      _navigationState.setState(null, const []);
+      return;
+    }
+
+    final currentChanged =
+        !identical(resolvedCurrentFolder, currentFolder) &&
+        resolvedCurrentFolder != null;
+    final historyChanged = !const ListEquality<MusicFolder>().equals(
+      resolvedHistory,
+      _navigationState.history,
+    );
+
+    if (currentChanged || historyChanged) {
+      _navigationState.setState(resolvedCurrentFolder, resolvedHistory);
+    }
+  }
+
   MusicFolder? _resolveFolderForPath(String path) {
     final normalizedPath = _normalizePath(path);
 
@@ -1537,9 +1669,14 @@ class ScannerService extends ChangeNotifier {
     _isDisposed = true;
     _navigationState.removeListener(_handleNavigationChanged);
     _navigationState.dispose();
+    for (final subscription in _rootWatchSubscriptions.values) {
+      unawaited(subscription.cancel());
+    }
+    _rootWatchSubscriptions.clear();
     _mediaObserverSubscription?.cancel();
     _metadataNotifyTimer?.cancel();
     _scanNotifyTimer?.cancel();
+    _rootRescanTimer?.cancel();
     _scanProgressController.close();
     super.dispose();
   }

@@ -14,6 +14,7 @@ import '../pages/playback_page.dart';
 import '../pages/playlist_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
+import '../player/music_file_utils.dart';
 import 'main_layout_riverpod.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
@@ -171,13 +172,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     }
 
     final audio = ref.read(audioServiceProvider);
-    final List<String> audioExtensions = [
-      '.mp3',
-      '.m4a',
-      '.wav',
-      '.flac',
-      '.ogg',
-    ];
 
     for (var arg in widget.args) {
       // 预处理路径字符串
@@ -186,10 +180,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
       // 文件存在性校验
       if (File(path).existsSync()) {
-        final ext = p.extension(path).toLowerCase();
-
         // 匹配后缀
-        if (audioExtensions.contains(ext)) {
+        if (MusicFileUtils.isMusicFilePath(path)) {
           // 调用播放服务读取音频并播放
           // append: true 确保该文件插入到底部立刻切歌
           audio.playFile(path, p.basename(path), append: true);

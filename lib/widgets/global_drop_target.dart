@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
 import '../player/audio_riverpod.dart';
+import '../player/music_file_utils.dart';
 import '../models/music_file.dart';
 
 class GlobalDropTarget extends ConsumerStatefulWidget {
@@ -16,21 +17,12 @@ class GlobalDropTarget extends ConsumerStatefulWidget {
 }
 
 class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
-  final List<String> _audioExtensions = const [
-    '.mp3',
-    '.m4a',
-    '.wav',
-    '.flac',
-    '.ogg',
-  ];
-
   Future<List<MusicFile>> _getFilesFromPath(String path) async {
     final List<MusicFile> results = [];
     final entityType = FileSystemEntity.typeSync(path);
 
     if (entityType == FileSystemEntityType.file) {
-      final ext = p.extension(path).toLowerCase();
-      if (_audioExtensions.contains(ext)) {
+      if (MusicFileUtils.isMusicFilePath(path)) {
         results.add(MusicFile(path: path, name: p.basename(path)));
       }
     } else if (entityType == FileSystemEntityType.directory) {
@@ -41,8 +33,7 @@ class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
           followLinks: false,
         )) {
           if (item is File) {
-            final ext = p.extension(item.path).toLowerCase();
-            if (_audioExtensions.contains(ext)) {
+            if (MusicFileUtils.isMusicFilePath(item.path)) {
               results.add(
                 MusicFile(path: item.path, name: p.basename(item.path)),
               );

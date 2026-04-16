@@ -13,6 +13,7 @@ import 'package:windows_single_instance/windows_single_instance.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
 import 'player/audio_riverpod.dart';
+import 'player/music_file_utils.dart';
 import 'player/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 
@@ -27,14 +28,6 @@ void handleFileOpen(List<String> args) {
 
   final container = ProviderScope.containerOf(context);
   final audio = container.read(audioServiceProvider);
-  // 支持的音频格式列表
-  final List<String> audioExtensions = [
-    '.mp3',
-    '.m4a',
-    '.wav',
-    '.flac',
-    '.ogg',
-  ];
 
   for (var arg in args) {
     // 处理路径中可能的双引号和两端空格
@@ -43,9 +36,8 @@ void handleFileOpen(List<String> args) {
 
     // 检查文件是否存在
     if (File(path).existsSync()) {
-      final ext = p.extension(path).toLowerCase();
       // 如果是支持的音频文件
-      if (audioExtensions.contains(ext)) {
+      if (MusicFileUtils.isMusicFilePath(path)) {
         // 将文件添加到播放队列并开始播放
         // append: true 表示将其添加到队列末尾并切换到该歌曲播放
         audio.playFile(path, p.basename(path), append: true);
