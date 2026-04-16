@@ -5,9 +5,7 @@ import 'dart:math' as math;
 /// 包括：解析元数据、从封面提取配色方案、生成全曲波形图等耗时操作，不干扰主线程播放。
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:palette_generator/palette_generator.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:audio_core/audio_core.dart';
 import '../models/music_file.dart';
@@ -126,6 +124,7 @@ class PlaybackQueueProcessor {
       // This ensures that when skipping fast, covers are already in memory.
       // We look at the top 15 songs from our sorted list (which includes current and upcoming).
       final int topCount = math.min(15, sortedList.length);
+      final artworkBytesByPath = <String, Uint8List>{};
       for (int i = 0; i < topCount; i++) {
         if (_disposed || myId != _currentProcessId) return;
         final song = sortedList[i];
@@ -164,6 +163,7 @@ class PlaybackQueueProcessor {
           }
 
           if (finalBytes != null && onHdArtworkLoaded != null) {
+            artworkBytesByPath[song.path] = finalBytes;
             onHdArtworkLoaded(song.path, finalBytes);
           }
         } catch (e) {
@@ -246,20 +246,31 @@ class PlaybackQueueProcessor {
                     if (artworkInfo != null) {
                       final thumbPath =
                           artworkInfo['thumbnailPath'] as String?;
+                      final themeColorsBlob =
+                          artworkInfo['themeColorsBlob'] as Uint8List?;
 
                       meta = meta.copyWith(
                         thumbnailPath: thumbPath,
                         artworkPath: artworkInfo['artworkPath'] as String?,
                         artworkWidth: artworkInfo['width'] as int?,
                         artworkHeight: artworkInfo['height'] as int?,
+                        themeColorsBlob: themeColorsBlob ?? meta.themeColorsBlob,
                       );
                       await db.insertOrUpdateSong(meta);
 
-                      onUpdate(song.path, {
+                      final updates = <String, dynamic>{
                         'thumbnailPath': thumbPath,
                         'artworkWidth': meta.artworkWidth,
                         'artworkHeight': meta.artworkHeight,
-                      });
+                      };
+                      if (themeColorsBlob != null) {
+                        updates['themeColorsBlob'] = themeColorsBlob;
+                        updates['themeColors'] = ThemeColorHelper.blobToColors(
+                          themeColorsBlob,
+                        );
+                      }
+
+                      onUpdate(song.path, updates);
                     }
                   }
                 } catch (e) {
@@ -270,19 +281,18 @@ class PlaybackQueueProcessor {
               // Extract theme colors if missing
               if (meta.themeColorsBlob == null) {
                 try {
-                  final colorSourcePath =
-                      meta.thumbnailPath ?? meta.artworkPath;
-                  if (colorSourcePath != null) {
-                    if (_disposed) return;
-                    final imageProvider = FileImage(File(colorSourcePath));
-                    final palette = await PaletteGenerator.fromImageProvider(
-                      imageProvider,
-                      maximumColorCount: 20,
+                  if (_disposed) return;
+
+                  final paletteBytes =
+                      artworkBytesByPath[song.path] ?? song.artworkBytes;
+                  if (paletteBytes != null && paletteBytes.isNotEmpty) {
+                    final palette = await ThemeColorHelper.generatePalette(
+                      bytes: paletteBytes,
+                      path: null,
                     );
                     if (_disposed) return;
-                    final themeColorsBlob = ThemeColorHelper.paletteToBlob(
-                      palette,
-                    );
+                    final themeColorsBlob =
+                        ThemeColorHelper.colorsMapToBlob(palette.colorsMap);
 
                     meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
                     await db.insertOrUpdateSong(meta);
@@ -293,6 +303,28 @@ class PlaybackQueueProcessor {
                       ),
                       'themeColorsBlob': themeColorsBlob,
                     });
+                  } else {
+                    final extractedBytes =
+                        await MetadataHelper.decodeEmbeddedArtwork(song.path);
+                    if (_disposed) return;
+                    if (extractedBytes != null && extractedBytes.isNotEmpty) {
+                      final palette = await ThemeColorHelper.generatePalette(
+                        bytes: extractedBytes,
+                        path: null,
+                      );
+                      if (_disposed) return;
+                      final themeColorsBlob =
+                          ThemeColorHelper.colorsMapToBlob(palette.colorsMap);
+                      meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
+                      await db.insertOrUpdateSong(meta);
+
+                      onUpdate(song.path, {
+                        'themeColors': ThemeColorHelper.blobToColors(
+                          themeColorsBlob,
+                        ),
+                        'themeColorsBlob': themeColorsBlob,
+                      });
+                    }
                   }
                 } catch (e) {
                   debugPrint(

@@ -1,42 +1,105 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
+import 'package:image/image.dart' as img;
+
+@pragma('vm:entry-point')
+Future<Map<String, int>> _generatePaletteColorMapTask(
+  Map<String, dynamic> args,
+) async {
+  final bytes = args['bytes'] as Uint8List?;
+  final path = args['path'] as String?;
+
+  try {
+    img.Image? image;
+    if (bytes != null && bytes.isNotEmpty) {
+      image = img.decodeImage(bytes);
+    } else if (path != null && path.isNotEmpty) {
+      final fileBytes = File(path).readAsBytesSync();
+      image = img.decodeImage(fileBytes);
+    }
+
+    if (image == null) {
+      return const {};
+    }
+
+    final resized = image.width >= image.height
+        ? img.copyResize(
+            image,
+            width: 200,
+            interpolation: img.Interpolation.average,
+          )
+        : img.copyResize(
+            image,
+            height: 200,
+            interpolation: img.Interpolation.average,
+          );
+
+    final rgbaBytes = resized.getBytes(order: img.ChannelOrder.rgba);
+    final palette = await PaletteGenerator.fromByteData(
+      EncodedImage(
+        ByteData.sublistView(rgbaBytes),
+        width: resized.width,
+        height: resized.height,
+      ),
+      maximumColorCount: 20,
+    );
+
+    final Map<String, int> colors = {};
+    if (palette.dominantColor != null) {
+      colors['dominant'] = palette.dominantColor!.color.toARGB32();
+    }
+    if (palette.vibrantColor != null) {
+      colors['vibrant'] = palette.vibrantColor!.color.toARGB32();
+    }
+    if (palette.lightVibrantColor != null) {
+      colors['lightVibrant'] =
+          palette.lightVibrantColor!.color.toARGB32();
+    }
+    if (palette.darkVibrantColor != null) {
+      colors['darkVibrant'] = palette.darkVibrantColor!.color.toARGB32();
+    }
+    if (palette.mutedColor != null) {
+      colors['muted'] = palette.mutedColor!.color.toARGB32();
+    }
+    if (palette.lightMutedColor != null) {
+      colors['lightMuted'] = palette.lightMutedColor!.color.toARGB32();
+    }
+    if (palette.darkMutedColor != null) {
+      colors['darkMuted'] = palette.darkMutedColor!.color.toARGB32();
+    }
+    return colors;
+  } catch (_) {
+    return const {};
+  }
+}
 
 class ThemeColorHelper {
   static Uint8List paletteToBlob(PaletteGenerator palette) {
-    final Map<String, int> colors = {};
+    return colorsMapToBlob({
+      if (palette.dominantColor != null)
+        'dominant': palette.dominantColor!.color,
+      if (palette.vibrantColor != null) 'vibrant': palette.vibrantColor!.color,
+      if (palette.lightVibrantColor != null)
+        'lightVibrant': palette.lightVibrantColor!.color,
+      if (palette.darkVibrantColor != null)
+        'darkVibrant': palette.darkVibrantColor!.color,
+      if (palette.mutedColor != null) 'muted': palette.mutedColor!.color,
+      if (palette.lightMutedColor != null)
+        'lightMuted': palette.lightMutedColor!.color,
+      if (palette.darkMutedColor != null)
+        'darkMuted': palette.darkMutedColor!.color,
+    });
+  }
 
-    // Helper to get ARGB32 integer representation across flutter versions
-    int getColorValue(Color color) {
-      // ignore: deprecated_member_use
-      return color.value;
+  static Uint8List colorsMapToBlob(Map<String, Color> colorsMap) {
+    final colors = <String, int>{};
+    for (final entry in colorsMap.entries) {
+      colors[entry.key] = entry.value.toARGB32();
     }
-
-    if (palette.dominantColor != null) {
-      colors['dominant'] = getColorValue(palette.dominantColor!.color);
-    }
-    if (palette.vibrantColor != null) {
-      colors['vibrant'] = getColorValue(palette.vibrantColor!.color);
-    }
-    if (palette.lightVibrantColor != null) {
-      colors['lightVibrant'] = getColorValue(palette.lightVibrantColor!.color);
-    }
-    if (palette.darkVibrantColor != null) {
-      colors['darkVibrant'] = getColorValue(palette.darkVibrantColor!.color);
-    }
-    if (palette.mutedColor != null) {
-      colors['muted'] = getColorValue(palette.mutedColor!.color);
-    }
-    if (palette.lightMutedColor != null) {
-      colors['lightMuted'] = getColorValue(palette.lightMutedColor!.color);
-    }
-    if (palette.darkMutedColor != null) {
-      colors['darkMuted'] = getColorValue(palette.darkMutedColor!.color);
-    }
-
     final jsonStr = jsonEncode(colors);
     return Uint8List.fromList(utf8.encode(jsonStr));
   }
@@ -61,14 +124,8 @@ class ThemeColorHelper {
     Uint8List? bytes,
     String? path,
   }) async {
-    ImageProvider? imageProvider;
-    if (bytes != null) {
-      imageProvider = MemoryImage(bytes);
-    } else if (path != null && path.isNotEmpty) {
-      imageProvider = FileImage(File(path));
-    }
-
-    if (imageProvider == null) {
+    if ((bytes == null || bytes.isEmpty) &&
+        (path == null || path.isEmpty)) {
       return CustomPalette(
         startColor: Colors.blue,
         endColor: Colors.deepPurple,
@@ -81,31 +138,31 @@ class ThemeColorHelper {
     }
 
     try {
-      final resizeProvider = ResizeImage(
-        imageProvider,
-        width: 200,
-        height: 200,
-      );
-      final palette = await PaletteGenerator.fromImageProvider(
-        resizeProvider,
-        maximumColorCount: 20,
+      final colorMap = await compute(
+        _generatePaletteColorMapTask,
+        <String, dynamic>{'bytes': bytes, 'path': path},
       );
 
-      final dominant = palette.dominantColor?.color ?? Colors.blue;
-      final vibrant = palette.vibrantColor?.color ?? Colors.deepPurple;
-      final muted = palette.mutedColor?.color ?? Colors.indigo;
+      Color? colorOf(String key) {
+        final value = colorMap[key];
+        return value == null ? null : Color(value);
+      }
+
+      final dominant = colorOf('dominant') ?? Colors.blue;
+      final vibrant = colorOf('vibrant') ?? Colors.deepPurple;
+      final muted = colorOf('muted') ?? Colors.indigo;
 
       return CustomPalette(
         startColor: dominant,
-        endColor: (palette.vibrantColor?.color.withValues(alpha: 0.8)) ?? muted,
+        endColor: (colorOf('vibrant')?.withValues(alpha: 0.8)) ?? muted,
         colorsMap: {
           'dominant': dominant,
           'vibrant': vibrant,
           'muted': muted,
-          'lightVibrant': palette.lightVibrantColor?.color ?? dominant,
-          'darkVibrant': palette.darkVibrantColor?.color ?? dominant,
-          'lightMuted': palette.lightMutedColor?.color ?? muted,
-          'darkMuted': palette.darkMutedColor?.color ?? muted,
+          'lightVibrant': colorOf('lightVibrant') ?? dominant,
+          'darkVibrant': colorOf('darkVibrant') ?? dominant,
+          'lightMuted': colorOf('lightMuted') ?? muted,
+          'darkMuted': colorOf('darkMuted') ?? muted,
         },
       );
     } catch (e) {
