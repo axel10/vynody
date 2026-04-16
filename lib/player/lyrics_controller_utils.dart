@@ -357,6 +357,35 @@ class LyricsControllerSupport {
     return updatedSong;
   }
 
+  MusicFile? replaceSongIfPath(
+    String path,
+    MusicFile Function(MusicFile song) update,
+  ) {
+    final queue = _context.queue();
+    for (var i = 0; i < queue.length; i++) {
+      final queuedSong = queue[i];
+      if (queuedSong.path != path) continue;
+
+      final updatedSong = update(queuedSong);
+      if (updatedSong == queuedSong) {
+        return updatedSong;
+      }
+      queue[i] = updatedSong;
+      return updatedSong;
+    }
+    return null;
+  }
+
+  MusicFile? songForPath(String path) {
+    final queue = _context.queue();
+    for (final song in queue) {
+      if (song.path == path) {
+        return song;
+      }
+    }
+    return null;
+  }
+
   MusicFile copySongWithLyrics(MusicFile song, MusicLyric? lyrics) {
     return MusicFile(
       path: song.path,

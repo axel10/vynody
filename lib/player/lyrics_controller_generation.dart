@@ -40,7 +40,7 @@ class LyricsGenerationCoordinator {
     required String statusLabel,
   }) {
     _support.cancelOngoingLyricsFetch(reason: 'lyrics generation started');
-    _context.lyricsGeneration.start();
+    _context.lyricsGeneration.beginForSong(song.path);
     _context.setLyricsSearchAttempted(true);
     _context.startLyricsGenerationStatus(statusLabel);
     _context.setLyricsGenerating(
@@ -56,8 +56,11 @@ class LyricsGenerationCoordinator {
   }
 
   bool _isActiveLyricsGeneration(_LyricsGenerationSession session) {
-    return session.id == _context.lyricsGeneration.serial &&
-        _context.currentMusic()?.path == session.songPath;
+    return session.id == _context.lyricsGeneration.serial;
+  }
+
+  bool _isCurrentSong(_LyricsGenerationSession session) {
+    return _context.currentMusic()?.path == session.songPath;
   }
 
   void _updateLyricsGenerationStage(
@@ -65,6 +68,7 @@ class LyricsGenerationCoordinator {
     String stage,
   ) {
     if (!_isActiveLyricsGeneration(session)) return;
+    if (!_isCurrentSong(session)) return;
     _support.setGenerationStage(stage);
   }
 
@@ -96,23 +100,25 @@ class LyricsGenerationCoordinator {
   }) {
     if (!_isActiveLyricsGeneration(session)) return;
 
-    _context.setHasLyrics(true);
-    _context.setIsLyricsLoading(false);
-    _context.setLyricsGenerating(
-      true,
-      phase: LyricsGenerationPhase.generating,
-      progress: 1.0,
-    );
-    _context.setLyricsSearchAttempted(true);
-    _context.setCurrentLyricsLines(lyrics.syncedLines);
-    _context.setCurrentLyricsText(lyrics.plainText);
-
-    final updated = _support.replaceCurrentSongIfPath(
+    final updated = _support.replaceSongIfPath(
       song.path,
       (currentSong) => currentSong.copyWith(lyrics: lyrics),
     );
     if (updated != null) {
       unawaited(_support.restoreCachedTranslations(updated));
+    }
+
+    if (_isCurrentSong(session)) {
+      _context.setHasLyrics(true);
+      _context.setIsLyricsLoading(false);
+      _context.setLyricsGenerating(
+        true,
+        phase: LyricsGenerationPhase.generating,
+        progress: 1.0,
+      );
+      _context.setLyricsSearchAttempted(true);
+      _context.setCurrentLyricsLines(lyrics.syncedLines);
+      _context.setCurrentLyricsText(lyrics.plainText);
     }
 
     _context.bumpRevision();
@@ -145,11 +151,13 @@ class LyricsGenerationCoordinator {
             return;
           }
 
-          _context.setLyricsGenerating(
-            true,
-            phase: LyricsGenerationPhase.uploading,
-            progress: progress.clamp(0.0, 1.0),
-          );
+          if (_isCurrentSong(session)) {
+            _context.setLyricsGenerating(
+              true,
+              phase: LyricsGenerationPhase.uploading,
+              progress: progress.clamp(0.0, 1.0),
+            );
+          }
         },
         onStageChanged: (stage) {
           _updateLyricsGenerationStage(session, stage);
@@ -205,20 +213,7 @@ class LyricsGenerationCoordinator {
     }
   }
 
-  Future<String?> generateLyricsForCurrentSong() async {
-    final song = _context.currentMusic();
-    if (song == null) {
-      debugPrint('[LyricsController] generate lyrics skipped: no current song');
-      return '没有可用的当前歌曲。';
-    }
-    if (_context.lyricsGeneration.isGenerating) {
-      debugPrint(
-        '[LyricsController] generate lyrics skipped: already generating '
-        'path=${song.path}',
-      );
-      return '歌词正在生成中，请稍后再试。';
-    }
-
+  Future<String?> _generateLyricsForSong(MusicFile song) async {
     try {
       return await _runLyricsGeneration(
         song: song,
@@ -245,22 +240,7 @@ class LyricsGenerationCoordinator {
     }
   }
 
-  Future<String?> generateTimelineForCurrentSong() async {
-    final song = _context.currentMusic();
-    if (song == null) {
-      debugPrint(
-        '[LyricsController] generate timeline skipped: no current song',
-      );
-      return '没有可用的当前歌曲。';
-    }
-    if (_context.lyricsGeneration.isGenerating) {
-      debugPrint(
-        '[LyricsController] generate timeline skipped: already generating '
-        'path=${song.path}',
-      );
-      return '歌词正在生成中，请稍后再试。';
-    }
-
+  Future<String?> _generateTimelineForSong(MusicFile song) async {
     final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
     if (sourceLyrics.isEmpty) {
       debugPrint(
@@ -276,7 +256,7 @@ class LyricsGenerationCoordinator {
         databaseSource: LyricsCacheSource.aiTimeline,
         statusLabel: '正在生成时间轴',
         translationProvider: () =>
-            _context.currentMusic()?.lyrics?.translations ??
+            _support.songForPath(song.path)?.lyrics?.translations ??
             const <String, MusicLyricTranslation>{},
         invoke:
             ({
@@ -300,6 +280,33 @@ class LyricsGenerationCoordinator {
     }
   }
 
+  Future<String?> generateLyricsForCurrentSong() async {
+    final song = _context.currentMusic();
+    if (song == null) {
+      debugPrint('[LyricsController] generate lyrics skipped: no current song');
+      return '没有可用的当前歌曲。';
+    }
+
+    return _context.lyricsAiTaskQueue.enqueue(() {
+      return _generateLyricsForSong(song);
+    });
+  }
+
+  Future<String?> generateTimelineForCurrentSong() async {
+    final song = _context.currentMusic();
+    if (song == null) {
+      debugPrint(
+        '[LyricsController] generate timeline skipped: no current song',
+      );
+      return '没有可用的当前歌曲。';
+    }
+
+    return _context.lyricsAiTaskQueue.enqueue(() {
+      final activeSong = _support.songForPath(song.path) ?? song;
+      return _generateTimelineForSong(activeSong);
+    });
+  }
+
   Future<String?> regenerateLyricsForCurrentSong() async {
     final song = _context.currentMusic();
     if (song == null) {
@@ -310,11 +317,9 @@ class LyricsGenerationCoordinator {
     }
 
     _support.clearLyricsStateForPath(song.path);
-    if (_context.currentMusic()?.path != song.path) {
-      return '当前歌曲已切换，重新生成已取消。';
-    }
-
-    return generateLyricsForCurrentSong();
+    return _context.lyricsAiTaskQueue.enqueue(() {
+      return _generateLyricsForSong(_support.songForPath(song.path) ?? song);
+    });
   }
 
   Future<void> _saveGeneratedLyricsToDatabase({

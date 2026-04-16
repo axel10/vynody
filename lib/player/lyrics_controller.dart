@@ -70,7 +70,11 @@ class LyricsController extends Notifier<LyricsControllerState> {
       settingsService: _settingsService,
       getState: () => state,
       setState: (newState) => state = newState,
-      clearState: ({bool notify = false}) => clearState(notify: notify),
+      clearState: ({bool notify = false, bool preserveTaskState = true}) =>
+          clearState(
+            notify: notify,
+            preserveTaskState: preserveTaskState,
+          ),
       setIsLyricsLoading: (value) => _isLyricsLoading = value,
       setIsLyricsTranslating: (value) => _isLyricsTranslating = value,
       setLyricsTranslationStatus: (value) => _lyricsTranslationStatus = value,
@@ -160,11 +164,37 @@ class LyricsController extends Notifier<LyricsControllerState> {
     state = state.copyWith(lyricsTranslationLanguageCode: normalized);
   }
 
-  void clearState({bool notify = false}) {
+  void clearState({
+    bool notify = false,
+    bool preserveTaskState = true,
+  }) {
+    final current = state;
     state = LyricsControllerState(
-      lyricsTranslationLanguageCode:
-          LanguageCodeUtils.currentSystemLanguageCode(),
-      revision: notify ? state.revision + 1 : state.revision,
+      isLyricsLoading: false,
+      isLyricsTranslating: preserveTaskState
+          ? current.isLyricsTranslating
+          : false,
+      lyricsTranslationStatus: preserveTaskState
+          ? current.lyricsTranslationStatus
+          : '',
+      lyricsGenerationStatus: preserveTaskState
+          ? current.lyricsGenerationStatus
+          : '',
+      hasLyrics: false,
+      lyricsSearchAttempted: false,
+      currentLyricsLines: const <LyricLine>[],
+      currentLyricsText: '',
+      isLyricsGenerating: preserveTaskState
+          ? current.isLyricsGenerating
+          : false,
+      lyricsGenerationPhase: preserveTaskState
+          ? current.lyricsGenerationPhase
+          : LyricsGenerationPhase.idle,
+      lyricsGenerationProgress: preserveTaskState
+          ? current.lyricsGenerationProgress
+          : 0.0,
+      lyricsTranslationLanguageCode: current.lyricsTranslationLanguageCode,
+      revision: notify ? current.revision + 1 : current.revision,
     );
   }
 
@@ -250,6 +280,14 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   Future<void> fillLyricsForCurrentSong(String lyricsText) {
     return _support.fillLyricsForCurrentSong(lyricsText);
+  }
+
+  bool isLyricsGenerationForSong(String path) {
+    return _context.lyricsGeneration.songPath == path;
+  }
+
+  String? get activeLyricsGenerationSongPath {
+    return _context.lyricsGeneration.songPath;
   }
 
   void _logDebug(String message) {

@@ -24,9 +24,10 @@ class LyricsFetchCoordinator {
   }
 
   Future<void> fetchAndLog(MusicFile song) async {
-    if (_context.lyricsGeneration.isGenerating) {
+    if (_context.lyricsGeneration.isGenerating &&
+        _context.lyricsGeneration.songPath == song.path) {
       _support.logDebug(
-        'fetch skipped because lyrics generation is in progress -> '
+        'fetch skipped because lyrics generation is in progress for same song -> '
         'title="${song.displayName}" path="${song.path}"',
       );
       return;
@@ -167,7 +168,8 @@ class LyricsFetchCoordinator {
   }
 
   Future<void> retryFetchUntilReady(MusicFile song) async {
-    if (_context.lyricsGeneration.isGenerating) {
+    if (_context.lyricsGeneration.isGenerating &&
+        _context.lyricsGeneration.songPath == song.path) {
       return;
     }
     if (_context.state.isLyricsLoading ||

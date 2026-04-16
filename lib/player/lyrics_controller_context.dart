@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../models/lyric_line.dart';
 import '../models/music_file.dart';
 import 'lyrics_ai_service.dart';
+import 'lyrics_ai_task_queue.dart';
 import 'lyrics_cache_repository.dart';
 import 'lyrics_controller_state.dart';
 import 'lyrics_generation_phase.dart';
@@ -15,6 +16,7 @@ import 'settings_service.dart';
 class LyricsGenerationRuntime {
   int serial = 0;
   Completer<void>? completer;
+  String? songPath;
 
   bool get isGenerating => completer != null;
 
@@ -23,12 +25,18 @@ class LyricsGenerationRuntime {
     completer = Completer<void>();
   }
 
+  void beginForSong(String path) {
+    songPath = path;
+    start();
+  }
+
   void finish() {
     final currentCompleter = completer;
     if (currentCompleter != null && !currentCompleter.isCompleted) {
       currentCompleter.complete();
     }
     completer = null;
+    songPath = null;
   }
 }
 
@@ -76,7 +84,11 @@ class LyricsControllerContext {
   final SettingsService settingsService;
   final LyricsControllerState Function() getState;
   final void Function(LyricsControllerState state) setState;
-  final void Function({bool notify}) clearState;
+  final void Function({
+    bool notify,
+    bool preserveTaskState,
+  })
+  clearState;
   final void Function(bool value) setIsLyricsLoading;
   final void Function(bool value) setIsLyricsTranslating;
   final void Function(String value) setLyricsTranslationStatus;
@@ -97,6 +109,7 @@ class LyricsControllerContext {
   final void Function(String message) logDebug;
 
   final LyricsGenerationRuntime lyricsGeneration = LyricsGenerationRuntime();
+  final LyricsAiTaskQueue lyricsAiTaskQueue = LyricsAiTaskQueue();
   final Set<String> translatedLyricsKeys = <String>{};
   final Set<String> translationInFlightKeys = <String>{};
   int lyricsRequestSerial = 0;

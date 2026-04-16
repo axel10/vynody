@@ -392,7 +392,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         _duration > Duration.zero &&
         !hasLyrics &&
         !isLyricsLoading &&
-        !_lyricsState.isLyricsGenerating &&
+        !_lyricsController.isLyricsGenerationForSong(currentMusic!.path) &&
         !lyricsSearchAttempted &&
         _currentIndex >= 0 &&
         _currentIndex < _queue.length) {
@@ -486,7 +486,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         currentMusic?.path != null &&
         !hasLyrics &&
         !isLyricsLoading &&
-        !_lyricsState.isLyricsGenerating) {
+        !_lyricsController.isLyricsGenerationForSong(currentMusic!.path)) {
       final song = (_currentIndex >= 0 && _currentIndex < _queue.length)
           ? _queue[_currentIndex]
           : null;
@@ -733,7 +733,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           isLyricsActive &&
           !hasLyrics &&
           !isLyricsLoading &&
-          !_lyricsState.isLyricsGenerating) {
+          !_lyricsController.isLyricsGenerationForSong(metadata.path)) {
         final current = currentMusic;
         if (current != null) {
           unawaited(_lyricsController.fetchAndLog(current));
@@ -915,7 +915,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         'lyrics state cleared -> title="${song.displayName}" '
         'mode=$isLyricsActive hasCache=${songLyrics != null}',
       );
-      _lyricsController.clearState();
+      _lyricsController.clearState(preserveTaskState: true);
     }
 
     notifyListeners();
@@ -936,7 +936,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     // Trigger lyric loading only when lyric mode is active and we still do not
     // have lyrics for this track.
     if (isLyricsActive && !hasLyrics) {
-      if (_lyricsState.isLyricsGenerating) {
+      if (_lyricsController.isLyricsGenerationForSong(song.path)) {
         _logLyricsDebug(
           'post-metadata fetch skipped because lyrics generation is active '
           '-> title="${song.displayName}"',

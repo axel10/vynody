@@ -304,13 +304,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate',
-          enabled: hasCurrentSong && !lyricsState.isLyricsGenerating,
+          enabled: hasCurrentSong,
           child: Text(_buildGenerateMenuLabel()),
         ),
       if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate_timeline',
-          enabled: hasCurrentSong && !lyricsState.isLyricsGenerating,
+          enabled: hasCurrentSong,
           child: Text(_buildGenerateTimelineMenuLabel()),
         ),
       if (!requeryOnly &&
@@ -334,7 +334,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'translate',
-          enabled: hasCurrentSong && !lyricsState.isLyricsTranslating,
+          enabled: hasCurrentSong,
           child: const Text('翻译歌词'),
         ),
       if (!requeryOnly)
@@ -442,7 +442,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         break;
     }
 
-    return lyricsState.isLyricsGenerating ? '生成中...' : '生成歌词';
+    return lyricsState.isLyricsGenerating ? '排队生成' : '生成歌词';
   }
 
   void _scheduleScrollIfNeeded({

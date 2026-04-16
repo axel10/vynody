@@ -71,9 +71,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
                       SizedBox(
                         height: 42,
                         child: FilledButton.icon(
-                          onPressed: isGenerating
-                              ? null
-                              : () => onGeneratePressed(),
+                          onPressed: () => onGeneratePressed(),
                           style: FilledButton.styleFrom(
                             backgroundColor: accentColor.withValues(
                               alpha: 0.95,

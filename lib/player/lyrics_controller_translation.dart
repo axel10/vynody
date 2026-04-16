@@ -39,7 +39,7 @@ class LyricsTranslationCoordinator {
     String? targetLanguageCode,
   }) async {
     final song = _context.currentMusic();
-    if (song == null || _context.state.isLyricsTranslating) return;
+    if (song == null) return;
 
     final normalizedLanguageCode = LanguageCodeUtils.normalizeLanguageCode(
       targetLanguageCode ?? _context.state.lyricsTranslationLanguageCode,
@@ -55,32 +55,32 @@ class LyricsTranslationCoordinator {
       );
     }
 
-    if (_context.lyricsGeneration.isGenerating &&
-        _context.currentMusic()?.path == song.path) {
-      _context.setIsLyricsTranslating(true);
-      _context.setLyricsTranslationStatus('正在翻译歌词');
-      await _waitForLyricsGenerationToFinish(song.path);
-    }
-
-    try {
-      final currentSong = _context.currentMusic();
-      if (currentSong == null || currentSong.path != song.path) return;
-
-      final sourceLyrics = _lyricsSourceForTranslation(currentSong);
-      if (sourceLyrics.isEmpty) return;
-
-      final request = await _buildLyricsTranslationRequest(
-        currentSong,
+    await _context.lyricsAiTaskQueue.enqueue(() {
+      return _translateLyricsForSong(
+        song,
         normalizedLanguageCode: normalizedLanguageCode,
-        sourceLyrics: sourceLyrics,
       );
-      if (request == null) return;
+    });
+  }
 
-      await _runLyricsTranslationRequest(request);
-    } finally {
-      _context.setIsLyricsTranslating(false);
-      _context.setLyricsTranslationStatus('');
-    }
+  Future<void> _translateLyricsForSong(
+    MusicFile song, {
+    required String normalizedLanguageCode,
+  }) async {
+    final currentSong = _support.songForPath(song.path);
+    if (currentSong == null) return;
+
+    final sourceLyrics = _lyricsSourceForTranslation(currentSong);
+    if (sourceLyrics.isEmpty) return;
+
+    final request = await _buildLyricsTranslationRequest(
+      currentSong,
+      normalizedLanguageCode: normalizedLanguageCode,
+      sourceLyrics: sourceLyrics,
+    );
+    if (request == null) return;
+
+    await _runLyricsTranslationRequest(request);
   }
 
   Future<_LyricsTranslationRequest?> _buildLyricsTranslationRequest(
@@ -101,7 +101,7 @@ class LyricsTranslationCoordinator {
 
     final currentLyrics = song.lyrics;
     if (currentLyrics != null && !currentLyrics.hasId) {
-      _support.replaceCurrentSongIfPath(
+      _support.replaceSongIfPath(
         song.path,
         (queueSong) =>
             queueSong.copyWith(lyrics: currentLyrics.copyWith(id: lyricsId)),
@@ -141,7 +141,7 @@ class LyricsTranslationCoordinator {
         lyrics: request.sourceLyrics,
         targetLanguageCode: request.languageCode,
         onProgress: (translatedLines, translatedText) {
-          _syncTranslatedLyricsToCurrentSong(
+          _syncTranslatedLyricsToSong(
             request.songPath,
             request.lyricsId,
             request.languageCode,
@@ -160,6 +160,8 @@ class LyricsTranslationCoordinator {
       }
     } finally {
       _context.translationInFlightKeys.remove(request.translationKey);
+      _context.setIsLyricsTranslating(false);
+      _context.setLyricsTranslationStatus('');
     }
   }
 
@@ -168,10 +170,14 @@ class LyricsTranslationCoordinator {
     if (lyrics?.syncedLines.isNotEmpty == true) {
       return _support.lyricsTextWithTimestamps(lyrics!);
     }
+    final plainText = lyrics?.plainText.trim() ?? '';
+    if (plainText.isNotEmpty) {
+      return plainText;
+    }
     return _context.state.currentLyricsText.trim();
   }
 
-  void _syncTranslatedLyricsToCurrentSong(
+  void _syncTranslatedLyricsToSong(
     String songPath,
     String lyricsId,
     String languageCode,
@@ -179,7 +185,7 @@ class LyricsTranslationCoordinator {
     String translatedText,
   ) {
     MusicFile? updatedSong;
-    _support.replaceCurrentSongIfPath(songPath, (currentSong) {
+    _support.replaceSongIfPath(songPath, (currentSong) {
       final existingLyrics = currentSong.lyrics ?? const MusicLyric();
       final existingTranslation = existingLyrics.translationFor(languageCode);
       final updatedTranslation = _buildLyricsTranslation(
@@ -209,31 +215,14 @@ class LyricsTranslationCoordinator {
     _context.bumpRevision();
   }
 
-  Future<void> _waitForLyricsGenerationToFinish(String songPath) async {
-    while (_context.lyricsGeneration.isGenerating &&
-        _context.currentMusic()?.path == songPath) {
-      final completer = _context.lyricsGeneration.completer;
-      if (completer == null) {
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-        continue;
-      }
-
-      try {
-        await completer.future;
-      } catch (_) {
-        return;
-      }
-    }
-  }
-
   Future<void> _saveTranslatedLyricsToDatabase({
     required String songPath,
     required String cacheKey,
     required String languageCode,
   }) async {
     try {
-      final current = _context.currentMusic();
-      if (current == null || current.path != songPath) return;
+      final current = _support.songForPath(songPath);
+      if (current == null) return;
 
       final lyrics = current.lyrics;
       if (lyrics == null) return;
