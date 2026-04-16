@@ -429,7 +429,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       body: Stack(
         children: [
           Padding(
-            padding: EdgeInsets.only(top: showDesktopTitleBar ? 32 : 0),
+            padding: EdgeInsets.only(top: showDesktopTitleBar ? 32 : 0,bottom: 60),
             child: SafeArea(
               top: !showDesktopTitleBar,
               child: _buildBody(context, settings),
