@@ -2,14 +2,17 @@ import 'dart:io';
 import 'dart:async';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:media_scanner/media_scanner.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
+import 'package:worker_manager/worker_manager.dart';
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import 'metadata_database.dart';
@@ -219,7 +222,9 @@ class ScannerService extends ChangeNotifier {
   ];
 
   ScannerService() {
-    _init();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_init());
+    });
     _setupMediaObserver();
   }
 
@@ -840,37 +845,103 @@ class ScannerService extends ChangeNotifier {
   ) async {
     if (imageOnlyPaths.isEmpty) return;
 
-    final db = MetadataDatabase();
-    final sortedPaths = imageOnlyPaths.toList()
-      ..sort(_compareScanFilePriority);
+    final sortedPaths = imageOnlyPaths.toList()..sort(_compareScanFilePriority);
 
-    for (final filePath in sortedPaths) {
-      try {
-        final baseMetadata =
-            _metadataMap[filePath] ?? await db.getSongMetadata(filePath);
-        if (baseMetadata == null) {
-          continue;
-        }
+    try {
+      final supportDir = await getApplicationSupportDirectory();
+      const batchSize = 6;
+      for (var start = 0; start < sortedPaths.length; start += batchSize) {
+        final end = start + batchSize < sortedPaths.length
+            ? start + batchSize
+            : sortedPaths.length;
+        final batch = sortedPaths.sublist(start, end);
 
-        final artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(
-          filePath,
+        await Future.wait(
+          batch.map(
+            (filePath) => _processArtworkAndThemeWithWorker(
+              filePath: filePath,
+              supportDirPath: supportDir.path,
+              scanState: scanState,
+            ),
+          ),
         );
-        final updatedMetadata = await MetadataHelper
-            .applyArtworkAndThemeToMetadata(
-              metadata: baseMetadata,
-              artworkBytes: artworkBytes,
-              saveLarge: !Platform.isWindows,
-            );
-
-        if (updatedMetadata != null) {
-          _updateMetadataForPath(updatedMetadata, notify: false);
-        }
-        scanState.completedCount++;
-      } catch (e) {
-        debugPrint('Artwork/theme scan error for $filePath: $e');
-      } finally {
-        _emitScanProgress(scanState, filePath);
       }
+    } catch (e) {
+      debugPrint('Worker artwork scan failed, falling back to serial mode: $e');
+      final db = MetadataDatabase();
+      for (final filePath in sortedPaths) {
+        try {
+          final baseMetadata =
+              _metadataMap[filePath] ?? await db.getSongMetadata(filePath);
+          if (baseMetadata == null) {
+            continue;
+          }
+
+          final artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(
+            filePath,
+          );
+          final updatedMetadata =
+              await MetadataHelper.applyArtworkAndThemeToMetadata(
+                metadata: baseMetadata,
+                artworkBytes: artworkBytes,
+                saveLarge: !Platform.isWindows,
+              );
+
+          if (updatedMetadata != null) {
+            _updateMetadataForPath(updatedMetadata, notify: false);
+          }
+          scanState.completedCount++;
+        } catch (inner) {
+          debugPrint('Artwork/theme scan error for $filePath: $inner');
+        } finally {
+          _emitScanProgress(scanState, filePath);
+        }
+      }
+    }
+  }
+
+  Future<void> _processArtworkAndThemeWithWorker({
+    required String filePath,
+    required String supportDirPath,
+    required _ScanProgressState scanState,
+  }) async {
+    final db = MetadataDatabase();
+
+    try {
+      final baseMetadata =
+          _metadataMap[filePath] ?? await db.getSongMetadata(filePath);
+      if (baseMetadata == null) {
+        return;
+      }
+
+      final result = await workerManager.execute<Map<String, dynamic>?>(
+        () => processArtworkThumbnailWorkerTask({
+          'filePath': filePath,
+          'supportDirPath': supportDirPath,
+          'saveLarge': !Platform.isWindows,
+          'baseMetadata': baseMetadata.toMap(),
+        }),
+        priority: WorkPriority.immediately,
+      );
+
+      if (result == null) {
+        return;
+      }
+
+      final metadataMap = result['metadata'] as Map<String, dynamic>?;
+      if (metadataMap == null) {
+        return;
+      }
+
+      var updatedMetadata = SongMetadata.fromMap(metadataMap);
+
+      await db.insertOrUpdateSong(updatedMetadata);
+      _updateMetadataForPath(updatedMetadata, notify: false);
+      scanState.completedCount++;
+    } catch (e) {
+      debugPrint('Worker artwork/theme scan error for $filePath: $e');
+    } finally {
+      _emitScanProgress(scanState, filePath);
     }
   }
 
@@ -1159,7 +1230,9 @@ class ScannerService extends ChangeNotifier {
         _seedMetadataFromDatabase(classification.existingMetadataByPath);
 
         final fullPaths = classification.pathsFor(_ScanFileStage.full);
-        final imageOnlyPaths = classification.pathsFor(_ScanFileStage.imageOnly);
+        final imageOnlyPaths = classification.pathsFor(
+          _ScanFileStage.imageOnly,
+        );
 
         await _preprocessChangedFiles(
           fullPaths,
@@ -1167,10 +1240,10 @@ class ScannerService extends ChangeNotifier {
           existingMetadataByPath: classification.existingMetadataByPath,
         );
 
-        await _applyArtworkAndThemeToChangedFiles(
-          [...fullPaths, ...imageOnlyPaths],
-          scanState,
-        );
+        await _applyArtworkAndThemeToChangedFiles([
+          ...fullPaths,
+          ...imageOnlyPaths,
+        ], scanState);
 
         final presentPaths = <String>{};
         for (final root in _scannedRootFolders) {

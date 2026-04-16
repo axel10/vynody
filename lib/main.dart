@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:worker_manager/worker_manager.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -97,6 +99,7 @@ void main(List<String> args) async {
   }
 
   final settingsService = await SettingsService.init();
+  unawaited(workerManager.init(isolatesCount: 8));
 
   runApp(
     ProviderScope(

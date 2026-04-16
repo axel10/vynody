@@ -6,11 +6,185 @@ import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
-import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'metadata_database.dart';
 import 'theme_color_helper.dart';
+
+Future<Uint8List?> _generateThemeColorsBlobFromImage(img.Image image) async {
+  try {
+    final rgbaBytes = image.getBytes(order: img.ChannelOrder.rgba);
+    final palette = await PaletteGenerator.fromByteData(
+      EncodedImage(
+        ByteData.sublistView(rgbaBytes),
+        width: image.width,
+        height: image.height,
+      ),
+      maximumColorCount: 20,
+    );
+    return ThemeColorHelper.paletteToBlob(palette);
+  } catch (e) {
+    debugPrint('Error generating theme colors from image: $e');
+    return null;
+  }
+}
+
+Future<Map<String, dynamic>?> _buildArtworkFiles({
+  required String songPath,
+  required Uint8List data,
+  required String supportDirPath,
+  required bool saveLarge,
+}) async {
+  try {
+    final artworkDir = Directory(p.join(supportDirPath, 'artworks'));
+    final thumbnailsDir = Directory(p.join(supportDirPath, 'thumbnails'));
+
+    if (!await artworkDir.exists()) {
+      await artworkDir.create(recursive: true);
+    }
+    if (!await thumbnailsDir.exists()) {
+      await thumbnailsDir.create(recursive: true);
+    }
+
+    final baseName =
+        '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}';
+    final largePath = p.join(artworkDir.path, '$baseName.jpg');
+    final thumbPath = p.join(thumbnailsDir.path, '${baseName}_thumb.jpg');
+
+    final originalImage = img.decodeImage(data);
+    if (originalImage == null) {
+      return null;
+    }
+
+    final cropSize = originalImage.width < originalImage.height
+        ? originalImage.width
+        : originalImage.height;
+    final offsetX = (originalImage.width - cropSize) ~/ 2;
+    final offsetY = (originalImage.height - cropSize) ~/ 2;
+
+    final square = img.copyCrop(
+      originalImage,
+      x: offsetX,
+      y: offsetY,
+      width: cropSize,
+      height: cropSize,
+    );
+
+    final resized = img.copyResize(
+      square,
+      width: 200,
+      height: 200,
+      interpolation: img.Interpolation.average,
+    );
+
+    final thumbnailBytes = Uint8List.fromList(
+      img.encodeJpg(resized, quality: 80),
+    );
+    final themeColorsBlob = await _generateThemeColorsBlobFromImage(resized);
+
+    if (saveLarge) {
+      await File(largePath).writeAsBytes(data);
+    }
+
+    await File(thumbPath).writeAsBytes(thumbnailBytes);
+
+    return {
+      'artworkPath': saveLarge ? largePath : null,
+      'thumbnailPath': thumbPath,
+      'width': originalImage.width,
+      'height': originalImage.height,
+      'themeColorsBlob': themeColorsBlob,
+    };
+  } catch (e) {
+    debugPrint('Error saving artwork: $e');
+    return null;
+  }
+}
+
+@pragma('vm:entry-point')
+Future<Map<String, dynamic>?> processArtworkThumbnailWorkerTask(
+  Map<String, dynamic> args,
+) async {
+  try {
+    final filePath = args['filePath'] as String;
+    final supportDirPath = args['supportDirPath'] as String;
+    final saveLarge = args['saveLarge'] as bool? ?? true;
+    final baseMetadataMap = Map<String, dynamic>.from(
+      args['baseMetadata'] as Map,
+    );
+    final baseMetadata = SongMetadata.fromMap(baseMetadataMap);
+    final processedAt =
+        baseMetadata.lastModifiedTime ?? DateTime.now().millisecondsSinceEpoch;
+    Map<String, dynamic> skippedArtworkResult() {
+      final updated = baseMetadata.copyWith(metadataImgScanned: processedAt);
+      return {'metadata': updated.toMap(), 'themeColorsBlob': null};
+    }
+
+    final file = File(filePath);
+    final metadata = readMetadata(file, getImage: true);
+    final artworkData = metadata.pictures.isNotEmpty
+        ? metadata.pictures.first.bytes
+        : null;
+
+    if (artworkData == null || artworkData.isEmpty) {
+      return skippedArtworkResult();
+    }
+
+    final artworkInfo = await _buildArtworkFiles(
+      songPath: filePath,
+      data: artworkData,
+      supportDirPath: supportDirPath,
+      saveLarge: saveLarge,
+    );
+    if (artworkInfo == null) {
+      return skippedArtworkResult();
+    }
+
+    final updated = baseMetadata.copyWith(
+      artworkPath: artworkInfo['artworkPath'] as String?,
+      thumbnailPath: artworkInfo['thumbnailPath'] as String?,
+      artworkWidth: artworkInfo['width'] as int?,
+      artworkHeight: artworkInfo['height'] as int?,
+      themeColorsBlob: artworkInfo['themeColorsBlob'] as Uint8List?,
+      metadataImgScanned: processedAt,
+    );
+
+    return {
+      'metadata': updated.toMap(),
+      'themeColorsBlob': artworkInfo['themeColorsBlob'] as Uint8List?,
+    };
+  } on NoMetadataParserException catch (_) {
+    final baseMetadataMap = Map<String, dynamic>.from(
+      args['baseMetadata'] as Map,
+    );
+    final baseMetadata = SongMetadata.fromMap(baseMetadataMap);
+    final processedAt =
+        baseMetadata.lastModifiedTime ?? DateTime.now().millisecondsSinceEpoch;
+    final updated = baseMetadata.copyWith(metadataImgScanned: processedAt);
+    return {'metadata': updated.toMap(), 'themeColorsBlob': null};
+  } on MetadataParserException catch (e) {
+    final filePath = args['filePath'] as String;
+    final baseMetadataMap = Map<String, dynamic>.from(
+      args['baseMetadata'] as Map,
+    );
+    final baseMetadata = SongMetadata.fromMap(baseMetadataMap);
+    final processedAt =
+        baseMetadata.lastModifiedTime ?? DateTime.now().millisecondsSinceEpoch;
+    debugPrint('Artwork thumbnail worker skipped for $filePath: $e');
+    final updated = baseMetadata.copyWith(metadataImgScanned: processedAt);
+    return {'metadata': updated.toMap(), 'themeColorsBlob': null};
+  } catch (e) {
+    final baseMetadataMap = Map<String, dynamic>.from(
+      args['baseMetadata'] as Map,
+    );
+    final baseMetadata = SongMetadata.fromMap(baseMetadataMap);
+    final processedAt =
+        baseMetadata.lastModifiedTime ?? DateTime.now().millisecondsSinceEpoch;
+    debugPrint('Artwork thumbnail worker failed: $e');
+    final updated = baseMetadata.copyWith(metadataImgScanned: processedAt);
+    return {'metadata': updated.toMap(), 'themeColorsBlob': null};
+  }
+}
 
 /// Supported file extensions for writing metadata
 const Set<String> writableMetadataExtensions = {
@@ -173,9 +347,11 @@ class MetadataHelper {
           artworkHeight == null;
 
       if (needsArtworkSave) {
-        final artworkInfo = await saveArtworkAndThumbnail(
-          filePath,
-          artworkBytes,
+        final supportDir = await getApplicationSupportDirectory();
+        final artworkInfo = await _buildArtworkFiles(
+          songPath: filePath,
+          data: artworkBytes,
+          supportDirPath: supportDir.path,
           saveLarge: !Platform.isWindows,
         );
 
@@ -184,6 +360,7 @@ class MetadataHelper {
           resolvedThumbnailPath = artworkInfo['thumbnailPath'] as String?;
           resolvedArtworkWidth = artworkInfo['width'] as int?;
           resolvedArtworkHeight = artworkInfo['height'] as int?;
+          themeColorsBlob = artworkInfo['themeColorsBlob'] as Uint8List?;
         } else {
           debugPrint('Failed to save artwork for selected metadata $filePath');
         }
@@ -191,11 +368,12 @@ class MetadataHelper {
 
       if (artworkBytes != null && artworkBytes.isNotEmpty) {
         try {
-          final palette = await PaletteGenerator.fromImageProvider(
-            MemoryImage(artworkBytes),
-            maximumColorCount: 20,
-          );
-          themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
+          final decodedArtwork = img.decodeImage(artworkBytes);
+          if (decodedArtwork != null) {
+            themeColorsBlob = await _generateThemeColorsBlobFromImage(
+              decodedArtwork,
+            );
+          }
         } catch (e) {
           debugPrint(
             'Error generating theme color for selected metadata $filePath: $e',
@@ -225,8 +403,7 @@ class MetadataHelper {
         themeColorsBlob: themeColorsBlob,
         lastModifiedTime: now,
         metadataTextScanned: now,
-        metadataImgScanned:
-            artworkBytes != null && artworkBytes.isNotEmpty
+        metadataImgScanned: artworkBytes != null && artworkBytes.isNotEmpty
             ? now
             : base.metadataImgScanned,
         createdAt: base.createdAt ?? now,
@@ -305,6 +482,8 @@ class MetadataHelper {
         artworkData = metadata.pictures.isNotEmpty
             ? metadata.pictures.first.bytes
             : null;
+      } on NoMetadataParserException {
+        artworkData = null;
       } catch (e) {
         debugPrint('audio_metadata_reader error for $filePath: $e');
       }
@@ -328,20 +507,7 @@ class MetadataHelper {
         thumbnailPath = artworkInfo?['thumbnailPath'] as String?;
         artworkWidth = artworkInfo?['width'] as int?;
         artworkHeight = artworkInfo?['height'] as int?;
-
-        if (thumbnailPath != null) {
-          try {
-            // 4. 基于缩略图生成预置的主题颜色，存入数据库以备后用
-            final imageProvider = FileImage(File(thumbnailPath));
-            final palette = await PaletteGenerator.fromImageProvider(
-              imageProvider,
-              maximumColorCount: 20,
-            );
-            themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
-          } catch (e) {
-            debugPrint('Error generating theme color for $filePath: $e');
-          }
-        }
+        themeColorsBlob = artworkInfo?['themeColorsBlob'] as Uint8List?;
       } else if (!generateThumbnail && existing != null) {
         artworkPath = existingArtworkPath;
         thumbnailPath = existingThumbnailPath;
@@ -368,8 +534,9 @@ class MetadataHelper {
         themeColorsBlob: themeColorsBlob,
         lastModifiedTime: lastModified,
         metadataTextScanned: lastModified,
-        metadataImgScanned:
-            generateThumbnail ? lastModified : existing?.metadataImgScanned,
+        metadataImgScanned: generateThumbnail
+            ? lastModified
+            : existing?.metadataImgScanned,
         createdAt: createdAt,
       );
 
@@ -439,11 +606,24 @@ class MetadataHelper {
       // Save thumbnail
       await File(thumbPath).writeAsBytes(thumbnailData);
 
+      Uint8List? themeColorsBlob;
+      try {
+        final decodedThumbnail = img.decodeImage(thumbnailData);
+        if (decodedThumbnail != null) {
+          themeColorsBlob = await _generateThemeColorsBlobFromImage(
+            decodedThumbnail,
+          );
+        }
+      } catch (e) {
+        debugPrint('Error generating theme color for $songPath: $e');
+      }
+
       return {
         'artworkPath': saveLarge ? largePath : null,
         'thumbnailPath': thumbPath,
         'width': width,
         'height': height,
+        'themeColorsBlob': themeColorsBlob,
       };
     } catch (e) {
       debugPrint('Error saving artwork: $e');
@@ -479,20 +659,9 @@ class MetadataHelper {
 
     Uint8List? themeColorsBlob;
     final thumbnailPath = artworkInfo['thumbnailPath'] as String?;
-    if (thumbnailPath != null && thumbnailPath.isNotEmpty) {
-      try {
-        final imageProvider = FileImage(File(thumbnailPath));
-        final palette = await PaletteGenerator.fromImageProvider(
-          imageProvider,
-          maximumColorCount: 20,
-        );
-        themeColorsBlob = ThemeColorHelper.paletteToBlob(palette);
-      } catch (e) {
-        debugPrint('Error generating theme color for ${metadata.path}: $e');
-      }
-    }
+    themeColorsBlob = artworkInfo['themeColorsBlob'] as Uint8List?;
 
-      final updated = metadata.copyWith(
+    final updated = metadata.copyWith(
       artworkPath: artworkInfo['artworkPath'] as String?,
       thumbnailPath: thumbnailPath,
       artworkWidth: artworkInfo['width'] as int?,

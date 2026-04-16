@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -172,6 +173,7 @@ class ReleaseCoverCacheRecord {
 class MetadataDatabase {
   static Database? _database;
   static final MetadataDatabase _instance = MetadataDatabase._internal();
+  static Future<void> _dbQueue = Future<void>.value();
 
   factory MetadataDatabase() => _instance;
 
@@ -195,6 +197,9 @@ class MetadataDatabase {
       path,
       options: OpenDatabaseOptions(
         version: 18,
+        onConfigure: (db) async {
+          await db.execute('PRAGMA busy_timeout = 5000');
+        },
         onCreate: (db, version) async {
           await db.execute('''
           CREATE TABLE songs (
@@ -463,135 +468,164 @@ class MetadataDatabase {
     return rows.any((row) => row['name'] == column);
   }
 
+  Future<T> _withDbLock<T>(Future<T> Function(Database db) action) async {
+    final completer = Completer<T>();
+    final previous = _dbQueue;
+    _dbQueue = previous.then((_) async {
+      try {
+        final db = await database;
+        final result = await action(db);
+        if (!completer.isCompleted) {
+          completer.complete(result);
+        }
+      } catch (e, st) {
+        if (!completer.isCompleted) {
+          completer.completeError(e, st);
+        }
+      }
+    });
+    return completer.future;
+  }
+
   Future<void> insertOrUpdateSong(SongMetadata song) async {
-    final db = await database;
-    await db.insert(
-      'songs',
-      song.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _withDbLock((db) {
+      return db.insert(
+        'songs',
+        song.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    });
   }
 
   Future<void> insertOrUpdateLyricsCache(LyricsCacheRecord record) async {
-    final db = await database;
-    await db.insert(
-      'lyrics_cache',
-      record.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _withDbLock((db) {
+      return db.insert(
+        'lyrics_cache',
+        record.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    });
   }
 
   Future<LyricsCacheRecord?> getLyricsCache(String cacheKey) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'lyrics_cache',
-      where: 'cacheKey = ?',
-      whereArgs: [cacheKey],
-      limit: 1,
-    );
+    return _withDbLock((db) async {
+      final List<Map<String, dynamic>> maps = await db.query(
+        'lyrics_cache',
+        where: 'cacheKey = ?',
+        whereArgs: [cacheKey],
+        limit: 1,
+      );
 
-    if (maps.isNotEmpty) {
-      return LyricsCacheRecord.fromMap(maps.first);
-    }
-    return null;
+      if (maps.isNotEmpty) {
+        return LyricsCacheRecord.fromMap(maps.first);
+      }
+      return null;
+    });
   }
 
   Future<void> insertOrUpdateLyricsTranslationCache(
     LyricsTranslationCacheRecord record,
   ) async {
-    final db = await database;
-    final normalizedCacheKey = record.cacheKey.trim();
-    if (normalizedCacheKey.isNotEmpty) {
-      await db.delete(
+    await _withDbLock((db) async {
+      final normalizedCacheKey = record.cacheKey.trim();
+      if (normalizedCacheKey.isNotEmpty) {
+        await db.delete(
+          'lyrics_translation_cache',
+          where: 'cacheKey = ? AND languageCode = ?',
+          whereArgs: [normalizedCacheKey, record.languageCode],
+        );
+      }
+      await db.insert(
         'lyrics_translation_cache',
-        where: 'cacheKey = ? AND languageCode = ?',
-        whereArgs: [normalizedCacheKey, record.languageCode],
+        record.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
       );
-    }
-    await db.insert(
-      'lyrics_translation_cache',
-      record.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    });
   }
 
   Future<List<LyricsTranslationCacheRecord>> getLyricsTranslationCaches(
     String cacheKey,
   ) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'lyrics_translation_cache',
-      where: 'cacheKey = ?',
-      whereArgs: [cacheKey],
-      orderBy: 'updatedAtMillis DESC',
-    );
-    return maps.map(LyricsTranslationCacheRecord.fromMap).toList();
+    return _withDbLock((db) async {
+      final List<Map<String, dynamic>> maps = await db.query(
+        'lyrics_translation_cache',
+        where: 'cacheKey = ?',
+        whereArgs: [cacheKey],
+        orderBy: 'updatedAtMillis DESC',
+      );
+      return maps.map(LyricsTranslationCacheRecord.fromMap).toList();
+    });
   }
 
   Future<void> insertOrUpdateAcoustIDCache(AcoustIDCacheRecord record) async {
-    final db = await database;
-    await db.insert(
-      'acoustid_cache',
-      record.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _withDbLock((db) {
+      return db.insert(
+        'acoustid_cache',
+        record.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    });
   }
 
   Future<AcoustIDCacheRecord?> getAcoustIDCache(String fingerprint) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'acoustid_cache',
-      where: 'fingerprint = ?',
-      whereArgs: [fingerprint],
-      limit: 1,
-    );
+    return _withDbLock((db) async {
+      final List<Map<String, dynamic>> maps = await db.query(
+        'acoustid_cache',
+        where: 'fingerprint = ?',
+        whereArgs: [fingerprint],
+        limit: 1,
+      );
 
-    if (maps.isNotEmpty) {
-      return AcoustIDCacheRecord.fromMap(maps.first);
-    }
-    return null;
+      if (maps.isNotEmpty) {
+        return AcoustIDCacheRecord.fromMap(maps.first);
+      }
+      return null;
+    });
   }
 
   Future<void> insertOrUpdateReleaseCoverCache(
     ReleaseCoverCacheRecord record,
   ) async {
-    final db = await database;
-    await db.insert(
-      'release_cover_cache',
-      record.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _withDbLock((db) {
+      return db.insert(
+        'release_cover_cache',
+        record.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    });
   }
 
   Future<ReleaseCoverCacheRecord?> getReleaseCoverCache(
     String releaseId,
   ) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'release_cover_cache',
-      where: 'releaseId = ?',
-      whereArgs: [releaseId],
-      limit: 1,
-    );
+    return _withDbLock((db) async {
+      final List<Map<String, dynamic>> maps = await db.query(
+        'release_cover_cache',
+        where: 'releaseId = ?',
+        whereArgs: [releaseId],
+        limit: 1,
+      );
 
-    if (maps.isNotEmpty) {
-      return ReleaseCoverCacheRecord.fromMap(maps.first);
-    }
-    return null;
+      if (maps.isNotEmpty) {
+        return ReleaseCoverCacheRecord.fromMap(maps.first);
+      }
+      return null;
+    });
   }
 
   Future<SongMetadata?> getSongMetadata(String path) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'songs',
-      where: 'path = ?',
-      whereArgs: [path],
-    );
+    return _withDbLock((db) async {
+      final List<Map<String, dynamic>> maps = await db.query(
+        'songs',
+        where: 'path = ?',
+        whereArgs: [path],
+      );
 
-    if (maps.isNotEmpty) {
-      return SongMetadata.fromMap(maps.first);
-    }
-    return null;
+      if (maps.isNotEmpty) {
+        return SongMetadata.fromMap(maps.first);
+      }
+      return null;
+    });
   }
 
   Future<Map<String, SongMetadata>> getSongMetadataByPaths(
@@ -614,29 +648,30 @@ class MetadataDatabase {
       return {};
     }
 
-    final db = await database;
-    final result = <String, SongMetadata>{};
+    return _withDbLock((db) async {
+      final result = <String, SongMetadata>{};
 
-    const batchSize = 300;
-    for (var start = 0; start < normalizedPaths.length; start += batchSize) {
-      final end = start + batchSize < normalizedPaths.length
-          ? start + batchSize
-          : normalizedPaths.length;
-      final chunk = normalizedPaths.sublist(start, end);
-      final placeholders = List.filled(chunk.length, '?').join(', ');
-      final rows = await db.query(
-        'songs',
-        where: 'path IN ($placeholders)',
-        whereArgs: chunk,
-      );
+      const batchSize = 300;
+      for (var start = 0; start < normalizedPaths.length; start += batchSize) {
+        final end = start + batchSize < normalizedPaths.length
+            ? start + batchSize
+            : normalizedPaths.length;
+        final chunk = normalizedPaths.sublist(start, end);
+        final placeholders = List.filled(chunk.length, '?').join(', ');
+        final rows = await db.query(
+          'songs',
+          where: 'path IN ($placeholders)',
+          whereArgs: chunk,
+        );
 
-      for (final row in rows) {
-        final metadata = SongMetadata.fromMap(row);
-        result[_pathLookupKey(metadata.path)] = metadata;
+        for (final row in rows) {
+          final metadata = SongMetadata.fromMap(row);
+          result[_pathLookupKey(metadata.path)] = metadata;
+        }
       }
-    }
 
-    return result;
+      return result;
+    });
   }
 
   Future<int> deleteSongsMissingFromPaths({
@@ -655,76 +690,77 @@ class MetadataDatabase {
 
     if (normalizedScopeRoots.isEmpty) return 0;
 
-    final db = await database;
-    final rows = await db.query('songs', columns: ['path']);
-    final missingPaths = <String>[];
+    return _withDbLock((db) async {
+      final rows = await db.query('songs', columns: ['path']);
+      final missingPaths = <String>[];
 
-    for (final row in rows) {
-      final path = row['path'] as String?;
-      if (path == null || path.isEmpty) continue;
-      final normalizedPath = _normalizePath(path);
-      final normalizedLookup = Platform.isWindows
-          ? normalizedPath.toLowerCase()
-          : normalizedPath;
-      if (normalizedPresentPaths.contains(normalizedLookup)) continue;
-      if (!_isWithinAnyRoot(normalizedPath, normalizedScopeRoots)) continue;
-      missingPaths.add(normalizedPath);
-    }
+      for (final row in rows) {
+        final path = row['path'] as String?;
+        if (path == null || path.isEmpty) continue;
+        final normalizedPath = _normalizePath(path);
+        final normalizedLookup = Platform.isWindows
+            ? normalizedPath.toLowerCase()
+            : normalizedPath;
+        if (normalizedPresentPaths.contains(normalizedLookup)) continue;
+        if (!_isWithinAnyRoot(normalizedPath, normalizedScopeRoots)) continue;
+        missingPaths.add(normalizedPath);
+      }
 
-    if (missingPaths.isEmpty) return 0;
+      if (missingPaths.isEmpty) return 0;
 
-    final batch = db.batch();
-    for (final path in missingPaths) {
-      batch.delete('songs', where: 'path = ?', whereArgs: [path]);
-    }
-    await batch.commit(noResult: true);
-    return missingPaths.length;
+      final batch = db.batch();
+      for (final path in missingPaths) {
+        batch.delete('songs', where: 'path = ?', whereArgs: [path]);
+      }
+      await batch.commit(noResult: true);
+      return missingPaths.length;
+    });
   }
 
   Future<void> clearAll() async {
-    final db = await database;
-    await db.delete('songs');
+    await _withDbLock((db) => db.delete('songs'));
   }
 
   Future<void> clearWaveformCache() async {
-    final db = await database;
-    await db.rawUpdate(
-      'UPDATE songs SET waveformBlob = NULL WHERE waveformBlob IS NOT NULL',
-    );
+    await _withDbLock((db) {
+      return db.rawUpdate(
+        'UPDATE songs SET waveformBlob = NULL WHERE waveformBlob IS NOT NULL',
+      );
+    });
   }
 
   Future<void> clearLyricsCache() async {
-    final db = await database;
-    await db.delete('lyrics_cache');
+    await _withDbLock((db) => db.delete('lyrics_cache'));
   }
 
   Future<void> clearLyricsCacheByKey(String cacheKey) async {
     final normalizedCacheKey = cacheKey.trim();
     if (normalizedCacheKey.isEmpty) return;
 
-    final db = await database;
-    await db.delete(
-      'lyrics_cache',
-      where: 'cacheKey = ?',
-      whereArgs: [normalizedCacheKey],
-    );
+    await _withDbLock((db) {
+      return db.delete(
+        'lyrics_cache',
+        where: 'cacheKey = ?',
+        whereArgs: [normalizedCacheKey],
+      );
+    });
   }
 
   Future<void> clearLyricsTranslationCache() async {
-    final db = await database;
-    await db.delete('lyrics_translation_cache');
+    await _withDbLock((db) => db.delete('lyrics_translation_cache'));
   }
 
   Future<void> clearLyricsTranslationCacheByKey(String cacheKey) async {
     final normalizedCacheKey = cacheKey.trim();
     if (normalizedCacheKey.isEmpty) return;
 
-    final db = await database;
-    await db.delete(
-      'lyrics_translation_cache',
-      where: 'cacheKey = ?',
-      whereArgs: [normalizedCacheKey],
-    );
+    await _withDbLock((db) {
+      return db.delete(
+        'lyrics_translation_cache',
+        where: 'cacheKey = ?',
+        whereArgs: [normalizedCacheKey],
+      );
+    });
   }
 
   String _normalizePath(String path) {

@@ -1490,6 +1490,14 @@ packages:
       url: "https://github.com/alexmercerind/windows_taskbar"
     source: git
     version: "1.1.4"
+  worker_manager:
+    dependency: "direct main"
+    description:
+      name: worker_manager
+      sha256: "887587eb97e517bca88dea761bea96edc495513ec91e4c489dcf110967ba79ff"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "7.2.9"
   xdg_directories:
     dependency: transitive
     description:

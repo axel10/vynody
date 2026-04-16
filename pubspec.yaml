@@ -83,6 +83,7 @@ dependencies:
   oktoast: ^3.4.0
   proxy_getter:
     path: ./proxy_getter
+  worker_manager: ^7.2.9
 
 
 

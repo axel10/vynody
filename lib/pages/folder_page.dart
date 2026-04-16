@@ -120,14 +120,16 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     );
   }
 
-  void _dismissScanToast() {
+  void _dismissScanToast({bool notifyListeners = true}) {
     _scanToastUpdateTimer?.cancel();
     _scanToastUpdateTimer = null;
     _pendingScanProgress = null;
     _lastScanToastUpdateAt = null;
     _scanToast?.dismiss(showAnim: false);
     _scanToast = null;
-    _scanToastState.value = null;
+    if (notifyListeners) {
+      _scanToastState.value = null;
+    }
   }
 
   void _handleScannerChanged() {
@@ -219,7 +221,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     _scanToastUpdateTimer?.cancel();
     _scanProgressSubscription?.cancel();
     _scanner?.removeListener(_handleScannerChanged);
-    _dismissScanToast();
+    _dismissScanToast(notifyListeners: false);
     _scanToastState.dispose();
     _scrollController.dispose();
     super.dispose();
