@@ -1321,6 +1321,11 @@ class ScannerService extends ChangeNotifier {
   /// Loads metadata for a single path from the DB (or processes it fresh) and
   /// caches it in [metadataMap]. Safe to call multiple times.
   Future<void> loadMetadataForPath(String path) async {
+    if (!await File(path).exists()) {
+      await _purgeMissingSongPath(path);
+      return;
+    }
+
     final cached = _metadataMap[path];
     if (cached != null) {
       return;
@@ -1341,6 +1346,11 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> loadThumbnailForPath(String path) async {
+    if (!await File(path).exists()) {
+      await _purgeMissingSongPath(path);
+      return;
+    }
+
     final cached = _metadataMap[path];
     if (cached != null && (cached.thumbnailPath?.isNotEmpty ?? false)) {
       return;
@@ -1364,6 +1374,37 @@ class ScannerService extends ChangeNotifier {
       _metadataMap[path] = metadata;
       notifyListeners();
     }
+  }
+
+  Future<void> _purgeMissingSongPath(String path) async {
+    final normalizedPath = _normalizePath(path);
+    if (normalizedPath.isEmpty) return;
+
+    _metadataMap.removeWhere(
+      (existingPath, _) => _pathsEqual(existingPath, normalizedPath),
+    );
+
+    for (final root in _scannedRootFolders) {
+      _removeSongFromFolder(root, normalizedPath);
+    }
+    if (_systemMediaFolder != null) {
+      _removeSongFromFolder(_systemMediaFolder!, normalizedPath);
+    }
+
+    _rebuildDisplayedRootFolders();
+    await MetadataDatabase().deleteSongByPath(normalizedPath);
+    notifyListeners();
+  }
+
+  bool _removeSongFromFolder(MusicFolder folder, String path) {
+    folder.files.removeWhere((file) => _pathsEqual(file.path, path));
+
+    folder.subFolders.removeWhere((subFolder) {
+      final shouldRemove = _removeSongFromFolder(subFolder, path);
+      return shouldRemove;
+    });
+
+    return folder.isEmpty;
   }
 
   void updateMetadataForPath(SongMetadata metadata, {Uint8List? artworkBytes}) {

@@ -440,6 +440,10 @@ class MetadataHelper {
   }) async {
     final db = MetadataDatabase();
     final file = File(filePath);
+    if (!await file.exists()) {
+      debugPrint('processMetadata skipped, file missing: $filePath');
+      return null;
+    }
     final lastModified = (await file.lastModified()).millisecondsSinceEpoch;
 
     // 1. 如果数据库已有记录且修改时间相同，直接返回

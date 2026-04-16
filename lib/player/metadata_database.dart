@@ -435,20 +435,12 @@ class MetadataDatabase {
             }
           }
           if (oldVersion < 18) {
-            if (!await _columnExists(
-              db,
-              'songs',
-              'metadataTextScanned',
-            )) {
+            if (!await _columnExists(db, 'songs', 'metadataTextScanned')) {
               await db.execute(
                 'ALTER TABLE songs ADD COLUMN metadataTextScanned INTEGER',
               );
             }
-            if (!await _columnExists(
-              db,
-              'songs',
-              'metadataImgScanned',
-            )) {
+            if (!await _columnExists(db, 'songs', 'metadataImgScanned')) {
               await db.execute(
                 'ALTER TABLE songs ADD COLUMN metadataImgScanned INTEGER',
               );
@@ -714,6 +706,15 @@ class MetadataDatabase {
       }
       await batch.commit(noResult: true);
       return missingPaths.length;
+    });
+  }
+
+  Future<void> deleteSongByPath(String path) async {
+    final normalizedPath = _normalizePath(path);
+    if (normalizedPath.isEmpty) return;
+
+    await _withDbLock((db) {
+      return db.delete('songs', where: 'path = ?', whereArgs: [normalizedPath]);
     });
   }
 
