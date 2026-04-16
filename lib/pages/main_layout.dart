@@ -20,6 +20,7 @@ import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/global_drop_target.dart';
+import '../utils/deleted_song_snack.dart';
 import 'dart:async';
 
 Route<void> buildMainLayoutRoute({
@@ -97,8 +98,8 @@ class MainLayout extends ConsumerStatefulWidget {
 class _MainLayoutState extends ConsumerState<MainLayout> {
   late int _currentIndex;
   double? _lastVolume;
+  late final AudioService _audioService;
 
-  AudioService get _audioService => ref.read(audioServiceProvider);
   MainLayoutUiController get _ui =>
       ref.read(mainLayoutUiControllerProvider.notifier);
 
@@ -131,11 +132,20 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     _ui.showVolumeHud();
   }
 
+  void _syncDeletedSongNoticeHandler() {
+    _audioService.setMissingSongNoticeHandler(({required bool skipped}) {
+      if (!mounted) return;
+      showDeletedSongSnack(context, skipped: skipped);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _lastVolume = ref.read(audioVolumeProvider);
+    _audioService = ref.read(audioServiceProvider);
+    _syncDeletedSongNoticeHandler();
 
     if (Platform.isWindows) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -147,6 +157,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
   @override
   void dispose() {
+    _audioService.setMissingSongNoticeHandler(null);
     super.dispose();
   }
 

@@ -30,6 +30,7 @@ enum SortOrder { ascending, descending }
 
 class ScannerService extends ChangeNotifier {
   AudioCoreController? _playerController;
+  void Function(String path, bool isMissing)? _songMissingStateHandler;
   StreamSubscription? _mediaObserverSubscription;
   final StreamController<ScanProgress> _scanProgressController =
       StreamController<ScanProgress>.broadcast();
@@ -140,6 +141,20 @@ class ScannerService extends ChangeNotifier {
     if (changed && controller != null && Platform.isAndroid) {
       unawaited(checkAndRequestPermissions());
     }
+  }
+
+  void setSongMissingStateHandler(
+    void Function(String path, bool isMissing)? handler,
+  ) {
+    _songMissingStateHandler = handler;
+  }
+
+  void _notifySongMissingState(String path, bool isMissing) {
+    final handler = _songMissingStateHandler;
+    if (handler == null) return;
+    final normalized = _normalizePath(path);
+    if (normalized.isEmpty) return;
+    handler(normalized, isMissing);
   }
 
   void setSortCriteria(SortCriteria criteria) {
@@ -273,6 +288,16 @@ class ScannerService extends ChangeNotifier {
           .watch(recursive: true)
           .listen(
             (event) {
+              if ((event.type & FileSystemEvent.delete) != 0 ||
+                  (event.type & FileSystemEvent.move) != 0) {
+                if (MusicFileUtils.isMusicFilePath(event.path)) {
+                  _notifySongMissingState(event.path, true);
+                }
+              } else if ((event.type & FileSystemEvent.create) != 0 &&
+                  MusicFileUtils.isMusicFilePath(event.path)) {
+                _notifySongMissingState(event.path, false);
+              }
+
               if (_shouldRescanForEvent(event)) {
                 _scheduleRootRescan();
               }
@@ -1238,6 +1263,25 @@ class ScannerService extends ChangeNotifier {
         final presentPathIndex = Platform.isWindows
             ? normalizedPresentPaths.map((path) => path.toLowerCase()).toSet()
             : normalizedPresentPaths;
+        final missingPaths = <String>[];
+        for (final path in _metadataMap.keys) {
+          final normalizedPath = _normalizePath(path);
+          final isWithinScope = _rootPaths.any(
+            (root) => _pathContains(root, normalizedPath),
+          );
+          if (!isWithinScope) continue;
+          final lookupKey = Platform.isWindows
+              ? normalizedPath.toLowerCase()
+              : normalizedPath;
+          if (!presentPathIndex.contains(lookupKey)) {
+            missingPaths.add(normalizedPath);
+          }
+        }
+
+        for (final path in normalizedPresentPaths) {
+          _notifySongMissingState(path, false);
+        }
+
         _metadataMap.removeWhere((path, _) {
           final normalizedPath = _normalizePath(path);
           return _rootPaths.any(
@@ -1249,6 +1293,9 @@ class ScannerService extends ChangeNotifier {
                     : normalizedPath,
               );
         });
+        for (final path in missingPaths) {
+          _notifySongMissingState(path, true);
+        }
         await MetadataDatabase().deleteSongsMissingFromPaths(
           scopeRoots: _rootPaths,
           presentPaths: presentPaths,
@@ -1347,6 +1394,8 @@ class ScannerService extends ChangeNotifier {
   Future<void> _purgeMissingSongPath(String path) async {
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) return;
+
+    _notifySongMissingState(normalizedPath, true);
 
     _metadataMap.removeWhere(
       (existingPath, _) => _pathsEqual(existingPath, normalizedPath),

@@ -6,6 +6,7 @@ import '../models/music_file.dart';
 import '../player/audio_riverpod.dart';
 import '../player/playlist_service.dart';
 import '../widgets/song_thumbnail.dart';
+import '../utils/deleted_song_snack.dart';
 
 class PlaylistPage extends ConsumerStatefulWidget {
   const PlaylistPage({super.key});
@@ -452,10 +453,24 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                         },
                         itemBuilder: (context, index) {
                           final song = currentPlaylist.songs[index];
+                          final isMissing = song.isMissing;
                           final isCurrent =
                               currentIndex == index &&
                               currentMusic?.path == song.path;
                           final isSelected = _selectedIndices.contains(index);
+                          final textColor = isMissing
+                              ? Theme.of(context).colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.55)
+                              : isCurrent
+                              ? Theme.of(context).colorScheme.primary
+                              : null;
+                          final subtitleStyle = TextStyle(
+                            fontSize: 10,
+                            color: isMissing
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.5)
+                                : null,
+                          );
 
                           return GestureDetector(
                             key: ObjectKey(song),
@@ -473,7 +488,9 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                                   fit: StackFit.expand,
                                   children: [
                                     Opacity(
-                                      opacity: _isSelectionMode
+                                      opacity: isMissing
+                                          ? 0.35
+                                          : _isSelectionMode
                                           ? (isSelected ? 0.5 : 0.7)
                                           : 1.0,
                                       child: SongThumbnail(
@@ -512,17 +529,15 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                               title: Text(
                                 song.title ?? song.name,
                                 style: TextStyle(
-                                  color: isCurrent
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
-                                  fontWeight: isCurrent
+                                  color: textColor,
+                                  fontWeight: isCurrent && !isMissing
                                       ? FontWeight.bold
                                       : null,
                                 ),
                               ),
                               subtitle: Text(
                                 '${scanner.metadataMap[song.path]?.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${scanner.metadataMap[song.path]?.album ?? AppLocalizations.of(context)!.unknownAlbum}',
-                                style: const TextStyle(fontSize: 10),
+                                style: subtitleStyle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -535,8 +550,24 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                                       scanner.metadataMap[song.path]?.duration,
                                     ),
                               onTap: _isSelectionMode
-                                  ? () => _toggleSelection(index)
+                                  ? () {
+                                      if (isMissing) {
+                                        showDeletedSongSnack(
+                                          context,
+                                          skipped: false,
+                                        );
+                                        return;
+                                      }
+                                      _toggleSelection(index);
+                                    }
                                   : () {
+                                      if (isMissing) {
+                                        showDeletedSongSnack(
+                                          context,
+                                          skipped: false,
+                                        );
+                                        return;
+                                      }
                                       audio.playPlaylist(
                                         currentPlaylist.songs,
                                         initialIndex: index,

@@ -28,6 +28,7 @@ abstract class MusicFile with _$MusicFile {
     Uint8List? artworkBytes,
     int? lastModifiedTime,
     MusicLyric? lyrics,
+    @Default(false) bool isMissing,
   }) = _MusicFile;
 
   List<double> get waveform {

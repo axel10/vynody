@@ -142,7 +142,9 @@ class PlaylistService extends ChangeNotifier {
     }
     if (!hasFavorites) {
       final favoriteIndex = _playlists.indexWhere((p) => p.id == 'default');
-      final insertIndex = favoriteIndex == -1 ? _playlists.length : favoriteIndex + 1;
+      final insertIndex = favoriteIndex == -1
+          ? _playlists.length
+          : favoriteIndex + 1;
       _playlists.insert(
         insertIndex,
         Playlist(id: favoritePlaylistId, name: '收藏'),
@@ -320,7 +322,8 @@ class PlaylistService extends ChangeNotifier {
   }
 
   bool isFavoriteSong(MusicFile song) {
-    return favoritePlaylist?.songs.any((item) => item.path == song.path) ?? false;
+    return favoritePlaylist?.songs.any((item) => item.path == song.path) ??
+        false;
   }
 
   Future<bool> toggleFavoriteSong(MusicFile song) async {
@@ -328,7 +331,9 @@ class PlaylistService extends ChangeNotifier {
     if (index == -1) return false;
 
     final playlist = _playlists[index];
-    final existingIndex = playlist.songs.indexWhere((item) => item.path == song.path);
+    final existingIndex = playlist.songs.indexWhere(
+      (item) => item.path == song.path,
+    );
     final wasAdded = existingIndex == -1;
 
     if (existingIndex == -1) {
@@ -348,7 +353,9 @@ class PlaylistService extends ChangeNotifier {
     if (index == -1) return;
 
     final playlist = _playlists[index];
-    final existingIndex = playlist.songs.indexWhere((item) => item.path == song.path);
+    final existingIndex = playlist.songs.indexWhere(
+      (item) => item.path == song.path,
+    );
     if (existingIndex == -1) {
       playlist.songs.add(song);
     } else {
@@ -390,6 +397,23 @@ class PlaylistService extends ChangeNotifier {
 
     if (changed) {
       await _savePlaylists();
+      notifyListeners();
+    }
+  }
+
+  void setSongMissingStateByPath(String path, bool isMissing) {
+    var changed = false;
+    for (final playlist in _playlists) {
+      for (var i = 0; i < playlist.songs.length; i++) {
+        final song = playlist.songs[i];
+        if (song.path != path || song.isMissing == isMissing) continue;
+
+        playlist.songs[i] = song.copyWith(isMissing: isMissing);
+        changed = true;
+      }
+    }
+
+    if (changed) {
       notifyListeners();
     }
   }

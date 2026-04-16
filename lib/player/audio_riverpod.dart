@@ -53,8 +53,13 @@ final acoustidServiceProvider = Provider<AcoustIDService>((ref) {
 final audioServiceWiringProvider = Provider<void>((ref) {
   final audio = ref.watch(audioServiceProvider);
   final scanner = ref.watch(scannerServiceProvider);
+  final playlist = ref.watch(playlistServiceProvider);
   audio.setScannerService(scanner);
   scanner.setPlayerController(audio.playbackController);
+  scanner.setSongMissingStateHandler((path, isMissing) {
+    audio.setSongMissingStateByPath(path, isMissing);
+    playlist.setSongMissingStateByPath(path, isMissing);
+  });
 });
 
 final audioSnapshotProvider = Provider<AudioSnapshot>((ref) {

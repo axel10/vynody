@@ -51,6 +51,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
   ScannerService? _scannerService;
+  void Function({required bool skipped})? _missingSongNoticeHandler;
   bool _isLyricsActive = false;
   Timer? _sleepTimer;
   DateTime? _sleepTimerEndAt;
@@ -205,6 +206,85 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void setScannerService(ScannerService? scanner) {
     _scannerService = scanner;
+  }
+
+  void setSongMissingStateByPath(String path, bool isMissing) {
+    var changed = false;
+    for (var i = 0; i < _queue.length; i++) {
+      final song = _queue[i];
+      if (song.path != path || song.isMissing == isMissing) continue;
+      _queue[i] = song.copyWith(isMissing: isMissing);
+      changed = true;
+    }
+
+    if (changed) {
+      if (isMissing &&
+          currentMusic?.path == path &&
+          !_isTransitioning &&
+          _queue.isNotEmpty) {
+        unawaited(_skipMissingCurrentTrack());
+      } else {
+        notifyListeners();
+      }
+    }
+  }
+
+  void setMissingSongNoticeHandler(
+    void Function({required bool skipped})? handler,
+  ) {
+    _missingSongNoticeHandler = handler;
+  }
+
+  void _showMissingSongNotice({required bool skipped}) {
+    _missingSongNoticeHandler?.call(skipped: skipped);
+  }
+
+  Future<bool> _songExists(String path) async {
+    if (path.trim().isEmpty) return false;
+    return File(path).exists();
+  }
+
+  Future<void> _skipMissingCurrentTrack() async {
+    if (_isTransitioning || _queue.isEmpty || _currentIndex < 0) {
+      return;
+    }
+
+    _isTransitioning = true;
+    try {
+      var attempts = 0;
+      while (_queue.isNotEmpty && attempts < _queue.length) {
+        if (_currentIndex < 0 || _currentIndex >= _queue.length) {
+          break;
+        }
+
+        final current = _queue[_currentIndex];
+        if (await _songExists(current.path)) {
+          await _syncCurrentPlaybackSong(current, awaitDataReady: false);
+          return;
+        }
+
+        setSongMissingStateByPath(current.path, true);
+        _showMissingSongNotice(skipped: true);
+
+        final success = await _player.playlist.playNext();
+        final newIndex = _player.playlist.currentIndex ?? -1;
+        if (!success || newIndex < 0 || newIndex >= _queue.length) {
+          await _player.player.pause();
+          _isPlaying = false;
+          _currentIndex = -1;
+          _duration = Duration.zero;
+          _position = Duration.zero;
+          notifyListeners();
+          return;
+        }
+
+        _currentIndex = newIndex;
+        attempts++;
+      }
+    } finally {
+      _isTransitioning = false;
+      notifyListeners();
+    }
   }
 
   MusicFile _songFromMetadata(
@@ -381,6 +461,15 @@ class AudioService extends Notifier<AudioSnapshot> {
       _notifyIfNeeded(force: true);
     }
 
+    if (!_isTransitioning &&
+        _currentIndex >= 0 &&
+        _currentIndex < _queue.length &&
+        _queue[_currentIndex].path.isNotEmpty &&
+        !(File(_queue[_currentIndex].path).existsSync())) {
+      unawaited(_skipMissingCurrentTrack());
+      return;
+    }
+
     _windowsIntegration?.updateTimeline(_position, _duration);
     _androidIntegration?.updateTimeline(_position, _duration);
     _windowsIntegration?.updatePlaybackStatus(_isPlaying);
@@ -548,7 +637,6 @@ class AudioService extends Notifier<AudioSnapshot> {
     });
     notifyListeners();
   }
-
 
   Future<void> cancelSleepTimer({bool notify = true}) async {
     _cancelSleepTimer(notify: notify);
@@ -1010,6 +1098,12 @@ class AudioService extends Notifier<AudioSnapshot> {
     String? mediaUri,
     bool append = false,
   }) async {
+    if (!await _songExists(path)) {
+      setSongMissingStateByPath(path, true);
+      _showMissingSongNotice(skipped: false);
+      return;
+    }
+
     // 1. 设置正在切换状态
     _isTransitioning = true;
     notifyListeners();
@@ -1061,6 +1155,11 @@ class AudioService extends Notifier<AudioSnapshot> {
   }) async {
     if (songs.isEmpty) return;
     final safeIndex = initialIndex.clamp(0, songs.length - 1);
+    if (!await _songExists(songs[safeIndex].path)) {
+      setSongMissingStateByPath(songs[safeIndex].path, true);
+      _showMissingSongNotice(skipped: false);
+      return;
+    }
 
     // 1. 设置正在切换状态并通知 UI
     _isTransitioning = true;
@@ -1185,6 +1284,11 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> playAtIndex(int index) async {
     if (index < 0 || index >= _queue.length) return;
+    if (!await _songExists(_queue[index].path)) {
+      setSongMissingStateByPath(_queue[index].path, true);
+      _showMissingSongNotice(skipped: false);
+      return;
+    }
     if (_isTransitioning) return;
     if (index == _currentIndex && _isPlaying) return;
 

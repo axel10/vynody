@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 mixin _$MusicFile {
 
  String get path; String get name; String? get title; String? get artist; String? get album; int? get trackNumber; int? get id;// System Media Library ID
- String? get mediaUri; String? get thumbnailPath; String? get artworkPath; int? get artworkWidth; int? get artworkHeight; int? get durationMillis; Uint8List? get themeColorsBlob; Uint8List? get waveformBlob; Uint8List? get artworkBytes; int? get lastModifiedTime; MusicLyric? get lyrics;
+ String? get mediaUri; String? get thumbnailPath; String? get artworkPath; int? get artworkWidth; int? get artworkHeight; int? get durationMillis; Uint8List? get themeColorsBlob; Uint8List? get waveformBlob; Uint8List? get artworkBytes; int? get lastModifiedTime; MusicLyric? get lyrics; bool get isMissing;
 /// Create a copy of MusicFile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -26,16 +26,16 @@ $MusicFileCopyWith<MusicFile> get copyWith => _$MusicFileCopyWithImpl<MusicFile>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MusicFile&&(identical(other.path, path) || other.path == path)&&(identical(other.name, name) || other.name == name)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.trackNumber, trackNumber) || other.trackNumber == trackNumber)&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaUri, mediaUri) || other.mediaUri == mediaUri)&&(identical(other.thumbnailPath, thumbnailPath) || other.thumbnailPath == thumbnailPath)&&(identical(other.artworkPath, artworkPath) || other.artworkPath == artworkPath)&&(identical(other.artworkWidth, artworkWidth) || other.artworkWidth == artworkWidth)&&(identical(other.artworkHeight, artworkHeight) || other.artworkHeight == artworkHeight)&&(identical(other.durationMillis, durationMillis) || other.durationMillis == durationMillis)&&const DeepCollectionEquality().equals(other.themeColorsBlob, themeColorsBlob)&&const DeepCollectionEquality().equals(other.waveformBlob, waveformBlob)&&const DeepCollectionEquality().equals(other.artworkBytes, artworkBytes)&&(identical(other.lastModifiedTime, lastModifiedTime) || other.lastModifiedTime == lastModifiedTime)&&(identical(other.lyrics, lyrics) || other.lyrics == lyrics));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MusicFile&&(identical(other.path, path) || other.path == path)&&(identical(other.name, name) || other.name == name)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.trackNumber, trackNumber) || other.trackNumber == trackNumber)&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaUri, mediaUri) || other.mediaUri == mediaUri)&&(identical(other.thumbnailPath, thumbnailPath) || other.thumbnailPath == thumbnailPath)&&(identical(other.artworkPath, artworkPath) || other.artworkPath == artworkPath)&&(identical(other.artworkWidth, artworkWidth) || other.artworkWidth == artworkWidth)&&(identical(other.artworkHeight, artworkHeight) || other.artworkHeight == artworkHeight)&&(identical(other.durationMillis, durationMillis) || other.durationMillis == durationMillis)&&const DeepCollectionEquality().equals(other.themeColorsBlob, themeColorsBlob)&&const DeepCollectionEquality().equals(other.waveformBlob, waveformBlob)&&const DeepCollectionEquality().equals(other.artworkBytes, artworkBytes)&&(identical(other.lastModifiedTime, lastModifiedTime) || other.lastModifiedTime == lastModifiedTime)&&(identical(other.lyrics, lyrics) || other.lyrics == lyrics)&&(identical(other.isMissing, isMissing) || other.isMissing == isMissing));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,path,name,title,artist,album,trackNumber,id,mediaUri,thumbnailPath,artworkPath,artworkWidth,artworkHeight,durationMillis,const DeepCollectionEquality().hash(themeColorsBlob),const DeepCollectionEquality().hash(waveformBlob),const DeepCollectionEquality().hash(artworkBytes),lastModifiedTime,lyrics);
+int get hashCode => Object.hashAll([runtimeType,path,name,title,artist,album,trackNumber,id,mediaUri,thumbnailPath,artworkPath,artworkWidth,artworkHeight,durationMillis,const DeepCollectionEquality().hash(themeColorsBlob),const DeepCollectionEquality().hash(waveformBlob),const DeepCollectionEquality().hash(artworkBytes),lastModifiedTime,lyrics,isMissing]);
 
 @override
 String toString() {
-  return 'MusicFile(path: $path, name: $name, title: $title, artist: $artist, album: $album, trackNumber: $trackNumber, id: $id, mediaUri: $mediaUri, thumbnailPath: $thumbnailPath, artworkPath: $artworkPath, artworkWidth: $artworkWidth, artworkHeight: $artworkHeight, durationMillis: $durationMillis, themeColorsBlob: $themeColorsBlob, waveformBlob: $waveformBlob, artworkBytes: $artworkBytes, lastModifiedTime: $lastModifiedTime, lyrics: $lyrics)';
+  return 'MusicFile(path: $path, name: $name, title: $title, artist: $artist, album: $album, trackNumber: $trackNumber, id: $id, mediaUri: $mediaUri, thumbnailPath: $thumbnailPath, artworkPath: $artworkPath, artworkWidth: $artworkWidth, artworkHeight: $artworkHeight, durationMillis: $durationMillis, themeColorsBlob: $themeColorsBlob, waveformBlob: $waveformBlob, artworkBytes: $artworkBytes, lastModifiedTime: $lastModifiedTime, lyrics: $lyrics, isMissing: $isMissing)';
 }
 
 
@@ -46,7 +46,7 @@ abstract mixin class $MusicFileCopyWith<$Res>  {
   factory $MusicFileCopyWith(MusicFile value, $Res Function(MusicFile) _then) = _$MusicFileCopyWithImpl;
 @useResult
 $Res call({
- String path, String name, String? title, String? artist, String? album, int? trackNumber, int? id, String? mediaUri, String? thumbnailPath, String? artworkPath, int? artworkWidth, int? artworkHeight, int? durationMillis, Uint8List? themeColorsBlob, Uint8List? waveformBlob, Uint8List? artworkBytes, int? lastModifiedTime, MusicLyric? lyrics
+ String path, String name, String? title, String? artist, String? album, int? trackNumber, int? id, String? mediaUri, String? thumbnailPath, String? artworkPath, int? artworkWidth, int? artworkHeight, int? durationMillis, Uint8List? themeColorsBlob, Uint8List? waveformBlob, Uint8List? artworkBytes, int? lastModifiedTime, MusicLyric? lyrics, bool isMissing
 });
 
 
@@ -63,7 +63,7 @@ class _$MusicFileCopyWithImpl<$Res>
 
 /// Create a copy of MusicFile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? path = null,Object? name = null,Object? title = freezed,Object? artist = freezed,Object? album = freezed,Object? trackNumber = freezed,Object? id = freezed,Object? mediaUri = freezed,Object? thumbnailPath = freezed,Object? artworkPath = freezed,Object? artworkWidth = freezed,Object? artworkHeight = freezed,Object? durationMillis = freezed,Object? themeColorsBlob = freezed,Object? waveformBlob = freezed,Object? artworkBytes = freezed,Object? lastModifiedTime = freezed,Object? lyrics = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? path = null,Object? name = null,Object? title = freezed,Object? artist = freezed,Object? album = freezed,Object? trackNumber = freezed,Object? id = freezed,Object? mediaUri = freezed,Object? thumbnailPath = freezed,Object? artworkPath = freezed,Object? artworkWidth = freezed,Object? artworkHeight = freezed,Object? durationMillis = freezed,Object? themeColorsBlob = freezed,Object? waveformBlob = freezed,Object? artworkBytes = freezed,Object? lastModifiedTime = freezed,Object? lyrics = freezed,Object? isMissing = null,}) {
   return _then(_self.copyWith(
 path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -83,7 +83,8 @@ as Uint8List?,waveformBlob: freezed == waveformBlob ? _self.waveformBlob : wavef
 as Uint8List?,artworkBytes: freezed == artworkBytes ? _self.artworkBytes : artworkBytes // ignore: cast_nullable_to_non_nullable
 as Uint8List?,lastModifiedTime: freezed == lastModifiedTime ? _self.lastModifiedTime : lastModifiedTime // ignore: cast_nullable_to_non_nullable
 as int?,lyrics: freezed == lyrics ? _self.lyrics : lyrics // ignore: cast_nullable_to_non_nullable
-as MusicLyric?,
+as MusicLyric?,isMissing: null == isMissing ? _self.isMissing : isMissing // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of MusicFile
@@ -180,10 +181,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String path,  String name,  String? title,  String? artist,  String? album,  int? trackNumber,  int? id,  String? mediaUri,  String? thumbnailPath,  String? artworkPath,  int? artworkWidth,  int? artworkHeight,  int? durationMillis,  Uint8List? themeColorsBlob,  Uint8List? waveformBlob,  Uint8List? artworkBytes,  int? lastModifiedTime,  MusicLyric? lyrics)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String path,  String name,  String? title,  String? artist,  String? album,  int? trackNumber,  int? id,  String? mediaUri,  String? thumbnailPath,  String? artworkPath,  int? artworkWidth,  int? artworkHeight,  int? durationMillis,  Uint8List? themeColorsBlob,  Uint8List? waveformBlob,  Uint8List? artworkBytes,  int? lastModifiedTime,  MusicLyric? lyrics,  bool isMissing)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MusicFile() when $default != null:
-return $default(_that.path,_that.name,_that.title,_that.artist,_that.album,_that.trackNumber,_that.id,_that.mediaUri,_that.thumbnailPath,_that.artworkPath,_that.artworkWidth,_that.artworkHeight,_that.durationMillis,_that.themeColorsBlob,_that.waveformBlob,_that.artworkBytes,_that.lastModifiedTime,_that.lyrics);case _:
+return $default(_that.path,_that.name,_that.title,_that.artist,_that.album,_that.trackNumber,_that.id,_that.mediaUri,_that.thumbnailPath,_that.artworkPath,_that.artworkWidth,_that.artworkHeight,_that.durationMillis,_that.themeColorsBlob,_that.waveformBlob,_that.artworkBytes,_that.lastModifiedTime,_that.lyrics,_that.isMissing);case _:
   return orElse();
 
 }
@@ -201,10 +202,10 @@ return $default(_that.path,_that.name,_that.title,_that.artist,_that.album,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String path,  String name,  String? title,  String? artist,  String? album,  int? trackNumber,  int? id,  String? mediaUri,  String? thumbnailPath,  String? artworkPath,  int? artworkWidth,  int? artworkHeight,  int? durationMillis,  Uint8List? themeColorsBlob,  Uint8List? waveformBlob,  Uint8List? artworkBytes,  int? lastModifiedTime,  MusicLyric? lyrics)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String path,  String name,  String? title,  String? artist,  String? album,  int? trackNumber,  int? id,  String? mediaUri,  String? thumbnailPath,  String? artworkPath,  int? artworkWidth,  int? artworkHeight,  int? durationMillis,  Uint8List? themeColorsBlob,  Uint8List? waveformBlob,  Uint8List? artworkBytes,  int? lastModifiedTime,  MusicLyric? lyrics,  bool isMissing)  $default,) {final _that = this;
 switch (_that) {
 case _MusicFile():
-return $default(_that.path,_that.name,_that.title,_that.artist,_that.album,_that.trackNumber,_that.id,_that.mediaUri,_that.thumbnailPath,_that.artworkPath,_that.artworkWidth,_that.artworkHeight,_that.durationMillis,_that.themeColorsBlob,_that.waveformBlob,_that.artworkBytes,_that.lastModifiedTime,_that.lyrics);case _:
+return $default(_that.path,_that.name,_that.title,_that.artist,_that.album,_that.trackNumber,_that.id,_that.mediaUri,_that.thumbnailPath,_that.artworkPath,_that.artworkWidth,_that.artworkHeight,_that.durationMillis,_that.themeColorsBlob,_that.waveformBlob,_that.artworkBytes,_that.lastModifiedTime,_that.lyrics,_that.isMissing);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -221,10 +222,10 @@ return $default(_that.path,_that.name,_that.title,_that.artist,_that.album,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String path,  String name,  String? title,  String? artist,  String? album,  int? trackNumber,  int? id,  String? mediaUri,  String? thumbnailPath,  String? artworkPath,  int? artworkWidth,  int? artworkHeight,  int? durationMillis,  Uint8List? themeColorsBlob,  Uint8List? waveformBlob,  Uint8List? artworkBytes,  int? lastModifiedTime,  MusicLyric? lyrics)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String path,  String name,  String? title,  String? artist,  String? album,  int? trackNumber,  int? id,  String? mediaUri,  String? thumbnailPath,  String? artworkPath,  int? artworkWidth,  int? artworkHeight,  int? durationMillis,  Uint8List? themeColorsBlob,  Uint8List? waveformBlob,  Uint8List? artworkBytes,  int? lastModifiedTime,  MusicLyric? lyrics,  bool isMissing)?  $default,) {final _that = this;
 switch (_that) {
 case _MusicFile() when $default != null:
-return $default(_that.path,_that.name,_that.title,_that.artist,_that.album,_that.trackNumber,_that.id,_that.mediaUri,_that.thumbnailPath,_that.artworkPath,_that.artworkWidth,_that.artworkHeight,_that.durationMillis,_that.themeColorsBlob,_that.waveformBlob,_that.artworkBytes,_that.lastModifiedTime,_that.lyrics);case _:
+return $default(_that.path,_that.name,_that.title,_that.artist,_that.album,_that.trackNumber,_that.id,_that.mediaUri,_that.thumbnailPath,_that.artworkPath,_that.artworkWidth,_that.artworkHeight,_that.durationMillis,_that.themeColorsBlob,_that.waveformBlob,_that.artworkBytes,_that.lastModifiedTime,_that.lyrics,_that.isMissing);case _:
   return null;
 
 }
@@ -236,7 +237,7 @@ return $default(_that.path,_that.name,_that.title,_that.artist,_that.album,_that
 
 
 class _MusicFile extends MusicFile {
-  const _MusicFile({required this.path, required this.name, this.title, this.artist, this.album, this.trackNumber, this.id, this.mediaUri, this.thumbnailPath, this.artworkPath, this.artworkWidth, this.artworkHeight, this.durationMillis, this.themeColorsBlob, this.waveformBlob, this.artworkBytes, this.lastModifiedTime, this.lyrics}): super._();
+  const _MusicFile({required this.path, required this.name, this.title, this.artist, this.album, this.trackNumber, this.id, this.mediaUri, this.thumbnailPath, this.artworkPath, this.artworkWidth, this.artworkHeight, this.durationMillis, this.themeColorsBlob, this.waveformBlob, this.artworkBytes, this.lastModifiedTime, this.lyrics, this.isMissing = false}): super._();
   
 
 @override final  String path;
@@ -258,6 +259,7 @@ class _MusicFile extends MusicFile {
 @override final  Uint8List? artworkBytes;
 @override final  int? lastModifiedTime;
 @override final  MusicLyric? lyrics;
+@override@JsonKey() final  bool isMissing;
 
 /// Create a copy of MusicFile
 /// with the given fields replaced by the non-null parameter values.
@@ -269,16 +271,16 @@ _$MusicFileCopyWith<_MusicFile> get copyWith => __$MusicFileCopyWithImpl<_MusicF
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MusicFile&&(identical(other.path, path) || other.path == path)&&(identical(other.name, name) || other.name == name)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.trackNumber, trackNumber) || other.trackNumber == trackNumber)&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaUri, mediaUri) || other.mediaUri == mediaUri)&&(identical(other.thumbnailPath, thumbnailPath) || other.thumbnailPath == thumbnailPath)&&(identical(other.artworkPath, artworkPath) || other.artworkPath == artworkPath)&&(identical(other.artworkWidth, artworkWidth) || other.artworkWidth == artworkWidth)&&(identical(other.artworkHeight, artworkHeight) || other.artworkHeight == artworkHeight)&&(identical(other.durationMillis, durationMillis) || other.durationMillis == durationMillis)&&const DeepCollectionEquality().equals(other.themeColorsBlob, themeColorsBlob)&&const DeepCollectionEquality().equals(other.waveformBlob, waveformBlob)&&const DeepCollectionEquality().equals(other.artworkBytes, artworkBytes)&&(identical(other.lastModifiedTime, lastModifiedTime) || other.lastModifiedTime == lastModifiedTime)&&(identical(other.lyrics, lyrics) || other.lyrics == lyrics));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MusicFile&&(identical(other.path, path) || other.path == path)&&(identical(other.name, name) || other.name == name)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.trackNumber, trackNumber) || other.trackNumber == trackNumber)&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaUri, mediaUri) || other.mediaUri == mediaUri)&&(identical(other.thumbnailPath, thumbnailPath) || other.thumbnailPath == thumbnailPath)&&(identical(other.artworkPath, artworkPath) || other.artworkPath == artworkPath)&&(identical(other.artworkWidth, artworkWidth) || other.artworkWidth == artworkWidth)&&(identical(other.artworkHeight, artworkHeight) || other.artworkHeight == artworkHeight)&&(identical(other.durationMillis, durationMillis) || other.durationMillis == durationMillis)&&const DeepCollectionEquality().equals(other.themeColorsBlob, themeColorsBlob)&&const DeepCollectionEquality().equals(other.waveformBlob, waveformBlob)&&const DeepCollectionEquality().equals(other.artworkBytes, artworkBytes)&&(identical(other.lastModifiedTime, lastModifiedTime) || other.lastModifiedTime == lastModifiedTime)&&(identical(other.lyrics, lyrics) || other.lyrics == lyrics)&&(identical(other.isMissing, isMissing) || other.isMissing == isMissing));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,path,name,title,artist,album,trackNumber,id,mediaUri,thumbnailPath,artworkPath,artworkWidth,artworkHeight,durationMillis,const DeepCollectionEquality().hash(themeColorsBlob),const DeepCollectionEquality().hash(waveformBlob),const DeepCollectionEquality().hash(artworkBytes),lastModifiedTime,lyrics);
+int get hashCode => Object.hashAll([runtimeType,path,name,title,artist,album,trackNumber,id,mediaUri,thumbnailPath,artworkPath,artworkWidth,artworkHeight,durationMillis,const DeepCollectionEquality().hash(themeColorsBlob),const DeepCollectionEquality().hash(waveformBlob),const DeepCollectionEquality().hash(artworkBytes),lastModifiedTime,lyrics,isMissing]);
 
 @override
 String toString() {
-  return 'MusicFile(path: $path, name: $name, title: $title, artist: $artist, album: $album, trackNumber: $trackNumber, id: $id, mediaUri: $mediaUri, thumbnailPath: $thumbnailPath, artworkPath: $artworkPath, artworkWidth: $artworkWidth, artworkHeight: $artworkHeight, durationMillis: $durationMillis, themeColorsBlob: $themeColorsBlob, waveformBlob: $waveformBlob, artworkBytes: $artworkBytes, lastModifiedTime: $lastModifiedTime, lyrics: $lyrics)';
+  return 'MusicFile(path: $path, name: $name, title: $title, artist: $artist, album: $album, trackNumber: $trackNumber, id: $id, mediaUri: $mediaUri, thumbnailPath: $thumbnailPath, artworkPath: $artworkPath, artworkWidth: $artworkWidth, artworkHeight: $artworkHeight, durationMillis: $durationMillis, themeColorsBlob: $themeColorsBlob, waveformBlob: $waveformBlob, artworkBytes: $artworkBytes, lastModifiedTime: $lastModifiedTime, lyrics: $lyrics, isMissing: $isMissing)';
 }
 
 
@@ -289,7 +291,7 @@ abstract mixin class _$MusicFileCopyWith<$Res> implements $MusicFileCopyWith<$Re
   factory _$MusicFileCopyWith(_MusicFile value, $Res Function(_MusicFile) _then) = __$MusicFileCopyWithImpl;
 @override @useResult
 $Res call({
- String path, String name, String? title, String? artist, String? album, int? trackNumber, int? id, String? mediaUri, String? thumbnailPath, String? artworkPath, int? artworkWidth, int? artworkHeight, int? durationMillis, Uint8List? themeColorsBlob, Uint8List? waveformBlob, Uint8List? artworkBytes, int? lastModifiedTime, MusicLyric? lyrics
+ String path, String name, String? title, String? artist, String? album, int? trackNumber, int? id, String? mediaUri, String? thumbnailPath, String? artworkPath, int? artworkWidth, int? artworkHeight, int? durationMillis, Uint8List? themeColorsBlob, Uint8List? waveformBlob, Uint8List? artworkBytes, int? lastModifiedTime, MusicLyric? lyrics, bool isMissing
 });
 
 
@@ -306,7 +308,7 @@ class __$MusicFileCopyWithImpl<$Res>
 
 /// Create a copy of MusicFile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? path = null,Object? name = null,Object? title = freezed,Object? artist = freezed,Object? album = freezed,Object? trackNumber = freezed,Object? id = freezed,Object? mediaUri = freezed,Object? thumbnailPath = freezed,Object? artworkPath = freezed,Object? artworkWidth = freezed,Object? artworkHeight = freezed,Object? durationMillis = freezed,Object? themeColorsBlob = freezed,Object? waveformBlob = freezed,Object? artworkBytes = freezed,Object? lastModifiedTime = freezed,Object? lyrics = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? path = null,Object? name = null,Object? title = freezed,Object? artist = freezed,Object? album = freezed,Object? trackNumber = freezed,Object? id = freezed,Object? mediaUri = freezed,Object? thumbnailPath = freezed,Object? artworkPath = freezed,Object? artworkWidth = freezed,Object? artworkHeight = freezed,Object? durationMillis = freezed,Object? themeColorsBlob = freezed,Object? waveformBlob = freezed,Object? artworkBytes = freezed,Object? lastModifiedTime = freezed,Object? lyrics = freezed,Object? isMissing = null,}) {
   return _then(_MusicFile(
 path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -326,7 +328,8 @@ as Uint8List?,waveformBlob: freezed == waveformBlob ? _self.waveformBlob : wavef
 as Uint8List?,artworkBytes: freezed == artworkBytes ? _self.artworkBytes : artworkBytes // ignore: cast_nullable_to_non_nullable
 as Uint8List?,lastModifiedTime: freezed == lastModifiedTime ? _self.lastModifiedTime : lastModifiedTime // ignore: cast_nullable_to_non_nullable
 as int?,lyrics: freezed == lyrics ? _self.lyrics : lyrics // ignore: cast_nullable_to_non_nullable
-as MusicLyric?,
+as MusicLyric?,isMissing: null == isMissing ? _self.isMissing : isMissing // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

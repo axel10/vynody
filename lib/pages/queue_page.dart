@@ -8,6 +8,7 @@ import '../player/audio_riverpod.dart';
 import '../player/scanner_service.dart';
 import '../widgets/song_thumbnail.dart';
 import '../utils/song_context_menu_utils.dart';
+import '../utils/deleted_song_snack.dart';
 
 // 队列页面
 class QueuePage extends ConsumerStatefulWidget {
@@ -298,6 +299,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         ? randomQueue
                         : queue;
                     final song = displayQueue[index];
+                    final isMissing = song.isMissing;
 
                     final bool isCurrent;
                     if (isHistoryView) {
@@ -307,6 +309,20 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                     } else {
                       isCurrent = (currentIndex == index);
                     }
+                    final textColor = isMissing
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.55)
+                        : isCurrent
+                        ? Theme.of(context).colorScheme.primary
+                        : null;
+                    final subtitleStyle = TextStyle(
+                      fontSize: 10,
+                      color: isMissing
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.5)
+                          : null,
+                    );
                     final isSelected = _selectedIndices.contains(index);
 
                     return GestureDetector(
@@ -343,7 +359,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                             fit: StackFit.expand,
                             children: [
                               Opacity(
-                                opacity: _isSelectionMode
+                                opacity: isMissing
+                                    ? 0.35
+                                    : _isSelectionMode
                                     ? (isSelected ? 0.5 : 0.7)
                                     : 1.0,
                                 child: SongThumbnail(
@@ -382,15 +400,15 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         title: Text(
                           song.title ?? song.name,
                           style: TextStyle(
-                            color: isCurrent
-                                ? Theme.of(context).colorScheme.primary
+                            color: textColor,
+                            fontWeight: isCurrent && !isMissing
+                                ? FontWeight.bold
                                 : null,
-                            fontWeight: isCurrent ? FontWeight.bold : null,
                           ),
                         ),
                         subtitle: Text(
                           _buildSongSubtitle(context, song, scanner),
-                          style: const TextStyle(fontSize: 10),
+                          style: subtitleStyle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -403,8 +421,18 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                 scanner.metadataMap[song.path]?.duration,
                               ),
                         onTap: _isSelectionMode
-                            ? () => _toggleSelection(index)
+                            ? () {
+                                if (isMissing) {
+                                  showDeletedSongSnack(context, skipped: false);
+                                  return;
+                                }
+                                _toggleSelection(index);
+                              }
                             : () {
+                                if (isMissing) {
+                                  showDeletedSongSnack(context, skipped: false);
+                                  return;
+                                }
                                 if (isHistoryView || isRandomQueueView) {
                                   final actualIndex = queue.indexWhere(
                                     (s) => s.path == song.path,
