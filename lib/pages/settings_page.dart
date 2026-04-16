@@ -101,6 +101,25 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ).showSnackBar(const SnackBar(content: Text('已恢复默认 Gemini 模型')));
   }
 
+  Widget _buildSectionHeader(String title, [String? description]) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          if (description != null) ...[
+            const SizedBox(height: 4),
+            Text(description, style: const TextStyle(fontSize: 13)),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildGeminiModelSection(
     BuildContext context,
     SettingsService settings,
@@ -110,117 +129,82 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final fallbackValue = settings.geminiFallbackModelId;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Gemini 模型',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '这里的两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: primaryValue.isEmpty ? null : primaryValue,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: '主模型',
+              border: OutlineInputBorder(),
+            ),
+            items: options
+                .map(
+                  (model) => DropdownMenuItem<String>(
+                    value: model.id,
+                    child: Text(model.label, overflow: TextOverflow.ellipsis),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value == null) return;
+              settings.geminiPrimaryModelId = value;
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: fallbackValue.isEmpty ? null : fallbackValue,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: '备用模型',
+              border: OutlineInputBorder(),
+            ),
+            items: options
+                .map(
+                  (model) => DropdownMenuItem<String>(
+                    value: model.id,
+                    child: Text(model.label, overflow: TextOverflow.ellipsis),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value == null) return;
+              settings.geminiFallbackModelId = value;
+            },
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              FilledButton.tonalIcon(
+                onPressed: _isLoadingGeminiModels
+                    ? null
+                    : _fetchGeminiModelList,
+                icon: _isLoadingGeminiModels
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download),
+                label: Text(_isLoadingGeminiModels ? '获取中...' : '获取模型列表'),
               ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              '这里的两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: primaryValue.isEmpty ? null : primaryValue,
-              dropdownColor: const Color(0xFF1E1E1E),
-              decoration: const InputDecoration(
-                labelText: '主模型',
-                labelStyle: TextStyle(color: Colors.white70),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white24),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white54),
-                ),
+              OutlinedButton.icon(
+                onPressed: _restoreDefaultGeminiModels,
+                icon: const Icon(Icons.restart_alt),
+                label: const Text('恢复默认'),
               ),
-              iconEnabledColor: Colors.white,
-              style: const TextStyle(color: Colors.white),
-              isExpanded: true,
-              items: options
-                  .map(
-                    (model) => DropdownMenuItem<String>(
-                      value: model.id,
-                      child: Text(model.label, overflow: TextOverflow.ellipsis),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value == null) return;
-                settings.geminiPrimaryModelId = value;
-              },
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: fallbackValue.isEmpty ? null : fallbackValue,
-              dropdownColor: const Color(0xFF1E1E1E),
-              decoration: const InputDecoration(
-                labelText: '备用模型',
-                labelStyle: TextStyle(color: Colors.white70),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white24),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white54),
-                ),
-              ),
-              iconEnabledColor: Colors.white,
-              style: const TextStyle(color: Colors.white),
-              isExpanded: true,
-              items: options
-                  .map(
-                    (model) => DropdownMenuItem<String>(
-                      value: model.id,
-                      child: Text(model.label, overflow: TextOverflow.ellipsis),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value == null) return;
-                settings.geminiFallbackModelId = value;
-              },
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                FilledButton.tonalIcon(
-                  onPressed: _isLoadingGeminiModels
-                      ? null
-                      : _fetchGeminiModelList,
-                  icon: _isLoadingGeminiModels
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.download),
-                  label: Text(_isLoadingGeminiModels ? '获取中...' : '获取模型列表'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _restoreDefaultGeminiModels,
-                  icon: const Icon(Icons.restart_alt),
-                  label: const Text('恢复默认'),
-                ),
-              ],
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -231,272 +215,208 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settings, style: const TextStyle(color: Colors.white)),
-      ),
-      body: ListView(
-        children: [
-          SwitchListTile(
-            title: Text(
-              l10n.immersiveTabBar,
-              style: const TextStyle(color: Colors.white),
+      appBar: AppBar(title: Text(l10n.settings), centerTitle: true),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            _buildSectionHeader('界面', '这些选项会影响页面和播放界面的整体显示方式。'),
+            SwitchListTile(
+              title: Text(l10n.immersiveTabBar),
+              subtitle: Text(l10n.immersiveTabBarDescription),
+              value: settings.isImmersiveTabBarEnabled,
+              onChanged: (value) {
+                settings.isImmersiveTabBarEnabled = value;
+              },
             ),
-            subtitle: Text(
-              l10n.immersiveTabBarDescription,
-              style: const TextStyle(color: Colors.white70),
+            ListTile(
+              title: Text(l10n.waveformSegments),
+              subtitle: Text(l10n.waveformSegmentsDescription),
+              trailing: SizedBox(
+                width: 120,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove),
+                      onPressed: settings.waveformChunks > 20
+                          ? () => settings.waveformChunks -= 10
+                          : null,
+                    ),
+                    Text('${settings.waveformChunks}'),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: settings.waveformChunks < 200
+                          ? () => settings.waveformChunks += 10
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            value: settings.isImmersiveTabBarEnabled,
-            onChanged: (value) {
-              settings.isImmersiveTabBarEnabled = value;
-            },
-          ),
-          ListTile(
-            title: Text(
-              l10n.waveformSegments,
-              style: const TextStyle(color: Colors.white),
+            SwitchListTile(
+              title: Text(l10n.enableWaveformProgressBar),
+              subtitle: Text(l10n.enableWaveformProgressBarDescription),
+              value: settings.isWaveformProgressBarEnabled,
+              onChanged: (value) {
+                settings.isWaveformProgressBarEnabled = value;
+              },
             ),
-            subtitle: Text(
-              l10n.waveformSegmentsDescription,
-              style: const TextStyle(color: Colors.white70),
+            const Divider(height: 1),
+            _buildSectionHeader('歌词', '这里的配置只影响歌词生成和时间轴生成。'),
+            SwitchListTile(
+              title: const Text('自动切换歌词供应商'),
+              subtitle: Text(
+                settings.canAutoSwitchLyricsProvider
+                    ? '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。'
+                    : '请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。',
+              ),
+              value: settings.isLyricsAiAutoSwitchEnabled,
+              onChanged: settings.canAutoSwitchLyricsProvider
+                  ? (value) {
+                      settings.isLyricsAiAutoSwitchEnabled = value;
+                    }
+                  : null,
             ),
-            trailing: SizedBox(
-              width: 120,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+            ListTile(
+              title: const Text('歌词生成 AI 提供方'),
+              subtitle: const Text('这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio'),
+              trailing: DropdownButtonHideUnderline(
+                child: DropdownButton<LyricsAiProvider>(
+                  value: settings.lyricsAiProvider,
+                  onChanged: (value) {
+                    if (value == null) return;
+                    settings.lyricsAiProvider = value;
+                  },
+                  items: LyricsAiProvider.values
+                      .map(
+                        (provider) => DropdownMenuItem<LyricsAiProvider>(
+                          value: provider,
+                          child: Text(provider.displayName),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
+            ),
+            ListTile(
+              isThreeLine: true,
+              leading: const Icon(Icons.key),
+              title: Text('${settings.lyricsAiProvider.displayName} API Key'),
+              subtitle: Text(
+                settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio
+                    ? (settings.geminiApiKey.trim().isEmpty
+                          ? '当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。'
+                          : '已保存 Google AI Studio key，可用于歌词生成和时间轴生成。')
+                    : (settings.openRouterApiKey.trim().isEmpty
+                          ? '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。'
+                          : '已保存 OpenRouter key，可用于歌词生成和时间轴生成。'),
+              ),
+              trailing: FilledButton.tonal(
+                onPressed: () async {
+                  final enteredApiKey = await showLyricsProviderApiKeyDialog(
+                    context,
+                    ref: ref,
+                    provider: settings.lyricsAiProvider,
+                    initialApiKey: switch (settings.lyricsAiProvider) {
+                      LyricsAiProvider.googleAiStudio => settings.geminiApiKey,
+                      LyricsAiProvider.openRouter => settings.openRouterApiKey,
+                    },
+                  );
+                  if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+                    return;
+                  }
+
+                  switch (settings.lyricsAiProvider) {
+                    case LyricsAiProvider.googleAiStudio:
+                      settings.geminiApiKey = enteredApiKey;
+                      break;
+                    case LyricsAiProvider.openRouter:
+                      settings.openRouterApiKey = enteredApiKey;
+                      break;
+                  }
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${settings.lyricsAiProvider.displayName} API Key 已保存',
+                      ),
+                    ),
+                  );
+                },
+                child: Text(switch (settings.lyricsAiProvider) {
+                  LyricsAiProvider.googleAiStudio =>
+                    settings.geminiApiKey.trim().isEmpty ? '填写' : '修改',
+                  LyricsAiProvider.openRouter =>
+                    settings.openRouterApiKey.trim().isEmpty ? '填写' : '修改',
+                }),
+              ),
+            ),
+            if (settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio)
+              _buildSectionHeader(
+                'Gemini 模型',
+                '这两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。',
+              ),
+            if (settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio)
+              _buildGeminiModelSection(context, settings),
+            _buildSectionHeader('指纹识别', 'AcoustID 用于音频指纹识别，建议使用你自己的 API Key。'),
+            ListTile(
+              isThreeLine: true,
+              leading: const Icon(Icons.fingerprint),
+              title: const Text('AcoustID API Key'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove, color: Colors.white),
-                    onPressed: settings.waveformChunks > 20
-                        ? () => settings.waveformChunks -= 10
-                        : null,
-                  ),
                   Text(
-                    '${settings.waveformChunks}',
-                    style: const TextStyle(fontSize: 16, color: Colors.white),
+                    settings.hasCustomAcoustidApiKey
+                        ? '已保存自定义 key，音频指纹识别会优先使用它。'
+                        : '当前使用应用内置的默认 key，建议申请你自己的 key 后替换。',
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    onPressed: settings.waveformChunks < 200
-                        ? () => settings.waveformChunks += 10
-                        : null,
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: () async {
+                      final uri = Uri.parse(
+                        'https://acoustid.org/new-application',
+                      );
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                    child: const Text(
+                      '申请 API key: https://acoustid.org/new-application',
+                      style: TextStyle(
+                        color: Colors.lightBlueAccent,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
-          SwitchListTile(
-            title: Text(
-              l10n.enableWaveformProgressBar,
-              style: const TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              l10n.enableWaveformProgressBarDescription,
-              style: const TextStyle(color: Colors.white70),
-            ),
-            value: settings.isWaveformProgressBarEnabled,
-            onChanged: (value) {
-              settings.isWaveformProgressBarEnabled = value;
-            },
-          ),
-          const Divider(height: 1),
-          SwitchListTile(
-            title: const Text(
-              '自动切换歌词供应商',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              settings.canAutoSwitchLyricsProvider
-                  ? '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。'
-                  : '请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            value: settings.isLyricsAiAutoSwitchEnabled,
-            onChanged: settings.canAutoSwitchLyricsProvider
-                ? (value) {
-                    settings.isLyricsAiAutoSwitchEnabled = value;
+              trailing: FilledButton.tonal(
+                onPressed: () async {
+                  final enteredApiKey = await showAcoustidApiKeyDialog(
+                    context,
+                    initialApiKey: settings.hasCustomAcoustidApiKey
+                        ? settings.acoustidApiKey
+                        : '',
+                  );
+                  if (enteredApiKey == null) {
+                    return;
                   }
-                : null,
-          ),
 
-          ListTile(
-            title: const Text(
-              '歌词生成 AI 提供方',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: const Text(
-              '这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio',
-              style: TextStyle(color: Colors.white70),
-            ),
-            trailing: DropdownButtonHideUnderline(
-              child: DropdownButton<LyricsAiProvider>(
-                value: settings.lyricsAiProvider,
-                dropdownColor: const Color(0xFF1E1E1E),
-                iconEnabledColor: Colors.white,
-                style: const TextStyle(color: Colors.white),
-                onChanged: (value) {
-                  if (value == null) return;
-                  settings.lyricsAiProvider = value;
+                  settings.acoustidApiKey = enteredApiKey;
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('AcoustID API Key 已保存')),
+                  );
                 },
-                items: LyricsAiProvider.values
-                    .map(
-                      (provider) => DropdownMenuItem<LyricsAiProvider>(
-                        value: provider,
-                        child: Text(provider.displayName),
-                      ),
-                    )
-                    .toList(growable: false),
+                child: Text(settings.hasCustomAcoustidApiKey ? '修改' : '填写'),
               ),
             ),
-          ),
-          ListTile(
-            isThreeLine: true,
-            leading: const Icon(Icons.key, color: Colors.white),
-            title: Text(
-              '${settings.lyricsAiProvider.displayName} API Key',
-              style: const TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio
-                  ? (settings.geminiApiKey.trim().isEmpty
-                        ? '当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。'
-                        : '已保存 Google AI Studio key，可用于歌词生成和时间轴生成。')
-                  : (settings.openRouterApiKey.trim().isEmpty
-                        ? '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。'
-                        : '已保存 OpenRouter key，可用于歌词生成和时间轴生成。'),
-              style: const TextStyle(color: Colors.white70),
-            ),
-            trailing: FilledButton.tonal(
-              onPressed: () async {
-                final enteredApiKey = await showLyricsProviderApiKeyDialog(
-                  context,
-                  ref: ref,
-                  provider: settings.lyricsAiProvider,
-                  initialApiKey: switch (settings.lyricsAiProvider) {
-                    LyricsAiProvider.googleAiStudio => settings.geminiApiKey,
-                    LyricsAiProvider.openRouter => settings.openRouterApiKey,
-                  },
-                );
-                if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
-                  return;
-                }
-
-                switch (settings.lyricsAiProvider) {
-                  case LyricsAiProvider.googleAiStudio:
-                    settings.geminiApiKey = enteredApiKey;
-                    break;
-                  case LyricsAiProvider.openRouter:
-                    settings.openRouterApiKey = enteredApiKey;
-                    break;
-                }
-
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '${settings.lyricsAiProvider.displayName} API Key 已保存',
-                    ),
-                  ),
-                );
-              },
-              child: Text(switch (settings.lyricsAiProvider) {
-                LyricsAiProvider.googleAiStudio =>
-                  settings.geminiApiKey.trim().isEmpty ? '填写' : '修改',
-                LyricsAiProvider.openRouter =>
-                  settings.openRouterApiKey.trim().isEmpty ? '填写' : '修改',
-              }),
-            ),
-          ),
-          ListTile(
-            isThreeLine: true,
-            leading: const Icon(Icons.translate, color: Colors.white),
-            title: const Text(
-              'Google AI Studio 翻译 API Key',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              settings.geminiApiKey.trim().isEmpty
-                  ? '翻译功能一律走 Google AI Studio。这里未保存 key 时，翻译会先弹窗提示。'
-                  : '已保存 Google AI Studio key，可用于歌词翻译。',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            trailing: FilledButton.tonal(
-              onPressed: () async {
-                final enteredApiKey = await showGeminiApiKeyDialog(
-                  context,
-                  ref: ref,
-                  initialApiKey: settings.geminiApiKey,
-                );
-                if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
-                  return;
-                }
-
-                settings.geminiApiKey = enteredApiKey;
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Gemini API Key 已保存')),
-                );
-              },
-              child: Text(settings.geminiApiKey.trim().isEmpty ? '填写' : '修改'),
-            ),
-          ),
-          if (settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio)
-            _buildGeminiModelSection(context, settings),
-          ListTile(
-            isThreeLine: true,
-            leading: const Icon(Icons.fingerprint, color: Colors.white),
-            title: const Text(
-              'AcoustID API Key',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  settings.hasCustomAcoustidApiKey
-                      ? '已保存自定义 key，音频指纹识别会优先使用它。'
-                      : '当前使用应用内置的默认 key，建议申请你自己的 key 后替换。',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                const SizedBox(height: 4),
-                InkWell(
-                  onTap: () async {
-                    final uri = Uri.parse(
-                      'https://acoustid.org/new-application',
-                    );
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  },
-                  child: const Text(
-                    '申请 API key: https://acoustid.org/new-application',
-                    style: TextStyle(
-                      color: Colors.lightBlueAccent,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            trailing: FilledButton.tonal(
-              onPressed: () async {
-                final enteredApiKey = await showAcoustidApiKeyDialog(
-                  context,
-                  initialApiKey: settings.hasCustomAcoustidApiKey
-                      ? settings.acoustidApiKey
-                      : '',
-                );
-                if (enteredApiKey == null) {
-                  return;
-                }
-
-                settings.acoustidApiKey = enteredApiKey;
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('AcoustID API Key 已保存')),
-                );
-              },
-              child: Text(settings.hasCustomAcoustidApiKey ? '修改' : '填写'),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
