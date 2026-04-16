@@ -15,146 +15,24 @@ import 'package:collection/collection.dart';
 import 'package:worker_manager/worker_manager.dart';
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
+import 'scanner_navigation_state.dart';
+import 'scanner_path_utils.dart';
+import 'scanner_scan_support.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
+
+export 'scanner_scan_support.dart';
 
 enum SortCriteria { title, filename, trackNumber }
 
 enum SortOrder { ascending, descending }
-
-class ScanProgress {
-  final String filePath;
-  final int discoveredCount;
-  final int preprocessedCount;
-  final int completedCount;
-
-  const ScanProgress({
-    required this.filePath,
-    required this.discoveredCount,
-    required this.preprocessedCount,
-    required this.completedCount,
-  });
-}
-
-class _ScanProgressState {
-  _ScanProgressState({
-    int metadataConcurrency = 4,
-    required int Function(String a, String b) comparePaths,
-  }) : metadataRunner = _PriorityTaskRunner(
-         metadataConcurrency,
-         comparePaths: comparePaths,
-       );
-
-  int discoveredCount = 0;
-  int preprocessedCount = 0;
-  int completedCount = 0;
-  final _PriorityTaskRunner metadataRunner;
-  final List<Future<void>> pendingMetadataTasks = [];
-  final List<String> pendingMetadataPaths = [];
-}
-
-class _PriorityTaskRunner {
-  _PriorityTaskRunner(int maxConcurrent, {required this.comparePaths})
-    : maxConcurrent = maxConcurrent < 1 ? 1 : maxConcurrent;
-
-  final int maxConcurrent;
-  final int Function(String a, String b) comparePaths;
-  int _running = 0;
-  int _sequence = 0;
-  final List<_QueuedTask<dynamic>> _queue = [];
-
-  Future<T> run<T>(String path, Future<T> Function() task) {
-    final completer = Completer<T>();
-    _queue.add(
-      _QueuedTask<T>(
-        path: path,
-        sequence: _sequence++,
-        completer: completer,
-        task: task,
-      ),
-    );
-    _pump();
-    return completer.future;
-  }
-
-  void _pump() {
-    while (_running < maxConcurrent && _queue.isNotEmpty) {
-      final nextIndex = _selectNextIndex();
-      final next = _queue.removeAt(nextIndex);
-      _running++;
-      unawaited(_execute(next));
-    }
-  }
-
-  int _selectNextIndex() {
-    var bestIndex = 0;
-    for (var i = 1; i < _queue.length; i++) {
-      final candidate = _queue[i];
-      final best = _queue[bestIndex];
-      final pathCompare = comparePaths(candidate.path, best.path);
-      if (pathCompare < 0 ||
-          (pathCompare == 0 && candidate.sequence < best.sequence)) {
-        bestIndex = i;
-      }
-    }
-    return bestIndex;
-  }
-
-  Future<void> _execute<T>(_QueuedTask<T> entry) async {
-    try {
-      final result = await entry.task();
-      if (!entry.completer.isCompleted) {
-        entry.completer.complete(result);
-      }
-    } catch (e, st) {
-      if (!entry.completer.isCompleted) {
-        entry.completer.completeError(e, st);
-      }
-    } finally {
-      _running--;
-      _pump();
-    }
-  }
-}
-
-class _QueuedTask<T> {
-  _QueuedTask({
-    required this.path,
-    required this.sequence,
-    required this.completer,
-    required this.task,
-  });
-
-  final String path;
-  final int sequence;
-  final Completer<T> completer;
-  final Future<T> Function() task;
-}
-
-enum _ScanFileStage { full, imageOnly, unchanged }
-
-class _ScanFileClassification {
-  _ScanFileClassification({
-    required this.existingMetadataByPath,
-    required this.stageByPath,
-  });
-
-  final Map<String, SongMetadata> existingMetadataByPath;
-  final Map<String, _ScanFileStage> stageByPath;
-
-  List<String> pathsFor(_ScanFileStage stage) {
-    return stageByPath.entries
-        .where((entry) => entry.value == stage)
-        .map((entry) => entry.key)
-        .toList(growable: false);
-  }
-}
 
 class ScannerService extends ChangeNotifier {
   AudioCoreController? _playerController;
   StreamSubscription? _mediaObserverSubscription;
   final StreamController<ScanProgress> _scanProgressController =
       StreamController<ScanProgress>.broadcast();
+  final ScannerNavigationState _navigationState = ScannerNavigationState();
   final List<String> _rootPaths = [];
   final List<MusicFolder> _scannedRootFolders = [];
   final List<MusicFolder> _rootFolders = [];
@@ -181,30 +59,20 @@ class ScannerService extends ChangeNotifier {
   Stream<ScanProgress> get scanProgressStream => _scanProgressController.stream;
 
   // Navigation state for FoldersPage
-  MusicFolder? _navigationCurrentFolder;
-  final List<MusicFolder> _navigationHistory = [];
+  MusicFolder? get navigationCurrentFolder => _navigationState.currentFolder;
 
-  MusicFolder? get navigationCurrentFolder => _navigationCurrentFolder;
-  List<MusicFolder> get navigationHistory =>
-      List.unmodifiable(_navigationHistory);
+  List<MusicFolder> get navigationHistory => _navigationState.history;
 
   void setNavigationState(MusicFolder? current, List<MusicFolder> history) {
-    _navigationCurrentFolder = current;
-    _navigationHistory.clear();
-    _navigationHistory.addAll(history);
-    notifyListeners();
+    _navigationState.setState(current, history);
   }
 
   void pushNavigationHistory(MusicFolder folder) {
-    _navigationHistory.add(folder);
-    notifyListeners();
+    _navigationState.pushHistory(folder);
   }
 
   MusicFolder? popNavigationHistory() {
-    if (_navigationHistory.isEmpty) return null;
-    final folder = _navigationHistory.removeLast();
-    notifyListeners();
-    return folder;
+    return _navigationState.popHistory();
   }
 
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
@@ -222,6 +90,7 @@ class ScannerService extends ChangeNotifier {
   ];
 
   ScannerService() {
+    _navigationState.addListener(_handleNavigationChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_init());
     });
@@ -559,6 +428,10 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
+  void _handleNavigationChanged() {
+    notifyListeners();
+  }
+
   void pauseBackgroundTasks() {
     if (!_isBackgroundTaskPaused) {
       _isBackgroundTaskPaused = true;
@@ -673,9 +546,9 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
-    final scanState = _ScanProgressState(
+    final scanState = ScanProgressState(
       metadataConcurrency: 4,
-      comparePaths: _compareScanFilePriority,
+      comparePaths: _compareNaturally,
     );
 
     for (final entry in entries) {
@@ -752,11 +625,11 @@ class ScannerService extends ChangeNotifier {
     return lastModifiedByPath;
   }
 
-  Future<_ScanFileClassification> _classifyDiscoveredFiles(
+  Future<ScanFileClassification> _classifyDiscoveredFiles(
     List<String> filePaths,
   ) async {
     if (filePaths.isEmpty) {
-      return _ScanFileClassification(
+      return ScanFileClassification(
         existingMetadataByPath: const {},
         stageByPath: const {},
       );
@@ -766,7 +639,7 @@ class ScannerService extends ChangeNotifier {
         .getSongMetadataByPaths(filePaths);
     final lastModifiedByPath = await _loadLastModifiedTimes(filePaths);
 
-    final stageByPath = <String, _ScanFileStage>{};
+    final stageByPath = <String, ScanFileStage>{};
     final seen = <String>{};
 
     for (final path in filePaths) {
@@ -784,18 +657,18 @@ class ScannerService extends ChangeNotifier {
           currentLastModified != null &&
           textScanned == currentLastModified &&
           imgScanned == currentLastModified) {
-        stageByPath[path] = _ScanFileStage.unchanged;
+        stageByPath[path] = ScanFileStage.unchanged;
       } else if (existing != null &&
           currentLastModified != null &&
           textScanned == currentLastModified &&
           imgScanned != currentLastModified) {
-        stageByPath[path] = _ScanFileStage.imageOnly;
+        stageByPath[path] = ScanFileStage.imageOnly;
       } else {
-        stageByPath[path] = _ScanFileStage.full;
+        stageByPath[path] = ScanFileStage.full;
       }
     }
 
-    return _ScanFileClassification(
+    return ScanFileClassification(
       existingMetadataByPath: existingMetadataByPath,
       stageByPath: stageByPath,
     );
@@ -811,13 +684,13 @@ class ScannerService extends ChangeNotifier {
 
   Future<void> _preprocessChangedFiles(
     List<String> fullPaths,
-    _ScanProgressState scanState, {
+    ScanProgressState scanState, {
     required Map<String, SongMetadata> existingMetadataByPath,
   }) async {
     if (fullPaths.isEmpty) return;
 
     final db = MetadataDatabase();
-    final sortedPaths = fullPaths.toList()..sort(_compareScanFilePriority);
+    final sortedPaths = fullPaths.toList()..sort(_compareNaturally);
 
     const batchSize = 200;
     for (var start = 0; start < sortedPaths.length; start += batchSize) {
@@ -858,11 +731,11 @@ class ScannerService extends ChangeNotifier {
 
   Future<void> _applyArtworkAndThemeToChangedFiles(
     List<String> imageOnlyPaths,
-    _ScanProgressState scanState,
+    ScanProgressState scanState,
   ) async {
     if (imageOnlyPaths.isEmpty) return;
 
-    final sortedPaths = imageOnlyPaths.toList()..sort(_compareScanFilePriority);
+    final sortedPaths = imageOnlyPaths.toList()..sort(_compareNaturally);
 
     try {
       final supportDir = await getApplicationSupportDirectory();
@@ -920,7 +793,7 @@ class ScannerService extends ChangeNotifier {
   Future<void> _processArtworkAndThemeWithWorker({
     required String filePath,
     required String supportDirPath,
-    required _ScanProgressState scanState,
+    required ScanProgressState scanState,
   }) async {
     final db = MetadataDatabase();
 
@@ -1211,12 +1084,12 @@ class ScannerService extends ChangeNotifier {
 
     try {
       if (await _checkPermissions()) {
-        final scanState = _ScanProgressState(
+        final scanState = ScanProgressState(
           metadataConcurrency: 4,
-          comparePaths: _compareScanFilePriority,
+          comparePaths: _compareNaturally,
         );
         final scanRoots = _computeScanRoots(_rootPaths);
-        scanRoots.sort(_compareScanPathPriority);
+        scanRoots.sort(_compareNaturally);
         for (final path in scanRoots) {
           debugPrint('Starting scan at: $path');
 
@@ -1246,9 +1119,9 @@ class ScannerService extends ChangeNotifier {
         final classification = await _classifyDiscoveredFiles(discoveredPaths);
         _seedMetadataFromDatabase(classification.existingMetadataByPath);
 
-        final fullPaths = classification.pathsFor(_ScanFileStage.full);
+        final fullPaths = classification.pathsFor(ScanFileStage.full);
         final imageOnlyPaths = classification.pathsFor(
-          _ScanFileStage.imageOnly,
+          ScanFileStage.imageOnly,
         );
 
         await _preprocessChangedFiles(
@@ -1481,7 +1354,7 @@ class ScannerService extends ChangeNotifier {
   Future<bool> _scanDirectoryInto(
     MusicFolder folder,
     String path,
-    _ScanProgressState scanState,
+    ScanProgressState scanState,
   ) async {
     final dir = Directory(path);
     if (!await dir.exists()) {
@@ -1513,8 +1386,8 @@ class ScannerService extends ChangeNotifier {
         }
       }
 
-      directories.sort((a, b) => _compareScanPathPriority(a.path, b.path));
-      audioFiles.sort((a, b) => _compareScanFilePriority(a.path, b.path));
+      directories.sort((a, b) => _compareNaturally(a.path, b.path));
+      audioFiles.sort((a, b) => _compareNaturally(a.path, b.path));
 
       for (final entity in audioFiles) {
         final filePath = entity.path;
@@ -1556,7 +1429,7 @@ class ScannerService extends ChangeNotifier {
     return hasContent;
   }
 
-  void _emitScanProgress(_ScanProgressState scanState, String filePath) {
+  void _emitScanProgress(ScanProgressState scanState, String filePath) {
     _scanProgressController.add(
       ScanProgress(
         filePath: filePath,
@@ -1567,80 +1440,24 @@ class ScannerService extends ChangeNotifier {
     );
   }
 
-  int _compareScanPathPriority(String a, String b) {
-    final currentPath = _navigationCurrentFolder?.path;
-    if (currentPath != null) {
-      final aPriority = _pathContains(a, currentPath) ? 0 : 1;
-      final bPriority = _pathContains(b, currentPath) ? 0 : 1;
-      if (aPriority != bPriority) {
-        return aPriority.compareTo(bPriority);
-      }
-    }
-
-    return compareNatural(a.toLowerCase(), b.toLowerCase());
-  }
-
-  int _compareScanFilePriority(String a, String b) {
-    final currentPath = _navigationCurrentFolder?.path;
-    if (currentPath != null) {
-      final aPriority = _pathContains(currentPath, p.dirname(a)) ? 0 : 1;
-      final bPriority = _pathContains(currentPath, p.dirname(b)) ? 0 : 1;
-      if (aPriority != bPriority) {
-        return aPriority.compareTo(bPriority);
-      }
-    }
-
+  int _compareNaturally(String a, String b) {
     return compareNatural(a.toLowerCase(), b.toLowerCase());
   }
 
   String _normalizePath(String path) {
-    var normalized = p.normalize(path.trim());
-    if (Platform.isWindows) {
-      normalized = normalized.replaceAll('/', r'\');
-      if (normalized.length > 3 && normalized.endsWith(r'\')) {
-        normalized = normalized.substring(0, normalized.length - 1);
-      }
-    } else if (normalized.length > 1 && normalized.endsWith('/')) {
-      normalized = normalized.substring(0, normalized.length - 1);
-    }
-    return normalized;
+    return ScannerPathUtils.normalizePath(path);
   }
 
   String _pathLookupKey(String path) {
-    final normalized = _normalizePath(path);
-    return Platform.isWindows ? normalized.toLowerCase() : normalized;
+    return ScannerPathUtils.pathLookupKey(path);
   }
 
   List<String> _normalizeDeclaredRootPaths(Iterable<String> paths) {
-    final normalizedPaths = paths
-        .map(_normalizePath)
-        .where((path) => path.isNotEmpty)
-        .toList();
-
-    final result = <String>[];
-    for (final path in normalizedPaths) {
-      if (result.any((existing) => _pathsEqual(existing, path))) {
-        continue;
-      }
-      result.add(path);
-    }
-
-    return result;
+    return ScannerPathUtils.normalizeDeclaredRootPaths(paths);
   }
 
   List<String> _computeScanRoots(Iterable<String> paths) {
-    final normalizedPaths = _normalizeDeclaredRootPaths(paths);
-    normalizedPaths.sort((a, b) => a.length.compareTo(b.length));
-
-    final result = <String>[];
-    for (final path in normalizedPaths) {
-      if (result.any((existing) => _pathContains(existing, path))) {
-        continue;
-      }
-      result.add(path);
-    }
-
-    return result;
+    return ScannerPathUtils.computeScanRoots(paths);
   }
 
   void _rebuildDisplayedRootFolders() {
@@ -1684,57 +1501,22 @@ class ScannerService extends ChangeNotifier {
   }
 
   bool _pathsEqual(String left, String right) {
-    final normalizedLeft = _normalizePath(left);
-    final normalizedRight = _normalizePath(right);
-    if (Platform.isWindows) {
-      return normalizedLeft.toLowerCase() == normalizedRight.toLowerCase();
-    }
-    return normalizedLeft == normalizedRight;
+    return ScannerPathUtils.pathsEqual(left, right);
   }
 
   bool _pathContains(String parent, String child) {
-    final normalizedParent = _normalizePath(parent);
-    final normalizedChild = _normalizePath(child);
-
-    if (_pathsEqual(normalizedParent, normalizedChild)) {
-      return true;
-    }
-
-    if (Platform.isWindows) {
-      return p.isWithin(
-        normalizedParent.toLowerCase(),
-        normalizedChild.toLowerCase(),
-      );
-    }
-
-    return p.isWithin(normalizedParent, normalizedChild);
+    return ScannerPathUtils.pathContains(parent, child);
   }
 
   bool isShortcutRoot(String path) {
-    final normalizedPath = _normalizePath(path);
-    final declaredMatch = _rootPaths.any(
-      (existing) => _pathsEqual(existing, normalizedPath),
+    return ScannerPathUtils.isShortcutRoot(
+      path: path,
+      declaredRootPaths: _rootPaths,
     );
-    if (!declaredMatch) return false;
-
-    final scanRoots = _computeScanRoots(_rootPaths);
-    return !scanRoots.any((existing) => _pathsEqual(existing, normalizedPath));
   }
 
   String _displayNameForPath(String path) {
-    final normalizedPath = _normalizePath(path);
-    final basename = p.basename(normalizedPath);
-    if (basename.isNotEmpty) return basename;
-
-    if (Platform.isWindows) {
-      var drive = p.rootPrefix(normalizedPath);
-      if (drive.endsWith(r'\') || drive.endsWith('/')) {
-        drive = drive.substring(0, drive.length - 1);
-      }
-      if (drive.isNotEmpty) return drive;
-    }
-
-    return normalizedPath;
+    return ScannerPathUtils.displayNameForPath(path);
   }
 
   void _scheduleMetadataNotify() {
@@ -1753,6 +1535,8 @@ class ScannerService extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    _navigationState.removeListener(_handleNavigationChanged);
+    _navigationState.dispose();
     _mediaObserverSubscription?.cancel();
     _metadataNotifyTimer?.cancel();
     _scanNotifyTimer?.cancel();
