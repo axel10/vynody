@@ -9,6 +9,7 @@ import 'lyrics_ai_task_queue.dart';
 import 'lyrics_cache_repository.dart';
 import 'lyrics_controller_state.dart';
 import 'lyrics_generation_phase.dart';
+import 'lyrics_song_task_state.dart';
 import 'lyrics_service.dart';
 import 'metadata_database.dart';
 import 'settings_service.dart';
@@ -110,6 +111,8 @@ class LyricsControllerContext {
 
   final LyricsGenerationRuntime lyricsGeneration = LyricsGenerationRuntime();
   final LyricsAiTaskQueue lyricsAiTaskQueue = LyricsAiTaskQueue();
+  final Map<String, LyricsSongTaskState> songTaskStates =
+      <String, LyricsSongTaskState>{};
   final Set<String> translatedLyricsKeys = <String>{};
   final Set<String> translationInFlightKeys = <String>{};
   int lyricsRequestSerial = 0;
@@ -117,4 +120,38 @@ class LyricsControllerContext {
   CancelToken? lyricsFetchCancelToken;
 
   LyricsControllerState get state => getState();
+
+  LyricsSongTaskState taskStateForSong(String path) {
+    return songTaskStates[path] ?? const LyricsSongTaskState();
+  }
+
+  void updateSongTaskState(
+    String path,
+    LyricsSongTaskState Function(LyricsSongTaskState current) update,
+  ) {
+    final current = taskStateForSong(path);
+    final next = update(current);
+    if (next == current) {
+      return;
+    }
+
+    if (next.isAnyBusy) {
+      songTaskStates[path] = next;
+    } else {
+      songTaskStates.remove(path);
+    }
+    bumpRevision();
+  }
+
+  bool isLyricsGenerationBusyForSong(String path) {
+    return taskStateForSong(path).isGenerationBusy;
+  }
+
+  bool isLyricsTranslationBusyForSong(String path) {
+    return taskStateForSong(path).isTranslationBusy;
+  }
+
+  bool isLyricsTaskBusyForSong(String path) {
+    return taskStateForSong(path).isAnyBusy;
+  }
 }

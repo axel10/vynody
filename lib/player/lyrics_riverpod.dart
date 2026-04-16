@@ -2,10 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
+import '../models/music_file.dart';
 import 'lyrics_controller_dependencies.dart';
 import 'audio_riverpod.dart';
 import 'lyrics_controller.dart';
 import 'lyrics_controller_state.dart';
+import 'lyrics_song_task_state.dart';
+import 'lyrics_task_queue_summary.dart';
 import 'lyrics_ai_service.dart';
 
 final lyricsControllerDependenciesProvider =
@@ -24,6 +27,75 @@ final lyricsControllerProvider =
     NotifierProvider<LyricsController, LyricsControllerState>(
       LyricsController.new,
     );
+
+final lyricsSongTaskStateProvider =
+    Provider.family<LyricsSongTaskState, String>((ref, songPath) {
+      ref.watch(lyricsControllerProvider.select((state) => state.revision));
+      return ref.read(lyricsControllerProvider.notifier).taskStateForSong(
+        songPath,
+      );
+    });
+
+final lyricsCurrentSongTaskStateProvider = Provider<LyricsSongTaskState>((ref) {
+  final currentMusic = ref.watch(audioCurrentMusicProvider);
+  final songPath = currentMusic?.path;
+  if (songPath == null || songPath.isEmpty) {
+    return const LyricsSongTaskState();
+  }
+
+  return ref.watch(lyricsSongTaskStateProvider(songPath));
+});
+
+final lyricsTaskQueueSummaryProvider =
+    Provider<LyricsTaskQueueSummary>((ref) {
+      ref.watch(lyricsControllerProvider.select((state) => state.revision));
+      final queue = ref.watch(audioPlaybackQueueProvider);
+      final controller = ref.read(lyricsControllerProvider.notifier);
+
+      var taskCount = 0;
+      MusicFile? activeSong;
+      String? activeStatusLabel;
+
+      for (final song in queue) {
+        final taskState = controller.taskStateForSong(song.path);
+        final songTaskCount =
+            (taskState.isGenerationQueued ? 1 : 0) +
+            (taskState.isGenerationRunning ? 1 : 0) +
+            (taskState.isTranslationQueued ? 1 : 0) +
+            (taskState.isTranslationRunning ? 1 : 0);
+        if (songTaskCount == 0) continue;
+
+        taskCount += songTaskCount;
+        if (activeSong == null ||
+            taskState.isGenerationRunning ||
+            taskState.isTranslationRunning) {
+          activeSong = song;
+          activeStatusLabel = _lyricsTaskStatusLabel(taskState);
+        }
+      }
+
+      return LyricsTaskQueueSummary(
+        taskCount: taskCount,
+        activeSong: activeSong,
+        activeStatusLabel: activeStatusLabel,
+      );
+    });
+
+String? _lyricsTaskStatusLabel(LyricsSongTaskState taskState) {
+  if (taskState.isTranslationRunning || taskState.isTranslationQueued) {
+    return taskState.translationStatus.trim().isNotEmpty
+        ? taskState.translationStatus.trim()
+        : '正在翻译歌词';
+  }
+
+  if (taskState.isGenerationRunning || taskState.isGenerationQueued) {
+    return taskState.generationStatus.trim().isNotEmpty
+        ? taskState.generationStatus.trim()
+        : '正在生成歌词';
+  }
+
+  return null;
+}
 
 final lyricsDisplayLinesProvider =
     Provider.family<List<LyricLine>, MusicLyric?>((ref, baseLyrics) {

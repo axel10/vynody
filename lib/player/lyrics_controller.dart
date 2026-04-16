@@ -19,6 +19,7 @@ import 'lyrics_riverpod.dart';
 import 'lyrics_service.dart';
 import 'metadata_database.dart';
 import 'lyrics_generation_phase.dart';
+import 'lyrics_song_task_state.dart';
 import 'settings_service.dart';
 
 class LyricsController extends Notifier<LyricsControllerState> {
@@ -282,8 +283,16 @@ class LyricsController extends Notifier<LyricsControllerState> {
     return _support.fillLyricsForCurrentSong(lyricsText);
   }
 
+  LyricsSongTaskState taskStateForSong(String path) {
+    return _context.taskStateForSong(path);
+  }
+
   bool isLyricsGenerationForSong(String path) {
-    return _context.lyricsGeneration.songPath == path;
+    return _context.isLyricsGenerationBusyForSong(path);
+  }
+
+  bool isLyricsTranslationForSong(String path) {
+    return _context.isLyricsTranslationBusyForSong(path);
   }
 
   String? get activeLyricsGenerationSongPath {

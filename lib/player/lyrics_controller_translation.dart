@@ -55,6 +55,18 @@ class LyricsTranslationCoordinator {
       );
     }
 
+    if (_context.isLyricsTranslationBusyForSong(song.path)) {
+      return;
+    }
+
+    _context.updateSongTaskState(
+      song.path,
+      (current) => current.copyWith(
+        isTranslationQueued: true,
+        translationStatus: '正在翻译歌词',
+      ),
+    );
+
     await _context.lyricsAiTaskQueue.enqueue(() {
       return _translateLyricsForSong(
         song,
@@ -70,17 +82,28 @@ class LyricsTranslationCoordinator {
     final currentSong = _support.songForPath(song.path);
     if (currentSong == null) return;
 
-    final sourceLyrics = _lyricsSourceForTranslation(currentSong);
-    if (sourceLyrics.isEmpty) return;
+    try {
+      final sourceLyrics = _lyricsSourceForTranslation(currentSong);
+      if (sourceLyrics.isEmpty) return;
 
-    final request = await _buildLyricsTranslationRequest(
-      currentSong,
-      normalizedLanguageCode: normalizedLanguageCode,
-      sourceLyrics: sourceLyrics,
-    );
-    if (request == null) return;
+      final request = await _buildLyricsTranslationRequest(
+        currentSong,
+        normalizedLanguageCode: normalizedLanguageCode,
+        sourceLyrics: sourceLyrics,
+      );
+      if (request == null) return;
 
-    await _runLyricsTranslationRequest(request);
+      await _runLyricsTranslationRequest(request);
+    } finally {
+      _context.updateSongTaskState(
+        song.path,
+        (current) => current.copyWith(
+          isTranslationQueued: false,
+          isTranslationRunning: false,
+          translationStatus: '',
+        ),
+      );
+    }
   }
 
   Future<_LyricsTranslationRequest?> _buildLyricsTranslationRequest(
@@ -133,8 +156,14 @@ class LyricsTranslationCoordinator {
     }
 
     _context.translationInFlightKeys.add(request.translationKey);
-    _context.setIsLyricsTranslating(true);
-    _context.setLyricsTranslationStatus('正在翻译歌词');
+    _context.updateSongTaskState(
+      request.songPath,
+      (current) => current.copyWith(
+        isTranslationQueued: false,
+        isTranslationRunning: true,
+        translationStatus: '正在翻译歌词',
+      ),
+    );
 
     try {
       final success = await _context.lyricsAiService.translateLyricsStream(
@@ -160,8 +189,14 @@ class LyricsTranslationCoordinator {
       }
     } finally {
       _context.translationInFlightKeys.remove(request.translationKey);
-      _context.setIsLyricsTranslating(false);
-      _context.setLyricsTranslationStatus('');
+      _context.updateSongTaskState(
+        request.songPath,
+        (current) => current.copyWith(
+          isTranslationQueued: false,
+          isTranslationRunning: false,
+          translationStatus: '',
+        ),
+      );
     }
   }
 

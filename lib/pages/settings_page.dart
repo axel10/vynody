@@ -218,7 +218,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.only(bottom: 100),
       children: [
         _buildSectionHeader('界面', '这些选项会影响页面和播放界面的整体显示方式。'),
         SwitchListTile(
@@ -429,7 +429,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       body: Stack(
         children: [
           Padding(
-            padding: EdgeInsets.only(top: showDesktopTitleBar ? 32 : 0,bottom: 60),
+            padding: EdgeInsets.only(top: showDesktopTitleBar ? 32 : 0),
             child: SafeArea(
               top: !showDesktopTitleBar,
               child: _buildBody(context, settings),

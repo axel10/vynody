@@ -16,6 +16,7 @@ import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
 import '../player/lyrics_generation_phase.dart';
 import '../player/lyrics_riverpod.dart';
+import '../player/lyrics_song_task_state.dart';
 import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
 
@@ -43,11 +44,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   static const double _itemExtent = 88.0;
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
-  static const double _statusToastTopOffset = 30.0;
   static const double _seekToastTopOffset = 88.0;
-  static const Duration _statusToastAnimationDuration = Duration(
-    milliseconds: 180,
-  );
   static const Duration _seekToastAnimationDuration = Duration(
     milliseconds: 160,
   );
@@ -59,9 +56,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   double _dragDistancePixels = 0.0;
   int? _dragStartLine;
   int? _dragCurrentLine;
-  rpod.ProviderSubscription<LyricsControllerState>? _lyricsStateSubscription;
-  ToastFuture? _statusToast;
-  String? _statusToastSignature;
   ToastFuture? _seekToast;
   String? _seekToastSignature;
 
@@ -90,31 +84,16 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _timelineOffsetSeconds = _timelineOffsetToSeconds(
       widget.lyrics?.timelineOffset,
     );
-    _lyricsStateSubscription = ref.listenManual(lyricsControllerProvider, (
-      previous,
-      next,
-    ) {
-      _syncStatusToast(next);
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _syncStatusToast(ref.read(lyricsControllerProvider));
       _scheduleScrollIfNeeded(force: true);
     });
   }
 
   @override
   void dispose() {
-    _lyricsStateSubscription?.close();
-    _dismissStatusToast();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _dismissStatusToast({bool showAnim = false}) {
-    _statusToast?.dismiss(showAnim: showAnim);
-    _statusToast = null;
-    _statusToastSignature = null;
   }
 
   void _dismissSeekToast({bool showAnim = false}) {
@@ -123,80 +102,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _seekToastSignature = null;
   }
 
-  void _syncStatusToast(LyricsControllerState lyricsState) {
-    final payload = _buildStatusToastPayload(lyricsState);
-    if (payload == null) {
-      if (_statusToast != null || _statusToastSignature != null) {
-        _dismissStatusToast();
-      }
-      return;
-    }
-
-    if (_statusToastSignature == payload.signature &&
-        _statusToast?.mounted == true) {
-      return;
-    }
-
-    _dismissStatusToast();
-    _statusToastSignature = payload.signature;
-    _statusToast = showToastWidget(
-      LyricsStatusToast(
-        modelLabel: payload.modelLabel,
-        statusLabel: payload.statusLabel,
-        accentColor:
-            widget.accentColor ?? Theme.of(context).colorScheme.primary,
-      ),
-      context: context,
-      duration: Duration.zero,
-      position: ToastPosition.top.copyWith(
-        align: Alignment.topCenter,
-        offset: _statusToastTopOffset,
-      ),
-      dismissOtherToast: false,
-      handleTouch: false,
-      animationDuration: _statusToastAnimationDuration,
-      animationCurve: Curves.easeOutCubic,
-    );
-  }
-
-  _LyricsStatusToastPayload? _buildStatusToastPayload(
-    LyricsControllerState lyricsState,
-  ) {
-    if (!lyricsState.isLyricsGenerating && !lyricsState.isLyricsTranslating) {
-      return null;
-    }
-
-    if (lyricsState.isLyricsTranslating) {
-      final status = lyricsState.lyricsTranslationStatus.trim().isNotEmpty
-          ? lyricsState.lyricsTranslationStatus.trim()
-          : '正在翻译歌词';
-      const modelLabel = 'Gemma 4 31B IT';
-      return _LyricsStatusToastPayload(
-        signature: 'translate|$modelLabel|$status',
-        modelLabel: modelLabel,
-        statusLabel: status,
-      );
-    }
-
-    final modelLabel = ref.read(lyricsAiServiceProvider).activeModelLabel;
-    final taskLabel = lyricsState.lyricsGenerationStatus.trim().isNotEmpty
-        ? lyricsState.lyricsGenerationStatus.trim()
-        : '正在生成歌词';
-    final phaseLabel = switch (lyricsState.lyricsGenerationPhase) {
-      LyricsGenerationPhase.uploading => '上传中',
-      LyricsGenerationPhase.processing => '处理中',
-      LyricsGenerationPhase.generating => '生成中',
-      LyricsGenerationPhase.idle => '',
-    };
-    final statusLabel = phaseLabel.isEmpty
-        ? taskLabel
-        : '$taskLabel · $phaseLabel';
-    return _LyricsStatusToastPayload(
-      signature: 'generate|$modelLabel|$statusLabel',
-      modelLabel: modelLabel,
-      statusLabel: statusLabel,
-    );
-  }
 
   void _syncSeekToast(Duration target) {
     final signature = target.inMilliseconds.toString();
@@ -286,6 +191,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     BuildContext context,
     Offset globalPosition, {
     required LyricsControllerState lyricsState,
+    required LyricsSongTaskState taskState,
     required List<LyricLine> displayLines,
     required String displayPlainLyrics,
     required bool hasCurrentSong,
@@ -304,13 +210,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate',
-          enabled: hasCurrentSong,
+          enabled: hasCurrentSong && !taskState.isGenerationBusy,
           child: Text(_buildGenerateMenuLabel()),
         ),
       if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate_timeline',
-          enabled: hasCurrentSong,
+          enabled: hasCurrentSong && !taskState.isGenerationBusy,
           child: Text(_buildGenerateTimelineMenuLabel()),
         ),
       if (!requeryOnly &&
@@ -334,7 +240,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'translate',
-          enabled: hasCurrentSong,
+          enabled: hasCurrentSong && !taskState.isTranslationBusy,
           child: const Text('翻译歌词'),
         ),
       if (!requeryOnly)
@@ -355,7 +261,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           enabled:
               hasCurrentSong &&
               !lyricsState.isLyricsLoading &&
-              !lyricsState.isLyricsGenerating,
+              !taskState.isGenerationBusy,
           child: const Text('重新查询'),
         ),
     ];
@@ -427,11 +333,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     await _lyricsControllerActions.fillLyricsForCurrentSong(submittedLyrics);
   }
 
-  String _buildGenerateButtonLabel(LyricsControllerState lyricsState) {
-    final progress = lyricsState.lyricsGenerationProgress.clamp(0.0, 1.0);
+  String _buildGenerateButtonLabel(LyricsSongTaskState taskState) {
+    final progress = taskState.generationProgress.clamp(0.0, 1.0);
     final percent = (progress * 100).round();
 
-    switch (lyricsState.lyricsGenerationPhase) {
+    switch (taskState.generationPhase) {
       case LyricsGenerationPhase.uploading:
         return '上传中 $percent%';
       case LyricsGenerationPhase.processing:
@@ -442,7 +348,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         break;
     }
 
-    return lyricsState.isLyricsGenerating ? '排队生成' : '生成歌词';
+    return taskState.isGenerationBusy ? '排队生成' : '生成歌词';
   }
 
   void _scheduleScrollIfNeeded({
@@ -673,6 +579,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   @override
   Widget build(BuildContext context) {
     final lyricsState = ref.watch(lyricsControllerProvider);
+    final currentSongTaskState = ref.watch(
+      lyricsCurrentSongTaskStateProvider,
+    );
     final displayLines = ref.watch(lyricsDisplayLinesProvider(widget.lyrics));
     final displayPlainLyrics = ref.watch(
       lyricsDisplayPlainTextProvider(widget.lyrics),
@@ -690,13 +599,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       final canGenerateLyrics =
           lyricsState.isLyricsLoading ||
           lyricsState.lyricsSearchAttempted ||
-          lyricsState.isLyricsGenerating;
+          currentSongTaskState.isGenerationBusy;
       return LyricsPanelEmptyState(
         accentColor: accent,
         isLoading: lyricsState.isLyricsLoading,
-        isGenerating: lyricsState.isLyricsGenerating,
+        isGenerating: currentSongTaskState.isGenerationBusy,
         canGenerateLyrics: canGenerateLyrics,
-        generateButtonLabel: _buildGenerateButtonLabel(lyricsState),
+        generateButtonLabel: _buildGenerateButtonLabel(currentSongTaskState),
         bottomSpacerHeight: widget.bottomSpacerHeight,
         bottomTabBarHeight: widget.bottomTabBarHeight,
         onGeneratePressed: () async {
@@ -714,6 +623,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             context,
             details.globalPosition,
             lyricsState: lyricsState,
+            taskState: currentSongTaskState,
             displayLines: displayLines,
             displayPlainLyrics: displayPlainLyrics,
             hasCurrentSong: hasCurrentSong,
@@ -732,6 +642,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             context,
             details.globalPosition,
             lyricsState: lyricsState,
+            taskState: currentSongTaskState,
             displayLines: displayLines,
             displayPlainLyrics: displayPlainLyrics,
             hasCurrentSong: hasCurrentSong,
@@ -762,28 +673,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       onVerticalDragEnd: (_) => _endLyricsDrag(displayLines),
       onVerticalDragCancel: () => _endLyricsDrag(displayLines),
       onSecondaryTapDown: (details) {
-        _showContextMenu(
-          context,
-          details.globalPosition,
-          lyricsState: lyricsState,
-          displayLines: displayLines,
-          displayPlainLyrics: displayPlainLyrics,
-          hasCurrentSong: hasCurrentSong,
-        );
+          _showContextMenu(
+            context,
+            details.globalPosition,
+            lyricsState: lyricsState,
+            taskState: currentSongTaskState,
+            displayLines: displayLines,
+            displayPlainLyrics: displayPlainLyrics,
+            hasCurrentSong: hasCurrentSong,
+          );
       },
       bottomSpacerHeight: widget.bottomSpacerHeight,
     );
   }
-}
-
-class _LyricsStatusToastPayload {
-  const _LyricsStatusToastPayload({
-    required this.signature,
-    required this.modelLabel,
-    required this.statusLabel,
-  });
-
-  final String signature;
-  final String modelLabel;
-  final String statusLabel;
 }

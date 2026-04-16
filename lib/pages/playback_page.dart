@@ -25,6 +25,7 @@ import '../dialogs/song_tag_edit_dialog.dart';
 import '../dialogs/song_tag_completion_dialog.dart';
 import '../dialogs/sleep_timer_sheet.dart';
 import '../widgets/equalizer_panel.dart';
+import '../widgets/lyrics_task_status_banner.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
 
@@ -829,23 +830,34 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             color: Colors.black,
             child: Stack(
               clipBehavior: Clip.none,
-              children: [
-                Positioned.fill(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 800),
-                    child: backgroundType == 1
+                children: [
+                    Positioned.fill(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 800),
+                        child: backgroundType == 1
                         ? const RepaintBoundary(
                             key: ValueKey('fluid_bg'),
                             child: DynamicMeshBackground(),
                           )
                         : _buildBlurredBackground(context),
                   ),
-                ),
+                    ),
                 _buildBackgroundScrim(isLyricsMode),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
                 _buildLyricsModeScrim(isLyricsMode),
                 content,
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 12,
+                  child: SafeArea(
+                    bottom: false,
+                    child: LyricsTaskStatusBanner(
+                      key: const ValueKey('lyrics_task_status_banner'),
+                    ),
+                  ),
+                ),
                 if (_showVolumeSlider)
                   Builder(
                     builder: (context) {

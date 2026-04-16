@@ -43,15 +43,30 @@ class LyricsGenerationCoordinator {
     _context.lyricsGeneration.beginForSong(song.path);
     _context.setLyricsSearchAttempted(true);
     _context.startLyricsGenerationStatus(statusLabel);
-    _context.setLyricsGenerating(
-      true,
-      phase: LyricsGenerationPhase.uploading,
-      progress: 0.0,
+    _context.updateSongTaskState(
+      song.path,
+      (current) => current.copyWith(
+        isGenerationQueued: false,
+        isGenerationRunning: true,
+        generationPhase: LyricsGenerationPhase.uploading,
+        generationProgress: 0.0,
+        generationStatus: statusLabel,
+      ),
     );
 
     return _LyricsGenerationSession(
       id: _context.lyricsGeneration.serial,
       songPath: song.path,
+    );
+  }
+
+  void _queueLyricsGeneration(MusicFile song, String statusLabel) {
+    _context.updateSongTaskState(
+      song.path,
+      (current) => current.copyWith(
+        isGenerationQueued: true,
+        generationStatus: statusLabel,
+      ),
     );
   }
 
@@ -108,14 +123,17 @@ class LyricsGenerationCoordinator {
       unawaited(_support.restoreCachedTranslations(updated));
     }
 
+    _context.updateSongTaskState(
+      song.path,
+      (current) => current.copyWith(
+        generationPhase: LyricsGenerationPhase.generating,
+        generationProgress: 1.0,
+      ),
+    );
+
     if (_isCurrentSong(session)) {
       _context.setHasLyrics(true);
       _context.setIsLyricsLoading(false);
-      _context.setLyricsGenerating(
-        true,
-        phase: LyricsGenerationPhase.generating,
-        progress: 1.0,
-      );
       _context.setLyricsSearchAttempted(true);
       _context.setCurrentLyricsLines(lyrics.syncedLines);
       _context.setCurrentLyricsText(lyrics.plainText);
@@ -128,10 +146,15 @@ class LyricsGenerationCoordinator {
     if (session.id != _context.lyricsGeneration.serial) return;
 
     _context.lyricsGeneration.finish();
-    _context.setLyricsGenerating(
-      false,
-      phase: LyricsGenerationPhase.idle,
-      progress: 0.0,
+    _context.updateSongTaskState(
+      session.songPath,
+      (current) => current.copyWith(
+        isGenerationQueued: false,
+        isGenerationRunning: false,
+        generationPhase: LyricsGenerationPhase.idle,
+        generationProgress: 0.0,
+        generationStatus: '',
+      ),
     );
     _context.clearLyricsGenerationStatus();
   }
@@ -151,13 +174,13 @@ class LyricsGenerationCoordinator {
             return;
           }
 
-          if (_isCurrentSong(session)) {
-            _context.setLyricsGenerating(
-              true,
-              phase: LyricsGenerationPhase.uploading,
-              progress: progress.clamp(0.0, 1.0),
-            );
-          }
+          _context.updateSongTaskState(
+            session.songPath,
+            (current) => current.copyWith(
+              generationPhase: LyricsGenerationPhase.uploading,
+              generationProgress: progress.clamp(0.0, 1.0),
+            ),
+          );
         },
         onStageChanged: (stage) {
           _updateLyricsGenerationStage(session, stage);
@@ -237,20 +260,31 @@ class LyricsGenerationCoordinator {
     } catch (e) {
       debugPrint('[LyricsController] Failed to generate lyrics: $e');
       return '生成歌词时发生错误：$e';
+    } finally {
+      _context.updateSongTaskState(
+        song.path,
+        (current) => current.copyWith(
+          isGenerationQueued: false,
+          isGenerationRunning: false,
+          generationPhase: LyricsGenerationPhase.idle,
+          generationProgress: 0.0,
+          generationStatus: '',
+        ),
+      );
     }
   }
 
   Future<String?> _generateTimelineForSong(MusicFile song) async {
-    final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
-    if (sourceLyrics.isEmpty) {
-      debugPrint(
-        '[LyricsController] generate timeline skipped: no usable lyrics '
-        'path=${song.path}',
-      );
-      return '没有可用于生成时间轴的歌词。';
-    }
-
     try {
+      final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
+      if (sourceLyrics.isEmpty) {
+        debugPrint(
+          '[LyricsController] generate timeline skipped: no usable lyrics '
+          'path=${song.path}',
+        );
+        return '没有可用于生成时间轴的歌词。';
+      }
+
       return await _runLyricsGeneration(
         song: song,
         databaseSource: LyricsCacheSource.aiTimeline,
@@ -277,6 +311,17 @@ class LyricsGenerationCoordinator {
     } catch (e) {
       debugPrint('[LyricsController] Failed to generate timeline: $e');
       return '生成时间轴时发生错误：$e';
+    } finally {
+      _context.updateSongTaskState(
+        song.path,
+        (current) => current.copyWith(
+          isGenerationQueued: false,
+          isGenerationRunning: false,
+          generationPhase: LyricsGenerationPhase.idle,
+          generationProgress: 0.0,
+          generationStatus: '',
+        ),
+      );
     }
   }
 
@@ -286,6 +331,11 @@ class LyricsGenerationCoordinator {
       debugPrint('[LyricsController] generate lyrics skipped: no current song');
       return '没有可用的当前歌曲。';
     }
+    if (_context.isLyricsGenerationBusyForSong(song.path)) {
+      return '当前歌曲的歌词任务已在排队或生成中。';
+    }
+
+    _queueLyricsGeneration(song, '正在生成歌词');
 
     return _context.lyricsAiTaskQueue.enqueue(() {
       return _generateLyricsForSong(song);
@@ -300,6 +350,11 @@ class LyricsGenerationCoordinator {
       );
       return '没有可用的当前歌曲。';
     }
+    if (_context.isLyricsGenerationBusyForSong(song.path)) {
+      return '当前歌曲的歌词任务已在排队或生成中。';
+    }
+
+    _queueLyricsGeneration(song, '正在生成时间轴');
 
     return _context.lyricsAiTaskQueue.enqueue(() {
       final activeSong = _support.songForPath(song.path) ?? song;
@@ -317,6 +372,7 @@ class LyricsGenerationCoordinator {
     }
 
     _support.clearLyricsStateForPath(song.path);
+    _queueLyricsGeneration(song, '正在重新生成歌词');
     return _context.lyricsAiTaskQueue.enqueue(() {
       return _generateLyricsForSong(_support.songForPath(song.path) ?? song);
     });
