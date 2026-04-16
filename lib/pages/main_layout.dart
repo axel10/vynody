@@ -218,10 +218,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   }
 
   Future<void> _openSettingsPage() async {
-    if (_currentIndex == 4) return;
-    setState(() {
-      _currentIndex = 4;
-    });
+    await Navigator.of(
+      context,
+    ).pushReplacement(buildMainLayoutRoute(args: widget.args, initialIndex: 4));
   }
 
   Widget _buildTooltipIcon({
