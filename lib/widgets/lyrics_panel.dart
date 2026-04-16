@@ -545,6 +545,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       _dragCurrentLine = null;
     }
 
+    // 用户抬手后先立刻收掉进度提示，再异步执行 seek，避免 toast
+    // 因为播放器跳转或后续重建而滞留在屏幕上。
+    _dismissSeekToast();
+
     if (targetLine != null &&
         targetLine >= 0 &&
         targetLine < displayLines.length) {
@@ -552,8 +556,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         ref.read(audioServiceProvider).seek(displayLines[targetLine].timestamp),
       );
     }
-
-    _dismissSeekToast();
     _scheduleScrollIfNeeded(force: true, displayLines: displayLines);
   }
 
