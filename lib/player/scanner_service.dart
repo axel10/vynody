@@ -597,7 +597,6 @@ class ScannerService extends ChangeNotifier {
     required int? Function(T entry) fallbackDurationOf,
     required int? Function(T entry) fallbackTrackNumberOf,
   }) async {
-    _metadataMap.clear();
     final metadataByPath = <String, SongMetadata>{};
 
     final entryByPath = <String, T>{};
@@ -1266,10 +1265,9 @@ class ScannerService extends ChangeNotifier {
         final missingPaths = <String>[];
         for (final path in _metadataMap.keys) {
           final normalizedPath = _normalizePath(path);
-          final isWithinScope = _rootPaths.any(
-            (root) => _pathContains(root, normalizedPath),
-          );
-          if (!isWithinScope) continue;
+          if (!_rootPaths.any((root) => _pathContains(root, normalizedPath))) {
+            continue;
+          }
           final lookupKey = Platform.isWindows
               ? normalizedPath.toLowerCase()
               : normalizedPath;
@@ -1277,22 +1275,9 @@ class ScannerService extends ChangeNotifier {
             missingPaths.add(normalizedPath);
           }
         }
-
         for (final path in normalizedPresentPaths) {
           _notifySongMissingState(path, false);
         }
-
-        _metadataMap.removeWhere((path, _) {
-          final normalizedPath = _normalizePath(path);
-          return _rootPaths.any(
-                (root) => _pathContains(root, normalizedPath),
-              ) &&
-              !presentPathIndex.contains(
-                Platform.isWindows
-                    ? normalizedPath.toLowerCase()
-                    : normalizedPath,
-              );
-        });
         for (final path in missingPaths) {
           _notifySongMissingState(path, true);
         }
@@ -1396,10 +1381,6 @@ class ScannerService extends ChangeNotifier {
     if (normalizedPath.isEmpty) return;
 
     _notifySongMissingState(normalizedPath, true);
-
-    _metadataMap.removeWhere(
-      (existingPath, _) => _pathsEqual(existingPath, normalizedPath),
-    );
 
     for (final root in _scannedRootFolders) {
       _removeSongFromFolder(root, normalizedPath);
