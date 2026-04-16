@@ -127,37 +127,40 @@ class LyricsPanelPlainLyricsView extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: ScrollConfiguration(
-              behavior: ScrollConfiguration.of(context).copyWith(
-                scrollbars: false,
-                dragDevices: {
-                  PointerDeviceKind.touch,
-                  PointerDeviceKind.mouse,
-                  PointerDeviceKind.trackpad,
-                  PointerDeviceKind.stylus,
-                },
-              ),
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                // padding: const EdgeInsets.symmetric(horizontal: 120),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SelectableText(
-                      displayPlainLyrics,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        fontSize: 18,
-                        height: 1.6,
+            child: _BottomFadeShaderMask(
+              bottomSpacerHeight: bottomSpacerHeight,
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  scrollbars: false,
+                  dragDevices: {
+                    PointerDeviceKind.touch,
+                    PointerDeviceKind.mouse,
+                    PointerDeviceKind.trackpad,
+                    PointerDeviceKind.stylus,
+                  },
+                ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.only(bottom: bottomSpacerHeight),
+                  // padding: const EdgeInsets.symmetric(horizontal: 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SelectableText(
+                        displayPlainLyrics,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          fontSize: 18,
+                          height: 1.6,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          SizedBox(height: bottomSpacerHeight),
         ],
       ),
     );
@@ -212,113 +215,119 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: ClipRect(
-              clipper: const _VerticalOnlyClipper(),
-              child: ScrollConfiguration(
-                behavior: scrollBehavior,
-                child: ListView.builder(
-                  controller: scrollController,
-                  clipBehavior: Clip.none,
-                  physics: isAutoScrollPaused
-                      ? const BouncingScrollPhysics()
-                      : const NeverScrollableScrollPhysics(),
-                  // padding: const EdgeInsets.symmetric(horizontal: 8),
-                  itemExtent: itemExtent,
-                  itemCount: displayLines.length,
-                  itemBuilder: (context, index) {
-                    final line = displayLines[index];
-                    final translated =
-                        lyrics
-                            ?.translatedLineAt(
-                              index,
-                              lyricsState.lyricsTranslationLanguageCode,
-                            )
-                            .trim() ??
-                        '';
-                    final distance = (index - activeIndex).abs();
-                    final isActive = hasTimedLyrics && index == activeIndex;
-                    final isNear = hasTimedLyrics && distance <= 1 && !isActive;
-                    final targetScale = isActive ? 1.12 : 1.0;
+            child: _BottomFadeShaderMask(
+              bottomSpacerHeight: bottomSpacerHeight,
+              child: ClipRect(
+                clipper: const _VerticalOnlyClipper(),
+                child: ScrollConfiguration(
+                  behavior: scrollBehavior,
+                  child: ListView.builder(
+                    controller: scrollController,
+                    clipBehavior: Clip.none,
+                    physics: isAutoScrollPaused
+                        ? const BouncingScrollPhysics()
+                        : const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.only(bottom: bottomSpacerHeight),
+                    // padding: const EdgeInsets.symmetric(horizontal: 8),
+                    itemExtent: itemExtent,
+                    itemCount: displayLines.length,
+                    itemBuilder: (context, index) {
+                      final line = displayLines[index];
+                      final translated =
+                          lyrics
+                              ?.translatedLineAt(
+                                index,
+                                lyricsState.lyricsTranslationLanguageCode,
+                              )
+                              .trim() ??
+                          '';
+                      final distance = (index - activeIndex).abs();
+                      final isActive = hasTimedLyrics && index == activeIndex;
+                      final isNear =
+                          hasTimedLyrics && distance <= 1 && !isActive;
+                      final targetScale = isActive ? 1.12 : 1.0;
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        // horizontal: 8,
-                        vertical: 6,
-                      ),
-                      child: Center(
-                        child: AnimatedScale(
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOutCubic,
-                          scale: targetScale,
-                          alignment: Alignment.center,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Expanded(
-                                    child: DefaultTextStyle(
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge!
-                                          .copyWith(
-                                            color: isActive
-                                                ? Colors.white
-                                                : Colors.white.withValues(
-                                                    alpha: isNear ? 0.72 : 0.46,
-                                                  ),
-                                            fontSize: 16,
-                                            fontWeight: isActive
-                                                ? FontWeight.w700
-                                                : FontWeight.w400,
-                                            height: 1.4,
-                                            leadingDistribution:
-                                                TextLeadingDistribution.even,
-                                          ),
-                                      child: AutoSizeSingleLineText(
-                                        line.text,
-                                        textAlign: TextAlign.center,
-                                        maxLines: 2,
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          // horizontal: 8,
+                          vertical: 6,
+                        ),
+                        child: Center(
+                          child: AnimatedScale(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            scale: targetScale,
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: DefaultTextStyle(
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge!
+                                            .copyWith(
+                                              color: isActive
+                                                  ? Colors.white
+                                                  : Colors.white.withValues(
+                                                      alpha: isNear
+                                                          ? 0.72
+                                                          : 0.46,
+                                                    ),
+                                              fontSize: 16,
+                                              fontWeight: isActive
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w400,
+                                              height: 1.4,
+                                              leadingDistribution:
+                                                  TextLeadingDistribution.even,
+                                            ),
+                                        child: AutoSizeSingleLineText(
+                                          line.text,
+                                          textAlign: TextAlign.center,
+                                          maxLines: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (translated.isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    child: Text(
+                                      translated,
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.62,
+                                        ),
+                                        fontSize: 13,
+                                        height: 1.3,
+                                        leadingDistribution:
+                                            TextLeadingDistribution.even,
                                       ),
                                     ),
                                   ),
                                 ],
-                              ),
-                              if (translated.isNotEmpty) ...[
-                                const SizedBox(height: 3),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  child: Text(
-                                    translated,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.62,
-                                      ),
-                                      fontSize: 13,
-                                      height: 1.3,
-                                      leadingDistribution:
-                                          TextLeadingDistribution.even,
-                                    ),
-                                  ),
-                                ),
                               ],
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
           ),
-          SizedBox(height: bottomSpacerHeight),
         ],
       ),
     );
@@ -341,4 +350,39 @@ class _VerticalOnlyClipper extends CustomClipper<Rect> {
 
   @override
   bool shouldReclip(covariant _VerticalOnlyClipper oldClipper) => false;
+}
+
+class _BottomFadeShaderMask extends StatelessWidget {
+  const _BottomFadeShaderMask({
+    required this.bottomSpacerHeight,
+    required this.child,
+  });
+
+  final double bottomSpacerHeight;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) {
+        if (bounds.height <= 0 || bottomSpacerHeight <= 0) {
+          return const LinearGradient(
+            colors: [Colors.white, Colors.white],
+          ).createShader(bounds);
+        }
+
+        final fadeStart = ((bounds.height - bottomSpacerHeight) / bounds.height)
+            .clamp(0.0, 1.0);
+
+        return LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: const [Colors.white, Colors.white, Colors.transparent],
+          stops: [0.0, fadeStart, 1.0],
+        ).createShader(bounds);
+      },
+      child: child,
+    );
+  }
 }
