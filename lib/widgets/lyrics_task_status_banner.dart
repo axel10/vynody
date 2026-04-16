@@ -24,8 +24,8 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
     final activeStatus = summary.activeStatusLabel?.trim() ?? '正在处理';
     final subtitle = activeSong.isNotEmpty
         ? summary.showQueueCount
-            ? '当前处理《$activeSong》 · $activeStatus'
-            : '《$activeSong》 · $activeStatus'
+              ? '当前处理《$activeSong》 · $activeStatus'
+              : '《$activeSong》 · $activeStatus'
         : activeStatus;
 
     return IgnorePointer(
@@ -89,12 +89,15 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Text(
-                          modelLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
+                        Flexible(
+                          child: Text(
+                            modelLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: false,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ],
