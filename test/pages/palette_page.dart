@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:palette_generator_master/palette_generator_master.dart';
+import 'package:palette_generator/palette_generator.dart' as standard;
 
 void main() {
   runApp(const PaletteTestApp());
@@ -37,8 +38,10 @@ class PalettePage extends StatefulWidget {
   State<PalettePage> createState() => _PalettePageState();
 }
 
-class _PalettePageState extends State<PalettePage> {
-  PaletteGeneratorMaster? _palette;
+class _PalettePageState extends State<PalettePage> with SingleTickerProviderStateMixin {
+  PaletteGeneratorMaster? _paletteMaster;
+  standard.PaletteGenerator? _paletteStandard;
+  late TabController _tabController;
   Uint8List? _imageBytes;
   bool _isLoading = true;
   String? _error;
@@ -46,7 +49,14 @@ class _PalettePageState extends State<PalettePage> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadPalette();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPalette() async {
@@ -93,7 +103,7 @@ class _PalettePageState extends State<PalettePage> {
 
       // 4. Get RGBA bytes and create EncodedImageMaster
       final rgbaBytes = resized.getBytes(order: img.ChannelOrder.rgba);
-      final palette = await PaletteGeneratorMaster.fromByteData(
+      final paletteMaster = await PaletteGeneratorMaster.fromByteData(
         EncodedImageMaster(
           ByteData.sublistView(rgbaBytes),
           width: resized.width,
@@ -102,9 +112,16 @@ class _PalettePageState extends State<PalettePage> {
         maximumColorCount: 20,
       );
 
+      // 5. Use standard palette_generator
+      final paletteStandard = await standard.PaletteGenerator.fromImageProvider(
+        MemoryImage(bytes),
+        maximumColorCount: 20,
+      );
+
       setState(() {
         _imageBytes = bytes;
-        _palette = palette;
+        _paletteMaster = paletteMaster;
+        _paletteStandard = paletteStandard;
         _isLoading = false;
       });
     } catch (e) {
@@ -120,7 +137,7 @@ class _PalettePageState extends State<PalettePage> {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Palette Generator Master'),
+        title: const Text('Palette Comparison'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -129,17 +146,46 @@ class _PalettePageState extends State<PalettePage> {
             icon: const Icon(Icons.refresh),
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Master'),
+            Tab(text: 'Standard'),
+          ],
+          indicatorColor: const Color(0xFF39C5BB),
+          labelColor: const Color(0xFF39C5BB),
+          unselectedLabelColor: Colors.white54,
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!, textAlign: TextAlign.center))
-              : _buildContent(),
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildContent(_paletteMaster, isMaster: true),
+                    _buildContent(_paletteStandard, isMaster: false),
+                  ],
+                ),
     );
   }
 
-  Widget _buildContent() {
-    if (_palette == null) return const SizedBox.shrink();
+  Widget _buildContent(dynamic palette, {required bool isMaster}) {
+    if (palette == null) return const SizedBox.shrink();
+
+    final List<Map<String, dynamic>> profiles = [
+      {'label': 'Dominant', 'color': palette.dominantColor?.color},
+      {'label': 'Vibrant', 'color': palette.vibrantColor?.color},
+      {'label': 'Light Vibrant', 'color': palette.lightVibrantColor?.color},
+      {'label': 'Dark Vibrant', 'color': palette.darkVibrantColor?.color},
+      {'label': 'Muted', 'color': palette.mutedColor?.color},
+      {'label': 'Light Muted', 'color': palette.lightMutedColor?.color},
+      {'label': 'Dark Muted', 'color': palette.darkMutedColor?.color},
+    ];
+
+    final List paletteColors = palette.paletteColors;
+    final dominantPopulation = palette.dominantColor?.population ?? 1;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -149,13 +195,13 @@ class _PalettePageState extends State<PalettePage> {
         children: [
           _buildImagePreview(),
           const SizedBox(height: 32),
-          _buildSectionTitle('Standard Profiles'),
+          _buildSectionTitle('Standard Profiles (${isMaster ? "Master" : "Standard"})'),
           const SizedBox(height: 16),
-          _buildProfilesGrid(),
+          _buildProfilesGrid(profiles),
           const SizedBox(height: 32),
-          _buildSectionTitle('All Extracted Colors (${_palette!.paletteColors.length})'),
+          _buildSectionTitle('All Extracted Colors (${paletteColors.length})'),
           const SizedBox(height: 16),
-          _buildAllColorsList(),
+          _buildAllColorsList(paletteColors, dominantPopulation),
         ],
       ),
     );
@@ -198,17 +244,7 @@ class _PalettePageState extends State<PalettePage> {
     );
   }
 
-  Widget _buildProfilesGrid() {
-    final profiles = [
-      {'label': 'Dominant', 'color': _palette!.dominantColor?.color},
-      {'label': 'Vibrant', 'color': _palette!.vibrantColor?.color},
-      {'label': 'Light Vibrant', 'color': _palette!.lightVibrantColor?.color},
-      {'label': 'Dark Vibrant', 'color': _palette!.darkVibrantColor?.color},
-      {'label': 'Muted', 'color': _palette!.mutedColor?.color},
-      {'label': 'Light Muted', 'color': _palette!.lightMutedColor?.color},
-      {'label': 'Dark Muted', 'color': _palette!.darkMutedColor?.color},
-    ];
-
+  Widget _buildProfilesGrid(List<Map<String, dynamic>> profiles) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -283,13 +319,13 @@ class _PalettePageState extends State<PalettePage> {
     );
   }
 
-  Widget _buildAllColorsList() {
+  Widget _buildAllColorsList(List paletteColors, int dominantPopulation) {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: _palette!.paletteColors.length,
+      itemCount: paletteColors.length,
       itemBuilder: (context, index) {
-        final paletteColor = _palette!.paletteColors[index];
+        final paletteColor = paletteColors[index];
         final color = paletteColor.color;
         final population = paletteColor.population;
 
@@ -342,7 +378,7 @@ class _PalettePageState extends State<PalettePage> {
                 ),
                 alignment: Alignment.centerLeft,
                 child: Container(
-                  width: 100 * (population / _palette!.dominantColor!.population).clamp(0, 1),
+                  width: (100 * (population / dominantPopulation).clamp(0, 1)).toDouble(),
                   height: 4,
                   decoration: BoxDecoration(
                     color: color,
