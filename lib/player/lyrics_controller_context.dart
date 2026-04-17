@@ -7,6 +7,7 @@ import '../models/music_file.dart';
 import 'lyrics_ai_service.dart';
 import 'lyrics_ai_task_queue.dart';
 import 'lyrics_cache_repository.dart';
+import 'lyrics_generation_display_state.dart';
 import 'lyrics_controller_state.dart';
 import 'lyrics_generation_phase.dart';
 import 'lyrics_song_task_state.dart';
@@ -61,7 +62,7 @@ class LyricsControllerContext {
     required this.setIsLyricsTranslating,
     required this.setLyricsTranslationStatus,
     required this.setLyricsGenerationStatus,
-    required this.setLyricsGenerationModelLabel,
+    required this.setLyricsGenerationDisplayState,
     required this.setHasLyrics,
     required this.setLyricsSearchAttempted,
     required this.setCurrentLyricsLines,
@@ -91,7 +92,8 @@ class LyricsControllerContext {
   final void Function(bool value) setIsLyricsTranslating;
   final void Function(String value) setLyricsTranslationStatus;
   final void Function(String value) setLyricsGenerationStatus;
-  final void Function(String? value) setLyricsGenerationModelLabel;
+  final void Function(LyricsGenerationDisplayState value)
+  setLyricsGenerationDisplayState;
   final void Function(bool value) setHasLyrics;
   final void Function(bool value) setLyricsSearchAttempted;
   final void Function(List<LyricLine> value) setCurrentLyricsLines;
@@ -116,18 +118,19 @@ class LyricsControllerContext {
   int lyricsRequestSerial = 0;
   int lyricsRetrySerial = 0;
   CancelToken? lyricsFetchCancelToken;
-  String? lyricsGenerationModelLabel;
+  LyricsGenerationDisplayState lyricsGenerationDisplayState =
+      const LyricsGenerationDisplayState();
 
   LyricsControllerState get state => getState();
 
-  bool updateLyricsGenerationModelLabel(String? value) {
-    final normalized = value?.trim();
-    final next = normalized == null || normalized.isEmpty ? null : normalized;
-    if (lyricsGenerationModelLabel == next) {
+  bool updateLyricsGenerationDisplayState(
+    LyricsGenerationDisplayState nextState,
+  ) {
+    if (lyricsGenerationDisplayState == nextState) {
       return false;
     }
-    lyricsGenerationModelLabel = next;
-    setLyricsGenerationModelLabel(next);
+    lyricsGenerationDisplayState = nextState;
+    setLyricsGenerationDisplayState(nextState);
     return true;
   }
 

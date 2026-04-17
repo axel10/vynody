@@ -9,6 +9,7 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(lyricsTaskQueueSummaryProvider);
+    final generationState = ref.watch(lyricsGenerationDisplayStateProvider);
     if (!summary.isBusy) {
       return const SizedBox.shrink();
     }
@@ -16,14 +17,16 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final accent = colorScheme.primary;
-    final modelLabel =
-        summary.activeModelLabel ??
-        ref.read(lyricsAiServiceProvider).configuredModelLabel;
+    final modelLabel = generationState.modelLabel.trim().isNotEmpty
+        ? generationState.modelLabel.trim()
+        : ref.read(lyricsAiServiceProvider).currentGenerationModelLabel;
     final title = summary.showQueueCount
         ? 'AI 队列中 ${summary.taskCount} 个任务'
         : 'AI 任务处理中';
     final activeSong = summary.activeSong?.displayName.trim() ?? '';
-    final activeStatus = summary.activeStatusLabel?.trim() ?? '正在处理';
+    final activeStatus = generationState.statusLabel.trim().isNotEmpty
+        ? generationState.statusLabel.trim()
+        : '正在处理';
     final subtitle = activeSong.isNotEmpty
         ? summary.showQueueCount
               ? '当前处理《$activeSong》 · $activeStatus'

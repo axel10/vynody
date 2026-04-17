@@ -10,6 +10,7 @@ import '../utils/lrc_utils.dart';
 import '../utils/lyrics_id_utils.dart';
 import 'lyrics_cache_models.dart';
 import 'lyrics_controller_context.dart';
+import 'lyrics_generation_display_state.dart';
 import 'lyrics_controller_utils.dart';
 import 'lyrics_generation_phase.dart';
 import 'lyrics_generation_result.dart';
@@ -44,7 +45,15 @@ class LyricsGenerationCoordinator {
     _context.lyricsGeneration.beginForSong(song.path);
     _context.setLyricsSearchAttempted(true);
     _context.startLyricsGenerationStatus(statusLabel);
-    _context.updateLyricsGenerationModelLabel(modelLabel);
+    _context.updateLyricsGenerationDisplayState(
+      LyricsGenerationDisplayState(
+        songPath: song.path,
+        statusLabel: statusLabel,
+        modelLabel: modelLabel,
+        phase: LyricsGenerationPhase.uploading,
+        progress: 0.0,
+      ),
+    );
     _context.updateSongTaskState(
       song.path,
       (current) => current.copyWith(
@@ -62,12 +71,23 @@ class LyricsGenerationCoordinator {
     );
   }
 
-  void _queueLyricsGeneration(MusicFile song, String statusLabel) {
+  void _queueLyricsGeneration(
+    MusicFile song, {
+    required String statusLabel,
+    required String modelLabel,
+  }) {
     _context.updateSongTaskState(
       song.path,
       (current) => current.copyWith(
         isGenerationQueued: true,
         generationStatus: statusLabel,
+      ),
+    );
+    _context.updateLyricsGenerationDisplayState(
+      LyricsGenerationDisplayState(
+        songPath: song.path,
+        statusLabel: statusLabel,
+        modelLabel: modelLabel,
       ),
     );
   }
@@ -87,6 +107,31 @@ class LyricsGenerationCoordinator {
     if (!_isActiveLyricsGeneration(session)) return;
     if (!_isCurrentSong(session)) return;
     _support.setGenerationStage(stage);
+    final current = _context.lyricsGenerationDisplayState;
+    _context.updateLyricsGenerationDisplayState(
+      current.copyWith(
+        songPath: session.songPath,
+        phase: switch (stage) {
+          'uploading' => LyricsGenerationPhase.uploading,
+          'processing' => LyricsGenerationPhase.processing,
+          'generating' => LyricsGenerationPhase.generating,
+          _ => LyricsGenerationPhase.idle,
+        },
+        progress: switch (stage) {
+          'uploading' => 0.0,
+          'processing' => 1.0,
+          'generating' => 1.0,
+          _ => 0.0,
+        },
+      ),
+    );
+  }
+
+  void _updateLyricsGenerationModelLabel(String? modelLabel) {
+    final current = _context.lyricsGenerationDisplayState;
+    _context.updateLyricsGenerationDisplayState(
+      current.copyWith(modelLabel: modelLabel ?? ''),
+    );
   }
 
   MusicLyric _buildGeneratedLyrics({
@@ -159,7 +204,9 @@ class LyricsGenerationCoordinator {
       ),
     );
     _context.clearLyricsGenerationStatus();
-    _context.updateLyricsGenerationModelLabel(null);
+    _context.updateLyricsGenerationDisplayState(
+      const LyricsGenerationDisplayState(),
+    );
   }
 
   Future<String?> _runLyricsGeneration({
@@ -187,6 +234,14 @@ class LyricsGenerationCoordinator {
             (current) => current.copyWith(
               generationPhase: LyricsGenerationPhase.uploading,
               generationProgress: progress.clamp(0.0, 1.0),
+            ),
+          );
+          final current = _context.lyricsGenerationDisplayState;
+          _context.updateLyricsGenerationDisplayState(
+            current.copyWith(
+              songPath: session.songPath,
+              phase: LyricsGenerationPhase.uploading,
+              progress: progress.clamp(0.0, 1.0),
             ),
           );
         },
@@ -260,7 +315,7 @@ class LyricsGenerationCoordinator {
               return _context.lyricsAiService.generateLyricsFromFile(
                 filePath: song.path,
                 songTitle: song.title,
-                onModelLabelChanged: _context.updateLyricsGenerationModelLabel,
+                onModelLabelChanged: _updateLyricsGenerationModelLabel,
                 onUploadProgress: onUploadProgress,
                 onStageChanged: onStageChanged,
                 onProgress: onProgress,
@@ -313,7 +368,7 @@ class LyricsGenerationCoordinator {
                 filePath: song.path,
                 lyrics: sourceLyrics,
                 songTitle: song.title,
-                onModelLabelChanged: _context.updateLyricsGenerationModelLabel,
+                onModelLabelChanged: _updateLyricsGenerationModelLabel,
                 onUploadProgress: onUploadProgress,
                 onStageChanged: onStageChanged,
                 onProgress: onProgress,
@@ -347,10 +402,11 @@ class LyricsGenerationCoordinator {
       return '当前歌曲的歌词任务已在排队或生成中。';
     }
 
-    _context.updateLyricsGenerationModelLabel(
-      _context.lyricsAiService.currentGenerationModelLabel,
+    _queueLyricsGeneration(
+      song,
+      statusLabel: '正在生成歌词',
+      modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
     );
-    _queueLyricsGeneration(song, '正在生成歌词');
 
     return _context.lyricsAiTaskQueue.enqueue(() {
       return _generateLyricsForSong(song);
@@ -369,10 +425,11 @@ class LyricsGenerationCoordinator {
       return '当前歌曲的歌词任务已在排队或生成中。';
     }
 
-    _context.updateLyricsGenerationModelLabel(
-      _context.lyricsAiService.currentGenerationModelLabel,
+    _queueLyricsGeneration(
+      song,
+      statusLabel: '正在生成时间轴',
+      modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
     );
-    _queueLyricsGeneration(song, '正在生成时间轴');
 
     return _context.lyricsAiTaskQueue.enqueue(() {
       final activeSong = _support.songForPath(song.path) ?? song;
@@ -390,10 +447,11 @@ class LyricsGenerationCoordinator {
     }
 
     _support.clearLyricsStateForPath(song.path);
-    _context.updateLyricsGenerationModelLabel(
-      _context.lyricsAiService.currentGenerationModelLabel,
+    _queueLyricsGeneration(
+      song,
+      statusLabel: '正在重新生成歌词',
+      modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
     );
-    _queueLyricsGeneration(song, '正在重新生成歌词');
     return _context.lyricsAiTaskQueue.enqueue(() {
       return _generateLyricsForSong(_support.songForPath(song.path) ?? song);
     });

@@ -55,23 +55,6 @@ class LyricsAiService {
   String get _primaryGeminiModelId => _settingsService.geminiPrimaryModelId;
   String get _fallbackGeminiModelId => _settingsService.geminiFallbackModelId;
 
-  String get activeModelLabel {
-    return configuredModelLabel;
-  }
-
-  String get configuredModelLabel {
-    if (_settingsService.shouldAutoSwitchLyricsProvider) {
-      return 'Google AI Studio → OpenRouter · '
-          '${SettingsService.geminiModelDisplayName(_primaryGeminiModelId)}';
-    }
-    return switch (_settingsService.lyricsAiProvider) {
-      LyricsAiProvider.googleAiStudio =>
-        'Google AI Studio · ${SettingsService.geminiModelDisplayName(_primaryGeminiModelId)}',
-      LyricsAiProvider.openRouter =>
-        'OpenRouter · ${LyricsAiOpenRouterClient.textModelDisplayName}',
-    };
-  }
-
   String get currentGenerationModelLabel {
     return switch (_settingsService.lyricsAiProvider) {
       LyricsAiProvider.googleAiStudio => _googleModelLabel(
@@ -339,7 +322,6 @@ class LyricsAiService {
         preserveTimestamps: true,
         onModelLabelChanged: onModelLabelChanged,
         openRouterFallbackGenerator: (apiKey) {
-          onModelLabelChanged?.call(_openRouterModelLabel());
           return _openRouterClient.generateLyricsFromFile(
             apiKey: apiKey,
             filePath: filePath,
@@ -457,7 +439,6 @@ class LyricsAiService {
         preserveTimestamps: true,
         onModelLabelChanged: onModelLabelChanged,
         openRouterFallbackGenerator: (apiKey) {
-          onModelLabelChanged?.call(_openRouterModelLabel());
           return _openRouterClient.generateTimelineFromLyrics(
             apiKey: apiKey,
             filePath: filePath,

@@ -6,6 +6,7 @@ import '../models/music_file.dart';
 import 'lyrics_controller_dependencies.dart';
 import 'audio_riverpod.dart';
 import 'lyrics_controller.dart';
+import 'lyrics_generation_display_state.dart';
 import 'lyrics_controller_state.dart';
 import 'lyrics_song_task_state.dart';
 import 'lyrics_task_queue_summary.dart';
@@ -51,7 +52,6 @@ final lyricsTaskQueueSummaryProvider = Provider<LyricsTaskQueueSummary>((ref) {
 
   var taskCount = 0;
   MusicFile? activeSong;
-  String? activeStatusLabel;
 
   for (final song in queue) {
     final taskState = controller.taskStateForSong(song.path);
@@ -67,33 +67,19 @@ final lyricsTaskQueueSummaryProvider = Provider<LyricsTaskQueueSummary>((ref) {
         taskState.isGenerationRunning ||
         taskState.isTranslationRunning) {
       activeSong = song;
-      activeStatusLabel = _lyricsTaskStatusLabel(taskState);
     }
   }
 
-  return LyricsTaskQueueSummary(
-    taskCount: taskCount,
-    activeSong: activeSong,
-    activeStatusLabel: activeStatusLabel,
-    activeModelLabel: controller.activeLyricsGenerationModelLabel,
-  );
+  return LyricsTaskQueueSummary(taskCount: taskCount, activeSong: activeSong);
 });
 
-String? _lyricsTaskStatusLabel(LyricsSongTaskState taskState) {
-  if (taskState.isTranslationRunning || taskState.isTranslationQueued) {
-    return taskState.translationStatus.trim().isNotEmpty
-        ? taskState.translationStatus.trim()
-        : '正在翻译歌词';
-  }
-
-  if (taskState.isGenerationRunning || taskState.isGenerationQueued) {
-    return taskState.generationStatus.trim().isNotEmpty
-        ? taskState.generationStatus.trim()
-        : '正在生成歌词';
-  }
-
-  return null;
-}
+final lyricsGenerationDisplayStateProvider =
+    Provider<LyricsGenerationDisplayState>((ref) {
+      ref.watch(lyricsControllerProvider.select((state) => state.revision));
+      return ref
+          .read(lyricsControllerProvider.notifier)
+          .activeLyricsGenerationDisplayState;
+    });
 
 final lyricsDisplayLinesProvider =
     Provider.family<List<LyricLine>, MusicLyric?>((ref, baseLyrics) {

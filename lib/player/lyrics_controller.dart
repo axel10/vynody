@@ -10,6 +10,7 @@ import 'audio_riverpod.dart';
 import 'lyrics_ai_service.dart';
 import 'lyrics_cache_repository.dart';
 import 'lyrics_controller_context.dart';
+import 'lyrics_generation_display_state.dart';
 import 'lyrics_controller_fetch.dart';
 import 'lyrics_controller_generation.dart';
 import 'lyrics_controller_state.dart';
@@ -77,8 +78,8 @@ class LyricsController extends Notifier<LyricsControllerState> {
       setIsLyricsTranslating: (value) => _isLyricsTranslating = value,
       setLyricsTranslationStatus: (value) => _lyricsTranslationStatus = value,
       setLyricsGenerationStatus: (value) => _lyricsGenerationStatus = value,
-      setLyricsGenerationModelLabel: (value) =>
-          _setLyricsGenerationModelLabel(value),
+      setLyricsGenerationDisplayState: (value) =>
+          _setLyricsGenerationDisplayState(value),
       setHasLyrics: (value) => _hasLyrics = value,
       setLyricsSearchAttempted: (value) => _lyricsSearchAttempted = value,
       setCurrentLyricsLines: (value) => _currentLyricsLines = value,
@@ -151,8 +152,8 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _lyricsGenerationStatus = '';
   }
 
-  void _setLyricsGenerationModelLabel(String? value) {
-    if (_context.updateLyricsGenerationModelLabel(value)) {
+  void _setLyricsGenerationDisplayState(LyricsGenerationDisplayState value) {
+    if (_context.updateLyricsGenerationDisplayState(value)) {
       _bumpRevision();
     }
   }
@@ -301,8 +302,8 @@ class LyricsController extends Notifier<LyricsControllerState> {
     return _context.lyricsGeneration.songPath;
   }
 
-  String? get activeLyricsGenerationModelLabel {
-    return _context.lyricsGenerationModelLabel;
+  LyricsGenerationDisplayState get activeLyricsGenerationDisplayState {
+    return _context.lyricsGenerationDisplayState;
   }
 
   void _logDebug(String message) {
