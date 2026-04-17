@@ -686,6 +686,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   ) {
     final l10n = AppLocalizations.of(context)!;
     final title = currentMusic?.displayName ?? l10n.notSelected;
+    final showArtistAlbum = currentMusic != null;
 
     final rawAlbum = currentMusic?.album?.trim() ?? '';
     final rawArtist = currentMusic?.artist?.trim() ?? '';
@@ -742,45 +743,46 @@ class PlaybackHeroCard extends ConsumerWidget {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: SizedBox(
-            width: double.infinity,
-            child: Align(
-              alignment: titleAlignment,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onSecondaryTapDown: (details) {
-                  _showTrackInfoContextMenu(
-                    context,
-                    details.globalPosition,
-                    target: _TrackInfoMenuTarget.artistAlbum,
-                    currentMusic: currentMusic,
-                  );
-                },
-                child: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.fastOutSlowIn,
-                  textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    color: Colors.white70,
-                    fontSize: lyricsModeT > 0.5 && !isLandscape ? 13 : 15,
-                    height: 1.3,
-                  ),
-                  child: Text(
-                    hasArtist && hasAlbum
-                        ? '$rawArtist — $rawAlbum'
-                        : (hasArtist
-                              ? rawArtist
-                              : (hasAlbum ? rawAlbum : 'Unknown')),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        if (showArtistAlbum)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: SizedBox(
+              width: double.infinity,
+              child: Align(
+                alignment: titleAlignment,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onSecondaryTapDown: (details) {
+                    _showTrackInfoContextMenu(
+                      context,
+                      details.globalPosition,
+                      target: _TrackInfoMenuTarget.artistAlbum,
+                      currentMusic: currentMusic,
+                    );
+                  },
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.fastOutSlowIn,
+                    textAlign: TextAlign.start,
+                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      color: Colors.white70,
+                      fontSize: lyricsModeT > 0.5 && !isLandscape ? 13 : 15,
+                      height: 1.3,
+                    ),
+                    child: Text(
+                      hasArtist && hasAlbum
+                          ? '$rawArtist — $rawAlbum'
+                          : (hasArtist
+                                ? rawArtist
+                                : (hasAlbum ? rawAlbum : 'Unknown')),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
