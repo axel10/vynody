@@ -501,7 +501,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final target = math.max(
       0.0,
       math.min(
-        index * _itemExtent - viewportHeight / 2 + _itemExtent / 2 + 50, // 50 is an empirical value to make the active line slightly above the center
+        index * _itemExtent -
+            viewportHeight / 2 +
+            _itemExtent / 2 +
+            50, // 50 is an empirical value to make the active line slightly above the center
         maxExtent,
       ),
     );
@@ -657,7 +660,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       );
     }
 
-    if (displayLines.isEmpty) {
+    if (!hasTimedLyrics) {
       return LyricsPanelPlainLyricsView(
         displayPlainLyrics: displayPlainLyrics,
         bottomSpacerHeight: widget.bottomSpacerHeight,

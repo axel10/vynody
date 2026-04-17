@@ -130,7 +130,7 @@ abstract class LyricSelectionResult with _$LyricSelectionResult {
     @Default(Duration.zero) Duration timelineOffset,
   }) = _LyricSelectionResult;
 
-  bool get isSynced => syncedLines.isNotEmpty;
+  bool get isSynced => syncedLines.any((line) => line.isTimed);
 }
 
 class LyricsService {

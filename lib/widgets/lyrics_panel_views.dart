@@ -139,16 +139,17 @@ class LyricsPanelPlainLyricsView extends StatelessWidget {
                     PointerDeviceKind.stylus,
                   },
                 ),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.only(
-                    bottom:  180,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
                   ),
-                  // padding: const EdgeInsets.symmetric(horizontal: 120),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SelectableText(
+                  padding: EdgeInsets.only(
+                    bottom: math.max(bottomSpacerHeight, 180),
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
                         displayPlainLyrics,
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -157,8 +158,8 @@ class LyricsPanelPlainLyricsView extends StatelessWidget {
                           height: 1.6,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -229,9 +230,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                     physics: isAutoScrollPaused
                         ? const BouncingScrollPhysics()
                         : const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(
-                      bottom: bottomSpacerHeight + 180,
-                    ),
+                    padding: EdgeInsets.only(bottom: bottomSpacerHeight + 180),
                     // padding: const EdgeInsets.symmetric(horizontal: 8),
                     itemExtent: itemExtent,
                     itemCount: displayLines.length,
