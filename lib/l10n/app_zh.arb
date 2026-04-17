@@ -413,6 +413,22 @@
   "@settings": {
     "description": "Settings"
   },
+  "themeMode": "主题",
+  "@themeMode": {
+    "description": "Theme mode label"
+  },
+  "themeModeSystem": "跟随系统",
+  "@themeModeSystem": {
+    "description": "Theme mode option for following the system theme"
+  },
+  "themeModeLight": "亮色",
+  "@themeModeLight": {
+    "description": "Theme mode option for light mode"
+  },
+  "themeModeDark": "暗色",
+  "@themeModeDark": {
+    "description": "Theme mode option for dark mode"
+  },
   "immersiveTabBar": "沉浸式标签栏",
   "@immersiveTabBar": {
     "description": "Immersive Tab Bar label"

@@ -4,6 +4,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum LyricsAiProvider { googleAiStudio, openRouter }
 
+extension ThemeModeX on ThemeMode {
+  String get storageValue => switch (this) {
+    ThemeMode.system => 'system',
+    ThemeMode.light => 'light',
+    ThemeMode.dark => 'dark',
+  };
+
+  static ThemeMode fromStorageValue(String? value) {
+    switch (value?.trim().toLowerCase()) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+      default:
+        return ThemeMode.system;
+    }
+  }
+}
+
 extension LyricsAiProviderX on LyricsAiProvider {
   String get storageValue => switch (this) {
     LyricsAiProvider.googleAiStudio => 'google_ai_studio',
@@ -32,6 +52,7 @@ class SettingsService extends ChangeNotifier {
   static const String defaultGeminiPrimaryModelId =
       'gemini-3.1-flash-lite-preview';
   static const String defaultGeminiFallbackModelId = 'gemini-2.5-flash';
+  static const String _keyThemeMode = 'theme_mode';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
@@ -77,6 +98,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyRandomMethod = 'random_method';
 
   final SharedPreferences _prefs;
+  ThemeMode _themeMode;
   bool _isImmersiveTabBarEnabled;
   int _waveformChunks;
   bool _isUserInactive = false;
@@ -119,7 +141,8 @@ class SettingsService extends ChangeNotifier {
   }
 
   SettingsService(this._prefs)
-    : _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
+    : _themeMode = ThemeModeX.fromStorageValue(_prefs.getString(_keyThemeMode)),
+      _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
       _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 80,
       _lyricsAiProvider = LyricsAiProviderX.fromStorageValue(
         _prefs.getString(_keyLyricsAiProvider),
@@ -172,6 +195,7 @@ class SettingsService extends ChangeNotifier {
     _randomMethod = _prefs.getInt(_keyRandomMethod) ?? 1; // Default to shuffle
   }
 
+  ThemeMode get themeMode => _themeMode;
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
   int get sampleStride => _fixedSampleStride;
   int get waveformChunks => _waveformChunks;
@@ -289,6 +313,15 @@ class SettingsService extends ChangeNotifier {
   set isImmersiveTabBarEnabled(bool value) {
     _isImmersiveTabBarEnabled = value;
     _prefs.setBool(_keyImmersiveTabBar, value);
+    notifyListeners();
+  }
+
+  set themeMode(ThemeMode value) {
+    if (_themeMode == value) {
+      return;
+    }
+    _themeMode = value;
+    _prefs.setString(_keyThemeMode, value.storageValue);
     notifyListeners();
   }
 

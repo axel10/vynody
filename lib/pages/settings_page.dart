@@ -125,6 +125,43 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildThemeModeSection(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: DropdownButtonFormField<ThemeMode>(
+        initialValue: settings.themeMode,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: l10n.themeMode,
+          border: const OutlineInputBorder(),
+        ),
+        items: [
+          DropdownMenuItem<ThemeMode>(
+            value: ThemeMode.system,
+            child: Text(l10n.themeModeSystem),
+          ),
+          DropdownMenuItem<ThemeMode>(
+            value: ThemeMode.light,
+            child: Text(l10n.themeModeLight),
+          ),
+          DropdownMenuItem<ThemeMode>(
+            value: ThemeMode.dark,
+            child: Text(l10n.themeModeDark),
+          ),
+        ],
+        onChanged: (value) {
+          if (value == null) return;
+          settings.themeMode = value;
+        },
+      ),
+    );
+  }
+
   Widget _buildGeminiModelSection(
     BuildContext context,
     SettingsService settings,
@@ -221,6 +258,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       padding: const EdgeInsets.only(bottom: 100),
       children: [
         _buildSectionHeader('界面', '这些选项会影响页面和播放界面的整体显示方式。'),
+        _buildThemeModeSection(context, settings),
         SwitchListTile(
           title: Text(l10n.immersiveTabBar),
           subtitle: Text(l10n.immersiveTabBarDescription),

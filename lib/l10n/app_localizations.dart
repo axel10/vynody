@@ -650,6 +650,30 @@ abstract class AppLocalizations {
   /// **'设置'**
   String get settings;
 
+  /// Theme mode label
+  ///
+  /// In zh, this message translates to:
+  /// **'主题'**
+  String get themeMode;
+
+  /// Theme mode option for following the system theme
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随系统'**
+  String get themeModeSystem;
+
+  /// Theme mode option for light mode
+  ///
+  /// In zh, this message translates to:
+  /// **'亮色'**
+  String get themeModeLight;
+
+  /// Theme mode option for dark mode
+  ///
+  /// In zh, this message translates to:
+  /// **'暗色'**
+  String get themeModeDark;
+
   /// Immersive Tab Bar label
   ///
   /// In zh, this message translates to:
