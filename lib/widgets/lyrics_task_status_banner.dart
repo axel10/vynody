@@ -38,11 +38,7 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
         ? generationState.statusLabel.trim()
         : '正在处理';
     final activeSong = summary.activeSong?.displayName.trim() ?? '';
-    final subtitle = activeSong.isNotEmpty
-        ? summary.showQueueCount
-              ? '当前处理《$activeSong》'
-              : '《$activeSong》'
-        : '';
+
     final progress = generationState.progress.clamp(0.0, 1.0);
     final showProgress =
         generationState.phase != LyricsGenerationPhase.idle && progress > 0.0;

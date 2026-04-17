@@ -141,7 +141,9 @@ class LyricsPanelPlainLyricsView extends StatelessWidget {
                 ),
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.only(bottom: bottomSpacerHeight),
+                  padding: EdgeInsets.only(
+                    bottom:  180,
+                  ),
                   // padding: const EdgeInsets.symmetric(horizontal: 120),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -227,7 +229,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                     physics: isAutoScrollPaused
                         ? const BouncingScrollPhysics()
                         : const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: bottomSpacerHeight),
+                    padding: EdgeInsets.only(
+                      bottom: bottomSpacerHeight + 180,
+                    ),
                     // padding: const EdgeInsets.symmetric(horizontal: 8),
                     itemExtent: itemExtent,
                     itemCount: displayLines.length,

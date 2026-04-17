@@ -5,6 +5,7 @@ library;
 
 import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
+import 'package:flutter/foundation.dart';
 import 'metadata_database.dart';
 
 class WaveformService {
@@ -38,7 +39,6 @@ class WaveformService {
       sampleStride: sampleStride,
       filePath: path,
     );
-
     if (waveform.isNotEmpty && songMetadata != null) {
       final float32List = Float32List.fromList(
         waveform.map((e) => e.toDouble()).toList(),
