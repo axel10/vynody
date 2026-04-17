@@ -33,6 +33,11 @@ class LyricsPanelEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final buttonForegroundColor =
+        ThemeData.estimateBrightnessForColor(accentColor) == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onSecondaryTapDown: onSecondaryTapDown,
@@ -77,7 +82,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
                             backgroundColor: accentColor.withValues(
                               alpha: 0.95,
                             ),
-                            foregroundColor: Colors.white,
+                            foregroundColor: buttonForegroundColor,
                             padding: const EdgeInsets.symmetric(horizontal: 18),
                           ),
                           icon: isGenerating
@@ -86,7 +91,9 @@ class LyricsPanelEmptyState extends StatelessWidget {
                                   height: 16,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white.withValues(alpha: 0.8),
+                                    color: buttonForegroundColor.withValues(
+                                      alpha: 0.8,
+                                    ),
                                   ),
                                 )
                               : const Icon(Icons.auto_awesome, size: 18),

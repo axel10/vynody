@@ -47,7 +47,6 @@ Future<Map<String, int>> _generatePaletteColorMapTask(
       ),
       maximumColorCount: 20,
     );
-
     final Map<String, int> colors = {};
     if (palette.dominantColor != null) {
       colors['dominant'] = palette.dominantColor!.color.toARGB32();
