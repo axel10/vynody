@@ -15,6 +15,24 @@ class LyricsGenerationDisplayState {
   final LyricsGenerationPhase phase;
   final double progress;
 
+  String get providerLabel {
+    final label = modelLabel.trim();
+    if (label.isEmpty) return '';
+
+    final delimiterIndex = label.indexOf(' · ');
+    if (delimiterIndex <= 0) return label;
+    return label.substring(0, delimiterIndex).trim();
+  }
+
+  String get modelNameLabel {
+    final label = modelLabel.trim();
+    if (label.isEmpty) return '';
+
+    final delimiterIndex = label.indexOf(' · ');
+    if (delimiterIndex < 0) return label;
+    return label.substring(delimiterIndex + 3).trim();
+  }
+
   bool get isBusy =>
       statusLabel.trim().isNotEmpty ||
       modelLabel.trim().isNotEmpty ||

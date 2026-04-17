@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 class LyricsStatusToast extends StatelessWidget {
@@ -20,17 +18,16 @@ class LyricsStatusToast extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? const Color(0xFF1F1F1F) : Colors.white;
     final onSurface = isDark ? Colors.white : Colors.black;
-    final spinnerColor = accentColor.withValues(alpha: 0.9);
+    final colorScheme = theme.colorScheme;
+    final (providerLabel, modelNameLabel) = _splitModelLabel(modelLabel);
 
     return Material(
       color: Colors.transparent,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final maxWidth = constraints.maxWidth.isFinite
-              ? math
-                    .max(0.0, math.min(constraints.maxWidth - 32, 360.0))
-                    .toDouble()
-              : 360.0;
+              ? (constraints.maxWidth - 32).clamp(0.0, 380.0).toDouble()
+              : 380.0;
 
           return Align(
             alignment: Alignment.topCenter,
@@ -38,13 +35,10 @@ class LyricsStatusToast extends StatelessWidget {
               constraints: BoxConstraints(maxWidth: maxWidth),
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: accentColor.withValues(alpha: 0.22),
                   ),
@@ -58,26 +52,28 @@ class LyricsStatusToast extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        value: null,
-                        valueColor: AlwaysStoppedAnimation<Color>(spinnerColor),
-                        backgroundColor: onSurface.withValues(alpha: 0.12),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Flexible(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            value: null,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              accentColor.withValues(alpha: 0.9),
+                            ),
+                            backgroundColor: onSurface.withValues(alpha: 0.12),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
                             statusLabel,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -87,25 +83,111 @@ class LyricsStatusToast extends StatelessWidget {
                               height: 1.15,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            modelLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: onSurface.withValues(alpha: 0.8),
-                              height: 1.2,
-                            ),
+                        ),
+                      ],
+                    ),
+                    if (providerLabel.isNotEmpty ||
+                        modelNameLabel.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _InfoPill(
+                            label: '提供商',
+                            value: providerLabel,
+                            accentColor: accentColor,
+                            theme: theme,
+                            surface: colorScheme.surfaceContainerHighest,
+                          ),
+                          _InfoPill(
+                            label: '模型',
+                            value: modelNameLabel,
+                            accentColor: accentColor,
+                            theme: theme,
+                            surface: colorScheme.surfaceContainerHighest,
                           ),
                         ],
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  (String, String) _splitModelLabel(String label) {
+    final trimmed = label.trim();
+    if (trimmed.isEmpty) {
+      return ('', '');
+    }
+
+    final delimiterIndex = trimmed.indexOf(' · ');
+    if (delimiterIndex < 0) {
+      return (trimmed, '');
+    }
+
+    return (
+      trimmed.substring(0, delimiterIndex).trim(),
+      trimmed.substring(delimiterIndex + 3).trim(),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({
+    required this.label,
+    required this.value,
+    required this.accentColor,
+    required this.theme,
+    required this.surface,
+  });
+
+  final String label;
+  final String value;
+  final Color accentColor;
+  final ThemeData theme;
+  final Color surface;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      constraints: const BoxConstraints(minWidth: 120),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: surface.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accentColor.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value.isNotEmpty ? value : '未指定',
+            softWrap: true,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface,
+              height: 1.25,
+            ),
+          ),
+        ],
       ),
     );
   }
