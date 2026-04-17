@@ -24,110 +24,156 @@ Future<String?> _showApiKeyDialog(
   required String fieldLabel,
   String initialApiKey = '',
 }) async {
-  final controller = TextEditingController(text: initialApiKey);
+  return showDialog<String?>(
+    context: context,
+    builder: (dialogContext) {
+      return _ApiKeyDialog(
+        title: title,
+        description: description,
+        hintText: hintText,
+        testButtonLabel: testButtonLabel,
+        saveButtonLabel: saveButtonLabel,
+        emptyMessage: emptyMessage,
+        dialogActionLabel: dialogActionLabel,
+        fieldLabel: fieldLabel,
+        initialApiKey: initialApiKey,
+        testConnection: testConnection,
+      );
+    },
+  );
+}
 
-  try {
-    return await showDialog<String?>(
-      context: context,
-      builder: (dialogContext) {
-        var isTesting = false;
-        var statusText = '';
-        var statusColor = Colors.white70;
+class _ApiKeyDialog extends StatefulWidget {
+  const _ApiKeyDialog({
+    required this.title,
+    required this.description,
+    required this.hintText,
+    required this.testButtonLabel,
+    required this.saveButtonLabel,
+    required this.emptyMessage,
+    required this.dialogActionLabel,
+    required this.fieldLabel,
+    required this.initialApiKey,
+    required this.testConnection,
+  });
 
-        Future<void> runTest(StateSetter setDialogState) async {
-          final apiKey = controller.text.trim();
-          if (apiKey.isEmpty) {
-            setDialogState(() {
-              statusText = emptyMessage;
-              statusColor = Colors.orangeAccent;
-            });
-            return;
-          }
+  final String title;
+  final String description;
+  final String hintText;
+  final String testButtonLabel;
+  final String saveButtonLabel;
+  final String emptyMessage;
+  final String dialogActionLabel;
+  final String fieldLabel;
+  final String initialApiKey;
+  final Future<_ApiKeyDialogResult> Function(String apiKey) testConnection;
 
-          setDialogState(() {
-            isTesting = true;
-            statusText = '正在测试连接...';
-            statusColor = Colors.white70;
-          });
+  @override
+  State<_ApiKeyDialog> createState() => _ApiKeyDialogState();
+}
 
-          final result = await testConnection(apiKey);
-          if (!dialogContext.mounted) return;
+class _ApiKeyDialogState extends State<_ApiKeyDialog> {
+  late final TextEditingController _controller;
+  bool _isTesting = false;
+  String _statusText = '';
+  Color _statusColor = Colors.white70;
 
-          setDialogState(() {
-            isTesting = false;
-            statusText = result.message;
-            statusColor = result.success
-                ? Colors.lightGreenAccent
-                : Colors.redAccent;
-          });
-        }
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialApiKey);
+  }
 
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final apiKey = controller.text.trim();
-            final canSave = apiKey.isNotEmpty && !isTesting;
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
-            return AlertDialog(
-              title: Text(title),
-              content: SizedBox(
-                width: 520,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(description),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: controller,
-                      autofocus: true,
-                      obscureText: true,
-                      enableSuggestions: false,
-                      autocorrect: false,
-                      decoration: InputDecoration(
-                        labelText: fieldLabel,
-                        hintText: hintText,
-                      ),
-                      onChanged: (_) {
-                        setDialogState(() {
-                          statusText = '';
-                        });
-                      },
-                    ),
-                    if (statusText.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        statusText,
-                        style: TextStyle(color: statusColor, fontSize: 13),
-                      ),
-                    ],
-                  ],
-                ),
+  Future<void> _runTest() async {
+    final apiKey = _controller.text.trim();
+    if (apiKey.isEmpty) {
+      setState(() {
+        _statusText = widget.emptyMessage;
+        _statusColor = Colors.orangeAccent;
+      });
+      return;
+    }
+
+    setState(() {
+      _isTesting = true;
+      _statusText = '正在测试连接...';
+      _statusColor = Colors.white70;
+    });
+
+    final result = await widget.testConnection(apiKey);
+    if (!mounted) return;
+
+    setState(() {
+      _isTesting = false;
+      _statusText = result.message;
+      _statusColor = result.success
+          ? Colors.lightGreenAccent
+          : Colors.redAccent;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final apiKey = _controller.text.trim();
+    final canSave = apiKey.isNotEmpty && !_isTesting;
+
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SizedBox(
+        width: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(widget.description),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              obscureText: true,
+              enableSuggestions: false,
+              autocorrect: false,
+              decoration: InputDecoration(
+                labelText: widget.fieldLabel,
+                hintText: widget.hintText,
               ),
-              actions: [
-                TextButton(
-                  onPressed: isTesting
-                      ? null
-                      : () => Navigator.of(dialogContext).pop(),
-                  child: Text(dialogActionLabel),
-                ),
-                TextButton(
-                  onPressed: isTesting ? null : () => runTest(setDialogState),
-                  child: Text(isTesting ? '测试中...' : testButtonLabel),
-                ),
-                FilledButton(
-                  onPressed: canSave
-                      ? () => Navigator.of(dialogContext).pop(apiKey)
-                      : null,
-                  child: Text(saveButtonLabel),
-                ),
-              ],
-            );
-          },
-        );
-      },
+              onChanged: (_) {
+                setState(() {
+                  _statusText = '';
+                });
+              },
+            ),
+            if (_statusText.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                _statusText,
+                style: TextStyle(color: _statusColor, fontSize: 13),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isTesting ? null : () => Navigator.of(context).pop(),
+          child: Text(widget.dialogActionLabel),
+        ),
+        TextButton(
+          onPressed: _isTesting ? null : _runTest,
+          child: Text(_isTesting ? '测试中...' : widget.testButtonLabel),
+        ),
+        FilledButton(
+          onPressed: canSave ? () => Navigator.of(context).pop(apiKey) : null,
+          child: Text(widget.saveButtonLabel),
+        ),
+      ],
     );
-  } finally {
-    controller.dispose();
   }
 }
 
