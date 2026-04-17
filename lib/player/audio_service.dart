@@ -889,9 +889,41 @@ class AudioService extends Notifier<AudioSnapshot> {
   void _applyThemeColors(Map<String, Color> colors) {
     _currentThemeColorsMap = colors;
     _dynamicStartColor = colors['dominant'] ?? colors['vibrant'];
-    // In some older Flutter versions withValues might not exist, but lint says to use it or withAlpha. Let's use withOpacity still, it's just an info warning, or withAlpha(128). The lint says "Use .withValues()":
     _dynamicEndColor =
         (colors['vibrant']?.withValues(alpha: 0.8)) ?? colors['muted'];
+  }
+
+  Future<void> saveCurrentSongThemeColors(Map<String, Color> colors) async {
+    final current = currentMusic;
+    if (current == null) return;
+
+    final themeColorsBlob = ThemeColorHelper.colorsMapToBlob(colors);
+    final updatedSong = current.copyWith(themeColorsBlob: themeColorsBlob);
+
+    if (_currentIndex >= 0 && _currentIndex < _queue.length) {
+      _queue[_currentIndex] = updatedSong;
+    }
+
+    _applyThemeColors(colors);
+    await _db.insertOrUpdateSong(
+      SongMetadata(
+        id: current.id,
+        path: updatedSong.path,
+        title: updatedSong.title ?? updatedSong.displayName,
+        album: updatedSong.album ?? 'Unknown',
+        artist: updatedSong.artist ?? 'Unknown',
+        duration: updatedSong.durationMillis,
+        artworkPath: updatedSong.artworkPath,
+        thumbnailPath: updatedSong.thumbnailPath,
+        artworkWidth: updatedSong.artworkWidth,
+        artworkHeight: updatedSong.artworkHeight,
+        trackNumber: updatedSong.trackNumber,
+        themeColorsBlob: themeColorsBlob,
+        waveformBlob: updatedSong.waveformBlob,
+        lastModifiedTime: updatedSong.lastModifiedTime,
+      ),
+    );
+    notifyListeners();
   }
 
   Future<void> _updatePalette() async {

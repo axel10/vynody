@@ -1,9 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
+import 'package:palette_generator_master/palette_generator_master.dart';
 import '../player/audio_riverpod.dart';
+import '../models/music_file.dart';
 
 class DynamicMeshBackground extends ConsumerStatefulWidget {
   const DynamicMeshBackground({super.key});
@@ -17,6 +22,8 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
   late List<MeshGradientPoint> points;
   // final double _bassEnergy = 0.0;
   StreamSubscription? _fftSubscription;
+  List<Color>? _stableTargetColors;
+  String? _palettePersistInFlightPath;
 
   @override
   void initState() {
@@ -31,19 +38,19 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
     points = [
       MeshGradientPoint(
         position: const Offset(0.2, 0.2),
-        color: Colors.blue.withOpacity(0.8),
+        color: Colors.blue.withValues(alpha: 0.8),
       ),
       MeshGradientPoint(
         position: const Offset(0.8, 0.2),
-        color: Colors.purple.withOpacity(0.8),
+        color: Colors.purple.withValues(alpha: 0.8),
       ),
       MeshGradientPoint(
         position: const Offset(0.2, 0.8),
-        color: Colors.pink.withOpacity(0.8),
+        color: Colors.pink.withValues(alpha: 0.8),
       ),
       MeshGradientPoint(
         position: const Offset(0.8, 0.8),
-        color: Colors.orange.withOpacity(0.8),
+        color: Colors.orange.withValues(alpha: 0.8),
       ),
     ];
   }
@@ -76,12 +83,10 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
     super.dispose();
   }
 
-  List<Color>? _stableTargetColors;
-
   bool _isListEqual(List<Color> a, List<Color> b) {
     if (a.length != b.length) return false;
     for (int i = 0; i < a.length; i++) {
-      if (a[i].value != b[i].value) return false;
+      if (a[i].toARGB32() != b[i].toARGB32()) return false;
     }
     return true;
   }
@@ -90,6 +95,7 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
   Widget build(BuildContext context) {
     // Use select to only rebuild when colors actually change
     final themeColors = ref.watch(audioCurrentThemeColorsMapProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
     final visualizerStartColor = ref.watch(
       settingsServiceProvider.select((s) => s.visualizerStartColor),
     );
@@ -112,7 +118,7 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
         themeColors['darkMuted'] ??
         color2.withValues(alpha: 0.8);
 
-    // Color processing: Reduce saturation if hue gaps are too large relative to color1
+    // Color processing: if hue gaps are too large, regenerate the palette from artwork.
     double getHue(Color c) => HSLColor.fromColor(c).hue;
     double getHueGap(double h1, double h2) {
       double diff = (h1 - h2).abs();
@@ -120,38 +126,30 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
     }
 
     final h1 = getHue(color1);
-    final totalHueGap = getHueGap(h1, getHue(color2)) +
+    final totalHueGap =
+        getHueGap(h1, getHue(color2)) +
         getHueGap(h1, getHue(color3)) +
         getHueGap(h1, getHue(color4));
 
-    // If total hue gap exceeds 150 degrees, desaturate to keep the background elegant
-    const double hueThreshold = 150.0;
-    const double maxGapRange = 400.0; // Scale range for saturation reduction
+    final currentTarget = [color1, color2, color3, color4];
+    const double hueThreshold = 230.0;
 
-    if (totalHueGap > hueThreshold) {
-      final ratio = ((totalHueGap - hueThreshold) / maxGapRange).clamp(0.0, 1.0);
-      final saturationMultiplier = 1.0 - (ratio * 0.5);
-
-      Color processColor(Color c) {
-        final hsl = HSLColor.fromColor(c);
-        return hsl
-            .withSaturation(
-                (hsl.saturation * saturationMultiplier).clamp(0.0, 1.0))
-            .toColor();
-      }
-
-      color1 = processColor(color1);
-      color2 = processColor(color2);
-      color3 = processColor(color3);
-      color4 = processColor(color4);
+    if (totalHueGap > hueThreshold &&
+        _palettePersistInFlightPath != currentMusic?.path) {
+      unawaited(
+        _recalculateAndPersistPalette(
+          music: currentMusic,
+          fallbackColors: currentTarget,
+        ),
+      );
     }
 
-    final List<Color> currentTarget = [color1, color2, color3, color4];
+    final List<Color> resolvedTarget = [color1, color2, color3, color4];
 
     // Stabilize targetColors to avoid unnecessary animation restarts on every FFT frame
     if (_stableTargetColors == null ||
-        !_isListEqual(_stableTargetColors!, currentTarget)) {
-      _stableTargetColors = currentTarget;
+        !_isListEqual(_stableTargetColors!, resolvedTarget)) {
+      _stableTargetColors = resolvedTarget;
     }
 
     // Dynamic scale based on bass energy
@@ -185,6 +183,127 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
         ],
       ),
     );
+  }
+
+  Future<void> _recalculateAndPersistPalette({
+    required MusicFile? music,
+    required List<Color> fallbackColors,
+  }) async {
+    if (music == null) return;
+    _palettePersistInFlightPath = music.path;
+    try {
+      final paletteColors = await _generatePaletteFromArtwork(music);
+      if (!mounted) return;
+
+      final resolvedColors = paletteColors ?? fallbackColors;
+      final colorsMap = _colorsMapFromResolvedColors(resolvedColors);
+      await ref
+          .read(audioServiceProvider)
+          .saveCurrentSongThemeColors(colorsMap);
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('Failed to regenerate palette for ${music.path}: $e');
+      await ref
+          .read(audioServiceProvider)
+          .saveCurrentSongThemeColors(
+            _colorsMapFromResolvedColors(fallbackColors),
+          );
+    } finally {
+      if (_palettePersistInFlightPath == music.path) {
+        _palettePersistInFlightPath = null;
+      }
+    }
+  }
+
+  Future<List<Color>?> _generatePaletteFromArtwork(MusicFile music) async {
+    Uint8List? artworkBytes = music.artworkBytes;
+
+    if (artworkBytes == null || artworkBytes.isEmpty) {
+      final artworkPath = music.artworkPath;
+      if (artworkPath != null && artworkPath.isNotEmpty) {
+        final file = File(artworkPath);
+        if (await file.exists()) {
+          artworkBytes = await file.readAsBytes();
+        }
+      }
+    }
+
+    if (artworkBytes == null || artworkBytes.isEmpty) {
+      return null;
+    }
+
+    final codec = await ui.instantiateImageCodec(
+      artworkBytes,
+      targetWidth: 200,
+      targetHeight: 200,
+    );
+    final frame = await codec.getNextFrame();
+    final image = frame.image;
+    try {
+      final byteData = await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      if (byteData == null) return null;
+
+      final palette = await PaletteGeneratorMaster.fromByteData(
+        EncodedImageMaster(byteData, width: image.width, height: image.height),
+        maximumColorCount: 20,
+        targets: [
+          PaletteTargetMaster.vibrant,
+          PaletteTargetMaster.lightVibrant,
+          PaletteTargetMaster.darkVibrant,
+          PaletteTargetMaster.muted,
+          PaletteTargetMaster.lightMuted,
+          PaletteTargetMaster.darkMuted,
+        ],
+      );
+
+      return _colorsFromPalette(palette);
+    } finally {
+      image.dispose();
+    }
+  }
+
+  List<Color> _colorsFromPalette(PaletteGeneratorMaster palette) {
+    final dominant = palette.dominantColor?.color ?? Colors.blue;
+    final vibrant =
+        palette.vibrantColor?.color ??
+        palette.lightVibrantColor?.color ??
+        dominant;
+    final light =
+        palette.lightVibrantColor?.color ??
+        palette.mutedColor?.color ??
+        dominant;
+    final dark =
+        palette.darkVibrantColor?.color ??
+        palette.darkMutedColor?.color ??
+        vibrant;
+
+    return [
+      dominant,
+      vibrant,
+      light.withValues(alpha: 0.8),
+      dark.withValues(alpha: 0.8),
+    ];
+  }
+
+  Map<String, Color> _colorsMapFromResolvedColors(List<Color> colors) {
+    final dominant = colors.isNotEmpty ? colors[0] : Colors.blue;
+    final vibrant = colors.length > 1 ? colors[1] : dominant;
+    final light = colors.length > 2
+        ? colors[2]
+        : dominant.withValues(alpha: 0.8);
+    final dark = colors.length > 3 ? colors[3] : vibrant.withValues(alpha: 0.8);
+
+    return {
+      'dominant': dominant,
+      'vibrant': vibrant,
+      'lightVibrant': light,
+      'darkVibrant': dark,
+      'muted': dominant.withValues(alpha: 0.65),
+      'lightMuted': light,
+      'darkMuted': dark,
+    };
   }
 }
 

@@ -33,7 +33,6 @@ class LyricsPanelEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint(accentColor.toString());
     final buttonForegroundColor =
         ThemeData.estimateBrightnessForColor(accentColor) == Brightness.dark
         ? Colors.white
