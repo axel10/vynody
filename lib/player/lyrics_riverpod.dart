@@ -52,6 +52,7 @@ final lyricsTaskQueueSummaryProvider = Provider<LyricsTaskQueueSummary>((ref) {
 
   var taskCount = 0;
   MusicFile? activeSong;
+  String activeStatusLabel = '';
 
   for (final song in queue) {
     final taskState = controller.taskStateForSong(song.path);
@@ -67,10 +68,15 @@ final lyricsTaskQueueSummaryProvider = Provider<LyricsTaskQueueSummary>((ref) {
         taskState.isGenerationRunning ||
         taskState.isTranslationRunning) {
       activeSong = song;
+      activeStatusLabel = taskState.activeStatusLabel;
     }
   }
 
-  return LyricsTaskQueueSummary(taskCount: taskCount, activeSong: activeSong);
+  return LyricsTaskQueueSummary(
+    taskCount: taskCount,
+    activeSong: activeSong,
+    activeStatusLabel: activeStatusLabel,
+  );
 });
 
 final lyricsGenerationDisplayStateProvider =

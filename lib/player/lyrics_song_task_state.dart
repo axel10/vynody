@@ -27,6 +27,25 @@ class LyricsSongTaskState {
   bool get isTranslationBusy => isTranslationQueued || isTranslationRunning;
   bool get isAnyBusy => isLoading || isGenerationBusy || isTranslationBusy;
 
+  String get activeStatusLabel {
+    final generationLabel = generationStatus.trim();
+    if (isGenerationBusy) {
+      if (generationLabel.isNotEmpty) {
+        return generationLabel;
+      }
+      return generationPhase == LyricsGenerationPhase.generating
+          ? '正在生成歌词'
+          : '正在生成时间轴';
+    }
+
+    final translationLabel = translationStatus.trim();
+    if (isTranslationBusy) {
+      return translationLabel.isNotEmpty ? translationLabel : '正在翻译歌词';
+    }
+
+    return '';
+  }
+
   LyricsSongTaskState copyWith({
     bool? isLoading,
     bool? isGenerationQueued,
