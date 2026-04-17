@@ -68,6 +68,21 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     return ref.read(lyricsDisplayLinesProvider(widget.lyrics));
   }
 
+  List<LyricLine> _plainLyricsLines(String plainLyrics) {
+    final normalized = plainLyrics.trim();
+    if (normalized.isEmpty) {
+      return const [];
+    }
+
+    final lines = normalized.split(RegExp(r'\r?\n'));
+    return lines
+        .map(
+          (line) =>
+              LyricLine(timestamp: Duration.zero, text: line, isTimed: false),
+        )
+        .toList(growable: false);
+  }
+
   ScrollBehavior _lyricsScrollBehavior(BuildContext context) {
     return ScrollConfiguration.of(context).copyWith(
       scrollbars: false,
@@ -660,26 +675,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       );
     }
 
-    if (!hasTimedLyrics) {
-      return LyricsPanelPlainLyricsView(
-        displayPlainLyrics: displayPlainLyrics,
-        bottomSpacerHeight: widget.bottomSpacerHeight,
-        onSecondaryTapDown: (details) {
-          _showContextMenu(
-            context,
-            details.globalPosition,
-            lyricsState: lyricsState,
-            taskState: currentSongTaskState,
-            displayLines: displayLines,
-            displayPlainLyrics: displayPlainLyrics,
-            hasCurrentSong: hasCurrentSong,
-          );
-        },
-      );
-    }
+    final renderedLines = hasTimedLyrics
+        ? displayLines
+        : _plainLyricsLines(displayPlainLyrics);
 
-    _scheduleScrollIfNeeded(displayLines: displayLines);
-    final activeIndex = _activeLineIndex(displayLines);
+    if (hasTimedLyrics) {
+      _scheduleScrollIfNeeded(displayLines: displayLines);
+    }
+    final activeIndex = hasTimedLyrics ? _activeLineIndex(displayLines) : -1;
     final focusedIndex = _isDraggingLyrics && _dragCurrentLine != null
         ? _dragCurrentLine!
         : activeIndex;
@@ -687,18 +690,25 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     return LyricsPanelTimedLyricsView(
       lyrics: lyrics,
       lyricsState: lyricsState,
-      displayLines: displayLines,
+      displayLines: renderedLines,
       hasTimedLyrics: hasTimedLyrics,
       activeIndex: focusedIndex,
       isAutoScrollPaused: _isAutoScrollPaused,
       scrollController: _scrollController,
       itemExtent: _itemExtent,
       scrollBehavior: _lyricsScrollBehavior(context),
-      onVerticalDragStart: (_) => _beginLyricsDrag(displayLines),
-      onVerticalDragUpdate: (details) =>
-          _updateLyricsDrag(details, displayLines),
-      onVerticalDragEnd: (_) => _endLyricsDrag(displayLines),
-      onVerticalDragCancel: () => _endLyricsDrag(displayLines),
+      onVerticalDragStart: hasTimedLyrics
+          ? (_) => _beginLyricsDrag(displayLines)
+          : null,
+      onVerticalDragUpdate: hasTimedLyrics
+          ? (details) => _updateLyricsDrag(details, displayLines)
+          : null,
+      onVerticalDragEnd: hasTimedLyrics
+          ? (_) => _endLyricsDrag(displayLines)
+          : null,
+      onVerticalDragCancel: hasTimedLyrics
+          ? () => _endLyricsDrag(displayLines)
+          : null,
       onSecondaryTapDown: (details) {
         _showContextMenu(
           context,

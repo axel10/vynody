@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../models/lyric_line.dart';
@@ -107,69 +106,6 @@ class LyricsPanelEmptyState extends StatelessWidget {
   }
 }
 
-class LyricsPanelPlainLyricsView extends StatelessWidget {
-  const LyricsPanelPlainLyricsView({
-    super.key,
-    required this.displayPlainLyrics,
-    required this.onSecondaryTapDown,
-    required this.bottomSpacerHeight,
-  });
-
-  final String displayPlainLyrics;
-  final GestureTapDownCallback onSecondaryTapDown;
-  final double bottomSpacerHeight;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onSecondaryTapDown: onSecondaryTapDown,
-      child: Column(
-        children: [
-          Expanded(
-            child: _BottomFadeShaderMask(
-              bottomSpacerHeight: bottomSpacerHeight,
-              child: ScrollConfiguration(
-                behavior: ScrollConfiguration.of(context).copyWith(
-                  scrollbars: false,
-                  dragDevices: {
-                    PointerDeviceKind.touch,
-                    PointerDeviceKind.mouse,
-                    PointerDeviceKind.trackpad,
-                    PointerDeviceKind.stylus,
-                  },
-                ),
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom: math.max(bottomSpacerHeight, 180),
-                  ),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        displayPlainLyrics,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          fontSize: 18,
-                          height: 1.6,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class LyricsPanelTimedLyricsView extends StatelessWidget {
   const LyricsPanelTimedLyricsView({
     super.key,
@@ -199,10 +135,10 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final ScrollController scrollController;
   final double itemExtent;
   final ScrollBehavior scrollBehavior;
-  final GestureDragStartCallback onVerticalDragStart;
-  final GestureDragUpdateCallback onVerticalDragUpdate;
-  final GestureDragEndCallback onVerticalDragEnd;
-  final VoidCallback onVerticalDragCancel;
+  final GestureDragStartCallback? onVerticalDragStart;
+  final GestureDragUpdateCallback? onVerticalDragUpdate;
+  final GestureDragEndCallback? onVerticalDragEnd;
+  final VoidCallback? onVerticalDragCancel;
   final GestureTapDownCallback onSecondaryTapDown;
   final double bottomSpacerHeight;
 
@@ -227,11 +163,14 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                   child: ListView.builder(
                     controller: scrollController,
                     clipBehavior: Clip.none,
-                    physics: isAutoScrollPaused
-                        ? const BouncingScrollPhysics()
-                        : const NeverScrollableScrollPhysics(),
+                    physics: hasTimedLyrics
+                        ? (isAutoScrollPaused
+                              ? const BouncingScrollPhysics()
+                              : const NeverScrollableScrollPhysics())
+                        : const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
+                          ),
                     padding: EdgeInsets.only(bottom: bottomSpacerHeight + 180),
-                    // padding: const EdgeInsets.symmetric(horizontal: 8),
                     itemExtent: itemExtent,
                     itemCount: displayLines.length,
                     itemBuilder: (context, index) {
@@ -249,12 +188,30 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                       final isNear =
                           hasTimedLyrics && distance <= 1 && !isActive;
                       final targetScale = isActive ? 1.12 : 1.0;
+                      final lineStyle = hasTimedLyrics
+                          ? Theme.of(context).textTheme.bodyLarge!.copyWith(
+                              color: isActive
+                                  ? Colors.white
+                                  : Colors.white.withValues(
+                                      alpha: isNear ? 0.72 : 0.46,
+                                    ),
+                              fontSize: 16,
+                              fontWeight: isActive
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
+                              height: 1.4,
+                              leadingDistribution: TextLeadingDistribution.even,
+                            )
+                          : TextStyle(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w400,
+                              height: 1.6,
+                              leadingDistribution: TextLeadingDistribution.even,
+                            );
 
                       return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          // horizontal: 8,
-                          vertical: 6,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Center(
                           child: AnimatedScale(
                             duration: const Duration(milliseconds: 220),
@@ -269,35 +226,18 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                   children: [
                                     Expanded(
                                       child: DefaultTextStyle(
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge!
-                                            .copyWith(
-                                              color: isActive
-                                                  ? Colors.white
-                                                  : Colors.white.withValues(
-                                                      alpha: isNear
-                                                          ? 0.72
-                                                          : 0.46,
-                                                    ),
-                                              fontSize: 16,
-                                              fontWeight: isActive
-                                                  ? FontWeight.w700
-                                                  : FontWeight.w400,
-                                              height: 1.4,
-                                              leadingDistribution:
-                                                  TextLeadingDistribution.even,
-                                            ),
+                                        style: lineStyle,
                                         child: AutoSizeSingleLineText(
                                           line.text,
                                           textAlign: TextAlign.center,
-                                          maxLines: 2,
+                                          maxLines: hasTimedLyrics ? 2 : 2,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                if (translated.isNotEmpty) ...[
+                                if (hasTimedLyrics &&
+                                    translated.isNotEmpty) ...[
                                   const SizedBox(height: 3),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
