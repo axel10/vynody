@@ -131,15 +131,29 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
         getHueGap(h1, getHue(color3)) +
         getHueGap(h1, getHue(color4));
 
-    final currentTarget = [color1, color2, color3, color4];
     const double hueThreshold = 230.0;
+    final shouldRecalculate = totalHueGap > hueThreshold;
 
-    if (totalHueGap > hueThreshold &&
+    final fallbackTarget = [
+      visualizerStartColor,
+      visualizerEndColor,
+      visualizerStartColor.withValues(alpha: 0.8),
+      visualizerEndColor.withValues(alpha: 0.8),
+    ];
+
+    if (shouldRecalculate) {
+      color1 = fallbackTarget[0];
+      color2 = fallbackTarget[1];
+      color3 = fallbackTarget[2];
+      color4 = fallbackTarget[3];
+    }
+
+    if (shouldRecalculate &&
         _palettePersistInFlightPath != currentMusic?.path) {
       unawaited(
         _recalculateAndPersistPalette(
           music: currentMusic,
-          fallbackColors: currentTarget,
+          fallbackColors: fallbackTarget,
         ),
       );
     }
