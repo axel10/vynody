@@ -956,6 +956,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     // Apply cached theme colors immediately so the UI can update without waiting
     // for the slower artwork/palette pipeline.
+    final hasCachedThemeColors = song.themeColorsBlob != null;
     if (song.themeColorsBlob != null) {
       final colorsMap = ThemeColorHelper.blobToColors(song.themeColorsBlob!);
       _applyThemeColors(colorsMap);
@@ -987,8 +988,12 @@ class AudioService extends Notifier<AudioSnapshot> {
         );
 
         notifyListeners();
-        // Recompute the palette only after the artwork bytes have been updated.
-        await _updatePalette();
+        // If we already have cached theme colors from the database, keep them
+        // as the final source of truth to avoid a second visual color change.
+        if (!hasCachedThemeColors) {
+          // Recompute the palette only after the artwork bytes have been updated.
+          await _updatePalette();
+        }
       }
     }());
 
@@ -1011,7 +1016,8 @@ class AudioService extends Notifier<AudioSnapshot> {
     // Fallback palette refresh:
     // if artwork bytes/path are still missing here, keep the UI color state in
     // sync with whatever is currently available.
-    if (currentMusic?.artworkBytes == null &&
+    if (!hasCachedThemeColors &&
+        currentMusic?.artworkBytes == null &&
         currentMusic?.artworkPath == null) {
       await _updatePalette();
     }
