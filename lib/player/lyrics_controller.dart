@@ -72,14 +72,13 @@ class LyricsController extends Notifier<LyricsControllerState> {
       getState: () => state,
       setState: (newState) => state = newState,
       clearState: ({bool notify = false, bool preserveTaskState = true}) =>
-          clearState(
-            notify: notify,
-            preserveTaskState: preserveTaskState,
-          ),
+          clearState(notify: notify, preserveTaskState: preserveTaskState),
       setIsLyricsLoading: (value) => _isLyricsLoading = value,
       setIsLyricsTranslating: (value) => _isLyricsTranslating = value,
       setLyricsTranslationStatus: (value) => _lyricsTranslationStatus = value,
       setLyricsGenerationStatus: (value) => _lyricsGenerationStatus = value,
+      setLyricsGenerationModelLabel: (value) =>
+          _setLyricsGenerationModelLabel(value),
       setHasLyrics: (value) => _hasLyrics = value,
       setLyricsSearchAttempted: (value) => _lyricsSearchAttempted = value,
       setCurrentLyricsLines: (value) => _currentLyricsLines = value,
@@ -152,6 +151,12 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _lyricsGenerationStatus = '';
   }
 
+  void _setLyricsGenerationModelLabel(String? value) {
+    if (_context.updateLyricsGenerationModelLabel(value)) {
+      _bumpRevision();
+    }
+  }
+
   void _bumpRevision() {
     state = state.copyWith(revision: state.revision + 1);
   }
@@ -165,10 +170,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     state = state.copyWith(lyricsTranslationLanguageCode: normalized);
   }
 
-  void clearState({
-    bool notify = false,
-    bool preserveTaskState = true,
-  }) {
+  void clearState({bool notify = false, bool preserveTaskState = true}) {
     final current = state;
     state = LyricsControllerState(
       isLyricsLoading: false,
@@ -297,6 +299,10 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   String? get activeLyricsGenerationSongPath {
     return _context.lyricsGeneration.songPath;
+  }
+
+  String? get activeLyricsGenerationModelLabel {
+    return _context.lyricsGenerationModelLabel;
   }
 
   void _logDebug(String message) {

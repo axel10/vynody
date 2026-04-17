@@ -18,9 +18,7 @@ final lyricsControllerDependenciesProvider =
     });
 
 final lyricsAiServiceProvider = Provider<LyricsAiService>((ref) {
-  return LyricsAiService(
-    settingsService: ref.read(settingsServiceProvider),
-  );
+  return LyricsAiService(settingsService: ref.read(settingsServiceProvider));
 });
 
 final lyricsControllerProvider =
@@ -31,9 +29,9 @@ final lyricsControllerProvider =
 final lyricsSongTaskStateProvider =
     Provider.family<LyricsSongTaskState, String>((ref, songPath) {
       ref.watch(lyricsControllerProvider.select((state) => state.revision));
-      return ref.read(lyricsControllerProvider.notifier).taskStateForSong(
-        songPath,
-      );
+      return ref
+          .read(lyricsControllerProvider.notifier)
+          .taskStateForSong(songPath);
     });
 
 final lyricsCurrentSongTaskStateProvider = Provider<LyricsSongTaskState>((ref) {
@@ -46,40 +44,40 @@ final lyricsCurrentSongTaskStateProvider = Provider<LyricsSongTaskState>((ref) {
   return ref.watch(lyricsSongTaskStateProvider(songPath));
 });
 
-final lyricsTaskQueueSummaryProvider =
-    Provider<LyricsTaskQueueSummary>((ref) {
-      ref.watch(lyricsControllerProvider.select((state) => state.revision));
-      final queue = ref.watch(audioPlaybackQueueProvider);
-      final controller = ref.read(lyricsControllerProvider.notifier);
+final lyricsTaskQueueSummaryProvider = Provider<LyricsTaskQueueSummary>((ref) {
+  ref.watch(lyricsControllerProvider.select((state) => state.revision));
+  final queue = ref.watch(audioPlaybackQueueProvider);
+  final controller = ref.read(lyricsControllerProvider.notifier);
 
-      var taskCount = 0;
-      MusicFile? activeSong;
-      String? activeStatusLabel;
+  var taskCount = 0;
+  MusicFile? activeSong;
+  String? activeStatusLabel;
 
-      for (final song in queue) {
-        final taskState = controller.taskStateForSong(song.path);
-        final songTaskCount =
-            (taskState.isGenerationQueued ? 1 : 0) +
-            (taskState.isGenerationRunning ? 1 : 0) +
-            (taskState.isTranslationQueued ? 1 : 0) +
-            (taskState.isTranslationRunning ? 1 : 0);
-        if (songTaskCount == 0) continue;
+  for (final song in queue) {
+    final taskState = controller.taskStateForSong(song.path);
+    final songTaskCount =
+        (taskState.isGenerationQueued ? 1 : 0) +
+        (taskState.isGenerationRunning ? 1 : 0) +
+        (taskState.isTranslationQueued ? 1 : 0) +
+        (taskState.isTranslationRunning ? 1 : 0);
+    if (songTaskCount == 0) continue;
 
-        taskCount += songTaskCount;
-        if (activeSong == null ||
-            taskState.isGenerationRunning ||
-            taskState.isTranslationRunning) {
-          activeSong = song;
-          activeStatusLabel = _lyricsTaskStatusLabel(taskState);
-        }
-      }
+    taskCount += songTaskCount;
+    if (activeSong == null ||
+        taskState.isGenerationRunning ||
+        taskState.isTranslationRunning) {
+      activeSong = song;
+      activeStatusLabel = _lyricsTaskStatusLabel(taskState);
+    }
+  }
 
-      return LyricsTaskQueueSummary(
-        taskCount: taskCount,
-        activeSong: activeSong,
-        activeStatusLabel: activeStatusLabel,
-      );
-    });
+  return LyricsTaskQueueSummary(
+    taskCount: taskCount,
+    activeSong: activeSong,
+    activeStatusLabel: activeStatusLabel,
+    activeModelLabel: controller.activeLyricsGenerationModelLabel,
+  );
+});
 
 String? _lyricsTaskStatusLabel(LyricsSongTaskState taskState) {
   if (taskState.isTranslationRunning || taskState.isTranslationQueued) {

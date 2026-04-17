@@ -56,6 +56,10 @@ class LyricsAiService {
   String get _fallbackGeminiModelId => _settingsService.geminiFallbackModelId;
 
   String get activeModelLabel {
+    return configuredModelLabel;
+  }
+
+  String get configuredModelLabel {
     if (_settingsService.shouldAutoSwitchLyricsProvider) {
       return 'Google AI Studio → OpenRouter · '
           '${SettingsService.geminiModelDisplayName(_primaryGeminiModelId)}';
@@ -66,6 +70,23 @@ class LyricsAiService {
       LyricsAiProvider.openRouter =>
         'OpenRouter · ${LyricsAiOpenRouterClient.textModelDisplayName}',
     };
+  }
+
+  String get currentGenerationModelLabel {
+    return switch (_settingsService.lyricsAiProvider) {
+      LyricsAiProvider.googleAiStudio => _googleModelLabel(
+        _primaryGeminiModelId,
+      ),
+      LyricsAiProvider.openRouter => _openRouterModelLabel(),
+    };
+  }
+
+  String _googleModelLabel(String modelId) {
+    return 'Google AI Studio · ${SettingsService.geminiModelDisplayName(modelId)}';
+  }
+
+  String _openRouterModelLabel() {
+    return 'OpenRouter · ${LyricsAiOpenRouterClient.textModelDisplayName}';
   }
 
   Future<_LyricsAiCredentials?> _loadGenerationCredentials() async {
@@ -245,6 +266,7 @@ class LyricsAiService {
     required String filePath,
     String? songTitle,
     String? modelId,
+    void Function(String? modelLabel)? onModelLabelChanged,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -284,6 +306,7 @@ class LyricsAiService {
     final effectiveModelId = modelId?.trim().isNotEmpty == true
         ? modelId!.trim()
         : _primaryGeminiModelId;
+    onModelLabelChanged?.call(_googleModelLabel(effectiveModelId));
     final normalizedTitle = songTitle?.trim();
     final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
         ? ''
@@ -314,7 +337,9 @@ class LyricsAiService {
         fallbackModelId: _fallbackGeminiModelId,
         prompt: prompt,
         preserveTimestamps: true,
+        onModelLabelChanged: onModelLabelChanged,
         openRouterFallbackGenerator: (apiKey) {
+          onModelLabelChanged?.call(_openRouterModelLabel());
           return _openRouterClient.generateLyricsFromFile(
             apiKey: apiKey,
             filePath: filePath,
@@ -352,6 +377,7 @@ class LyricsAiService {
     required String lyrics,
     String? songTitle,
     String? modelId,
+    void Function(String? modelLabel)? onModelLabelChanged,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -391,6 +417,7 @@ class LyricsAiService {
     final effectiveModelId = modelId?.trim().isNotEmpty == true
         ? modelId!.trim()
         : _primaryGeminiModelId;
+    onModelLabelChanged?.call(_googleModelLabel(effectiveModelId));
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       debugPrint('[LyricsAi] no usable lyrics for timeline generation.');
@@ -428,7 +455,9 @@ class LyricsAiService {
         fallbackModelId: _fallbackGeminiModelId,
         prompt: prompt,
         preserveTimestamps: true,
+        onModelLabelChanged: onModelLabelChanged,
         openRouterFallbackGenerator: (apiKey) {
+          onModelLabelChanged?.call(_openRouterModelLabel());
           return _openRouterClient.generateTimelineFromLyrics(
             apiKey: apiKey,
             filePath: filePath,
@@ -470,6 +499,7 @@ class LyricsAiService {
     required String fallbackModelId,
     required String prompt,
     required bool preserveTimestamps,
+    void Function(String? modelLabel)? onModelLabelChanged,
     Future<LyricsGenerationResult> Function(String apiKey)?
     openRouterFallbackGenerator,
     void Function(double progress)? onUploadProgress,
@@ -520,6 +550,7 @@ class LyricsAiService {
         fallbackModelId: fallbackModelId,
         prompt: prompt,
         preserveTimestamps: preserveTimestamps,
+        onModelLabelChanged: onModelLabelChanged,
         onProgress: onProgress,
       );
       if (generationOutcome.shouldFallbackToOpenRouter &&
@@ -529,6 +560,7 @@ class LyricsAiService {
           debugPrint(
             '[LyricsAi] switching to OpenRouter after Gemini 429/5xx failure.',
           );
+          onModelLabelChanged?.call(_openRouterModelLabel());
           final fallbackResult = await openRouterFallbackGenerator(
             fallbackApiKey,
           );
@@ -554,6 +586,7 @@ class LyricsAiService {
     required String fallbackModelId,
     required String prompt,
     required bool preserveTimestamps,
+    void Function(String? modelLabel)? onModelLabelChanged,
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
     String? lastErrorMessage;
@@ -722,6 +755,7 @@ class LyricsAiService {
               _shouldUseFallbackModel(statusCode)) {
             // 这里只切换模型并重试同一个 fileUri，不会重新上传文件。
             shouldTryNextModel = true;
+            onModelLabelChanged?.call(_googleModelLabel(fallbackModelId));
             debugPrint(
               '[LyricsAi] model downgraded to $fallbackModelId '
               'after status=$statusCode, reusing fileUri=$fileUri.',

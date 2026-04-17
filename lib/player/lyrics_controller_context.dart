@@ -61,6 +61,7 @@ class LyricsControllerContext {
     required this.setIsLyricsTranslating,
     required this.setLyricsTranslationStatus,
     required this.setLyricsGenerationStatus,
+    required this.setLyricsGenerationModelLabel,
     required this.setHasLyrics,
     required this.setLyricsSearchAttempted,
     required this.setCurrentLyricsLines,
@@ -85,15 +86,12 @@ class LyricsControllerContext {
   final SettingsService settingsService;
   final LyricsControllerState Function() getState;
   final void Function(LyricsControllerState state) setState;
-  final void Function({
-    bool notify,
-    bool preserveTaskState,
-  })
-  clearState;
+  final void Function({bool notify, bool preserveTaskState}) clearState;
   final void Function(bool value) setIsLyricsLoading;
   final void Function(bool value) setIsLyricsTranslating;
   final void Function(String value) setLyricsTranslationStatus;
   final void Function(String value) setLyricsGenerationStatus;
+  final void Function(String? value) setLyricsGenerationModelLabel;
   final void Function(bool value) setHasLyrics;
   final void Function(bool value) setLyricsSearchAttempted;
   final void Function(List<LyricLine> value) setCurrentLyricsLines;
@@ -118,8 +116,20 @@ class LyricsControllerContext {
   int lyricsRequestSerial = 0;
   int lyricsRetrySerial = 0;
   CancelToken? lyricsFetchCancelToken;
+  String? lyricsGenerationModelLabel;
 
   LyricsControllerState get state => getState();
+
+  bool updateLyricsGenerationModelLabel(String? value) {
+    final normalized = value?.trim();
+    final next = normalized == null || normalized.isEmpty ? null : normalized;
+    if (lyricsGenerationModelLabel == next) {
+      return false;
+    }
+    lyricsGenerationModelLabel = next;
+    setLyricsGenerationModelLabel(next);
+    return true;
+  }
 
   LyricsSongTaskState taskStateForSong(String path) {
     return songTaskStates[path] ?? const LyricsSongTaskState();

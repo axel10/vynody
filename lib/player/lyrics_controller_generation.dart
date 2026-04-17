@@ -38,11 +38,13 @@ class LyricsGenerationCoordinator {
   _LyricsGenerationSession _beginLyricsGeneration(
     MusicFile song, {
     required String statusLabel,
+    required String modelLabel,
   }) {
     _support.cancelOngoingLyricsFetch(reason: 'lyrics generation started');
     _context.lyricsGeneration.beginForSong(song.path);
     _context.setLyricsSearchAttempted(true);
     _context.startLyricsGenerationStatus(statusLabel);
+    _context.updateLyricsGenerationModelLabel(modelLabel);
     _context.updateSongTaskState(
       song.path,
       (current) => current.copyWith(
@@ -157,16 +159,22 @@ class LyricsGenerationCoordinator {
       ),
     );
     _context.clearLyricsGenerationStatus();
+    _context.updateLyricsGenerationModelLabel(null);
   }
 
   Future<String?> _runLyricsGeneration({
     required MusicFile song,
     required LyricsCacheSource databaseSource,
     required String statusLabel,
+    required String modelLabel,
     required _LyricsGenerationInvoker invoke,
     Map<String, MusicLyricTranslation> Function()? translationProvider,
   }) async {
-    final session = _beginLyricsGeneration(song, statusLabel: statusLabel);
+    final session = _beginLyricsGeneration(
+      song,
+      statusLabel: statusLabel,
+      modelLabel: modelLabel,
+    );
     try {
       final result = await invoke(
         onUploadProgress: (progress) {
@@ -242,6 +250,7 @@ class LyricsGenerationCoordinator {
         song: song,
         databaseSource: LyricsCacheSource.aiGenerate,
         statusLabel: '正在生成歌词',
+        modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
         invoke:
             ({
               required onUploadProgress,
@@ -251,6 +260,7 @@ class LyricsGenerationCoordinator {
               return _context.lyricsAiService.generateLyricsFromFile(
                 filePath: song.path,
                 songTitle: song.title,
+                onModelLabelChanged: _context.updateLyricsGenerationModelLabel,
                 onUploadProgress: onUploadProgress,
                 onStageChanged: onStageChanged,
                 onProgress: onProgress,
@@ -289,6 +299,7 @@ class LyricsGenerationCoordinator {
         song: song,
         databaseSource: LyricsCacheSource.aiTimeline,
         statusLabel: '正在生成时间轴',
+        modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
         translationProvider: () =>
             _support.songForPath(song.path)?.lyrics?.translations ??
             const <String, MusicLyricTranslation>{},
@@ -302,6 +313,7 @@ class LyricsGenerationCoordinator {
                 filePath: song.path,
                 lyrics: sourceLyrics,
                 songTitle: song.title,
+                onModelLabelChanged: _context.updateLyricsGenerationModelLabel,
                 onUploadProgress: onUploadProgress,
                 onStageChanged: onStageChanged,
                 onProgress: onProgress,
@@ -335,6 +347,9 @@ class LyricsGenerationCoordinator {
       return '当前歌曲的歌词任务已在排队或生成中。';
     }
 
+    _context.updateLyricsGenerationModelLabel(
+      _context.lyricsAiService.currentGenerationModelLabel,
+    );
     _queueLyricsGeneration(song, '正在生成歌词');
 
     return _context.lyricsAiTaskQueue.enqueue(() {
@@ -354,6 +369,9 @@ class LyricsGenerationCoordinator {
       return '当前歌曲的歌词任务已在排队或生成中。';
     }
 
+    _context.updateLyricsGenerationModelLabel(
+      _context.lyricsAiService.currentGenerationModelLabel,
+    );
     _queueLyricsGeneration(song, '正在生成时间轴');
 
     return _context.lyricsAiTaskQueue.enqueue(() {
@@ -372,6 +390,9 @@ class LyricsGenerationCoordinator {
     }
 
     _support.clearLyricsStateForPath(song.path);
+    _context.updateLyricsGenerationModelLabel(
+      _context.lyricsAiService.currentGenerationModelLabel,
+    );
     _queueLyricsGeneration(song, '正在重新生成歌词');
     return _context.lyricsAiTaskQueue.enqueue(() {
       return _generateLyricsForSong(_support.songForPath(song.path) ?? song);

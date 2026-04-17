@@ -16,7 +16,9 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final accent = colorScheme.primary;
-    final modelLabel = ref.read(lyricsAiServiceProvider).activeModelLabel;
+    final modelLabel =
+        summary.activeModelLabel ??
+        ref.read(lyricsAiServiceProvider).configuredModelLabel;
     final title = summary.showQueueCount
         ? 'AI 队列中 ${summary.taskCount} 个任务'
         : 'AI 任务处理中';
