@@ -83,8 +83,6 @@ dependencies:
   proxy_getter:
     path: ./proxy_getter
   worker_manager: ^7.2.9
-  palette_generator_master: ^1.0.1
-  material_color_utilities: ^0.13.0
   palette_generator: ^0.3.3+7
 
 

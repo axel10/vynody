@@ -906,7 +906,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
-    // Use the ThemeColorHelper which wraps the PaletteGeneratorMaster
+    // Use the ThemeColorHelper which wraps the PaletteGenerator
     final palette = await ThemeColorHelper.generatePalette(
       bytes: artworkBytes,
       path: artworkPath,

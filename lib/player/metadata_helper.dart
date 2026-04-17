@@ -6,7 +6,7 @@ import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
-import 'package:palette_generator_master/palette_generator_master.dart';
+import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'metadata_database.dart';
 import 'theme_color_helper.dart';
@@ -14,8 +14,8 @@ import 'theme_color_helper.dart';
 Future<Uint8List?> _generateThemeColorsBlobFromImage(img.Image image) async {
   try {
     final rgbaBytes = image.getBytes(order: img.ChannelOrder.rgba);
-    final palette = await PaletteGeneratorMaster.fromByteData(
-      EncodedImageMaster(
+    final palette = await PaletteGenerator.fromByteData(
+      EncodedImage(
         ByteData.sublistView(rgbaBytes),
         width: image.width,
         height: image.height,

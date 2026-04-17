@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:palette_generator_master/palette_generator_master.dart';
+import 'package:palette_generator/palette_generator.dart';
 import 'package:image/image.dart' as img;
 
 @pragma('vm:entry-point')
@@ -39,8 +39,8 @@ Future<Map<String, int>> _generatePaletteColorMapTask(
           );
 
     final rgbaBytes = resized.getBytes(order: img.ChannelOrder.rgba);
-    final palette = await PaletteGeneratorMaster.fromByteData(
-      EncodedImageMaster(
+    final palette = await PaletteGenerator.fromByteData(
+      EncodedImage(
         ByteData.sublistView(rgbaBytes),
         width: resized.width,
         height: resized.height,
@@ -77,7 +77,7 @@ Future<Map<String, int>> _generatePaletteColorMapTask(
 }
 
 class ThemeColorHelper {
-  static Uint8List paletteToBlob(PaletteGeneratorMaster palette) {
+  static Uint8List paletteToBlob(PaletteGenerator palette) {
     return colorsMapToBlob({
       if (palette.dominantColor != null)
         'dominant': palette.dominantColor!.color,

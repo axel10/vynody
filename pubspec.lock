@@ -652,7 +652,7 @@ packages:
     source: hosted
     version: "0.12.19"
   material_color_utilities:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: material_color_utilities
       sha256: "9c337007e82b1889149c82ed242ed1cb24a66044e30979c44912381e9be4c48b"
@@ -781,14 +781,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.3.3+7"
-  palette_generator_master:
-    dependency: "direct main"
-    description:
-      name: palette_generator_master
-      sha256: "2b27a3d9f773c5bc407ed828589488777f73fa23cd24abe6a9b90249a41a7df0"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "1.0.1"
   path:
     dependency: "direct main"
     description:
