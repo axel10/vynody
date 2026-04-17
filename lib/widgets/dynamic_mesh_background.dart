@@ -112,6 +112,40 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
         themeColors['darkMuted'] ??
         color2.withValues(alpha: 0.8);
 
+    // Color processing: Reduce saturation if hue gaps are too large relative to color1
+    double getHue(Color c) => HSLColor.fromColor(c).hue;
+    double getHueGap(double h1, double h2) {
+      double diff = (h1 - h2).abs();
+      return diff > 180 ? 360 - diff : diff;
+    }
+
+    final h1 = getHue(color1);
+    final totalHueGap = getHueGap(h1, getHue(color2)) +
+        getHueGap(h1, getHue(color3)) +
+        getHueGap(h1, getHue(color4));
+
+    // If total hue gap exceeds 150 degrees, desaturate to keep the background elegant
+    const double hueThreshold = 150.0;
+    const double maxGapRange = 400.0; // Scale range for saturation reduction
+
+    if (totalHueGap > hueThreshold) {
+      final ratio = ((totalHueGap - hueThreshold) / maxGapRange).clamp(0.0, 1.0);
+      final saturationMultiplier = 1.0 - (ratio * 0.5);
+
+      Color processColor(Color c) {
+        final hsl = HSLColor.fromColor(c);
+        return hsl
+            .withSaturation(
+                (hsl.saturation * saturationMultiplier).clamp(0.0, 1.0))
+            .toColor();
+      }
+
+      color1 = processColor(color1);
+      color2 = processColor(color2);
+      color3 = processColor(color3);
+      color4 = processColor(color4);
+    }
+
     final List<Color> currentTarget = [color1, color2, color3, color4];
 
     // Stabilize targetColors to avoid unnecessary animation restarts on every FFT frame
