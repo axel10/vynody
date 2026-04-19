@@ -82,6 +82,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortBy => '排序方式';
 
   @override
+  String get sortScope => '作用域';
+
+  @override
+  String get sortOrder => '排序顺序';
+
+  @override
   String get title => '标题';
 
   @override
@@ -95,6 +101,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get descending => '降序';
+
+  @override
+  String get currentFolderScope => '当前目录';
+
+  @override
+  String get globalScope => '全局';
 
   @override
   String get visualizerSettings => '播放页设置';

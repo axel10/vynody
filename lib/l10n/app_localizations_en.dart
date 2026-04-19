@@ -83,6 +83,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortBy => 'Sort By';
 
   @override
+  String get sortScope => 'Scope';
+
+  @override
+  String get sortOrder => 'Sort Order';
+
+  @override
   String get title => 'Title';
 
   @override
@@ -96,6 +102,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get descending => 'Descending';
+
+  @override
+  String get currentFolderScope => 'Current Folder';
+
+  @override
+  String get globalScope => 'Global';
 
   @override
   String get visualizerSettings => 'Playback Page Settings';

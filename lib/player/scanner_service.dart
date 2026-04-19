@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:collection/collection.dart';
 import 'package:worker_manager/worker_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/music_folder.dart';
 import 'scanner_navigation_state.dart';
 import 'scanner_path_utils.dart';
@@ -52,11 +54,18 @@ class ScannerService extends ChangeNotifier {
   late final ScannerTreeBuilder _treeBuilder;
   late final ScannerDirectoryScanner _directoryScanner;
 
-  SortCriteria _sortCriteria = SortCriteria.filename;
-  SortOrder _sortOrder = SortOrder.ascending;
+  static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
+  static const String _keyGlobalSortOrder = 'folder_sort_global_order';
+  static const String _keyFolderSortOverrides = 'folder_sort_overrides';
 
-  SortCriteria get sortCriteria => _sortCriteria;
-  SortOrder get sortOrder => _sortOrder;
+  SortCriteria _globalSortCriteria = SortCriteria.filename;
+  SortOrder _globalSortOrder = SortOrder.ascending;
+  Map<String, FolderSortSettings> _folderSortOverrides = {};
+
+  SortCriteria get sortCriteria => _currentSortSettings.criteria;
+  SortOrder get sortOrder => _currentSortSettings.order;
+  SortCriteria get globalSortCriteria => _globalSortCriteria;
+  SortOrder get globalSortOrder => _globalSortOrder;
 
   List<String> get rootPaths => _roots.rootPaths;
   List<MusicFolder> get rootFolders => List.unmodifiable(_rootFolders);
@@ -184,27 +193,55 @@ class ScannerService extends ChangeNotifier {
     handler(normalized, isMissing);
   }
 
-  void setSortCriteria(SortCriteria criteria) {
-    _sortCriteria = criteria;
+  void setSortCriteria(
+    SortCriteria criteria, {
+    SortScope scope = SortScope.global,
+    String? folderPath,
+  }) {
+    if (scope == SortScope.currentFolder &&
+        _updateFolderSortSettings(folderPath: folderPath, criteria: criteria)) {
+      _sortAndNotify();
+      return;
+    }
+
+    if (_globalSortCriteria == criteria) {
+      return;
+    }
+
+    _globalSortCriteria = criteria;
+    unawaited(_saveGlobalSortSettings());
     _sortAndNotify();
   }
 
-  void setSortOrder(SortOrder order) {
-    _sortOrder = order;
+  void setSortOrder(
+    SortOrder order, {
+    SortScope scope = SortScope.global,
+    String? folderPath,
+  }) {
+    if (scope == SortScope.currentFolder &&
+        _updateFolderSortSettings(folderPath: folderPath, order: order)) {
+      _sortAndNotify();
+      return;
+    }
+
+    if (_globalSortOrder == order) {
+      return;
+    }
+
+    _globalSortOrder = order;
+    unawaited(_saveGlobalSortSettings());
     _sortAndNotify();
   }
 
   void _sortAndNotify() {
-    _folderSorter.sortFolders(
+    _folderSorter.sortFoldersForTree(
       _scannedRootFolders,
-      criteria: _sortCriteria,
-      order: _sortOrder,
+      resolveSettings: _resolveSortSettingsForFolder,
     );
     if (_systemMediaFolder != null) {
-      _folderSorter.sortFolderRecursive(
+      _folderSorter.sortFolderRecursiveForTree(
         _systemMediaFolder!,
-        criteria: _sortCriteria,
-        order: _sortOrder,
+        resolveSettings: _resolveSortSettingsForFolder,
       );
     }
     _rebuildDisplayedRootFolders();
@@ -214,6 +251,7 @@ class ScannerService extends ChangeNotifier {
 
   Future<void> _init() async {
     await _roots.loadRootPaths();
+    await _loadSortSettings();
     _rebuildDisplayedRootFolders();
     notifyListeners();
     await checkAndRequestPermissions();
@@ -383,10 +421,9 @@ class ScannerService extends ChangeNotifier {
           _compareNaturally,
         );
         if (_systemMediaFolder != null) {
-          _folderSorter.sortFolderRecursive(
+          _folderSorter.sortFolderRecursiveForTree(
             _systemMediaFolder!,
-            criteria: _sortCriteria,
-            order: _sortOrder,
+            resolveSettings: _resolveSortSettingsForFolder,
           );
         }
         notifyListeners();
@@ -420,10 +457,9 @@ class ScannerService extends ChangeNotifier {
           _compareNaturally,
         );
         if (_systemMediaFolder != null) {
-          _folderSorter.sortFolderRecursive(
+          _folderSorter.sortFolderRecursiveForTree(
             _systemMediaFolder!,
-            criteria: _sortCriteria,
-            order: _sortOrder,
+            resolveSettings: _resolveSortSettingsForFolder,
           );
         }
         notifyListeners();
@@ -934,6 +970,143 @@ class ScannerService extends ChangeNotifier {
 
   int _compareNaturally(String a, String b) {
     return compareNatural(a.toLowerCase(), b.toLowerCase());
+  }
+
+  FolderSortSettings get _currentSortSettings {
+    final currentFolder = _navigationState.currentFolder;
+    if (currentFolder == null) {
+      return FolderSortSettings(
+        criteria: _globalSortCriteria,
+        order: _globalSortOrder,
+      );
+    }
+    return _resolveSortSettingsForFolder(currentFolder.path);
+  }
+
+  FolderSortSettings getGlobalSortSettings() {
+    return FolderSortSettings(
+      criteria: _globalSortCriteria,
+      order: _globalSortOrder,
+    );
+  }
+
+  FolderSortSettings getSortSettingsForFolder(String path) {
+    return _resolveSortSettingsForFolder(path);
+  }
+
+  bool hasSortOverrideForFolder(String path) {
+    return _folderSortOverrides.containsKey(_sortFolderKey(path));
+  }
+
+  SortScope get sortScopeForCurrentView {
+    final currentFolder = _navigationState.currentFolder;
+    if (currentFolder == null) {
+      return SortScope.global;
+    }
+    return hasSortOverrideForFolder(currentFolder.path)
+        ? SortScope.currentFolder
+        : SortScope.global;
+  }
+
+  FolderSortSettings _resolveSortSettingsForFolder(String path) {
+    final override = _folderSortOverrides[_sortFolderKey(path)];
+    if (override != null) {
+      return override;
+    }
+    return FolderSortSettings(
+      criteria: _globalSortCriteria,
+      order: _globalSortOrder,
+    );
+  }
+
+  String _sortFolderKey(String path) {
+    return _pathLookupKey(path);
+  }
+
+  bool _updateFolderSortSettings({
+    String? folderPath,
+    SortCriteria? criteria,
+    SortOrder? order,
+  }) {
+    final targetPath = folderPath ?? _navigationState.currentFolder?.path;
+    if (targetPath == null) {
+      return false;
+    }
+
+    final key = _sortFolderKey(targetPath);
+    final currentSettings =
+        _folderSortOverrides[key] ??
+        FolderSortSettings(
+          criteria: _globalSortCriteria,
+          order: _globalSortOrder,
+        );
+    final nextSettings = currentSettings.copyWith(
+      criteria: criteria,
+      order: order,
+    );
+
+    if (currentSettings.criteria == nextSettings.criteria &&
+        currentSettings.order == nextSettings.order) {
+      return true;
+    }
+
+    _folderSortOverrides = {..._folderSortOverrides, key: nextSettings};
+    unawaited(_saveFolderSortOverrides());
+    return true;
+  }
+
+  Future<void> _loadSortSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _globalSortCriteria = SortCriteriaX.fromStorageValue(
+      prefs.getString(_keyGlobalSortCriteria),
+    );
+    _globalSortOrder = SortOrderX.fromStorageValue(
+      prefs.getString(_keyGlobalSortOrder),
+    );
+    _folderSortOverrides = _decodeFolderSortOverrides(
+      prefs.getString(_keyFolderSortOverrides),
+    );
+  }
+
+  Map<String, FolderSortSettings> _decodeFolderSortOverrides(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return {};
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        return {};
+      }
+
+      final result = <String, FolderSortSettings>{};
+      for (final entry in decoded.entries) {
+        final value = entry.value;
+        if (value is! Map<String, dynamic>) continue;
+        result[entry.key] = FolderSortSettings.fromJson(value);
+      }
+      return result;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> _saveGlobalSortSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _keyGlobalSortCriteria,
+      _globalSortCriteria.storageValue,
+    );
+    await prefs.setString(_keyGlobalSortOrder, _globalSortOrder.storageValue);
+  }
+
+  Future<void> _saveFolderSortOverrides() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = jsonEncode({
+      for (final entry in _folderSortOverrides.entries)
+        entry.key: entry.value.toJson(),
+    });
+    await prefs.setString(_keyFolderSortOverrides, encoded);
   }
 
   String _normalizePath(String path) {

@@ -230,6 +230,18 @@ abstract class AppLocalizations {
   /// **'排序方式'**
   String get sortBy;
 
+  /// No description provided for @sortScope.
+  ///
+  /// In zh, this message translates to:
+  /// **'作用域'**
+  String get sortScope;
+
+  /// No description provided for @sortOrder.
+  ///
+  /// In zh, this message translates to:
+  /// **'排序顺序'**
+  String get sortOrder;
+
   /// Title
   ///
   /// In zh, this message translates to:
@@ -259,6 +271,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'降序'**
   String get descending;
+
+  /// Current folder sort scope
+  ///
+  /// In zh, this message translates to:
+  /// **'当前目录'**
+  String get currentFolderScope;
+
+  /// Global sort scope
+  ///
+  /// In zh, this message translates to:
+  /// **'全局'**
+  String get globalScope;
 
   /// Visualizer settings
   ///

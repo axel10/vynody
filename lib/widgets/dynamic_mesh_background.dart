@@ -49,28 +49,6 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
     ];
   }
 
-  /*
-  void _subscribeToFft() {
-    final audio = ref.read(audioServiceProvider);
-    _fftSubscription = audio.visualizerStream.listen((frame) {
-      if (!mounted) return;
-      
-      // Calculate bass energy from first few bins
-      // Typically bins 0-4 are bass
-      double energy = 0.0;
-      int count = min(5, frame.values.length);
-      for (int i = 0; i < count; i++) {
-        energy += frame.values[i];
-      }
-      energy = energy / count;
-
-      setState(() {
-        _bassEnergy = energy;
-      });
-    });
-  }
-*/
-
   @override
   void dispose() {
     _fftSubscription?.cancel();
