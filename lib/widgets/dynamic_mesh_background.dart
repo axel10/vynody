@@ -60,6 +60,11 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
     final dynamicStartColor = ref.watch(audioDynamicStartColorProvider);
     final dynamicEndColor = ref.watch(audioDynamicEndColorProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final meshSpeed = ref.watch(
+      settingsServiceProvider.select(
+        (settings) => settings.playbackMeshBackgroundSpeed,
+      ),
+    );
 
     final List<Color> resolvedTarget = ThemeColorHelper.resolveMeshColors(
       themeColors,
@@ -110,7 +115,7 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
                   builder: (context, animatedColors, child) {
                     return AnimatedMeshGradient(
                       colors: animatedColors,
-                      options: AnimatedMeshGradientOptions(speed: 0.1),
+                      options: AnimatedMeshGradientOptions(speed: meshSpeed),
                     );
                   },
                 ),

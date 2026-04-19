@@ -82,6 +82,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyVisualizerDynamicEndColor =
       'visualizer_dynamic_end_color';
   static const String _keyPlaybackBackgroundType = 'playback_background_type';
+  static const String _keyPlaybackMeshBackgroundSpeed =
+      'playback_mesh_background_speed';
   static const String _keyIsAutoMode = 'visualizer_auto_mode';
   static const String _keyAutoSpectrumQuantity =
       'visualizer_auto_spectrum_quantity';
@@ -121,6 +123,7 @@ class SettingsService extends ChangeNotifier {
   late bool _isVisualizerDynamicStartColor;
   late bool _isVisualizerDynamicEndColor;
   late int _playbackBackgroundType;
+  late double _playbackMeshBackgroundSpeed;
   late bool _isAutoMode;
   late String _autoSpectrumQuantity;
   late String _autoSpeed;
@@ -179,6 +182,8 @@ class SettingsService extends ChangeNotifier {
     _isVisualizerDynamicEndColor =
         _prefs.getBool(_keyVisualizerDynamicEndColor) ?? false;
     _playbackBackgroundType = _prefs.getInt(_keyPlaybackBackgroundType) ?? 0;
+    _playbackMeshBackgroundSpeed =
+        _prefs.getDouble(_keyPlaybackMeshBackgroundSpeed) ?? 0.05;
     _isAutoMode = _prefs.getBool(_keyIsAutoMode) ?? true;
     _autoSpectrumQuantity =
         _prefs.getString(_keyAutoSpectrumQuantity) ?? 'high';
@@ -275,6 +280,7 @@ class SettingsService extends ChangeNotifier {
   bool get isVisualizerDynamicStartColor => _isVisualizerDynamicStartColor;
   bool get isVisualizerDynamicEndColor => _isVisualizerDynamicEndColor;
   int get playbackBackgroundType => _playbackBackgroundType;
+  double get playbackMeshBackgroundSpeed => _playbackMeshBackgroundSpeed;
   bool get isAutoMode => _isAutoMode;
   String get autoSpectrumQuantity => _autoSpectrumQuantity;
   String get autoSpeed => _autoSpeed;
@@ -298,6 +304,7 @@ class SettingsService extends ChangeNotifier {
     isVisualizerDynamicColor = false;
     isVisualizerDynamicStartColor = false;
     isVisualizerDynamicEndColor = false;
+    playbackMeshBackgroundSpeed = 0.05;
     isAutoMode = true;
     autoSpectrumQuantity = 'high';
     autoSpeed = 'medium';
@@ -535,6 +542,15 @@ class SettingsService extends ChangeNotifier {
   set playbackBackgroundType(int value) {
     _playbackBackgroundType = value;
     _prefs.setInt(_keyPlaybackBackgroundType, value);
+    notifyListeners();
+  }
+
+  set playbackMeshBackgroundSpeed(double value) {
+    if (_playbackMeshBackgroundSpeed == value) {
+      return;
+    }
+    _playbackMeshBackgroundSpeed = value;
+    _prefs.setDouble(_keyPlaybackMeshBackgroundSpeed, value);
     notifyListeners();
   }
 
