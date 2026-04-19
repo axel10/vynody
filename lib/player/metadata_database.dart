@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -193,15 +193,16 @@ class MetadataDatabase {
         ? databaseFactoryFfi
         : databaseFactory;
 
-    return await factory.openDatabase(
-      path,
-      options: OpenDatabaseOptions(
-        version: 18,
-        onConfigure: (db) async {
-          await db.execute('PRAGMA busy_timeout = 5000');
-        },
-        onCreate: (db, version) async {
-          await db.execute('''
+    try {
+      return await factory.openDatabase(
+        path,
+        options: OpenDatabaseOptions(
+          version: 18,
+          onConfigure: (db) async {
+            await db.rawQuery('PRAGMA busy_timeout = 5000');
+          },
+          onCreate: (db, version) async {
+            await db.execute('''
           CREATE TABLE songs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             path TEXT UNIQUE,
@@ -224,7 +225,7 @@ class MetadataDatabase {
           )
         ''');
 
-          await db.execute('''
+            await db.execute('''
           CREATE TABLE lyrics_cache (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cacheKey TEXT UNIQUE,
@@ -237,7 +238,7 @@ class MetadataDatabase {
           )
         ''');
 
-          await db.execute('''
+            await db.execute('''
           CREATE TABLE acoustid_cache (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             fingerprint TEXT UNIQUE,
@@ -247,7 +248,7 @@ class MetadataDatabase {
           )
         ''');
 
-          await db.execute('''
+            await db.execute('''
           CREATE TABLE release_cover_cache (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             releaseId TEXT UNIQUE,
@@ -257,7 +258,7 @@ class MetadataDatabase {
           )
         ''');
 
-          await db.execute('''
+            await db.execute('''
           CREATE TABLE lyrics_translation_cache (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cacheKey TEXT,
@@ -447,8 +448,12 @@ class MetadataDatabase {
             }
           }
         },
-      ),
-    );
+        ),
+      );
+    } catch (e) {
+      debugPrint('[MetadataDatabase] open failed path=$path error=$e');
+      rethrow;
+    }
   }
 
   Future<bool> _columnExists(

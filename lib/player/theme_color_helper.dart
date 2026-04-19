@@ -269,7 +269,7 @@ class ThemeColorHelper {
     }
     return total;
   }
-  static const double defaultHueSpreadThreshold = 230.0;
+  static const double defaultHueSpreadThreshold = 210.0;
   static bool shouldRebuildPalette(
     List<Color> colors, {
     double threshold = defaultHueSpreadThreshold,
