@@ -528,7 +528,7 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                               ),
                               title: Text(
                                 song.title ?? song.name,
-                                style: TextStyle(
+                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   color: textColor,
                                   fontWeight: isCurrent && !isMissing
                                       ? FontWeight.bold
@@ -537,7 +537,13 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                               ),
                               subtitle: Text(
                                 '${scanner.metadataMap[song.path]?.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${scanner.metadataMap[song.path]?.album ?? AppLocalizations.of(context)!.unknownAlbum}',
-                                style: subtitleStyle,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      fontSize: 10,
+                                      color: isMissing
+                                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                .withValues(alpha: 0.5)
+                                          : null,
+                                    ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),

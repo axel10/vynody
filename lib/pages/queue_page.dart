@@ -316,13 +316,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         : isCurrent
                         ? Theme.of(context).colorScheme.primary
                         : null;
-                    final subtitleStyle = TextStyle(
-                      fontSize: 10,
-                      color: isMissing
-                          ? Theme.of(context).colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.5)
-                          : null,
-                    );
+
                     final isSelected = _selectedIndices.contains(index);
 
                     return GestureDetector(
@@ -399,7 +393,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         ),
                         title: Text(
                           song.title ?? song.name,
-                          style: TextStyle(
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: textColor,
                             fontWeight: isCurrent && !isMissing
                                 ? FontWeight.bold
@@ -408,7 +402,13 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         ),
                         subtitle: Text(
                           _buildSongSubtitle(context, song, scanner),
-                          style: subtitleStyle,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                color: isMissing
+                                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                                          .withValues(alpha: 0.5)
+                                    : null,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

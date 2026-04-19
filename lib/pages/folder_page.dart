@@ -644,7 +644,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         );
                       },
                       child: ListTile(
-                        titleTextStyle: TextStyle(
+                        titleTextStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: file.isMissing
                               ? Theme.of(context).colorScheme.onSurfaceVariant
                                     .withValues(alpha: 0.55)
@@ -705,7 +705,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         title: Text(file.displayName),
                         subtitle: Text(
                           '${file.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${file.album ?? AppLocalizations.of(context)!.unknownAlbum}',
-                          style: const TextStyle(fontSize: 10),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                color: file.isMissing
+                                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                                          .withValues(alpha: 0.5)
+                                    : null,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
