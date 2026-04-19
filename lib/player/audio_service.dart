@@ -1190,6 +1190,35 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
   }
 
+  Future<void> _playQueueTracks({
+    required List<MusicFile> songs,
+    required int startIndex,
+    required bool clearPlayerQueue,
+    required bool awaitDataReady,
+  }) async {
+    if (songs.isEmpty) return;
+
+    final safeIndex = startIndex.clamp(0, songs.length - 1);
+    final paths = songs.map((song) => song.path).toList(growable: false);
+
+    if (clearPlayerQueue) {
+      await _player.playlist.clear();
+    }
+
+    await _player.playPaths(paths, autoPlayFirst: false);
+
+    final current = songs[safeIndex];
+    await _player.playTrack(
+      _audioTrackForSong(current),
+      preferredPlaylistId: _player.playlist.queuePlaylistId,
+    );
+
+    _currentIndex = safeIndex;
+    await _syncCurrentPlaybackSong(current, awaitDataReady: awaitDataReady);
+    await _player.player.setVolume(_volume / 100.0);
+    _startQueueBackgroundProcessing(priorityPath: current.path);
+  }
+
   Future<void> playFile(
     String path,
     String name, {
@@ -1216,30 +1245,14 @@ class AudioService extends Notifier<AudioSnapshot> {
       );
       if (!append) {
         _queue.clear();
-        await _player.playlist.clear();
       }
 
-      final int index = _queue.length;
       _queue.add(song);
-      await _player.playlist.addTracks([
-        _audioTrackForSong(song, index.toString()),
-      ]);
-
-      // 2. 确保数据就绪
-      await _ensureCurrentSongDataReady(song);
-
-      // 3. 启动后台处理并开始播放
-      _startQueueBackgroundProcessing(priorityPath: path);
-
-      // 这里不能再走 playAtIndex()，因为当前方法已经把 _isTransitioning
-      // 设为 true 了，而 playAtIndex() 会直接因为这个状态提前返回。
-      // 直接切换到活动播放列表并显式 autoPlay，才能真正触发播放。
-      final activePlaylistId =
-          _player.playlist.activePlaylistId ?? _player.playlist.queuePlaylistId;
-      await _player.playlist.setActivePlaylist(
-        activePlaylistId,
-        startIndex: index,
-        autoPlay: true,
+      await _playQueueTracks(
+        songs: _queue,
+        startIndex: _queue.length - 1,
+        clearPlayerQueue: !append,
+        awaitDataReady: true,
       );
     } finally {
       _isTransitioning = false;
@@ -1268,39 +1281,15 @@ class AudioService extends Notifier<AudioSnapshot> {
       // 2. 清除并重新填充本地播放队列
       _queue.clear();
       _queue.addAll(songs);
-      _currentIndex = safeIndex;
       notifyListeners();
 
-      // 3. 将歌曲转换为底层播放器（AudioCore）可识别的 Track 格式
-      final tracks = songs.asMap().entries.map((e) {
-        return _audioTrackForSong(e.value, e.key.toString());
-      }).toList();
-
-      // 4. 清除底层播放器的旧内容并加载新 Track
-      await _player.playlist.clear();
-      await _player.playlist.addTracks(tracks);
-
-      // 5. 设置当前活跃的播放列表并开启播放（从指定索引开始）
-      if (_player.playlist.activePlaylistId != null) {
-        await _player.playlist.setActivePlaylist(
-          _player.playlist.activePlaylistId!,
-          startIndex: safeIndex,
-          autoPlay: true,
-        );
-      }
-
-      // 6. 确认即将播放歌曲的数据就绪（如果没好，则暂停扫描，优先处理）
-      final current = songs[safeIndex];
-      await _syncCurrentPlaybackSong(current, awaitDataReady: true);
-
-      // 7. 设置音量并更新后台队列
-
-      await _player.player.setVolume(_volume / 100.0);
-
-      // 8. 启动后台线程来预加载队列中后续歌曲的元数据或波形字节，提升切换时的平滑度
-      _startQueueBackgroundProcessing();
+      await _playQueueTracks(
+        songs: _queue,
+        startIndex: safeIndex,
+        clearPlayerQueue: true,
+        awaitDataReady: true,
+      );
     } finally {
-      // 9. 结束切换过程
       _isTransitioning = false;
       notifyListeners();
     }
@@ -1312,18 +1301,18 @@ class AudioService extends Notifier<AudioSnapshot> {
     final bool wasEmpty = _queue.isEmpty;
     _queue.addAll(songs);
 
-    final startIndex = _player.playlist.items.length;
-    final tracks = songs.asMap().entries.map((e) {
-      return _audioTrackForSong(e.value, (startIndex + e.key).toString());
-    }).toList();
-    await _player.playlist.addTracks(tracks);
-
     if (wasEmpty) {
-      _currentIndex = 0;
-      final current = songs[0];
-      await _syncCurrentPlaybackSong(current, awaitDataReady: true);
-      await _player.player.setVolume(_volume / 100.0);
+      await _playQueueTracks(
+        songs: _queue,
+        startIndex: 0,
+        clearPlayerQueue: false,
+        awaitDataReady: true,
+      );
+      return;
     }
+
+    final tracks = songs.map(_audioTrackForSong).toList(growable: false);
+    await _player.playlist.addTracks(tracks);
     _startQueueBackgroundProcessing();
     notifyListeners();
   }
@@ -1394,15 +1383,13 @@ class AudioService extends Notifier<AudioSnapshot> {
     _isTransitioning = true;
     _lastActionNext = (index > _currentIndex);
     try {
-      if (_player.playlist.activePlaylistId != null) {
-        await _player.playlist.setActivePlaylist(
-          _player.playlist.activePlaylistId!,
-          startIndex: index,
-          autoPlay: true,
-        );
-      }
+      final song = _queue[index];
+      await _player.playTrack(
+        _audioTrackForSong(song),
+        preferredPlaylistId:
+            _player.playlist.activePlaylistId ?? _player.playlist.queuePlaylistId,
+      );
       _currentIndex = index;
-      final song = _queue[_currentIndex];
       await _syncCurrentPlaybackSong(song, awaitDataReady: false);
     } finally {
       _isTransitioning = false;
@@ -1515,21 +1502,18 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     if (newSongs.isEmpty) return;
 
-    final startIndex = _queue.length;
     _queue.addAll(newSongs);
 
-    final tracks = newSongs.asMap().entries.map((e) {
-      return _audioTrackForSong(e.value, (startIndex + e.key).toString());
-    }).toList();
+    final tracks = newSongs.map(_audioTrackForSong).toList(growable: false);
 
     // We don't use await here to keep it synchronous for the toggle
     unawaited(_player.playlist.addTracks(tracks));
     _startQueueBackgroundProcessing();
   }
 
-  AudioTrack _audioTrackForSong(MusicFile song, String id) {
+  AudioTrack _audioTrackForSong(MusicFile song) {
     return AudioTrack(
-      id: id,
+      id: song.path,
       uri: song.path,
       title: song.title ?? song.displayName,
       artist: song.artist,
