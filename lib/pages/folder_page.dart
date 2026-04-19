@@ -10,6 +10,7 @@ import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import '../player/audio_riverpod.dart';
+import '../player/scanner_sorting.dart';
 import '../player/scanner_service.dart';
 import '../utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
