@@ -439,6 +439,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     SettingsService settings,
     StateSetter setDialogState,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final isDynamicMeshBackground = settings.playbackBackgroundType == 1;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,11 +453,27 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               setDialogState,
             ),
           ),
+          if (isDynamicMeshBackground) ...[
+            const SizedBox(height: 8),
+            _buildSectionCard(
+              child: _buildOptionSlider(
+                context,
+                label: l10n.speed,
+                value: settings.playbackMeshBackgroundSpeed,
+                min: 0.02,
+                max: 2.0,
+                onChanged: (val) {
+                  settings.playbackMeshBackgroundSpeed = val;
+                  setDialogState(() {});
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           _buildSectionHeader(
             context,
-            AppLocalizations.of(context)!.spectrumAppearanceGroup,
-            resetLabel: AppLocalizations.of(context)!.resetAppearance,
+            l10n.spectrumAppearanceGroup,
+            resetLabel: l10n.resetAppearance,
             onReset: () {
               settings.resetVisualizerAppearance();
               setDialogState(() {});
@@ -467,7 +486,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               children: [
                 _buildOptionSlider(
                   context,
-                  label: AppLocalizations.of(context)!.opacity,
+                  label: l10n.opacity,
                   value: settings.visualizerOpacity,
                   min: 0.0,
                   max: 1.0,
@@ -479,7 +498,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                 const SizedBox(height: 8),
                 SwitchListTile(
                   title: Text(
-                    AppLocalizations.of(context)!.enableGradient,
+                    l10n.enableGradient,
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                   value: settings.isVisualizerGradientEnabled,
@@ -494,7 +513,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                 if (settings.isVisualizerGradientEnabled) ...[
                   _buildColorPickerRow(
                     context,
-                    label: AppLocalizations.of(context)!.startColor,
+                    label: l10n.startColor,
                     color: settings.visualizerStartColor,
                     isDynamic: settings.isVisualizerDynamicStartColor,
                     onDynamicChanged: (val) {
@@ -512,7 +531,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _buildColorPickerRow(
                     context,
-                    label: AppLocalizations.of(context)!.endColor,
+                    label: l10n.endColor,
                     color: settings.visualizerEndColor,
                     isDynamic: settings.isVisualizerDynamicEndColor,
                     onDynamicChanged: (val) {
@@ -530,7 +549,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _buildOptionSlider(
                     context,
-                    label: AppLocalizations.of(context)!.gradientRangeStop1,
+                    label: l10n.gradientRangeStop1,
                     value: settings.visualizerGradientStop1,
                     min: 0.0,
                     max: 1.0,
@@ -542,7 +561,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _buildOptionSlider(
                     context,
-                    label: AppLocalizations.of(context)!.gradientRangeStop2,
+                    label: l10n.gradientRangeStop2,
                     value: settings.visualizerGradientStop2,
                     min: 0.0,
                     max: 1.0,
@@ -554,7 +573,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                 ] else ...[
                   _buildColorPickerRow(
                     context,
-                    label: AppLocalizations.of(context)!.color,
+                    label: l10n.color,
                     color: settings.visualizerColor,
                     isDynamic: settings.isVisualizerDynamicColor,
                     onDynamicChanged: (val) {
