@@ -68,6 +68,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   Map<String, Color> _currentThemeColorsMap = const {};
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
+  String? _themePaletteRecomputeInProgressPath;
 
   Color? get dynamicStartColor => _dynamicStartColor;
   Color? get dynamicEndColor => _dynamicEndColor;
@@ -924,6 +925,46 @@ class AudioService extends Notifier<AudioSnapshot> {
       ),
     );
     notifyListeners();
+  }
+
+  Future<void> recomputeThemeColorsWithMaster({
+    required String songPath,
+  }) async {
+    if (_themePaletteRecomputeInProgressPath == songPath) {
+      return;
+    }
+
+    final current = currentMusic;
+    if (current == null || current.path != songPath) {
+      return;
+    }
+
+    final bytes = current.artworkBytes;
+    final sourcePath = current.thumbnailPath ?? current.artworkPath;
+    if ((bytes == null || bytes.isEmpty) &&
+        (sourcePath == null || sourcePath.isEmpty)) {
+      return;
+    }
+
+    _themePaletteRecomputeInProgressPath = songPath;
+    try {
+      final palette = await ThemeColorHelper.generatePaletteMaster(
+        bytes: bytes,
+        path: sourcePath,
+      );
+
+      if (currentMusic?.path != songPath || palette.colorsMap.isEmpty) {
+        return;
+      }
+
+      await saveCurrentSongThemeColors(palette.colorsMap);
+    } catch (e) {
+      debugPrint('Error recomputing theme colors for $songPath: $e');
+    } finally {
+      if (_themePaletteRecomputeInProgressPath == songPath) {
+        _themePaletteRecomputeInProgressPath = null;
+      }
+    }
   }
 
   Future<void> _updatePalette() async {
