@@ -464,13 +464,7 @@ class _PlaylistPageState extends ConsumerState<PlaylistPage> {
                               : isCurrent
                               ? Theme.of(context).colorScheme.primary
                               : null;
-                          final subtitleStyle = TextStyle(
-                            fontSize: 10,
-                            color: isMissing
-                                ? Theme.of(context).colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.5)
-                                : null,
-                          );
+
 
                           return GestureDetector(
                             key: ObjectKey(song),
