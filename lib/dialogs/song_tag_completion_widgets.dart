@@ -111,8 +111,11 @@ class SongTagSummaryChip extends StatelessWidget {
               const SizedBox(width: 4),
               IconButton(
                 onPressed: onEdit,
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
+                style: IconButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 constraints: const BoxConstraints.tightFor(
                   width: 24,
                   height: 24,
