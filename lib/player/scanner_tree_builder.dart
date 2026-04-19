@@ -23,43 +23,52 @@ class ScannerTreeBuilder {
     Map<String, SongMetadata> metadataByPath,
     int Function(String a, String b) compareNaturally,
   ) {
-    final root = MusicFolder(path: 'system', name: '系统媒体库');
-    final nodes = <String, MusicFolder>{'': root};
-
+    final items = <_FolderItem>[];
     for (final entry in entries) {
       final filePath = _androidEntryFilePath(entry);
       if (filePath == null) continue;
-
-      final file = _musicFileFromAndroidEntry(
-        entry,
-        path: filePath,
-        metadata: metadataByPath[filePath],
+      items.add(
+        _FolderItem(
+          file: _musicFileFromAndroidEntry(
+            entry,
+            path: filePath,
+            metadata: metadataByPath[filePath],
+          ),
+          folderPath: _normalizeAndroidFolderPath(entry.folderPath),
+        ),
       );
-      final folderPath = _normalizeAndroidFolderPath(entry.folderPath);
-      if (folderPath.isEmpty) {
-        root.files.add(file);
-        continue;
-      }
-
-      var currentPath = '';
-      var currentFolder = root;
-      for (final segment in folderPath.split('/').where((s) => s.isNotEmpty)) {
-        currentPath = currentPath.isEmpty ? segment : '$currentPath/$segment';
-        final nextFolder = nodes.putIfAbsent(
-          currentPath,
-          () => MusicFolder(path: currentPath, name: segment),
-        );
-        if (!currentFolder.subFolders.contains(nextFolder)) {
-          currentFolder.subFolders.add(nextFolder);
-        }
-        currentFolder = nextFolder;
-      }
-
-      currentFolder.files.add(file);
     }
 
-    _sortFolderRecursive(root, compareNaturally);
-    return root;
+    return _buildFolderTree(
+      items,
+      compareNaturally,
+      rootPath: 'system',
+      rootName: '系统媒体库',
+    );
+  }
+
+  MusicFolder buildSongsIntoFoldersFromMetadata(
+    Iterable<SongMetadata> songs,
+    int Function(String a, String b) compareNaturally,
+  ) {
+    final items = <_FolderItem>[];
+    for (final song in songs) {
+      final normalizedPath = _normalizePath(song.path);
+      if (normalizedPath.isEmpty) continue;
+      items.add(
+        _FolderItem(
+          file: _musicFileFromSongMetadata(song.copyWith(path: normalizedPath)),
+          folderPath: p.dirname(normalizedPath),
+        ),
+      );
+    }
+
+    return _buildFolderTree(
+      items,
+      compareNaturally,
+      rootPath: 'system',
+      rootName: '系统媒体库',
+    );
   }
 
   MusicFolder buildSongsIntoFolders(
@@ -172,6 +181,62 @@ class ScannerTreeBuilder {
 
   MusicFile musicFileFromSongModel(SongModel song, {SongMetadata? metadata}) {
     return _musicFileFromSongModel(song, metadata: metadata);
+  }
+
+  MusicFile _musicFileFromSongMetadata(SongMetadata song) {
+    return MusicFile(
+      path: song.path,
+      name: p.basename(song.path),
+      title: _cleanText(song.title),
+      artist: _cleanText(song.artist),
+      album: _cleanText(song.album),
+      trackNumber: song.trackNumber,
+      durationMillis: song.duration,
+      thumbnailPath: song.thumbnailPath,
+      artworkPath: song.artworkPath,
+      artworkWidth: song.artworkWidth,
+      artworkHeight: song.artworkHeight,
+      themeColorsBlob: song.themeColorsBlob,
+      waveformBlob: song.waveformBlob,
+      lastModifiedTime: song.lastModifiedTime,
+    );
+  }
+
+  MusicFolder _buildFolderTree(
+    List<_FolderItem> items,
+    int Function(String a, String b) compareNaturally, {
+    required String rootPath,
+    required String rootName,
+  }) {
+    final root = MusicFolder(path: rootPath, name: rootName);
+    final nodes = <String, MusicFolder>{'': root};
+
+    for (final item in items) {
+      final folderPath = item.folderPath;
+      if (folderPath.isEmpty) {
+        root.files.add(item.file);
+        continue;
+      }
+
+      var currentPath = '';
+      var currentFolder = root;
+      for (final segment in folderPath.split('/').where((s) => s.isNotEmpty)) {
+        currentPath = currentPath.isEmpty ? segment : '$currentPath/$segment';
+        final nextFolder = nodes.putIfAbsent(
+          currentPath,
+          () => MusicFolder(path: currentPath, name: segment),
+        );
+        if (!currentFolder.subFolders.contains(nextFolder)) {
+          currentFolder.subFolders.add(nextFolder);
+        }
+        currentFolder = nextFolder;
+      }
+
+      currentFolder.files.add(item.file);
+    }
+
+    _sortFolderRecursive(root, compareNaturally);
+    return root;
   }
 
   MusicFolder _recursiveBuild(
@@ -298,4 +363,11 @@ class ScannerTreeBuilder {
     if (trimmed == null || trimmed.isEmpty) return null;
     return trimmed;
   }
+}
+
+class _FolderItem {
+  final MusicFile file;
+  final String folderPath;
+
+  const _FolderItem({required this.file, required this.folderPath});
 }

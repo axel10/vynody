@@ -270,43 +270,43 @@ class MetadataDatabase {
             UNIQUE(cacheKey, languageCode)
           )
           ''');
-        },
-        onUpgrade: (db, oldVersion, newVersion) async {
-          if (oldVersion < 2) {
-            if (!await _columnExists(db, 'songs', 'artworkWidth')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN artworkWidth INTEGER',
-              );
+          },
+          onUpgrade: (db, oldVersion, newVersion) async {
+            if (oldVersion < 2) {
+              if (!await _columnExists(db, 'songs', 'artworkWidth')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN artworkWidth INTEGER',
+                );
+              }
+              if (!await _columnExists(db, 'songs', 'artworkHeight')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN artworkHeight INTEGER',
+                );
+              }
             }
-            if (!await _columnExists(db, 'songs', 'artworkHeight')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN artworkHeight INTEGER',
-              );
+            if (oldVersion < 3) {
+              if (!await _columnExists(db, 'songs', 'trackNumber')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN trackNumber INTEGER',
+                );
+              }
             }
-          }
-          if (oldVersion < 3) {
-            if (!await _columnExists(db, 'songs', 'trackNumber')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN trackNumber INTEGER',
-              );
+            if (oldVersion < 4) {
+              if (!await _columnExists(db, 'songs', 'themeColorsBlob')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN themeColorsBlob BLOB',
+                );
+              }
             }
-          }
-          if (oldVersion < 4) {
-            if (!await _columnExists(db, 'songs', 'themeColorsBlob')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN themeColorsBlob BLOB',
-              );
+            if (oldVersion < 5) {
+              if (!await _columnExists(db, 'songs', 'waveformBlob')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN waveformBlob BLOB',
+                );
+              }
             }
-          }
-          if (oldVersion < 5) {
-            if (!await _columnExists(db, 'songs', 'waveformBlob')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN waveformBlob BLOB',
-              );
-            }
-          }
-          if (oldVersion < 6) {
-            await db.execute('''
+            if (oldVersion < 6) {
+              await db.execute('''
             CREATE TABLE IF NOT EXISTS lyrics_cache (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               cacheKey TEXT UNIQUE,
@@ -327,23 +327,23 @@ class MetadataDatabase {
               updatedAtMillis INTEGER
             )
           ''');
-          }
-          if (oldVersion < 7) {
-            if (!await _columnExists(db, 'songs', 'thumbnailPath')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN thumbnailPath TEXT',
-              );
             }
-          }
-          if (oldVersion < 8) {
-            if (!await _columnExists(db, 'songs', 'lastModifiedTime')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN lastModifiedTime INTEGER',
-              );
+            if (oldVersion < 7) {
+              if (!await _columnExists(db, 'songs', 'thumbnailPath')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN thumbnailPath TEXT',
+                );
+              }
             }
-          }
-          if (oldVersion < 9) {
-            await db.execute('''
+            if (oldVersion < 8) {
+              if (!await _columnExists(db, 'songs', 'lastModifiedTime')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN lastModifiedTime INTEGER',
+                );
+              }
+            }
+            if (oldVersion < 9) {
+              await db.execute('''
             CREATE TABLE IF NOT EXISTS acoustid_cache (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               fingerprint TEXT UNIQUE,
@@ -352,9 +352,9 @@ class MetadataDatabase {
               updatedAtMillis INTEGER
             )
           ''');
-          }
-          if (oldVersion < 10) {
-            await db.execute('''
+            }
+            if (oldVersion < 10) {
+              await db.execute('''
             CREATE TABLE IF NOT EXISTS release_cover_cache (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               releaseId TEXT UNIQUE,
@@ -363,21 +363,21 @@ class MetadataDatabase {
               updatedAtMillis INTEGER
             )
           ''');
-          }
-          if (oldVersion < 11) {
-            if (!await _columnExists(db, 'songs', 'genres')) {
-              await db.execute('ALTER TABLE songs ADD COLUMN genres TEXT');
             }
-          }
-          if (oldVersion < 12) {
-            if (!await _columnExists(db, 'songs', 'createdAt')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN createdAt INTEGER',
-              );
+            if (oldVersion < 11) {
+              if (!await _columnExists(db, 'songs', 'genres')) {
+                await db.execute('ALTER TABLE songs ADD COLUMN genres TEXT');
+              }
             }
-          }
-          if (oldVersion < 13) {
-            await db.execute('''
+            if (oldVersion < 12) {
+              if (!await _columnExists(db, 'songs', 'createdAt')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN createdAt INTEGER',
+                );
+              }
+            }
+            if (oldVersion < 13) {
+              await db.execute('''
             CREATE TABLE IF NOT EXISTS lyrics_translation_cache (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               cacheKey TEXT,
@@ -389,17 +389,17 @@ class MetadataDatabase {
               UNIQUE(cacheKey, languageCode)
             )
           ''');
-          }
-          if (oldVersion < 14) {
-            if (!await _columnExists(db, 'lyrics_cache', 'cacheKey')) {
-              await db.execute(
-                'ALTER TABLE lyrics_cache ADD COLUMN cacheKey TEXT',
-              );
             }
-          }
-          if (oldVersion < 15) {
-            await db.execute('DROP TABLE IF EXISTS lyrics_translation_cache');
-            await db.execute('''
+            if (oldVersion < 14) {
+              if (!await _columnExists(db, 'lyrics_cache', 'cacheKey')) {
+                await db.execute(
+                  'ALTER TABLE lyrics_cache ADD COLUMN cacheKey TEXT',
+                );
+              }
+            }
+            if (oldVersion < 15) {
+              await db.execute('DROP TABLE IF EXISTS lyrics_translation_cache');
+              await db.execute('''
             CREATE TABLE lyrics_translation_cache (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               cacheKey TEXT,
@@ -411,10 +411,10 @@ class MetadataDatabase {
               UNIQUE(cacheKey, languageCode)
             )
           ''');
-          }
-          if (oldVersion < 16) {
-            await db.execute('DROP TABLE IF EXISTS acoustid_cache');
-            await db.execute('''
+            }
+            if (oldVersion < 16) {
+              await db.execute('DROP TABLE IF EXISTS acoustid_cache');
+              await db.execute('''
             CREATE TABLE IF NOT EXISTS acoustid_cache (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               fingerprint TEXT UNIQUE,
@@ -423,31 +423,31 @@ class MetadataDatabase {
               updatedAtMillis INTEGER
             )
           ''');
-          }
-          if (oldVersion < 17) {
-            if (!await _columnExists(
-              db,
-              'lyrics_cache',
-              'timelineOffsetMillis',
-            )) {
-              await db.execute(
-                'ALTER TABLE lyrics_cache ADD COLUMN timelineOffsetMillis INTEGER',
-              );
             }
-          }
-          if (oldVersion < 18) {
-            if (!await _columnExists(db, 'songs', 'metadataTextScanned')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN metadataTextScanned INTEGER',
-              );
+            if (oldVersion < 17) {
+              if (!await _columnExists(
+                db,
+                'lyrics_cache',
+                'timelineOffsetMillis',
+              )) {
+                await db.execute(
+                  'ALTER TABLE lyrics_cache ADD COLUMN timelineOffsetMillis INTEGER',
+                );
+              }
             }
-            if (!await _columnExists(db, 'songs', 'metadataImgScanned')) {
-              await db.execute(
-                'ALTER TABLE songs ADD COLUMN metadataImgScanned INTEGER',
-              );
+            if (oldVersion < 18) {
+              if (!await _columnExists(db, 'songs', 'metadataTextScanned')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN metadataTextScanned INTEGER',
+                );
+              }
+              if (!await _columnExists(db, 'songs', 'metadataImgScanned')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN metadataImgScanned INTEGER',
+                );
+              }
             }
-          }
-        },
+          },
         ),
       );
     } catch (e) {
@@ -622,6 +622,13 @@ class MetadataDatabase {
         return SongMetadata.fromMap(maps.first);
       }
       return null;
+    });
+  }
+
+  Future<List<SongMetadata>> getAllSongMetadata() async {
+    return _withDbLock((db) async {
+      final rows = await db.query('songs', orderBy: 'path COLLATE NOCASE ASC');
+      return rows.map(SongMetadata.fromMap).toList(growable: false);
     });
   }
 
