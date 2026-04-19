@@ -293,18 +293,18 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final height = constraints.maxHeight;
 
                 // ---------------- Portrait Normal ----------------
-                final pNormalCoverSide = math.min(width * 0.85, height * 0.5);
+                final pNormalCoverSide = math.min(width * 0.98, height * 0.55);
                 final pNormalCoverTop =
-                    height * 0.05 + (height * 0.45 - pNormalCoverSide) / 2;
+                    (height * 0.03 + (height * 0.46 - pNormalCoverSide) / 2);
                 final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
 
-                final pNormalInfoTop = height * 0.52;
+                final pNormalInfoTop = height * 0.54;
                 final pNormalInfoLeft = 16.0;
                 final pNormalInfoWidth = width - 32.0;
                 final pNormalInfoHeight = 80.0;
 
                 final pNormalControlsTop =
-                    pNormalInfoTop + pNormalInfoHeight + 8.0;
+                    pNormalInfoTop + pNormalInfoHeight + 4.0;
                 final pNormalControlsLeft = 16.0;
                 final pNormalControlsWidth = width - 32.0;
                 final pNormalControlsHeight =
@@ -318,7 +318,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final pNormalLyricsOpacity = 0.0;
 
                 // ---------------- Portrait Lyrics ----------------
-                final pLyricsCoverSide = math.min(104.0, width * 0.28);
+                final pLyricsCoverSide = math.min(120.0, width * 0.32);
                 const pLyricsCoverTop = 12.0;
                 const pLyricsCoverLeft = 12.0;
 
