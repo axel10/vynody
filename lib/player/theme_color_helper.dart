@@ -155,7 +155,6 @@ Future<Map<String, int>> _generatePaletteMasterColorMapTask(
 }
 
 class ThemeColorHelper {
-  static const double defaultHueSpreadThreshold = 210.0;
 
   static Uint8List paletteToBlob(palette_legacy.PaletteGenerator palette) {
     return colorsMapToBlob({
@@ -270,7 +269,7 @@ class ThemeColorHelper {
     }
     return total;
   }
-
+  static const double defaultHueSpreadThreshold = 230.0;
   static bool shouldRebuildPalette(
     List<Color> colors, {
     double threshold = defaultHueSpreadThreshold,
