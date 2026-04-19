@@ -20,6 +20,7 @@ import 'waveform_service.dart';
 import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
 import 'scanner_service.dart';
+import 'playlist_service.dart';
 import 'metadata_helper.dart';
 import 'lyrics_controller.dart';
 import 'lyrics_controller_state.dart';
@@ -51,6 +52,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   late final PlaybackQueueProcessor _queueProcessor;
   late final WaveformService _waveformService;
   ScannerService? _scannerService;
+  PlaylistService? _playlistService;
   void Function({required bool skipped})? _missingSongNoticeHandler;
   bool _isLyricsActive = false;
   Timer? _sleepTimer;
@@ -207,6 +209,10 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void setScannerService(ScannerService? scanner) {
     _scannerService = scanner;
+  }
+
+  void setPlaylistService(PlaylistService? playlistService) {
+    _playlistService = playlistService;
   }
 
   void setSongMissingStateByPath(String path, bool isMissing) {
@@ -897,32 +903,46 @@ class AudioService extends Notifier<AudioSnapshot> {
   Future<void> saveCurrentSongThemeColors(Map<String, Color> colors) async {
     final current = currentMusic;
     if (current == null) return;
+    final existingMetadata = await _db.getSongMetadata(current.path);
 
     final themeColorsBlob = ThemeColorHelper.colorsMapToBlob(colors);
     final updatedSong = current.copyWith(themeColorsBlob: themeColorsBlob);
+    final updatedMetadata = SongMetadata(
+      id: updatedSong.id,
+      path: updatedSong.path,
+      title: updatedSong.title ?? updatedSong.displayName,
+      album: updatedSong.album ?? 'Unknown',
+      artist: updatedSong.artist ?? 'Unknown',
+      duration: updatedSong.durationMillis,
+      artworkPath: updatedSong.artworkPath,
+      thumbnailPath: updatedSong.thumbnailPath,
+      artworkWidth: updatedSong.artworkWidth,
+      artworkHeight: updatedSong.artworkHeight,
+      trackNumber: updatedSong.trackNumber,
+      themeColorsBlob: themeColorsBlob,
+      waveformBlob: updatedSong.waveformBlob,
+      lastModifiedTime: updatedSong.lastModifiedTime,
+      metadataTextScanned:
+          existingMetadata?.metadataTextScanned ?? updatedSong.lastModifiedTime,
+      metadataImgScanned:
+          existingMetadata?.metadataImgScanned ?? updatedSong.lastModifiedTime,
+      createdAt: existingMetadata?.createdAt,
+      genres: existingMetadata?.genres,
+    );
 
     if (_currentIndex >= 0 && _currentIndex < _queue.length) {
       _queue[_currentIndex] = updatedSong;
     }
 
     _applyThemeColors(colors);
-    await _db.insertOrUpdateSong(
-      SongMetadata(
-        id: current.id,
-        path: updatedSong.path,
-        title: updatedSong.title ?? updatedSong.displayName,
-        album: updatedSong.album ?? 'Unknown',
-        artist: updatedSong.artist ?? 'Unknown',
-        duration: updatedSong.durationMillis,
-        artworkPath: updatedSong.artworkPath,
-        thumbnailPath: updatedSong.thumbnailPath,
-        artworkWidth: updatedSong.artworkWidth,
-        artworkHeight: updatedSong.artworkHeight,
-        trackNumber: updatedSong.trackNumber,
-        themeColorsBlob: themeColorsBlob,
-        waveformBlob: updatedSong.waveformBlob,
-        lastModifiedTime: updatedSong.lastModifiedTime,
-      ),
+    await _db.insertOrUpdateSong(updatedMetadata);
+    _scannerService?.updateMetadataForPath(
+      updatedMetadata,
+      artworkBytes: updatedSong.artworkBytes,
+    );
+    await _playlistService?.updateSongMetadataByPath(
+      updatedMetadata,
+      artworkBytes: updatedSong.artworkBytes,
     );
     notifyListeners();
   }
