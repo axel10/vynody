@@ -98,7 +98,11 @@ class ScannerFolderSorter {
     required SortCriteria criteria,
     required SortOrder order,
   }) {
-    folders.sort((a, b) => _compareNaturally(a.name, b.name));
+    final folderComparator = _folderComparator(
+      criteria: criteria,
+      order: order,
+    );
+    folders.sort(folderComparator);
     for (final folder in folders) {
       sortFolderRecursive(folder, criteria: criteria, order: order);
     }
@@ -119,7 +123,7 @@ class ScannerFolderSorter {
     required SortCriteria criteria,
     required SortOrder order,
   }) {
-    folder.subFolders.sort((a, b) => _compareNaturally(a.name, b.name));
+    folder.subFolders.sort(_folderComparator(criteria: criteria, order: order));
 
     int Function(MusicFile, MusicFile) comparator;
 
@@ -158,9 +162,10 @@ class ScannerFolderSorter {
     MusicFolder folder, {
     required FolderSortSettings Function(String path) resolveSettings,
   }) {
-    folder.subFolders.sort((a, b) => _compareNaturally(a.name, b.name));
-
     final settings = resolveSettings(folder.path);
+    folder.subFolders.sort(
+      _folderComparator(criteria: settings.criteria, order: settings.order),
+    );
     final comparator = _comparatorFor(
       criteria: settings.criteria,
       order: settings.order,
@@ -196,6 +201,22 @@ class ScannerFolderSorter {
         };
         break;
     }
+
+    if (order == SortOrder.descending) {
+      final baseComparator = comparator;
+      comparator = (a, b) => baseComparator(b, a);
+    }
+
+    return comparator;
+  }
+
+  int Function(MusicFolder, MusicFolder) _folderComparator({
+    required SortCriteria criteria,
+    required SortOrder order,
+  }) {
+    int Function(MusicFolder, MusicFolder) comparator = (a, b) {
+      return _compareNaturally(a.name, b.name);
+    };
 
     if (order == SortOrder.descending) {
       final baseComparator = comparator;
