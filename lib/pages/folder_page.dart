@@ -807,41 +807,146 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   void _showSortDialog(BuildContext context, ScannerService scanner) {
+    final currentFolder = scanner.navigationCurrentFolder;
+    final currentFolderPath = currentFolder?.path ?? '';
+    final hasCurrentFolder = currentFolder != null;
+    final globalSettings = scanner.getGlobalSortSettings();
+    final currentFolderSettings = hasCurrentFolder
+        ? scanner.getSortSettingsForFolder(currentFolderPath)
+        : globalSettings;
+    final initialScope =
+        hasCurrentFolder && scanner.hasSortOverrideForFolder(currentFolderPath)
+        ? SortScope.currentFolder
+        : SortScope.global;
+    var selectedScope = initialScope;
+    var selectedCriteria = initialScope == SortScope.currentFolder
+        ? currentFolderSettings.criteria
+        : globalSettings.criteria;
+    var selectedOrder = initialScope == SortScope.currentFolder
+        ? currentFolderSettings.order
+        : globalSettings.order;
+
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            void syncSelectionForScope(SortScope scope) {
+              final settings =
+                  scope == SortScope.currentFolder && hasCurrentFolder
+                  ? scanner.getSortSettingsForFolder(currentFolderPath)
+                  : scanner.getGlobalSortSettings();
+              selectedCriteria = settings.criteria;
+              selectedOrder = settings.order;
+            }
+
             return AlertDialog(
               title: Text(AppLocalizations.of(context)!.sortBy),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  RadioGroup(
+                  if (hasCurrentFolder) ...[
+                    Text(
+                      AppLocalizations.of(context)!.sortScope,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    RadioGroup<SortScope>(
+                      onChanged: (v) {
+                        if (v == null || v == selectedScope) return;
+                        setState(() {
+                          selectedScope = v;
+                          syncSelectionForScope(v);
+                        });
+                      },
+                      groupValue: selectedScope,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            title: Text(
+                              AppLocalizations.of(context)!.currentFolderScope,
+                            ),
+                            leading: const Radio(
+                              value: SortScope.currentFolder,
+                            ),
+                          ),
+                          ListTile(
+                            title: Text(
+                              AppLocalizations.of(context)!.globalScope,
+                            ),
+                            leading: const Radio(value: SortScope.global),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  Text(
+                    AppLocalizations.of(context)!.sortBy,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  RadioGroup<SortCriteria>(
                     onChanged: (v) {
-                      if (v != null) {
-                        scanner.setSortCriteria(v);
-                        setState(() {});
-                      }
+                      if (v == null) return;
+                      setState(() {
+                        selectedCriteria = v;
+                      });
+                      scanner.setSortCriteria(
+                        v,
+                        scope: selectedScope,
+                        folderPath: currentFolder?.path,
+                      );
                     },
-                    groupValue: scanner.sortCriteria,
+                    groupValue: selectedCriteria,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ListTile(
                           title: Text(AppLocalizations.of(context)!.title),
-                          leading: Radio(value: SortCriteria.title),
+                          leading: const Radio(value: SortCriteria.title),
                         ),
                         ListTile(
                           title: Text(AppLocalizations.of(context)!.fileName),
-                          leading: Radio(value: SortCriteria.filename),
+                          leading: const Radio(value: SortCriteria.filename),
                         ),
-
                         ListTile(
                           title: Text(
                             AppLocalizations.of(context)!.trackNumber,
                           ),
-                          leading: Radio(value: SortCriteria.trackNumber),
+                          leading: const Radio(value: SortCriteria.trackNumber),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    AppLocalizations.of(context)!.sortOrder,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  RadioGroup<SortOrder>(
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        selectedOrder = v;
+                      });
+                      scanner.setSortOrder(
+                        v,
+                        scope: selectedScope,
+                        folderPath: currentFolder?.path,
+                      );
+                    },
+                    groupValue: selectedOrder,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          title: Text(AppLocalizations.of(context)!.ascending),
+                          leading: const Radio(value: SortOrder.ascending),
+                        ),
+                        ListTile(
+                          title: Text(AppLocalizations.of(context)!.descending),
+                          leading: const Radio(value: SortOrder.descending),
                         ),
                       ],
                     ),
