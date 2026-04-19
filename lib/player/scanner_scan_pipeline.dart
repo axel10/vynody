@@ -1,0 +1,190 @@
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+
+import 'metadata_database.dart';
+import 'scanner_metadata_store.dart';
+import 'scanner_scan_support.dart';
+
+class ScannerScanPipeline {
+  ScannerScanPipeline({
+    required String Function(String path) normalizePath,
+    required String Function(String path) pathLookupKey,
+    required ScannerMetadataStore metadataStore,
+  }) : _normalizePath = normalizePath,
+       _pathLookupKey = pathLookupKey,
+       _metadataStore = metadataStore;
+
+  final String Function(String path) _normalizePath;
+  final String Function(String path) _pathLookupKey;
+  final ScannerMetadataStore _metadataStore;
+
+  Future<Map<String, int?>> loadLastModifiedTimes(
+    Iterable<String> filePaths,
+  ) async {
+    final normalizedPaths = <String>[];
+    final seen = <String>{};
+
+    for (final path in filePaths) {
+      final normalized = _normalizePath(path);
+      if (normalized.isEmpty) continue;
+
+      final lookupKey = _pathLookupKey(normalized);
+      if (seen.add(lookupKey)) {
+        normalizedPaths.add(normalized);
+      }
+    }
+
+    final lastModifiedByPath = <String, int?>{};
+    if (normalizedPaths.isEmpty) {
+      return lastModifiedByPath;
+    }
+
+    const batchSize = 128;
+    for (var start = 0; start < normalizedPaths.length; start += batchSize) {
+      final end = start + batchSize < normalizedPaths.length
+          ? start + batchSize
+          : normalizedPaths.length;
+      final chunk = normalizedPaths.sublist(start, end);
+
+      final results = await Future.wait(
+        chunk.map((path) async {
+          try {
+            final lastModified = await File(path).lastModified();
+            return MapEntry(
+              _pathLookupKey(path),
+              lastModified.millisecondsSinceEpoch,
+            );
+          } catch (_) {
+            return MapEntry<String, int?>(_pathLookupKey(path), null);
+          }
+        }),
+      );
+
+      for (final entry in results) {
+        lastModifiedByPath[entry.key] = entry.value;
+      }
+    }
+
+    return lastModifiedByPath;
+  }
+
+  Future<ScanFileClassification> classifyDiscoveredFiles(
+    List<String> filePaths,
+  ) async {
+    if (filePaths.isEmpty) {
+      return ScanFileClassification(
+        existingMetadataByPath: const {},
+        stageByPath: const {},
+      );
+    }
+
+    final existingMetadataByPath = await MetadataDatabase()
+        .getSongMetadataByPaths(filePaths);
+    final lastModifiedByPath = await loadLastModifiedTimes(filePaths);
+
+    final stageByPath = <String, ScanFileStage>{};
+    final seen = <String>{};
+
+    for (final path in filePaths) {
+      final lookupKey = _pathLookupKey(path);
+      if (!seen.add(lookupKey)) {
+        continue;
+      }
+
+      final existing = existingMetadataByPath[lookupKey];
+      final currentLastModified = lastModifiedByPath[lookupKey];
+      final textScanned = existing?.metadataTextScanned;
+      final imgScanned = existing?.metadataImgScanned;
+
+      if (existing != null &&
+          currentLastModified != null &&
+          textScanned == currentLastModified &&
+          imgScanned == currentLastModified) {
+        stageByPath[path] = ScanFileStage.unchanged;
+      } else if (existing != null &&
+          currentLastModified != null &&
+          textScanned == currentLastModified &&
+          imgScanned != currentLastModified) {
+        stageByPath[path] = ScanFileStage.imageOnly;
+      } else {
+        stageByPath[path] = ScanFileStage.full;
+      }
+    }
+
+    return ScanFileClassification(
+      existingMetadataByPath: existingMetadataByPath,
+      stageByPath: stageByPath,
+    );
+  }
+
+  SongMetadata buildScannedMetadataFromBatchResult(
+    String filePath,
+    Map<String, dynamic> result, {
+    SongMetadata? existing,
+    String? fallbackTitle,
+    String? fallbackAlbum,
+    String? fallbackArtist,
+    int? fallbackDuration,
+    int? fallbackTrackNumber,
+  }) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final lastModified =
+        result['lastModifiedTime'] as int? ?? existing?.lastModifiedTime ?? now;
+    final resolvedFallbackTitle =
+        _cleanText(fallbackTitle) ?? p.basenameWithoutExtension(filePath);
+
+    return SongMetadata(
+      path: filePath,
+      title:
+          _cleanText(result['title'] as String?) ??
+          _cleanText(existing?.title) ??
+          resolvedFallbackTitle,
+      album:
+          _cleanText(result['album'] as String?) ??
+          _cleanText(existing?.album) ??
+          _cleanText(fallbackAlbum) ??
+          'Unknown Album',
+      artist:
+          _cleanText(result['artist'] as String?) ??
+          _cleanText(existing?.artist) ??
+          _cleanText(fallbackArtist) ??
+          'Unknown Artist',
+      duration:
+          result['duration'] as int? ?? existing?.duration ?? fallbackDuration,
+      trackNumber:
+          result['trackNumber'] as int? ??
+          existing?.trackNumber ??
+          fallbackTrackNumber,
+      artworkPath: existing?.artworkPath,
+      thumbnailPath: existing?.thumbnailPath,
+      artworkWidth: existing?.artworkWidth,
+      artworkHeight: existing?.artworkHeight,
+      themeColorsBlob: existing?.themeColorsBlob,
+      waveformBlob: existing?.waveformBlob,
+      lastModifiedTime: lastModified,
+      metadataTextScanned: lastModified,
+      metadataImgScanned: existing?.metadataImgScanned,
+      createdAt: existing?.createdAt ?? now,
+      genres: existing?.genres,
+    );
+  }
+
+  void seedMetadataFromDatabase(
+    Map<String, SongMetadata> existingMetadataByPath,
+  ) {
+    for (final metadata in existingMetadataByPath.values) {
+      _metadataStore.updateMetadataForPath(metadata, notify: false);
+    }
+  }
+
+  String? cleanText(String? value) {
+    return _cleanText(value);
+  }
+
+  String? _cleanText(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed;
+  }
+}
