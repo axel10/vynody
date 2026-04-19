@@ -447,28 +447,27 @@ class VisualizerOptionsDialog extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionCard(
-            child: _buildBackgroundTypeDropdown(
-              context,
-              settings,
-              setDialogState,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildBackgroundTypeDropdown(context, settings, setDialogState),
+                if (isDynamicMeshBackground) ...[
+                  const SizedBox(height: 20),
+                  _buildOptionSlider(
+                    context,
+                    label: l10n.speed,
+                    value: settings.playbackMeshBackgroundSpeed,
+                    min: 0.02,
+                    max: 2.0,
+                    onChanged: (val) {
+                      settings.playbackMeshBackgroundSpeed = val;
+                      setDialogState(() {});
+                    },
+                  ),
+                ],
+              ],
             ),
           ),
-          if (isDynamicMeshBackground) ...[
-            const SizedBox(height: 8),
-            _buildSectionCard(
-              child: _buildOptionSlider(
-                context,
-                label: l10n.speed,
-                value: settings.playbackMeshBackgroundSpeed,
-                min: 0.02,
-                max: 2.0,
-                onChanged: (val) {
-                  settings.playbackMeshBackgroundSpeed = val;
-                  setDialogState(() {});
-                },
-              ),
-            ),
-          ],
           const SizedBox(height: 8),
           _buildSectionHeader(
             context,
