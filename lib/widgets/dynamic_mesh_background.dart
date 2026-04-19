@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
 import '../player/audio_riverpod.dart';
+import '../player/theme_color_helper.dart';
 
 class DynamicMeshBackground extends ConsumerStatefulWidget {
   const DynamicMeshBackground({super.key});
@@ -18,6 +19,7 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
   // final double _bassEnergy = 0.0;
   StreamSubscription? _fftSubscription;
   List<Color>? _stableTargetColors;
+  String? _lastPaletteRecalcAttemptPath;
 
   @override
   void initState() {
@@ -30,22 +32,10 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
   void _initializePoints() {
     // Initialize 4 points with the default monochrome palette.
     points = [
-      MeshGradientPoint(
-        position: const Offset(0.2, 0.2),
-        color: Colors.white,
-      ),
-      MeshGradientPoint(
-        position: const Offset(0.8, 0.2),
-        color: Colors.black,
-      ),
-      MeshGradientPoint(
-        position: const Offset(0.2, 0.8),
-        color: Colors.black,
-      ),
-      MeshGradientPoint(
-        position: const Offset(0.8, 0.8),
-        color: Colors.black,
-      ),
+      MeshGradientPoint(position: const Offset(0.2, 0.2), color: Colors.white),
+      MeshGradientPoint(position: const Offset(0.8, 0.2), color: Colors.black),
+      MeshGradientPoint(position: const Offset(0.2, 0.8), color: Colors.black),
+      MeshGradientPoint(position: const Offset(0.8, 0.8), color: Colors.black),
     ];
   }
 
@@ -69,17 +59,29 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
     final themeColors = ref.watch(audioCurrentThemeColorsMapProvider);
     final dynamicStartColor = ref.watch(audioDynamicStartColorProvider);
     final dynamicEndColor = ref.watch(audioDynamicEndColorProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
 
-    final Color color1 =
-        themeColors['dominant'] ?? dynamicStartColor ?? Colors.white;
-    final Color color2 =
-        themeColors['vibrant'] ?? dynamicEndColor ?? Colors.black;
-    final Color color3 =
-        themeColors['lightVibrant'] ?? themeColors['muted'] ?? Colors.black;
-    final Color color4 =
-        themeColors['darkVibrant'] ?? themeColors['darkMuted'] ?? Colors.black;
+    final List<Color> resolvedTarget = ThemeColorHelper.resolveMeshColors(
+      themeColors,
+      dynamicStartColor: dynamicStartColor,
+      dynamicEndColor: dynamicEndColor,
+    );
 
-    final List<Color> resolvedTarget = [color1, color2, color3, color4];
+    final currentPath = currentMusic?.path;
+    if (currentPath != null &&
+        currentPath.isNotEmpty &&
+        _lastPaletteRecalcAttemptPath != currentPath &&
+        ThemeColorHelper.shouldRebuildPalette(resolvedTarget)) {
+      _lastPaletteRecalcAttemptPath = currentPath;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(
+          ref
+              .read(audioServiceProvider)
+              .recomputeThemeColorsWithMaster(songPath: currentPath),
+        );
+      });
+    }
 
     // Stabilize targetColors to avoid unnecessary animation restarts on every FFT frame
     if (_stableTargetColors == null ||

@@ -259,10 +259,10 @@ packages:
     dependency: transitive
     description:
       name: dart_chromaprint
-      sha256: bafe2c31c46668e3db9bcf32fade37269f117a7c70e458f001b8a1fc8e9fb3d6
+      sha256: "172216716816839338c3a9478a943f1d1fbb9531cf1da637221a1589e404b13f"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.0"
+    version: "1.1.1"
   dart_style:
     dependency: transitive
     description:
