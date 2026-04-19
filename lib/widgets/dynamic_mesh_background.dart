@@ -110,7 +110,7 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
                   builder: (context, animatedColors, child) {
                     return AnimatedMeshGradient(
                       colors: animatedColors,
-                      options: AnimatedMeshGradientOptions(speed: 0.03),
+                      options: AnimatedMeshGradientOptions(speed: 0.1),
                     );
                   },
                 ),

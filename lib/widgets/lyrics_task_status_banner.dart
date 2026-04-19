@@ -2,21 +2,25 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../player/lyrics_generation_phase.dart';
 import '../player/lyrics_riverpod.dart';
+import '../player/lyrics_task_queue_summary.dart';
 
 class LyricsTaskStatusBanner extends ConsumerWidget {
   const LyricsTaskStatusBanner({super.key});
+
+  static const Duration _transitionDuration = Duration(milliseconds: 260);
+  static const Duration _reverseTransitionDuration = Duration(
+    milliseconds: 200,
+  );
+  static const Duration _shimmerDuration = Duration(milliseconds: 1800);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(lyricsTaskQueueSummaryProvider);
     final generationState = ref.watch(lyricsGenerationDisplayStateProvider);
-    if (!summary.isBusy) {
-      return const SizedBox.shrink();
-    }
-
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final accent = colorScheme.primary;
@@ -38,7 +42,6 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
         ? generationState.statusLabel.trim()
         : '正在处理';
     final activeSong = summary.activeSong?.displayName.trim() ?? '';
-
     final progress = generationState.progress.clamp(0.0, 1.0);
     final showProgress =
         generationState.phase != LyricsGenerationPhase.idle && progress > 0.0;
@@ -50,152 +53,104 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
     };
 
     return IgnorePointer(
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 220),
-        opacity: 1.0,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final maxWidth = constraints.maxWidth.isFinite
-                ? math
-                      .max(0.0, math.min(constraints.maxWidth - 32, 440.0))
-                      .toDouble()
-                : 440.0;
+      child: AnimatedSwitcher(
+        duration: _transitionDuration,
+        reverseDuration: _reverseTransitionDuration,
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            alignment: Alignment.topCenter,
+            clipBehavior: Clip.none,
+            children: [
+              ...previousChildren,
+              if (currentChild case final Widget child) child,
+            ],
+          );
+        },
+        transitionBuilder: (child, animation) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
 
-            return Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxWidth),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        colorScheme.surfaceContainerHighest.withValues(
-                          alpha: 0.98,
+          return FadeTransition(
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1.0).animate(curved),
+              child: child,
+            ),
+          );
+        },
+        child: summary.isBusy
+            ? LayoutBuilder(
+                key: const ValueKey('lyrics_task_status_banner_visible'),
+                builder: (context, constraints) {
+                  final maxWidth = constraints.maxWidth.isFinite
+                      ? math
+                            .max(
+                              0.0,
+                              math.min(constraints.maxWidth - 32, 440.0),
+                            )
+                            .toDouble()
+                      : 440.0;
+
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
                         ),
-                        colorScheme.surface.withValues(alpha: 0.95),
-                      ],
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              colorScheme.surfaceContainerHighest.withValues(
+                                alpha: 0.98,
+                              ),
+                              colorScheme.surface.withValues(alpha: 0.95),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.18),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.12),
+                              blurRadius: 22,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: _BusyBannerBody(
+                          summary: summary,
+                          taskLabel: taskLabel,
+                          activeSong: activeSong,
+                          showProgress: showProgress,
+                          progress: progress,
+                          phaseLabel: phaseLabel,
+                          providerLabel: providerLabel,
+                          modelNameLabel: modelNameLabel,
+                          theme: theme,
+                          colorScheme: colorScheme,
+                          accent: accent,
+                          shimmerDuration: _shimmerDuration,
+                        ),
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: accent.withValues(alpha: 0.18)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 22,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              summary.showQueueCount
-                                  ? Icons.queue_music_rounded
-                                  : Icons.auto_awesome_rounded,
-                              color: accent,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: RichText(
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        text: TextSpan(
-                                          style: theme.textTheme.titleSmall?.copyWith(
-                                            fontWeight: FontWeight.w900,
-                                            color: colorScheme.onSurface,
-                                          ),
-                                          children: [
-                                            TextSpan(text: taskLabel),
-                                            if (activeSong.isNotEmpty)
-                                              TextSpan(
-                                                text: ' · 《$activeSong》',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 12,
-                                                  color: colorScheme.onSurfaceVariant,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    if (showProgress) ...[
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        phaseLabel,
-                                        style: theme.textTheme.labelSmall?.copyWith(
-                                          color: colorScheme.primary,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      SizedBox(
-                                        width: 32,
-                                        height: 4,
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(2),
-                                          child: LinearProgressIndicator(
-                                            value: progress,
-                                            backgroundColor: accent.withValues(alpha: 0.1),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                    if (summary.showQueueCount) ...[
-                                      const SizedBox(width: 8),
-                                      _BannerPill(
-                                        label: '队列 ${summary.taskCount}',
-                                        accent: accent,
-                                        filled: true,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                _BannerInfoRow(
-                                  value: [
-                                    if (providerLabel.isNotEmpty) providerLabel,
-                                    if (modelNameLabel.isNotEmpty) modelNameLabel,
-                                  ].join(' · '),
-                                  accent: accent,
-                                  theme: theme,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                  );
+                },
+              )
+            : const SizedBox.shrink(
+                key: ValueKey('lyrics_task_status_banner_hidden'),
               ),
-            );
-          },
-        ),
       ),
     );
   }
@@ -218,15 +173,158 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
   }
 }
 
-class _BannerInfoRow extends StatelessWidget {
-  const _BannerInfoRow({
-    required this.value,
-    required this.accent,
+class _BusyBannerBody extends StatelessWidget {
+  const _BusyBannerBody({
+    required this.summary,
+    required this.taskLabel,
+    required this.activeSong,
+    required this.showProgress,
+    required this.progress,
+    required this.phaseLabel,
+    required this.providerLabel,
+    required this.modelNameLabel,
     required this.theme,
+    required this.colorScheme,
+    required this.accent,
+    required this.shimmerDuration,
   });
 
-  final String value;
+  final LyricsTaskQueueSummary summary;
+  final String taskLabel;
+  final String activeSong;
+  final bool showProgress;
+  final double progress;
+  final String phaseLabel;
+  final String providerLabel;
+  final String modelNameLabel;
+  final ThemeData theme;
+  final ColorScheme colorScheme;
   final Color accent;
+  final Duration shimmerDuration;
+
+  @override
+  Widget build(BuildContext context) {
+    final shimmerBase = accent.withValues(alpha: 0.30);
+    final shimmerHighlight = accent.withValues(alpha: 0.78);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Shimmer.fromColors(
+              baseColor: shimmerBase,
+              highlightColor: shimmerHighlight,
+              period: shimmerDuration,
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  summary.showQueueCount
+                      ? Icons.queue_music_rounded
+                      : Icons.auto_awesome_rounded,
+                  color: accent,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: RichText(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          text: TextSpan(
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: colorScheme.onSurface,
+                            ),
+                            children: [
+                              TextSpan(text: taskLabel),
+                              if (activeSong.isNotEmpty)
+                                TextSpan(
+                                  text: ' · 《$activeSong》',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (showProgress) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          phaseLabel,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        SizedBox(
+                          width: 32,
+                          height: 4,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor: accent.withValues(alpha: 0.1),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (summary.showQueueCount) ...[
+                        const SizedBox(width: 8),
+                        Shimmer.fromColors(
+                          baseColor: shimmerBase,
+                          highlightColor: shimmerHighlight,
+                          period: shimmerDuration,
+                          child: _BannerPill(
+                            label: '队列 ${summary.taskCount}',
+                            accent: accent,
+                            filled: true,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  _BannerInfoRow(
+                    value: [
+                      if (providerLabel.isNotEmpty) providerLabel,
+                      if (modelNameLabel.isNotEmpty) modelNameLabel,
+                    ].join(' · '),
+                    theme: theme,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _BannerInfoRow extends StatelessWidget {
+  const _BannerInfoRow({required this.value, required this.theme});
+
+  final String value;
   final ThemeData theme;
 
   @override
