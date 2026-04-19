@@ -252,6 +252,9 @@ class ScannerService extends ChangeNotifier {
   Future<void> _init() async {
     await _roots.loadRootPaths();
     await _loadSortSettings();
+    if (Platform.isAndroid) {
+      await _loadCachedSystemMediaFromDatabase();
+    }
     _rebuildDisplayedRootFolders();
     notifyListeners();
     await checkAndRequestPermissions();
@@ -537,6 +540,31 @@ class ScannerService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('[ScannerService] Error scanning system media: $e');
+    }
+  }
+
+  Future<void> _loadCachedSystemMediaFromDatabase() async {
+    try {
+      final cachedSongs = await MetadataDatabase().getAllSongMetadata();
+      _systemMediaFolder = _treeBuilder.buildSongsIntoFoldersFromMetadata(
+        cachedSongs,
+        _compareNaturally,
+      );
+      for (final song in cachedSongs) {
+        _metadataStore.cacheMetadata(song);
+      }
+      if (_systemMediaFolder != null) {
+        _folderSorter.sortFolderRecursiveForTree(
+          _systemMediaFolder!,
+          resolveSettings: _resolveSortSettingsForFolder,
+        );
+      }
+      debugPrint(
+        '[ScannerService] Loaded cached system media from songs table '
+        'entries=${cachedSongs.length}',
+      );
+    } catch (e) {
+      debugPrint('[ScannerService] Failed to load cached system media: $e');
     }
   }
 
