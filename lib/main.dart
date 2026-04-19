@@ -112,6 +112,8 @@ class MyApp extends ConsumerWidget {
   final List<String> args;
   const MyApp({super.key, required this.args});
 
+  static const Color appPrimaryColor = Color(0xFF39C5BB);
+
   static const fontFallbacks = [
     'SourceHanSansCN',
     'MiSans',
@@ -130,9 +132,9 @@ class MyApp extends ConsumerWidget {
 
   ThemeData _buildTheme(Brightness brightness) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: Colors.deepPurple,
+      seedColor: appPrimaryColor,
       brightness: brightness,
-    );
+    ).copyWith(primary: appPrimaryColor);
     final isDark = brightness == Brightness.dark;
     final snackBarBackground = isDark ? const Color(0xFF1F1F1F) : Colors.white;
     final snackBarForeground = isDark ? Colors.white : Colors.black;

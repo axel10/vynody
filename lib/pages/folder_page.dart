@@ -302,6 +302,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   Widget build(BuildContext context) {
     final scanner = ref.watch(scannerServiceProvider);
     final audio = ref.read(audioServiceProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     // Sync _currentFolder if it's the system root and data has been loaded
     if (scanner.navigationCurrentFolder?.path == 'system' &&
@@ -617,6 +618,18 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         );
                       },
                       child: ListTile(
+                        titleTextStyle: TextStyle(
+                          color: file.isMissing
+                              ? Theme.of(context).colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.55)
+                              : currentMusic?.path == file.path
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                          fontWeight:
+                              currentMusic?.path == file.path && !file.isMissing
+                              ? FontWeight.bold
+                              : null,
+                        ),
                         leading: SizedBox(
                           width: 40,
                           height: 40,
