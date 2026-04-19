@@ -31,18 +31,34 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   @override
   void initState() {
     super.initState();
-    if ((Platform.isAndroid || Platform.isIOS) && widget.id != null) {
-      _queryArtwork(widget.id!);
+    if (Platform.isAndroid || Platform.isIOS) {
+      if (widget.id != null) {
+        _queryArtwork(widget.id!);
+      } else {
+        _triggerLoad();
+      }
     }
   }
 
   Future<void> _queryArtwork(int id) async {
-    final bytes = await OnAudioQuery().queryArtwork(id, ArtworkType.AUDIO);
-    if (mounted) {
-      setState(() {
-        _artworkBytes = bytes;
-        _artworkQueried = true;
-      });
+    try {
+      final bytes = await OnAudioQuery().queryArtwork(id, ArtworkType.AUDIO);
+      if (mounted) {
+        setState(() {
+          _artworkBytes = bytes;
+          _artworkQueried = true;
+        });
+        if (bytes == null || bytes.isEmpty) {
+          _triggerLoad();
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _artworkQueried = true;
+        });
+        _triggerLoad();
+      }
     }
   }
 
@@ -64,10 +80,12 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     // Reset so we retry if the path/id changes (e.g. list recycling).
     if (oldWidget.path != widget.path || oldWidget.id != widget.id) {
       _loadTriggered = false;
+      _artworkBytes = null;
+      _artworkQueried = false;
       if ((Platform.isAndroid || Platform.isIOS) && widget.id != null) {
-        _artworkBytes = null;
-        _artworkQueried = false;
         _queryArtwork(widget.id!);
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        _triggerLoad();
       }
     }
   }
@@ -75,22 +93,45 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   @override
   Widget build(BuildContext context) {
     if (Platform.isAndroid || Platform.isIOS) {
-      if (widget.id != null) {
-        if (_artworkQueried && _artworkBytes != null) {
+      final scanner = ref.watch(scannerServiceProvider);
+      final metadata = scanner.metadataMap[widget.path];
+      final imagePath = metadata?.thumbnailPath;
+
+      if (imagePath != null) {
+        final file = File(imagePath);
+        if (file.existsSync()) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: Image.memory(
-              _artworkBytes!,
+            child: Image.file(
+              file,
               width: widget.size,
               height: widget.size,
               fit: BoxFit.cover,
+              cacheWidth: (widget.size * 2).toInt(),
+              cacheHeight: (widget.size * 2).toInt(),
               errorBuilder: (_, _, _) => _fallbackIcon(),
             ),
           );
         }
-        // Still fetching or no artwork — show fallback without flickering.
-        return _fallbackIcon();
       }
+
+      if (_artworkQueried && _artworkBytes != null) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Image.memory(
+            _artworkBytes!,
+            width: widget.size,
+            height: widget.size,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => _fallbackIcon(),
+          ),
+        );
+      }
+      if (widget.id == null) {
+        _triggerLoad();
+      }
+      // Still fetching or no artwork — show fallback without flickering.
+      return _fallbackIcon();
     } else if (Platform.isWindows) {
       final scanner = ref.watch(scannerServiceProvider);
       final metadata = scanner.metadataMap[widget.path];
