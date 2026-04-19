@@ -536,49 +536,69 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 ),
               ),
             Expanded(
-              child: ListView(
+              child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.only(bottom: 160),
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.arrow_back),
-                    title: Text(AppLocalizations.of(context)!.goBack),
-                    onTap: () => _goBack(scanner),
-                  ),
+                itemCount:
+                    1 +
+                    (currentFolder.path == 'system' && !scanner.hasPermission
+                        ? 1
+                        : 0) +
+                    currentFolder.subFolders.length +
+                    currentFolder.files.length +
+                    (_isSelectionMode ? 1 : 0),
+                itemBuilder: (context, index) {
+                  var cursor = 0;
 
-                  // Show Permission Button if in system folder and no permission
-                  if (currentFolder.path == 'system' && !scanner.hasPermission)
-                    Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            const Icon(
-                              Icons.lock_outline,
-                              size: 64,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.noMediaLibraryPermission,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () =>
-                                  scanner.checkAndRequestPermissions(),
-                              child: Text(
-                                AppLocalizations.of(context)!.grantPermission,
+                  if (index == cursor) {
+                    return ListTile(
+                      leading: const Icon(Icons.arrow_back),
+                      title: Text(AppLocalizations.of(context)!.goBack),
+                      onTap: () => _goBack(scanner),
+                    );
+                  }
+                  cursor++;
+
+                  if (currentFolder.path == 'system' &&
+                      !scanner.hasPermission) {
+                    if (index == cursor) {
+                      return Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.lock_outline,
+                                size: 64,
+                                color: Colors.grey,
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.noMediaLibraryPermission,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () =>
+                                    scanner.checkAndRequestPermissions(),
+                                child: Text(
+                                  AppLocalizations.of(context)!.grantPermission,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    }
+                    cursor++;
+                  }
 
-                  ...currentFolder.subFolders.map(
-                    (folder) => GestureDetector(
+                  final folderIndex = index - cursor;
+                  if (folderIndex >= 0 &&
+                      folderIndex < currentFolder.subFolders.length) {
+                    final folder = currentFolder.subFolders[folderIndex];
+                    return GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
                         unawaited(
@@ -594,10 +614,15 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         title: Text(folder.name),
                         onTap: () => _navigateTo(folder, scanner),
                       ),
-                    ),
-                  ),
-                  ...currentFolder.files.map(
-                    (file) => GestureDetector(
+                    );
+                  }
+                  cursor += currentFolder.subFolders.length;
+
+                  final fileIndex = index - cursor;
+                  if (fileIndex >= 0 &&
+                      fileIndex < currentFolder.files.length) {
+                    final file = currentFolder.files[fileIndex];
+                    return GestureDetector(
                       key: ValueKey(file.path),
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
@@ -693,20 +718,21 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(file.path)
                             : () async {
-                                final index = currentFolder.files.indexOf(file);
                                 await audio.playPlaylist(
                                   currentFolder.files,
-                                  initialIndex: index,
+                                  initialIndex: fileIndex,
                                 );
                                 if (mounted) {
                                   await widget.onOpenPlayback?.call();
                                 }
                               },
                       ),
-                    ),
-                  ),
-                  if (_isSelectionMode)
-                    Padding(
+                    );
+                  }
+                  cursor += currentFolder.files.length;
+
+                  if (_isSelectionMode && index == cursor) {
+                    return Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
@@ -739,8 +765,11 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           ),
                         ],
                       ),
-                    ),
-                ],
+                    );
+                  }
+
+                  return const SizedBox.shrink();
+                },
               ),
             ),
           ],
