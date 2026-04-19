@@ -55,6 +55,7 @@ final audioServiceWiringProvider = Provider<void>((ref) {
   final scanner = ref.watch(scannerServiceProvider);
   final playlist = ref.watch(playlistServiceProvider);
   audio.setScannerService(scanner);
+  audio.setPlaylistService(playlist);
   scanner.setPlayerController(audio.playbackController);
   scanner.setSongMissingStateHandler((path, isMissing) {
     audio.setSongMissingStateByPath(path, isMissing);
