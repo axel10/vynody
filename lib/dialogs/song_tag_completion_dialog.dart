@@ -257,66 +257,13 @@ class _SongTagCompletionSheetState
     if (!_canEditSummaryCondition(condition)) return;
 
     final initialValue = _summaryConditionText(condition) ?? '';
-    final controller = TextEditingController(text: initialValue);
 
     final editedValue = await showDialog<String?>(
       context: context,
       builder: (dialogContext) {
-        var currentValue = initialValue;
-
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            final canSave = currentValue.trim().isNotEmpty;
-            return AlertDialog(
-              backgroundColor: const Color(0xFF171717),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              title: const Text(
-                '编辑查询条件',
-                style: TextStyle(color: Colors.white),
-              ),
-              content: TextField(
-                controller: controller,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                cursorColor: const Color(0xFF46D27A),
-                decoration: InputDecoration(
-                  hintText: '输入新的查询文字',
-                  hintStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.35),
-                  ),
-                ),
-                onChanged: (value) {
-                  setDialogState(() {
-                    currentValue = value;
-                  });
-                },
-                onSubmitted: canSave
-                    ? (_) =>
-                          Navigator.of(dialogContext).pop(currentValue.trim())
-                    : null,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('取消'),
-                ),
-                FilledButton(
-                  onPressed: canSave
-                      ? () =>
-                            Navigator.of(dialogContext).pop(currentValue.trim())
-                      : null,
-                  child: const Text('保存'),
-                ),
-              ],
-            );
-          },
-        );
+        return _EditSummaryConditionDialog(initialValue: initialValue);
       },
     );
-
-    controller.dispose();
 
     if (!mounted || editedValue == null) return;
     final trimmed = editedValue.trim();
@@ -1029,6 +976,73 @@ class _SongTagCompletionSheetState
           ),
         ),
       ),
+    );
+  }
+}
+
+class _EditSummaryConditionDialog extends StatefulWidget {
+  const _EditSummaryConditionDialog({required this.initialValue});
+
+  final String initialValue;
+
+  @override
+  State<_EditSummaryConditionDialog> createState() =>
+      _EditSummaryConditionDialogState();
+}
+
+class _EditSummaryConditionDialogState
+    extends State<_EditSummaryConditionDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final value = _controller.text.trim();
+    if (value.isEmpty) return;
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSave = _controller.text.trim().isNotEmpty;
+
+    return AlertDialog(
+      backgroundColor: const Color(0xFF171717),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      title: const Text('编辑查询条件', style: TextStyle(color: Colors.white)),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        style: const TextStyle(color: Colors.white),
+        cursorColor: const Color(0xFF46D27A),
+        decoration: InputDecoration(
+          hintText: '输入新的查询文字',
+          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+        ),
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        onChanged: (_) => setState(() {}),
+        onSubmitted: canSave ? (_) => _submit() : null,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: canSave ? _submit : null,
+          child: const Text('保存'),
+        ),
+      ],
     );
   }
 }
