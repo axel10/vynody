@@ -295,7 +295,9 @@ class ScannerService extends ChangeNotifier {
     );
     notifyListeners();
     if (_hasPermission) {
-      await scanSystemMedia();
+      // 系统媒体库扫描可能比本地目录扫描慢很多，启动时不要把
+      // 根目录初始化卡在这里。
+      unawaited(scanSystemMedia());
     }
   }
 
@@ -387,9 +389,7 @@ class ScannerService extends ChangeNotifier {
       if (androidInfo.version.sdkInt >= 33) {
         // Android 13+ requires Permission.audio
         var status = await Permission.audio.status;
-        debugPrint(
-          '[ScannerService] Permission.audio initial status=$status',
-        );
+        debugPrint('[ScannerService] Permission.audio initial status=$status');
         if (!status.isGranted) {
           status = await Permission.audio.request();
           debugPrint(
