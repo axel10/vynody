@@ -283,7 +283,16 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> checkAndRequestPermissions() async {
+    debugPrint(
+      '[ScannerService] checkAndRequestPermissions start '
+      'hasPermission=$_hasPermission '
+      'playerController=${_playerController != null}',
+    );
     _hasPermission = await _checkPermissions();
+    debugPrint(
+      '[ScannerService] checkAndRequestPermissions result '
+      'hasPermission=$_hasPermission',
+    );
     notifyListeners();
     if (_hasPermission) {
       await scanSystemMedia();
@@ -358,24 +367,47 @@ class ScannerService extends ChangeNotifier {
     if (Platform.isAndroid) {
       final controller = _playerController;
       if (controller != null) {
-        return await controller.ensureAndroidMediaLibraryPermission();
+        debugPrint(
+          '[ScannerService] _checkPermissions via AudioCoreController',
+        );
+        final granted = await controller.ensureAndroidMediaLibraryPermission();
+        debugPrint(
+          '[ScannerService] AudioCoreController permission result=$granted',
+        );
+        return granted;
       }
 
       final deviceInfo = DeviceInfoPlugin();
       final androidInfo = await deviceInfo.androidInfo;
+      debugPrint(
+        '[ScannerService] _checkPermissions fallback '
+        'sdkInt=${androidInfo.version.sdkInt}',
+      );
 
       if (androidInfo.version.sdkInt >= 33) {
         // Android 13+ requires Permission.audio
         var status = await Permission.audio.status;
+        debugPrint(
+          '[ScannerService] Permission.audio initial status=$status',
+        );
         if (!status.isGranted) {
           status = await Permission.audio.request();
+          debugPrint(
+            '[ScannerService] Permission.audio requested status=$status',
+          );
         }
         return status.isGranted;
       } else {
         // Legacy storage permission
         var status = await Permission.storage.status;
+        debugPrint(
+          '[ScannerService] Permission.storage initial status=$status',
+        );
         if (!status.isGranted) {
           status = await Permission.storage.request();
+          debugPrint(
+            '[ScannerService] Permission.storage requested status=$status',
+          );
         }
         return status.isGranted;
       }
@@ -384,7 +416,16 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> scanSystemMedia() async {
-    if (!_hasPermission) return;
+    debugPrint(
+      '[ScannerService] scanSystemMedia start '
+      'platform=${Platform.operatingSystem} '
+      'hasPermission=$_hasPermission '
+      'playerController=${_playerController != null}',
+    );
+    if (!_hasPermission) {
+      debugPrint('[ScannerService] scanSystemMedia aborted: no permission');
+      return;
+    }
 
     try {
       if (Platform.isAndroid) {
@@ -397,8 +438,20 @@ class ScannerService extends ChangeNotifier {
         }
 
         final scanResult = await controller.scanAndroidMediaLibrary();
+        debugPrint(
+          '[ScannerService] Android media scan result '
+          'permissionGranted=${scanResult.permissionGranted} '
+          'entries=${scanResult.entries.length} '
+          'success=${scanResult.isSuccessful} '
+          'errorCode=${scanResult.errorCode ?? "-"} '
+          'errorMessage=${scanResult.errorMessage ?? "-"}',
+        );
         _hasPermission = scanResult.permissionGranted;
         if (!scanResult.permissionGranted) {
+          debugPrint(
+            '[ScannerService] Android media scan stopped because '
+            'permissionGranted=false',
+          );
           _systemMediaFolder = null;
           notifyListeners();
           return;
@@ -420,6 +473,12 @@ class ScannerService extends ChangeNotifier {
           metadataByPath,
           _compareNaturally,
         );
+        debugPrint(
+          '[ScannerService] Android system media tree built '
+          'hasTree=${_systemMediaFolder != null} '
+          'rootFolders=${_systemMediaFolder?.subFolders.length ?? 0} '
+          'files=${_systemMediaFolder?.files.length ?? 0}',
+        );
         if (_systemMediaFolder != null) {
           _folderSorter.sortFolderRecursiveForTree(
             _systemMediaFolder!,
@@ -433,11 +492,15 @@ class ScannerService extends ChangeNotifier {
       }
 
       if (Platform.isIOS) {
+        debugPrint('[ScannerService] iOS media scan start');
         final songs = await OnAudioQuery().querySongs(
           sortType: null,
           orderType: OrderType.ASC_OR_SMALLER,
           uriType: UriType.EXTERNAL,
           ignoreCase: true,
+        );
+        debugPrint(
+          '[ScannerService] iOS media scan result count=${songs.length}',
         );
 
         final metadataByPath = await _buildScannedMetadataMap(
@@ -456,6 +519,12 @@ class ScannerService extends ChangeNotifier {
           metadataByPath,
           _compareNaturally,
         );
+        debugPrint(
+          '[ScannerService] iOS system media tree built '
+          'hasTree=${_systemMediaFolder != null} '
+          'rootFolders=${_systemMediaFolder?.subFolders.length ?? 0} '
+          'files=${_systemMediaFolder?.files.length ?? 0}',
+        );
         if (_systemMediaFolder != null) {
           _folderSorter.sortFolderRecursiveForTree(
             _systemMediaFolder!,
@@ -467,7 +536,7 @@ class ScannerService extends ChangeNotifier {
         unawaited(_processAndSaveIosSongsBackground(songs));
       }
     } catch (e) {
-      debugPrint('Error scanning system media: $e');
+      debugPrint('[ScannerService] Error scanning system media: $e');
     }
   }
 
