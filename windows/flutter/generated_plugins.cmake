@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  dart_chromaprint
   desktop_drop
   permission_handler_windows
   screen_retriever_windows
@@ -15,6 +16,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   audio_core
+  jni
   proxy_getter
   smtc_windows
 )

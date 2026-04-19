@@ -28,23 +28,23 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
   }
 
   void _initializePoints() {
-    // Initialize 4-6 points with some default colors
+    // Initialize 4 points with the default monochrome palette.
     points = [
       MeshGradientPoint(
         position: const Offset(0.2, 0.2),
-        color: Colors.blue.withValues(alpha: 0.8),
+        color: Colors.white,
       ),
       MeshGradientPoint(
         position: const Offset(0.8, 0.2),
-        color: Colors.purple.withValues(alpha: 0.8),
+        color: Colors.black,
       ),
       MeshGradientPoint(
         position: const Offset(0.2, 0.8),
-        color: Colors.pink.withValues(alpha: 0.8),
+        color: Colors.black,
       ),
       MeshGradientPoint(
         position: const Offset(0.8, 0.8),
-        color: Colors.orange.withValues(alpha: 0.8),
+        color: Colors.black,
       ),
     ];
   }
@@ -89,27 +89,17 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
   Widget build(BuildContext context) {
     // Use select to only rebuild when colors actually change
     final themeColors = ref.watch(audioCurrentThemeColorsMapProvider);
-    final visualizerStartColor = ref.watch(
-      settingsServiceProvider.select((s) => s.visualizerStartColor),
-    );
-    final visualizerEndColor = ref.watch(
-      settingsServiceProvider.select((s) => s.visualizerEndColor),
-    );
     final dynamicStartColor = ref.watch(audioDynamicStartColorProvider);
     final dynamicEndColor = ref.watch(audioDynamicEndColorProvider);
 
-    Color color1 =
-        themeColors['dominant'] ?? dynamicStartColor ?? visualizerStartColor;
-    Color color2 =
-        themeColors['vibrant'] ?? dynamicEndColor ?? visualizerEndColor;
-    Color color3 =
-        themeColors['lightVibrant'] ??
-        themeColors['muted'] ??
-        color1.withValues(alpha: 0.8);
-    Color color4 =
-        themeColors['darkVibrant'] ??
-        themeColors['darkMuted'] ??
-        color2.withValues(alpha: 0.8);
+    final Color color1 =
+        themeColors['dominant'] ?? dynamicStartColor ?? Colors.white;
+    final Color color2 =
+        themeColors['vibrant'] ?? dynamicEndColor ?? Colors.black;
+    final Color color3 =
+        themeColors['lightVibrant'] ?? themeColors['muted'] ?? Colors.black;
+    final Color color4 =
+        themeColors['darkVibrant'] ?? themeColors['darkMuted'] ?? Colors.black;
 
     final List<Color> resolvedTarget = [color1, color2, color3, color4];
 
@@ -140,7 +130,7 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
                   builder: (context, animatedColors, child) {
                     return AnimatedMeshGradient(
                       colors: animatedColors,
-                      options: AnimatedMeshGradientOptions(speed: 0.6),
+                      options: AnimatedMeshGradientOptions(speed: 0.03),
                     );
                   },
                 ),

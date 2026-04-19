@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  dart_chromaprint
   desktop_drop
   screen_retriever_linux
   sqlite3_flutter_libs
@@ -12,6 +13,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   audio_core
+  jni
   proxy_getter
 )
 
