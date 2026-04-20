@@ -208,7 +208,7 @@ class ScannerScanPipeline {
     Map<String, SongMetadata> existingMetadataByPath,
   ) {
     for (final metadata in existingMetadataByPath.values) {
-      _metadataStore.updateMetadataForPath(metadata, notify: false);
+      _metadataStore.cacheMetadata(metadata);
     }
   }
 
