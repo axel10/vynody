@@ -266,7 +266,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
         final current = _queue[_currentIndex];
         if (await _songExists(current.path)) {
-          await _syncCurrentPlaybackSong(current, awaitDataReady: false);
+          await _syncCurrentPlaybackSong(current);
           return;
         }
 
@@ -373,52 +373,70 @@ class AudioService extends Notifier<AudioSnapshot> {
     return updatedSong;
   }
 
-  Future<void> _syncCurrentPlaybackSong(
-    MusicFile song, {
-    required bool awaitDataReady,
-  }) async {
-    final readyFuture = _ensureCurrentSongDataReady(song);
-    if (awaitDataReady) {
-      await readyFuture;
-    } else {
-      unawaited(readyFuture);
-    }
-
+  Future<void> _syncCurrentPlaybackSong(MusicFile song) async {
     await _updateCurrentMetadata(song);
     await _refreshCurrentWaveform(notify: false);
   }
 
-  /// 核心逻辑：确保当前即将播放或正在播放的歌曲数据已完备。
-  /// 如果数据未就绪，则临时暂停耗时的后台扫描和非优先级的预处理任务，
-  /// 并全力优先处理当前歌曲。处理完成后恢复后台任务。
-  Future<void> _ensureCurrentSongDataReady(MusicFile song) async {
-    final bool isReady = await _queueProcessor.isSongReady(song.path);
-    if (isReady) return;
-
-    debugPrint(
-      'AudioService: Song data not ready for ${song.path}. Prioritizing...',
-    );
-
+  Future<void> _prepareCurrentPlaybackArtwork(MusicFile song) async {
     try {
-      // 1. 暂停后台扫描
-      _scannerService?.pauseBackgroundTasks();
-      // 2. 暂停预处理队列的普通流转逻辑，并全力优先处理当前歌曲
-      _startQueueBackgroundProcessing(priorityPath: song.path);
+      Uint8List? artworkBytes = song.artworkBytes;
+      String? artworkPath = song.artworkPath;
+      Uint8List? themeColorsBlob = song.themeColorsBlob;
 
-      // 我们在这里增加一个短暂的同步等待点，直到 isReady 为真或超时
-      int retry = 0;
-      while (retry < 10) {
-        // 最多等 2 秒 (10 * 200ms)
-        if (await _queueProcessor.isSongReady(song.path)) break;
-        await Future.delayed(const Duration(milliseconds: 200));
-        retry++;
+      if (artworkBytes == null || artworkBytes.isEmpty) {
+        final dbMetadata = await _db.getSongMetadata(song.path);
+        if (dbMetadata != null) {
+          artworkPath ??= dbMetadata.artworkPath;
+          themeColorsBlob ??= dbMetadata.themeColorsBlob;
+
+          if (artworkPath != null && artworkPath.trim().isNotEmpty) {
+            try {
+              final file = File(artworkPath);
+              if (await file.exists()) {
+                artworkBytes = await file.readAsBytes();
+              }
+            } catch (_) {}
+          }
+        }
+
+        artworkBytes ??= await MetadataHelper.decodeEmbeddedArtwork(song.path);
       }
-    } finally {
-      // 3. 恢复后台扫描
-      _scannerService?.resumeBackgroundTasks();
-      debugPrint(
-        'AudioService: Data ready (or timeout) for ${song.path}. Resuming background tasks.',
-      );
+
+      if (artworkBytes != null && artworkBytes.isNotEmpty) {
+        if (_currentIndex >= 0 && _currentIndex < _queue.length) {
+          final currentSong = _queue[_currentIndex];
+          if (currentSong.path == song.path) {
+            _queue[_currentIndex] = currentSong.copyWith(
+              artworkBytes: artworkBytes,
+              artworkPath: artworkPath,
+              themeColorsBlob: themeColorsBlob ?? currentSong.themeColorsBlob,
+            );
+            notifyListeners();
+          }
+        }
+
+        // Keep the hero destination image sharp without allowing a full-size
+        // decode to block the transition.
+        // Existing desktop/mobile limits stay in place:
+        // 1200px on desktop, 800px on mobile.
+        final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+        final int limit = isPc ? 1200 : 800;
+        final provider = ResizeImage(
+          MemoryImage(artworkBytes),
+          width: limit,
+          height: limit,
+          allowUpscaling: false,
+        );
+        provider.resolve(ImageConfiguration.empty);
+      }
+
+      if (themeColorsBlob != null && themeColorsBlob.isNotEmpty) {
+        _applyThemeColors(ThemeColorHelper.blobToColors(themeColorsBlob));
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('AudioService: hero artwork prep failed for ${song.path}: $e');
     }
   }
 
@@ -1194,7 +1212,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     required List<MusicFile> songs,
     required int startIndex,
     required bool clearPlayerQueue,
-    required bool awaitDataReady,
+    bool startBackgroundProcessing = true,
   }) async {
     if (songs.isEmpty) return;
 
@@ -1214,9 +1232,11 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
 
     _currentIndex = safeIndex;
-    await _syncCurrentPlaybackSong(current, awaitDataReady: awaitDataReady);
+    await _syncCurrentPlaybackSong(current);
     await _player.player.setVolume(_volume / 100.0);
-    _startQueueBackgroundProcessing(priorityPath: current.path);
+    if (startBackgroundProcessing) {
+      _startQueueBackgroundProcessing(priorityPath: current.path);
+    }
   }
 
   Future<void> playFile(
@@ -1252,7 +1272,6 @@ class AudioService extends Notifier<AudioSnapshot> {
         songs: _queue,
         startIndex: _queue.length - 1,
         clearPlayerQueue: !append,
-        awaitDataReady: true,
       );
     } finally {
       _isTransitioning = false;
@@ -1276,23 +1295,29 @@ class AudioService extends Notifier<AudioSnapshot> {
     // 1. 设置正在切换状态并通知 UI
     _isTransitioning = true;
     notifyListeners();
+    _queueProcessor.pause();
+    _scannerService?.pauseBackgroundTasks();
 
-    try {
-      // 2. 清除并重新填充本地播放队列
-      _queue.clear();
-      _queue.addAll(songs);
-      notifyListeners();
+    // 2. 清除并重新填充本地播放队列
+    _queue.clear();
+    _queue.addAll(songs);
+    _currentIndex = safeIndex;
+    notifyListeners();
 
-      await _playQueueTracks(
+    final current = _queue[safeIndex];
+
+    unawaited(
+      _playQueueTracks(
         songs: _queue,
         startIndex: safeIndex,
         clearPlayerQueue: true,
-        awaitDataReady: true,
-      );
-    } finally {
-      _isTransitioning = false;
-      notifyListeners();
-    }
+        startBackgroundProcessing: false,
+      ).catchError((e) {
+        debugPrint('AudioService: failed to start playlist playback: $e');
+      }),
+    );
+
+    await _prepareCurrentPlaybackArtwork(current);
   }
 
   Future<void> addToPlaylist(List<MusicFile> songs) async {
@@ -1306,7 +1331,6 @@ class AudioService extends Notifier<AudioSnapshot> {
         songs: _queue,
         startIndex: 0,
         clearPlayerQueue: false,
-        awaitDataReady: true,
       );
       return;
     }
@@ -1361,7 +1385,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
           final song = _queue[_currentIndex];
-          await _syncCurrentPlaybackSong(song, awaitDataReady: false);
+          await _syncCurrentPlaybackSong(song);
         }
       }
     } finally {
@@ -1387,10 +1411,11 @@ class AudioService extends Notifier<AudioSnapshot> {
       await _player.playTrack(
         _audioTrackForSong(song),
         preferredPlaylistId:
-            _player.playlist.activePlaylistId ?? _player.playlist.queuePlaylistId,
+            _player.playlist.activePlaylistId ??
+            _player.playlist.queuePlaylistId,
       );
       _currentIndex = index;
-      await _syncCurrentPlaybackSong(song, awaitDataReady: false);
+      await _syncCurrentPlaybackSong(song);
     } finally {
       _isTransitioning = false;
       notifyListeners();
@@ -1408,7 +1433,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
           final song = _queue[_currentIndex];
-          await _syncCurrentPlaybackSong(song, awaitDataReady: false);
+          await _syncCurrentPlaybackSong(song);
         }
       }
     } finally {
@@ -1598,6 +1623,25 @@ class AudioService extends Notifier<AudioSnapshot> {
         },
       ),
     );
+  }
+
+  Future<void> completeHeroTransition({String? priorityPath}) async {
+    if (_disposed) return;
+
+    _queueProcessor.resume();
+    _scannerService?.resumeBackgroundTasks();
+
+    if (_isTransitioning) {
+      _isTransitioning = false;
+    }
+
+    if (_queue.isNotEmpty) {
+      _startQueueBackgroundProcessing(
+        priorityPath: priorityPath ?? currentMusic?.path,
+      );
+    }
+
+    notifyListeners();
   }
 
   void _dispose() {

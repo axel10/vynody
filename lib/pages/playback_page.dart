@@ -42,6 +42,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   double _scrubProgress = 0.0; // Added missing declaration
   Orientation? _lastOrientation;
   Uint8List? _pendingArtworkBytes;
+  Timer? _heroWarmupTimer;
 
   SettingsService? _settingsService;
   AudioService? _audioService;
@@ -58,6 +59,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         setState(() {});
       }
     });
+
+    // Keep the hero flight smooth: defer background warmup until after the
+    // route transition finishes. The current main layout transition is 320ms.
+    _heroWarmupTimer = Timer(const Duration(milliseconds: 320), () {
+      if (!mounted) return;
+      _audioService?.completeHeroTransition();
+    });
   }
 
   @override
@@ -68,6 +76,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
   @override
   void dispose() {
+    _heroWarmupTimer?.cancel();
     // 延迟重置，避免在 dispose 过程中触发 notifyListeners 导致的 "locked" 错误
     final settings = _settingsService;
     if (settings != null) {
@@ -830,18 +839,18 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             color: Colors.black,
             child: Stack(
               clipBehavior: Clip.none,
-                children: [
-                    Positioned.fill(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 800),
-                        child: backgroundType == 1
+              children: [
+                Positioned.fill(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 800),
+                    child: backgroundType == 1
                         ? const RepaintBoundary(
                             key: ValueKey('fluid_bg'),
                             child: DynamicMeshBackground(),
                           )
                         : _buildBlurredBackground(context),
                   ),
-                    ),
+                ),
                 _buildBackgroundScrim(isLyricsMode),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
