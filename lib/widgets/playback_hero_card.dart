@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
@@ -724,6 +725,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                   currentMusic: currentMusic,
                 );
               },
+              onLongPressStart: (details) {
+                HapticFeedback.mediumImpact();
+                _showTrackInfoContextMenu(
+                  context,
+                  details.globalPosition,
+                  target: _TrackInfoMenuTarget.title,
+                  currentMusic: currentMusic,
+                );
+              },
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 400),
                 curve: Curves.fastOutSlowIn,
@@ -753,6 +763,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onSecondaryTapDown: (details) {
+                    _showTrackInfoContextMenu(
+                      context,
+                      details.globalPosition,
+                      target: _TrackInfoMenuTarget.artistAlbum,
+                      currentMusic: currentMusic,
+                    );
+                  },
+                  onLongPressStart: (details) {
+                    HapticFeedback.mediumImpact();
                     _showTrackInfoContextMenu(
                       context,
                       details.globalPosition,

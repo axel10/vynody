@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../player/audio_riverpod.dart';
 import '../player/settings_service.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class _ApiKeyDialogResult {
   const _ApiKeyDialogResult({required this.success, required this.message});
@@ -23,6 +24,7 @@ Future<String?> _showApiKeyDialog(
   required String dialogActionLabel,
   required String fieldLabel,
   String initialApiKey = '',
+  String? getKeyUrl,
 }) async {
   return showDialog<String?>(
     context: context,
@@ -38,6 +40,7 @@ Future<String?> _showApiKeyDialog(
         fieldLabel: fieldLabel,
         initialApiKey: initialApiKey,
         testConnection: testConnection,
+        getKeyUrl: getKeyUrl,
       );
     },
   );
@@ -55,6 +58,7 @@ class _ApiKeyDialog extends StatefulWidget {
     required this.fieldLabel,
     required this.initialApiKey,
     required this.testConnection,
+    this.getKeyUrl,
   });
 
   final String title;
@@ -67,6 +71,7 @@ class _ApiKeyDialog extends StatefulWidget {
   final String fieldLabel;
   final String initialApiKey;
   final Future<_ApiKeyDialogResult> Function(String apiKey) testConnection;
+  final String? getKeyUrl;
 
   @override
   State<_ApiKeyDialog> createState() => _ApiKeyDialogState();
@@ -168,6 +173,11 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
           onPressed: _isTesting ? null : _runTest,
           child: Text(_isTesting ? '测试中...' : widget.testButtonLabel),
         ),
+        if (widget.getKeyUrl != null)
+          TextButton(
+            onPressed: () => launchUrlString(widget.getKeyUrl!),
+            child: const Text('获取key'),
+          ),
         FilledButton(
           onPressed: canSave ? () => Navigator.of(context).pop(apiKey) : null,
           child: Text(widget.saveButtonLabel),
@@ -194,6 +204,7 @@ Future<String?> showGoogleAiStudioApiKeyDialog(
     dialogActionLabel: '取消',
     fieldLabel: 'API Key',
     initialApiKey: initialApiKey,
+    getKeyUrl: 'https://aistudio.google.com/app/api-keys',
     testConnection: (apiKey) async {
       final result = await service.testConnection(apiKey);
       return _ApiKeyDialogResult(
@@ -221,6 +232,7 @@ Future<String?> showOpenRouterApiKeyDialog(
     dialogActionLabel: '取消',
     fieldLabel: 'API Key',
     initialApiKey: initialApiKey,
+    getKeyUrl: 'https://openrouter.ai/settings/keys',
     testConnection: (apiKey) async {
       final result = await service.testConnection(apiKey);
       return _ApiKeyDialogResult(
@@ -248,6 +260,7 @@ Future<String?> showGeminiApiKeyDialog(
     dialogActionLabel: '取消',
     fieldLabel: 'API Key',
     initialApiKey: initialApiKey,
+    getKeyUrl: 'https://aistudio.google.com/app/api-keys',
     testConnection: (apiKey) async {
       final result = await service.testConnection(apiKey);
       return _ApiKeyDialogResult(

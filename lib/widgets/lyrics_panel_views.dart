@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
@@ -16,7 +17,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
     required this.canGenerateLyrics,
     required this.onGeneratePressed,
     required this.generateButtonLabel,
-    required this.onSecondaryTapDown,
+    required this.onContextMenu,
     required this.bottomSpacerHeight,
     required this.bottomTabBarHeight,
   });
@@ -27,7 +28,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
   final bool canGenerateLyrics;
   final Future<void> Function() onGeneratePressed;
   final String generateButtonLabel;
-  final GestureTapDownCallback onSecondaryTapDown;
+  final void Function(Offset globalPosition) onContextMenu;
   final double bottomSpacerHeight;
   final double bottomTabBarHeight;
 
@@ -40,7 +41,11 @@ class LyricsPanelEmptyState extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onSecondaryTapDown: onSecondaryTapDown,
+      onSecondaryTapDown: (details) => onContextMenu(details.globalPosition),
+      onLongPressStart: (details) {
+        HapticFeedback.mediumImpact();
+        onContextMenu(details.globalPosition);
+      },
       child: Column(
         children: [
           Expanded(
@@ -129,7 +134,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.onVerticalDragUpdate,
     required this.onVerticalDragEnd,
     required this.onVerticalDragCancel,
-    required this.onSecondaryTapDown,
+    required this.onContextMenu,
     required this.bottomSpacerHeight,
   });
 
@@ -146,7 +151,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final GestureDragUpdateCallback? onVerticalDragUpdate;
   final GestureDragEndCallback? onVerticalDragEnd;
   final VoidCallback? onVerticalDragCancel;
-  final GestureTapDownCallback onSecondaryTapDown;
+  final void Function(Offset globalPosition) onContextMenu;
   final double bottomSpacerHeight;
 
   @override
@@ -157,7 +162,11 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
       onVerticalDragUpdate: isAutoScrollPaused ? null : onVerticalDragUpdate,
       onVerticalDragEnd: isAutoScrollPaused ? null : onVerticalDragEnd,
       onVerticalDragCancel: isAutoScrollPaused ? null : onVerticalDragCancel,
-      onSecondaryTapDown: onSecondaryTapDown,
+      onSecondaryTapDown: (details) => onContextMenu(details.globalPosition),
+      onLongPressStart: (details) {
+        HapticFeedback.mediumImpact();
+        onContextMenu(details.globalPosition);
+      },
       child: Column(
         children: [
           Expanded(

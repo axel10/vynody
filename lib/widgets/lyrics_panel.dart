@@ -660,10 +660,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             }
           }
         },
-        onSecondaryTapDown: (details) {
+        onContextMenu: (position) {
           _showContextMenu(
             context,
-            details.globalPosition,
+            position,
             lyricsState: lyricsState,
             taskState: currentSongTaskState,
             displayLines: displayLines,
@@ -709,10 +709,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       onVerticalDragCancel: hasTimedLyrics
           ? () => _endLyricsDrag(displayLines)
           : null,
-      onSecondaryTapDown: (details) {
+      onContextMenu: (position) {
         _showContextMenu(
           context,
-          details.globalPosition,
+          position,
           lyricsState: lyricsState,
           taskState: currentSongTaskState,
           displayLines: displayLines,
