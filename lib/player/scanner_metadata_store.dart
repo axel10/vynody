@@ -164,6 +164,14 @@ class ScannerMetadataStore {
     }
   }
 
+  void removeMetadataForPath(String path) {
+    final normalizedPath = _normalizePath(path);
+    if (normalizedPath.isEmpty) return;
+    _metadataMap.removeWhere(
+      (key, _) => _pathsEqual(key, normalizedPath),
+    );
+  }
+
   void clearWaveformForPath(String path) {
     final existing = _metadataMap[path];
     if (existing == null) return;
