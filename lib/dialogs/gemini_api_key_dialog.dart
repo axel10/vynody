@@ -132,36 +132,38 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
       title: Text(widget.title),
       content: SizedBox(
         width: 520,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(widget.description),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              obscureText: true,
-              enableSuggestions: false,
-              autocorrect: false,
-              decoration: InputDecoration(
-                labelText: widget.fieldLabel,
-                hintText: widget.hintText,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(widget.description),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _controller,
+                autofocus: true,
+                obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  labelText: widget.fieldLabel,
+                  hintText: widget.hintText,
+                ),
+                onChanged: (_) {
+                  setState(() {
+                    _statusText = '';
+                  });
+                },
               ),
-              onChanged: (_) {
-                setState(() {
-                  _statusText = '';
-                });
-              },
-            ),
-            if (_statusText.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                _statusText,
-                style: TextStyle(color: _statusColor, fontSize: 13),
-              ),
+              if (_statusText.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _statusText,
+                  style: TextStyle(color: _statusColor, fontSize: 13),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
       actions: [

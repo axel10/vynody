@@ -258,6 +258,7 @@ class ScannerService extends ChangeNotifier {
     await _roots.loadRootPaths();
     await _loadSortSettings();
     await _loadCachedRootFoldersFromDatabase();
+    await _loadCachedSystemMediaFolderFromDatabase();
     _rebuildDisplayedRootFolders();
     notifyListeners();
     await checkAndRequestPermissions();
@@ -608,6 +609,39 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
+  Future<void> _loadCachedSystemMediaFolderFromDatabase() async {
+    if (Platform.isWindows) return;
+
+    try {
+      final cachedSongs = await MetadataDatabase().getAllSongMetadata();
+      if (cachedSongs.isEmpty) {
+        return;
+      }
+
+      _systemMediaFolder = _treeBuilder.buildSongsIntoFoldersFromMetadata(
+        cachedSongs,
+        _compareNaturally,
+      );
+      _folderSorter.sortFolderRecursiveForTree(
+        _systemMediaFolder!,
+        resolveSettings: _resolveSortSettingsForFolder,
+      );
+
+      for (final song in cachedSongs) {
+        _metadataStore.cacheMetadata(song);
+      }
+
+      debugPrint(
+        '[ScannerService] Loaded cached system media folder from songs table '
+        'entries=${cachedSongs.length}',
+      );
+    } catch (e) {
+      debugPrint(
+        '[ScannerService] Failed to load cached system media folder: $e',
+      );
+    }
+  }
+
   void _upsertScannedRootFolder(MusicFolder folder) {
     final index = _scannedRootFolders.indexWhere(
       (existing) => _pathsEqual(existing.path, folder.path),
@@ -781,11 +815,13 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
-    _incrementalEventQueue = _incrementalEventQueue.then((_) async {
-      await _processIncrementalFileEvent(event);
-    }).catchError((e, st) {
-      debugPrint('[ScannerService] Incremental file event error: $e');
-    });
+    _incrementalEventQueue = _incrementalEventQueue
+        .then((_) async {
+          await _processIncrementalFileEvent(event);
+        })
+        .catchError((e, st) {
+          debugPrint('[ScannerService] Incremental file event error: $e');
+        });
   }
 
   Future<void> _drainPendingIncrementalFileEvents() async {
@@ -794,13 +830,15 @@ class ScannerService extends ChangeNotifier {
     final pendingEvents = List<FileSystemEvent>.from(_pendingIncrementalEvents);
     _pendingIncrementalEvents.clear();
 
-    _incrementalEventQueue = _incrementalEventQueue.then((_) async {
-      for (final event in pendingEvents) {
-        await _processIncrementalFileEvent(event, notify: false);
-      }
-    }).catchError((e, st) {
-      debugPrint('[ScannerService] Pending incremental event error: $e');
-    });
+    _incrementalEventQueue = _incrementalEventQueue
+        .then((_) async {
+          for (final event in pendingEvents) {
+            await _processIncrementalFileEvent(event, notify: false);
+          }
+        })
+        .catchError((e, st) {
+          debugPrint('[ScannerService] Pending incremental event error: $e');
+        });
 
     await _incrementalEventQueue;
   }
@@ -912,14 +950,12 @@ class ScannerService extends ChangeNotifier {
     final rootPath = _findScanRootForPath(metadata.path);
     if (rootPath == null) return;
 
-    final rootFolder = _findScannedRootFolder(rootPath) ??
+    final rootFolder =
+        _findScannedRootFolder(rootPath) ??
         MusicFolder(path: rootPath, name: _displayNameForPath(rootPath));
     _upsertScannedRootFolder(rootFolder);
 
-    final targetFolder = _ensureFolderChain(
-      rootFolder,
-      metadata.path,
-    );
+    final targetFolder = _ensureFolderChain(rootFolder, metadata.path);
     final musicFile = MusicFile(
       path: metadata.path,
       name: p.basename(metadata.path),
@@ -1005,7 +1041,8 @@ class ScannerService extends ChangeNotifier {
     final normalizedFile = _normalizePath(filePath);
     final relative = p.relative(normalizedFile, from: normalizedRoot);
     final parts = p.split(relative);
-    if (parts.isEmpty || (parts.length == 1 && parts.first == p.basename(normalizedFile))) {
+    if (parts.isEmpty ||
+        (parts.length == 1 && parts.first == p.basename(normalizedFile))) {
       return root;
     }
 
@@ -1116,10 +1153,7 @@ class ScannerService extends ChangeNotifier {
         writeStopwatch,
       );
       batchStopwatch.stop();
-      _logScanTiming(
-        'stage 3 batch ${start + 1}-$end total',
-        batchStopwatch,
-      );
+      _logScanTiming('stage 3 batch ${start + 1}-$end total', batchStopwatch);
     }
 
     totalStopwatch.stop();
@@ -1155,10 +1189,7 @@ class ScannerService extends ChangeNotifier {
           ),
         );
         batchStopwatch.stop();
-        _logScanTiming(
-          'stage 4 batch ${start + 1}-$end total',
-          batchStopwatch,
-        );
+        _logScanTiming('stage 4 batch ${start + 1}-$end total', batchStopwatch);
       }
     } catch (e) {
       debugPrint('Worker artwork scan failed, falling back to serial mode: $e');
@@ -1373,13 +1404,16 @@ class ScannerService extends ChangeNotifier {
           ], scanState),
         );
 
-        final presentPaths = _timeScanStepSync('stage 5 collect present paths', () {
-          final result = <String>{};
-          for (final root in _scannedRootFolders) {
-            _treeBuilder.collectFilePaths(root, result);
-          }
-          return result;
-        });
+        final presentPaths = _timeScanStepSync(
+          'stage 5 collect present paths',
+          () {
+            final result = <String>{};
+            for (final root in _scannedRootFolders) {
+              _treeBuilder.collectFilePaths(root, result);
+            }
+            return result;
+          },
+        );
         final normalizedPresentPaths = _timeScanStepSync(
           'stage 5.1 normalize present paths',
           () => presentPaths
@@ -1393,24 +1427,27 @@ class ScannerService extends ChangeNotifier {
               ? normalizedPresentPaths.map((path) => path.toLowerCase()).toSet()
               : normalizedPresentPaths,
         );
-        final missingPaths = _timeScanStepSync('stage 5.3 detect missing paths', () {
-          final result = <String>[];
-          for (final path in _metadataStore.metadataMap.keys) {
-            final normalizedPath = _normalizePath(path);
-            if (!_roots.rootPaths.any(
-              (root) => _pathContains(root, normalizedPath),
-            )) {
-              continue;
+        final missingPaths = _timeScanStepSync(
+          'stage 5.3 detect missing paths',
+          () {
+            final result = <String>[];
+            for (final path in _metadataStore.metadataMap.keys) {
+              final normalizedPath = _normalizePath(path);
+              if (!_roots.rootPaths.any(
+                (root) => _pathContains(root, normalizedPath),
+              )) {
+                continue;
+              }
+              final lookupKey = Platform.isWindows
+                  ? normalizedPath.toLowerCase()
+                  : normalizedPath;
+              if (!presentPathIndex.contains(lookupKey)) {
+                result.add(normalizedPath);
+              }
             }
-            final lookupKey = Platform.isWindows
-                ? normalizedPath.toLowerCase()
-                : normalizedPath;
-            if (!presentPathIndex.contains(lookupKey)) {
-              result.add(normalizedPath);
-            }
-          }
-          return result;
-        });
+            return result;
+          },
+        );
         _timeScanStepSync('stage 5.4 notify missing states', () {
           for (final path in normalizedPresentPaths) {
             _notifySongMissingState(path, false);
@@ -1717,10 +1754,7 @@ class ScannerService extends ChangeNotifier {
     );
   }
 
-  Future<T> _timeScanStep<T>(
-    String label,
-    Future<T> Function() action,
-  ) async {
+  Future<T> _timeScanStep<T>(String label, Future<T> Function() action) async {
     final stopwatch = Stopwatch()..start();
     try {
       return await action();

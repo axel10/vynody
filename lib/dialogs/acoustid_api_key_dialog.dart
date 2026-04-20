@@ -44,27 +44,29 @@ class _AcoustidApiKeyDialogState extends State<_AcoustidApiKeyDialog> {
       title: const Text('填写 AcoustID API Key'),
       content: SizedBox(
         width: 520,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('用于音频指纹识别。留空后会恢复使用应用内置的默认 key。'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              obscureText: true,
-              enableSuggestions: false,
-              autocorrect: false,
-              decoration: const InputDecoration(
-                labelText: 'API Key',
-                hintText: '粘贴你的 AcoustID API Key',
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('用于音频指纹识别。留空后会恢复使用应用内置的默认 key。'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _controller,
+                autofocus: true,
+                obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: const InputDecoration(
+                  labelText: 'API Key',
+                  hintText: '粘贴你的 AcoustID API Key',
+                ),
+                onChanged: (_) {
+                  setState(() {});
+                },
               ),
-              onChanged: (_) {
-                setState(() {});
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [
