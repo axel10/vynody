@@ -10,10 +10,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:collection/collection.dart';
 import 'package:worker_manager/worker_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/music_file.dart';
 import '../models/music_folder.dart';
+import 'music_file_utils.dart';
 import 'scanner_navigation_state.dart';
 import 'scanner_path_utils.dart';
 import 'scanner_sorting.dart';
@@ -45,6 +48,8 @@ class ScannerService extends ChangeNotifier {
   bool _scanNotifyPending = false;
   bool _lastNotifiedScanningState = false;
   bool _isDisposed = false;
+  Future<void> _incrementalEventQueue = Future<void>.value();
+  final List<FileSystemEvent> _pendingIncrementalEvents = [];
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -96,9 +101,8 @@ class ScannerService extends ChangeNotifier {
 
   ScannerService() {
     _roots = ScannerServiceRoots(
-      isScanning: () => _isScanning,
       isDisposed: () => _isDisposed,
-      requestScan: () => scan(),
+      onFileEvent: _enqueueIncrementalFileEvent,
       notifySongMissingState: _notifySongMissingState,
     );
     _metadataStore = ScannerMetadataStore(
@@ -768,6 +772,278 @@ class ScannerService extends ChangeNotifier {
     await Future.wait(scanState.pendingMetadataTasks);
   }
 
+  void _enqueueIncrementalFileEvent(FileSystemEvent event) {
+    if (_isDisposed) return;
+
+    if (_isScanning) {
+      _pendingIncrementalEvents.add(event);
+      return;
+    }
+
+    _incrementalEventQueue = _incrementalEventQueue.then((_) async {
+      await _processIncrementalFileEvent(event);
+    }).catchError((e, st) {
+      debugPrint('[ScannerService] Incremental file event error: $e');
+    });
+  }
+
+  Future<void> _drainPendingIncrementalFileEvents() async {
+    if (_pendingIncrementalEvents.isEmpty) return;
+
+    final pendingEvents = List<FileSystemEvent>.from(_pendingIncrementalEvents);
+    _pendingIncrementalEvents.clear();
+
+    _incrementalEventQueue = _incrementalEventQueue.then((_) async {
+      for (final event in pendingEvents) {
+        await _processIncrementalFileEvent(event, notify: false);
+      }
+    }).catchError((e, st) {
+      debugPrint('[ScannerService] Pending incremental event error: $e');
+    });
+
+    await _incrementalEventQueue;
+  }
+
+  Future<void> _processIncrementalFileEvent(
+    FileSystemEvent event, {
+    bool notify = true,
+  }) async {
+    if (_isDisposed) return;
+
+    final normalizedPath = _normalizePath(event.path);
+    if (normalizedPath.isEmpty) return;
+    if (event.isDirectory) {
+      if ((event.type & FileSystemEvent.delete) != 0 ||
+          (event.type & FileSystemEvent.move) != 0) {
+        await _removeIncrementalDirectory(normalizedPath, notify: notify);
+      }
+      return;
+    }
+    if (!MusicFileUtils.isMusicFilePath(normalizedPath)) return;
+    if (!_roots.rootPaths.any((root) => _pathContains(root, normalizedPath))) {
+      return;
+    }
+
+    final exists = await File(normalizedPath).exists();
+    if (!exists) {
+      await _removeIncrementalSong(normalizedPath, notify: notify);
+      return;
+    }
+
+    final processed = await MetadataHelper.processMetadata(
+      normalizedPath,
+      generateThumbnail: true,
+    );
+    if (processed == null) return;
+
+    final metadata = processed.$1;
+    final artworkBytes = processed.$2;
+
+    _metadataStore.updateMetadataForPath(
+      metadata,
+      artworkBytes: artworkBytes,
+      notify: false,
+    );
+    _insertOrUpdateSongInLibrary(
+      metadata,
+      artworkBytes: artworkBytes,
+      sort: notify,
+    );
+    if (notify) {
+      _rebuildDisplayedRootFolders();
+      _syncNavigationStateToLatestTree();
+      _scheduleMetadataNotify();
+    }
+  }
+
+  Future<void> _removeIncrementalDirectory(
+    String directoryPath, {
+    required bool notify,
+  }) async {
+    final normalizedDirectory = _normalizePath(directoryPath);
+    if (normalizedDirectory.isEmpty) return;
+
+    final pathsToRemove = _metadataStore.metadataMap.keys
+        .where((path) => _pathContains(normalizedDirectory, path))
+        .toList(growable: false);
+    if (pathsToRemove.isEmpty) {
+      return;
+    }
+
+    for (final path in pathsToRemove) {
+      _metadataStore.removeMetadataForPath(path);
+      final matchedRoot = _findScanRootForPath(path);
+      if (matchedRoot != null) {
+        final rootFolder = _findScannedRootFolder(matchedRoot);
+        if (rootFolder != null) {
+          _treeBuilder.removeSongFromFolder(rootFolder, path);
+          if (rootFolder.isEmpty) {
+            _scannedRootFolders.removeWhere(
+              (existing) => _pathsEqual(existing.path, rootFolder.path),
+            );
+          }
+        }
+      }
+
+      if (_systemMediaFolder != null) {
+        _treeBuilder.removeSongFromFolder(_systemMediaFolder!, path);
+        if (_systemMediaFolder!.isEmpty) {
+          _systemMediaFolder = null;
+        }
+      }
+
+      await MetadataDatabase().deleteSongByPath(path);
+      _notifySongMissingState(path, true);
+    }
+
+    if (notify) {
+      _rebuildDisplayedRootFolders();
+      _syncNavigationStateToLatestTree();
+      _scheduleMetadataNotify();
+    }
+  }
+
+  void _insertOrUpdateSongInLibrary(
+    SongMetadata metadata, {
+    Uint8List? artworkBytes,
+    bool sort = true,
+  }) {
+    final rootPath = _findScanRootForPath(metadata.path);
+    if (rootPath == null) return;
+
+    final rootFolder = _findScannedRootFolder(rootPath) ??
+        MusicFolder(path: rootPath, name: _displayNameForPath(rootPath));
+    _upsertScannedRootFolder(rootFolder);
+
+    final targetFolder = _ensureFolderChain(
+      rootFolder,
+      metadata.path,
+    );
+    final musicFile = MusicFile(
+      path: metadata.path,
+      name: p.basename(metadata.path),
+      title: metadata.title,
+      artist: metadata.artist,
+      album: metadata.album,
+      trackNumber: metadata.trackNumber,
+      durationMillis: metadata.duration,
+      thumbnailPath: metadata.thumbnailPath,
+      artworkPath: metadata.artworkPath,
+      artworkWidth: metadata.artworkWidth,
+      artworkHeight: metadata.artworkHeight,
+      themeColorsBlob: metadata.themeColorsBlob,
+      artworkBytes: artworkBytes,
+      lastModifiedTime: metadata.lastModifiedTime,
+    );
+    _upsertMusicFile(targetFolder, musicFile);
+    if (sort) {
+      _folderSorter.sortFolderRecursiveForTree(
+        rootFolder,
+        resolveSettings: _resolveSortSettingsForFolder,
+      );
+    }
+  }
+
+  Future<void> _removeIncrementalSong(
+    String path, {
+    required bool notify,
+  }) async {
+    _metadataStore.removeMetadataForPath(path);
+
+    final matchedRoot = _findScanRootForPath(path);
+    if (matchedRoot != null) {
+      final rootFolder = _findScannedRootFolder(matchedRoot);
+      if (rootFolder != null) {
+        _treeBuilder.removeSongFromFolder(rootFolder, path);
+        if (rootFolder.isEmpty) {
+          _scannedRootFolders.removeWhere(
+            (existing) => _pathsEqual(existing.path, rootFolder.path),
+          );
+        }
+      }
+    }
+
+    if (_systemMediaFolder != null) {
+      _treeBuilder.removeSongFromFolder(_systemMediaFolder!, path);
+      if (_systemMediaFolder!.isEmpty) {
+        _systemMediaFolder = null;
+      }
+    }
+
+    await MetadataDatabase().deleteSongByPath(path);
+    _notifySongMissingState(path, true);
+    if (notify) {
+      _rebuildDisplayedRootFolders();
+      _syncNavigationStateToLatestTree();
+      _scheduleMetadataNotify();
+    }
+  }
+
+  String? _findScanRootForPath(String path) {
+    String? bestMatch;
+    for (final root in _computeScanRoots(_roots.rootPaths)) {
+      if (!_pathContains(root, path)) continue;
+      if (bestMatch == null || root.length > bestMatch.length) {
+        bestMatch = root;
+      }
+    }
+    return bestMatch;
+  }
+
+  MusicFolder? _findScannedRootFolder(String rootPath) {
+    for (final root in _scannedRootFolders) {
+      if (_pathsEqual(root.path, rootPath)) {
+        return root;
+      }
+    }
+    return null;
+  }
+
+  MusicFolder _ensureFolderChain(MusicFolder root, String filePath) {
+    final normalizedRoot = _normalizePath(root.path);
+    final normalizedFile = _normalizePath(filePath);
+    final relative = p.relative(normalizedFile, from: normalizedRoot);
+    final parts = p.split(relative);
+    if (parts.isEmpty || (parts.length == 1 && parts.first == p.basename(normalizedFile))) {
+      return root;
+    }
+
+    var currentFolder = root;
+    var currentPath = normalizedRoot;
+    for (var i = 0; i < parts.length - 1; i++) {
+      final segment = parts[i];
+      if (segment.trim().isEmpty || segment == '.') continue;
+      currentPath = p.join(currentPath, segment);
+      final existing = currentFolder.subFolders.firstWhereOrNull(
+        (folder) => _pathsEqual(folder.path, currentPath),
+      );
+      if (existing != null) {
+        currentFolder = existing;
+        continue;
+      }
+
+      final created = MusicFolder(
+        path: currentPath,
+        name: _displayNameForPath(currentPath),
+      );
+      currentFolder.subFolders.add(created);
+      currentFolder = created;
+    }
+
+    return currentFolder;
+  }
+
+  void _upsertMusicFile(MusicFolder folder, MusicFile file) {
+    final index = folder.files.indexWhere(
+      (existing) => _pathsEqual(existing.path, file.path),
+    );
+    if (index >= 0) {
+      folder.files[index] = file;
+    } else {
+      folder.files.add(file);
+    }
+  }
+
   Future<ScanFileClassification> _classifyDiscoveredFiles(
     List<String> filePaths,
   ) async {
@@ -963,7 +1239,6 @@ class ScannerService extends ChangeNotifier {
   Future<void> scan() async {
     if (_roots.rootPaths.isEmpty) return;
     if (_isScanning) {
-      _roots.requestRootRescan();
       return;
     }
 
@@ -1071,8 +1346,8 @@ class ScannerService extends ChangeNotifier {
     } finally {
       _isScanning = false;
       _flushScanNotifications();
+      await _drainPendingIncrementalFileEvents();
       _sortAndNotify();
-      _roots.schedulePendingRootRescan();
     }
   }
 

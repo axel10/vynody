@@ -9,26 +9,20 @@ import 'scanner_path_utils.dart';
 
 class ScannerServiceRoots {
   ScannerServiceRoots({
-    required bool Function() isScanning,
     required bool Function() isDisposed,
-    required Future<void> Function() requestScan,
+    required void Function(FileSystemEvent event) onFileEvent,
     required void Function(String path, bool isMissing) notifySongMissingState,
-  }) : _isScanning = isScanning,
-       _isDisposed = isDisposed,
-       _requestScan = requestScan,
+  }) : _isDisposed = isDisposed,
+       _onFileEvent = onFileEvent,
        _notifySongMissingState = notifySongMissingState;
 
-  final bool Function() _isScanning;
   final bool Function() _isDisposed;
-  final Future<void> Function() _requestScan;
+  final void Function(FileSystemEvent event) _onFileEvent;
   final void Function(String path, bool isMissing) _notifySongMissingState;
 
   final List<String> _rootPaths = [];
   final Map<String, StreamSubscription<FileSystemEvent>>
   _rootWatchSubscriptions = {};
-
-  Timer? _rootRescanTimer;
-  bool _rootRescanPending = false;
 
   List<String> get rootPaths => List.unmodifiable(_rootPaths);
 
@@ -98,8 +92,17 @@ class ScannerServiceRoots {
                 _notifySongMissingState(event.path, false);
               }
 
-              if (shouldRescanForEvent(event)) {
-                requestRootRescan();
+              if (event.isDirectory) {
+                if ((event.type & FileSystemEvent.delete) != 0 ||
+                    (event.type & FileSystemEvent.move) != 0) {
+                  _onFileEvent(event);
+                }
+                return;
+              }
+
+              if (event.path.trim().isNotEmpty &&
+                  MusicFileUtils.isMusicFilePath(event.path)) {
+                _onFileEvent(event);
               }
             },
             onError: (err) {
@@ -107,51 +110,6 @@ class ScannerServiceRoots {
             },
           );
     }
-  }
-
-  bool shouldRescanForEvent(FileSystemEvent event) {
-    final path = event.path.trim();
-    if (path.isEmpty) return false;
-    if (event.isDirectory) {
-      return true;
-    }
-    if ((event.type & FileSystemEvent.create) != 0 ||
-        (event.type & FileSystemEvent.delete) != 0 ||
-        (event.type & FileSystemEvent.move) != 0) {
-      return true;
-    }
-    return MusicFileUtils.isMusicFilePath(path);
-  }
-
-  void requestRootRescan() {
-    if (_isDisposed()) return;
-    _rootRescanPending = true;
-    _scheduleRootRescan();
-  }
-
-  void schedulePendingRootRescan() {
-    if (_isDisposed() || !_rootRescanPending) return;
-    _scheduleRootRescan();
-  }
-
-  void _scheduleRootRescan() {
-    if (_isDisposed()) return;
-    if (_isScanning()) {
-      return;
-    }
-    if (_rootRescanTimer?.isActive ?? false) {
-      return;
-    }
-
-    _rootRescanTimer = Timer(const Duration(seconds: 1), () {
-      _rootRescanTimer = null;
-      if (_isDisposed() || !_rootRescanPending || _isScanning()) {
-        return;
-      }
-
-      _rootRescanPending = false;
-      unawaited(_requestScan());
-    });
   }
 
   bool isShortcutRoot(String path) {
@@ -162,7 +120,6 @@ class ScannerServiceRoots {
   }
 
   void dispose() {
-    _rootRescanTimer?.cancel();
     for (final subscription in _rootWatchSubscriptions.values) {
       unawaited(subscription.cancel());
     }
