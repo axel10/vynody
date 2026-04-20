@@ -129,6 +129,9 @@ class ScannerService extends ChangeNotifier {
       pathsEqual: _pathsEqual,
       compareNaturally: _compareNaturally,
       emitScanProgress: _emitScanProgress,
+      metadataForPath: (path) =>
+          _metadataStore.getMetadata(_normalizePath(path)) ??
+          _metadataStore.getMetadata(path),
     );
     _navigationState.addListener(_handleNavigationChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -465,16 +468,13 @@ class ScannerService extends ChangeNotifier {
           return;
         }
 
-        final metadataByPath = await _buildScannedMetadataMap(
-          scanResult.entries,
-          filePathOf: _androidEntryFilePath,
-          songIdOf: (entry) => int.tryParse(entry.id),
-          fallbackTitleOf: (entry) => entry.label,
-          fallbackAlbumOf: (entry) => entry.album ?? '',
-          fallbackArtistOf: (entry) => entry.artist ?? '',
-          fallbackDurationOf: (entry) => entry.duration.inMilliseconds,
-          fallbackTrackNumberOf: (_) => null,
-        );
+        final filePaths = scanResult.entries
+            .map(_androidEntryFilePath)
+            .whereType<String>()
+            .toList(growable: false);
+        final metadataByPath = filePaths.isEmpty
+            ? <String, SongMetadata>{}
+            : await MetadataDatabase().getSongMetadataByPaths(filePaths);
 
         _systemMediaFolder = _treeBuilder.buildAndroidMediaLibrary(
           scanResult.entries,

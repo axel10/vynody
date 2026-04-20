@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
+import 'metadata_database.dart';
 import 'music_file_utils.dart';
 import 'scanner_scan_support.dart';
 
@@ -14,16 +15,19 @@ class ScannerDirectoryScanner {
     required int Function(String a, String b) compareNaturally,
     required void Function(ScanProgressState scanState, String filePath)
     emitScanProgress,
+    required SongMetadata? Function(String path) metadataForPath,
   }) : _displayNameForPath = displayNameForPath,
        _pathsEqual = pathsEqual,
        _compareNaturally = compareNaturally,
-       _emitScanProgress = emitScanProgress;
+       _emitScanProgress = emitScanProgress,
+       _metadataForPath = metadataForPath;
 
   final String Function(String path) _displayNameForPath;
   final bool Function(String left, String right) _pathsEqual;
   final int Function(String a, String b) _compareNaturally;
   final void Function(ScanProgressState scanState, String filePath)
   _emitScanProgress;
+  final SongMetadata? Function(String path) _metadataForPath;
 
   Future<bool> scanDirectoryInto(
     MusicFolder folder,
@@ -62,8 +66,25 @@ class ScannerDirectoryScanner {
 
       for (final entity in audioFiles) {
         final filePath = entity.path;
+        final metadata = _metadataForPath(filePath);
         folder.files.add(
-          MusicFile(path: filePath, name: p.basename(filePath), id: null),
+          MusicFile(
+            path: filePath,
+            name: p.basename(filePath),
+            title: metadata?.title,
+            artist: metadata?.artist,
+            album: metadata?.album,
+            trackNumber: metadata?.trackNumber,
+            id: null,
+            durationMillis: metadata?.duration,
+            thumbnailPath: metadata?.thumbnailPath,
+            artworkPath: metadata?.artworkPath,
+            artworkWidth: metadata?.artworkWidth,
+            artworkHeight: metadata?.artworkHeight,
+            themeColorsBlob: metadata?.themeColorsBlob,
+            waveformBlob: metadata?.waveformBlob,
+            lastModifiedTime: metadata?.lastModifiedTime,
+          ),
         );
         scanState.discoveredCount++;
         _emitScanProgress(scanState, filePath);
