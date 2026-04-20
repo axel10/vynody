@@ -92,6 +92,15 @@ class ScannerServiceRoots {
                 _notifySongMissingState(event.path, false);
               }
 
+              if (event is FileSystemMoveEvent) {
+                final destination = event.destination?.trim() ?? '';
+                if (destination.isNotEmpty &&
+                    MusicFileUtils.isMusicFilePath(destination)) {
+                  _notifySongMissingState(destination, false);
+                  _onFileEvent(FileSystemCreateEvent(destination, false));
+                }
+              }
+
               if (event.isDirectory) {
                 if ((event.type & FileSystemEvent.delete) != 0 ||
                     (event.type & FileSystemEvent.move) != 0) {
