@@ -67,7 +67,8 @@ dependencies:
   flutter_colorpicker: ^1.1.0
   windows_single_instance: ^1.1.0
   intl: ^0.20.2
-  mesh_gradient: ^1.3.8
+  mesh_gradient: 
+    path: ./mesh-gradient
   windows_taskbar:
     git:
       url: https://github.com/alexmercerind/windows_taskbar
