@@ -62,6 +62,7 @@ class ScannerService extends ChangeNotifier {
   static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
   static const String _keyGlobalSortOrder = 'folder_sort_global_order';
   static const String _keyFolderSortOverrides = 'folder_sort_overrides';
+  static const bool _scanTimingEnabled = kDebugMode;
 
   SortCriteria _globalSortCriteria = SortCriteria.filename;
   SortOrder _globalSortOrder = SortOrder.ascending;
@@ -1065,6 +1066,7 @@ class ScannerService extends ChangeNotifier {
 
     final db = MetadataDatabase();
     final sortedPaths = fullPaths.toList()..sort(_compareNaturally);
+    final totalStopwatch = Stopwatch()..start();
 
     const batchSize = 200;
     for (var start = 0; start < sortedPaths.length; start += batchSize) {
@@ -1072,12 +1074,20 @@ class ScannerService extends ChangeNotifier {
           ? start + batchSize
           : sortedPaths.length;
       final chunk = sortedPaths.sublist(start, end);
+      final batchStopwatch = Stopwatch()..start();
 
+      final readStopwatch = Stopwatch()..start();
       final results = await MetadataHelper.readMetadataBatch(
         chunk,
         getImage: false,
       );
+      readStopwatch.stop();
+      _logScanTiming(
+        'stage 3 batch ${start + 1}-$end readMetadataBatch',
+        readStopwatch,
+      );
 
+      final writeStopwatch = Stopwatch()..start();
       for (final result in results) {
         final filePath = result['path'] as String? ?? '';
         if (filePath.isEmpty) continue;
@@ -1100,7 +1110,20 @@ class ScannerService extends ChangeNotifier {
           _emitScanProgress(scanState, filePath);
         }
       }
+      writeStopwatch.stop();
+      _logScanTiming(
+        'stage 3 batch ${start + 1}-$end db+store update',
+        writeStopwatch,
+      );
+      batchStopwatch.stop();
+      _logScanTiming(
+        'stage 3 batch ${start + 1}-$end total',
+        batchStopwatch,
+      );
     }
+
+    totalStopwatch.stop();
+    _logScanTiming('stage 3 preprocess text tags total', totalStopwatch);
   }
 
   Future<void> _applyArtworkAndThemeToChangedFiles(
@@ -1110,6 +1133,7 @@ class ScannerService extends ChangeNotifier {
     if (imageOnlyPaths.isEmpty) return;
 
     final sortedPaths = imageOnlyPaths.toList()..sort(_compareNaturally);
+    final totalStopwatch = Stopwatch()..start();
 
     try {
       final supportDir = await getApplicationSupportDirectory();
@@ -1119,6 +1143,7 @@ class ScannerService extends ChangeNotifier {
             ? start + batchSize
             : sortedPaths.length;
         final batch = sortedPaths.sublist(start, end);
+        final batchStopwatch = Stopwatch()..start();
 
         await Future.wait(
           batch.map(
@@ -1129,10 +1154,16 @@ class ScannerService extends ChangeNotifier {
             ),
           ),
         );
+        batchStopwatch.stop();
+        _logScanTiming(
+          'stage 4 batch ${start + 1}-$end total',
+          batchStopwatch,
+        );
       }
     } catch (e) {
       debugPrint('Worker artwork scan failed, falling back to serial mode: $e');
       final db = MetadataDatabase();
+      final fallbackStopwatch = Stopwatch()..start();
       for (final filePath in sortedPaths) {
         try {
           final baseMetadata =
@@ -1165,7 +1196,12 @@ class ScannerService extends ChangeNotifier {
           _emitScanProgress(scanState, filePath);
         }
       }
+      fallbackStopwatch.stop();
+      _logScanTiming('stage 4 fallback serial total', fallbackStopwatch);
     }
+
+    totalStopwatch.stop();
+    _logScanTiming('stage 4 preprocess artwork/theme total', totalStopwatch);
   }
 
   Future<void> _processArtworkAndThemeWithWorker({
@@ -1174,6 +1210,7 @@ class ScannerService extends ChangeNotifier {
     required ScanProgressState scanState,
   }) async {
     final db = MetadataDatabase();
+    final totalStopwatch = Stopwatch()..start();
 
     try {
       final baseMetadata =
@@ -1183,6 +1220,7 @@ class ScannerService extends ChangeNotifier {
         return;
       }
 
+      final workerStopwatch = Stopwatch()..start();
       final result = await workerManager.execute<Map<String, dynamic>?>(
         () => processArtworkThumbnailWorkerTask({
           'filePath': filePath,
@@ -1192,6 +1230,8 @@ class ScannerService extends ChangeNotifier {
         }),
         priority: WorkPriority.immediately,
       );
+      workerStopwatch.stop();
+      _logScanTiming('stage 4 worker $filePath', workerStopwatch);
 
       if (result == null) {
         return;
@@ -1210,6 +1250,8 @@ class ScannerService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Worker artwork/theme scan error for $filePath: $e');
     } finally {
+      totalStopwatch.stop();
+      _logScanTiming('stage 4 item $filePath total', totalStopwatch);
       _emitScanProgress(scanState, filePath);
     }
   }
@@ -1245,14 +1287,24 @@ class ScannerService extends ChangeNotifier {
     _isScanning = true;
     notifyListeners();
 
+    final totalStopwatch = Stopwatch()..start();
     try {
-      if (await _checkPermissions()) {
+      final permissionsStopwatch = Stopwatch()..start();
+      final hasPermission = await _checkPermissions();
+      permissionsStopwatch.stop();
+      _logScanTiming('stage 0 permissions', permissionsStopwatch);
+
+      if (hasPermission) {
         final scanState = ScanProgressState(
           metadataConcurrency: 4,
           comparePaths: _compareNaturally,
         );
-        final scanRoots = _computeScanRoots(_roots.rootPaths);
-        scanRoots.sort(_compareNaturally);
+        final scanRoots = _timeScanStepSync('stage 1 root discovery', () {
+          final roots = _computeScanRoots(_roots.rootPaths);
+          roots.sort(_compareNaturally);
+          return roots;
+        });
+
         for (final path in scanRoots) {
           debugPrint('Starting scan at: $path');
 
@@ -1262,19 +1314,26 @@ class ScannerService extends ChangeNotifier {
           );
 
           if (Platform.isAndroid) {
-            // Trigger media scanner for each root path on startup
-            try {
-              await MediaScanner.loadMedia(path: path);
-            } catch (e) {
-              debugPrint('MediaScanner startup scan error: $e');
-            }
+            await _timeScanStep(
+              'stage 1.1 MediaScanner.loadMedia for $path',
+              () async {
+                try {
+                  await MediaScanner.loadMedia(path: path);
+                } catch (e) {
+                  debugPrint('MediaScanner startup scan error: $e');
+                }
+              },
+            );
           }
 
-          await _directoryScanner.scanDirectoryInto(
-            rootFolder,
-            path,
-            scanState,
-            notifyListeners: notifyListeners,
+          await _timeScanStep(
+            'stage 1.2 directory traversal for $path',
+            () => _directoryScanner.scanDirectoryInto(
+              rootFolder,
+              path,
+              scanState,
+              notifyListeners: notifyListeners,
+            ),
           );
 
           _upsertScannedRootFolder(rootFolder);
@@ -1282,61 +1341,90 @@ class ScannerService extends ChangeNotifier {
           notifyListeners();
         }
 
-        final discoveredPaths = scanState.pendingMetadataPaths.toList(
-          growable: false,
+        final discoveredPaths = _timeScanStepSync(
+          'stage 1.3 collect discovered paths',
+          () => scanState.pendingMetadataPaths.toList(growable: false),
         );
-        final classification = await _classifyDiscoveredFiles(discoveredPaths);
-        _seedMetadataFromDatabase(classification.existingMetadataByPath);
+        final classification = await _timeScanStep(
+          'stage 2 classify discovered files',
+          () => _classifyDiscoveredFiles(discoveredPaths),
+        );
+        _timeScanStepSync('stage 2.1 seed metadata from db', () {
+          _seedMetadataFromDatabase(classification.existingMetadataByPath);
+        });
 
         final fullPaths = classification.pathsFor(ScanFileStage.full);
         final imageOnlyPaths = classification.pathsFor(ScanFileStage.imageOnly);
 
-        await _preprocessChangedFiles(
-          fullPaths,
-          scanState,
-          existingMetadataByPath: classification.existingMetadataByPath,
+        await _timeScanStep(
+          'stage 3 preprocess text tags',
+          () => _preprocessChangedFiles(
+            fullPaths,
+            scanState,
+            existingMetadataByPath: classification.existingMetadataByPath,
+          ),
         );
 
-        await _applyArtworkAndThemeToChangedFiles([
-          ...fullPaths,
-          ...imageOnlyPaths,
-        ], scanState);
+        await _timeScanStep(
+          'stage 4 preprocess artwork/theme',
+          () => _applyArtworkAndThemeToChangedFiles([
+            ...fullPaths,
+            ...imageOnlyPaths,
+          ], scanState),
+        );
 
-        final presentPaths = <String>{};
-        for (final root in _scannedRootFolders) {
-          _treeBuilder.collectFilePaths(root, presentPaths);
-        }
-        final normalizedPresentPaths = presentPaths
-            .map(_normalizePath)
-            .where((path) => path.isNotEmpty)
-            .toSet();
-        final presentPathIndex = Platform.isWindows
-            ? normalizedPresentPaths.map((path) => path.toLowerCase()).toSet()
-            : normalizedPresentPaths;
-        final missingPaths = <String>[];
-        for (final path in _metadataStore.metadataMap.keys) {
-          final normalizedPath = _normalizePath(path);
-          if (!_roots.rootPaths.any(
-            (root) => _pathContains(root, normalizedPath),
-          )) {
-            continue;
+        final presentPaths = _timeScanStepSync('stage 5 collect present paths', () {
+          final result = <String>{};
+          for (final root in _scannedRootFolders) {
+            _treeBuilder.collectFilePaths(root, result);
           }
-          final lookupKey = Platform.isWindows
-              ? normalizedPath.toLowerCase()
-              : normalizedPath;
-          if (!presentPathIndex.contains(lookupKey)) {
-            missingPaths.add(normalizedPath);
+          return result;
+        });
+        final normalizedPresentPaths = _timeScanStepSync(
+          'stage 5.1 normalize present paths',
+          () => presentPaths
+              .map(_normalizePath)
+              .where((path) => path.isNotEmpty)
+              .toSet(),
+        );
+        final presentPathIndex = _timeScanStepSync(
+          'stage 5.2 build present index',
+          () => Platform.isWindows
+              ? normalizedPresentPaths.map((path) => path.toLowerCase()).toSet()
+              : normalizedPresentPaths,
+        );
+        final missingPaths = _timeScanStepSync('stage 5.3 detect missing paths', () {
+          final result = <String>[];
+          for (final path in _metadataStore.metadataMap.keys) {
+            final normalizedPath = _normalizePath(path);
+            if (!_roots.rootPaths.any(
+              (root) => _pathContains(root, normalizedPath),
+            )) {
+              continue;
+            }
+            final lookupKey = Platform.isWindows
+                ? normalizedPath.toLowerCase()
+                : normalizedPath;
+            if (!presentPathIndex.contains(lookupKey)) {
+              result.add(normalizedPath);
+            }
           }
-        }
-        for (final path in normalizedPresentPaths) {
-          _notifySongMissingState(path, false);
-        }
-        for (final path in missingPaths) {
-          _notifySongMissingState(path, true);
-        }
-        await MetadataDatabase().deleteSongsMissingFromPaths(
-          scopeRoots: _roots.rootPaths,
-          presentPaths: presentPaths,
+          return result;
+        });
+        _timeScanStepSync('stage 5.4 notify missing states', () {
+          for (final path in normalizedPresentPaths) {
+            _notifySongMissingState(path, false);
+          }
+          for (final path in missingPaths) {
+            _notifySongMissingState(path, true);
+          }
+        });
+        await _timeScanStep(
+          'stage 5.5 delete missing db rows',
+          () => MetadataDatabase().deleteSongsMissingFromPaths(
+            scopeRoots: _roots.rootPaths,
+            presentPaths: presentPaths,
+          ),
         );
       } else {
         debugPrint('Scan aborted: Permission not granted.');
@@ -1344,6 +1432,8 @@ class ScannerService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Scan error: $e');
     } finally {
+      totalStopwatch.stop();
+      _logScanTiming('scan total', totalStopwatch);
       _isScanning = false;
       _flushScanNotifications();
       await _drainPendingIncrementalFileEvents();
@@ -1618,6 +1708,36 @@ class ScannerService extends ChangeNotifier {
 
   String _displayNameForPath(String path) {
     return ScannerPathUtils.displayNameForPath(path);
+  }
+
+  void _logScanTiming(String label, Stopwatch stopwatch) {
+    if (!_scanTimingEnabled) return;
+    debugPrint(
+      '[ScannerService][scan] $label took ${stopwatch.elapsedMilliseconds} ms',
+    );
+  }
+
+  Future<T> _timeScanStep<T>(
+    String label,
+    Future<T> Function() action,
+  ) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return await action();
+    } finally {
+      stopwatch.stop();
+      _logScanTiming(label, stopwatch);
+    }
+  }
+
+  T _timeScanStepSync<T>(String label, T Function() action) {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return action();
+    } finally {
+      stopwatch.stop();
+      _logScanTiming(label, stopwatch);
+    }
   }
 
   void _scheduleMetadataNotify() {

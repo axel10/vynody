@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:flutter/foundation.dart';
 
 import 'metadata_database.dart';
 import 'scanner_metadata_store.dart';
@@ -19,9 +20,17 @@ class ScannerScanPipeline {
   final String Function(String path) _pathLookupKey;
   final ScannerMetadataStore _metadataStore;
 
+  void _logTiming(String label, Stopwatch stopwatch) {
+    if (!kDebugMode) return;
+    debugPrint(
+      '[ScannerScanPipeline] $label took ${stopwatch.elapsedMilliseconds} ms',
+    );
+  }
+
   Future<Map<String, int?>> loadLastModifiedTimes(
     Iterable<String> filePaths,
   ) async {
+    final totalStopwatch = Stopwatch()..start();
     final normalizedPaths = <String>[];
     final seen = <String>{};
 
@@ -37,6 +46,8 @@ class ScannerScanPipeline {
 
     final lastModifiedByPath = <String, int?>{};
     if (normalizedPaths.isEmpty) {
+      totalStopwatch.stop();
+      _logTiming('loadLastModifiedTimes empty', totalStopwatch);
       return lastModifiedByPath;
     }
 
@@ -46,6 +57,7 @@ class ScannerScanPipeline {
           ? start + batchSize
           : normalizedPaths.length;
       final chunk = normalizedPaths.sublist(start, end);
+      final batchStopwatch = Stopwatch()..start();
 
       final results = await Future.wait(
         chunk.map((path) async {
@@ -64,27 +76,45 @@ class ScannerScanPipeline {
       for (final entry in results) {
         lastModifiedByPath[entry.key] = entry.value;
       }
+      batchStopwatch.stop();
+      _logTiming(
+        'loadLastModifiedTimes chunk ${start + 1}-$end',
+        batchStopwatch,
+      );
     }
 
+    totalStopwatch.stop();
+    _logTiming('loadLastModifiedTimes total', totalStopwatch);
     return lastModifiedByPath;
   }
 
   Future<ScanFileClassification> classifyDiscoveredFiles(
     List<String> filePaths,
   ) async {
+    final totalStopwatch = Stopwatch()..start();
     if (filePaths.isEmpty) {
+      totalStopwatch.stop();
+      _logTiming('classifyDiscoveredFiles empty', totalStopwatch);
       return ScanFileClassification(
         existingMetadataByPath: const {},
         stageByPath: const {},
       );
     }
 
+    final dbStopwatch = Stopwatch()..start();
     final existingMetadataByPath = await MetadataDatabase()
         .getSongMetadataByPaths(filePaths);
+    dbStopwatch.stop();
+    _logTiming('classifyDiscoveredFiles database lookup', dbStopwatch);
+
+    final statStopwatch = Stopwatch()..start();
     final lastModifiedByPath = await loadLastModifiedTimes(filePaths);
+    statStopwatch.stop();
+    _logTiming('classifyDiscoveredFiles file stat lookup', statStopwatch);
 
     final stageByPath = <String, ScanFileStage>{};
     final seen = <String>{};
+    final classifyStopwatch = Stopwatch()..start();
 
     for (final path in filePaths) {
       final lookupKey = _pathLookupKey(path);
@@ -111,7 +141,11 @@ class ScannerScanPipeline {
         stageByPath[path] = ScanFileStage.full;
       }
     }
+    classifyStopwatch.stop();
+    _logTiming('classifyDiscoveredFiles compare decision', classifyStopwatch);
 
+    totalStopwatch.stop();
+    _logTiming('classifyDiscoveredFiles total', totalStopwatch);
     return ScanFileClassification(
       existingMetadataByPath: existingMetadataByPath,
       stageByPath: stageByPath,
