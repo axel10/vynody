@@ -51,6 +51,20 @@ class ScannerTreeBuilder {
     Iterable<SongMetadata> songs,
     int Function(String a, String b) compareNaturally,
   ) {
+    return buildFolderTreeFromMetadata(
+      songs,
+      compareNaturally,
+      rootPath: 'system',
+      rootName: '系统媒体库',
+    );
+  }
+
+  MusicFolder buildFolderTreeFromMetadata(
+    Iterable<SongMetadata> songs,
+    int Function(String a, String b) compareNaturally, {
+    required String rootPath,
+    required String rootName,
+  }) {
     final items = <_FolderItem>[];
     for (final song in songs) {
       final normalizedPath = _normalizePath(song.path);
@@ -66,8 +80,8 @@ class ScannerTreeBuilder {
     return _buildFolderTree(
       items,
       compareNaturally,
-      rootPath: 'system',
-      rootName: '系统媒体库',
+      rootPath: rootPath,
+      rootName: rootName,
     );
   }
 

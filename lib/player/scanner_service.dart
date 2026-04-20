@@ -252,9 +252,7 @@ class ScannerService extends ChangeNotifier {
   Future<void> _init() async {
     await _roots.loadRootPaths();
     await _loadSortSettings();
-    if (Platform.isAndroid) {
-      await _loadCachedSystemMediaFromDatabase();
-    }
+    await _loadCachedRootFoldersFromDatabase();
     _rebuildDisplayedRootFolders();
     notifyListeners();
     await checkAndRequestPermissions();
@@ -318,6 +316,7 @@ class ScannerService extends ChangeNotifier {
 
     final updatedRoots = [..._roots.rootPaths, normalizedPath];
     await _roots.setRootPaths(updatedRoots);
+    await _loadCachedRootFoldersFromDatabase(rootPaths: [normalizedPath]);
     _rebuildDisplayedRootFolders();
     notifyListeners();
 
@@ -543,28 +542,75 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadCachedSystemMediaFromDatabase() async {
+  Future<void> _loadCachedRootFoldersFromDatabase({
+    Iterable<String>? rootPaths,
+  }) async {
     try {
+      final declaredRoots = (rootPaths ?? _roots.rootPaths)
+          .map(_normalizePath)
+          .where((path) => path.isNotEmpty)
+          .toList(growable: false);
+      if (declaredRoots.isEmpty) return;
+      declaredRoots.sort((a, b) {
+        final lengthCompare = b.length.compareTo(a.length);
+        if (lengthCompare != 0) return lengthCompare;
+        return _compareNaturally(a, b);
+      });
+
       final cachedSongs = await MetadataDatabase().getAllSongMetadata();
-      _systemMediaFolder = _treeBuilder.buildSongsIntoFoldersFromMetadata(
-        cachedSongs,
-        _compareNaturally,
-      );
+      final cachedSongGroups = <String, List<SongMetadata>>{
+        for (final root in declaredRoots) root: <SongMetadata>[],
+      };
+
       for (final song in cachedSongs) {
-        _metadataStore.cacheMetadata(song);
+        final normalizedPath = _normalizePath(song.path);
+        if (normalizedPath.isEmpty) continue;
+
+        for (final root in declaredRoots) {
+          if (_pathContains(root, normalizedPath)) {
+            cachedSongGroups[root]!.add(song);
+            break;
+          }
+        }
       }
-      if (_systemMediaFolder != null) {
-        _folderSorter.sortFolderRecursiveForTree(
-          _systemMediaFolder!,
-          resolveSettings: _resolveSortSettingsForFolder,
+
+      var loadedCount = 0;
+      for (final root in declaredRoots) {
+        final songs = cachedSongGroups[root]!;
+        if (songs.isEmpty) continue;
+
+        final cachedFolder = _treeBuilder.buildFolderTreeFromMetadata(
+          songs,
+          _compareNaturally,
+          rootPath: root,
+          rootName: _displayNameForPath(root),
+        );
+        _upsertScannedRootFolder(cachedFolder);
+        for (final song in songs) {
+          _metadataStore.cacheMetadata(song);
+        }
+        loadedCount += songs.length;
+      }
+
+      if (loadedCount > 0) {
+        debugPrint(
+          '[ScannerService] Loaded cached root folders from songs table '
+          'entries=$loadedCount roots=${declaredRoots.length}',
         );
       }
-      debugPrint(
-        '[ScannerService] Loaded cached system media from songs table '
-        'entries=${cachedSongs.length}',
-      );
     } catch (e) {
-      debugPrint('[ScannerService] Failed to load cached system media: $e');
+      debugPrint('[ScannerService] Failed to load cached root folders: $e');
+    }
+  }
+
+  void _upsertScannedRootFolder(MusicFolder folder) {
+    final index = _scannedRootFolders.indexWhere(
+      (existing) => _pathsEqual(existing.path, folder.path),
+    );
+    if (index >= 0) {
+      _scannedRootFolders[index] = folder;
+    } else {
+      _scannedRootFolders.add(folder);
     }
   }
 
@@ -922,8 +968,6 @@ class ScannerService extends ChangeNotifier {
     }
 
     _isScanning = true;
-    _scannedRootFolders.clear();
-    _rootFolders.clear();
     notifyListeners();
 
     try {
@@ -941,9 +985,6 @@ class ScannerService extends ChangeNotifier {
             path: path,
             name: _displayNameForPath(path),
           );
-          _scannedRootFolders.add(rootFolder);
-          _rebuildDisplayedRootFolders();
-          notifyListeners();
 
           if (Platform.isAndroid) {
             // Trigger media scanner for each root path on startup
@@ -960,6 +1001,10 @@ class ScannerService extends ChangeNotifier {
             scanState,
             notifyListeners: notifyListeners,
           );
+
+          _upsertScannedRootFolder(rootFolder);
+          _rebuildDisplayedRootFolders();
+          notifyListeners();
         }
 
         final discoveredPaths = scanState.pendingMetadataPaths.toList(
