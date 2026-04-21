@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -46,72 +44,70 @@ class LyricsPanelEmptyState extends StatelessWidget {
         HapticFeedback.mediumImpact();
         onContextMenu(details.globalPosition);
       },
-      child: Column(
+      child: Stack(
         children: [
-          Expanded(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isLoading && !isGenerating) ...[
-                      SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            accentColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    Text(
-                      isLoading ? '正在查找歌词' : '暂无歌词',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 16,
+          Positioned(
+            top: MediaQuery.of(context).orientation == Orientation.portrait ? 200 : 80,
+            left: 24,
+            right: 24,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isLoading && !isGenerating) ...[
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        accentColor,
                       ),
                     ),
-                    if (canGenerateLyrics) ...[
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        height: 42,
-                        child: FilledButton.icon(
-                          onPressed: isGenerating
-                              ? null
-                              : () => onGeneratePressed(),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: accentColor.withValues(
-                              alpha: 0.95,
-                            ),
-                            foregroundColor: buttonForegroundColor,
-                            padding: const EdgeInsets.symmetric(horizontal: 18),
-                          ),
-                          icon: isGenerating
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: buttonForegroundColor.withValues(
-                                      alpha: 0.8,
-                                    ),
-                                  ),
-                                )
-                              : const Icon(Icons.auto_awesome, size: 18),
-                          label: Text(generateButtonLabel),
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  isLoading ? '正在查找歌词' : '暂无歌词',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 16,
+                  ),
                 ),
-              ),
+                if (canGenerateLyrics) ...[
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 42,
+                    child: FilledButton.icon(
+                      onPressed: isGenerating
+                          ? null
+                          : () => onGeneratePressed(),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: accentColor.withValues(
+                          alpha: 0.95,
+                        ),
+                        foregroundColor: buttonForegroundColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                      ),
+                      icon: isGenerating
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: buttonForegroundColor.withValues(
+                                  alpha: 0.8,
+                                ),
+                              ),
+                            )
+                          : const Icon(Icons.auto_awesome, size: 18),
+                      label: Text(generateButtonLabel),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          SizedBox(height: math.max(bottomSpacerHeight, bottomTabBarHeight)),
         ],
       ),
     );
