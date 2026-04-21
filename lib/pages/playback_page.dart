@@ -714,13 +714,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           final lyricsBottomTabBarHeight = isLandscape ? 0.0 : 60.0;
 
           final content = SafeArea(
-            bottom: !(isLyricsMode && !isLandscape && isImmersiveActive),
+            bottom: !isLyricsMode,
             child: AnimatedPadding(
               duration: const Duration(milliseconds: 400),
               curve: Curves.fastOutSlowIn,
               padding: EdgeInsets.fromLTRB(
                 isLyricsMode
-                    ? (isLandscape ? 40.0 : 16.0) // 歌词模式下，横屏增加左侧内边距以适应歌词面板
+                    ? (isLandscape ? 40.0 : 16.0)
                     : (isLandscape ? 32.0 : 24.0),
                 isLyricsMode ? 8.0 : (isLandscape ? 32.0 : 24.0),
                 isLyricsMode
