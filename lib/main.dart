@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:audio_core/audio_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -28,6 +29,8 @@ void handleFileOpen(List<String> args) {
 
   final container = ProviderScope.containerOf(context);
   final audio = container.read(audioServiceProvider);
+
+  AppLog.install();
 
   for (var arg in args) {
     // 处理路径中可能的双引号和两端空格
