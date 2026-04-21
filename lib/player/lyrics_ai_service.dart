@@ -94,6 +94,21 @@ class LyricsAiService {
     return '未找到 $providerName API Key，无法$action。';
   }
 
+  static const String _googleServerFlakyMessage = 'Google服务器开小差了，重试一下或许会成功哦';
+
+  bool _shouldUseGoogleServerFlakyMessage(Object error) {
+    if (_settingsService.lyricsAiProvider != LyricsAiProvider.googleAiStudio) {
+      return false;
+    }
+
+    if (error is DioException) {
+      final message = error.message?.trim();
+      return message == null || message.isEmpty;
+    }
+
+    return false;
+  }
+
   Future<String?> translateLyricsStream({
     required String lyrics,
     String targetLanguageCode = 'zh',
@@ -253,6 +268,9 @@ class LyricsAiService {
       return null;
     } on DioException catch (e) {
       debugPrint('[LyricsAi] request failed: ${e.message}');
+      if (_shouldUseGoogleServerFlakyMessage(e)) {
+        return _googleServerFlakyMessage;
+      }
       return _formatGenerationErrorMessage(e, fallback: '翻译歌词时发生未知错误。');
     } catch (e) {
       debugPrint('[LyricsAi] translation failed: $e');
@@ -579,6 +597,9 @@ class LyricsAiService {
       }
       return _normalizeGenerationResult(generationOutcome.result);
     } catch (e) {
+      if (_shouldUseGoogleServerFlakyMessage(e)) {
+        return LyricsGenerationResult.failure(_googleServerFlakyMessage);
+      }
       final fallbackResult = await _maybeFallbackToOpenRouter(
         openRouterFallbackGenerator: openRouterFallbackGenerator,
         fallbackLog: 'upload or active wait failed with exception',
@@ -607,6 +628,7 @@ class LyricsAiService {
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
     String? lastErrorMessage;
+    bool lastFailureShouldUseGoogleFlakyMessage = false;
     var lastFailureEligibleForFallback = false;
     final modelCandidates = <String>[
       modelId,
@@ -744,7 +766,11 @@ class LyricsAiService {
             result: LyricsGenerationResult.success(normalizedFinalText),
           );
         } on DioException catch (e) {
-          lastErrorMessage = _formatGenerationErrorMessage(e);
+          lastFailureShouldUseGoogleFlakyMessage =
+              _shouldUseGoogleServerFlakyMessage(e);
+          lastErrorMessage = lastFailureShouldUseGoogleFlakyMessage
+              ? _googleServerFlakyMessage
+              : _formatGenerationErrorMessage(e);
           lastFailureEligibleForFallback = _shouldUseFallbackModel(
             e.response?.statusCode,
           );
@@ -809,6 +835,16 @@ class LyricsAiService {
         continue;
       }
       break;
+    }
+
+    if (lastFailureShouldUseGoogleFlakyMessage) {
+      return _LyricsGenerationOutcome(
+        result: LyricsGenerationResult.failure(_googleServerFlakyMessage),
+        shouldFallbackToOpenRouter:
+            lastFailureEligibleForFallback &&
+            _settingsService.shouldAutoSwitchLyricsProvider &&
+            _settingsService.openRouterApiKey.trim().isNotEmpty,
+      );
     }
 
     return _LyricsGenerationOutcome(
