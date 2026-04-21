@@ -94,7 +94,7 @@ class LyricsAiService {
     return '未找到 $providerName API Key，无法$action。';
   }
 
-  Future<bool> translateLyricsStream({
+  Future<String?> translateLyricsStream({
     required String lyrics,
     String targetLanguageCode = 'zh',
     void Function(List<String> translatedLines, String translatedText)?
@@ -104,7 +104,10 @@ class LyricsAiService {
     final apiKey = _settingsService.geminiApiKey.trim();
     if (apiKey.isEmpty) {
       debugPrint('[LyricsAi] gemini API key not found, skip translation.');
-      return false;
+      return _missingApiKeyMessage(
+        LyricsAiProvider.googleAiStudio,
+        action: '翻译歌词',
+      );
     }
 
     final sourceLines = _splitLyricsLines(lyrics);
@@ -122,7 +125,7 @@ class LyricsAiService {
     final targetLineCount = compactSourceLines.length;
     if (targetLineCount == 0) {
       debugPrint('[LyricsAi] no usable lyrics after stripping timestamps.');
-      return false;
+      return '没有可用于翻译的歌词。';
     }
     final targetLanguageName = _targetLanguageName(targetLanguageCode);
     final sourceLyricsForModel = _normalizeSourceLyrics(lyrics);
@@ -167,13 +170,14 @@ class LyricsAiService {
       final body = response.data;
       if (body == null || body.stream == null) {
         debugPrint('[LyricsAi] Empty streaming body.');
-        return false;
+        return 'Gemini 返回了空流响应。';
       }
 
       debugPrint('[LyricsAi] stream connected');
       final translatedBuffer = StringBuffer();
       var lastPrintedLength = -1;
       var lastProgressSnapshot = '';
+      var receivedAnyChunk = false;
       Timer? printTimer;
 
       void emitProgress({bool force = false}) {
@@ -228,6 +232,7 @@ class LyricsAiService {
           if (chunk == null || chunk.isEmpty) {
             continue;
           }
+          receivedAnyChunk = true;
           translatedBuffer.write(chunk);
           emitProgress();
         }
@@ -236,13 +241,23 @@ class LyricsAiService {
       }
 
       emitProgress(force: true);
-      return true;
+      final rawCurrent = translatedBuffer.toString();
+      final cleanedCurrent = _stripTimestamps(
+        LrcUtils.cleanGeneratedLyricsText(rawCurrent),
+      );
+      if (!receivedAnyChunk || cleanedCurrent.trim().isEmpty) {
+        debugPrint('[LyricsAi] empty translation response.');
+        debugPrint('[LyricsAi] raw translation response: $rawCurrent');
+        return 'Gemini 返回了空响应。';
+      }
+      return null;
     } on DioException catch (e) {
       debugPrint('[LyricsAi] request failed: ${e.message}');
+      return _formatGenerationErrorMessage(e, fallback: '翻译歌词时发生未知错误。');
     } catch (e) {
       debugPrint('[LyricsAi] translation failed: $e');
+      return _formatGenerationErrorMessage(e, fallback: '翻译歌词时发生未知错误。');
     }
-    return false;
   }
 
   Future<LyricsGenerationResult> generateLyricsFromFile({
@@ -501,6 +516,13 @@ class LyricsAiService {
       );
       if (uploadedFile == null) {
         debugPrint('[LyricsAi] 文件上传失败: $filePath');
+        final fallbackResult = await _maybeFallbackToOpenRouter(
+          openRouterFallbackGenerator: openRouterFallbackGenerator,
+          fallbackLog: 'upload failed',
+        );
+        if (fallbackResult != null) {
+          return _normalizeGenerationResult(fallbackResult);
+        }
         return const LyricsGenerationResult.failure('文件上传失败，请重试。');
       }
 
@@ -518,6 +540,13 @@ class LyricsAiService {
           '[LyricsAi] file never became ACTIVE after upload: '
           'name=$fileName uri=$fileUri',
         );
+        final fallbackResult = await _maybeFallbackToOpenRouter(
+          openRouterFallbackGenerator: openRouterFallbackGenerator,
+          fallbackLog: 'upload never became ACTIVE',
+        );
+        if (fallbackResult != null) {
+          return _normalizeGenerationResult(fallbackResult);
+        }
         return const LyricsGenerationResult.failure('上传后的文件未能就绪，请稍后重试。');
       }
       final generationOutcome = await _generateWithUploadedFileUri(
@@ -550,6 +579,13 @@ class LyricsAiService {
       }
       return _normalizeGenerationResult(generationOutcome.result);
     } catch (e) {
+      final fallbackResult = await _maybeFallbackToOpenRouter(
+        openRouterFallbackGenerator: openRouterFallbackGenerator,
+        fallbackLog: 'upload or active wait failed with exception',
+      );
+      if (fallbackResult != null) {
+        return _normalizeGenerationResult(fallbackResult);
+      }
       return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(e, fallback: '生成歌词时发生未知错误。'),
       );
@@ -872,6 +908,24 @@ class LyricsAiService {
     }
 
     return LyricsGenerationResult.success(normalizedText);
+  }
+
+  Future<LyricsGenerationResult?> _maybeFallbackToOpenRouter({
+    required Future<LyricsGenerationResult> Function(String apiKey)?
+    openRouterFallbackGenerator,
+    required String fallbackLog,
+  }) async {
+    if (openRouterFallbackGenerator == null) {
+      return null;
+    }
+
+    final fallbackApiKey = _settingsService.openRouterApiKey.trim();
+    if (fallbackApiKey.isEmpty) {
+      return null;
+    }
+
+    debugPrint('[LyricsAi] switching to OpenRouter after $fallbackLog.');
+    return openRouterFallbackGenerator(fallbackApiKey);
   }
 
   String _visibleTranslationText(

@@ -327,7 +327,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     } else if (selected == 'translate') {
       if (await _ensureGeminiApiKey()) {
         if (!mounted) return;
-        await _lyricsControllerActions.translateLyricsForCurrentSong();
+        final errorMessage = await _lyricsControllerActions
+            .translateLyricsForCurrentSong();
+        if (errorMessage != null) {
+          _showGenerationErrorSnack(errorMessage);
+        }
       }
     } else if (selected == 'clear_lyrics_cache') {
       await _lyricsControllerActions.clearLyricsCacheForCurrentSong();

@@ -270,7 +270,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     return _generationCoordinator.regenerateLyricsForCurrentSong();
   }
 
-  Future<void> translateLyricsForCurrentSong({String? targetLanguageCode}) {
+  Future<String?> translateLyricsForCurrentSong({String? targetLanguageCode}) {
     return _translationCoordinator.translateLyricsForCurrentSong(
       targetLanguageCode: targetLanguageCode,
     );
