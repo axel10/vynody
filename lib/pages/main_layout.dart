@@ -109,9 +109,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       if (event.buttons == 16) {
         // Forward button
         _audioService.setVolume((_audioService.volume + 5).roundToDouble());
+        _triggerHUD();
       } else if (event.buttons == 8) {
         // Back button
         _audioService.setVolume((_audioService.volume - 5).roundToDouble());
+        _triggerHUD();
       }
     }
 
@@ -464,6 +466,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             const VolumeUpIntent(),
         const SingleActivator(LogicalKeyboardKey.arrowDown, control: true):
             const VolumeDownIntent(),
+        const SingleActivator(LogicalKeyboardKey.audioVolumeUp):
+            const VolumeUpIntent(),
+        const SingleActivator(LogicalKeyboardKey.audioVolumeDown):
+            const VolumeDownIntent(),
+        const SingleActivator(LogicalKeyboardKey.audioVolumeMute):
+            const MuteIntent(),
         const SingleActivator(LogicalKeyboardKey.keyM, control: true):
             const MuteIntent(),
         const SingleActivator(LogicalKeyboardKey.arrowLeft):
@@ -483,17 +491,29 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             onInvoke: (_) => _audioService.previous(),
           ),
           VolumeUpIntent: CallbackAction<VolumeUpIntent>(
-            onInvoke: (_) => _audioService.setVolume(
-              (_audioService.volume + 5).roundToDouble(),
-            ),
+            onInvoke: (_) {
+              _audioService.setVolume(
+                (_audioService.volume + 5).roundToDouble(),
+              );
+              _triggerHUD();
+              return null;
+            },
           ),
           VolumeDownIntent: CallbackAction<VolumeDownIntent>(
-            onInvoke: (_) => _audioService.setVolume(
-              (_audioService.volume - 5).roundToDouble(),
-            ),
+            onInvoke: (_) {
+              _audioService.setVolume(
+                (_audioService.volume - 5).roundToDouble(),
+              );
+              _triggerHUD();
+              return null;
+            },
           ),
           MuteIntent: CallbackAction<MuteIntent>(
-            onInvoke: (_) => _audioService.toggleMute(),
+            onInvoke: (_) {
+              _audioService.toggleMute();
+              _triggerHUD();
+              return null;
+            },
           ),
           SeekForwardIntent: CallbackAction<SeekForwardIntent>(
             onInvoke: (_) =>

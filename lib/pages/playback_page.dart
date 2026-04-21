@@ -26,6 +26,7 @@ import '../dialogs/song_tag_completion_dialog.dart';
 import '../dialogs/sleep_timer_sheet.dart';
 import '../widgets/equalizer_panel.dart';
 import '../widgets/lyrics_task_status_banner.dart';
+import 'main_layout_riverpod.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
 
@@ -139,10 +140,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
   void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
     audio.setVolume((audio.volume - dragDelta * 0.2).roundToDouble());
+    ref.read(mainLayoutUiControllerProvider.notifier).showVolumeHud();
   }
 
   void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY) {
     audio.setVolume((audio.volume - scrollDeltaY * 0.1).roundToDouble());
+    ref.read(mainLayoutUiControllerProvider.notifier).showVolumeHud();
   }
 
   Future<void> _toggleVisualizer(AudioService audio) async {
