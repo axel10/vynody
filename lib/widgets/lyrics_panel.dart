@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
@@ -58,6 +59,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   double _dragTravelPixels = 0.0;
   int? _dragStartLine;
   int? _dragCurrentLine;
+  int _lastDebugActiveIndex = -1;
+  int _lastDebugPositionMs = -1;
+  DateTime _lastDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
   ToastFuture? _seekToast;
   String? _seekToastSignature;
 
@@ -686,6 +690,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final focusedIndex = _isDraggingLyrics && _dragCurrentLine != null
         ? _dragCurrentLine!
         : activeIndex;
+    _logLyricsDebug(
+      displayLines: displayLines,
+      activeIndex: focusedIndex,
+      hasTimedLyrics: hasTimedLyrics,
+    );
 
     return LyricsPanelTimedLyricsView(
       lyrics: lyrics,
@@ -722,5 +731,56 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       },
       bottomSpacerHeight: widget.bottomSpacerHeight,
     );
+  }
+
+  void _logLyricsDebug({
+    required List<LyricLine> displayLines,
+    required int activeIndex,
+    required bool hasTimedLyrics,
+  }) {
+    if (!kDebugMode) return;
+
+    final adjustedMs = _adjustedPositionMilliseconds;
+    final now = DateTime.now();
+    final activeChanged = activeIndex != _lastDebugActiveIndex;
+    final positionChanged = (adjustedMs - _lastDebugPositionMs).abs() >= 250;
+    final timeElapsed = now.difference(_lastDebugLogAt);
+    if (!activeChanged &&
+        !positionChanged &&
+        timeElapsed < const Duration(seconds: 1)) {
+      return;
+    }
+
+    _lastDebugActiveIndex = activeIndex;
+    _lastDebugPositionMs = adjustedMs;
+    _lastDebugLogAt = now;
+
+    final activeTimestamp =
+        (hasTimedLyrics &&
+            activeIndex >= 0 &&
+            activeIndex < displayLines.length)
+        ? displayLines[activeIndex].timestamp.inMilliseconds
+        : -1;
+    final offsetMs = _timelineOffsetMilliseconds;
+    final deltaMs = activeTimestamp >= 0 ? adjustedMs - activeTimestamp : 0;
+
+    debugPrint(
+      '[LyricsPanel] pos=${_formatMs(adjustedMs)}ms '
+      'raw=${_formatMs(widget.position.inMilliseconds)}ms '
+      'offset=${_formatMs(offsetMs)}ms '
+      'activeIndex=$activeIndex '
+      'activeTs=${_formatMs(activeTimestamp)}ms '
+      'delta=${_formatSignedMs(deltaMs)}ms '
+      'lines=${displayLines.length}',
+    );
+  }
+
+  String _formatMs(int value) {
+    return value.toString();
+  }
+
+  String _formatSignedMs(int value) {
+    if (value >= 0) return value.toString();
+    return '-${value.abs()}';
   }
 }

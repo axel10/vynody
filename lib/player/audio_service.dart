@@ -61,6 +61,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   int _lastWaveformChunks = -1;
   bool _disposed = false;
   late final VoidCallback _settingsListener;
+  DateTime _lastPositionDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -459,6 +460,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _position = _player.player.position;
     _duration = _player.player.duration;
     _volume = (_player.player.volume * 100.0).roundToDouble();
+    _logPositionDebug();
 
     final int newIndex = _player.playlist.currentIndex ?? -1;
     if (newIndex != _currentIndex && !_isTransitioning) {
@@ -552,6 +554,25 @@ class AudioService extends Notifier<AudioSnapshot> {
     _lastNotifiedIndex = _currentIndex;
     _lastNotifiedFilePath = currentMusic?.path;
     notifyListeners();
+  }
+
+  void _logPositionDebug() {
+    if (!kDebugMode) return;
+
+    final now = DateTime.now();
+    if (now.difference(_lastPositionDebugLogAt) < const Duration(seconds: 1)) {
+      return;
+    }
+    _lastPositionDebugLogAt = now;
+
+    debugPrint(
+      '[AudioService][Position] playing=$_isPlaying '
+      'index=$_currentIndex '
+      'pos=${_formatDuration(_position)} '
+      'duration=${_formatDuration(_duration)} '
+      'volume=${_volume.toStringAsFixed(1)} '
+      'track=${currentMusic?.displayName ?? 'null'}',
+    );
   }
 
   bool? get isLastActionNext => _lastActionNext;
@@ -1173,6 +1194,15 @@ class AudioService extends Notifier<AudioSnapshot> {
   void _logLyricsDebug(String message) {
     if (!kDebugMode) return;
     debugPrint('[AudioService][Lyrics] $message');
+  }
+
+  String _formatDuration(Duration duration) {
+    final safe = duration < Duration.zero ? Duration.zero : duration;
+    final totalMilliseconds = safe.inMilliseconds;
+    final minutes = totalMilliseconds ~/ 60000;
+    final seconds = (totalMilliseconds % 60000) ~/ 1000;
+    final millis = totalMilliseconds % 1000;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.${millis.toString().padLeft(3, '0')}';
   }
 
   Future<MusicFile> _buildMusicFileFromPath(

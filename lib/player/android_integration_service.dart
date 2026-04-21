@@ -11,11 +11,11 @@ class AndroidIntegrationService {
   late MyAudioHandler _handler;
   bool _initialized = false;
   String? _lastMetadataKey;
-  DateTime _lastTimelineForwardedAt =
-      DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastTimelineForwardedAt = DateTime.fromMillisecondsSinceEpoch(0);
   Duration _lastTimelinePosition = Duration.zero;
   Duration _lastTimelineDuration = Duration.zero;
   bool _hasForwardedTimeline = false;
+  DateTime _lastDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   AndroidIntegrationService(this.audioService) {
     if (!Platform.isAndroid) return;
@@ -99,7 +99,8 @@ class AndroidIntegrationService {
     final positionJump = (position - _lastTimelinePosition).abs();
     final durationChanged = duration != _lastTimelineDuration;
 
-    final shouldForward = !_hasForwardedTimeline ||
+    final shouldForward =
+        !_hasForwardedTimeline ||
         durationChanged ||
         position == Duration.zero ||
         positionJump >= const Duration(milliseconds: 500) ||
@@ -114,6 +115,13 @@ class AndroidIntegrationService {
     _lastTimelinePosition = position;
     _lastTimelineDuration = duration;
 
+    _logDebug(
+      'forward position=${_formatDuration(position)} '
+      'duration=${_formatDuration(duration)} '
+      'playing=${audioService.isPlaying}',
+      throttle: const Duration(seconds: 1),
+    );
+
     if (durationChanged) {
       updateMetadata(null);
     }
@@ -122,6 +130,26 @@ class AndroidIntegrationService {
 
   void dispose() {
     // AudioService handlers usually live for the duration of the app
+  }
+
+  void _logDebug(String message, {Duration? throttle}) {
+    if (!kDebugMode) return;
+
+    final now = DateTime.now();
+    if (throttle != null && now.difference(_lastDebugLogAt) < throttle) {
+      return;
+    }
+    _lastDebugLogAt = now;
+    debugPrint('[AndroidIntegration] $message');
+  }
+
+  String _formatDuration(Duration duration) {
+    final safe = duration < Duration.zero ? Duration.zero : duration;
+    final totalMilliseconds = safe.inMilliseconds;
+    final minutes = totalMilliseconds ~/ 60000;
+    final seconds = (totalMilliseconds % 60000) ~/ 1000;
+    final millis = totalMilliseconds % 1000;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.${millis.toString().padLeft(3, '0')}';
   }
 }
 
@@ -138,10 +166,10 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
         title: music?.displayName ?? music?.name ?? 'Unknown',
         artist: music?.artist ?? 'Unknown',
         duration: appAudio.duration,
-        artUri: music?.artworkPath != null &&
-                File(music!.artworkPath!).existsSync()
+        artUri:
+            music?.artworkPath != null && File(music!.artworkPath!).existsSync()
             ? Uri.file(music.artworkPath!)
-          : null,
+            : null,
       ),
     );
   }
@@ -149,7 +177,7 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
   void onPlaybackStatusChanged(bool isPlaying) {
     _lastPositionUpdateTime = DateTime.now();
     _lastPositionValue = appAudio.position;
-    
+
     playbackState.add(
       playbackState.value.copyWith(
         playing: isPlaying,
@@ -183,10 +211,9 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
     final now = DateTime.now();
     final timeSinceLastUpdate = now.difference(_lastPositionUpdateTime);
 
-    final expectedPosition = _lastPositionValue +
-        (appAudio.isPlaying
-            ? timeSinceLastUpdate
-            : Duration.zero);
+    final expectedPosition =
+        _lastPositionValue +
+        (appAudio.isPlaying ? timeSinceLastUpdate : Duration.zero);
     final drift = (position - expectedPosition).abs().inMilliseconds;
 
     if (drift > 1000 || timeSinceLastUpdate.inSeconds > 10) {
