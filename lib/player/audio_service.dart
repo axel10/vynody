@@ -1196,15 +1196,6 @@ class AudioService extends Notifier<AudioSnapshot> {
     debugPrint('[AudioService][Lyrics] $message');
   }
 
-  String _formatDuration(Duration duration) {
-    final safe = duration < Duration.zero ? Duration.zero : duration;
-    final totalMilliseconds = safe.inMilliseconds;
-    final minutes = totalMilliseconds ~/ 60000;
-    final seconds = (totalMilliseconds % 60000) ~/ 1000;
-    final millis = totalMilliseconds % 1000;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.${millis.toString().padLeft(3, '0')}';
-  }
-
   Future<MusicFile> _buildMusicFileFromPath(
     String path, {
     required String name,

@@ -166,7 +166,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: _BottomFadeShaderMask(
+            child: _LyricsFadeShaderMask(
               bottomSpacerHeight: bottomSpacerHeight,
               child: ClipRect(
                 clipper: const _VerticalOnlyClipper(),
@@ -307,8 +307,8 @@ class _VerticalOnlyClipper extends CustomClipper<Rect> {
   bool shouldReclip(covariant _VerticalOnlyClipper oldClipper) => false;
 }
 
-class _BottomFadeShaderMask extends StatelessWidget {
-  const _BottomFadeShaderMask({
+class _LyricsFadeShaderMask extends StatelessWidget {
+  const _LyricsFadeShaderMask({
     required this.bottomSpacerHeight,
     required this.child,
   });
@@ -321,20 +321,39 @@ class _BottomFadeShaderMask extends StatelessWidget {
     return ShaderMask(
       blendMode: BlendMode.dstIn,
       shaderCallback: (bounds) {
-        if (bounds.height <= 0 || bottomSpacerHeight <= 0) {
+        if (bounds.height <= 0) {
           return const LinearGradient(
             colors: [Colors.white, Colors.white],
           ).createShader(bounds);
         }
 
-        final fadeStart = ((bounds.height - bottomSpacerHeight) / bounds.height)
-            .clamp(0.0, 1.0);
+        const topFadeHeight = 30.0;
+        final topFadeEnd = (topFadeHeight / bounds.height).clamp(0.0, 1.0);
+        
+        // If bottomSpacerHeight is 0, we still want the top fade, 
+        // so we set bottomFadeStart to 1.0.
+        final bottomFadeStart = bottomSpacerHeight > 0
+            ? ((bounds.height - bottomSpacerHeight) / bounds.height).clamp(0.0, 1.0)
+            : 1.0;
+
+        // Ensure stops are in increasing order
+        final stops = [
+          0.0,
+          topFadeEnd,
+          bottomFadeStart.clamp(topFadeEnd, 1.0),
+          1.0,
+        ];
 
         return LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: const [Colors.white, Colors.white, Colors.transparent],
-          stops: [0.0, fadeStart, 1.0],
+          colors: const [
+            Colors.transparent,
+            Colors.white,
+            Colors.white,
+            Colors.transparent,
+          ],
+          stops: stops,
         ).createShader(bounds);
       },
       child: child,
