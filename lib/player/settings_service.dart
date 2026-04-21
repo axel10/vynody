@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'shortcut_bindings.dart';
 
 enum LyricsAiProvider { googleAiStudio, openRouter }
 
@@ -64,6 +67,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyGeminiPrimaryModelId = 'gemini_primary_model_id';
   static const String _keyGeminiFallbackModelId = 'gemini_fallback_model_id';
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
+  static const String _keyShortcutBindings = 'shortcut_bindings';
   static const String _builtInAcoustidApiKey = 'raGXgwxqws';
   static const int _fixedSampleStride = 8;
 
@@ -109,6 +113,7 @@ class SettingsService extends ChangeNotifier {
   bool _isLyricsAiAutoSwitchEnabled;
   String _geminiPrimaryModelId;
   String _geminiFallbackModelId;
+  Map<String, ShortcutBinding> _shortcutBindings;
 
   // Visualizer styling state
   late Color _visualizerColor;
@@ -159,7 +164,8 @@ class SettingsService extends ChangeNotifier {
       _geminiFallbackModelId = _initialModelId(
         _prefs.getString(_keyGeminiFallbackModelId),
         defaultGeminiFallbackModelId,
-      ) {
+      ),
+      _shortcutBindings = _loadShortcutBindings(_prefs) {
     _visualizerColor = Color(
       _prefs.getInt(_keyVisColor) ?? Colors.white.toARGB32(),
     );
@@ -237,6 +243,17 @@ class SettingsService extends ChangeNotifier {
   bool get hasGeminiTranslationApiKey => geminiApiKey.trim().isNotEmpty;
   bool get hasCustomAcoustidApiKey =>
       _prefs.containsKey(acoustidApiKeyStorageKey);
+  ShortcutBinding shortcutBinding(AppShortcutAction action) {
+    return _shortcutBindings[action.storageKey] ?? action.defaultBinding;
+  }
+
+  Map<AppShortcutAction, ShortcutBinding> get shortcutBindings {
+    return {
+      for (final action in AppShortcutAction.values)
+        action: shortcutBinding(action),
+    };
+  }
+
   static String geminiModelDisplayName(String modelId) {
     switch (modelId.trim()) {
       case defaultGeminiPrimaryModelId:
@@ -291,6 +308,50 @@ class SettingsService extends ChangeNotifier {
   bool get isWaveformProgressBarEnabled => _isWaveformProgressBarEnabled;
   int get randomRange => _randomRange;
   int get randomMethod => _randomMethod;
+
+  static Map<String, ShortcutBinding> _loadShortcutBindings(
+    SharedPreferences prefs,
+  ) {
+    final raw = prefs.getString(_keyShortcutBindings);
+    if (raw == null || raw.trim().isEmpty) {
+      return <String, ShortcutBinding>{};
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        return <String, ShortcutBinding>{};
+      }
+
+      final result = <String, ShortcutBinding>{};
+      for (final entry in decoded.entries) {
+        if (entry.key is! String) {
+          continue;
+        }
+        final binding = ShortcutBinding.fromJson(entry.value);
+        if (binding == null) {
+          continue;
+        }
+        result[entry.key as String] = binding;
+      }
+      return result;
+    } catch (_) {
+      return <String, ShortcutBinding>{};
+    }
+  }
+
+  Future<void> _saveShortcutBindings() async {
+    if (_shortcutBindings.isEmpty) {
+      await _prefs.remove(_keyShortcutBindings);
+      return;
+    }
+
+    final encoded = jsonEncode({
+      for (final entry in _shortcutBindings.entries)
+        entry.key: entry.value.toJson(),
+    });
+    await _prefs.setString(_keyShortcutBindings, encoded);
+  }
 
   void resetVisualizerAppearance() {
     visualizerOpacity = 0.2;
@@ -427,6 +488,26 @@ class SettingsService extends ChangeNotifier {
   void resetGeminiModels() {
     geminiPrimaryModelId = defaultGeminiPrimaryModelId;
     geminiFallbackModelId = defaultGeminiFallbackModelId;
+  }
+
+  void setShortcutBinding(AppShortcutAction action, ShortcutBinding binding) {
+    _shortcutBindings[action.storageKey] = binding;
+    unawaited(_saveShortcutBindings());
+    notifyListeners();
+  }
+
+  void setShortcutBindings(Map<AppShortcutAction, ShortcutBinding> bindings) {
+    _shortcutBindings = {
+      for (final entry in bindings.entries) entry.key.storageKey: entry.value,
+    };
+    unawaited(_saveShortcutBindings());
+    notifyListeners();
+  }
+
+  void resetShortcutBindings() {
+    _shortcutBindings = <String, ShortcutBinding>{};
+    unawaited(_saveShortcutBindings());
+    notifyListeners();
   }
 
   set acoustidApiKey(String value) {

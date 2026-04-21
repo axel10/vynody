@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../dialogs/acoustid_api_key_dialog.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
+import '../dialogs/shortcut_settings_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../player/ai_api_key_service.dart';
 import '../player/audio_riverpod.dart';
@@ -299,6 +300,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           onChanged: (value) {
             settings.isWaveformProgressBarEnabled = value;
           },
+        ),
+        ListTile(
+          leading: const Icon(Icons.keyboard),
+          title: const Text('自定义快捷键'),
+          subtitle: const Text('点击后可以为播放器操作重新录制快捷键并保存。'),
+          trailing: FilledButton.tonal(
+            onPressed: () {
+              showShortcutSettingsDialog(context);
+            },
+            child: const Text('编辑'),
+          ),
         ),
         const Divider(height: 1),
         _buildSectionHeader('歌词', '这里的配置只影响歌词生成和时间轴生成。'),

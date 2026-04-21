@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
@@ -15,6 +14,8 @@ import '../pages/playlist_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
 import '../player/music_file_utils.dart';
+import '../player/settings_service.dart';
+import '../player/shortcut_bindings.dart';
 import 'main_layout_riverpod.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
@@ -226,6 +227,30 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     await Navigator.of(
       context,
     ).pushReplacement(buildMainLayoutRoute(args: widget.args, initialIndex: 4));
+  }
+
+  Map<ShortcutActivator, Intent> _buildShortcutMap(SettingsService settings) {
+    final bindings = <AppShortcutAction, Intent>{
+      AppShortcutAction.playPause: const PlayPauseIntent(),
+      AppShortcutAction.next: const NextIntent(),
+      AppShortcutAction.previous: const PreviousIntent(),
+      AppShortcutAction.volumeUp: const VolumeUpIntent(),
+      AppShortcutAction.volumeDown: const VolumeDownIntent(),
+      AppShortcutAction.mute: const MuteIntent(),
+      AppShortcutAction.seekForward: const SeekForwardIntent(),
+      AppShortcutAction.seekBackward: const SeekBackwardIntent(),
+      AppShortcutAction.toggleFullScreen: const ToggleFullScreenIntent(),
+    };
+
+    final shortcuts = <ShortcutActivator, Intent>{};
+    for (final entry in bindings.entries) {
+      final activator = settings.shortcutBinding(entry.key).toActivator();
+      if (activator == null) {
+        continue;
+      }
+      shortcuts[activator] = entry.value;
+    }
+    return shortcuts;
   }
 
   Widget _buildTooltipIcon({
@@ -455,30 +480,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         !useSidebar && isPlayback && settings.isImmersiveTabBarEnabled;
 
     return Shortcuts(
-      shortcuts: <ShortcutActivator, Intent>{
-        const SingleActivator(LogicalKeyboardKey.space):
-            const PlayPauseIntent(),
-        const SingleActivator(LogicalKeyboardKey.arrowRight, control: true):
-            const NextIntent(),
-        const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true):
-            const PreviousIntent(),
-        const SingleActivator(LogicalKeyboardKey.arrowUp, control: true):
-            const VolumeUpIntent(),
-        const SingleActivator(LogicalKeyboardKey.arrowDown, control: true):
-            const VolumeDownIntent(),
-        const SingleActivator(LogicalKeyboardKey.audioVolumeUp):
-            const VolumeUpIntent(),
-        const SingleActivator(LogicalKeyboardKey.audioVolumeDown):
-            const VolumeDownIntent(),
-        const SingleActivator(LogicalKeyboardKey.audioVolumeMute):
-            const MuteIntent(),
-        const SingleActivator(LogicalKeyboardKey.keyM, control: true):
-            const MuteIntent(),
-        const SingleActivator(LogicalKeyboardKey.arrowLeft):
-            const SeekBackwardIntent(),
-        const SingleActivator(LogicalKeyboardKey.f11):
-            const ToggleFullScreenIntent(),
-      },
+      shortcuts: _buildShortcutMap(settings),
       child: Actions(
         actions: <Type, Action<Intent>>{
           PlayPauseIntent: CallbackAction<PlayPauseIntent>(

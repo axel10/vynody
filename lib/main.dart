@@ -158,6 +158,14 @@ class MyApp extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         elevation: 0,
       ),
+
+      // 将焦点颜色设为透明
+      // focusColor: Colors.transparent,
+      // 将悬停颜色设为透明
+      // hoverColor: Colors.transparent,
+      // 顺便可以处理掉点击时的水波纹按下颜色
+      // highlightColor: Colors.transparent,
+
     );
   }
 
