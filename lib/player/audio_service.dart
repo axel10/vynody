@@ -565,14 +565,14 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
     _lastPositionDebugLogAt = now;
 
-    debugPrint(
-      '[AudioService][Position] playing=$_isPlaying '
-      'index=$_currentIndex '
-      'pos=${_formatDuration(_position)} '
-      'duration=${_formatDuration(_duration)} '
-      'volume=${_volume.toStringAsFixed(1)} '
-      'track=${currentMusic?.displayName ?? 'null'}',
-    );
+    // debugPrint(
+    //   '[AudioService][Position] playing=$_isPlaying '
+    //   'index=$_currentIndex '
+    //   'pos=${_formatDuration(_position)} '
+    //   'duration=${_formatDuration(_duration)} '
+    //   'volume=${_volume.toStringAsFixed(1)} '
+    //   'track=${currentMusic?.displayName ?? 'null'}',
+    // );
   }
 
   bool? get isLastActionNext => _lastActionNext;

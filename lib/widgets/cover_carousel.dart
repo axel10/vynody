@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import '../player/audio_service.dart';
@@ -24,7 +25,7 @@ class CoverCarousel extends StatefulWidget {
   final int currentIndex;
   final AudioService audioService;
   final Function(int)? onPageChanged;
-  final VoidCallback? onAnimationComplete;
+  final ValueChanged<Uint8List?>? onAnimationComplete;
   final bool isLandscape;
   final bool? isNext;
   final double? displaySize;
@@ -105,7 +106,7 @@ class _CoverCarouselState extends State<CoverCarousel>
                 });
                 widget.onPageChanged?.call(targetPage);
               }
-              widget.onAnimationComplete?.call();
+              _notifyAnimationComplete(targetPage);
             }
           });
     } else {
@@ -127,9 +128,23 @@ class _CoverCarouselState extends State<CoverCarousel>
                 });
                 widget.onPageChanged?.call(page);
               }
-              widget.onAnimationComplete?.call();
+              _notifyAnimationComplete(page);
             }
           });
+    }
+  }
+
+  void _notifyAnimationComplete(int page) {
+    final currentSong = widget.playlist[page];
+    final loadedBytes = _loadedCovers[page]?.bytes ?? currentSong.artworkBytes;
+
+    if (loadedBytes != null) {
+      widget.onAnimationComplete?.call(loadedBytes);
+      return;
+    }
+
+    if (currentSong.artworkBytes == null && currentSong.artworkPath == null) {
+      widget.onAnimationComplete?.call(null);
     }
   }
 
@@ -243,7 +258,7 @@ class _CoverCarouselState extends State<CoverCarousel>
               _loadedCovers[index] = (bytes: bytes, path: path);
               // 如果是当前播放曲目的封面加载完成，通知背景更新
               if (actualIndex == widget.currentIndex && bytes != null) {
-                widget.onAnimationComplete?.call();
+                widget.onAnimationComplete?.call(bytes);
               }
             },
           );

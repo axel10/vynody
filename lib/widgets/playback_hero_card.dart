@@ -82,7 +82,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   final ValueChanged<double>? onVolumeDrag;
   final ValueChanged<double>? onVolumeScroll;
   final VoidCallback? onCoverTap;
-  final VoidCallback? onCarouselAnimationComplete;
+  final ValueChanged<Uint8List?>? onCarouselAnimationComplete;
   final double lyricsBottomSpacerHeight;
   final double lyricsBottomTabBarHeight;
 

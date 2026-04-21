@@ -108,15 +108,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     _startInactivityTimer();
   }
 
-  void _onCarouselAnimationComplete() {
+  void _onCarouselAnimationComplete(Uint8List? artworkBytes) {
     if (!mounted) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
-        _pendingArtworkBytes = ref
-            .read(audioCurrentMusicProvider)
-            ?.artworkBytes;
+        _pendingArtworkBytes = artworkBytes;
       });
     });
   }

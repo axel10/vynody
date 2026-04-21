@@ -755,32 +755,32 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _lastDebugPositionMs = adjustedMs;
     _lastDebugLogAt = now;
 
-    final activeTimestamp =
-        (hasTimedLyrics &&
-            activeIndex >= 0 &&
-            activeIndex < displayLines.length)
-        ? displayLines[activeIndex].timestamp.inMilliseconds
-        : -1;
-    final offsetMs = _timelineOffsetMilliseconds;
-    final deltaMs = activeTimestamp >= 0 ? adjustedMs - activeTimestamp : 0;
+    // final activeTimestamp =
+    //     (hasTimedLyrics &&
+    //         activeIndex >= 0 &&
+    //         activeIndex < displayLines.length)
+    //     ? displayLines[activeIndex].timestamp.inMilliseconds
+    //     : -1;
+    // final offsetMs = _timelineOffsetMilliseconds;
+    // final deltaMs = activeTimestamp >= 0 ? adjustedMs - activeTimestamp : 0;
 
-    debugPrint(
-      '[LyricsPanel] pos=${_formatMs(adjustedMs)}ms '
-      'raw=${_formatMs(widget.position.inMilliseconds)}ms '
-      'offset=${_formatMs(offsetMs)}ms '
-      'activeIndex=$activeIndex '
-      'activeTs=${_formatMs(activeTimestamp)}ms '
-      'delta=${_formatSignedMs(deltaMs)}ms '
-      'lines=${displayLines.length}',
-    );
+    // debugPrint(
+    //   '[LyricsPanel] pos=${_formatMs(adjustedMs)}ms '
+    //   'raw=${_formatMs(widget.position.inMilliseconds)}ms '
+    //   'offset=${_formatMs(offsetMs)}ms '
+    //   'activeIndex=$activeIndex '
+    //   'activeTs=${_formatMs(activeTimestamp)}ms '
+    //   'delta=${_formatSignedMs(deltaMs)}ms '
+    //   'lines=${displayLines.length}',
+    // );
   }
 
-  String _formatMs(int value) {
-    return value.toString();
-  }
-
-  String _formatSignedMs(int value) {
-    if (value >= 0) return value.toString();
-    return '-${value.abs()}';
-  }
+  // String _formatMs(int value) {
+  //   return value.toString();
+  // }
+  //
+  // String _formatSignedMs(int value) {
+  //   if (value >= 0) return value.toString();
+  //   return '-${value.abs()}';
+  // }
 }
