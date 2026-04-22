@@ -13,6 +13,7 @@ class ScannerMetadataStore {
     required void Function() notifyListeners,
     required void Function() scheduleMetadataNotify,
     required void Function() onMetadataMutated,
+    required void Function() onAlbumMetadataMutated,
     required void Function(String path, bool isMissing) notifySongMissingState,
     required String Function(String path) normalizePath,
     required bool Function(String left, String right) pathsEqual,
@@ -21,6 +22,7 @@ class ScannerMetadataStore {
        _notifyListeners = notifyListeners,
        _scheduleMetadataNotify = scheduleMetadataNotify,
        _onMetadataMutated = onMetadataMutated,
+       _onAlbumMetadataMutated = onAlbumMetadataMutated,
        _notifySongMissingState = notifySongMissingState,
        _normalizePath = normalizePath,
        _pathsEqual = pathsEqual;
@@ -30,6 +32,7 @@ class ScannerMetadataStore {
   final void Function() _notifyListeners;
   final void Function() _scheduleMetadataNotify;
   final void Function() _onMetadataMutated;
+  final void Function() _onAlbumMetadataMutated;
   final void Function(String path, bool isMissing) _notifySongMissingState;
   final String Function(String path) _normalizePath;
   final bool Function(String left, String right) _pathsEqual;
@@ -40,6 +43,21 @@ class ScannerMetadataStore {
 
   SongMetadata? getMetadata(String path) => _metadataMap[path];
 
+  bool _albumRelevantMetadataChanged(
+    SongMetadata? previous,
+    SongMetadata next,
+  ) {
+    if (previous == null) {
+      return true;
+    }
+
+    return previous.title != next.title ||
+        previous.album != next.album ||
+        previous.artist != next.artist ||
+        previous.duration != next.duration ||
+        previous.trackNumber != next.trackNumber;
+  }
+
   void _logTiming(String label, Stopwatch stopwatch) {
     if (!kDebugMode) return;
     // debugPrint(
@@ -48,13 +66,19 @@ class ScannerMetadataStore {
   }
 
   void cacheMetadata(SongMetadata metadata) {
+    final existing = _metadataMap[metadata.path];
+    final albumChanged = _albumRelevantMetadataChanged(existing, metadata);
     _metadataMap[metadata.path] = metadata.copyWith(waveformBlob: null);
     _onMetadataMutated();
+    if (albumChanged) {
+      _onAlbumMetadataMutated();
+    }
   }
 
   void clear() {
     _metadataMap.clear();
     _onMetadataMutated();
+    _onAlbumMetadataMutated();
   }
 
   Future<void> loadMetadataForPath(String path) async {
@@ -79,8 +103,15 @@ class ScannerMetadataStore {
     metadata ??= result?.$1;
 
     if (metadata != null) {
+      final albumChanged = _albumRelevantMetadataChanged(
+        _metadataMap[path],
+        metadata,
+      );
       _metadataMap[path] = metadata;
       _onMetadataMutated();
+      if (albumChanged) {
+        _onAlbumMetadataMutated();
+      }
       _notifyListeners();
     }
     stopwatch.stop();
@@ -117,8 +148,15 @@ class ScannerMetadataStore {
     metadata = result?.$1 ?? metadata;
 
     if (metadata != null) {
+      final albumChanged = _albumRelevantMetadataChanged(
+        _metadataMap[path],
+        metadata,
+      );
       _metadataMap[path] = metadata;
       _onMetadataMutated();
+      if (albumChanged) {
+        _onAlbumMetadataMutated();
+      }
       _notifyListeners();
     }
     stopwatch.stop();
@@ -139,8 +177,15 @@ class ScannerMetadataStore {
       themeColorsBlob: metadata.themeColorsBlob ?? existing?.themeColorsBlob,
       waveformBlob: null,
     );
+    final albumChanged = _albumRelevantMetadataChanged(
+      existing,
+      mergedMetadata,
+    );
     _metadataMap[metadata.path] = mergedMetadata;
     _onMetadataMutated();
+    if (albumChanged) {
+      _onAlbumMetadataMutated();
+    }
 
     for (final root in _rootFolders()) {
       _updateMusicFileInFolder(
@@ -181,16 +226,23 @@ class ScannerMetadataStore {
 
     await MetadataDatabase().deleteSongByPath(normalizedPath);
     _onMetadataMutated();
+    _onAlbumMetadataMutated();
     _notifyListeners();
   }
 
   void deleteMissingFromCache(Iterable<String> paths) {
     var changed = false;
+    var albumChanged = false;
     for (final path in paths) {
-      changed = _metadataMap.remove(path) != null || changed;
+      final removed = _metadataMap.remove(path);
+      changed = removed != null || changed;
+      albumChanged = removed != null || albumChanged;
     }
     if (changed) {
       _onMetadataMutated();
+      if (albumChanged) {
+        _onAlbumMetadataMutated();
+      }
     }
   }
 
@@ -201,6 +253,7 @@ class ScannerMetadataStore {
     _metadataMap.removeWhere((key, _) => _pathsEqual(key, normalizedPath));
     if (_metadataMap.length != beforeLength) {
       _onMetadataMutated();
+      _onAlbumMetadataMutated();
     }
   }
 

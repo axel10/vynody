@@ -33,103 +33,117 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final albums = ref.watch(albumLibraryProvider);
+    final albumsAsync = ref.watch(albumLibraryProvider);
     final l10n = AppLocalizations.of(context)!;
-    final visibleAlbums = _filterAndSortAlbums(albums);
-    final knownAlbums = visibleAlbums
-        .where((album) => !album.isUnknownAlbum)
-        .toList(growable: false);
-    final unknownAlbums = visibleAlbums
-        .where((album) => album.isUnknownAlbum)
-        .toList(growable: false);
-
-    if (albums.isEmpty) {
-      return Center(
+    return albumsAsync.when(
+      loading: () => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.album_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.outline,
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 3),
             ),
             const SizedBox(height: 12),
-            Text(l10n.noAlbums, style: Theme.of(context).textTheme.titleMedium),
+            // Text(l10n.albums, style: Theme.of(context).textTheme.titleMedium),
           ],
         ),
-      );
-    }
+      ),
+      error: (error, stackTrace) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            error.toString(),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+      ),
+      data: (albums) {
+        final visibleAlbums = _filterAndSortAlbums(albums);
+        final knownAlbums = visibleAlbums
+            .where((album) => !album.isUnknownAlbum)
+            .toList(growable: false);
+        final unknownAlbums = visibleAlbums
+            .where((album) => album.isUnknownAlbum)
+            .toList(growable: false);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 780;
-        final crossAxisCount = switch (constraints.maxWidth) {
-          >= 1200 => 5,
-          >= 900 => 4,
-          >= 700 => 3,
-          _ => 2,
-        };
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 780;
+            final crossAxisCount = switch (constraints.maxWidth) {
+              >= 1200 => 5,
+              >= 900 => 4,
+              >= 700 => 3,
+              _ => 2,
+            };
 
-        return Column(
-          children: [
-            _AlbumsToolbar(
-              searchController: _searchController,
-              searchQuery: _searchQuery,
-              sortField: _sortField,
-              sortAscending: _sortAscending,
-              albumCount: visibleAlbums.length,
-              isWide: isWide,
-              onSearchChanged: (value) {
-                setState(() {
-                  _searchQuery = value.trim();
-                });
-              },
-              onSearchCleared: () {
-                _searchController.clear();
-                setState(() {
-                  _searchQuery = '';
-                });
-              },
-              onSortFieldSelected: (field) {
-                setState(() {
-                  _sortField = field;
-                });
-              },
-              onSortOrderToggled: () {
-                setState(() {
-                  _sortAscending = !_sortAscending;
-                });
-              },
-            ),
-            Expanded(
-              child: visibleAlbums.isEmpty
-                  ? Center(
+            return CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _AlbumsToolbar(
+                    searchController: _searchController,
+                    searchQuery: _searchQuery,
+                    sortField: _sortField,
+                    sortAscending: _sortAscending,
+                    albumCount: visibleAlbums.length,
+                    isWide: isWide,
+                    onSearchChanged: (value) {
+                      setState(() {
+                        _searchQuery = value.trim();
+                      });
+                    },
+                    onSearchCleared: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                    onSortFieldSelected: (field) {
+                      setState(() {
+                        _sortField = field;
+                      });
+                    },
+                    onSortOrderToggled: () {
+                      setState(() {
+                        _sortAscending = !_sortAscending;
+                      });
+                    },
+                  ),
+                ),
+                if (visibleAlbums.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
                       child: Text(
                         l10n.noAlbums,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                      children: [
-                        if (knownAlbums.isNotEmpty)
-                          _AlbumSection(
-                            title: l10n.albums,
-                            albums: knownAlbums,
-                            crossAxisCount: crossAxisCount,
-                          ),
-                        if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
-                          const SizedBox(height: 24),
-                        if (unknownAlbums.isNotEmpty)
-                          _AlbumSection(
-                            title: l10n.unknownAlbum,
-                            albums: unknownAlbums,
-                            crossAxisCount: crossAxisCount,
-                          ),
-                      ],
                     ),
-            ),
-          ],
+                  )
+                else ...[
+                  if (knownAlbums.isNotEmpty) ...[
+                    const SliverToBoxAdapter(child: SizedBox(height: 4)),
+                    ..._albumSectionSlivers(
+                      title: "",
+                      albums: knownAlbums,
+                      crossAxisCount: crossAxisCount,
+                    ),
+                  ],
+                  if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
+                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  if (unknownAlbums.isNotEmpty)
+                    ..._albumSectionSlivers(
+                      title: l10n.unknownAlbum,
+                      albums: unknownAlbums,
+                      crossAxisCount: crossAxisCount,
+                    ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ],
+              ],
+            );
+          },
         );
       },
     );
@@ -167,51 +181,30 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
     });
     return filtered;
   }
-}
 
-class _AlbumSection extends StatelessWidget {
-  const _AlbumSection({
-    required this.title,
-    required this.albums,
-    required this.crossAxisCount,
-  });
+  List<Widget> _albumSectionSlivers({
+    required String? title,
+    required List<AlbumSummary> albums,
+    required int crossAxisCount,
+  }) {
+    return [
 
-  final String title;
-  final List<AlbumSummary> albums;
-  final int crossAxisCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Text(
-            title,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverGrid(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
             childAspectRatio: 0.72,
           ),
-          itemCount: albums.length,
-          itemBuilder: (context, index) {
-            final album = albums[index];
-            return _AlbumCard(album: album);
-          },
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => _AlbumCard(album: albums[index]),
+            childCount: albums.length,
+          ),
         ),
-      ],
-    );
+      ),
+    ];
   }
 }
 

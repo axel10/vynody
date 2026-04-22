@@ -59,6 +59,7 @@ class ScannerService extends ChangeNotifier {
   late final ScannerTreeBuilder _treeBuilder;
   late final ScannerDirectoryScanner _directoryScanner;
   int _metadataRevision = 0;
+  int _albumLibraryRevision = 0;
 
   static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
   static const String _keyGlobalSortOrder = 'folder_sort_global_order';
@@ -107,6 +108,7 @@ class ScannerService extends ChangeNotifier {
   bool get hasPermission => _hasPermission;
   Map<String, SongMetadata> get metadataMap => _metadataStore.metadataMap;
   int get metadataRevision => _metadataRevision;
+  int get albumLibraryRevision => _albumLibraryRevision;
 
   ScannerService() {
     _roots = ScannerServiceRoots(
@@ -123,6 +125,7 @@ class ScannerService extends ChangeNotifier {
       notifySongMissingState: _notifySongMissingState,
       normalizePath: _normalizePath,
       pathsEqual: _pathsEqual,
+      onAlbumMetadataMutated: _markAlbumLibraryMutated,
     );
     _scanPipeline = ScannerScanPipeline(
       normalizePath: _normalizePath,
@@ -151,6 +154,10 @@ class ScannerService extends ChangeNotifier {
 
   void _markMetadataMutated() {
     _metadataRevision++;
+  }
+
+  void _markAlbumLibraryMutated() {
+    _albumLibraryRevision++;
   }
 
   void _logInitTiming(String label, Stopwatch stopwatch) {
@@ -311,9 +318,8 @@ class ScannerService extends ChangeNotifier {
       );
       await _timeInitStep(
         'load cached system media folder from database',
-        () => _loadCachedSystemMediaFolderFromDatabase(
-          cachedSongs: cachedSongs,
-        ),
+        () =>
+            _loadCachedSystemMediaFolderFromDatabase(cachedSongs: cachedSongs),
       );
       _timeInitStepSync('rebuild displayed root folders', () {
         _rebuildDisplayedRootFolders();
