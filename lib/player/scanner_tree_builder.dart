@@ -66,13 +66,36 @@ class ScannerTreeBuilder {
     required String rootName,
   }) {
     final items = <_FolderItem>[];
+    final isSystem = rootPath == 'system';
+
     for (final song in songs) {
       final normalizedPath = _normalizePath(song.path);
       if (normalizedPath.isEmpty) continue;
+
+      String folderPath;
+      if (isSystem) {
+        folderPath = p.dirname(normalizedPath);
+      } else {
+        final dir = p.dirname(normalizedPath);
+        if (_pathsEqual(dir, rootPath)) {
+          folderPath = '';
+        } else {
+          try {
+            final relative = p.relative(dir, from: rootPath);
+            folderPath =
+                (relative == '.' || relative.isEmpty)
+                    ? ''
+                    : relative.replaceAll('\\', '/');
+          } catch (_) {
+            folderPath = dir.replaceAll('\\', '/');
+          }
+        }
+      }
+
       items.add(
         _FolderItem(
           file: _musicFileFromSongMetadata(song.copyWith(path: normalizedPath)),
-          folderPath: p.dirname(normalizedPath),
+          folderPath: folderPath,
         ),
       );
     }
@@ -224,6 +247,7 @@ class ScannerTreeBuilder {
   }) {
     final root = MusicFolder(path: rootPath, name: rootName);
     final nodes = <String, MusicFolder>{'': root};
+    final isSystem = rootPath == 'system';
 
     for (final item in items) {
       final folderPath = item.folderPath;
@@ -232,14 +256,20 @@ class ScannerTreeBuilder {
         continue;
       }
 
-      var currentPath = '';
+      var currentRelativePath = '';
       var currentFolder = root;
       for (final segment in folderPath.split('/').where((s) => s.isNotEmpty)) {
-        currentPath = currentPath.isEmpty ? segment : '$currentPath/$segment';
-        final nextFolder = nodes.putIfAbsent(
-          currentPath,
-          () => MusicFolder(path: currentPath, name: segment),
-        );
+        currentRelativePath =
+            currentRelativePath.isEmpty
+                ? segment
+                : '$currentRelativePath/$segment';
+        final nextFolder = nodes.putIfAbsent(currentRelativePath, () {
+          final fullPath =
+              isSystem
+                  ? currentRelativePath
+                  : p.join(rootPath, currentRelativePath.replaceAll('/', p.separator));
+          return MusicFolder(path: fullPath, name: segment);
+        });
         if (!currentFolder.subFolders.contains(nextFolder)) {
           currentFolder.subFolders.add(nextFolder);
         }
