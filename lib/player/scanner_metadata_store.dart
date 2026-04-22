@@ -13,6 +13,7 @@ class ScannerMetadataStore {
     required MusicFolder? Function() systemMediaFolder,
     required void Function() notifyListeners,
     required void Function() scheduleMetadataNotify,
+    required void Function() onMetadataMutated,
     required void Function(String path, bool isMissing) notifySongMissingState,
     required String Function(String path) normalizePath,
     required bool Function(String left, String right) pathsEqual,
@@ -20,6 +21,7 @@ class ScannerMetadataStore {
        _systemMediaFolder = systemMediaFolder,
        _notifyListeners = notifyListeners,
        _scheduleMetadataNotify = scheduleMetadataNotify,
+       _onMetadataMutated = onMetadataMutated,
        _notifySongMissingState = notifySongMissingState,
        _normalizePath = normalizePath,
        _pathsEqual = pathsEqual;
@@ -28,6 +30,7 @@ class ScannerMetadataStore {
   final MusicFolder? Function() _systemMediaFolder;
   final void Function() _notifyListeners;
   final void Function() _scheduleMetadataNotify;
+  final void Function() _onMetadataMutated;
   final void Function(String path, bool isMissing) _notifySongMissingState;
   final String Function(String path) _normalizePath;
   final bool Function(String left, String right) _pathsEqual;
@@ -40,10 +43,12 @@ class ScannerMetadataStore {
 
   void cacheMetadata(SongMetadata metadata) {
     _metadataMap[metadata.path] = metadata.copyWith(waveformBlob: null);
+    _onMetadataMutated();
   }
 
   void clear() {
     _metadataMap.clear();
+    _onMetadataMutated();
   }
 
   Future<void> loadMetadataForPath(String path) async {
@@ -66,6 +71,7 @@ class ScannerMetadataStore {
 
     if (metadata != null) {
       _metadataMap[path] = metadata;
+      _onMetadataMutated();
       _notifyListeners();
     }
   }
@@ -85,6 +91,7 @@ class ScannerMetadataStore {
     SongMetadata? metadata = await db.getSongMetadata(path);
     if (metadata != null && (metadata.thumbnailPath?.isNotEmpty ?? false)) {
       _metadataMap[path] = metadata;
+      _onMetadataMutated();
       _notifyListeners();
       return;
     }
@@ -97,6 +104,7 @@ class ScannerMetadataStore {
 
     if (metadata != null) {
       _metadataMap[path] = metadata;
+      _onMetadataMutated();
       _notifyListeners();
     }
   }
@@ -116,6 +124,7 @@ class ScannerMetadataStore {
       waveformBlob: null,
     );
     _metadataMap[metadata.path] = mergedMetadata;
+    _onMetadataMutated();
 
     for (final root in _rootFolders()) {
       _updateMusicFileInFolder(
@@ -155,27 +164,35 @@ class ScannerMetadataStore {
     }
 
     await MetadataDatabase().deleteSongByPath(normalizedPath);
+    _onMetadataMutated();
     _notifyListeners();
   }
 
   void deleteMissingFromCache(Iterable<String> paths) {
+    var changed = false;
     for (final path in paths) {
-      _metadataMap.remove(path);
+      changed = _metadataMap.remove(path) != null || changed;
+    }
+    if (changed) {
+      _onMetadataMutated();
     }
   }
 
   void removeMetadataForPath(String path) {
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) return;
-    _metadataMap.removeWhere(
-      (key, _) => _pathsEqual(key, normalizedPath),
-    );
+    final beforeLength = _metadataMap.length;
+    _metadataMap.removeWhere((key, _) => _pathsEqual(key, normalizedPath));
+    if (_metadataMap.length != beforeLength) {
+      _onMetadataMutated();
+    }
   }
 
   void clearWaveformForPath(String path) {
     final existing = _metadataMap[path];
     if (existing == null) return;
     _metadataMap[path] = existing.copyWith(waveformBlob: null);
+    _onMetadataMutated();
   }
 
   bool containsPath(String path) {

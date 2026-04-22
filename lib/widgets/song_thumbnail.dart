@@ -64,11 +64,14 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
 
   void _triggerLoad() {
     if (_loadTriggered) return;
-    _loadTriggered = true;
     // Run after the current frame so we don't call setState during build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final scanner = ref.read(scannerServiceProvider);
+        if (scanner.isScanning) {
+          return;
+        }
+        _loadTriggered = true;
         scanner.loadThumbnailForPath(widget.path);
       }
     });

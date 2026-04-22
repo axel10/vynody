@@ -7,7 +7,10 @@ import 'audio_riverpod.dart';
 import 'metadata_database.dart';
 
 final albumLibraryProvider = Provider<List<AlbumSummary>>((ref) {
-  final scanner = ref.watch(scannerServiceProvider);
+  ref.watch(
+    scannerServiceProvider.select((scanner) => scanner.metadataRevision),
+  );
+  final scanner = ref.read(scannerServiceProvider);
   return buildAlbumSummaries(scanner.metadataMap.values);
 });
 

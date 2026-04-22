@@ -58,6 +58,7 @@ class ScannerService extends ChangeNotifier {
   late final ScannerScanPipeline _scanPipeline;
   late final ScannerTreeBuilder _treeBuilder;
   late final ScannerDirectoryScanner _directoryScanner;
+  int _metadataRevision = 0;
 
   static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
   static const String _keyGlobalSortOrder = 'folder_sort_global_order';
@@ -99,6 +100,7 @@ class ScannerService extends ChangeNotifier {
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
   bool get hasPermission => _hasPermission;
   Map<String, SongMetadata> get metadataMap => _metadataStore.metadataMap;
+  int get metadataRevision => _metadataRevision;
 
   ScannerService() {
     _roots = ScannerServiceRoots(
@@ -111,6 +113,7 @@ class ScannerService extends ChangeNotifier {
       systemMediaFolder: () => _systemMediaFolder,
       notifyListeners: notifyListeners,
       scheduleMetadataNotify: _scheduleMetadataNotify,
+      onMetadataMutated: _markMetadataMutated,
       notifySongMissingState: _notifySongMissingState,
       normalizePath: _normalizePath,
       pathsEqual: _pathsEqual,
@@ -138,6 +141,10 @@ class ScannerService extends ChangeNotifier {
       unawaited(_init());
     });
     _setupMediaObserver();
+  }
+
+  void _markMetadataMutated() {
+    _metadataRevision++;
   }
 
   @override
