@@ -584,6 +584,12 @@ abstract class AppLocalizations {
   /// **'专辑'**
   String get albums;
 
+  /// Artists tab and section label
+  ///
+  /// In zh, this message translates to:
+  /// **'艺术家'**
+  String get artists;
+
   /// Play all songs in the current album
   ///
   /// In zh, this message translates to:
@@ -602,11 +608,23 @@ abstract class AppLocalizations {
   /// **'还没有可显示的专辑'**
   String get noAlbums;
 
+  /// Empty state text when no artists are available
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有可显示的艺术家'**
+  String get noArtists;
+
   /// Search albums or artists placeholder
   ///
   /// In zh, this message translates to:
   /// **'搜索专辑或艺术家'**
   String get searchAlbums;
+
+  /// Search artists placeholder
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索艺术家'**
+  String get searchArtists;
 
   /// Album sort button label
   ///
@@ -673,6 +691,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'查看专辑详情'**
   String get viewAlbumDetails;
+
+  /// View artist details action
+  ///
+  /// In zh, this message translates to:
+  /// **'查看艺术家详情'**
+  String get viewArtistDetails;
 
   /// Open the file location action
   ///

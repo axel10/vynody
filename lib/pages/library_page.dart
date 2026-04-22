@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
 import '../player/playlist_service.dart';
 import 'albums_tab.dart';
+import 'artists_tab.dart';
 import 'playlist_tab.dart';
 
 // 媒体库页面
@@ -21,13 +22,14 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   late final TabController _tabController;
   int _tabIndex = 0;
   bool _albumsTabLoaded = false;
+  bool _artistsTabLoaded = false;
 
   bool get _isPlaylistTab => _tabIndex == 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this)
+    _tabController = TabController(length: 3, vsync: this)
       ..addListener(() {
         if (_tabController.indexIsChanging) return;
         if (_tabIndex == _tabController.index) return;
@@ -35,6 +37,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
           _tabIndex = _tabController.index;
           if (_tabIndex == 1) {
             _albumsTabLoaded = true;
+          } else if (_tabIndex == 2) {
+            _artistsTabLoaded = true;
           }
         });
       });
@@ -303,6 +307,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
           tabs: [
             Tab(text: l10n.playlist),
             Tab(text: l10n.albums),
+            Tab(text: l10n.artists),
           ],
         ),
       ),
@@ -311,6 +316,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
         children: [
           const PlaylistTab(),
           _albumsTabLoaded ? const AlbumsTab() : const SizedBox.shrink(),
+          _artistsTabLoaded ? const ArtistsTab() : const SizedBox.shrink(),
         ],
       ),
     );
@@ -318,7 +324,10 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
   Widget _buildAppBarTitle(Playlist? currentPlaylist, AppLocalizations l10n) {
     if (!_isPlaylistTab) {
-      return Text(l10n.albums);
+      if (_tabIndex == 1) {
+        return Text(l10n.albums);
+      }
+      return Text(l10n.artists);
     }
     if (currentPlaylist == null) {
       return Text(l10n.playlist);

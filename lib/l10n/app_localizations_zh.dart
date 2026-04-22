@@ -271,6 +271,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get albums => '专辑';
 
   @override
+  String get artists => '艺术家';
+
+  @override
   String get playAll => '播放全部';
 
   @override
@@ -280,7 +283,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noAlbums => '还没有可显示的专辑';
 
   @override
+  String get noArtists => '还没有可显示的艺术家';
+
+  @override
   String get searchAlbums => '搜索专辑或艺术家';
+
+  @override
+  String get searchArtists => '搜索艺术家';
 
   @override
   String get albumSort => '排序';
@@ -314,6 +323,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewAlbumDetails => '查看专辑详情';
+
+  @override
+  String get viewArtistDetails => '查看艺术家详情';
 
   @override
   String get openFileLocation => '打开文件所在位置';

@@ -182,6 +182,95 @@ class ReleaseCoverCacheRecord {
   }
 }
 
+class ArtistCacheRecord {
+  final int? id;
+  final String queryKey;
+  final String? artistId;
+  final String? artistName;
+  final String? sortName;
+  final String? disambiguation;
+  final String? country;
+  final String? imageFileTitle;
+  final String? imageUrl;
+  final String? thumbnailUrl;
+  final String? areaName;
+  final String? beginDate;
+  final String? endDate;
+  final String? tagsJson;
+  final String? rawSearchJson;
+  final String? rawDetailJson;
+  final bool noData;
+  final int updatedAtMillis;
+
+  const ArtistCacheRecord({
+    this.id,
+    required this.queryKey,
+    this.artistId,
+    this.artistName,
+    this.sortName,
+    this.disambiguation,
+    this.country,
+    this.imageFileTitle,
+    this.imageUrl,
+    this.thumbnailUrl,
+    this.areaName,
+    this.beginDate,
+    this.endDate,
+    this.tagsJson,
+    this.rawSearchJson,
+    this.rawDetailJson,
+    required this.noData,
+    required this.updatedAtMillis,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'queryKey': queryKey,
+      'artistId': artistId,
+      'artistName': artistName,
+      'sortName': sortName,
+      'disambiguation': disambiguation,
+      'country': country,
+      'imageFileTitle': imageFileTitle,
+      'imageUrl': imageUrl,
+      'thumbnailUrl': thumbnailUrl,
+      'areaName': areaName,
+      'beginDate': beginDate,
+      'endDate': endDate,
+      'tagsJson': tagsJson,
+      'rawSearchJson': rawSearchJson,
+      'rawDetailJson': rawDetailJson,
+      'noData': noData,
+      'updatedAtMillis': updatedAtMillis,
+    };
+  }
+
+  factory ArtistCacheRecord.fromMap(Map<String, dynamic> map) {
+    return ArtistCacheRecord(
+      id: map['id'] as int?,
+      queryKey: map['queryKey'] as String? ?? '',
+      artistId: map['artistId'] as String?,
+      artistName: map['artistName'] as String?,
+      sortName: map['sortName'] as String?,
+      disambiguation: map['disambiguation'] as String?,
+      country: map['country'] as String?,
+      imageFileTitle: map['imageFileTitle'] as String?,
+      imageUrl: map['imageUrl'] as String?,
+      thumbnailUrl: map['thumbnailUrl'] as String?,
+      areaName: map['areaName'] as String?,
+      beginDate: map['beginDate'] as String?,
+      endDate: map['endDate'] as String?,
+      tagsJson: map['tagsJson'] as String?,
+      rawSearchJson: map['rawSearchJson'] as String?,
+      rawDetailJson: map['rawDetailJson'] as String?,
+      noData: (map['noData'] as int? ?? 0) != 0,
+      updatedAtMillis:
+          (map['updatedAtMillis'] as int?) ??
+          DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+}
+
 class MetadataDatabase {
   static final MetadataDatabase _instance = MetadataDatabase._internal();
   static final MetadataDriftDatabase _db = MetadataDriftDatabase.instance;
@@ -232,6 +321,19 @@ class MetadataDatabase {
 
   Future<ReleaseCoverCacheRecord?> getReleaseCoverCache(String releaseId) =>
       _db.getReleaseCoverCache(releaseId);
+
+  Future<void> insertOrUpdateArtistCache(ArtistCacheRecord record) =>
+      _db.insertOrUpdateArtistCache(record);
+
+  Future<ArtistCacheRecord?> getArtistCache(String queryKey) =>
+      _db.getArtistCache(queryKey);
+
+  Future<Map<String, ArtistCacheRecord>> getArtistCachesByKeys(
+    Iterable<String> queryKeys,
+  ) => _db.getArtistCachesByKeys(queryKeys);
+
+  Future<List<ArtistCacheRecord>> getAllArtistCaches() =>
+      _db.getAllArtistCaches();
 
   Future<SongMetadata?> getSongMetadata(String path) =>
       _db.getSongMetadata(path);

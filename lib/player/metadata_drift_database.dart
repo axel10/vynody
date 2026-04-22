@@ -7,6 +7,7 @@ part of 'metadata_database.dart';
     AcoustidCaches,
     ReleaseCoverCaches,
     LyricsTranslationCaches,
+    ArtistCaches,
   ],
 )
 class MetadataDriftDatabase extends _$MetadataDriftDatabase {
@@ -15,7 +16,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -158,6 +159,30 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       }
       if (from < 19) {
         await _addColumnIfMissing(m, 'songs', 'sourceFlags', 'INTEGER');
+      }
+      if (from < 20) {
+        await m.database.customStatement('''
+          CREATE TABLE IF NOT EXISTS artist_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            queryKey TEXT UNIQUE,
+            artistId TEXT,
+            artistName TEXT,
+            sortName TEXT,
+            disambiguation TEXT,
+            country TEXT,
+            imageFileTitle TEXT,
+            imageUrl TEXT,
+            thumbnailUrl TEXT,
+            areaName TEXT,
+            beginDate TEXT,
+            endDate TEXT,
+            tagsJson TEXT,
+            rawSearchJson TEXT,
+            rawDetailJson TEXT,
+            noData INTEGER,
+            updatedAtMillis INTEGER
+          )
+        ''');
       }
     },
   );
@@ -523,6 +548,66 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return row == null ? null : _releaseCoverCacheFromRow(row);
   }
 
+  Future<void> insertOrUpdateArtistCache(ArtistCacheRecord record) async {
+    await into(artistCaches).insertOnConflictUpdate(
+      ArtistCachesCompanion(
+        queryKey: Value(record.queryKey),
+        artistId: Value(record.artistId),
+        artistName: Value(record.artistName),
+        sortName: Value(record.sortName),
+        disambiguation: Value(record.disambiguation),
+        country: Value(record.country),
+        imageFileTitle: Value(record.imageFileTitle),
+        imageUrl: Value(record.imageUrl),
+        thumbnailUrl: Value(record.thumbnailUrl),
+        areaName: Value(record.areaName),
+        beginDate: Value(record.beginDate),
+        endDate: Value(record.endDate),
+        tagsJson: Value(record.tagsJson),
+        rawSearchJson: Value(record.rawSearchJson),
+        rawDetailJson: Value(record.rawDetailJson),
+        noData: Value(record.noData),
+        updatedAtMillis: Value(record.updatedAtMillis),
+      ),
+    );
+  }
+
+  Future<ArtistCacheRecord?> getArtistCache(String queryKey) async {
+    final normalized = _normalizeArtistCacheKey(queryKey);
+    if (normalized.isEmpty) return null;
+    final row =
+        await (select(artistCaches)
+              ..where((t) => t.queryKey.equals(normalized))
+              ..limit(1))
+            .getSingleOrNull();
+    return row == null ? null : _artistCacheFromRow(row);
+  }
+
+  Future<Map<String, ArtistCacheRecord>> getArtistCachesByKeys(
+    Iterable<String> queryKeys,
+  ) async {
+    final normalizedKeys = queryKeys
+        .map(_normalizeArtistCacheKey)
+        .where((key) => key.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (normalizedKeys.isEmpty) return const {};
+
+    final rows = await (select(
+      artistCaches,
+    )..where((t) => t.queryKey.isIn(normalizedKeys))).get();
+    return {
+      for (final row in rows) row.queryKey: _artistCacheFromRow(row),
+    };
+  }
+
+  Future<List<ArtistCacheRecord>> getAllArtistCaches() async {
+    final rows = await (select(artistCaches)..orderBy([
+      (t) => OrderingTerm(expression: t.queryKey, mode: OrderingMode.asc),
+    ])).get();
+    return rows.map(_artistCacheFromRow).toList(growable: false);
+  }
+
   List<String> get songPaths => const [];
 
   SongMetadata _songFromRow(Song row) {
@@ -605,6 +690,29 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       releaseId: row.releaseId,
       largeUrl: row.largeUrl,
       thumbnailUrl: row.thumbnailUrl,
+      updatedAtMillis: row.updatedAtMillis,
+    );
+  }
+
+  ArtistCacheRecord _artistCacheFromRow(ArtistCache row) {
+    return ArtistCacheRecord(
+      id: row.id,
+      queryKey: row.queryKey,
+      artistId: row.artistId,
+      artistName: row.artistName,
+      sortName: row.sortName,
+      disambiguation: row.disambiguation,
+      country: row.country,
+      imageFileTitle: row.imageFileTitle,
+      imageUrl: row.imageUrl,
+      thumbnailUrl: row.thumbnailUrl,
+      areaName: row.areaName,
+      beginDate: row.beginDate,
+      endDate: row.endDate,
+      tagsJson: row.tagsJson,
+      rawSearchJson: row.rawSearchJson,
+      rawDetailJson: row.rawDetailJson,
+      noData: row.noData,
       updatedAtMillis: row.updatedAtMillis,
     );
   }
@@ -734,6 +842,33 @@ class ReleaseCoverCaches extends Table {
   List<String> get customConstraints => const ['UNIQUE(releaseId)'];
 }
 
+class ArtistCaches extends Table {
+  @override
+  String get tableName => 'artist_cache';
+
+  IntColumn get id => integer().autoIncrement().named('id')();
+  TextColumn get queryKey => text().named('queryKey')();
+  TextColumn get artistId => text().nullable().named('artistId')();
+  TextColumn get artistName => text().nullable().named('artistName')();
+  TextColumn get sortName => text().nullable().named('sortName')();
+  TextColumn get disambiguation => text().nullable().named('disambiguation')();
+  TextColumn get country => text().nullable().named('country')();
+  TextColumn get imageFileTitle => text().nullable().named('imageFileTitle')();
+  TextColumn get imageUrl => text().nullable().named('imageUrl')();
+  TextColumn get thumbnailUrl => text().nullable().named('thumbnailUrl')();
+  TextColumn get areaName => text().nullable().named('areaName')();
+  TextColumn get beginDate => text().nullable().named('beginDate')();
+  TextColumn get endDate => text().nullable().named('endDate')();
+  TextColumn get tagsJson => text().nullable().named('tagsJson')();
+  TextColumn get rawSearchJson => text().nullable().named('rawSearchJson')();
+  TextColumn get rawDetailJson => text().nullable().named('rawDetailJson')();
+  BoolColumn get noData => boolean().named('noData')();
+  IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
+
+  @override
+  List<String> get customConstraints => const ['UNIQUE(queryKey)'];
+}
+
 class LyricsTranslationCaches extends Table {
   @override
   String get tableName => 'lyrics_translation_cache';
@@ -758,4 +893,8 @@ LazyDatabase _openConnection() {
     final file = File(p.join(directory.path, 'metadata.db'));
     return NativeDatabase(file);
   });
+}
+
+String _normalizeArtistCacheKey(String queryKey) {
+  return queryKey.trim().toLowerCase();
 }

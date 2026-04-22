@@ -363,6 +363,10 @@
   "@albums": {
     "description": "Albums tab and section label"
   },
+  "artists": "艺术家",
+  "@artists": {
+    "description": "Artists tab and section label"
+  },
   "playAll": "播放全部",
   "@playAll": {
     "description": "Play all songs in the current album"
@@ -375,9 +379,17 @@
   "@noAlbums": {
     "description": "Empty state text when no albums are available"
   },
+  "noArtists": "还没有可显示的艺术家",
+  "@noArtists": {
+    "description": "Empty state text when no artists are available"
+  },
   "searchAlbums": "搜索专辑或艺术家",
   "@searchAlbums": {
     "description": "Search albums or artists placeholder"
+  },
+  "searchArtists": "搜索艺术家",
+  "@searchArtists": {
+    "description": "Search artists placeholder"
   },
   "albumSort": "排序",
   "@albumSort": {
@@ -422,6 +434,10 @@
   "viewAlbumDetails": "查看专辑详情",
   "@viewAlbumDetails": {
     "description": "View album details action"
+  },
+  "viewArtistDetails": "查看艺术家详情",
+  "@viewArtistDetails": {
+    "description": "View artist details action"
   },
   "openFileLocation": "打开文件所在位置",
   "@openFileLocation": {

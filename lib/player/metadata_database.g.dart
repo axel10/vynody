@@ -2864,6 +2864,1043 @@ class LyricsTranslationCachesCompanion
   }
 }
 
+class $ArtistCachesTable extends ArtistCaches
+    with TableInfo<$ArtistCachesTable, ArtistCache> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ArtistCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _queryKeyMeta = const VerificationMeta(
+    'queryKey',
+  );
+  @override
+  late final GeneratedColumn<String> queryKey = GeneratedColumn<String>(
+    'queryKey',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _artistIdMeta = const VerificationMeta(
+    'artistId',
+  );
+  @override
+  late final GeneratedColumn<String> artistId = GeneratedColumn<String>(
+    'artistId',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artistNameMeta = const VerificationMeta(
+    'artistName',
+  );
+  @override
+  late final GeneratedColumn<String> artistName = GeneratedColumn<String>(
+    'artistName',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortNameMeta = const VerificationMeta(
+    'sortName',
+  );
+  @override
+  late final GeneratedColumn<String> sortName = GeneratedColumn<String>(
+    'sortName',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _disambiguationMeta = const VerificationMeta(
+    'disambiguation',
+  );
+  @override
+  late final GeneratedColumn<String> disambiguation = GeneratedColumn<String>(
+    'disambiguation',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _countryMeta = const VerificationMeta(
+    'country',
+  );
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+    'country',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _imageFileTitleMeta = const VerificationMeta(
+    'imageFileTitle',
+  );
+  @override
+  late final GeneratedColumn<String> imageFileTitle = GeneratedColumn<String>(
+    'imageFileTitle',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _imageUrlMeta = const VerificationMeta(
+    'imageUrl',
+  );
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+    'imageUrl',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _thumbnailUrlMeta = const VerificationMeta(
+    'thumbnailUrl',
+  );
+  @override
+  late final GeneratedColumn<String> thumbnailUrl = GeneratedColumn<String>(
+    'thumbnailUrl',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _areaNameMeta = const VerificationMeta(
+    'areaName',
+  );
+  @override
+  late final GeneratedColumn<String> areaName = GeneratedColumn<String>(
+    'areaName',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _beginDateMeta = const VerificationMeta(
+    'beginDate',
+  );
+  @override
+  late final GeneratedColumn<String> beginDate = GeneratedColumn<String>(
+    'beginDate',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<String> endDate = GeneratedColumn<String>(
+    'endDate',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tagsJsonMeta = const VerificationMeta(
+    'tagsJson',
+  );
+  @override
+  late final GeneratedColumn<String> tagsJson = GeneratedColumn<String>(
+    'tagsJson',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rawSearchJsonMeta = const VerificationMeta(
+    'rawSearchJson',
+  );
+  @override
+  late final GeneratedColumn<String> rawSearchJson = GeneratedColumn<String>(
+    'rawSearchJson',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rawDetailJsonMeta = const VerificationMeta(
+    'rawDetailJson',
+  );
+  @override
+  late final GeneratedColumn<String> rawDetailJson = GeneratedColumn<String>(
+    'rawDetailJson',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _noDataMeta = const VerificationMeta('noData');
+  @override
+  late final GeneratedColumn<bool> noData = GeneratedColumn<bool>(
+    'noData',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("noData" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    queryKey,
+    artistId,
+    artistName,
+    sortName,
+    disambiguation,
+    country,
+    imageFileTitle,
+    imageUrl,
+    thumbnailUrl,
+    areaName,
+    beginDate,
+    endDate,
+    tagsJson,
+    rawSearchJson,
+    rawDetailJson,
+    noData,
+    updatedAtMillis,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'artist_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ArtistCache> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('queryKey')) {
+      context.handle(
+        _queryKeyMeta,
+        queryKey.isAcceptableOrUnknown(data['queryKey']!, _queryKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_queryKeyMeta);
+    }
+    if (data.containsKey('artistId')) {
+      context.handle(
+        _artistIdMeta,
+        artistId.isAcceptableOrUnknown(data['artistId']!, _artistIdMeta),
+      );
+    }
+    if (data.containsKey('artistName')) {
+      context.handle(
+        _artistNameMeta,
+        artistName.isAcceptableOrUnknown(data['artistName']!, _artistNameMeta),
+      );
+    }
+    if (data.containsKey('sortName')) {
+      context.handle(
+        _sortNameMeta,
+        sortName.isAcceptableOrUnknown(data['sortName']!, _sortNameMeta),
+      );
+    }
+    if (data.containsKey('disambiguation')) {
+      context.handle(
+        _disambiguationMeta,
+        disambiguation.isAcceptableOrUnknown(
+          data['disambiguation']!,
+          _disambiguationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('country')) {
+      context.handle(
+        _countryMeta,
+        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
+      );
+    }
+    if (data.containsKey('imageFileTitle')) {
+      context.handle(
+        _imageFileTitleMeta,
+        imageFileTitle.isAcceptableOrUnknown(
+          data['imageFileTitle']!,
+          _imageFileTitleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('imageUrl')) {
+      context.handle(
+        _imageUrlMeta,
+        imageUrl.isAcceptableOrUnknown(data['imageUrl']!, _imageUrlMeta),
+      );
+    }
+    if (data.containsKey('thumbnailUrl')) {
+      context.handle(
+        _thumbnailUrlMeta,
+        thumbnailUrl.isAcceptableOrUnknown(
+          data['thumbnailUrl']!,
+          _thumbnailUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('areaName')) {
+      context.handle(
+        _areaNameMeta,
+        areaName.isAcceptableOrUnknown(data['areaName']!, _areaNameMeta),
+      );
+    }
+    if (data.containsKey('beginDate')) {
+      context.handle(
+        _beginDateMeta,
+        beginDate.isAcceptableOrUnknown(data['beginDate']!, _beginDateMeta),
+      );
+    }
+    if (data.containsKey('endDate')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['endDate']!, _endDateMeta),
+      );
+    }
+    if (data.containsKey('tagsJson')) {
+      context.handle(
+        _tagsJsonMeta,
+        tagsJson.isAcceptableOrUnknown(data['tagsJson']!, _tagsJsonMeta),
+      );
+    }
+    if (data.containsKey('rawSearchJson')) {
+      context.handle(
+        _rawSearchJsonMeta,
+        rawSearchJson.isAcceptableOrUnknown(
+          data['rawSearchJson']!,
+          _rawSearchJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('rawDetailJson')) {
+      context.handle(
+        _rawDetailJsonMeta,
+        rawDetailJson.isAcceptableOrUnknown(
+          data['rawDetailJson']!,
+          _rawDetailJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('noData')) {
+      context.handle(
+        _noDataMeta,
+        noData.isAcceptableOrUnknown(data['noData']!, _noDataMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_noDataMeta);
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ArtistCache map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ArtistCache(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      queryKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}queryKey'],
+      )!,
+      artistId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artistId'],
+      ),
+      artistName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artistName'],
+      ),
+      sortName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sortName'],
+      ),
+      disambiguation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}disambiguation'],
+      ),
+      country: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country'],
+      ),
+      imageFileTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}imageFileTitle'],
+      ),
+      imageUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}imageUrl'],
+      ),
+      thumbnailUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}thumbnailUrl'],
+      ),
+      areaName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}areaName'],
+      ),
+      beginDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}beginDate'],
+      ),
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}endDate'],
+      ),
+      tagsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tagsJson'],
+      ),
+      rawSearchJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rawSearchJson'],
+      ),
+      rawDetailJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rawDetailJson'],
+      ),
+      noData: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}noData'],
+      )!,
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $ArtistCachesTable createAlias(String alias) {
+    return $ArtistCachesTable(attachedDatabase, alias);
+  }
+}
+
+class ArtistCache extends DataClass implements Insertable<ArtistCache> {
+  final int id;
+  final String queryKey;
+  final String? artistId;
+  final String? artistName;
+  final String? sortName;
+  final String? disambiguation;
+  final String? country;
+  final String? imageFileTitle;
+  final String? imageUrl;
+  final String? thumbnailUrl;
+  final String? areaName;
+  final String? beginDate;
+  final String? endDate;
+  final String? tagsJson;
+  final String? rawSearchJson;
+  final String? rawDetailJson;
+  final bool noData;
+  final int updatedAtMillis;
+  const ArtistCache({
+    required this.id,
+    required this.queryKey,
+    this.artistId,
+    this.artistName,
+    this.sortName,
+    this.disambiguation,
+    this.country,
+    this.imageFileTitle,
+    this.imageUrl,
+    this.thumbnailUrl,
+    this.areaName,
+    this.beginDate,
+    this.endDate,
+    this.tagsJson,
+    this.rawSearchJson,
+    this.rawDetailJson,
+    required this.noData,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['queryKey'] = Variable<String>(queryKey);
+    if (!nullToAbsent || artistId != null) {
+      map['artistId'] = Variable<String>(artistId);
+    }
+    if (!nullToAbsent || artistName != null) {
+      map['artistName'] = Variable<String>(artistName);
+    }
+    if (!nullToAbsent || sortName != null) {
+      map['sortName'] = Variable<String>(sortName);
+    }
+    if (!nullToAbsent || disambiguation != null) {
+      map['disambiguation'] = Variable<String>(disambiguation);
+    }
+    if (!nullToAbsent || country != null) {
+      map['country'] = Variable<String>(country);
+    }
+    if (!nullToAbsent || imageFileTitle != null) {
+      map['imageFileTitle'] = Variable<String>(imageFileTitle);
+    }
+    if (!nullToAbsent || imageUrl != null) {
+      map['imageUrl'] = Variable<String>(imageUrl);
+    }
+    if (!nullToAbsent || thumbnailUrl != null) {
+      map['thumbnailUrl'] = Variable<String>(thumbnailUrl);
+    }
+    if (!nullToAbsent || areaName != null) {
+      map['areaName'] = Variable<String>(areaName);
+    }
+    if (!nullToAbsent || beginDate != null) {
+      map['beginDate'] = Variable<String>(beginDate);
+    }
+    if (!nullToAbsent || endDate != null) {
+      map['endDate'] = Variable<String>(endDate);
+    }
+    if (!nullToAbsent || tagsJson != null) {
+      map['tagsJson'] = Variable<String>(tagsJson);
+    }
+    if (!nullToAbsent || rawSearchJson != null) {
+      map['rawSearchJson'] = Variable<String>(rawSearchJson);
+    }
+    if (!nullToAbsent || rawDetailJson != null) {
+      map['rawDetailJson'] = Variable<String>(rawDetailJson);
+    }
+    map['noData'] = Variable<bool>(noData);
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  ArtistCachesCompanion toCompanion(bool nullToAbsent) {
+    return ArtistCachesCompanion(
+      id: Value(id),
+      queryKey: Value(queryKey),
+      artistId: artistId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artistId),
+      artistName: artistName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artistName),
+      sortName: sortName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sortName),
+      disambiguation: disambiguation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(disambiguation),
+      country: country == null && nullToAbsent
+          ? const Value.absent()
+          : Value(country),
+      imageFileTitle: imageFileTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageFileTitle),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+      thumbnailUrl: thumbnailUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(thumbnailUrl),
+      areaName: areaName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(areaName),
+      beginDate: beginDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(beginDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      tagsJson: tagsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tagsJson),
+      rawSearchJson: rawSearchJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawSearchJson),
+      rawDetailJson: rawDetailJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawDetailJson),
+      noData: Value(noData),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory ArtistCache.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ArtistCache(
+      id: serializer.fromJson<int>(json['id']),
+      queryKey: serializer.fromJson<String>(json['queryKey']),
+      artistId: serializer.fromJson<String?>(json['artistId']),
+      artistName: serializer.fromJson<String?>(json['artistName']),
+      sortName: serializer.fromJson<String?>(json['sortName']),
+      disambiguation: serializer.fromJson<String?>(json['disambiguation']),
+      country: serializer.fromJson<String?>(json['country']),
+      imageFileTitle: serializer.fromJson<String?>(json['imageFileTitle']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      thumbnailUrl: serializer.fromJson<String?>(json['thumbnailUrl']),
+      areaName: serializer.fromJson<String?>(json['areaName']),
+      beginDate: serializer.fromJson<String?>(json['beginDate']),
+      endDate: serializer.fromJson<String?>(json['endDate']),
+      tagsJson: serializer.fromJson<String?>(json['tagsJson']),
+      rawSearchJson: serializer.fromJson<String?>(json['rawSearchJson']),
+      rawDetailJson: serializer.fromJson<String?>(json['rawDetailJson']),
+      noData: serializer.fromJson<bool>(json['noData']),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'queryKey': serializer.toJson<String>(queryKey),
+      'artistId': serializer.toJson<String?>(artistId),
+      'artistName': serializer.toJson<String?>(artistName),
+      'sortName': serializer.toJson<String?>(sortName),
+      'disambiguation': serializer.toJson<String?>(disambiguation),
+      'country': serializer.toJson<String?>(country),
+      'imageFileTitle': serializer.toJson<String?>(imageFileTitle),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'thumbnailUrl': serializer.toJson<String?>(thumbnailUrl),
+      'areaName': serializer.toJson<String?>(areaName),
+      'beginDate': serializer.toJson<String?>(beginDate),
+      'endDate': serializer.toJson<String?>(endDate),
+      'tagsJson': serializer.toJson<String?>(tagsJson),
+      'rawSearchJson': serializer.toJson<String?>(rawSearchJson),
+      'rawDetailJson': serializer.toJson<String?>(rawDetailJson),
+      'noData': serializer.toJson<bool>(noData),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  ArtistCache copyWith({
+    int? id,
+    String? queryKey,
+    Value<String?> artistId = const Value.absent(),
+    Value<String?> artistName = const Value.absent(),
+    Value<String?> sortName = const Value.absent(),
+    Value<String?> disambiguation = const Value.absent(),
+    Value<String?> country = const Value.absent(),
+    Value<String?> imageFileTitle = const Value.absent(),
+    Value<String?> imageUrl = const Value.absent(),
+    Value<String?> thumbnailUrl = const Value.absent(),
+    Value<String?> areaName = const Value.absent(),
+    Value<String?> beginDate = const Value.absent(),
+    Value<String?> endDate = const Value.absent(),
+    Value<String?> tagsJson = const Value.absent(),
+    Value<String?> rawSearchJson = const Value.absent(),
+    Value<String?> rawDetailJson = const Value.absent(),
+    bool? noData,
+    int? updatedAtMillis,
+  }) => ArtistCache(
+    id: id ?? this.id,
+    queryKey: queryKey ?? this.queryKey,
+    artistId: artistId.present ? artistId.value : this.artistId,
+    artistName: artistName.present ? artistName.value : this.artistName,
+    sortName: sortName.present ? sortName.value : this.sortName,
+    disambiguation: disambiguation.present
+        ? disambiguation.value
+        : this.disambiguation,
+    country: country.present ? country.value : this.country,
+    imageFileTitle: imageFileTitle.present
+        ? imageFileTitle.value
+        : this.imageFileTitle,
+    imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+    thumbnailUrl: thumbnailUrl.present ? thumbnailUrl.value : this.thumbnailUrl,
+    areaName: areaName.present ? areaName.value : this.areaName,
+    beginDate: beginDate.present ? beginDate.value : this.beginDate,
+    endDate: endDate.present ? endDate.value : this.endDate,
+    tagsJson: tagsJson.present ? tagsJson.value : this.tagsJson,
+    rawSearchJson: rawSearchJson.present
+        ? rawSearchJson.value
+        : this.rawSearchJson,
+    rawDetailJson: rawDetailJson.present
+        ? rawDetailJson.value
+        : this.rawDetailJson,
+    noData: noData ?? this.noData,
+    updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+  );
+  ArtistCache copyWithCompanion(ArtistCachesCompanion data) {
+    return ArtistCache(
+      id: data.id.present ? data.id.value : this.id,
+      queryKey: data.queryKey.present ? data.queryKey.value : this.queryKey,
+      artistId: data.artistId.present ? data.artistId.value : this.artistId,
+      artistName: data.artistName.present
+          ? data.artistName.value
+          : this.artistName,
+      sortName: data.sortName.present ? data.sortName.value : this.sortName,
+      disambiguation: data.disambiguation.present
+          ? data.disambiguation.value
+          : this.disambiguation,
+      country: data.country.present ? data.country.value : this.country,
+      imageFileTitle: data.imageFileTitle.present
+          ? data.imageFileTitle.value
+          : this.imageFileTitle,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      thumbnailUrl: data.thumbnailUrl.present
+          ? data.thumbnailUrl.value
+          : this.thumbnailUrl,
+      areaName: data.areaName.present ? data.areaName.value : this.areaName,
+      beginDate: data.beginDate.present ? data.beginDate.value : this.beginDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      tagsJson: data.tagsJson.present ? data.tagsJson.value : this.tagsJson,
+      rawSearchJson: data.rawSearchJson.present
+          ? data.rawSearchJson.value
+          : this.rawSearchJson,
+      rawDetailJson: data.rawDetailJson.present
+          ? data.rawDetailJson.value
+          : this.rawDetailJson,
+      noData: data.noData.present ? data.noData.value : this.noData,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ArtistCache(')
+          ..write('id: $id, ')
+          ..write('queryKey: $queryKey, ')
+          ..write('artistId: $artistId, ')
+          ..write('artistName: $artistName, ')
+          ..write('sortName: $sortName, ')
+          ..write('disambiguation: $disambiguation, ')
+          ..write('country: $country, ')
+          ..write('imageFileTitle: $imageFileTitle, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('thumbnailUrl: $thumbnailUrl, ')
+          ..write('areaName: $areaName, ')
+          ..write('beginDate: $beginDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('tagsJson: $tagsJson, ')
+          ..write('rawSearchJson: $rawSearchJson, ')
+          ..write('rawDetailJson: $rawDetailJson, ')
+          ..write('noData: $noData, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    queryKey,
+    artistId,
+    artistName,
+    sortName,
+    disambiguation,
+    country,
+    imageFileTitle,
+    imageUrl,
+    thumbnailUrl,
+    areaName,
+    beginDate,
+    endDate,
+    tagsJson,
+    rawSearchJson,
+    rawDetailJson,
+    noData,
+    updatedAtMillis,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ArtistCache &&
+          other.id == this.id &&
+          other.queryKey == this.queryKey &&
+          other.artistId == this.artistId &&
+          other.artistName == this.artistName &&
+          other.sortName == this.sortName &&
+          other.disambiguation == this.disambiguation &&
+          other.country == this.country &&
+          other.imageFileTitle == this.imageFileTitle &&
+          other.imageUrl == this.imageUrl &&
+          other.thumbnailUrl == this.thumbnailUrl &&
+          other.areaName == this.areaName &&
+          other.beginDate == this.beginDate &&
+          other.endDate == this.endDate &&
+          other.tagsJson == this.tagsJson &&
+          other.rawSearchJson == this.rawSearchJson &&
+          other.rawDetailJson == this.rawDetailJson &&
+          other.noData == this.noData &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
+  final Value<int> id;
+  final Value<String> queryKey;
+  final Value<String?> artistId;
+  final Value<String?> artistName;
+  final Value<String?> sortName;
+  final Value<String?> disambiguation;
+  final Value<String?> country;
+  final Value<String?> imageFileTitle;
+  final Value<String?> imageUrl;
+  final Value<String?> thumbnailUrl;
+  final Value<String?> areaName;
+  final Value<String?> beginDate;
+  final Value<String?> endDate;
+  final Value<String?> tagsJson;
+  final Value<String?> rawSearchJson;
+  final Value<String?> rawDetailJson;
+  final Value<bool> noData;
+  final Value<int> updatedAtMillis;
+  const ArtistCachesCompanion({
+    this.id = const Value.absent(),
+    this.queryKey = const Value.absent(),
+    this.artistId = const Value.absent(),
+    this.artistName = const Value.absent(),
+    this.sortName = const Value.absent(),
+    this.disambiguation = const Value.absent(),
+    this.country = const Value.absent(),
+    this.imageFileTitle = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.thumbnailUrl = const Value.absent(),
+    this.areaName = const Value.absent(),
+    this.beginDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.tagsJson = const Value.absent(),
+    this.rawSearchJson = const Value.absent(),
+    this.rawDetailJson = const Value.absent(),
+    this.noData = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+  });
+  ArtistCachesCompanion.insert({
+    this.id = const Value.absent(),
+    required String queryKey,
+    this.artistId = const Value.absent(),
+    this.artistName = const Value.absent(),
+    this.sortName = const Value.absent(),
+    this.disambiguation = const Value.absent(),
+    this.country = const Value.absent(),
+    this.imageFileTitle = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.thumbnailUrl = const Value.absent(),
+    this.areaName = const Value.absent(),
+    this.beginDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.tagsJson = const Value.absent(),
+    this.rawSearchJson = const Value.absent(),
+    this.rawDetailJson = const Value.absent(),
+    required bool noData,
+    required int updatedAtMillis,
+  }) : queryKey = Value(queryKey),
+       noData = Value(noData),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<ArtistCache> custom({
+    Expression<int>? id,
+    Expression<String>? queryKey,
+    Expression<String>? artistId,
+    Expression<String>? artistName,
+    Expression<String>? sortName,
+    Expression<String>? disambiguation,
+    Expression<String>? country,
+    Expression<String>? imageFileTitle,
+    Expression<String>? imageUrl,
+    Expression<String>? thumbnailUrl,
+    Expression<String>? areaName,
+    Expression<String>? beginDate,
+    Expression<String>? endDate,
+    Expression<String>? tagsJson,
+    Expression<String>? rawSearchJson,
+    Expression<String>? rawDetailJson,
+    Expression<bool>? noData,
+    Expression<int>? updatedAtMillis,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (queryKey != null) 'queryKey': queryKey,
+      if (artistId != null) 'artistId': artistId,
+      if (artistName != null) 'artistName': artistName,
+      if (sortName != null) 'sortName': sortName,
+      if (disambiguation != null) 'disambiguation': disambiguation,
+      if (country != null) 'country': country,
+      if (imageFileTitle != null) 'imageFileTitle': imageFileTitle,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+      if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
+      if (areaName != null) 'areaName': areaName,
+      if (beginDate != null) 'beginDate': beginDate,
+      if (endDate != null) 'endDate': endDate,
+      if (tagsJson != null) 'tagsJson': tagsJson,
+      if (rawSearchJson != null) 'rawSearchJson': rawSearchJson,
+      if (rawDetailJson != null) 'rawDetailJson': rawDetailJson,
+      if (noData != null) 'noData': noData,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+    });
+  }
+
+  ArtistCachesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? queryKey,
+    Value<String?>? artistId,
+    Value<String?>? artistName,
+    Value<String?>? sortName,
+    Value<String?>? disambiguation,
+    Value<String?>? country,
+    Value<String?>? imageFileTitle,
+    Value<String?>? imageUrl,
+    Value<String?>? thumbnailUrl,
+    Value<String?>? areaName,
+    Value<String?>? beginDate,
+    Value<String?>? endDate,
+    Value<String?>? tagsJson,
+    Value<String?>? rawSearchJson,
+    Value<String?>? rawDetailJson,
+    Value<bool>? noData,
+    Value<int>? updatedAtMillis,
+  }) {
+    return ArtistCachesCompanion(
+      id: id ?? this.id,
+      queryKey: queryKey ?? this.queryKey,
+      artistId: artistId ?? this.artistId,
+      artistName: artistName ?? this.artistName,
+      sortName: sortName ?? this.sortName,
+      disambiguation: disambiguation ?? this.disambiguation,
+      country: country ?? this.country,
+      imageFileTitle: imageFileTitle ?? this.imageFileTitle,
+      imageUrl: imageUrl ?? this.imageUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      areaName: areaName ?? this.areaName,
+      beginDate: beginDate ?? this.beginDate,
+      endDate: endDate ?? this.endDate,
+      tagsJson: tagsJson ?? this.tagsJson,
+      rawSearchJson: rawSearchJson ?? this.rawSearchJson,
+      rawDetailJson: rawDetailJson ?? this.rawDetailJson,
+      noData: noData ?? this.noData,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (queryKey.present) {
+      map['queryKey'] = Variable<String>(queryKey.value);
+    }
+    if (artistId.present) {
+      map['artistId'] = Variable<String>(artistId.value);
+    }
+    if (artistName.present) {
+      map['artistName'] = Variable<String>(artistName.value);
+    }
+    if (sortName.present) {
+      map['sortName'] = Variable<String>(sortName.value);
+    }
+    if (disambiguation.present) {
+      map['disambiguation'] = Variable<String>(disambiguation.value);
+    }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
+    if (imageFileTitle.present) {
+      map['imageFileTitle'] = Variable<String>(imageFileTitle.value);
+    }
+    if (imageUrl.present) {
+      map['imageUrl'] = Variable<String>(imageUrl.value);
+    }
+    if (thumbnailUrl.present) {
+      map['thumbnailUrl'] = Variable<String>(thumbnailUrl.value);
+    }
+    if (areaName.present) {
+      map['areaName'] = Variable<String>(areaName.value);
+    }
+    if (beginDate.present) {
+      map['beginDate'] = Variable<String>(beginDate.value);
+    }
+    if (endDate.present) {
+      map['endDate'] = Variable<String>(endDate.value);
+    }
+    if (tagsJson.present) {
+      map['tagsJson'] = Variable<String>(tagsJson.value);
+    }
+    if (rawSearchJson.present) {
+      map['rawSearchJson'] = Variable<String>(rawSearchJson.value);
+    }
+    if (rawDetailJson.present) {
+      map['rawDetailJson'] = Variable<String>(rawDetailJson.value);
+    }
+    if (noData.present) {
+      map['noData'] = Variable<bool>(noData.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ArtistCachesCompanion(')
+          ..write('id: $id, ')
+          ..write('queryKey: $queryKey, ')
+          ..write('artistId: $artistId, ')
+          ..write('artistName: $artistName, ')
+          ..write('sortName: $sortName, ')
+          ..write('disambiguation: $disambiguation, ')
+          ..write('country: $country, ')
+          ..write('imageFileTitle: $imageFileTitle, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('thumbnailUrl: $thumbnailUrl, ')
+          ..write('areaName: $areaName, ')
+          ..write('beginDate: $beginDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('tagsJson: $tagsJson, ')
+          ..write('rawSearchJson: $rawSearchJson, ')
+          ..write('rawDetailJson: $rawDetailJson, ')
+          ..write('noData: $noData, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   _$MetadataDriftDatabase(QueryExecutor e) : super(e);
   $MetadataDriftDatabaseManager get managers =>
@@ -2875,6 +3912,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
       $ReleaseCoverCachesTable(this);
   late final $LyricsTranslationCachesTable lyricsTranslationCaches =
       $LyricsTranslationCachesTable(this);
+  late final $ArtistCachesTable artistCaches = $ArtistCachesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2885,6 +3923,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     acoustidCaches,
     releaseCoverCaches,
     lyricsTranslationCaches,
+    artistCaches,
   ];
 }
 
@@ -4315,6 +5354,471 @@ typedef $$LyricsTranslationCachesTableProcessedTableManager =
       LyricsTranslationCache,
       PrefetchHooks Function()
     >;
+typedef $$ArtistCachesTableCreateCompanionBuilder =
+    ArtistCachesCompanion Function({
+      Value<int> id,
+      required String queryKey,
+      Value<String?> artistId,
+      Value<String?> artistName,
+      Value<String?> sortName,
+      Value<String?> disambiguation,
+      Value<String?> country,
+      Value<String?> imageFileTitle,
+      Value<String?> imageUrl,
+      Value<String?> thumbnailUrl,
+      Value<String?> areaName,
+      Value<String?> beginDate,
+      Value<String?> endDate,
+      Value<String?> tagsJson,
+      Value<String?> rawSearchJson,
+      Value<String?> rawDetailJson,
+      required bool noData,
+      required int updatedAtMillis,
+    });
+typedef $$ArtistCachesTableUpdateCompanionBuilder =
+    ArtistCachesCompanion Function({
+      Value<int> id,
+      Value<String> queryKey,
+      Value<String?> artistId,
+      Value<String?> artistName,
+      Value<String?> sortName,
+      Value<String?> disambiguation,
+      Value<String?> country,
+      Value<String?> imageFileTitle,
+      Value<String?> imageUrl,
+      Value<String?> thumbnailUrl,
+      Value<String?> areaName,
+      Value<String?> beginDate,
+      Value<String?> endDate,
+      Value<String?> tagsJson,
+      Value<String?> rawSearchJson,
+      Value<String?> rawDetailJson,
+      Value<bool> noData,
+      Value<int> updatedAtMillis,
+    });
+
+class $$ArtistCachesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $ArtistCachesTable> {
+  $$ArtistCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get queryKey => $composableBuilder(
+    column: $table.queryKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artistId => $composableBuilder(
+    column: $table.artistId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artistName => $composableBuilder(
+    column: $table.artistName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sortName => $composableBuilder(
+    column: $table.sortName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get disambiguation => $composableBuilder(
+    column: $table.disambiguation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageFileTitle => $composableBuilder(
+    column: $table.imageFileTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get thumbnailUrl => $composableBuilder(
+    column: $table.thumbnailUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get areaName => $composableBuilder(
+    column: $table.areaName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get beginDate => $composableBuilder(
+    column: $table.beginDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tagsJson => $composableBuilder(
+    column: $table.tagsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawSearchJson => $composableBuilder(
+    column: $table.rawSearchJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawDetailJson => $composableBuilder(
+    column: $table.rawDetailJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get noData => $composableBuilder(
+    column: $table.noData,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ArtistCachesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $ArtistCachesTable> {
+  $$ArtistCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get queryKey => $composableBuilder(
+    column: $table.queryKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artistId => $composableBuilder(
+    column: $table.artistId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artistName => $composableBuilder(
+    column: $table.artistName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sortName => $composableBuilder(
+    column: $table.sortName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get disambiguation => $composableBuilder(
+    column: $table.disambiguation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imageFileTitle => $composableBuilder(
+    column: $table.imageFileTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get thumbnailUrl => $composableBuilder(
+    column: $table.thumbnailUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get areaName => $composableBuilder(
+    column: $table.areaName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get beginDate => $composableBuilder(
+    column: $table.beginDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tagsJson => $composableBuilder(
+    column: $table.tagsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawSearchJson => $composableBuilder(
+    column: $table.rawSearchJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawDetailJson => $composableBuilder(
+    column: $table.rawDetailJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get noData => $composableBuilder(
+    column: $table.noData,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ArtistCachesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $ArtistCachesTable> {
+  $$ArtistCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get queryKey =>
+      $composableBuilder(column: $table.queryKey, builder: (column) => column);
+
+  GeneratedColumn<String> get artistId =>
+      $composableBuilder(column: $table.artistId, builder: (column) => column);
+
+  GeneratedColumn<String> get artistName => $composableBuilder(
+    column: $table.artistName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sortName =>
+      $composableBuilder(column: $table.sortName, builder: (column) => column);
+
+  GeneratedColumn<String> get disambiguation => $composableBuilder(
+    column: $table.disambiguation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
+  GeneratedColumn<String> get imageFileTitle => $composableBuilder(
+    column: $table.imageFileTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get thumbnailUrl => $composableBuilder(
+    column: $table.thumbnailUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get areaName =>
+      $composableBuilder(column: $table.areaName, builder: (column) => column);
+
+  GeneratedColumn<String> get beginDate =>
+      $composableBuilder(column: $table.beginDate, builder: (column) => column);
+
+  GeneratedColumn<String> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<String> get tagsJson =>
+      $composableBuilder(column: $table.tagsJson, builder: (column) => column);
+
+  GeneratedColumn<String> get rawSearchJson => $composableBuilder(
+    column: $table.rawSearchJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rawDetailJson => $composableBuilder(
+    column: $table.rawDetailJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get noData =>
+      $composableBuilder(column: $table.noData, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$ArtistCachesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $ArtistCachesTable,
+          ArtistCache,
+          $$ArtistCachesTableFilterComposer,
+          $$ArtistCachesTableOrderingComposer,
+          $$ArtistCachesTableAnnotationComposer,
+          $$ArtistCachesTableCreateCompanionBuilder,
+          $$ArtistCachesTableUpdateCompanionBuilder,
+          (
+            ArtistCache,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $ArtistCachesTable,
+              ArtistCache
+            >,
+          ),
+          ArtistCache,
+          PrefetchHooks Function()
+        > {
+  $$ArtistCachesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $ArtistCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ArtistCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ArtistCachesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ArtistCachesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> queryKey = const Value.absent(),
+                Value<String?> artistId = const Value.absent(),
+                Value<String?> artistName = const Value.absent(),
+                Value<String?> sortName = const Value.absent(),
+                Value<String?> disambiguation = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> imageFileTitle = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                Value<String?> thumbnailUrl = const Value.absent(),
+                Value<String?> areaName = const Value.absent(),
+                Value<String?> beginDate = const Value.absent(),
+                Value<String?> endDate = const Value.absent(),
+                Value<String?> tagsJson = const Value.absent(),
+                Value<String?> rawSearchJson = const Value.absent(),
+                Value<String?> rawDetailJson = const Value.absent(),
+                Value<bool> noData = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+              }) => ArtistCachesCompanion(
+                id: id,
+                queryKey: queryKey,
+                artistId: artistId,
+                artistName: artistName,
+                sortName: sortName,
+                disambiguation: disambiguation,
+                country: country,
+                imageFileTitle: imageFileTitle,
+                imageUrl: imageUrl,
+                thumbnailUrl: thumbnailUrl,
+                areaName: areaName,
+                beginDate: beginDate,
+                endDate: endDate,
+                tagsJson: tagsJson,
+                rawSearchJson: rawSearchJson,
+                rawDetailJson: rawDetailJson,
+                noData: noData,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String queryKey,
+                Value<String?> artistId = const Value.absent(),
+                Value<String?> artistName = const Value.absent(),
+                Value<String?> sortName = const Value.absent(),
+                Value<String?> disambiguation = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> imageFileTitle = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                Value<String?> thumbnailUrl = const Value.absent(),
+                Value<String?> areaName = const Value.absent(),
+                Value<String?> beginDate = const Value.absent(),
+                Value<String?> endDate = const Value.absent(),
+                Value<String?> tagsJson = const Value.absent(),
+                Value<String?> rawSearchJson = const Value.absent(),
+                Value<String?> rawDetailJson = const Value.absent(),
+                required bool noData,
+                required int updatedAtMillis,
+              }) => ArtistCachesCompanion.insert(
+                id: id,
+                queryKey: queryKey,
+                artistId: artistId,
+                artistName: artistName,
+                sortName: sortName,
+                disambiguation: disambiguation,
+                country: country,
+                imageFileTitle: imageFileTitle,
+                imageUrl: imageUrl,
+                thumbnailUrl: thumbnailUrl,
+                areaName: areaName,
+                beginDate: beginDate,
+                endDate: endDate,
+                tagsJson: tagsJson,
+                rawSearchJson: rawSearchJson,
+                rawDetailJson: rawDetailJson,
+                noData: noData,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ArtistCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $ArtistCachesTable,
+      ArtistCache,
+      $$ArtistCachesTableFilterComposer,
+      $$ArtistCachesTableOrderingComposer,
+      $$ArtistCachesTableAnnotationComposer,
+      $$ArtistCachesTableCreateCompanionBuilder,
+      $$ArtistCachesTableUpdateCompanionBuilder,
+      (
+        ArtistCache,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $ArtistCachesTable,
+          ArtistCache
+        >,
+      ),
+      ArtistCache,
+      PrefetchHooks Function()
+    >;
 
 class $MetadataDriftDatabaseManager {
   final _$MetadataDriftDatabase _db;
@@ -4332,4 +5836,6 @@ class $MetadataDriftDatabaseManager {
         _db,
         _db.lyricsTranslationCaches,
       );
+  $$ArtistCachesTableTableManager get artistCaches =>
+      $$ArtistCachesTableTableManager(_db, _db.artistCaches);
 }

@@ -273,6 +273,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get albums => 'Albums';
 
   @override
+  String get artists => 'Artists';
+
+  @override
   String get playAll => 'Play All';
 
   @override
@@ -282,7 +285,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noAlbums => 'No albums found yet';
 
   @override
+  String get noArtists => 'No artists found yet';
+
+  @override
   String get searchAlbums => 'Search albums or artists';
+
+  @override
+  String get searchArtists => 'Search artists';
 
   @override
   String get albumSort => 'Sort';
@@ -316,6 +325,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewAlbumDetails => 'View Album Details';
+
+  @override
+  String get viewArtistDetails => 'View Artist Details';
 
   @override
   String get openFileLocation => 'Open File Location';

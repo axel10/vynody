@@ -19,7 +19,7 @@ class NetworkClient {
           sendTimeout: const Duration(seconds: 15),
           headers: const {
             'Accept': 'application/json',
-            'User-Agent': 'VibeFlow/1.0 (Desktop Audio Player)',
+            'User-Agent': 'VibeFlow/1.0 (zgmf300@outlook.com)',
           },
         ),
       ) {
