@@ -68,7 +68,10 @@ class ScannerMetadataStore {
   void cacheMetadata(SongMetadata metadata) {
     final existing = _metadataMap[metadata.path];
     final albumChanged = _albumRelevantMetadataChanged(existing, metadata);
-    _metadataMap[metadata.path] = metadata.copyWith(waveformBlob: null);
+    _metadataMap[metadata.path] = metadata.copyWith(
+      waveformBlob: null,
+      sourceFlags: _mergeSourceFlags(existing?.sourceFlags, metadata.sourceFlags),
+    );
     _onMetadataMutated();
     if (albumChanged) {
       _onAlbumMetadataMutated();
@@ -103,11 +106,17 @@ class ScannerMetadataStore {
     metadata ??= result?.$1;
 
     if (metadata != null) {
+      final mergedMetadata = metadata.copyWith(
+        sourceFlags: _mergeSourceFlags(
+          _metadataMap[path]?.sourceFlags,
+          metadata.sourceFlags,
+        ),
+      );
       final albumChanged = _albumRelevantMetadataChanged(
         _metadataMap[path],
-        metadata,
+        mergedMetadata,
       );
-      _metadataMap[path] = metadata;
+      _metadataMap[path] = mergedMetadata;
       _onMetadataMutated();
       if (albumChanged) {
         _onAlbumMetadataMutated();
@@ -148,11 +157,17 @@ class ScannerMetadataStore {
     metadata = result?.$1 ?? metadata;
 
     if (metadata != null) {
+      final mergedMetadata = metadata.copyWith(
+        sourceFlags: _mergeSourceFlags(
+          _metadataMap[path]?.sourceFlags,
+          metadata.sourceFlags,
+        ),
+      );
       final albumChanged = _albumRelevantMetadataChanged(
         _metadataMap[path],
-        metadata,
+        mergedMetadata,
       );
-      _metadataMap[path] = metadata;
+      _metadataMap[path] = mergedMetadata;
       _onMetadataMutated();
       if (albumChanged) {
         _onAlbumMetadataMutated();
@@ -174,6 +189,7 @@ class ScannerMetadataStore {
       artworkPath: metadata.artworkPath ?? existing?.artworkPath,
       artworkWidth: metadata.artworkWidth ?? existing?.artworkWidth,
       artworkHeight: metadata.artworkHeight ?? existing?.artworkHeight,
+      sourceFlags: _mergeSourceFlags(existing?.sourceFlags, metadata.sourceFlags),
       themeColorsBlob: metadata.themeColorsBlob ?? existing?.themeColorsBlob,
       waveformBlob: null,
     );
@@ -266,6 +282,12 @@ class ScannerMetadataStore {
 
   bool containsPath(String path) {
     return _metadataMap.containsKey(path);
+  }
+
+  int? _mergeSourceFlags(int? existing, int? incoming) {
+    if (incoming == null) return existing;
+    if (existing == null) return incoming;
+    return existing | incoming;
   }
 
   void _updateMusicFileInFolder(

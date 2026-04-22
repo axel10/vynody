@@ -562,9 +562,15 @@ class ScannerService extends ChangeNotifier {
             resolveSettings: _resolveSortSettingsForFolder,
           );
         }
+        await MetadataDatabase().syncSongSourcePresence(
+          sourceMask: SongSourceFlags.systemMedia,
+          presentPaths: filePaths,
+        );
         notifyListeners();
 
-        unawaited(_processAndSaveAndroidSongsBackground(scanResult.entries));
+        unawaited(
+          _processAndSaveAndroidSongsBackground(scanResult.entries),
+        );
         return;
       }
 
@@ -589,6 +595,7 @@ class ScannerService extends ChangeNotifier {
           fallbackArtistOf: (song) => song.artist ?? '',
           fallbackDurationOf: (song) => song.duration,
           fallbackTrackNumberOf: (song) => song.track,
+          sourceFlags: SongSourceFlags.systemMedia,
         );
 
         _systemMediaFolder = _treeBuilder.buildFolderTreeFromMetadata(
@@ -609,6 +616,10 @@ class ScannerService extends ChangeNotifier {
             resolveSettings: _resolveSortSettingsForFolder,
           );
         }
+        await MetadataDatabase().syncSongSourcePresence(
+          sourceMask: SongSourceFlags.systemMedia,
+          presentPaths: songs.map((song) => song.data),
+        );
         notifyListeners();
 
         unawaited(_processAndSaveIosSongsBackground(songs));
@@ -640,6 +651,13 @@ class ScannerService extends ChangeNotifier {
       };
 
       for (final song in songs) {
+        if (!_songMatchesSource(
+          song,
+          SongSourceFlags.rootScan,
+          includeLegacy: true,
+        )) {
+          continue;
+        }
         final normalizedPath = _normalizePath(song.path);
         if (normalizedPath.isEmpty) continue;
 
@@ -687,12 +705,19 @@ class ScannerService extends ChangeNotifier {
 
     try {
       final songs = cachedSongs ?? await _loadCachedSongsFromDatabase();
-      if (songs.isEmpty) {
+      final filteredSongs = songs.where(
+        (song) => _songMatchesSource(
+          song,
+          SongSourceFlags.systemMedia,
+          includeLegacy: true,
+        ),
+      );
+      if (filteredSongs.isEmpty) {
         return;
       }
 
       _systemMediaFolder = _buildCachedFolderTree(
-        songs: songs,
+        songs: filteredSongs,
         rootPath: 'system',
         rootName: '系统媒体库',
       );
@@ -702,11 +727,11 @@ class ScannerService extends ChangeNotifier {
           resolveSettings: _resolveSortSettingsForFolder,
         );
       }
-      _seedMetadataCache(songs);
+      _seedMetadataCache(filteredSongs);
 
       debugPrint(
         '[ScannerService] Loaded cached system media folder from songs table '
-        'entries=${songs.length}',
+        'entries=${filteredSongs.length}',
       );
     } catch (e) {
       debugPrint(
@@ -758,6 +783,16 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
+  bool _songMatchesSource(
+    SongMetadata song,
+    int sourceMask, {
+    bool includeLegacy = false,
+  }) {
+    final flags = song.sourceFlags;
+    if (flags == null) return includeLegacy;
+    return (flags & sourceMask) != 0;
+  }
+
   String? _androidEntryFilePath(AndroidMediaLibraryEntry entry) {
     final path = entry.filePath?.trim();
     if (path != null && path.isNotEmpty) return _normalizePath(path);
@@ -804,6 +839,7 @@ class ScannerService extends ChangeNotifier {
       entries,
       filePathOf: _androidEntryFilePath,
       songIdOf: (entry) => int.tryParse(entry.id),
+      sourceMask: SongSourceFlags.systemMedia,
     );
   }
 
@@ -812,6 +848,7 @@ class ScannerService extends ChangeNotifier {
       songs,
       filePathOf: (song) => song.data,
       songIdOf: (song) => song.id,
+      sourceMask: SongSourceFlags.systemMedia,
     );
   }
 
@@ -824,6 +861,7 @@ class ScannerService extends ChangeNotifier {
     required String Function(T entry) fallbackArtistOf,
     required int? Function(T entry) fallbackDurationOf,
     required int? Function(T entry) fallbackTrackNumberOf,
+    int? sourceFlags,
   }) async {
     final metadataByPath = <String, SongMetadata>{};
 
@@ -859,6 +897,7 @@ class ScannerService extends ChangeNotifier {
         fallbackArtist: fallbackArtistOf(entry),
         fallbackDuration: fallbackDurationOf(entry),
         fallbackTrackNumber: fallbackTrackNumberOf(entry),
+        sourceFlags: sourceFlags,
       );
 
       metadataByPath[filePath] = metadata;
@@ -872,6 +911,7 @@ class ScannerService extends ChangeNotifier {
     Iterable<T> entries, {
     required String? Function(T entry) filePathOf,
     required int? Function(T entry) songIdOf,
+    required int sourceMask,
   }) async {
     final player = _playerController;
     if (player == null) {
@@ -902,11 +942,15 @@ class ScannerService extends ChangeNotifier {
         scanState.metadataRunner.run(path, () async {
           await _waitUntilResumed();
           try {
-            await MetadataHelper.processMetadata(
+            final processed = await MetadataHelper.processMetadata(
               path,
               songId: songIdOf(currentEntry),
               generateThumbnail: false,
             );
+            if (processed == null) return;
+            final metadata = processed.$1.copyWith(sourceFlags: sourceMask);
+            await MetadataDatabase().insertOrUpdateSong(metadata);
+            _metadataStore.cacheMetadata(metadata);
           } catch (e) {
             debugPrint('Background processing error for $path: $e');
           }
@@ -985,9 +1029,10 @@ class ScannerService extends ChangeNotifier {
     );
     if (processed == null) return;
 
-    final metadata = processed.$1;
+    final metadata = processed.$1.copyWith(sourceFlags: SongSourceFlags.rootScan);
     final artworkBytes = processed.$2;
 
+    await MetadataDatabase().insertOrUpdateSong(metadata);
     _metadataStore.updateMetadataForPath(
       metadata,
       artworkBytes: artworkBytes,
@@ -1041,7 +1086,11 @@ class ScannerService extends ChangeNotifier {
         }
       }
 
-      await MetadataDatabase().deleteSongByPath(path);
+      await MetadataDatabase().syncSongSourcePresence(
+        sourceMask: SongSourceFlags.rootScan,
+        scopeRoots: [path],
+        presentPaths: const [],
+      );
       _notifySongMissingState(path, true);
     }
 
@@ -1117,7 +1166,11 @@ class ScannerService extends ChangeNotifier {
       }
     }
 
-    await MetadataDatabase().deleteSongByPath(path);
+    await MetadataDatabase().syncSongSourcePresence(
+      sourceMask: SongSourceFlags.rootScan,
+      scopeRoots: [path],
+      presentPaths: const [],
+    );
     _notifySongMissingState(path, true);
     if (notify) {
       _rebuildDisplayedRootFolders();
@@ -1247,6 +1300,7 @@ class ScannerService extends ChangeNotifier {
             filePath,
             result,
             existing: existing,
+            sourceFlags: SongSourceFlags.rootScan,
           );
           await db.insertOrUpdateSong(metadata);
           _metadataStore.updateMetadataForPath(metadata, notify: false);
@@ -1401,6 +1455,7 @@ class ScannerService extends ChangeNotifier {
     String filePath,
     Map<String, dynamic> result, {
     SongMetadata? existing,
+    int? sourceFlags,
     String? fallbackTitle,
     String? fallbackAlbum,
     String? fallbackArtist,
@@ -1411,6 +1466,7 @@ class ScannerService extends ChangeNotifier {
       filePath,
       result,
       existing: existing,
+      sourceFlags: sourceFlags,
       fallbackTitle: fallbackTitle,
       fallbackAlbum: fallbackAlbum,
       fallbackArtist: fallbackArtist,
@@ -1568,7 +1624,8 @@ class ScannerService extends ChangeNotifier {
         });
         await _timeScanStep(
           'stage 5.5 delete missing db rows',
-          () => MetadataDatabase().deleteSongsMissingFromPaths(
+          () => MetadataDatabase().syncSongSourcePresence(
+            sourceMask: SongSourceFlags.rootScan,
             scopeRoots: _roots.rootPaths,
             presentPaths: presentPaths,
           ),

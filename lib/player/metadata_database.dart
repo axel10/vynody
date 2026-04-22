@@ -12,6 +12,13 @@ export 'lyrics_cache_models.dart';
 
 part 'metadata_database.freezed.dart';
 
+class SongSourceFlags {
+  static const int rootScan = 1 << 0;
+  static const int systemMedia = 1 << 1;
+
+  const SongSourceFlags._();
+}
+
 @freezed
 abstract class SongMetadata with _$SongMetadata {
   const SongMetadata._();
@@ -28,6 +35,7 @@ abstract class SongMetadata with _$SongMetadata {
     int? artworkWidth,
     int? artworkHeight,
     int? trackNumber,
+    int? sourceFlags,
     Uint8List? themeColorsBlob,
     Uint8List? waveformBlob,
     int? lastModifiedTime,
@@ -55,6 +63,7 @@ abstract class SongMetadata with _$SongMetadata {
       'artworkWidth': artworkWidth,
       'artworkHeight': artworkHeight,
       'trackNumber': trackNumber,
+      'sourceFlags': sourceFlags,
       'themeColorsBlob': themeColorsBlob,
       'waveformBlob': waveformBlob,
       'lastModifiedTime': lastModifiedTime,
@@ -85,6 +94,7 @@ abstract class SongMetadata with _$SongMetadata {
       artworkWidth: map['artworkWidth'],
       artworkHeight: map['artworkHeight'],
       trackNumber: map['trackNumber'],
+      sourceFlags: map['sourceFlags'],
       themeColorsBlob: map['themeColorsBlob'] as Uint8List?,
       waveformBlob: map['waveformBlob'] as Uint8List?,
       lastModifiedTime: map['lastModifiedTime'],
@@ -212,7 +222,7 @@ class MetadataDatabase {
         return await factory.openDatabase(
         path,
         options: OpenDatabaseOptions(
-          version: 18,
+          version: 19,
           onConfigure: (db) async {
             await db.rawQuery('PRAGMA busy_timeout = 5000');
           },
@@ -230,6 +240,7 @@ class MetadataDatabase {
             artworkWidth INTEGER,
             artworkHeight INTEGER,
             trackNumber INTEGER,
+            sourceFlags INTEGER,
             themeColorsBlob BLOB,
             waveformBlob BLOB,
             lastModifiedTime INTEGER,
@@ -462,6 +473,13 @@ class MetadataDatabase {
                 );
               }
             }
+            if (oldVersion < 19) {
+              if (!await _columnExists(db, 'songs', 'sourceFlags')) {
+                await db.execute(
+                  'ALTER TABLE songs ADD COLUMN sourceFlags INTEGER',
+                );
+              }
+            }
           },
         ),
       );
@@ -505,11 +523,28 @@ class MetadataDatabase {
 
   Future<void> insertOrUpdateSong(SongMetadata song) async {
     await _withDbLock((db) {
-      return db.insert(
-        'songs',
-        song.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      return db.transaction((txn) async {
+        final existing = await txn.query(
+          'songs',
+          columns: ['sourceFlags'],
+          where: 'path = ?',
+          whereArgs: [song.path],
+          limit: 1,
+        );
+        final existingSourceFlags = existing.isNotEmpty
+            ? existing.first['sourceFlags'] as int?
+            : null;
+        final mergedSourceFlags = _mergeSourceFlags(
+          existingSourceFlags,
+          song.sourceFlags,
+        );
+
+        await txn.insert(
+          'songs',
+          song.copyWith(sourceFlags: mergedSourceFlags).toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      });
     });
   }
 
@@ -710,42 +745,79 @@ class MetadataDatabase {
     required Iterable<String> scopeRoots,
     required Iterable<String> presentPaths,
   }) async {
+    return syncSongSourcePresence(
+      sourceMask: SongSourceFlags.rootScan,
+      scopeRoots: scopeRoots,
+      presentPaths: presentPaths,
+    );
+  }
+
+  Future<int> syncSongSourcePresence({
+    required int sourceMask,
+    required Iterable<String> presentPaths,
+    Iterable<String>? scopeRoots,
+  }) async {
     final normalizedPresentPaths = presentPaths
         .map(_normalizePath)
         .where((path) => path.isNotEmpty)
         .map((path) => Platform.isWindows ? path.toLowerCase() : path)
         .toSet();
-    final normalizedScopeRoots = scopeRoots
-        .map(_normalizePath)
-        .where((path) => path.isNotEmpty)
-        .toList();
-
-    if (normalizedScopeRoots.isEmpty) return 0;
+    final normalizedScopeRoots = scopeRoots == null
+        ? const <String>[]
+        : scopeRoots
+              .map(_normalizePath)
+              .where((path) => path.isNotEmpty)
+              .toList();
 
     return _withDbLock((db) async {
-      final rows = await db.query('songs', columns: ['path']);
-      final missingPaths = <String>[];
+      final rows = await db.query('songs', columns: ['path', 'sourceFlags']);
+      var changedCount = 0;
 
       for (final row in rows) {
         final path = row['path'] as String?;
         if (path == null || path.isEmpty) continue;
         final normalizedPath = _normalizePath(path);
+        if (normalizedScopeRoots.isNotEmpty &&
+            !_isWithinAnyRoot(normalizedPath, normalizedScopeRoots)) {
+          continue;
+        }
+
         final normalizedLookup = Platform.isWindows
             ? normalizedPath.toLowerCase()
             : normalizedPath;
-        if (normalizedPresentPaths.contains(normalizedLookup)) continue;
-        if (!_isWithinAnyRoot(normalizedPath, normalizedScopeRoots)) continue;
-        missingPaths.add(normalizedPath);
+        final currentFlags = row['sourceFlags'] as int? ?? 0;
+        final shouldHaveSource = normalizedPresentPaths.contains(
+          normalizedLookup,
+        );
+        final hasSource = currentFlags == 0
+            ? true
+            : (currentFlags & sourceMask) != 0;
+
+        int? nextFlags;
+        if (shouldHaveSource) {
+          nextFlags = currentFlags | sourceMask;
+        } else if (hasSource) {
+          nextFlags = currentFlags & ~sourceMask;
+        }
+
+        if (nextFlags == null || nextFlags == currentFlags) {
+          continue;
+        }
+
+        if (nextFlags == 0) {
+          await db.delete('songs', where: 'path = ?', whereArgs: [path]);
+        } else {
+          await db.update(
+            'songs',
+            {'sourceFlags': nextFlags},
+            where: 'path = ?',
+            whereArgs: [path],
+          );
+        }
+        changedCount++;
       }
 
-      if (missingPaths.isEmpty) return 0;
-
-      final batch = db.batch();
-      for (final path in missingPaths) {
-        batch.delete('songs', where: 'path = ?', whereArgs: [path]);
-      }
-      await batch.commit(noResult: true);
-      return missingPaths.length;
+      return changedCount;
     });
   }
 
@@ -841,5 +913,11 @@ class MetadataDatabase {
       }
     }
     return false;
+  }
+
+  int? _mergeSourceFlags(int? existing, int? incoming) {
+    if (incoming == null) return existing;
+    if (existing == null) return incoming;
+    return existing | incoming;
   }
 }

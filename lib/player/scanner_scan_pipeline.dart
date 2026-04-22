@@ -156,6 +156,7 @@ class ScannerScanPipeline {
     String filePath,
     Map<String, dynamic> result, {
     SongMetadata? existing,
+    int? sourceFlags,
     String? fallbackTitle,
     String? fallbackAlbum,
     String? fallbackArtist,
@@ -190,6 +191,7 @@ class ScannerScanPipeline {
           result['trackNumber'] as int? ??
           existing?.trackNumber ??
           fallbackTrackNumber,
+      sourceFlags: sourceFlags ?? existing?.sourceFlags,
       artworkPath: existing?.artworkPath,
       thumbnailPath: existing?.thumbnailPath,
       artworkWidth: existing?.artworkWidth,
