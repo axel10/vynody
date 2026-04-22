@@ -591,10 +591,11 @@ class ScannerService extends ChangeNotifier {
           fallbackTrackNumberOf: (song) => song.track,
         );
 
-        _systemMediaFolder = _treeBuilder.buildSongsIntoFolders(
-          songs,
-          metadataByPath,
+        _systemMediaFolder = _treeBuilder.buildFolderTreeFromMetadata(
+          metadataByPath.values,
           _compareNaturally,
+          rootPath: 'system',
+          rootName: '系统媒体库',
         );
         debugPrint(
           '[ScannerService] iOS system media tree built '
@@ -655,16 +656,16 @@ class ScannerService extends ChangeNotifier {
         final songs = cachedSongGroups[root]!;
         if (songs.isEmpty) continue;
 
-        final cachedFolder = _treeBuilder.buildFolderTreeFromMetadata(
-          songs,
-          _compareNaturally,
+        final cachedFolder = _buildCachedFolderTree(
+          songs: songs,
           rootPath: root,
           rootName: _displayNameForPath(root),
         );
-        _upsertScannedRootFolder(cachedFolder);
-        for (final song in songs) {
-          _metadataStore.cacheMetadata(song);
+        if (cachedFolder == null) {
+          continue;
         }
+        _upsertScannedRootFolder(cachedFolder);
+        _seedMetadataCache(songs);
         loadedCount += songs.length;
       }
 
@@ -690,18 +691,18 @@ class ScannerService extends ChangeNotifier {
         return;
       }
 
-      _systemMediaFolder = _treeBuilder.buildSongsIntoFoldersFromMetadata(
-        songs,
-        _compareNaturally,
+      _systemMediaFolder = _buildCachedFolderTree(
+        songs: songs,
+        rootPath: 'system',
+        rootName: '系统媒体库',
       );
-      _folderSorter.sortFolderRecursiveForTree(
-        _systemMediaFolder!,
-        resolveSettings: _resolveSortSettingsForFolder,
-      );
-
-      for (final song in songs) {
-        _metadataStore.cacheMetadata(song);
+      if (_systemMediaFolder != null) {
+        _folderSorter.sortFolderRecursiveForTree(
+          _systemMediaFolder!,
+          resolveSettings: _resolveSortSettingsForFolder,
+        );
       }
+      _seedMetadataCache(songs);
 
       debugPrint(
         '[ScannerService] Loaded cached system media folder from songs table '
@@ -732,6 +733,28 @@ class ScannerService extends ChangeNotifier {
       _scannedRootFolders[index] = folder;
     } else {
       _scannedRootFolders.add(folder);
+    }
+  }
+
+  MusicFolder? _buildCachedFolderTree({
+    required Iterable<SongMetadata> songs,
+    required String rootPath,
+    required String rootName,
+  }) {
+    final songList = songs.toList(growable: false);
+    if (songList.isEmpty) return null;
+
+    return _treeBuilder.buildFolderTreeFromMetadata(
+      songList,
+      _compareNaturally,
+      rootPath: rootPath,
+      rootName: rootName,
+    );
+  }
+
+  void _seedMetadataCache(Iterable<SongMetadata> songs) {
+    for (final song in songs) {
+      _metadataStore.cacheMetadata(song);
     }
   }
 

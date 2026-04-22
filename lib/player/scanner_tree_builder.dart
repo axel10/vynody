@@ -1,7 +1,6 @@
 import 'package:path/path.dart' as p;
 
 import 'package:audio_core/audio_core.dart';
-import 'package:on_audio_query/on_audio_query.dart';
 
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
@@ -29,7 +28,7 @@ class ScannerTreeBuilder {
       if (filePath == null) continue;
       items.add(
         _FolderItem(
-          file: _musicFileFromAndroidEntry(
+          file: musicFileFromAndroidEntry(
             entry,
             path: filePath,
             metadata: metadataByPath[filePath],
@@ -47,114 +46,18 @@ class ScannerTreeBuilder {
     );
   }
 
-  MusicFolder buildSongsIntoFoldersFromMetadata(
-    Iterable<SongMetadata> songs,
-    int Function(String a, String b) compareNaturally,
-  ) {
-    return buildFolderTreeFromMetadata(
-      songs,
-      compareNaturally,
-      rootPath: 'system',
-      rootName: '系统媒体库',
-    );
-  }
-
   MusicFolder buildFolderTreeFromMetadata(
     Iterable<SongMetadata> songs,
     int Function(String a, String b) compareNaturally, {
     required String rootPath,
     required String rootName,
   }) {
-    final items = <_FolderItem>[];
-    final isSystem = rootPath == 'system';
-
-    for (final song in songs) {
-      final normalizedPath = _normalizePath(song.path);
-      if (normalizedPath.isEmpty) continue;
-
-      String folderPath;
-      if (isSystem) {
-        folderPath = p.dirname(normalizedPath);
-      } else {
-        final dir = p.dirname(normalizedPath);
-        if (_pathsEqual(dir, rootPath)) {
-          folderPath = '';
-        } else {
-          try {
-            final relative = p.relative(dir, from: rootPath);
-            folderPath =
-                (relative == '.' || relative.isEmpty)
-                    ? ''
-                    : relative.replaceAll('\\', '/');
-          } catch (_) {
-            folderPath = dir.replaceAll('\\', '/');
-          }
-        }
-      }
-
-      items.add(
-        _FolderItem(
-          file: _musicFileFromSongMetadata(song.copyWith(path: normalizedPath)),
-          folderPath: folderPath,
-        ),
-      );
-    }
-
+    final items = _folderItemsFromMetadata(songs, rootPath: rootPath);
     return _buildFolderTree(
       items,
       compareNaturally,
       rootPath: rootPath,
       rootName: rootName,
-    );
-  }
-
-  MusicFolder buildSongsIntoFolders(
-    List<SongModel> songs,
-    Map<String, SongMetadata> metadataByPath,
-    int Function(String a, String b) compareNaturally,
-  ) {
-    final Map<String, List<MusicFile>> folderFiles = {};
-    final Set<String> allPaths = {};
-
-    for (final song in songs) {
-      final path = song.data;
-      final metadata = metadataByPath[path];
-      final file = _musicFileFromSongModel(song, metadata: metadata);
-      final dirPath = p.dirname(path);
-
-      folderFiles.putIfAbsent(dirPath, () => []).add(file);
-
-      var current = dirPath;
-      while (current.isNotEmpty && current != '/' && current != '.') {
-        allPaths.add(current);
-        final parent = p.dirname(current);
-        if (parent == current) break;
-        current = parent;
-      }
-    }
-
-    final List<String> entryPoints = allPaths.where((path) {
-      final parent = p.dirname(path);
-      return !allPaths.contains(parent);
-    }).toList();
-
-    if (entryPoints.isEmpty && songs.isEmpty) {
-      return MusicFolder(path: 'system', name: '系统媒体库');
-    }
-
-    final List<MusicFolder> topFolders = entryPoints
-        .map(
-          (path) =>
-              _recursiveBuild(path, allPaths, folderFiles, compareNaturally),
-        )
-        .toList();
-
-    return MusicFolder(
-      path: 'system',
-      name: '系统媒体库',
-      subFolders: topFolders
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
-      files: [],
     );
   }
 
@@ -208,16 +111,56 @@ class ScannerTreeBuilder {
     );
   }
 
-  MusicFile musicFileFromAndroidEntry(
-    AndroidMediaLibraryEntry entry, {
-    required String path,
-    SongMetadata? metadata,
+  List<_FolderItem> _folderItemsFromMetadata(
+    Iterable<SongMetadata> songs, {
+    required String rootPath,
   }) {
-    return _musicFileFromAndroidEntry(entry, path: path, metadata: metadata);
+    final items = <_FolderItem>[];
+    final isSystem = rootPath == 'system';
+
+    for (final song in songs) {
+      final normalizedPath = _normalizePath(song.path);
+      if (normalizedPath.isEmpty) continue;
+
+      final folderPath = _folderPathFromMetadataPath(
+        normalizedPath,
+        rootPath: rootPath,
+        isSystem: isSystem,
+      );
+
+      items.add(
+        _FolderItem(
+          file: _musicFileFromSongMetadata(song.copyWith(path: normalizedPath)),
+          folderPath: folderPath,
+        ),
+      );
+    }
+
+    return items;
   }
 
-  MusicFile musicFileFromSongModel(SongModel song, {SongMetadata? metadata}) {
-    return _musicFileFromSongModel(song, metadata: metadata);
+  String _folderPathFromMetadataPath(
+    String normalizedPath, {
+    required String rootPath,
+    required bool isSystem,
+  }) {
+    final dir = p.dirname(normalizedPath);
+    if (isSystem) {
+      return dir;
+    }
+
+    if (_pathsEqual(dir, rootPath)) {
+      return '';
+    }
+
+    try {
+      final relative = p.relative(dir, from: rootPath);
+      return (relative == '.' || relative.isEmpty)
+          ? ''
+          : relative.replaceAll('\\', '/');
+    } catch (_) {
+      return dir.replaceAll('\\', '/');
+    }
   }
 
   MusicFile _musicFileFromSongMetadata(SongMetadata song) {
@@ -259,15 +202,16 @@ class ScannerTreeBuilder {
       var currentRelativePath = '';
       var currentFolder = root;
       for (final segment in folderPath.split('/').where((s) => s.isNotEmpty)) {
-        currentRelativePath =
-            currentRelativePath.isEmpty
-                ? segment
-                : '$currentRelativePath/$segment';
+        currentRelativePath = currentRelativePath.isEmpty
+            ? segment
+            : '$currentRelativePath/$segment';
         final nextFolder = nodes.putIfAbsent(currentRelativePath, () {
-          final fullPath =
-              isSystem
-                  ? currentRelativePath
-                  : p.join(rootPath, currentRelativePath.replaceAll('/', p.separator));
+          final fullPath = isSystem
+              ? currentRelativePath
+              : p.join(
+                  rootPath,
+                  currentRelativePath.replaceAll('/', p.separator),
+                );
           return MusicFolder(path: fullPath, name: segment);
         });
         if (!currentFolder.subFolders.contains(nextFolder)) {
@@ -281,38 +225,6 @@ class ScannerTreeBuilder {
 
     _sortFolderRecursive(root, compareNaturally);
     return root;
-  }
-
-  MusicFolder _recursiveBuild(
-    String currentPath,
-    Set<String> allPaths,
-    Map<String, List<MusicFile>> folderFiles,
-    int Function(String a, String b) compareNaturally,
-  ) {
-    final subFolderPaths = allPaths
-        .where((path) => p.dirname(path) == currentPath)
-        .toList();
-    final subFolders = subFolderPaths
-        .map(
-          (path) =>
-              _recursiveBuild(path, allPaths, folderFiles, compareNaturally),
-        )
-        .toList();
-    final files = folderFiles[currentPath] ?? [];
-
-    return MusicFolder(
-      path: currentPath,
-      name: p.basename(currentPath).isEmpty
-          ? currentPath
-          : p.basename(currentPath),
-      subFolders: subFolders
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
-      files: files
-        ..sort(
-          (a, b) =>
-              compareNaturally(a.name.toLowerCase(), b.name.toLowerCase()),
-        ),
-    );
   }
 
   MusicFolder? _findFolderInTree(MusicFolder folder, String path) {
@@ -353,7 +265,7 @@ class ScannerTreeBuilder {
         : cleaned;
   }
 
-  MusicFile _musicFileFromAndroidEntry(
+  MusicFile musicFileFromAndroidEntry(
     AndroidMediaLibraryEntry entry, {
     required String path,
     SongMetadata? metadata,
@@ -380,25 +292,6 @@ class ScannerTreeBuilder {
       artworkHeight: resolvedMetadata?.artworkHeight,
       themeColorsBlob: resolvedMetadata?.themeColorsBlob,
       lastModifiedTime: resolvedMetadata?.lastModifiedTime,
-    );
-  }
-
-  MusicFile _musicFileFromSongModel(SongModel song, {SongMetadata? metadata}) {
-    return MusicFile(
-      path: song.data,
-      name: p.basename(song.data),
-      title: _cleanText(metadata?.title ?? song.title),
-      artist: _cleanText(metadata?.artist ?? song.artist),
-      album: _cleanText(metadata?.album ?? song.album),
-      trackNumber: metadata?.trackNumber ?? song.track,
-      durationMillis: metadata?.duration ?? song.duration,
-      id: song.id,
-      thumbnailPath: metadata?.thumbnailPath,
-      artworkPath: metadata?.artworkPath,
-      artworkWidth: metadata?.artworkWidth,
-      artworkHeight: metadata?.artworkHeight,
-      themeColorsBlob: metadata?.themeColorsBlob,
-      lastModifiedTime: metadata?.lastModifiedTime,
     );
   }
 
