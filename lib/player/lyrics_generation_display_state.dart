@@ -7,6 +7,8 @@ class LyricsGenerationDisplayState {
     this.modelLabel = '',
     this.phase = LyricsGenerationPhase.idle,
     this.progress = 0.0,
+    this.retryAttempt = 0,
+    this.maxRetryCount = 0,
   });
 
   final String? songPath;
@@ -14,6 +16,8 @@ class LyricsGenerationDisplayState {
   final String modelLabel;
   final LyricsGenerationPhase phase;
   final double progress;
+  final int retryAttempt;
+  final int maxRetryCount;
 
   String get providerLabel {
     final label = modelLabel.trim();
@@ -38,6 +42,13 @@ class LyricsGenerationDisplayState {
       modelLabel.trim().isNotEmpty ||
       phase != LyricsGenerationPhase.idle;
 
+  String get retryLabel {
+    if (retryAttempt <= 0 || maxRetryCount <= 0) {
+      return '';
+    }
+    return '重试第 $retryAttempt 次 / 共 $maxRetryCount 次';
+  }
+
   @override
   bool operator ==(Object other) {
     return other is LyricsGenerationDisplayState &&
@@ -45,12 +56,21 @@ class LyricsGenerationDisplayState {
         other.statusLabel == statusLabel &&
         other.modelLabel == modelLabel &&
         other.phase == phase &&
-        other.progress == progress;
+        other.progress == progress &&
+        other.retryAttempt == retryAttempt &&
+        other.maxRetryCount == maxRetryCount;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(songPath, statusLabel, modelLabel, phase, progress);
+  int get hashCode => Object.hash(
+    songPath,
+    statusLabel,
+    modelLabel,
+    phase,
+    progress,
+    retryAttempt,
+    maxRetryCount,
+  );
 
   LyricsGenerationDisplayState copyWith({
     String? songPath,
@@ -59,6 +79,8 @@ class LyricsGenerationDisplayState {
     String? modelLabel,
     LyricsGenerationPhase? phase,
     double? progress,
+    int? retryAttempt,
+    int? maxRetryCount,
   }) {
     return LyricsGenerationDisplayState(
       songPath: clearSongPath ? null : songPath ?? this.songPath,
@@ -66,6 +88,8 @@ class LyricsGenerationDisplayState {
       modelLabel: modelLabel ?? this.modelLabel,
       phase: phase ?? this.phase,
       progress: progress ?? this.progress,
+      retryAttempt: retryAttempt ?? this.retryAttempt,
+      maxRetryCount: maxRetryCount ?? this.maxRetryCount,
     );
   }
 }

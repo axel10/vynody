@@ -358,22 +358,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   }
 
   String _buildGenerateButtonLabel(LyricsSongTaskState taskState) {
-    final progress = taskState.generationProgress.clamp(0.0, 1.0);
-    final percent = (progress * 100).round();
-
-    switch (taskState.generationPhase) {
-      case LyricsGenerationPhase.uploading:
-        return '上传中 $percent%';
-      case LyricsGenerationPhase.processing:
-        return '等待就绪...';
-      case LyricsGenerationPhase.requesting:
-        return '请求中...';
-      case LyricsGenerationPhase.generating:
-        return '生成中...';
-      case LyricsGenerationPhase.retrying:
-        return '重试中...';
-      case LyricsGenerationPhase.idle:
-        break;
+    final activeLabel = taskState.activeStatusLabel.trim();
+    if (activeLabel.isNotEmpty) {
+      return activeLabel;
     }
 
     return taskState.isGenerationBusy ? '排队生成' : '生成歌词';

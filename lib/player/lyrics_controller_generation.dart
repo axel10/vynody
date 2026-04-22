@@ -14,6 +14,7 @@ import 'lyrics_generation_display_state.dart';
 import 'lyrics_controller_utils.dart';
 import 'lyrics_generation_phase.dart';
 import 'lyrics_generation_result.dart';
+import 'lyrics_ai_service.dart';
 import 'lyrics_service.dart';
 
 typedef _LyricsGenerationInvoker =
@@ -57,6 +58,8 @@ class LyricsGenerationCoordinator {
         modelLabel: modelLabel,
         phase: LyricsGenerationPhase.uploading,
         progress: 0.0,
+        retryAttempt: 0,
+        maxRetryCount: LyricsAiService.maxGenerationRetries,
       ),
     );
     _context.updateSongTaskState(
@@ -94,6 +97,8 @@ class LyricsGenerationCoordinator {
         songPath: song.path,
         statusLabel: statusLabel,
         modelLabel: modelLabel,
+        retryAttempt: 0,
+        maxRetryCount: LyricsAiService.maxGenerationRetries,
       ),
     );
   }
@@ -136,6 +141,10 @@ class LyricsGenerationCoordinator {
           _ => 0.0,
         },
         statusLabel: stageStatus,
+        retryAttempt: stage == 'retrying'
+            ? current.retryAttempt + 1
+            : current.retryAttempt,
+        maxRetryCount: LyricsAiService.maxGenerationRetries,
       ),
     );
     _context.updateSongTaskState(

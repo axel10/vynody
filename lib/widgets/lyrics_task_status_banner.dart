@@ -140,6 +140,7 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
                           phaseLabel: phaseLabel,
                           providerLabel: providerLabel,
                           modelNameLabel: modelNameLabel,
+                          retryLabel: generationState.retryLabel,
                           theme: theme,
                           colorScheme: colorScheme,
                           accent: accent,
@@ -185,6 +186,7 @@ class _BusyBannerBody extends StatelessWidget {
     required this.phaseLabel,
     required this.providerLabel,
     required this.modelNameLabel,
+    required this.retryLabel,
     required this.theme,
     required this.colorScheme,
     required this.accent,
@@ -199,6 +201,7 @@ class _BusyBannerBody extends StatelessWidget {
   final String phaseLabel;
   final String providerLabel;
   final String modelNameLabel;
+  final String retryLabel;
   final ThemeData theme;
   final ColorScheme colorScheme;
   final Color accent;
@@ -307,12 +310,21 @@ class _BusyBannerBody extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   _BannerInfoRow(
+                    icon: Icons.bolt_rounded,
                     value: [
                       if (providerLabel.isNotEmpty) providerLabel,
                       if (modelNameLabel.isNotEmpty) modelNameLabel,
                     ].join(' · '),
                     theme: theme,
                   ),
+                  if (retryLabel.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    _BannerInfoRow(
+                      icon: Icons.refresh_rounded,
+                      value: retryLabel,
+                      theme: theme,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -324,8 +336,13 @@ class _BusyBannerBody extends StatelessWidget {
 }
 
 class _BannerInfoRow extends StatelessWidget {
-  const _BannerInfoRow({required this.value, required this.theme});
+  const _BannerInfoRow({
+    required this.icon,
+    required this.value,
+    required this.theme,
+  });
 
+  final IconData icon;
   final String value;
   final ThemeData theme;
 
@@ -337,11 +354,7 @@ class _BannerInfoRow extends StatelessWidget {
       opacity: 0.7,
       child: Row(
         children: [
-          Icon(
-            Icons.bolt_rounded,
-            size: 12,
-            color: colorScheme.onSurfaceVariant,
-          ),
+          Icon(icon, size: 12, color: colorScheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

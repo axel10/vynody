@@ -47,6 +47,8 @@ class LyricsAiService {
   final GeminiLyricsApiClient _geminiApiClient;
   final LyricsAiOpenRouterClient _openRouterClient;
   final LyricsAiStreamTextParser _streamParser = LyricsAiStreamTextParser();
+  static const int maxGenerationRetries = 2;
+  static const int maxGenerationAttempts = maxGenerationRetries + 1;
   static final RegExp _lineSplitPattern = RegExp(r'\r?\n');
   static final RegExp _timestampLinePattern = RegExp(
     r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
@@ -641,7 +643,7 @@ class LyricsAiService {
     for (final effectiveModelId in modelCandidates) {
       var shouldTryNextModel = false;
 
-      for (var attempt = 1; attempt <= 3; attempt++) {
+      for (var attempt = 1; attempt <= maxGenerationAttempts; attempt++) {
         final requestData = {
           'contents': [
             {
@@ -684,7 +686,7 @@ class LyricsAiService {
             lastErrorMessage = 'Gemini 返回了空流响应。';
             debugPrint('[LyricsAi] Empty streaming body.');
             onStageChanged?.call('retrying');
-            if (attempt < 3) {
+            if (attempt < maxGenerationAttempts) {
               debugPrint(
                 '[LyricsAi] generation retry scheduled attempt=${attempt + 1} '
                 'reason=$lastErrorMessage',
@@ -755,7 +757,7 @@ class LyricsAiService {
               '[LyricsAi] raw generate response: ${generatedBuffer.toString()}',
             );
             onStageChanged?.call('retrying');
-            if (attempt < 3) {
+            if (attempt < maxGenerationAttempts) {
               debugPrint(
                 '[LyricsAi] generation retry scheduled attempt=${attempt + 1} '
                 'reason=$lastErrorMessage',
@@ -831,7 +833,7 @@ class LyricsAiService {
           onStageChanged?.call('retrying');
         }
 
-        if (attempt < 3) {
+        if (attempt < maxGenerationAttempts) {
           debugPrint(
             '[LyricsAi] generation retry scheduled attempt=${attempt + 1} '
             'reason=$lastErrorMessage',
