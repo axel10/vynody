@@ -284,18 +284,32 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     if (selectedDirectory != null) {
       if (!mounted) return;
 
-      final hasMusic = await scanner.addRootPath(selectedDirectory);
+      final result = await scanner.addRootPath(selectedDirectory);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            hasMusic
-                ? AppLocalizations.of(context)!.directoryAddedSuccess
-                : AppLocalizations.of(context)!.directoryAddedNoMusic,
-          ),
-        ),
-      );
+      String message;
+      switch (result.status) {
+        case RootPathAddStatus.added:
+        case RootPathAddStatus.alreadyAdded:
+          message = AppLocalizations.of(context)!.directoryAddedSuccess;
+          break;
+        case RootPathAddStatus.noMusic:
+          message = AppLocalizations.of(context)!.directoryAddedNoMusic;
+          break;
+        case RootPathAddStatus.persistentAccessDenied:
+          message = Localizations.localeOf(context).languageCode == 'zh'
+              ? '无法保存该目录的访问权限，请重新选择一次'
+              : 'Could not save access to that folder. Please select it again.';
+          break;
+        case RootPathAddStatus.failed:
+          message = Localizations.localeOf(context).languageCode == 'zh'
+              ? '目录添加失败'
+              : 'Failed to add the folder';
+          break;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 

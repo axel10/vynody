@@ -78,6 +78,7 @@ class ScannerService extends ChangeNotifier {
   SortOrder get sortOrder => _currentSortSettings.order;
   SortCriteria get globalSortCriteria => _globalSortCriteria;
   SortOrder get globalSortOrder => _globalSortOrder;
+  bool get _supportsPersistentAccess => Platform.isMacOS || Platform.isIOS;
 
   List<String> get rootPaths => _roots.rootPaths;
   List<MusicFolder> get rootFolders => List.unmodifiable(_rootFolders);
@@ -213,8 +214,14 @@ class ScannerService extends ChangeNotifier {
   void setPlayerController(AudioCoreController? controller) {
     final changed = !identical(_playerController, controller);
     _playerController = controller;
-    if (changed && controller != null && Platform.isAndroid) {
+    if (!changed || controller == null) {
+      return;
+    }
+
+    if (Platform.isAndroid) {
       unawaited(checkAndRequestPermissions());
+    } else if (_supportsPersistentAccess) {
+      unawaited(_syncPersistentAccessState());
     }
   }
 
@@ -310,7 +317,18 @@ class ScannerService extends ChangeNotifier {
   Future<void> _init() async {
     final totalStopwatch = Stopwatch()..start();
     try {
-      await _timeInitStep('load root paths', () => _roots.loadRootPaths());
+      final canUsePersistentAccess =
+          _supportsPersistentAccess && _playerController != null;
+      await _timeInitStep('load root paths', () {
+        return _roots.loadRootPaths(
+          hasPersistentAccess: canUsePersistentAccess
+              ? _hasPersistentAccess
+              : null,
+          forgetPersistentAccess: canUsePersistentAccess
+              ? _forgetPersistentAccess
+              : null,
+        );
+      });
       await _timeInitStep('load sort settings', _loadSortSettings);
       final cachedSongs = await _timeInitStep(
         'load cached songs from database',
@@ -386,16 +404,35 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  Future<bool> addRootPath(String path) async {
+  Future<RootPathAddResult> addRootPath(String path) async {
     final normalizedPath = _normalizePath(path);
     final existingRoot = _roots.rootPaths.firstWhereOrNull(
       (existing) => _pathsEqual(existing, normalizedPath),
     );
+
+    if (_supportsPersistentAccess) {
+      final registered = await _registerPersistentAccess(normalizedPath);
+      if (!registered) {
+        debugPrint(
+          '[ScannerService] Failed to register persistent access for $normalizedPath',
+        );
+        return RootPathAddResult(
+          RootPathAddStatus.persistentAccessDenied,
+          path: normalizedPath,
+        );
+      }
+    }
+
     if (existingRoot != null) {
       final existingFolder = _rootFolders.firstWhereOrNull(
         (folder) => _pathsEqual(folder.path, existingRoot),
       );
-      return existingFolder != null && !existingFolder.isEmpty;
+      return RootPathAddResult(
+        existingFolder != null && !existingFolder.isEmpty
+            ? RootPathAddStatus.alreadyAdded
+            : RootPathAddStatus.noMusic,
+        path: existingRoot,
+      );
     }
 
     final updatedRoots = [..._roots.rootPaths, normalizedPath];
@@ -417,7 +454,12 @@ class ScannerService extends ChangeNotifier {
     final addedFolder = _rootFolders.firstWhereOrNull(
       (folder) => _pathsEqual(folder.path, normalizedPath),
     );
-    return addedFolder != null && !addedFolder.isEmpty;
+    return RootPathAddResult(
+      addedFolder != null && !addedFolder.isEmpty
+          ? RootPathAddStatus.added
+          : RootPathAddStatus.noMusic,
+      path: normalizedPath,
+    );
   }
 
   Future<void> removeRootPath(String path) async {
@@ -427,6 +469,12 @@ class ScannerService extends ChangeNotifier {
   Future<void> removeRootPaths(Iterable<String> paths) async {
     final normalizedTargets = _normalizeDeclaredRootPaths(paths);
     if (normalizedTargets.isEmpty) return;
+
+    if (_supportsPersistentAccess) {
+      for (final path in normalizedTargets) {
+        await _forgetPersistentAccess(path);
+      }
+    }
 
     final updatedRoots = [..._roots.rootPaths];
     updatedRoots.removeWhere(
@@ -447,6 +495,58 @@ class ScannerService extends ChangeNotifier {
     final movedPath = updatedRoots.removeAt(oldIndex);
     updatedRoots.insert(newIndex, movedPath);
     await _roots.setRootPaths(updatedRoots);
+    _rebuildDisplayedRootFolders();
+    notifyListeners();
+  }
+
+  Future<bool> _registerPersistentAccess(String path) async {
+    final controller = _playerController;
+    if (controller == null) return true;
+    try {
+      return await controller.registerPersistentAccess(path: path);
+    } catch (e) {
+      debugPrint(
+        '[ScannerService] registerPersistentAccess failed for $path: $e',
+      );
+      return false;
+    }
+  }
+
+  Future<void> _forgetPersistentAccess(String path) async {
+    final controller = _playerController;
+    if (controller == null) return;
+    try {
+      await controller.forgetPersistentAccess(path: path);
+    } catch (e) {
+      debugPrint(
+        '[ScannerService] forgetPersistentAccess failed for $path: $e',
+      );
+    }
+  }
+
+  Future<bool> _hasPersistentAccess(String path) async {
+    final controller = _playerController;
+    if (controller == null) return true;
+    try {
+      return await controller.hasPersistentAccess(path: path);
+    } catch (e) {
+      debugPrint('[ScannerService] hasPersistentAccess failed for $path: $e');
+      return false;
+    }
+  }
+
+  Future<void> _syncPersistentAccessState() async {
+    if (!_supportsPersistentAccess) return;
+
+    final currentRoots = List<String>.from(_roots.rootPaths);
+    for (final path in currentRoots) {
+      await _registerPersistentAccess(path);
+    }
+
+    await _roots.loadRootPaths(
+      hasPersistentAccess: _hasPersistentAccess,
+      forgetPersistentAccess: _forgetPersistentAccess,
+    );
     _rebuildDisplayedRootFolders();
     notifyListeners();
   }
@@ -2073,4 +2173,25 @@ class ScannerService extends ChangeNotifier {
     _scanProgressController.close();
     super.dispose();
   }
+}
+
+enum RootPathAddStatus {
+  added,
+  alreadyAdded,
+  noMusic,
+  persistentAccessDenied,
+  failed,
+}
+
+class RootPathAddResult {
+  const RootPathAddResult(this.status, {this.path});
+
+  final RootPathAddStatus status;
+  final String? path;
+
+  bool get hasMusic =>
+      status == RootPathAddStatus.added ||
+      status == RootPathAddStatus.alreadyAdded;
+
+  bool get accessDenied => status == RootPathAddStatus.persistentAccessDenied;
 }

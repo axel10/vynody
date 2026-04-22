@@ -26,14 +26,50 @@ class ScannerServiceRoots {
 
   List<String> get rootPaths => List.unmodifiable(_rootPaths);
 
-  Future<void> loadRootPaths() async {
+  Future<List<String>> loadRootPaths({
+    Future<bool> Function(String path)? hasPersistentAccess,
+    Future<void> Function(String path)? forgetPersistentAccess,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final paths = prefs.getStringList('root_paths') ?? [];
     final normalizedPaths = ScannerPathUtils.normalizeDeclaredRootPaths(paths);
+
+    final removedPaths = <String>[];
+    final retainedPaths = <String>[];
+    for (final path in normalizedPaths) {
+      var keepPath = true;
+      if (hasPersistentAccess != null) {
+        try {
+          keepPath = await hasPersistentAccess(path);
+        } catch (e) {
+          debugPrint('Persistent access check failed for $path: $e');
+          keepPath = false;
+        }
+      }
+
+      if (keepPath) {
+        retainedPaths.add(path);
+        continue;
+      }
+
+      removedPaths.add(path);
+      if (forgetPersistentAccess != null) {
+        try {
+          await forgetPersistentAccess(path);
+        } catch (e) {
+          debugPrint('Persistent access cleanup failed for $path: $e');
+        }
+      }
+    }
+
     _rootPaths
       ..clear()
-      ..addAll(normalizedPaths);
+      ..addAll(retainedPaths);
+    if (removedPaths.isNotEmpty) {
+      await saveRootPaths();
+    }
     await refreshRootWatchers();
+    return removedPaths;
   }
 
   Future<void> saveRootPaths() async {
