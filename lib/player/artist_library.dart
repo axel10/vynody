@@ -35,9 +35,10 @@ class ArtistLibraryRepository {
       growable: false,
     );
     final caches = await _database.getArtistCachesByKeys(cacheKeys);
-    yield _buildSummaries(groups, caches);
+    final orderedGroups = _sortGroupsForDisplay(groups, caches);
+    yield _buildSummaries(orderedGroups, caches);
 
-    final missingGroups = groups
+    final missingGroups = orderedGroups
         .where((group) => !caches.containsKey(group.queryKey))
         .toList(growable: false);
     if (missingGroups.isEmpty) {
@@ -46,7 +47,7 @@ class ArtistLibraryRepository {
 
     final currentCaches = <String, ArtistCacheRecord>{...caches};
     await for (final updated in _refreshMissingArtistCaches(
-      groups: groups,
+      groups: orderedGroups,
       pendingGroups: missingGroups,
       cacheMap: currentCaches,
     )) {
@@ -319,6 +320,24 @@ class ArtistLibraryRepository {
     });
     return summaries;
   }
+
+  List<_ArtistGroup> _sortGroupsForDisplay(
+    List<_ArtistGroup> groups,
+    Map<String, ArtistCacheRecord> caches,
+  ) {
+    final sorted = groups.toList(growable: false);
+    sorted.sort((left, right) {
+      final leftCache = caches[left.queryKey];
+      final rightCache = caches[right.queryKey];
+      final leftLabel = _groupSortLabel(left, leftCache);
+      final rightLabel = _groupSortLabel(right, rightCache);
+      final compare = leftLabel.compareTo(rightLabel);
+      if (compare != 0) return compare;
+      return _groupDisplayName(left, leftCache)
+          .compareTo(_groupDisplayName(right, rightCache));
+    });
+    return sorted;
+  }
 }
 
 class _ArtistGroup {
@@ -418,6 +437,26 @@ String _artistSortLabel(ArtistSummary summary) {
   return summary.sortName?.trim().isNotEmpty == true
       ? summary.sortName!.trim().toLowerCase()
       : summary.name.toLowerCase();
+}
+
+String _groupSortLabel(_ArtistGroup group, ArtistCacheRecord? cache) {
+  final cachedSortName = cache?.sortName?.trim();
+  if (cachedSortName != null && cachedSortName.isNotEmpty) {
+    return cachedSortName.toLowerCase();
+  }
+  final cachedName = cache?.artistName?.trim();
+  if (cachedName != null && cachedName.isNotEmpty) {
+    return cachedName.toLowerCase();
+  }
+  return group.displayName.toLowerCase();
+}
+
+String _groupDisplayName(_ArtistGroup group, ArtistCacheRecord? cache) {
+  final cachedName = cache?.artistName?.trim();
+  if (cachedName != null && cachedName.isNotEmpty) {
+    return cachedName;
+  }
+  return group.displayName;
 }
 
 bool _hasArtwork(MusicFile song) {
