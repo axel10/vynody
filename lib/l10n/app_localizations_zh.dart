@@ -268,6 +268,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playlist => '播放列表';
 
   @override
+  String get albums => '专辑';
+
+  @override
+  String get playAll => '播放全部';
+
+  @override
+  String get shufflePlay => '随机播放';
+
+  @override
+  String get noAlbums => '还没有可显示的专辑';
+
+  @override
   String get emptyList => '列表为空';
 
   @override

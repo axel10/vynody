@@ -578,6 +578,30 @@ abstract class AppLocalizations {
   /// **'播放列表'**
   String get playlist;
 
+  /// Albums tab and section label
+  ///
+  /// In zh, this message translates to:
+  /// **'专辑'**
+  String get albums;
+
+  /// Play all songs in the current album
+  ///
+  /// In zh, this message translates to:
+  /// **'播放全部'**
+  String get playAll;
+
+  /// Shuffle play songs in the current album
+  ///
+  /// In zh, this message translates to:
+  /// **'随机播放'**
+  String get shufflePlay;
+
+  /// Empty state text when no albums are available
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有可显示的专辑'**
+  String get noAlbums;
+
   /// List is empty
   ///
   /// In zh, this message translates to:

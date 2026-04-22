@@ -359,6 +359,22 @@
   "@playlist": {
     "description": "Playlist"
   },
+  "albums": "专辑",
+  "@albums": {
+    "description": "Albums tab and section label"
+  },
+  "playAll": "播放全部",
+  "@playAll": {
+    "description": "Play all songs in the current album"
+  },
+  "shufflePlay": "随机播放",
+  "@shufflePlay": {
+    "description": "Shuffle play songs in the current album"
+  },
+  "noAlbums": "还没有可显示的专辑",
+  "@noAlbums": {
+    "description": "Empty state text when no albums are available"
+  },
   "emptyList": "列表为空",
   "@emptyList": {
     "description": "List is empty"

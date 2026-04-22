@@ -270,6 +270,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlist => 'Playlist';
 
   @override
+  String get albums => 'Albums';
+
+  @override
+  String get playAll => 'Play All';
+
+  @override
+  String get shufflePlay => 'Shuffle Play';
+
+  @override
+  String get noAlbums => 'No albums found yet';
+
+  @override
   String get emptyList => 'List is empty';
 
   @override
