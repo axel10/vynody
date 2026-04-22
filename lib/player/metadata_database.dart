@@ -179,10 +179,23 @@ class MetadataDatabase {
 
   MetadataDatabase._internal();
 
+  void _logDbTiming(String label, Stopwatch stopwatch) {
+    if (!kDebugMode) return;
+    debugPrint(
+      '[MetadataDatabase][timing] $label ${stopwatch.elapsedMilliseconds} ms',
+    );
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
+    final stopwatch = Stopwatch()..start();
+    try {
+      _database = await _initDatabase();
+      return _database!;
+    } finally {
+      stopwatch.stop();
+      _logDbTiming('open database cache', stopwatch);
+    }
   }
 
   Future<Database> _initDatabase() async {
@@ -194,7 +207,9 @@ class MetadataDatabase {
         : databaseFactory;
 
     try {
-      return await factory.openDatabase(
+      final stopwatch = Stopwatch()..start();
+      try {
+        return await factory.openDatabase(
         path,
         options: OpenDatabaseOptions(
           version: 18,
@@ -450,6 +465,10 @@ class MetadataDatabase {
           },
         ),
       );
+      } finally {
+        stopwatch.stop();
+        _logDbTiming('open metadata.db', stopwatch);
+      }
     } catch (e) {
       debugPrint('[MetadataDatabase] open failed path=$path error=$e');
       rethrow;
@@ -626,10 +645,19 @@ class MetadataDatabase {
   }
 
   Future<List<SongMetadata>> getAllSongMetadata() async {
-    return _withDbLock((db) async {
-      final rows = await db.query('songs', orderBy: 'path COLLATE NOCASE ASC');
-      return rows.map(SongMetadata.fromMap).toList(growable: false);
-    });
+    final stopwatch = Stopwatch()..start();
+    try {
+      return await _withDbLock((db) async {
+        final rows = await db.query(
+          'songs',
+          orderBy: 'path COLLATE NOCASE ASC',
+        );
+        return rows.map(SongMetadata.fromMap).toList(growable: false);
+      });
+    } finally {
+      stopwatch.stop();
+      _logDbTiming('getAllSongMetadata', stopwatch);
+    }
   }
 
   Future<Map<String, SongMetadata>> getSongMetadataByPaths(

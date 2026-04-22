@@ -102,20 +102,18 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
 
       if (imagePath != null) {
         final file = File(imagePath);
-        if (file.existsSync()) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Image.file(
-              file,
-              width: widget.size,
-              height: widget.size,
-              fit: BoxFit.cover,
-              cacheWidth: (widget.size * 2).toInt(),
-              cacheHeight: (widget.size * 2).toInt(),
-              errorBuilder: (_, _, _) => _fallbackIcon(),
-            ),
-          );
-        }
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Image.file(
+            file,
+            width: widget.size,
+            height: widget.size,
+            fit: BoxFit.cover,
+            cacheWidth: (widget.size * 2).toInt(),
+            cacheHeight: (widget.size * 2).toInt(),
+            errorBuilder: (_, _, _) => _fallbackIcon(),
+          ),
+        );
       }
 
       if (_artworkQueried && _artworkBytes != null) {
@@ -142,20 +140,18 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       final imagePath = metadata?.thumbnailPath;
       if (imagePath != null) {
         final file = File(imagePath);
-        if (file.existsSync()) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Image.file(
-              file,
-              width: widget.size,
-              height: widget.size,
-              fit: BoxFit.cover,
-              cacheWidth: (widget.size * 2).toInt(),
-              cacheHeight: (widget.size * 2).toInt(),
-              errorBuilder: (_, _, _) => _fallbackIcon(),
-            ),
-          );
-        }
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Image.file(
+            file,
+            width: widget.size,
+            height: widget.size,
+            fit: BoxFit.cover,
+            cacheWidth: (widget.size * 2).toInt(),
+            cacheHeight: (widget.size * 2).toInt(),
+            errorBuilder: (_, _, _) => _fallbackIcon(),
+          ),
+        );
       }
 
       // Metadata not yet in map, or the cached entry still lacks a thumbnail.

@@ -9,14 +9,16 @@ import '../widgets/song_thumbnail.dart';
 import '../utils/deleted_song_snack.dart';
 import 'albums_tab.dart';
 
-class PlaylistPage extends ConsumerStatefulWidget {
-  const PlaylistPage({super.key});
+// 媒体库页面
+
+class LibraryPage extends ConsumerStatefulWidget {
+  const LibraryPage({super.key});
 
   @override
-  ConsumerState<PlaylistPage> createState() => _PlaylistPageState();
+  ConsumerState<LibraryPage> createState() => _LibraryPageState();
 }
 
-class _PlaylistPageState extends ConsumerState<PlaylistPage>
+class _LibraryPageState extends ConsumerState<LibraryPage>
     with SingleTickerProviderStateMixin {
   bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};

@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -41,6 +40,13 @@ class ScannerMetadataStore {
 
   SongMetadata? getMetadata(String path) => _metadataMap[path];
 
+  void _logTiming(String label, Stopwatch stopwatch) {
+    if (!kDebugMode) return;
+    // debugPrint(
+    //   '[ScannerMetadataStore][timing] $label ${stopwatch.elapsedMilliseconds} ms',
+    // );
+  }
+
   void cacheMetadata(SongMetadata metadata) {
     _metadataMap[metadata.path] = metadata.copyWith(waveformBlob: null);
     _onMetadataMutated();
@@ -52,8 +58,11 @@ class ScannerMetadataStore {
   }
 
   Future<void> loadMetadataForPath(String path) async {
+    final stopwatch = Stopwatch()..start();
     if (!await File(path).exists()) {
       await purgeMissingSongPath(path);
+      stopwatch.stop();
+      _logTiming('loadMetadataForPath missing($path)', stopwatch);
       return;
     }
 
@@ -74,11 +83,16 @@ class ScannerMetadataStore {
       _onMetadataMutated();
       _notifyListeners();
     }
+    stopwatch.stop();
+    _logTiming('loadMetadataForPath($path)', stopwatch);
   }
 
   Future<void> loadThumbnailForPath(String path) async {
+    final stopwatch = Stopwatch()..start();
     if (!await File(path).exists()) {
       await purgeMissingSongPath(path);
+      stopwatch.stop();
+      _logTiming('loadThumbnailForPath missing($path)', stopwatch);
       return;
     }
 
@@ -107,6 +121,8 @@ class ScannerMetadataStore {
       _onMetadataMutated();
       _notifyListeners();
     }
+    stopwatch.stop();
+    _logTiming('loadThumbnailForPath($path)', stopwatch);
   }
 
   void updateMetadataForPath(

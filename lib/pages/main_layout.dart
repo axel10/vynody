@@ -10,7 +10,7 @@ import '../player/audio_riverpod.dart';
 import '../player/audio_service.dart';
 import '../pages/folder_page.dart';
 import '../pages/playback_page.dart';
-import '../pages/playlist_page.dart';
+import '../pages/library_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
 import '../player/music_file_utils.dart';
@@ -280,7 +280,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       case 2:
         return Padding(
           padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
-          child: const PlaylistPage(),
+          child: const LibraryPage(),
         );
       case 3:
         return Padding(

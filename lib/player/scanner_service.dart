@@ -86,6 +86,12 @@ class ScannerService extends ChangeNotifier {
   List<MusicFolder> get navigationHistory => _navigationState.history;
 
   void setNavigationState(MusicFolder? current, List<MusicFolder> history) {
+    if (kDebugMode) {
+      debugPrint(
+        '[ScannerService][timing] setNavigationState current=${current?.path ?? "null"} '
+        'history=${history.length}',
+      );
+    }
     _navigationState.setState(current, history);
   }
 
@@ -145,6 +151,13 @@ class ScannerService extends ChangeNotifier {
 
   void _markMetadataMutated() {
     _metadataRevision++;
+  }
+
+  void _logInitTiming(String label, Stopwatch stopwatch) {
+    if (!kDebugMode) return;
+    debugPrint(
+      '[ScannerService][init] $label ${stopwatch.elapsedMilliseconds} ms',
+    );
   }
 
   @override
@@ -249,31 +262,74 @@ class ScannerService extends ChangeNotifier {
   }
 
   void _sortAndNotify() {
-    _folderSorter.sortFoldersForTree(
-      _scannedRootFolders,
-      resolveSettings: _resolveSortSettingsForFolder,
-    );
-    if (_systemMediaFolder != null) {
-      _folderSorter.sortFolderRecursiveForTree(
-        _systemMediaFolder!,
-        resolveSettings: _resolveSortSettingsForFolder,
+    final totalStopwatch = Stopwatch()..start();
+    try {
+      _timeScanStepSync('stage sortAndNotify sort scanned root folders', () {
+        _folderSorter.sortFoldersForTree(
+          _scannedRootFolders,
+          resolveSettings: _resolveSortSettingsForFolder,
+        );
+      });
+      if (_systemMediaFolder != null) {
+        _timeScanStepSync('stage sortAndNotify sort system media tree', () {
+          _folderSorter.sortFolderRecursiveForTree(
+            _systemMediaFolder!,
+            resolveSettings: _resolveSortSettingsForFolder,
+          );
+        });
+      }
+      _timeScanStepSync(
+        'stage sortAndNotify rebuild displayed root folders',
+        () {
+          _rebuildDisplayedRootFolders();
+        },
       );
+      _timeScanStepSync('stage sortAndNotify sync navigation state', () {
+        _syncNavigationStateToLatestTree();
+      });
+      _timeScanStepSync('stage sortAndNotify notify listeners', () {
+        notifyListeners();
+      });
+    } finally {
+      totalStopwatch.stop();
+      _logScanTiming('stage sortAndNotify total', totalStopwatch);
     }
-    _rebuildDisplayedRootFolders();
-    _syncNavigationStateToLatestTree();
-    notifyListeners();
   }
 
   Future<void> _init() async {
-    await _roots.loadRootPaths();
-    await _loadSortSettings();
-    await _loadCachedRootFoldersFromDatabase();
-    await _loadCachedSystemMediaFolderFromDatabase();
-    _rebuildDisplayedRootFolders();
-    notifyListeners();
-    await checkAndRequestPermissions();
-    // Auto scan on startup
-    await scan();
+    final totalStopwatch = Stopwatch()..start();
+    try {
+      await _timeInitStep('load root paths', () => _roots.loadRootPaths());
+      await _timeInitStep('load sort settings', _loadSortSettings);
+      final cachedSongs = await _timeInitStep(
+        'load cached songs from database',
+        _loadCachedSongsFromDatabase,
+      );
+      await _timeInitStep(
+        'load cached root folders from database',
+        () => _loadCachedRootFoldersFromDatabase(cachedSongs: cachedSongs),
+      );
+      await _timeInitStep(
+        'load cached system media folder from database',
+        () => _loadCachedSystemMediaFolderFromDatabase(
+          cachedSongs: cachedSongs,
+        ),
+      );
+      _timeInitStepSync('rebuild displayed root folders', () {
+        _rebuildDisplayedRootFolders();
+      });
+      _timeInitStepSync('notify listeners after init', () {
+        notifyListeners();
+      });
+      await _timeInitStep('check and request permissions', () {
+        return checkAndRequestPermissions();
+      });
+      // Auto scan on startup
+      await _timeInitStep('startup scan', scan);
+    } finally {
+      totalStopwatch.stop();
+      _logInitTiming('init total', totalStopwatch);
+    }
   }
 
   void _setupMediaObserver() {
@@ -557,6 +613,7 @@ class ScannerService extends ChangeNotifier {
 
   Future<void> _loadCachedRootFoldersFromDatabase({
     Iterable<String>? rootPaths,
+    List<SongMetadata>? cachedSongs,
   }) async {
     try {
       final declaredRoots = (rootPaths ?? _roots.rootPaths)
@@ -570,12 +627,12 @@ class ScannerService extends ChangeNotifier {
         return _compareNaturally(a, b);
       });
 
-      final cachedSongs = await MetadataDatabase().getAllSongMetadata();
+      final songs = cachedSongs ?? await _loadCachedSongsFromDatabase();
       final cachedSongGroups = <String, List<SongMetadata>>{
         for (final root in declaredRoots) root: <SongMetadata>[],
       };
 
-      for (final song in cachedSongs) {
+      for (final song in songs) {
         final normalizedPath = _normalizePath(song.path);
         if (normalizedPath.isEmpty) continue;
 
@@ -616,17 +673,19 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadCachedSystemMediaFolderFromDatabase() async {
+  Future<void> _loadCachedSystemMediaFolderFromDatabase({
+    List<SongMetadata>? cachedSongs,
+  }) async {
     if (Platform.isWindows) return;
 
     try {
-      final cachedSongs = await MetadataDatabase().getAllSongMetadata();
-      if (cachedSongs.isEmpty) {
+      final songs = cachedSongs ?? await _loadCachedSongsFromDatabase();
+      if (songs.isEmpty) {
         return;
       }
 
       _systemMediaFolder = _treeBuilder.buildSongsIntoFoldersFromMetadata(
-        cachedSongs,
+        songs,
         _compareNaturally,
       );
       _folderSorter.sortFolderRecursiveForTree(
@@ -634,18 +693,28 @@ class ScannerService extends ChangeNotifier {
         resolveSettings: _resolveSortSettingsForFolder,
       );
 
-      for (final song in cachedSongs) {
+      for (final song in songs) {
         _metadataStore.cacheMetadata(song);
       }
 
       debugPrint(
         '[ScannerService] Loaded cached system media folder from songs table '
-        'entries=${cachedSongs.length}',
+        'entries=${songs.length}',
       );
     } catch (e) {
       debugPrint(
         '[ScannerService] Failed to load cached system media folder: $e',
       );
+    }
+  }
+
+  Future<List<SongMetadata>> _loadCachedSongsFromDatabase() async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return await MetadataDatabase().getAllSongMetadata();
+    } finally {
+      stopwatch.stop();
+      _logInitTiming('load cached songs helper', stopwatch);
     }
   }
 
@@ -669,7 +738,12 @@ class ScannerService extends ChangeNotifier {
   }
 
   void _handleNavigationChanged() {
-    notifyListeners();
+    if (_isDisposed) return;
+
+    // Navigation changes should feel immediate even while a scan is running.
+    // The throttled notifyListeners() path is still used for metadata/scan
+    // updates, but folder switches need to repaint right away.
+    super.notifyListeners();
   }
 
   void pauseBackgroundTasks() {
@@ -1476,12 +1550,18 @@ class ScannerService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Scan error: $e');
     } finally {
-      totalStopwatch.stop();
-      _logScanTiming('scan total', totalStopwatch);
       _isScanning = false;
       _flushScanNotifications();
-      await _drainPendingIncrementalFileEvents();
-      _sortAndNotify();
+      await _timeScanStep(
+        'stage 5.6 drain pending incremental file events',
+        () => _drainPendingIncrementalFileEvents(),
+      );
+      await _timeScanStep(
+        'stage 5.7 final sort and notify',
+        () async => _sortAndNotify(),
+      );
+      totalStopwatch.stop();
+      _logScanTiming('scan total', totalStopwatch);
     }
   }
 
@@ -1759,6 +1839,26 @@ class ScannerService extends ChangeNotifier {
     debugPrint(
       '[ScannerService][scan] $label took ${stopwatch.elapsedMilliseconds} ms',
     );
+  }
+
+  Future<T> _timeInitStep<T>(String label, Future<T> Function() action) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return await action();
+    } finally {
+      stopwatch.stop();
+      _logInitTiming(label, stopwatch);
+    }
+  }
+
+  T _timeInitStepSync<T>(String label, T Function() action) {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return action();
+    } finally {
+      stopwatch.stop();
+      _logInitTiming(label, stopwatch);
+    }
   }
 
   Future<T> _timeScanStep<T>(String label, Future<T> Function() action) async {
