@@ -24,6 +24,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   final Set<int> _selectedIndices = {};
   late final TabController _tabController;
   int _tabIndex = 0;
+  bool _albumsTabLoaded = false;
 
   bool get _isPlaylistTab => _tabIndex == 0;
 
@@ -36,6 +37,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
         if (_tabIndex == _tabController.index) return;
         setState(() {
           _tabIndex = _tabController.index;
+          if (_tabIndex == 1) {
+            _albumsTabLoaded = true;
+          }
         });
       });
   }
@@ -352,7 +356,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final playlistService = ref.watch(playlistServiceProvider);
-    final scanner = ref.watch(scannerServiceProvider);
+    ref.watch(
+      scannerServiceProvider.select(
+        (scanner) => (scanner.metadataRevision, scanner.isScanning),
+      ),
+    );
+    final scanner = ref.read(scannerServiceProvider);
     final currentPlaylist = playlistService.currentPlaylist;
 
     return Scaffold(
@@ -385,7 +394,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
             scanner,
             currentPlaylist,
           ),
-          const AlbumsTab(),
+          _albumsTabLoaded ? const AlbumsTab() : const SizedBox.shrink(),
         ],
       ),
     );

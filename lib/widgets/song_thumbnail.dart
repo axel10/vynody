@@ -95,8 +95,15 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(
+      scannerServiceProvider.select(
+        (scanner) => (scanner.metadataRevision, scanner.isScanning),
+      ),
+    );
+
+    final scanner = ref.read(scannerServiceProvider);
+
     if (Platform.isAndroid || Platform.isIOS) {
-      final scanner = ref.watch(scannerServiceProvider);
       final metadata = scanner.metadataMap[widget.path];
       final imagePath = metadata?.thumbnailPath;
 
@@ -134,7 +141,6 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       // Still fetching or no artwork — show fallback without flickering.
       return _fallbackIcon();
     } else if (Platform.isWindows) {
-      final scanner = ref.watch(scannerServiceProvider);
       final metadata = scanner.metadataMap[widget.path];
 
       final imagePath = metadata?.thumbnailPath;
