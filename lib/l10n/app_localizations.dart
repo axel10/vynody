@@ -773,7 +773,7 @@ abstract class AppLocalizations {
   /// List tab
   ///
   /// In zh, this message translates to:
-  /// **'列表'**
+  /// **'媒体库'**
   String get list;
 
   /// Queue tab

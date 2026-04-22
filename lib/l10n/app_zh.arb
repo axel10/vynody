@@ -492,7 +492,7 @@
   "@play": {
     "description": "Play tab"
   },
-  "list": "列表",
+  "list": "媒体库",
   "@list": {
     "description": "List tab"
   },

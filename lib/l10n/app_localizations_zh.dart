@@ -366,7 +366,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get play => '播放';
 
   @override
-  String get list => '列表';
+  String get list => '媒体库';
 
   @override
   String get queueTab => '队列';

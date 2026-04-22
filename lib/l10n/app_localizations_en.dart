@@ -368,7 +368,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get play => 'Play';
 
   @override
-  String get list => 'List';
+  String get list => 'Library';
 
   @override
   String get queueTab => 'Queue';
