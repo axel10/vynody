@@ -14,9 +14,7 @@ import '../player/settings_service.dart';
 import '../widgets/desktop_window_title_bar.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
-  const SettingsPage({super.key, this.showDesktopTitleBar = true});
-
-  final bool showDesktopTitleBar;
+  const SettingsPage({super.key});
 
   @override
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
@@ -467,35 +465,31 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsServiceProvider);
+    final theme = Theme.of(context);
     final isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-    final showDesktopTitleBar = isDesktop && widget.showDesktopTitleBar;
 
-    return Scaffold(
+    Widget content = Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.settings),
-        centerTitle: true,
       ),
-      body: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: showDesktopTitleBar ? 32 : 0),
-            child: SafeArea(
-              top: !showDesktopTitleBar,
-              child: _buildBody(context, settings),
-            ),
-          ),
-          if (showDesktopTitleBar)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: DesktopWindowTitleBar(
-                brightness: Theme.of(context).brightness,
-              ),
-            ),
-        ],
-      ),
+      body: _buildBody(context, settings),
     );
+
+    if (isDesktop) {
+      content = Material(
+        color: theme.colorScheme.surface,
+        child: Column(
+          children: [
+            DesktopWindowTitleBar(
+              brightness: theme.brightness,
+            ),
+            Expanded(child: content),
+          ],
+        ),
+      );
+    }
+
+    return content;
   }
 }

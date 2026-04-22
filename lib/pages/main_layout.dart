@@ -224,9 +224,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   }
 
   Future<void> _openSettingsPage() async {
-    await Navigator.of(
-      context,
-    ).pushReplacement(buildMainLayoutRoute(args: widget.args, initialIndex: 4));
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SettingsPage()),
+    );
   }
 
   Map<ShortcutActivator, Intent> _buildShortcutMap(SettingsService settings) {
@@ -286,11 +286,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         return Padding(
           padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
           child: const QueuePage(),
-        );
-      case 4:
-        return Padding(
-          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
-          child: const SettingsPage(showDesktopTitleBar: false),
         );
       default:
         return const SizedBox.shrink();
