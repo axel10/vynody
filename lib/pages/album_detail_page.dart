@@ -7,7 +7,9 @@ import '../l10n/app_localizations.dart';
 import '../models/album_summary.dart';
 import '../player/audio_riverpod.dart';
 import '../utils/song_context_menu_utils.dart';
+import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
+import 'dart:io';
 
 class AlbumDetailPage extends ConsumerWidget {
   const AlbumDetailPage({super.key, required this.album});
@@ -24,7 +26,10 @@ class AlbumDetailPage extends ConsumerWidget {
       alpha: 0.65,
     );
 
-    return Scaffold(
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+    Widget content = Scaffold(
       appBar: AppBar(title: Text(album.title)),
       body: CustomScrollView(
         slivers: [
@@ -146,6 +151,22 @@ class AlbumDetailPage extends ConsumerWidget {
         ],
       ),
     );
+
+    if (isDesktop) {
+      content = Material(
+        color: theme.colorScheme.surface,
+        child: Column(
+          children: [
+            DesktopWindowTitleBar(
+              brightness: theme.brightness,
+            ),
+            Expanded(child: content),
+          ],
+        ),
+      );
+    }
+
+    return content;
   }
 }
 
