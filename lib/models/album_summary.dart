@@ -18,6 +18,7 @@ class AlbumSummary {
   final int totalDurationMillis;
 
   int get trackCount => songs.length;
+  bool get isUnknownAlbum => title.trim().toLowerCase() == 'unknown album';
 
   int get latestTimestampMillis => songs.fold<int>(
     0,

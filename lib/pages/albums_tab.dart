@@ -36,6 +36,12 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
     final albums = ref.watch(albumLibraryProvider);
     final l10n = AppLocalizations.of(context)!;
     final visibleAlbums = _filterAndSortAlbums(albums);
+    final knownAlbums = visibleAlbums
+        .where((album) => !album.isUnknownAlbum)
+        .toList(growable: false);
+    final unknownAlbums = visibleAlbums
+        .where((album) => album.isUnknownAlbum)
+        .toList(growable: false);
 
     if (albums.isEmpty) {
       return Center(
@@ -103,19 +109,24 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     )
-                  : GridView.builder(
+                  : ListView(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.72,
-                      ),
-                      itemCount: visibleAlbums.length,
-                      itemBuilder: (context, index) {
-                        final album = visibleAlbums[index];
-                        return _AlbumCard(album: album);
-                      },
+                      children: [
+                        if (knownAlbums.isNotEmpty)
+                          _AlbumSection(
+                            title: l10n.albums,
+                            albums: knownAlbums,
+                            crossAxisCount: crossAxisCount,
+                          ),
+                        if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
+                          const SizedBox(height: 24),
+                        if (unknownAlbums.isNotEmpty)
+                          _AlbumSection(
+                            title: l10n.unknownAlbum,
+                            albums: unknownAlbums,
+                            crossAxisCount: crossAxisCount,
+                          ),
+                      ],
                     ),
             ),
           ],
@@ -155,6 +166,52 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
       return _sortAscending ? fallback : -fallback;
     });
     return filtered;
+  }
+}
+
+class _AlbumSection extends StatelessWidget {
+  const _AlbumSection({
+    required this.title,
+    required this.albums,
+    required this.crossAxisCount,
+  });
+
+  final String title;
+  final List<AlbumSummary> albums;
+  final int crossAxisCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.72,
+          ),
+          itemCount: albums.length,
+          itemBuilder: (context, index) {
+            final album = albums[index];
+            return _AlbumCard(album: album);
+          },
+        ),
+      ],
+    );
   }
 }
 

@@ -90,9 +90,7 @@ class AlbumDetailPage extends ConsumerWidget {
               final song = album.songs[index];
               final isCurrent = currentMusic?.path == song.path;
               final durationLabel = _formatDuration(song.durationMillis);
-              final trackLabel =
-                  song.trackNumber?.toString().padLeft(2, '0') ??
-                  '${index + 1}'.padLeft(2, '0');
+              final trackLabel = '${index + 1}'.padLeft(2, '0');
 
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
