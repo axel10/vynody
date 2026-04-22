@@ -1362,6 +1362,31 @@ class AudioService extends Notifier<AudioSnapshot> {
     notifyListeners();
   }
 
+  Future<void> enqueueNext(List<MusicFile> songs) async {
+    if (songs.isEmpty) return;
+
+    if (_queue.isEmpty) {
+      await playPlaylist(songs);
+      return;
+    }
+
+    final insertAt = (_currentIndex >= 0 && _currentIndex < _queue.length)
+        ? _currentIndex + 1
+        : _queue.length;
+
+    for (var i = 0; i < songs.length; i++) {
+      final song = songs[i];
+      _queue.insert(insertAt + i, song);
+      await _player.playlist.insertTrack(
+        insertAt + i,
+        _audioTrackForSong(song),
+      );
+    }
+
+    _startQueueBackgroundProcessing(priorityPath: currentMusic?.path);
+    notifyListeners();
+  }
+
   Future<void> removeFromPlaylist(int index) async {
     if (index >= 0 && index < _queue.length) {
       _queue.removeAt(index);

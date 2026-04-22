@@ -602,6 +602,102 @@ abstract class AppLocalizations {
   /// **'还没有可显示的专辑'**
   String get noAlbums;
 
+  /// Search albums or artists placeholder
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索专辑或艺术家'**
+  String get searchAlbums;
+
+  /// Album sort button label
+  ///
+  /// In zh, this message translates to:
+  /// **'排序'**
+  String get albumSort;
+
+  /// Sort albums by artist ascending
+  ///
+  /// In zh, this message translates to:
+  /// **'艺术家 A-Z'**
+  String get sortArtistAsc;
+
+  /// Sort albums by album title ascending
+  ///
+  /// In zh, this message translates to:
+  /// **'专辑名 A-Z'**
+  String get sortTitleAsc;
+
+  /// Sort albums by song count
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲数量'**
+  String get sortTrackCount;
+
+  /// Sort albums by total duration
+  ///
+  /// In zh, this message translates to:
+  /// **'总时长'**
+  String get sortDuration;
+
+  /// Sort albums by recent add time
+  ///
+  /// In zh, this message translates to:
+  /// **'最近添加'**
+  String get sortRecentAdded;
+
+  /// Ascending sort order
+  ///
+  /// In zh, this message translates to:
+  /// **'升序'**
+  String get sortAscending;
+
+  /// Descending sort order
+  ///
+  /// In zh, this message translates to:
+  /// **'降序'**
+  String get sortDescending;
+
+  /// Play next action
+  ///
+  /// In zh, this message translates to:
+  /// **'下一首播放'**
+  String get playNext;
+
+  /// Add current album or song to favorites
+  ///
+  /// In zh, this message translates to:
+  /// **'加入收藏'**
+  String get addToFavorites;
+
+  /// View album details action
+  ///
+  /// In zh, this message translates to:
+  /// **'查看专辑详情'**
+  String get viewAlbumDetails;
+
+  /// Open the file location action
+  ///
+  /// In zh, this message translates to:
+  /// **'打开文件所在位置'**
+  String get openFileLocation;
+
+  /// Copy album title action
+  ///
+  /// In zh, this message translates to:
+  /// **'复制专辑名'**
+  String get copyAlbumTitle;
+
+  /// Copy artist name action
+  ///
+  /// In zh, this message translates to:
+  /// **'复制艺术家名'**
+  String get copyArtistName;
+
+  /// Album count summary
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 张专辑'**
+  String albumCount(int count);
+
   /// List is empty
   ///
   /// In zh, this message translates to:

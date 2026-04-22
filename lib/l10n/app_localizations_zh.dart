@@ -280,6 +280,56 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noAlbums => '还没有可显示的专辑';
 
   @override
+  String get searchAlbums => '搜索专辑或艺术家';
+
+  @override
+  String get albumSort => '排序';
+
+  @override
+  String get sortArtistAsc => '艺术家 A-Z';
+
+  @override
+  String get sortTitleAsc => '专辑名 A-Z';
+
+  @override
+  String get sortTrackCount => '歌曲数量';
+
+  @override
+  String get sortDuration => '总时长';
+
+  @override
+  String get sortRecentAdded => '最近添加';
+
+  @override
+  String get sortAscending => '升序';
+
+  @override
+  String get sortDescending => '降序';
+
+  @override
+  String get playNext => '下一首播放';
+
+  @override
+  String get addToFavorites => '加入收藏';
+
+  @override
+  String get viewAlbumDetails => '查看专辑详情';
+
+  @override
+  String get openFileLocation => '打开文件所在位置';
+
+  @override
+  String get copyAlbumTitle => '复制专辑名';
+
+  @override
+  String get copyArtistName => '复制艺术家名';
+
+  @override
+  String albumCount(int count) {
+    return '$count 张专辑';
+  }
+
+  @override
   String get emptyList => '列表为空';
 
   @override

@@ -375,6 +375,75 @@
   "@noAlbums": {
     "description": "Empty state text when no albums are available"
   },
+  "searchAlbums": "搜索专辑或艺术家",
+  "@searchAlbums": {
+    "description": "Search albums or artists placeholder"
+  },
+  "albumSort": "排序",
+  "@albumSort": {
+    "description": "Album sort button label"
+  },
+  "sortArtistAsc": "艺术家 A-Z",
+  "@sortArtistAsc": {
+    "description": "Sort albums by artist ascending"
+  },
+  "sortTitleAsc": "专辑名 A-Z",
+  "@sortTitleAsc": {
+    "description": "Sort albums by album title ascending"
+  },
+  "sortTrackCount": "歌曲数量",
+  "@sortTrackCount": {
+    "description": "Sort albums by song count"
+  },
+  "sortDuration": "总时长",
+  "@sortDuration": {
+    "description": "Sort albums by total duration"
+  },
+  "sortRecentAdded": "最近添加",
+  "@sortRecentAdded": {
+    "description": "Sort albums by recent add time"
+  },
+  "sortAscending": "升序",
+  "@sortAscending": {
+    "description": "Ascending sort order"
+  },
+  "sortDescending": "降序",
+  "@sortDescending": {
+    "description": "Descending sort order"
+  },
+  "playNext": "下一首播放",
+  "@playNext": {
+    "description": "Play next action"
+  },
+  "addToFavorites": "加入收藏",
+  "@addToFavorites": {
+    "description": "Add current album or song to favorites"
+  },
+  "viewAlbumDetails": "查看专辑详情",
+  "@viewAlbumDetails": {
+    "description": "View album details action"
+  },
+  "openFileLocation": "打开文件所在位置",
+  "@openFileLocation": {
+    "description": "Open the file location action"
+  },
+  "copyAlbumTitle": "复制专辑名",
+  "@copyAlbumTitle": {
+    "description": "Copy album title action"
+  },
+  "copyArtistName": "复制艺术家名",
+  "@copyArtistName": {
+    "description": "Copy artist name action"
+  },
+  "albumCount": "{count} 张专辑",
+  "@albumCount": {
+    "description": "Album count summary",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "emptyList": "列表为空",
   "@emptyList": {
     "description": "List is empty"

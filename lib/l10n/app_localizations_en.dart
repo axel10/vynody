@@ -282,6 +282,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noAlbums => 'No albums found yet';
 
   @override
+  String get searchAlbums => 'Search albums or artists';
+
+  @override
+  String get albumSort => 'Sort';
+
+  @override
+  String get sortArtistAsc => 'Artist A-Z';
+
+  @override
+  String get sortTitleAsc => 'Album Title A-Z';
+
+  @override
+  String get sortTrackCount => 'Song Count';
+
+  @override
+  String get sortDuration => 'Total Duration';
+
+  @override
+  String get sortRecentAdded => 'Recently Added';
+
+  @override
+  String get sortAscending => 'Ascending';
+
+  @override
+  String get sortDescending => 'Descending';
+
+  @override
+  String get playNext => 'Play Next';
+
+  @override
+  String get addToFavorites => 'Add to Favorites';
+
+  @override
+  String get viewAlbumDetails => 'View Album Details';
+
+  @override
+  String get openFileLocation => 'Open File Location';
+
+  @override
+  String get copyAlbumTitle => 'Copy Album Title';
+
+  @override
+  String get copyArtistName => 'Copy Artist Name';
+
+  @override
+  String albumCount(int count) {
+    return '$count albums';
+  }
+
+  @override
   String get emptyList => 'List is empty';
 
   @override

@@ -18,4 +18,12 @@ class AlbumSummary {
   final int totalDurationMillis;
 
   int get trackCount => songs.length;
+
+  int get latestTimestampMillis => songs.fold<int>(
+    0,
+    (latest, song) =>
+        song.lastModifiedTime != null && song.lastModifiedTime! > latest
+        ? song.lastModifiedTime!
+        : latest,
+  );
 }
