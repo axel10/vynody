@@ -15,7 +15,6 @@ import '../dialogs/timeline_adjustment_dialog.dart';
 import '../player/audio_riverpod.dart';
 import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
-import '../player/lyrics_generation_phase.dart';
 import '../player/lyrics_riverpod.dart';
 import '../player/lyrics_song_task_state.dart';
 import 'lyrics_panel_toasts.dart';

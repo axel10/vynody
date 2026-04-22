@@ -190,17 +190,23 @@ class MetadataDatabase {
 
   MetadataDatabase._internal();
 
-  Stream<List<SongMetadata>> watchAllSongMetadata() => _db.watchAllSongMetadata();
+  Stream<List<SongMetadata>> watchAllSongMetadata() =>
+      _db.watchAllSongMetadata();
 
-  Stream<SongMetadata?> watchSongMetadata(String path) => _db.watchSongMetadata(path);
+  Stream<SongMetadata?> watchSongMetadata(String path) =>
+      _db.watchSongMetadata(path);
 
-  Future<void> insertOrUpdateSong(SongMetadata song) => _db.insertOrUpdateSong(song);
+  Future<void> insertOrUpdateSong(SongMetadata song) =>
+      _db.insertOrUpdateSong(song);
 
   Future<void> insertOrUpdateLyricsCache(LyricsCacheRecord record) =>
       _db.insertOrUpdateLyricsCache(record);
 
   Future<LyricsCacheRecord?> getLyricsCache(String cacheKey) =>
       _db.getLyricsCache(cacheKey);
+
+  Stream<LyricsCacheRecord?> watchLyricsCache(String cacheKey) =>
+      _db.watchLyricsCache(cacheKey);
 
   Future<void> insertOrUpdateLyricsTranslationCache(
     LyricsTranslationCacheRecord record,
@@ -210,14 +216,19 @@ class MetadataDatabase {
     String cacheKey,
   ) => _db.getLyricsTranslationCaches(cacheKey);
 
+  Stream<List<LyricsTranslationCacheRecord>> watchLyricsTranslationCaches(
+    String cacheKey,
+  ) => _db.watchLyricsTranslationCaches(cacheKey);
+
   Future<void> insertOrUpdateAcoustIDCache(AcoustIDCacheRecord record) =>
       _db.insertOrUpdateAcoustIDCache(record);
 
   Future<AcoustIDCacheRecord?> getAcoustIDCache(String fingerprint) =>
       _db.getAcoustIDCache(fingerprint);
 
-  Future<void> insertOrUpdateReleaseCoverCache(ReleaseCoverCacheRecord record) =>
-      _db.insertOrUpdateReleaseCoverCache(record);
+  Future<void> insertOrUpdateReleaseCoverCache(
+    ReleaseCoverCacheRecord record,
+  ) => _db.insertOrUpdateReleaseCoverCache(record);
 
   Future<ReleaseCoverCacheRecord?> getReleaseCoverCache(String releaseId) =>
       _db.getReleaseCoverCache(releaseId);
@@ -225,24 +236,21 @@ class MetadataDatabase {
   Future<SongMetadata?> getSongMetadata(String path) =>
       _db.getSongMetadata(path);
 
-  Future<List<SongMetadata>> getAllSongMetadata() =>
-      _db.getAllSongMetadata();
+  Future<List<SongMetadata>> getAllSongMetadata() => _db.getAllSongMetadata();
 
   Future<Map<String, SongMetadata>> getSongMetadataByPaths(
     Iterable<String> paths,
-  ) =>
-      _db.getSongMetadataByPaths(paths);
+  ) => _db.getSongMetadataByPaths(paths);
 
   Future<int> syncSongSourcePresence({
     required int sourceMask,
     required Iterable<String> presentPaths,
     Iterable<String>? scopeRoots,
-  }) =>
-      _db.syncSongSourcePresence(
-        sourceMask: sourceMask,
-        presentPaths: presentPaths,
-        scopeRoots: scopeRoots,
-      );
+  }) => _db.syncSongSourcePresence(
+    sourceMask: sourceMask,
+    presentPaths: presentPaths,
+    scopeRoots: scopeRoots,
+  );
 
   Future<void> deleteSongByPath(String path) => _db.deleteSongByPath(path);
 
@@ -255,7 +263,8 @@ class MetadataDatabase {
   Future<void> clearLyricsCacheByKey(String cacheKey) =>
       _db.clearLyricsCacheByKey(cacheKey);
 
-  Future<void> clearLyricsTranslationCache() => _db.clearLyricsTranslationCache();
+  Future<void> clearLyricsTranslationCache() =>
+      _db.clearLyricsTranslationCache();
 
   Future<void> clearLyricsTranslationCacheByKey(String cacheKey) =>
       _db.clearLyricsTranslationCacheByKey(cacheKey);

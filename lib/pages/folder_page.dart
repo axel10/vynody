@@ -301,25 +301,43 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scanner = ref.watch(scannerServiceProvider);
+    final scanner = ref.read(scannerServiceProvider);
+    final rootFolders = ref.watch(
+      scannerServiceProvider.select((scanner) => scanner.rootFolders),
+    );
+    final currentFolder = ref.watch(
+      scannerServiceProvider.select(
+        (scanner) => scanner.navigationCurrentFolder,
+      ),
+    );
+    final navigationHistory = ref.watch(
+      scannerServiceProvider.select((scanner) => scanner.navigationHistory),
+    );
+    final systemMediaFolder = ref.watch(
+      scannerServiceProvider.select((scanner) => scanner.systemMediaFolder),
+    );
+    final hasPermission = ref.watch(
+      scannerServiceProvider.select((scanner) => scanner.hasPermission),
+    );
+    final isScanning = ref.watch(
+      scannerServiceProvider.select((scanner) => scanner.isScanning),
+    );
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     // Sync _currentFolder if it's the system root and data has been loaded
-    if (scanner.navigationCurrentFolder?.path == 'system' &&
-        scanner.systemMediaFolder != null &&
-        scanner.navigationCurrentFolder != scanner.systemMediaFolder) {
+    if (currentFolder?.path == 'system' &&
+        systemMediaFolder != null &&
+        currentFolder != systemMediaFolder) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           scanner.setNavigationState(
-            scanner.systemMediaFolder,
-            List.from(scanner.navigationHistory),
+            systemMediaFolder,
+            List.from(navigationHistory),
           );
         }
       });
     }
-
-    final currentFolder = scanner.navigationCurrentFolder;
 
     Widget currentBody;
     if (currentFolder == null) {
@@ -360,7 +378,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                     color: Colors.purple,
                   ),
                   title: Text(AppLocalizations.of(context)!.systemMediaLibrary),
-                  subtitle: scanner.hasPermission
+                  subtitle: hasPermission
                       ? null
                       : Text(
                           AppLocalizations.of(context)!.needPermissionToScan,
@@ -368,7 +386,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         ),
                   onTap: () {
                     _navigateTo(
-                      scanner.systemMediaFolder ??
+                      systemMediaFolder ??
                           MusicFolder(
                             path: 'system',
                             name: AppLocalizations.of(
@@ -392,14 +410,14 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   buildDefaultDragHandles: false,
                   scrollController: _scrollController,
                   padding: EdgeInsets.only(bottom: rootListBottomPadding),
-                  itemCount: scanner.rootFolders.length,
+                  itemCount: rootFolders.length,
                   onReorder: (oldIndex, newIndex) {
                     if (!_isRootSelectionMode) return;
                     if (newIndex > oldIndex) newIndex--;
                     unawaited(scanner.moveRootPath(oldIndex, newIndex));
                   },
                   itemBuilder: (context, index) {
-                    final folder = scanner.rootFolders[index];
+                    final folder = rootFolders[index];
                     final isShortcut = scanner.isShortcutRoot(folder.path);
                     final isSelected = _selectedRootPaths.contains(folder.path);
                     return GestureDetector(
@@ -504,8 +522,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
-          if (scanner.navigationHistory.isNotEmpty ||
-              scanner.navigationCurrentFolder != null) {
+          if (navigationHistory.isNotEmpty) {
             _goBack(scanner);
           }
         },
@@ -541,9 +558,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 padding: const EdgeInsets.only(bottom: 160),
                 itemCount:
                     1 +
-                    (currentFolder.path == 'system' && !scanner.hasPermission
-                        ? 1
-                        : 0) +
+                    (currentFolder.path == 'system' && !hasPermission ? 1 : 0) +
                     currentFolder.subFolders.length +
                     currentFolder.files.length +
                     (_isSelectionMode ? 1 : 0),
@@ -559,8 +574,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   }
                   cursor++;
 
-                  if (currentFolder.path == 'system' &&
-                      !scanner.hasPermission) {
+                  if (currentFolder.path == 'system' && !hasPermission) {
                     if (index == cursor) {
                       return Padding(
                         padding: const EdgeInsets.all(32.0),
@@ -644,18 +658,22 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         );
                       },
                       child: ListTile(
-                        titleTextStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: file.isMissing
-                              ? Theme.of(context).colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.55)
-                              : currentMusic?.path == file.path
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                          fontWeight:
-                              currentMusic?.path == file.path && !file.isMissing
-                              ? FontWeight.bold
-                              : null,
-                        ),
+                        titleTextStyle: Theme.of(context).textTheme.bodyLarge
+                            ?.copyWith(
+                              color: file.isMissing
+                                  ? Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant
+                                        .withValues(alpha: 0.55)
+                                  : currentMusic?.path == file.path
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                              fontWeight:
+                                  currentMusic?.path == file.path &&
+                                      !file.isMissing
+                                  ? FontWeight.bold
+                                  : null,
+                            ),
                         leading: SizedBox(
                           width: 40,
                           height: 40,
@@ -705,10 +723,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         title: Text(file.displayName),
                         subtitle: Text(
                           '${file.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${file.album ?? AppLocalizations.of(context)!.unknownAlbum}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 fontSize: 10,
                                 color: file.isMissing
-                                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                                    ? Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant
                                           .withValues(alpha: 0.5)
                                     : null,
                               ),
@@ -793,7 +814,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
             child: FloatingActionButton(
               tooltip: AppLocalizations.of(context)!.rebuildTagDatabase,
               onPressed: () => _showRebuildDialog(context, scanner),
-              child: scanner.isScanning
+              child: isScanning
                   ? const SizedBox(
                       width: 24,
                       height: 24,

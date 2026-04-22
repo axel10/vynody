@@ -10,6 +10,10 @@ class LyricsCacheRepository {
     return _db.getLyricsCache(cacheKey);
   }
 
+  Stream<LyricsCacheRecord?> watchLyricsCache(String cacheKey) {
+    return _db.watchLyricsCache(cacheKey);
+  }
+
   Future<void> saveLyricsCache(LyricsCacheRecord record) {
     return _db.insertOrUpdateLyricsCache(record);
   }
@@ -18,6 +22,12 @@ class LyricsCacheRepository {
     String cacheKey,
   ) {
     return _db.getLyricsTranslationCaches(cacheKey);
+  }
+
+  Stream<List<LyricsTranslationCacheRecord>> watchLyricsTranslationCaches(
+    String cacheKey,
+  ) {
+    return _db.watchLyricsTranslationCaches(cacheKey);
   }
 
   Future<void> saveLyricsTranslationCache(LyricsTranslationCacheRecord record) {

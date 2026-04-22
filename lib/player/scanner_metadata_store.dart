@@ -43,6 +43,24 @@ class ScannerMetadataStore {
 
   SongMetadata? getMetadata(String path) => _metadataMap[path];
 
+  void replaceAllMetadata(Iterable<SongMetadata> metadataList) {
+    _metadataMap
+      ..clear()
+      ..addEntries(
+        metadataList.map(
+          (metadata) => MapEntry(
+            metadata.path,
+            metadata.copyWith(
+              waveformBlob: null,
+              sourceFlags: metadata.sourceFlags,
+            ),
+          ),
+        ),
+      );
+    _onMetadataMutated();
+    _onAlbumMetadataMutated();
+  }
+
   bool _albumRelevantMetadataChanged(
     SongMetadata? previous,
     SongMetadata next,
@@ -70,7 +88,10 @@ class ScannerMetadataStore {
     final albumChanged = _albumRelevantMetadataChanged(existing, metadata);
     _metadataMap[metadata.path] = metadata.copyWith(
       waveformBlob: null,
-      sourceFlags: _mergeSourceFlags(existing?.sourceFlags, metadata.sourceFlags),
+      sourceFlags: _mergeSourceFlags(
+        existing?.sourceFlags,
+        metadata.sourceFlags,
+      ),
     );
     _onMetadataMutated();
     if (albumChanged) {
@@ -189,7 +210,10 @@ class ScannerMetadataStore {
       artworkPath: metadata.artworkPath ?? existing?.artworkPath,
       artworkWidth: metadata.artworkWidth ?? existing?.artworkWidth,
       artworkHeight: metadata.artworkHeight ?? existing?.artworkHeight,
-      sourceFlags: _mergeSourceFlags(existing?.sourceFlags, metadata.sourceFlags),
+      sourceFlags: _mergeSourceFlags(
+        existing?.sourceFlags,
+        metadata.sourceFlags,
+      ),
       themeColorsBlob: metadata.themeColorsBlob ?? existing?.themeColorsBlob,
       waveformBlob: null,
     );

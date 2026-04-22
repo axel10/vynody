@@ -21,6 +21,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     beforeOpen: (details) async {
       await customStatement('PRAGMA busy_timeout = 5000');
+      await _repairLegacyLyricsCacheRows();
     },
     onCreate: (m) async {
       await m.createAll();
@@ -114,7 +115,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         await _addColumnIfMissing(m, 'lyrics_cache', 'cacheKey', 'TEXT');
       }
       if (from < 15) {
-        await m.database.customStatement('DROP TABLE IF EXISTS lyrics_translation_cache');
+        await m.database.customStatement(
+          'DROP TABLE IF EXISTS lyrics_translation_cache',
+        );
         await m.database.customStatement('''
           CREATE TABLE lyrics_translation_cache (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -147,20 +150,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           'timelineOffsetMillis',
           'INTEGER',
         );
+        await _repairLegacyLyricsCacheRows();
       }
       if (from < 18) {
-        await _addColumnIfMissing(
-          m,
-          'songs',
-          'metadataTextScanned',
-          'INTEGER',
-        );
-        await _addColumnIfMissing(
-          m,
-          'songs',
-          'metadataImgScanned',
-          'INTEGER',
-        );
+        await _addColumnIfMissing(m, 'songs', 'metadataTextScanned', 'INTEGER');
+        await _addColumnIfMissing(m, 'songs', 'metadataImgScanned', 'INTEGER');
       }
       if (from < 19) {
         await _addColumnIfMissing(m, 'songs', 'sourceFlags', 'INTEGER');
@@ -187,29 +181,49 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return rows.any((row) => row.data['name'] == column);
   }
 
+  Future<void> _repairLegacyLyricsCacheRows() async {
+    if (!await _columnExists('lyrics_cache', 'timelineOffsetMillis')) {
+      return;
+    }
+
+    await customStatement('''
+      UPDATE lyrics_cache
+      SET timelineOffsetMillis = 0
+      WHERE timelineOffsetMillis IS NULL
+    ''');
+  }
+
   Stream<List<SongMetadata>> watchAllSongMetadata() {
-    return (select(songs)
-          ..orderBy([(t) => OrderingTerm(expression: t.path, mode: OrderingMode.asc)]))
+    return (select(songs)..orderBy([
+          (t) => OrderingTerm(expression: t.path, mode: OrderingMode.asc),
+        ]))
         .watch()
         .map((rows) => rows.map(_songFromRow).toList(growable: false));
   }
 
   Future<List<SongMetadata>> getAllSongMetadata() async {
-    final rows = await (select(songs)
-          ..orderBy([(t) => OrderingTerm(expression: t.path, mode: OrderingMode.asc)]))
-        .get();
+    final rows =
+        await (select(songs)..orderBy([
+              (t) => OrderingTerm(expression: t.path, mode: OrderingMode.asc),
+            ]))
+            .get();
     return rows.map(_songFromRow).toList(growable: false);
   }
 
   Stream<SongMetadata?> watchSongMetadata(String path) {
-    return (select(songs)..where((t) => t.path.equals(path))..limit(1))
+    return (select(songs)
+          ..where((t) => t.path.equals(path))
+          ..limit(1))
         .watchSingleOrNull()
         .map(_songOrNullFromRow);
   }
 
   Future<SongMetadata?> getSongMetadata(String path) async {
-    final row = await (select(songs)..where((t) => t.path.equals(path))..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (select(songs)
+              ..where((t) => t.path.equals(path))
+              ..limit(1))
+            .getSingleOrNull();
     return _songOrNullFromRow(row);
   }
 
@@ -225,23 +239,32 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       return {};
     }
 
-    final rows = await (select(songs)
-          ..where((t) => t.path.isIn(normalizedPaths)))
-        .get();
+    final rows = await (select(
+      songs,
+    )..where((t) => t.path.isIn(normalizedPaths))).get();
     return {
       for (final row in rows) _pathLookupKey(row.path): _songFromRow(row),
     };
   }
 
   Future<void> insertOrUpdateSong(SongMetadata song) async {
+    final existing = await getSongMetadata(song.path);
     final mergedSourceFlags = _mergeSourceFlags(
-      (await getSongMetadata(song.path))?.sourceFlags,
+      existing?.sourceFlags,
       song.sourceFlags,
     );
 
-    await into(songs).insertOnConflictUpdate(
-      _songCompanion(song.copyWith(sourceFlags: mergedSourceFlags)),
-    );
+    final updatedSong = song.copyWith(sourceFlags: mergedSourceFlags);
+    final companion = _songCompanion(updatedSong);
+
+    if (existing != null) {
+      await (update(songs)..where((t) => t.path.equals(existing.path))).write(
+        companion,
+      );
+      return;
+    }
+
+    await into(songs).insert(companion);
   }
 
   Future<void> deleteSongByPath(String path) async {
@@ -274,9 +297,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final normalizedScopeRoots = scopeRoots == null
         ? const <String>[]
         : scopeRoots
-            .map(_normalizePath)
-            .where((path) => path.isNotEmpty)
-            .toList(growable: false);
+              .map(_normalizePath)
+              .where((path) => path.isNotEmpty)
+              .toList(growable: false);
 
     var changedCount = 0;
     await transaction(() async {
@@ -333,7 +356,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         syncedLyrics: Value(record.syncedLyrics),
         syncedLinesJson: Value(
           jsonEncode(
-            record.syncedLines.map((line) => line.toJson()).toList(growable: false),
+            record.syncedLines
+                .map((line) => line.toJson())
+                .toList(growable: false),
           ),
         ),
         timelineOffsetMillis: Value(record.timelineOffsetMillis),
@@ -343,11 +368,25 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<LyricsCacheRecord?> getLyricsCache(String cacheKey) async {
-    final row = await (select(lyricsCaches)
-          ..where((t) => t.cacheKey.equals(cacheKey))
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (select(lyricsCaches)
+              ..where((t) => t.cacheKey.equals(cacheKey))
+              ..limit(1))
+            .getSingleOrNull();
     return row == null ? null : _lyricsCacheFromRow(row);
+  }
+
+  Stream<LyricsCacheRecord?> watchLyricsCache(String cacheKey) {
+    final normalizedCacheKey = cacheKey.trim();
+    if (normalizedCacheKey.isEmpty) {
+      return Stream.value(null);
+    }
+
+    return (select(lyricsCaches)
+          ..where((t) => t.cacheKey.equals(normalizedCacheKey))
+          ..limit(1))
+        .watchSingleOrNull()
+        .map((row) => row == null ? null : _lyricsCacheFromRow(row));
   }
 
   Future<void> clearLyricsCache() async {
@@ -358,9 +397,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final normalizedCacheKey = cacheKey.trim();
     if (normalizedCacheKey.isEmpty) return;
 
-    await (delete(lyricsCaches)
-          ..where((t) => t.cacheKey.equals(normalizedCacheKey)))
-        .go();
+    await (delete(
+      lyricsCaches,
+    )..where((t) => t.cacheKey.equals(normalizedCacheKey))).go();
   }
 
   Future<void> insertOrUpdateLyricsTranslationCache(
@@ -368,12 +407,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   ) async {
     final normalizedCacheKey = record.cacheKey.trim();
     if (normalizedCacheKey.isNotEmpty) {
-        await (delete(lyricsTranslationCaches)
-              ..where(
-                (t) =>
-                    t.cacheKey.equals(normalizedCacheKey) &
-                    t.languageCode.equals(record.languageCode),
-              ))
+      await (delete(lyricsTranslationCaches)..where(
+            (t) =>
+                t.cacheKey.equals(normalizedCacheKey) &
+                t.languageCode.equals(record.languageCode),
+          ))
           .go();
     }
 
@@ -392,16 +430,40 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<List<LyricsTranslationCacheRecord>> getLyricsTranslationCaches(
     String cacheKey,
   ) async {
-    final rows = await (select(lyricsTranslationCaches)
-          ..where((t) => t.cacheKey.equals(cacheKey))
+    final rows =
+        await (select(lyricsTranslationCaches)
+              ..where((t) => t.cacheKey.equals(cacheKey))
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.updatedAtMillis,
+                  mode: OrderingMode.desc,
+                ),
+              ]))
+            .get();
+    return rows.map(_lyricsTranslationCacheFromRow).toList(growable: false);
+  }
+
+  Stream<List<LyricsTranslationCacheRecord>> watchLyricsTranslationCaches(
+    String cacheKey,
+  ) {
+    final normalizedCacheKey = cacheKey.trim();
+    if (normalizedCacheKey.isEmpty) {
+      return Stream.value(const <LyricsTranslationCacheRecord>[]);
+    }
+
+    return (select(lyricsTranslationCaches)
+          ..where((t) => t.cacheKey.equals(normalizedCacheKey))
           ..orderBy([
             (t) => OrderingTerm(
               expression: t.updatedAtMillis,
               mode: OrderingMode.desc,
             ),
           ]))
-        .get();
-    return rows.map(_lyricsTranslationCacheFromRow).toList(growable: false);
+        .watch()
+        .map(
+          (rows) =>
+              rows.map(_lyricsTranslationCacheFromRow).toList(growable: false),
+        );
   }
 
   Future<void> clearLyricsTranslationCache() async {
@@ -412,14 +474,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final normalizedCacheKey = cacheKey.trim();
     if (normalizedCacheKey.isEmpty) return;
 
-    await (delete(lyricsTranslationCaches)
-          ..where((t) => t.cacheKey.equals(normalizedCacheKey)))
-        .go();
+    await (delete(
+      lyricsTranslationCaches,
+    )..where((t) => t.cacheKey.equals(normalizedCacheKey))).go();
   }
 
-  Future<void> insertOrUpdateAcoustIDCache(
-    AcoustIDCacheRecord record,
-  ) async {
+  Future<void> insertOrUpdateAcoustIDCache(AcoustIDCacheRecord record) async {
     await into(acoustidCaches).insertOnConflictUpdate(
       AcoustidCachesCompanion(
         fingerprint: Value(record.fingerprint),
@@ -431,10 +491,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<AcoustIDCacheRecord?> getAcoustIDCache(String fingerprint) async {
-    final row = await (select(acoustidCaches)
-          ..where((t) => t.fingerprint.equals(fingerprint))
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (select(acoustidCaches)
+              ..where((t) => t.fingerprint.equals(fingerprint))
+              ..limit(1))
+            .getSingleOrNull();
     return row == null ? null : _acoustidCacheFromRow(row);
   }
 
@@ -451,11 +512,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     );
   }
 
-  Future<ReleaseCoverCacheRecord?> getReleaseCoverCache(String releaseId) async {
-    final row = await (select(releaseCoverCaches)
-          ..where((t) => t.releaseId.equals(releaseId))
-          ..limit(1))
-        .getSingleOrNull();
+  Future<ReleaseCoverCacheRecord?> getReleaseCoverCache(
+    String releaseId,
+  ) async {
+    final row =
+        await (select(releaseCoverCaches)
+              ..where((t) => t.releaseId.equals(releaseId))
+              ..limit(1))
+            .getSingleOrNull();
     return row == null ? null : _releaseCoverCacheFromRow(row);
   }
 
@@ -508,9 +572,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       metadataTextScanned: Value(song.metadataTextScanned),
       metadataImgScanned: Value(song.metadataImgScanned),
       createdAt: Value(song.createdAt),
-      genres: Value(
-        song.genres == null ? null : jsonEncode(song.genres),
-      ),
+      genres: Value(song.genres == null ? null : jsonEncode(song.genres)),
     );
   }
 
@@ -588,7 +650,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     if (rawValue == null || rawValue.trim().isEmpty) return null;
     final decoded = jsonDecode(rawValue);
     if (decoded is! List) return null;
-    return decoded.map((item) => item?.toString() ?? '').toList(growable: false);
+    return decoded
+        .map((item) => item?.toString() ?? '')
+        .toList(growable: false);
   }
 }
 
@@ -608,11 +672,15 @@ class Songs extends Table {
   IntColumn get artworkHeight => integer().nullable().named('artworkHeight')();
   IntColumn get trackNumber => integer().nullable().named('trackNumber')();
   IntColumn get sourceFlags => integer().nullable().named('sourceFlags')();
-  BlobColumn get themeColorsBlob => blob().nullable().named('themeColorsBlob')();
+  BlobColumn get themeColorsBlob =>
+      blob().nullable().named('themeColorsBlob')();
   BlobColumn get waveformBlob => blob().nullable().named('waveformBlob')();
-  IntColumn get lastModifiedTime => integer().nullable().named('lastModifiedTime')();
-  IntColumn get metadataTextScanned => integer().nullable().named('metadataTextScanned')();
-  IntColumn get metadataImgScanned => integer().nullable().named('metadataImgScanned')();
+  IntColumn get lastModifiedTime =>
+      integer().nullable().named('lastModifiedTime')();
+  IntColumn get metadataTextScanned =>
+      integer().nullable().named('metadataTextScanned')();
+  IntColumn get metadataImgScanned =>
+      integer().nullable().named('metadataImgScanned')();
   IntColumn get createdAt => integer().nullable().named('createdAt')();
   TextColumn get genres => text().nullable().named('genres')();
 
@@ -630,7 +698,8 @@ class LyricsCaches extends Table {
   BoolColumn get isSynced => boolean().named('isSynced')();
   TextColumn get syncedLyrics => text().nullable().named('syncedLyrics')();
   TextColumn get syncedLinesJson => text().named('syncedLinesJson')();
-  IntColumn get timelineOffsetMillis => integer().named('timelineOffsetMillis')();
+  IntColumn get timelineOffsetMillis =>
+      integer().named('timelineOffsetMillis')();
   IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
 
   @override

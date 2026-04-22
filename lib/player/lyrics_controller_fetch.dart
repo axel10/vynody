@@ -124,6 +124,7 @@ class LyricsFetchCoordinator {
         ),
       );
       if (updated != null) {
+        unawaited(_context.watchLyricsCacheForSong(updated));
         unawaited(_support.restoreCachedTranslations(updated));
       }
 

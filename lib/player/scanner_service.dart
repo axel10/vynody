@@ -41,15 +41,19 @@ class ScannerService extends ChangeNotifier {
   final ScannerNavigationState _navigationState = ScannerNavigationState();
   final List<MusicFolder> _scannedRootFolders = [];
   final List<MusicFolder> _rootFolders = [];
+  StreamSubscription<List<SongMetadata>>? _songMetadataSubscription;
   bool _isScanning = false;
   bool _isBackgroundTaskPaused = false;
   Timer? _metadataNotifyTimer;
+  Timer? _metadataWatchTimer;
   Timer? _scanNotifyTimer;
   bool _scanNotifyPending = false;
   bool _lastNotifiedScanningState = false;
   bool _isDisposed = false;
   Future<void> _incrementalEventQueue = Future<void>.value();
   final List<FileSystemEvent> _pendingIncrementalEvents = [];
+  List<SongMetadata>? _pendingWatchedSongs;
+  bool _isMetadataWatchReady = false;
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -333,6 +337,8 @@ class ScannerService extends ChangeNotifier {
       // Auto scan on startup
       await _timeInitStep('startup scan', scan);
     } finally {
+      _isMetadataWatchReady = true;
+      _startMetadataWatchSubscription();
       totalStopwatch.stop();
       _logInitTiming('init total', totalStopwatch);
     }
@@ -568,9 +574,7 @@ class ScannerService extends ChangeNotifier {
         );
         notifyListeners();
 
-        unawaited(
-          _processAndSaveAndroidSongsBackground(scanResult.entries),
-        );
+        unawaited(_processAndSaveAndroidSongsBackground(scanResult.entries));
         return;
       }
 
@@ -632,6 +636,7 @@ class ScannerService extends ChangeNotifier {
   Future<void> _loadCachedRootFoldersFromDatabase({
     Iterable<String>? rootPaths,
     List<SongMetadata>? cachedSongs,
+    bool seedMetadataCache = true,
   }) async {
     try {
       final declaredRoots = (rootPaths ?? _roots.rootPaths)
@@ -683,7 +688,9 @@ class ScannerService extends ChangeNotifier {
           continue;
         }
         _upsertScannedRootFolder(cachedFolder);
-        _seedMetadataCache(songs);
+        if (seedMetadataCache) {
+          _seedMetadataCache(songs);
+        }
         loadedCount += songs.length;
       }
 
@@ -700,6 +707,7 @@ class ScannerService extends ChangeNotifier {
 
   Future<void> _loadCachedSystemMediaFolderFromDatabase({
     List<SongMetadata>? cachedSongs,
+    bool seedMetadataCache = true,
   }) async {
     if (Platform.isWindows) return;
 
@@ -727,7 +735,9 @@ class ScannerService extends ChangeNotifier {
           resolveSettings: _resolveSortSettingsForFolder,
         );
       }
-      _seedMetadataCache(filteredSongs);
+      if (seedMetadataCache) {
+        _seedMetadataCache(filteredSongs);
+      }
 
       debugPrint(
         '[ScannerService] Loaded cached system media folder from songs table '
@@ -781,6 +791,73 @@ class ScannerService extends ChangeNotifier {
     for (final song in songs) {
       _metadataStore.cacheMetadata(song);
     }
+  }
+
+  void _startMetadataWatchSubscription() {
+    if (_songMetadataSubscription != null || !_isMetadataWatchReady) {
+      return;
+    }
+
+    _songMetadataSubscription = MetadataDatabase()
+        .watchAllSongMetadata()
+        .listen(
+          (songs) {
+            if (_isDisposed) return;
+            _pendingWatchedSongs = songs;
+            _scheduleMetadataWatchRefresh();
+          },
+          onError: (error, stackTrace) {
+            debugPrint('[ScannerService] metadata watch error: $error');
+          },
+        );
+  }
+
+  void _scheduleMetadataWatchRefresh() {
+    if (_metadataWatchTimer?.isActive ?? false) {
+      return;
+    }
+
+    _metadataWatchTimer = Timer(const Duration(milliseconds: 200), () {
+      _metadataWatchTimer = null;
+      unawaited(_refreshMetadataFromWatch());
+    });
+  }
+
+  Future<void> _refreshMetadataFromWatch() async {
+    if (_isDisposed) return;
+    if (!_isMetadataWatchReady) return;
+    if (_isScanning) {
+      _scheduleMetadataWatchRefresh();
+      return;
+    }
+
+    final songs = _pendingWatchedSongs;
+    if (songs == null) return;
+    _pendingWatchedSongs = null;
+
+    final declaredRoots = _roots.rootPaths
+        .map(_normalizePath)
+        .where((path) => path.isNotEmpty)
+        .toList(growable: false);
+
+    _scannedRootFolders.clear();
+    _systemMediaFolder = null;
+    _metadataStore.replaceAllMetadata(songs);
+
+    if (declaredRoots.isNotEmpty) {
+      await _loadCachedRootFoldersFromDatabase(
+        rootPaths: declaredRoots,
+        cachedSongs: songs,
+        seedMetadataCache: false,
+      );
+    }
+    await _loadCachedSystemMediaFolderFromDatabase(
+      cachedSongs: songs,
+      seedMetadataCache: false,
+    );
+    _rebuildDisplayedRootFolders();
+    _syncNavigationStateToLatestTree();
+    notifyListeners();
   }
 
   bool _songMatchesSource(
@@ -1029,7 +1106,9 @@ class ScannerService extends ChangeNotifier {
     );
     if (processed == null) return;
 
-    final metadata = processed.$1.copyWith(sourceFlags: SongSourceFlags.rootScan);
+    final metadata = processed.$1.copyWith(
+      sourceFlags: SongSourceFlags.rootScan,
+    );
     final artworkBytes = processed.$2;
 
     await MetadataDatabase().insertOrUpdateSong(metadata);
@@ -1986,8 +2065,10 @@ class ScannerService extends ChangeNotifier {
     _navigationState.removeListener(_handleNavigationChanged);
     _navigationState.dispose();
     _roots.dispose();
+    _songMetadataSubscription?.cancel();
     _mediaObserverSubscription?.cancel();
     _metadataNotifyTimer?.cancel();
+    _metadataWatchTimer?.cancel();
     _scanNotifyTimer?.cancel();
     _scanProgressController.close();
     super.dispose();

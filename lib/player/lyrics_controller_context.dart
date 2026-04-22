@@ -70,6 +70,7 @@ class LyricsControllerContext {
     required this.setLyricsGenerating,
     required this.startLyricsGenerationStatus,
     required this.clearLyricsGenerationStatus,
+    required this.watchLyricsCacheForSong,
     required this.bumpRevision,
     required this.logDebug,
   });
@@ -106,6 +107,7 @@ class LyricsControllerContext {
   setLyricsGenerating;
   final void Function(String value) startLyricsGenerationStatus;
   final void Function() clearLyricsGenerationStatus;
+  final Future<void> Function(MusicFile song) watchLyricsCacheForSong;
   final void Function() bumpRevision;
   final void Function(String message) logDebug;
 

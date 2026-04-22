@@ -40,10 +40,16 @@ class LyricsController extends Notifier<LyricsControllerState> {
   late final LyricsFetchCoordinator _fetchCoordinator;
   late final LyricsGenerationCoordinator _generationCoordinator;
   late final LyricsTranslationCoordinator _translationCoordinator;
+  StreamSubscription<LyricsCacheRecord?>? _lyricsCacheSubscription;
+  StreamSubscription<List<LyricsTranslationCacheRecord>>?
+  _lyricsTranslationCacheSubscription;
+  String? _watchedLyricsCacheKey;
+  String? _watchedLyricsSongPath;
 
   @override
   LyricsControllerState build() {
     final dependencies = ref.watch(lyricsControllerDependenciesProvider);
+    ref.onDispose(clearLyricsCacheWatch);
     _db = dependencies.db;
     _currentMusic = dependencies.currentMusic;
     _queue = dependencies.queue;
@@ -87,6 +93,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       setLyricsGenerating: _setLyricsGenerating,
       startLyricsGenerationStatus: _startLyricsGenerationStatus,
       clearLyricsGenerationStatus: _clearLyricsGenerationStatus,
+      watchLyricsCacheForSong: watchLyricsCacheForSong,
       bumpRevision: _bumpRevision,
       logDebug: _logDebug,
     );
@@ -200,6 +207,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       lyricsTranslationLanguageCode: current.lyricsTranslationLanguageCode,
       revision: notify ? current.revision + 1 : current.revision,
     );
+    clearLyricsCacheWatch();
   }
 
   void restoreFromSongLyrics(MusicFile song) {
@@ -215,6 +223,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _currentLyricsText = songLyrics.plainText;
     _lyricsSearchAttempted = true;
     unawaited(_support.restoreCachedTranslations(song));
+    unawaited(watchLyricsCacheForSong(song));
     _logDebug(
       'lyrics restored from cache -> title="${song.displayName}" '
       'lines=${songLyrics.syncedLines.length} synced=${songLyrics.isSynced}',
@@ -228,6 +237,59 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   Future<void> fetchAndLog(MusicFile song) {
     return _fetchCoordinator.fetchAndLog(song);
+  }
+
+  Future<void> watchLyricsCacheForSong(MusicFile song) async {
+    final query = await _support.buildLyricsQueryForSong(song);
+    final cacheKey = query?.cacheKey.trim() ?? '';
+    if (cacheKey.isEmpty) {
+      clearLyricsCacheWatch();
+      return;
+    }
+
+    final currentPath = _context.currentMusic()?.path;
+    if (currentPath != song.path) {
+      return;
+    }
+
+    if (_watchedLyricsCacheKey == cacheKey &&
+        _watchedLyricsSongPath == song.path) {
+      return;
+    }
+
+    clearLyricsCacheWatch();
+    _watchedLyricsCacheKey = cacheKey;
+    _watchedLyricsSongPath = song.path;
+
+    _lyricsCacheSubscription = _context.lyricsCacheRepository
+        .watchLyricsCache(cacheKey)
+        .listen(
+          (_) => unawaited(_syncLyricsCacheWatch(song.path, cacheKey)),
+          onError: (error, stackTrace) {
+            debugPrint('[LyricsController] lyrics cache watch error: $error');
+          },
+        );
+    _lyricsTranslationCacheSubscription = _context.lyricsCacheRepository
+        .watchLyricsTranslationCaches(cacheKey)
+        .listen(
+          (_) => unawaited(_syncLyricsCacheWatch(song.path, cacheKey)),
+          onError: (error, stackTrace) {
+            debugPrint(
+              '[LyricsController] lyrics translation cache watch error: $error',
+            );
+          },
+        );
+
+    unawaited(_syncLyricsCacheWatch(song.path, cacheKey));
+  }
+
+  void clearLyricsCacheWatch() {
+    _lyricsCacheSubscription?.cancel();
+    _lyricsCacheSubscription = null;
+    _lyricsTranslationCacheSubscription?.cancel();
+    _lyricsTranslationCacheSubscription = null;
+    _watchedLyricsCacheKey = null;
+    _watchedLyricsSongPath = null;
   }
 
   Future<void> retryFetchUntilReady(MusicFile song) {
@@ -309,5 +371,61 @@ class LyricsController extends Notifier<LyricsControllerState> {
   void _logDebug(String message) {
     if (!kDebugMode) return;
     debugPrint('[AudioService][Lyrics] $message');
+  }
+
+  Future<void> _syncLyricsCacheWatch(String songPath, String cacheKey) async {
+    final currentSong = _support.songForPath(songPath);
+    if (currentSong == null) {
+      return;
+    }
+
+    final lyricsRecord = await _context.lyricsCacheRepository.getLyricsCache(
+      cacheKey,
+    );
+    if (lyricsRecord == null) {
+      if (currentSong.lyrics != null) {
+        _support.clearLyricsStateForPath(songPath);
+        _context.setLyricsTranslationStatus('');
+        _context.bumpRevision();
+      }
+      return;
+    }
+
+    final translationRecords = await _context.lyricsCacheRepository
+        .getLyricsTranslationCaches(cacheKey);
+    final translations = _support.translationsFromCacheRecords(
+      translationRecords,
+    );
+    final nextLyrics = _support.lyricsFromCacheRecord(
+      lyricsRecord,
+      translations: translations,
+    );
+
+    if (currentSong.lyrics == nextLyrics) {
+      return;
+    }
+
+    final updatedSong = _support.replaceSongIfPath(
+      songPath,
+      (queueSong) => queueSong.copyWith(lyrics: nextLyrics),
+    );
+    if (updatedSong == null) {
+      return;
+    }
+
+    if (_context.currentMusic()?.path == songPath) {
+      _context.setHasLyrics(
+        nextLyrics.plainText.trim().isNotEmpty ||
+            nextLyrics.syncedLines.isNotEmpty ||
+            nextLyrics.translations.isNotEmpty,
+      );
+      _context.setIsLyricsLoading(false);
+      _context.setLyricsSearchAttempted(true);
+      _context.setCurrentLyricsLines(nextLyrics.syncedLines);
+      _context.setCurrentLyricsText(nextLyrics.plainText);
+      _context.setLyricsTranslationStatus('');
+    }
+
+    _context.bumpRevision();
   }
 }

@@ -117,6 +117,54 @@ class LyricsControllerSupport {
     return query?.cacheKey ?? '';
   }
 
+  MusicLyric lyricsFromCacheRecord(
+    LyricsCacheRecord record, {
+    Map<String, MusicLyricTranslation> translations =
+        const <String, MusicLyricTranslation>{},
+  }) {
+    final lyricsText = _lyricsTextFromRecord(record);
+    return MusicLyric(
+      id: LyricsIdUtils.fromLyricsText(lyricsText),
+      syncedLines: record.syncedLines,
+      plainText: lyricsText,
+      source: record.source.musicLyricSource,
+      timelineOffset: Duration(milliseconds: record.timelineOffsetMillis),
+      translations: translations,
+    );
+  }
+
+  Map<String, MusicLyricTranslation> translationsFromCacheRecords(
+    Iterable<LyricsTranslationCacheRecord> records,
+  ) {
+    return {
+      for (final record in records)
+        record.languageCode: MusicLyricTranslation(
+          languageCode: record.languageCode,
+          translatedText: record.translatedText,
+          translatedLines: record.translatedLines,
+          provider: record.provider,
+          updatedAt: DateTime.fromMillisecondsSinceEpoch(
+            record.updatedAtMillis,
+          ),
+        ),
+    };
+  }
+
+  String _lyricsTextFromRecord(LyricsCacheRecord record) {
+    final syncedLyrics = record.syncedLyrics?.trim();
+    if (syncedLyrics != null && syncedLyrics.isNotEmpty) {
+      return syncedLyrics;
+    }
+
+    if (record.syncedLines.isEmpty) return '';
+
+    return record.syncedLines
+        .map((line) => line.text)
+        .where((line) => line.trim().isNotEmpty)
+        .join('\n')
+        .trim();
+  }
+
   void clearLyricsStateForPath(String path) {
     final queue = _context.queue();
     for (var i = 0; i < queue.length; i++) {
