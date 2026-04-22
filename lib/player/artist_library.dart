@@ -8,9 +8,9 @@ import '../models/music_file.dart';
 import '../utils/network_client.dart';
 import 'metadata_database.dart';
 
-final artistLibraryProvider = FutureProvider<List<ArtistSummary>>((ref) async {
+final artistLibraryProvider = StreamProvider<List<ArtistSummary>>((ref) async* {
   final repository = ArtistLibraryRepository();
-  return repository.loadArtistSummaries();
+  yield* repository.watchArtistSummaries();
 });
 
 class ArtistLibraryRepository {
@@ -27,39 +27,39 @@ class ArtistLibraryRepository {
   static DateTime _lastMusicBrainzRequestAt =
       DateTime.fromMillisecondsSinceEpoch(0);
 
-  Future<List<ArtistSummary>> loadArtistSummaries() async {
+  Stream<List<ArtistSummary>> watchArtistSummaries() async* {
     final songs = await _database.getAllSongMetadata();
     final groups = _groupSongsByArtist(songs);
 
     final cacheKeys = groups.map((group) => group.queryKey).toList(
       growable: false,
     );
-    final existingCaches = await _database.getArtistCachesByKeys(cacheKeys);
-    final missingGroups = groups
-        .where((group) => !existingCaches.containsKey(group.queryKey))
-        .toList(growable: false);
+    final caches = await _database.getArtistCachesByKeys(cacheKeys);
+    yield _buildSummaries(groups, caches);
 
-    if (missingGroups.isNotEmpty) {
-      await _refreshMissingArtistCaches(missingGroups);
+    final missingGroups = groups
+        .where((group) => !caches.containsKey(group.queryKey))
+        .toList(growable: false);
+    if (missingGroups.isEmpty) {
+      return;
     }
 
-    final refreshedCaches = await _database.getArtistCachesByKeys(cacheKeys);
-    final summaries = groups
-        .map((group) => _buildSummary(group, refreshedCaches[group.queryKey]))
-        .toList(growable: false)
-      ..sort((left, right) {
-        final leftName = _artistSortLabel(left);
-        final rightName = _artistSortLabel(right);
-        final compare = leftName.compareTo(rightName);
-        if (compare != 0) return compare;
-        return left.name.toLowerCase().compareTo(right.name.toLowerCase());
-      });
-
-    return summaries;
+    final currentCaches = <String, ArtistCacheRecord>{...caches};
+    await for (final updated in _refreshMissingArtistCaches(
+      groups: groups,
+      pendingGroups: missingGroups,
+      cacheMap: currentCaches,
+    )) {
+      yield updated;
+    }
   }
 
-  Future<void> _refreshMissingArtistCaches(List<_ArtistGroup> groups) async {
-    final pending = List<_ArtistGroup>.from(groups);
+  Stream<List<ArtistSummary>> _refreshMissingArtistCaches({
+    required List<_ArtistGroup> groups,
+    required List<_ArtistGroup> pendingGroups,
+    required Map<String, ArtistCacheRecord> cacheMap,
+  }) async* {
+    final pending = List<_ArtistGroup>.from(pendingGroups);
     while (pending.isNotEmpty) {
       final batch = pending.take(20).toList(growable: false);
       pending.removeRange(0, batch.length);
@@ -68,41 +68,43 @@ class ArtistLibraryRepository {
       for (final group in batch) {
         final searchHit = searchResults[group.queryKey];
         if (searchHit == null) {
-          await _database.insertOrUpdateArtistCache(
-            ArtistCacheRecord(
-              queryKey: group.queryKey,
-              artistName: group.displayName,
-              noData: true,
-              updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-            ),
+          final record = ArtistCacheRecord(
+            queryKey: group.queryKey,
+            artistName: group.displayName,
+            noData: true,
+            updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
           );
+          await _database.insertOrUpdateArtistCache(record);
+          cacheMap[group.queryKey] = record;
+          yield _buildSummaries(groups, cacheMap);
           continue;
         }
 
         final detail = await _fetchArtistDetail(searchHit.id);
-        await _database.insertOrUpdateArtistCache(
-          ArtistCacheRecord(
-            queryKey: group.queryKey,
-            artistId: searchHit.id,
-            artistName: searchHit.name.isNotEmpty
-                ? searchHit.name
-                : group.displayName,
-            sortName: searchHit.sortName,
-            disambiguation: detail?.disambiguation ?? searchHit.disambiguation,
-            country: detail?.country ?? searchHit.country,
-            imageFileTitle: detail?.imageFileTitle,
-            imageUrl: detail?.imageUrl,
-            thumbnailUrl: detail?.thumbnailUrl ?? detail?.imageUrl,
-            areaName: detail?.areaName,
-            beginDate: detail?.beginDate,
-            endDate: detail?.endDate,
-            tagsJson: detail?.tagsJson,
-            rawSearchJson: jsonEncode(searchHit.raw),
-            rawDetailJson: detail == null ? null : jsonEncode(detail.raw),
-            noData: false,
-            updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-          ),
+        final record = ArtistCacheRecord(
+          queryKey: group.queryKey,
+          artistId: searchHit.id,
+          artistName: searchHit.name.isNotEmpty
+              ? searchHit.name
+              : group.displayName,
+          sortName: searchHit.sortName,
+          disambiguation: detail?.disambiguation ?? searchHit.disambiguation,
+          country: detail?.country ?? searchHit.country,
+          imageFileTitle: detail?.imageFileTitle,
+          imageUrl: detail?.imageUrl,
+          thumbnailUrl: detail?.thumbnailUrl ?? detail?.imageUrl,
+          areaName: detail?.areaName,
+          beginDate: detail?.beginDate,
+          endDate: detail?.endDate,
+          tagsJson: detail?.tagsJson,
+          rawSearchJson: jsonEncode(searchHit.raw),
+          rawDetailJson: detail == null ? null : jsonEncode(detail.raw),
+          noData: false,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
         );
+        await _database.insertOrUpdateArtistCache(record);
+        cacheMap[group.queryKey] = record;
+        yield _buildSummaries(groups, cacheMap);
       }
     }
   }
@@ -299,6 +301,23 @@ class ArtistLibraryRepository {
       tags: tags,
       noData: cache?.noData ?? false,
     );
+  }
+
+  List<ArtistSummary> _buildSummaries(
+    List<_ArtistGroup> groups,
+    Map<String, ArtistCacheRecord> caches,
+  ) {
+    final summaries = groups
+        .map((group) => _buildSummary(group, caches[group.queryKey]))
+        .toList(growable: false);
+    summaries.sort((left, right) {
+      final leftName = _artistSortLabel(left);
+      final rightName = _artistSortLabel(right);
+      final compare = leftName.compareTo(rightName);
+      if (compare != 0) return compare;
+      return left.name.toLowerCase().compareTo(right.name.toLowerCase());
+    });
+    return summaries;
   }
 }
 
