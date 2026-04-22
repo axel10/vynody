@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,7 +31,13 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
   @override
   Widget build(BuildContext context) {
     final artistsAsync = ref.watch(artistLibraryProvider);
-    final l10n = AppLocalizations.of(context)!;
+    debugPrint(
+      '[ArtistsTab] build loading=${artistsAsync.isLoading} '
+      'hasValue=${artistsAsync.hasValue} hasError=${artistsAsync.hasError}',
+    );
+    final l10n = AppLocalizations.of(context);
+    final artistsLabel = l10n?.artists ?? 'Artists';
+    final noArtistsLabel = l10n?.noArtists ?? 'No artists found yet';
 
     return artistsAsync.when(
       loading: () => const Center(
@@ -68,6 +76,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                     searchController: _searchController,
                     searchQuery: _searchQuery,
                     artistCount: visibleArtists.length,
+                    artistsLabel: artistsLabel,
                     onSearchChanged: (value) {
                       setState(() {
                         _searchQuery = value.trim();
@@ -86,7 +95,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                     hasScrollBody: false,
                     child: Center(
                       child: Text(
-                        l10n.noArtists,
+                        noArtistsLabel,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
@@ -102,8 +111,10 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                         childAspectRatio: 0.72,
                       ),
                       delegate: SliverChildBuilderDelegate(
-                        (context, index) =>
-                            _ArtistCard(artist: visibleArtists[index]),
+                        (context, index) => KeyedSubtree(
+                          key: ValueKey(visibleArtists[index].queryKey),
+                          child: _ArtistCard(artist: visibleArtists[index]),
+                        ),
                         childCount: visibleArtists.length,
                       ),
                     ),
@@ -144,7 +155,10 @@ class _ArtistCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    final playAllLabel = l10n?.playAll ?? 'Play all';
+    final songCountLabel =
+        l10n?.songCount(artist.songCount) ?? '${artist.songCount} songs';
     final audio = ref.read(audioServiceProvider);
 
     return Material(
@@ -217,14 +231,14 @@ class _ArtistCard extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          l10n.songCount(artist.songCount),
+                          songCountLabel,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
                       IconButton(
-                        tooltip: l10n.playAll,
+                        tooltip: playAllLabel,
                         onPressed: () => audio.playPlaylist(artist.songs),
                         icon: const Icon(Icons.play_arrow),
                       ),
@@ -250,7 +264,12 @@ class _ArtistCard extends ConsumerWidget {
     WidgetRef ref,
     Offset globalPosition,
   ) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    final playAllLabel = l10n?.playAll ?? 'Play all';
+    final shufflePlayLabel = l10n?.shufflePlay ?? 'Shuffle play';
+    final viewArtistDetailsLabel =
+        l10n?.viewArtistDetails ?? 'View artist details';
+    final copyArtistNameLabel = l10n?.copyArtistName ?? 'Copy artist name';
     final overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
@@ -262,14 +281,14 @@ class _ArtistCard extends ConsumerWidget {
         Offset.zero & overlay.size,
       ),
       items: [
-        PopupMenuItem(value: 'play_all', child: Text(l10n.playAll)),
-        PopupMenuItem(value: 'shuffle', child: Text(l10n.shufflePlay)),
+        PopupMenuItem(value: 'play_all', child: Text(playAllLabel)),
+        PopupMenuItem(value: 'shuffle', child: Text(shufflePlayLabel)),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'view_details',
-          child: Text(l10n.viewArtistDetails),
+          child: Text(viewArtistDetailsLabel),
         ),
-        PopupMenuItem(value: 'copy_artist', child: Text(l10n.copyArtistName)),
+        PopupMenuItem(value: 'copy_artist', child: Text(copyArtistNameLabel)),
       ],
     );
 
@@ -302,23 +321,103 @@ class _ArtistCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final imageUrl = artist.imageUrl?.trim();
-    if (imageUrl == null || imageUrl.isEmpty) {
+    final cachedImagePath = artist.cachedImagePath?.trim();
+    if (cachedImagePath != null && cachedImagePath.isNotEmpty) {
+      final file = File(cachedImagePath);
+      if (file.existsSync()) {
+        debugPrint(
+          '[ArtistCover] file hit key=${artist.queryKey} path=$cachedImagePath',
+        );
+        return Image.file(file, fit: BoxFit.cover);
+      }
+    }
+
+    if (artist.isImageLoading) {
+      debugPrint(
+        '[ArtistCover] loading key=${artist.queryKey} '
+        'hasUrl=${artist.imageUrl?.trim().isNotEmpty == true} '
+        'hasCachePath=${cachedImagePath?.isNotEmpty == true}',
+      );
+      return _loadingPlaceholder(theme);
+    }
+
+    if ((artist.imageUrl?.trim().isNotEmpty ?? false)) {
+      debugPrint(
+        '[ArtistCover] imageUrl present but no cache key=${artist.queryKey} '
+        'url=${artist.imageUrl}',
+      );
       return _fallback(theme);
     }
 
-    return Image.network(
-      imageUrl,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => _fallback(theme),
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return _CoverShimmer(
-          baseColor: colorScheme.surfaceContainerHighest,
-          highlightColor: colorScheme.surfaceContainerLow,
-        );
-      },
+    if (cachedImagePath == null || cachedImagePath.isEmpty) {
+      debugPrint(
+        '[ArtistCover] no image key=${artist.queryKey} fallback to placeholder',
+      );
+      return _fallback(theme);
+    }
+
+    debugPrint(
+      '[ArtistCover] unexpected fallback key=${artist.queryKey} '
+      'path=$cachedImagePath',
+    );
+    return _fallback(theme);
+  }
+
+  Widget _loadingPlaceholder(ThemeData theme) {
+    final baseColor = theme.colorScheme.surfaceContainerHighest.withValues(
+      alpha: 0.95,
+    );
+    final highlightColor = theme.colorScheme.surface.withValues(alpha: 0.9);
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      period: const Duration(milliseconds: 1400),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.95),
+              theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
+            ],
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.colorScheme.primaryContainer.withValues(
+                        alpha: 0.16,
+                      ),
+                      theme.colorScheme.secondaryContainer.withValues(
+                        alpha: 0.08,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Center(
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -343,52 +442,12 @@ class _ArtistCover extends StatelessWidget {
   }
 }
 
-class _CoverShimmer extends StatelessWidget {
-  const _CoverShimmer({required this.baseColor, required this.highlightColor});
-
-  final Color baseColor;
-  final Color highlightColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: baseColor,
-      highlightColor: highlightColor,
-      child: Container(
-        decoration: BoxDecoration(
-          color: baseColor,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [baseColor, highlightColor],
-          ),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(color: baseColor.withValues(alpha: 0.85)),
-            Center(
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: highlightColor.withValues(alpha: 0.55),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _ArtistsToolbar extends StatelessWidget {
   const _ArtistsToolbar({
     required this.searchController,
     required this.searchQuery,
     required this.artistCount,
+    required this.artistsLabel,
     required this.onSearchChanged,
     required this.onSearchCleared,
   });
@@ -396,13 +455,17 @@ class _ArtistsToolbar extends StatelessWidget {
   final TextEditingController searchController;
   final String searchQuery;
   final int artistCount;
+  final String artistsLabel;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onSearchCleared;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final searchArtistsLabel = l10n?.searchArtists ?? 'Search artists';
+    final artistCountLabel =
+        l10n?.songCount(artistCount) ?? '$artistCount artists';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -410,14 +473,14 @@ class _ArtistsToolbar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.artists,
+            artistsLabel,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            l10n.songCount(artistCount),
+            artistCountLabel,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -427,7 +490,7 @@ class _ArtistsToolbar extends StatelessWidget {
             controller: searchController,
             onChanged: onSearchChanged,
             decoration: InputDecoration(
-              hintText: l10n.searchArtists,
+              hintText: searchArtistsLabel,
               prefixIcon: const Icon(Icons.search),
               suffixIcon: searchQuery.isEmpty
                   ? null
@@ -450,15 +513,17 @@ class _ArtistsToolbar extends StatelessWidget {
 
 String _artistSubtitle(ArtistSummary artist) {
   final parts = <String>[];
-  if (artist.disambiguation != null &&
-      artist.disambiguation!.trim().isNotEmpty) {
-    parts.add(artist.disambiguation!.trim());
+  final disambiguation = artist.disambiguation?.trim();
+  if (disambiguation != null && disambiguation.isNotEmpty) {
+    parts.add(disambiguation);
   }
-  if (artist.country != null && artist.country!.trim().isNotEmpty) {
-    parts.add(artist.country!.trim());
+  final country = artist.country?.trim();
+  if (country != null && country.isNotEmpty) {
+    parts.add(country);
   }
-  if (artist.beginDate != null && artist.beginDate!.trim().isNotEmpty) {
-    parts.add(artist.beginDate!.trim());
+  final beginDate = artist.beginDate?.trim();
+  if (beginDate != null && beginDate.isNotEmpty) {
+    parts.add(beginDate);
   }
   if (parts.isEmpty) {
     return 'MusicBrainz';

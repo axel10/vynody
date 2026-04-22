@@ -8,6 +8,7 @@ part of 'metadata_database.dart';
     ReleaseCoverCaches,
     LyricsTranslationCaches,
     ArtistCaches,
+    ArtistImageCaches,
   ],
 )
 class MetadataDriftDatabase extends _$MetadataDriftDatabase {
@@ -16,13 +17,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     beforeOpen: (details) async {
       await customStatement('PRAGMA busy_timeout = 5000');
       await _repairLegacyLyricsCacheRows();
+      await _repairLegacyArtistCacheRows();
     },
     onCreate: (m) async {
       await m.createAll();
@@ -184,6 +186,32 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           )
         ''');
       }
+      if (from < 21) {
+        await m.database.customStatement('''
+          CREATE TABLE IF NOT EXISTS artist_image_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            artistId TEXT UNIQUE,
+            imagePath TEXT,
+            sourceUrl TEXT,
+            width INTEGER,
+            height INTEGER,
+            updatedAtMillis INTEGER
+          )
+        ''');
+      }
+      if (from < 22) {
+        await _addColumnIfMissing(
+          m,
+          'artist_cache',
+          'imageFetchCompleted',
+          'INTEGER',
+        );
+        await m.database.customStatement('''
+          UPDATE artist_cache
+          SET imageFetchCompleted = 0
+          WHERE imageFetchCompleted IS NULL
+        ''');
+      }
     },
   );
 
@@ -216,6 +244,24 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       SET timelineOffsetMillis = 0
       WHERE timelineOffsetMillis IS NULL
     ''');
+  }
+
+  Future<void> _repairLegacyArtistCacheRows() async {
+    if (await _columnExists('artist_cache', 'noData')) {
+      await customStatement('''
+        UPDATE artist_cache
+        SET noData = 0
+        WHERE noData IS NULL
+      ''');
+    }
+
+    if (await _columnExists('artist_cache', 'imageFetchCompleted')) {
+      await customStatement('''
+        UPDATE artist_cache
+        SET imageFetchCompleted = 0
+        WHERE imageFetchCompleted IS NULL
+      ''');
+    }
   }
 
   Stream<List<SongMetadata>> watchAllSongMetadata() {
@@ -549,24 +595,48 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<void> insertOrUpdateArtistCache(ArtistCacheRecord record) async {
-    await into(artistCaches).insertOnConflictUpdate(
-      ArtistCachesCompanion(
-        queryKey: Value(record.queryKey),
+    final normalizedKey = _normalizeArtistCacheKey(record.queryKey);
+    final companion = ArtistCachesCompanion(
+      queryKey: Value(normalizedKey),
+      artistId: Value(record.artistId),
+      artistName: Value(record.artistName),
+      sortName: Value(record.sortName),
+      disambiguation: Value(record.disambiguation),
+      country: Value(record.country),
+      imageFileTitle: Value(record.imageFileTitle),
+      imageUrl: Value(record.imageUrl),
+      thumbnailUrl: Value(record.thumbnailUrl),
+      areaName: Value(record.areaName),
+      beginDate: Value(record.beginDate),
+      endDate: Value(record.endDate),
+      tagsJson: Value(record.tagsJson),
+      rawSearchJson: Value(record.rawSearchJson),
+      rawDetailJson: Value(record.rawDetailJson),
+      noData: Value(record.noData),
+      imageFetchCompleted: Value(record.imageFetchCompleted),
+      updatedAtMillis: Value(record.updatedAtMillis),
+    );
+
+    final existing = await getArtistCache(normalizedKey);
+    if (existing != null) {
+      await (update(artistCaches)..where((t) => t.queryKey.equals(normalizedKey)))
+          .write(companion);
+      return;
+    }
+
+    await into(artistCaches).insert(companion);
+  }
+
+  Future<void> insertOrUpdateArtistImageCache(
+    ArtistImageCacheRecord record,
+  ) async {
+    await into(artistImageCaches).insertOnConflictUpdate(
+      ArtistImageCachesCompanion(
         artistId: Value(record.artistId),
-        artistName: Value(record.artistName),
-        sortName: Value(record.sortName),
-        disambiguation: Value(record.disambiguation),
-        country: Value(record.country),
-        imageFileTitle: Value(record.imageFileTitle),
-        imageUrl: Value(record.imageUrl),
-        thumbnailUrl: Value(record.thumbnailUrl),
-        areaName: Value(record.areaName),
-        beginDate: Value(record.beginDate),
-        endDate: Value(record.endDate),
-        tagsJson: Value(record.tagsJson),
-        rawSearchJson: Value(record.rawSearchJson),
-        rawDetailJson: Value(record.rawDetailJson),
-        noData: Value(record.noData),
+        imagePath: Value(record.imagePath),
+        sourceUrl: Value(record.sourceUrl),
+        width: Value(record.width),
+        height: Value(record.height),
         updatedAtMillis: Value(record.updatedAtMillis),
       ),
     );
@@ -581,6 +651,35 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
               ..limit(1))
             .getSingleOrNull();
     return row == null ? null : _artistCacheFromRow(row);
+  }
+
+  Future<ArtistImageCacheRecord?> getArtistImageCache(String artistId) async {
+    final normalized = artistId.trim();
+    if (normalized.isEmpty) return null;
+    final row =
+        await (select(artistImageCaches)
+              ..where((t) => t.artistId.equals(normalized))
+              ..limit(1))
+            .getSingleOrNull();
+    return row == null ? null : _artistImageCacheFromRow(row);
+  }
+
+  Future<Map<String, ArtistImageCacheRecord>> getArtistImageCachesByIds(
+    Iterable<String> artistIds,
+  ) async {
+    final normalizedIds = artistIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (normalizedIds.isEmpty) return const {};
+
+    final rows = await (select(
+      artistImageCaches,
+    )..where((t) => t.artistId.isIn(normalizedIds))).get();
+    return {
+      for (final row in rows) row.artistId: _artistImageCacheFromRow(row),
+    };
   }
 
   Future<Map<String, ArtistCacheRecord>> getArtistCachesByKeys(
@@ -713,6 +812,19 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       rawSearchJson: row.rawSearchJson,
       rawDetailJson: row.rawDetailJson,
       noData: row.noData,
+      imageFetchCompleted: row.imageFetchCompleted,
+      updatedAtMillis: row.updatedAtMillis,
+    );
+  }
+
+  ArtistImageCacheRecord _artistImageCacheFromRow(ArtistImageCache row) {
+    return ArtistImageCacheRecord(
+      id: row.id,
+      artistId: row.artistId,
+      imagePath: row.imagePath,
+      sourceUrl: row.sourceUrl,
+      width: row.width,
+      height: row.height,
       updatedAtMillis: row.updatedAtMillis,
     );
   }
@@ -863,10 +975,28 @@ class ArtistCaches extends Table {
   TextColumn get rawSearchJson => text().nullable().named('rawSearchJson')();
   TextColumn get rawDetailJson => text().nullable().named('rawDetailJson')();
   BoolColumn get noData => boolean().named('noData')();
+  BoolColumn get imageFetchCompleted =>
+      boolean().named('imageFetchCompleted')();
   IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
 
   @override
   List<String> get customConstraints => const ['UNIQUE(queryKey)'];
+}
+
+class ArtistImageCaches extends Table {
+  @override
+  String get tableName => 'artist_image_cache';
+
+  IntColumn get id => integer().autoIncrement().named('id')();
+  TextColumn get artistId => text().named('artistId')();
+  TextColumn get imagePath => text().named('imagePath')();
+  TextColumn get sourceUrl => text().nullable().named('sourceUrl')();
+  IntColumn get width => integer().nullable().named('width')();
+  IntColumn get height => integer().nullable().named('height')();
+  IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
+
+  @override
+  List<String> get customConstraints => const ['UNIQUE(artistId)'];
 }
 
 class LyricsTranslationCaches extends Table {

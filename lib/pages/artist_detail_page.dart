@@ -17,7 +17,8 @@ class ArtistDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    final unknownAlbumLabel = l10n?.unknownAlbum ?? 'Unknown Album';
     final theme = Theme.of(context);
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
@@ -129,7 +130,7 @@ class ArtistDetailPage extends ConsumerWidget {
                       fontWeight: isCurrent ? FontWeight.w700 : null,
                     ),
                   ),
-                  subtitle: Text(song.album ?? l10n.unknownAlbum),
+                  subtitle: Text(song.album ?? unknownAlbumLabel),
                   trailing: durationLabel == null ? null : Text(durationLabel),
                   onTap: () =>
                       audio.playPlaylist(artist.songs, initialIndex: index),
@@ -179,13 +180,18 @@ class _ArtistInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final artistCountLabel =
+        l10n?.songCount(artist.songCount) ?? '${artist.songCount} songs';
+    final artistsLabel = l10n?.artists ?? 'Artists';
+    final playAllLabel = l10n?.playAll ?? 'Play all';
+    final shufflePlayLabel = l10n?.shufflePlay ?? 'Shuffle play';
     final chips = <Widget>[
-      _InfoChip(label: l10n.songCount(artist.songCount)),
-      if (artist.country != null && artist.country!.trim().isNotEmpty)
+      _InfoChip(label: artistCountLabel),
+      if (artist.country?.trim().isNotEmpty ?? false)
         _InfoChip(label: artist.country!.trim()),
-      if (artist.beginDate != null && artist.beginDate!.trim().isNotEmpty)
+      if (artist.beginDate?.trim().isNotEmpty ?? false)
         _InfoChip(label: artist.beginDate!.trim()),
     ];
 
@@ -193,7 +199,7 @@ class _ArtistInfo extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          l10n.artists,
+          artistsLabel,
           style: theme.textTheme.labelLarge?.copyWith(
             color: theme.colorScheme.primary,
             fontWeight: FontWeight.w700,
@@ -206,8 +212,7 @@ class _ArtistInfo extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
-        if (artist.disambiguation != null &&
-            artist.disambiguation!.trim().isNotEmpty) ...[
+        if (artist.disambiguation?.trim().isNotEmpty ?? false) ...[
           const SizedBox(height: 8),
           Text(
             artist.disambiguation!.trim(),
@@ -216,7 +221,7 @@ class _ArtistInfo extends StatelessWidget {
             ),
           ),
         ],
-        if (artist.areaName != null && artist.areaName!.trim().isNotEmpty) ...[
+        if (artist.areaName?.trim().isNotEmpty ?? false) ...[
           const SizedBox(height: 8),
           Text(
             artist.areaName!.trim(),
@@ -248,12 +253,12 @@ class _ArtistInfo extends StatelessWidget {
             FilledButton.icon(
               onPressed: onPlayAll,
               icon: const Icon(Icons.play_arrow),
-              label: Text(l10n.playAll),
+              label: Text(playAllLabel),
             ),
             OutlinedButton.icon(
               onPressed: onShufflePlay,
               icon: const Icon(Icons.shuffle),
-              label: Text(l10n.shufflePlay),
+              label: Text(shufflePlayLabel),
             ),
           ],
         ),
@@ -296,28 +301,24 @@ class _ArtistCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final imageUrl = artist.imageUrl?.trim();
-    if (imageUrl == null || imageUrl.isEmpty) {
+    final cachedImagePath = artist.cachedImagePath?.trim();
+    if (cachedImagePath != null && cachedImagePath.isNotEmpty) {
+      final file = File(cachedImagePath);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+        );
+      }
+    }
+
+    if (artist.isImageLoading || cachedImagePath == null || cachedImagePath.isEmpty) {
       return _fallback(theme);
     }
 
-    return Image.network(
-      imageUrl,
-      width: size,
-      height: size,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => _fallback(theme),
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          width: size,
-          height: size,
-          color: theme.colorScheme.surfaceContainerHighest,
-          alignment: Alignment.center,
-          child: const CircularProgressIndicator(strokeWidth: 2),
-        );
-      },
-    );
+    return _fallback(theme);
   }
 
   Widget _fallback(ThemeData theme) {

@@ -200,6 +200,7 @@ class ArtistCacheRecord {
   final String? rawSearchJson;
   final String? rawDetailJson;
   final bool noData;
+  final bool imageFetchCompleted;
   final int updatedAtMillis;
 
   const ArtistCacheRecord({
@@ -220,6 +221,7 @@ class ArtistCacheRecord {
     this.rawSearchJson,
     this.rawDetailJson,
     required this.noData,
+    this.imageFetchCompleted = false,
     required this.updatedAtMillis,
   });
 
@@ -241,6 +243,7 @@ class ArtistCacheRecord {
       'rawSearchJson': rawSearchJson,
       'rawDetailJson': rawDetailJson,
       'noData': noData,
+      'imageFetchCompleted': imageFetchCompleted,
       'updatedAtMillis': updatedAtMillis,
     };
   }
@@ -264,6 +267,97 @@ class ArtistCacheRecord {
       rawSearchJson: map['rawSearchJson'] as String?,
       rawDetailJson: map['rawDetailJson'] as String?,
       noData: (map['noData'] as int? ?? 0) != 0,
+      imageFetchCompleted: (map['imageFetchCompleted'] as int? ?? 0) != 0,
+      updatedAtMillis:
+          (map['updatedAtMillis'] as int?) ??
+          DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  ArtistCacheRecord copyWith({
+    int? id,
+    String? queryKey,
+    String? artistId,
+    String? artistName,
+    String? sortName,
+    String? disambiguation,
+    String? country,
+    String? imageFileTitle,
+    String? imageUrl,
+    String? thumbnailUrl,
+    String? areaName,
+    String? beginDate,
+    String? endDate,
+    String? tagsJson,
+    String? rawSearchJson,
+    String? rawDetailJson,
+    bool? noData,
+    bool? imageFetchCompleted,
+    int? updatedAtMillis,
+  }) {
+    return ArtistCacheRecord(
+      id: id ?? this.id,
+      queryKey: queryKey ?? this.queryKey,
+      artistId: artistId ?? this.artistId,
+      artistName: artistName ?? this.artistName,
+      sortName: sortName ?? this.sortName,
+      disambiguation: disambiguation ?? this.disambiguation,
+      country: country ?? this.country,
+      imageFileTitle: imageFileTitle ?? this.imageFileTitle,
+      imageUrl: imageUrl ?? this.imageUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      areaName: areaName ?? this.areaName,
+      beginDate: beginDate ?? this.beginDate,
+      endDate: endDate ?? this.endDate,
+      tagsJson: tagsJson ?? this.tagsJson,
+      rawSearchJson: rawSearchJson ?? this.rawSearchJson,
+      rawDetailJson: rawDetailJson ?? this.rawDetailJson,
+      noData: noData ?? this.noData,
+      imageFetchCompleted:
+          imageFetchCompleted ?? this.imageFetchCompleted,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    );
+  }
+}
+
+class ArtistImageCacheRecord {
+  final int? id;
+  final String artistId;
+  final String imagePath;
+  final String? sourceUrl;
+  final int? width;
+  final int? height;
+  final int updatedAtMillis;
+
+  const ArtistImageCacheRecord({
+    this.id,
+    required this.artistId,
+    required this.imagePath,
+    this.sourceUrl,
+    this.width,
+    this.height,
+    required this.updatedAtMillis,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'artistId': artistId,
+      'imagePath': imagePath,
+      'sourceUrl': sourceUrl,
+      'width': width,
+      'height': height,
+      'updatedAtMillis': updatedAtMillis,
+    };
+  }
+
+  factory ArtistImageCacheRecord.fromMap(Map<String, dynamic> map) {
+    return ArtistImageCacheRecord(
+      id: map['id'] as int?,
+      artistId: map['artistId'] as String? ?? '',
+      imagePath: map['imagePath'] as String? ?? '',
+      sourceUrl: map['sourceUrl'] as String?,
+      width: map['width'] as int?,
+      height: map['height'] as int?,
       updatedAtMillis:
           (map['updatedAtMillis'] as int?) ??
           DateTime.now().millisecondsSinceEpoch,
@@ -334,6 +428,16 @@ class MetadataDatabase {
 
   Future<List<ArtistCacheRecord>> getAllArtistCaches() =>
       _db.getAllArtistCaches();
+
+  Future<void> insertOrUpdateArtistImageCache(ArtistImageCacheRecord record) =>
+      _db.insertOrUpdateArtistImageCache(record);
+
+  Future<ArtistImageCacheRecord?> getArtistImageCache(String artistId) =>
+      _db.getArtistImageCache(artistId);
+
+  Future<Map<String, ArtistImageCacheRecord>> getArtistImageCachesByIds(
+    Iterable<String> artistIds,
+  ) => _db.getArtistImageCachesByIds(artistIds);
 
   Future<SongMetadata?> getSongMetadata(String path) =>
       _db.getSongMetadata(path);

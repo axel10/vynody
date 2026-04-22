@@ -29,7 +29,6 @@ void handleFileOpen(List<String> args) {
   final container = ProviderScope.containerOf(context);
   final audio = container.read(audioServiceProvider);
 
-  AppLog.install();
 
   for (var arg in args) {
     // 处理路径中可能的双引号和两端空格
@@ -56,6 +55,11 @@ void handleFileOpen(List<String> args) {
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // AppLog.install();
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details); // 强制在控制台显示
+    print("Caught Error: ${details.exception}");
+  };
 
   if (Platform.isWindows) {
     await WindowsSingleInstance.ensureSingleInstance(

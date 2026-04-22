@@ -17,6 +17,8 @@ class ArtistSummary {
     this.imageFileTitle,
     this.imageUrl,
     this.thumbnailUrl,
+    this.cachedImagePath,
+    this.isImageLoading = false,
     this.tags = const <String>[],
     this.noData = false,
   });
@@ -36,11 +38,15 @@ class ArtistSummary {
   final String? imageFileTitle;
   final String? imageUrl;
   final String? thumbnailUrl;
+  final String? cachedImagePath;
+  final bool isImageLoading;
   final List<String> tags;
   final bool noData;
 
   bool get isUnknownArtist => queryKey == _normalizeArtistKey('Unknown Artist');
-  bool get hasImage => (imageUrl?.trim().isNotEmpty ?? false);
+  bool get hasImage =>
+      (cachedImagePath?.trim().isNotEmpty ?? false) ||
+      (imageUrl?.trim().isNotEmpty ?? false);
 
   ArtistSummary copyWith({
     String? queryKey,
@@ -58,6 +64,8 @@ class ArtistSummary {
     String? imageFileTitle,
     String? imageUrl,
     String? thumbnailUrl,
+    String? cachedImagePath,
+    bool? isImageLoading,
     List<String>? tags,
     bool? noData,
   }) {
@@ -77,6 +85,8 @@ class ArtistSummary {
       imageFileTitle: imageFileTitle ?? this.imageFileTitle,
       imageUrl: imageUrl ?? this.imageUrl,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      cachedImagePath: cachedImagePath ?? this.cachedImagePath,
+      isImageLoading: isImageLoading ?? this.isImageLoading,
       tags: tags ?? this.tags,
       noData: noData ?? this.noData,
     );

@@ -3060,6 +3060,19 @@ class $ArtistCachesTable extends ArtistCaches
       'CHECK ("noData" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _imageFetchCompletedMeta =
+      const VerificationMeta('imageFetchCompleted');
+  @override
+  late final GeneratedColumn<bool> imageFetchCompleted = GeneratedColumn<bool>(
+    'imageFetchCompleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("imageFetchCompleted" IN (0, 1))',
+    ),
+  );
   static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
     'updatedAtMillis',
   );
@@ -3090,6 +3103,7 @@ class $ArtistCachesTable extends ArtistCaches
     rawSearchJson,
     rawDetailJson,
     noData,
+    imageFetchCompleted,
     updatedAtMillis,
   ];
   @override
@@ -3222,6 +3236,17 @@ class $ArtistCachesTable extends ArtistCaches
     } else if (isInserting) {
       context.missing(_noDataMeta);
     }
+    if (data.containsKey('imageFetchCompleted')) {
+      context.handle(
+        _imageFetchCompletedMeta,
+        imageFetchCompleted.isAcceptableOrUnknown(
+          data['imageFetchCompleted']!,
+          _imageFetchCompletedMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_imageFetchCompletedMeta);
+    }
     if (data.containsKey('updatedAtMillis')) {
       context.handle(
         _updatedAtMillisMeta,
@@ -3310,6 +3335,10 @@ class $ArtistCachesTable extends ArtistCaches
         DriftSqlType.bool,
         data['${effectivePrefix}noData'],
       )!,
+      imageFetchCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}imageFetchCompleted'],
+      )!,
       updatedAtMillis: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updatedAtMillis'],
@@ -3341,6 +3370,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
   final String? rawSearchJson;
   final String? rawDetailJson;
   final bool noData;
+  final bool imageFetchCompleted;
   final int updatedAtMillis;
   const ArtistCache({
     required this.id,
@@ -3360,6 +3390,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
     this.rawSearchJson,
     this.rawDetailJson,
     required this.noData,
+    required this.imageFetchCompleted,
     required this.updatedAtMillis,
   });
   @override
@@ -3410,6 +3441,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
       map['rawDetailJson'] = Variable<String>(rawDetailJson);
     }
     map['noData'] = Variable<bool>(noData);
+    map['imageFetchCompleted'] = Variable<bool>(imageFetchCompleted);
     map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
     return map;
   }
@@ -3461,6 +3493,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
           ? const Value.absent()
           : Value(rawDetailJson),
       noData: Value(noData),
+      imageFetchCompleted: Value(imageFetchCompleted),
       updatedAtMillis: Value(updatedAtMillis),
     );
   }
@@ -3488,6 +3521,9 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
       rawSearchJson: serializer.fromJson<String?>(json['rawSearchJson']),
       rawDetailJson: serializer.fromJson<String?>(json['rawDetailJson']),
       noData: serializer.fromJson<bool>(json['noData']),
+      imageFetchCompleted: serializer.fromJson<bool>(
+        json['imageFetchCompleted'],
+      ),
       updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
     );
   }
@@ -3512,6 +3548,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
       'rawSearchJson': serializer.toJson<String?>(rawSearchJson),
       'rawDetailJson': serializer.toJson<String?>(rawDetailJson),
       'noData': serializer.toJson<bool>(noData),
+      'imageFetchCompleted': serializer.toJson<bool>(imageFetchCompleted),
       'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
     };
   }
@@ -3534,6 +3571,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
     Value<String?> rawSearchJson = const Value.absent(),
     Value<String?> rawDetailJson = const Value.absent(),
     bool? noData,
+    bool? imageFetchCompleted,
     int? updatedAtMillis,
   }) => ArtistCache(
     id: id ?? this.id,
@@ -3561,6 +3599,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
         ? rawDetailJson.value
         : this.rawDetailJson,
     noData: noData ?? this.noData,
+    imageFetchCompleted: imageFetchCompleted ?? this.imageFetchCompleted,
     updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
   );
   ArtistCache copyWithCompanion(ArtistCachesCompanion data) {
@@ -3594,6 +3633,9 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
           ? data.rawDetailJson.value
           : this.rawDetailJson,
       noData: data.noData.present ? data.noData.value : this.noData,
+      imageFetchCompleted: data.imageFetchCompleted.present
+          ? data.imageFetchCompleted.value
+          : this.imageFetchCompleted,
       updatedAtMillis: data.updatedAtMillis.present
           ? data.updatedAtMillis.value
           : this.updatedAtMillis,
@@ -3620,6 +3662,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
           ..write('rawSearchJson: $rawSearchJson, ')
           ..write('rawDetailJson: $rawDetailJson, ')
           ..write('noData: $noData, ')
+          ..write('imageFetchCompleted: $imageFetchCompleted, ')
           ..write('updatedAtMillis: $updatedAtMillis')
           ..write(')'))
         .toString();
@@ -3644,6 +3687,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
     rawSearchJson,
     rawDetailJson,
     noData,
+    imageFetchCompleted,
     updatedAtMillis,
   );
   @override
@@ -3667,6 +3711,7 @@ class ArtistCache extends DataClass implements Insertable<ArtistCache> {
           other.rawSearchJson == this.rawSearchJson &&
           other.rawDetailJson == this.rawDetailJson &&
           other.noData == this.noData &&
+          other.imageFetchCompleted == this.imageFetchCompleted &&
           other.updatedAtMillis == this.updatedAtMillis);
 }
 
@@ -3688,6 +3733,7 @@ class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
   final Value<String?> rawSearchJson;
   final Value<String?> rawDetailJson;
   final Value<bool> noData;
+  final Value<bool> imageFetchCompleted;
   final Value<int> updatedAtMillis;
   const ArtistCachesCompanion({
     this.id = const Value.absent(),
@@ -3707,6 +3753,7 @@ class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
     this.rawSearchJson = const Value.absent(),
     this.rawDetailJson = const Value.absent(),
     this.noData = const Value.absent(),
+    this.imageFetchCompleted = const Value.absent(),
     this.updatedAtMillis = const Value.absent(),
   });
   ArtistCachesCompanion.insert({
@@ -3727,9 +3774,11 @@ class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
     this.rawSearchJson = const Value.absent(),
     this.rawDetailJson = const Value.absent(),
     required bool noData,
+    required bool imageFetchCompleted,
     required int updatedAtMillis,
   }) : queryKey = Value(queryKey),
        noData = Value(noData),
+       imageFetchCompleted = Value(imageFetchCompleted),
        updatedAtMillis = Value(updatedAtMillis);
   static Insertable<ArtistCache> custom({
     Expression<int>? id,
@@ -3749,6 +3798,7 @@ class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
     Expression<String>? rawSearchJson,
     Expression<String>? rawDetailJson,
     Expression<bool>? noData,
+    Expression<bool>? imageFetchCompleted,
     Expression<int>? updatedAtMillis,
   }) {
     return RawValuesInsertable({
@@ -3769,6 +3819,8 @@ class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
       if (rawSearchJson != null) 'rawSearchJson': rawSearchJson,
       if (rawDetailJson != null) 'rawDetailJson': rawDetailJson,
       if (noData != null) 'noData': noData,
+      if (imageFetchCompleted != null)
+        'imageFetchCompleted': imageFetchCompleted,
       if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
     });
   }
@@ -3791,6 +3843,7 @@ class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
     Value<String?>? rawSearchJson,
     Value<String?>? rawDetailJson,
     Value<bool>? noData,
+    Value<bool>? imageFetchCompleted,
     Value<int>? updatedAtMillis,
   }) {
     return ArtistCachesCompanion(
@@ -3811,6 +3864,7 @@ class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
       rawSearchJson: rawSearchJson ?? this.rawSearchJson,
       rawDetailJson: rawDetailJson ?? this.rawDetailJson,
       noData: noData ?? this.noData,
+      imageFetchCompleted: imageFetchCompleted ?? this.imageFetchCompleted,
       updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
     );
   }
@@ -3869,6 +3923,9 @@ class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
     if (noData.present) {
       map['noData'] = Variable<bool>(noData.value);
     }
+    if (imageFetchCompleted.present) {
+      map['imageFetchCompleted'] = Variable<bool>(imageFetchCompleted.value);
+    }
     if (updatedAtMillis.present) {
       map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
     }
@@ -3895,6 +3952,466 @@ class ArtistCachesCompanion extends UpdateCompanion<ArtistCache> {
           ..write('rawSearchJson: $rawSearchJson, ')
           ..write('rawDetailJson: $rawDetailJson, ')
           ..write('noData: $noData, ')
+          ..write('imageFetchCompleted: $imageFetchCompleted, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ArtistImageCachesTable extends ArtistImageCaches
+    with TableInfo<$ArtistImageCachesTable, ArtistImageCache> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ArtistImageCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _artistIdMeta = const VerificationMeta(
+    'artistId',
+  );
+  @override
+  late final GeneratedColumn<String> artistId = GeneratedColumn<String>(
+    'artistId',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _imagePathMeta = const VerificationMeta(
+    'imagePath',
+  );
+  @override
+  late final GeneratedColumn<String> imagePath = GeneratedColumn<String>(
+    'imagePath',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceUrlMeta = const VerificationMeta(
+    'sourceUrl',
+  );
+  @override
+  late final GeneratedColumn<String> sourceUrl = GeneratedColumn<String>(
+    'sourceUrl',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    artistId,
+    imagePath,
+    sourceUrl,
+    width,
+    height,
+    updatedAtMillis,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'artist_image_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ArtistImageCache> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('artistId')) {
+      context.handle(
+        _artistIdMeta,
+        artistId.isAcceptableOrUnknown(data['artistId']!, _artistIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_artistIdMeta);
+    }
+    if (data.containsKey('imagePath')) {
+      context.handle(
+        _imagePathMeta,
+        imagePath.isAcceptableOrUnknown(data['imagePath']!, _imagePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_imagePathMeta);
+    }
+    if (data.containsKey('sourceUrl')) {
+      context.handle(
+        _sourceUrlMeta,
+        sourceUrl.isAcceptableOrUnknown(data['sourceUrl']!, _sourceUrlMeta),
+      );
+    }
+    if (data.containsKey('width')) {
+      context.handle(
+        _widthMeta,
+        width.isAcceptableOrUnknown(data['width']!, _widthMeta),
+      );
+    }
+    if (data.containsKey('height')) {
+      context.handle(
+        _heightMeta,
+        height.isAcceptableOrUnknown(data['height']!, _heightMeta),
+      );
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ArtistImageCache map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ArtistImageCache(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      artistId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artistId'],
+      )!,
+      imagePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}imagePath'],
+      )!,
+      sourceUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sourceUrl'],
+      ),
+      width: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width'],
+      ),
+      height: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height'],
+      ),
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $ArtistImageCachesTable createAlias(String alias) {
+    return $ArtistImageCachesTable(attachedDatabase, alias);
+  }
+}
+
+class ArtistImageCache extends DataClass
+    implements Insertable<ArtistImageCache> {
+  final int id;
+  final String artistId;
+  final String imagePath;
+  final String? sourceUrl;
+  final int? width;
+  final int? height;
+  final int updatedAtMillis;
+  const ArtistImageCache({
+    required this.id,
+    required this.artistId,
+    required this.imagePath,
+    this.sourceUrl,
+    this.width,
+    this.height,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['artistId'] = Variable<String>(artistId);
+    map['imagePath'] = Variable<String>(imagePath);
+    if (!nullToAbsent || sourceUrl != null) {
+      map['sourceUrl'] = Variable<String>(sourceUrl);
+    }
+    if (!nullToAbsent || width != null) {
+      map['width'] = Variable<int>(width);
+    }
+    if (!nullToAbsent || height != null) {
+      map['height'] = Variable<int>(height);
+    }
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  ArtistImageCachesCompanion toCompanion(bool nullToAbsent) {
+    return ArtistImageCachesCompanion(
+      id: Value(id),
+      artistId: Value(artistId),
+      imagePath: Value(imagePath),
+      sourceUrl: sourceUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceUrl),
+      width: width == null && nullToAbsent
+          ? const Value.absent()
+          : Value(width),
+      height: height == null && nullToAbsent
+          ? const Value.absent()
+          : Value(height),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory ArtistImageCache.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ArtistImageCache(
+      id: serializer.fromJson<int>(json['id']),
+      artistId: serializer.fromJson<String>(json['artistId']),
+      imagePath: serializer.fromJson<String>(json['imagePath']),
+      sourceUrl: serializer.fromJson<String?>(json['sourceUrl']),
+      width: serializer.fromJson<int?>(json['width']),
+      height: serializer.fromJson<int?>(json['height']),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'artistId': serializer.toJson<String>(artistId),
+      'imagePath': serializer.toJson<String>(imagePath),
+      'sourceUrl': serializer.toJson<String?>(sourceUrl),
+      'width': serializer.toJson<int?>(width),
+      'height': serializer.toJson<int?>(height),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  ArtistImageCache copyWith({
+    int? id,
+    String? artistId,
+    String? imagePath,
+    Value<String?> sourceUrl = const Value.absent(),
+    Value<int?> width = const Value.absent(),
+    Value<int?> height = const Value.absent(),
+    int? updatedAtMillis,
+  }) => ArtistImageCache(
+    id: id ?? this.id,
+    artistId: artistId ?? this.artistId,
+    imagePath: imagePath ?? this.imagePath,
+    sourceUrl: sourceUrl.present ? sourceUrl.value : this.sourceUrl,
+    width: width.present ? width.value : this.width,
+    height: height.present ? height.value : this.height,
+    updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+  );
+  ArtistImageCache copyWithCompanion(ArtistImageCachesCompanion data) {
+    return ArtistImageCache(
+      id: data.id.present ? data.id.value : this.id,
+      artistId: data.artistId.present ? data.artistId.value : this.artistId,
+      imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
+      sourceUrl: data.sourceUrl.present ? data.sourceUrl.value : this.sourceUrl,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ArtistImageCache(')
+          ..write('id: $id, ')
+          ..write('artistId: $artistId, ')
+          ..write('imagePath: $imagePath, ')
+          ..write('sourceUrl: $sourceUrl, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    artistId,
+    imagePath,
+    sourceUrl,
+    width,
+    height,
+    updatedAtMillis,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ArtistImageCache &&
+          other.id == this.id &&
+          other.artistId == this.artistId &&
+          other.imagePath == this.imagePath &&
+          other.sourceUrl == this.sourceUrl &&
+          other.width == this.width &&
+          other.height == this.height &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class ArtistImageCachesCompanion extends UpdateCompanion<ArtistImageCache> {
+  final Value<int> id;
+  final Value<String> artistId;
+  final Value<String> imagePath;
+  final Value<String?> sourceUrl;
+  final Value<int?> width;
+  final Value<int?> height;
+  final Value<int> updatedAtMillis;
+  const ArtistImageCachesCompanion({
+    this.id = const Value.absent(),
+    this.artistId = const Value.absent(),
+    this.imagePath = const Value.absent(),
+    this.sourceUrl = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+  });
+  ArtistImageCachesCompanion.insert({
+    this.id = const Value.absent(),
+    required String artistId,
+    required String imagePath,
+    this.sourceUrl = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    required int updatedAtMillis,
+  }) : artistId = Value(artistId),
+       imagePath = Value(imagePath),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<ArtistImageCache> custom({
+    Expression<int>? id,
+    Expression<String>? artistId,
+    Expression<String>? imagePath,
+    Expression<String>? sourceUrl,
+    Expression<int>? width,
+    Expression<int>? height,
+    Expression<int>? updatedAtMillis,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (artistId != null) 'artistId': artistId,
+      if (imagePath != null) 'imagePath': imagePath,
+      if (sourceUrl != null) 'sourceUrl': sourceUrl,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+    });
+  }
+
+  ArtistImageCachesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? artistId,
+    Value<String>? imagePath,
+    Value<String?>? sourceUrl,
+    Value<int?>? width,
+    Value<int?>? height,
+    Value<int>? updatedAtMillis,
+  }) {
+    return ArtistImageCachesCompanion(
+      id: id ?? this.id,
+      artistId: artistId ?? this.artistId,
+      imagePath: imagePath ?? this.imagePath,
+      sourceUrl: sourceUrl ?? this.sourceUrl,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (artistId.present) {
+      map['artistId'] = Variable<String>(artistId.value);
+    }
+    if (imagePath.present) {
+      map['imagePath'] = Variable<String>(imagePath.value);
+    }
+    if (sourceUrl.present) {
+      map['sourceUrl'] = Variable<String>(sourceUrl.value);
+    }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ArtistImageCachesCompanion(')
+          ..write('id: $id, ')
+          ..write('artistId: $artistId, ')
+          ..write('imagePath: $imagePath, ')
+          ..write('sourceUrl: $sourceUrl, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
           ..write('updatedAtMillis: $updatedAtMillis')
           ..write(')'))
         .toString();
@@ -3913,6 +4430,8 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   late final $LyricsTranslationCachesTable lyricsTranslationCaches =
       $LyricsTranslationCachesTable(this);
   late final $ArtistCachesTable artistCaches = $ArtistCachesTable(this);
+  late final $ArtistImageCachesTable artistImageCaches =
+      $ArtistImageCachesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3924,6 +4443,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     releaseCoverCaches,
     lyricsTranslationCaches,
     artistCaches,
+    artistImageCaches,
   ];
 }
 
@@ -5373,6 +5893,7 @@ typedef $$ArtistCachesTableCreateCompanionBuilder =
       Value<String?> rawSearchJson,
       Value<String?> rawDetailJson,
       required bool noData,
+      required bool imageFetchCompleted,
       required int updatedAtMillis,
     });
 typedef $$ArtistCachesTableUpdateCompanionBuilder =
@@ -5394,6 +5915,7 @@ typedef $$ArtistCachesTableUpdateCompanionBuilder =
       Value<String?> rawSearchJson,
       Value<String?> rawDetailJson,
       Value<bool> noData,
+      Value<bool> imageFetchCompleted,
       Value<int> updatedAtMillis,
     });
 
@@ -5488,6 +6010,11 @@ class $$ArtistCachesTableFilterComposer
 
   ColumnFilters<bool> get noData => $composableBuilder(
     column: $table.noData,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get imageFetchCompleted => $composableBuilder(
+    column: $table.imageFetchCompleted,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5591,6 +6118,11 @@ class $$ArtistCachesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get imageFetchCompleted => $composableBuilder(
+    column: $table.imageFetchCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
     column: $table.updatedAtMillis,
     builder: (column) => ColumnOrderings(column),
@@ -5669,6 +6201,11 @@ class $$ArtistCachesTableAnnotationComposer
   GeneratedColumn<bool> get noData =>
       $composableBuilder(column: $table.noData, builder: (column) => column);
 
+  GeneratedColumn<bool> get imageFetchCompleted => $composableBuilder(
+    column: $table.imageFetchCompleted,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
     column: $table.updatedAtMillis,
     builder: (column) => column,
@@ -5729,6 +6266,7 @@ class $$ArtistCachesTableTableManager
                 Value<String?> rawSearchJson = const Value.absent(),
                 Value<String?> rawDetailJson = const Value.absent(),
                 Value<bool> noData = const Value.absent(),
+                Value<bool> imageFetchCompleted = const Value.absent(),
                 Value<int> updatedAtMillis = const Value.absent(),
               }) => ArtistCachesCompanion(
                 id: id,
@@ -5748,6 +6286,7 @@ class $$ArtistCachesTableTableManager
                 rawSearchJson: rawSearchJson,
                 rawDetailJson: rawDetailJson,
                 noData: noData,
+                imageFetchCompleted: imageFetchCompleted,
                 updatedAtMillis: updatedAtMillis,
               ),
           createCompanionCallback:
@@ -5769,6 +6308,7 @@ class $$ArtistCachesTableTableManager
                 Value<String?> rawSearchJson = const Value.absent(),
                 Value<String?> rawDetailJson = const Value.absent(),
                 required bool noData,
+                required bool imageFetchCompleted,
                 required int updatedAtMillis,
               }) => ArtistCachesCompanion.insert(
                 id: id,
@@ -5788,6 +6328,7 @@ class $$ArtistCachesTableTableManager
                 rawSearchJson: rawSearchJson,
                 rawDetailJson: rawDetailJson,
                 noData: noData,
+                imageFetchCompleted: imageFetchCompleted,
                 updatedAtMillis: updatedAtMillis,
               ),
           withReferenceMapper: (p0) => p0
@@ -5819,6 +6360,253 @@ typedef $$ArtistCachesTableProcessedTableManager =
       ArtistCache,
       PrefetchHooks Function()
     >;
+typedef $$ArtistImageCachesTableCreateCompanionBuilder =
+    ArtistImageCachesCompanion Function({
+      Value<int> id,
+      required String artistId,
+      required String imagePath,
+      Value<String?> sourceUrl,
+      Value<int?> width,
+      Value<int?> height,
+      required int updatedAtMillis,
+    });
+typedef $$ArtistImageCachesTableUpdateCompanionBuilder =
+    ArtistImageCachesCompanion Function({
+      Value<int> id,
+      Value<String> artistId,
+      Value<String> imagePath,
+      Value<String?> sourceUrl,
+      Value<int?> width,
+      Value<int?> height,
+      Value<int> updatedAtMillis,
+    });
+
+class $$ArtistImageCachesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $ArtistImageCachesTable> {
+  $$ArtistImageCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artistId => $composableBuilder(
+    column: $table.artistId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imagePath => $composableBuilder(
+    column: $table.imagePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceUrl => $composableBuilder(
+    column: $table.sourceUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ArtistImageCachesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $ArtistImageCachesTable> {
+  $$ArtistImageCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artistId => $composableBuilder(
+    column: $table.artistId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imagePath => $composableBuilder(
+    column: $table.imagePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceUrl => $composableBuilder(
+    column: $table.sourceUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ArtistImageCachesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $ArtistImageCachesTable> {
+  $$ArtistImageCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get artistId =>
+      $composableBuilder(column: $table.artistId, builder: (column) => column);
+
+  GeneratedColumn<String> get imagePath =>
+      $composableBuilder(column: $table.imagePath, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceUrl =>
+      $composableBuilder(column: $table.sourceUrl, builder: (column) => column);
+
+  GeneratedColumn<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$ArtistImageCachesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $ArtistImageCachesTable,
+          ArtistImageCache,
+          $$ArtistImageCachesTableFilterComposer,
+          $$ArtistImageCachesTableOrderingComposer,
+          $$ArtistImageCachesTableAnnotationComposer,
+          $$ArtistImageCachesTableCreateCompanionBuilder,
+          $$ArtistImageCachesTableUpdateCompanionBuilder,
+          (
+            ArtistImageCache,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $ArtistImageCachesTable,
+              ArtistImageCache
+            >,
+          ),
+          ArtistImageCache,
+          PrefetchHooks Function()
+        > {
+  $$ArtistImageCachesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $ArtistImageCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ArtistImageCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ArtistImageCachesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ArtistImageCachesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> artistId = const Value.absent(),
+                Value<String> imagePath = const Value.absent(),
+                Value<String?> sourceUrl = const Value.absent(),
+                Value<int?> width = const Value.absent(),
+                Value<int?> height = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+              }) => ArtistImageCachesCompanion(
+                id: id,
+                artistId: artistId,
+                imagePath: imagePath,
+                sourceUrl: sourceUrl,
+                width: width,
+                height: height,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String artistId,
+                required String imagePath,
+                Value<String?> sourceUrl = const Value.absent(),
+                Value<int?> width = const Value.absent(),
+                Value<int?> height = const Value.absent(),
+                required int updatedAtMillis,
+              }) => ArtistImageCachesCompanion.insert(
+                id: id,
+                artistId: artistId,
+                imagePath: imagePath,
+                sourceUrl: sourceUrl,
+                width: width,
+                height: height,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ArtistImageCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $ArtistImageCachesTable,
+      ArtistImageCache,
+      $$ArtistImageCachesTableFilterComposer,
+      $$ArtistImageCachesTableOrderingComposer,
+      $$ArtistImageCachesTableAnnotationComposer,
+      $$ArtistImageCachesTableCreateCompanionBuilder,
+      $$ArtistImageCachesTableUpdateCompanionBuilder,
+      (
+        ArtistImageCache,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $ArtistImageCachesTable,
+          ArtistImageCache
+        >,
+      ),
+      ArtistImageCache,
+      PrefetchHooks Function()
+    >;
 
 class $MetadataDriftDatabaseManager {
   final _$MetadataDriftDatabase _db;
@@ -5838,4 +6626,6 @@ class $MetadataDriftDatabaseManager {
       );
   $$ArtistCachesTableTableManager get artistCaches =>
       $$ArtistCachesTableTableManager(_db, _db.artistCaches);
+  $$ArtistImageCachesTableTableManager get artistImageCaches =>
+      $$ArtistImageCachesTableTableManager(_db, _db.artistImageCaches);
 }

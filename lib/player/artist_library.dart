@@ -1,7 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image/image.dart' as img;
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../models/artist_summary.dart';
 import '../models/music_file.dart';
@@ -12,6 +18,12 @@ final artistLibraryProvider = StreamProvider<List<ArtistSummary>>((ref) async* {
   final repository = ArtistLibraryRepository();
   yield* repository.watchArtistSummaries();
 });
+
+int _artistLibrarySessionSeq = 0;
+
+void _artistLibraryLog(String message) {
+  debugPrint('[ArtistLibrary] $message');
+}
 
 class ArtistLibraryRepository {
   ArtistLibraryRepository({
@@ -28,86 +40,234 @@ class ArtistLibraryRepository {
       DateTime.fromMillisecondsSinceEpoch(0);
 
   Stream<List<ArtistSummary>> watchArtistSummaries() async* {
+    final sessionId = ++_artistLibrarySessionSeq;
+    _artistLibraryLog('session#$sessionId start');
+
     final songs = await _database.getAllSongMetadata();
     final groups = _groupSongsByArtist(songs);
+    final artistIds = await _collectArtistIds(groups);
 
     final cacheKeys = groups.map((group) => group.queryKey).toList(
       growable: false,
     );
     final caches = await _database.getArtistCachesByKeys(cacheKeys);
+    final imageCaches = await _database.getArtistImageCachesByIds(artistIds);
     final orderedGroups = _sortGroupsForDisplay(groups, caches);
-    yield _buildSummaries(orderedGroups, caches);
+    _artistLibraryLog(
+      'session#$sessionId loaded songs=${songs.length} groups=${groups.length} '
+      'caches=${caches.length} imageCaches=${imageCaches.length}',
+    );
+    yield _buildSummaries(orderedGroups, caches, imageCaches);
+    _artistLibraryLog(
+      'session#$sessionId initial yield summaries=${orderedGroups.length}',
+    );
 
-    final missingGroups = orderedGroups
-        .where((group) => !caches.containsKey(group.queryKey))
+    final pendingGroups = orderedGroups
+        .where((group) => _needsArtistRefresh(group, caches[group.queryKey]))
         .toList(growable: false);
-    if (missingGroups.isEmpty) {
+    _artistLibraryLog('session#$sessionId pendingGroups=${pendingGroups.length}');
+    if (pendingGroups.isEmpty) {
+      _artistLibraryLog('session#$sessionId complete: nothing to refresh');
       return;
     }
 
     final currentCaches = <String, ArtistCacheRecord>{...caches};
+    final currentImageCaches = <String, ArtistImageCacheRecord>{...imageCaches};
     await for (final updated in _refreshMissingArtistCaches(
       groups: orderedGroups,
-      pendingGroups: missingGroups,
+      pendingGroups: pendingGroups,
       cacheMap: currentCaches,
+      imageCacheMap: currentImageCaches,
+      sessionId: sessionId,
     )) {
       yield updated;
     }
+    _artistLibraryLog('session#$sessionId complete');
   }
 
   Stream<List<ArtistSummary>> _refreshMissingArtistCaches({
     required List<_ArtistGroup> groups,
     required List<_ArtistGroup> pendingGroups,
     required Map<String, ArtistCacheRecord> cacheMap,
+    required Map<String, ArtistImageCacheRecord> imageCacheMap,
+    required int sessionId,
   }) async* {
     final pending = List<_ArtistGroup>.from(pendingGroups);
     while (pending.isNotEmpty) {
       final batch = pending.take(20).toList(growable: false);
       pending.removeRange(0, batch.length);
+      _artistLibraryLog(
+        'session#$sessionId batch size=${batch.length} remaining=${pending.length}',
+      );
 
-      final searchResults = await _searchArtistsByBatch(batch);
+      final imageRefreshGroups = <_ArtistGroup>[];
+      final searchGroups = <_ArtistGroup>[];
+
       for (final group in batch) {
-        final searchHit = searchResults[group.queryKey];
-        if (searchHit == null) {
+        final existing = cacheMap[group.queryKey];
+        if (existing == null) {
+          searchGroups.add(group);
+          continue;
+        }
+
+        if (existing.noData) {
+          continue;
+        }
+
+        if (existing.artistId != null &&
+            existing.artistId!.trim().isNotEmpty &&
+            !existing.imageFetchCompleted) {
+          imageRefreshGroups.add(group);
+          continue;
+        }
+
+        if (!existing.imageFetchCompleted) {
+          searchGroups.add(group);
+        }
+      }
+
+      if (searchGroups.isNotEmpty) {
+        final searchResults = await _searchArtistsByBatch(searchGroups);
+        for (final group in searchGroups) {
+          final searchHit = searchResults[group.queryKey];
+          if (searchHit == null) {
+            final record = ArtistCacheRecord(
+              queryKey: group.queryKey,
+              artistName: group.displayName,
+              noData: true,
+              imageFetchCompleted: true,
+              updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+            );
+            await _database.insertOrUpdateArtistCache(record);
+            cacheMap[group.queryKey] = record;
+            _artistLibraryLog(
+              'session#$sessionId search miss key=${group.queryKey} '
+              'name=${group.displayName}',
+            );
+            yield _buildSummaries(groups, cacheMap, imageCacheMap);
+            continue;
+          }
+
+          _artistLibraryLog(
+            'session#$sessionId search hit key=${group.queryKey} '
+            'artistId=${searchHit.id} name=${searchHit.name}',
+          );
+          cacheMap[group.queryKey] = _loadingCacheRecord(group, searchHit);
+          yield _buildSummaries(
+            groups,
+            cacheMap,
+            imageCacheMap,
+            loadingKey: group.queryKey,
+          );
+
+          final detail = await _fetchArtistDetail(searchHit.id);
+          final imageCache = await _ensureArtistImageCache(
+            artistId: searchHit.id,
+            artistName: searchHit.name.isNotEmpty
+                ? searchHit.name
+                : group.displayName,
+            imageUrl: detail?.imageUrl,
+          );
           final record = ArtistCacheRecord(
             queryKey: group.queryKey,
-            artistName: group.displayName,
-            noData: true,
+            artistId: searchHit.id,
+            artistName: searchHit.name.isNotEmpty
+                ? searchHit.name
+                : group.displayName,
+            sortName: searchHit.sortName,
+            disambiguation: detail?.disambiguation ?? searchHit.disambiguation,
+            country: detail?.country ?? searchHit.country,
+            imageFileTitle: detail?.imageFileTitle,
+            imageUrl: detail?.imageUrl,
+            thumbnailUrl: detail?.thumbnailUrl ?? detail?.imageUrl,
+            areaName: detail?.areaName,
+            beginDate: detail?.beginDate,
+            endDate: detail?.endDate,
+            tagsJson: detail?.tagsJson,
+            rawSearchJson: jsonEncode(searchHit.raw),
+            rawDetailJson: detail == null ? null : jsonEncode(detail.raw),
+            noData: false,
+            imageFetchCompleted: true,
             updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
           );
           await _database.insertOrUpdateArtistCache(record);
           cacheMap[group.queryKey] = record;
-          yield _buildSummaries(groups, cacheMap);
+          if (imageCache != null) {
+            imageCacheMap[searchHit.id] = imageCache;
+          }
+          _artistLibraryLog(
+            'session#$sessionId search refresh saved key=${group.queryKey} '
+            'artistId=${searchHit.id} imageCached=${imageCache != null}',
+          );
+          yield _buildSummaries(groups, cacheMap, imageCacheMap);
+        }
+      }
+
+      for (final group in imageRefreshGroups) {
+        final existing = cacheMap[group.queryKey];
+        if (existing == null ||
+            existing.artistId == null ||
+            existing.artistId!.trim().isEmpty) {
           continue;
         }
 
-        final detail = await _fetchArtistDetail(searchHit.id);
-        final record = ArtistCacheRecord(
-          queryKey: group.queryKey,
-          artistId: searchHit.id,
-          artistName: searchHit.name.isNotEmpty
-              ? searchHit.name
+        final artistId = existing.artistId!.trim();
+        _artistLibraryLog(
+          'session#$sessionId image refresh key=${group.queryKey} artistId=$artistId',
+        );
+        cacheMap[group.queryKey] = existing.copyWith(
+          imageFetchCompleted: true,
+        );
+        yield _buildSummaries(
+          groups,
+          cacheMap,
+          imageCacheMap,
+          loadingKey: group.queryKey,
+        );
+
+        final detail = await _fetchArtistDetail(artistId);
+        final imageCache = await _ensureArtistImageCache(
+          artistId: artistId,
+          artistName: existing.artistName?.trim().isNotEmpty == true
+              ? existing.artistName!.trim()
               : group.displayName,
-          sortName: searchHit.sortName,
-          disambiguation: detail?.disambiguation ?? searchHit.disambiguation,
-          country: detail?.country ?? searchHit.country,
-          imageFileTitle: detail?.imageFileTitle,
           imageUrl: detail?.imageUrl,
-          thumbnailUrl: detail?.thumbnailUrl ?? detail?.imageUrl,
-          areaName: detail?.areaName,
-          beginDate: detail?.beginDate,
-          endDate: detail?.endDate,
-          tagsJson: detail?.tagsJson,
-          rawSearchJson: jsonEncode(searchHit.raw),
-          rawDetailJson: detail == null ? null : jsonEncode(detail.raw),
-          noData: false,
+        );
+
+        final record = existing.copyWith(
+          imageFileTitle: detail?.imageFileTitle ?? existing.imageFileTitle,
+          imageUrl: detail?.imageUrl ?? existing.imageUrl,
+          thumbnailUrl: detail?.thumbnailUrl ??
+              detail?.imageUrl ??
+              existing.thumbnailUrl,
+          areaName: detail?.areaName ?? existing.areaName,
+          beginDate: detail?.beginDate ?? existing.beginDate,
+          endDate: detail?.endDate ?? existing.endDate,
+          tagsJson: detail?.tagsJson ?? existing.tagsJson,
+          rawDetailJson: detail == null
+              ? existing.rawDetailJson
+              : jsonEncode(detail.raw),
+          imageFetchCompleted: true,
           updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
         );
         await _database.insertOrUpdateArtistCache(record);
         cacheMap[group.queryKey] = record;
-        yield _buildSummaries(groups, cacheMap);
+        if (imageCache != null) {
+          imageCacheMap[artistId] = imageCache;
+        }
+        _artistLibraryLog(
+          'session#$sessionId image refresh saved key=${group.queryKey} '
+          'artistId=$artistId imageCached=${imageCache != null}',
+        );
+        yield _buildSummaries(groups, cacheMap, imageCacheMap);
       }
     }
+  }
+
+  bool _needsArtistRefresh(_ArtistGroup group, ArtistCacheRecord? cache) {
+    if (cache == null) return true;
+    if (cache.noData) return false;
+    return !cache.imageFetchCompleted || cache.artistId == null;
   }
 
   Future<Map<String, _ArtistSearchHit?>> _searchArtistsByBatch(
@@ -275,7 +435,9 @@ class ArtistLibraryRepository {
   ArtistSummary _buildSummary(
     _ArtistGroup group,
     ArtistCacheRecord? cache,
-  ) {
+    ArtistImageCacheRecord? imageCache, {
+    bool isImageLoading = false,
+  }) {
     final representativeSong = group.songs.firstWhere(
       _hasArtwork,
       orElse: () => group.songs.first,
@@ -299,6 +461,8 @@ class ArtistLibraryRepository {
       imageFileTitle: cache?.imageFileTitle,
       imageUrl: cache?.imageUrl,
       thumbnailUrl: cache?.thumbnailUrl,
+      cachedImagePath: imageCache?.imagePath,
+      isImageLoading: isImageLoading,
       tags: tags,
       noData: cache?.noData ?? false,
     );
@@ -307,18 +471,22 @@ class ArtistLibraryRepository {
   List<ArtistSummary> _buildSummaries(
     List<_ArtistGroup> groups,
     Map<String, ArtistCacheRecord> caches,
-  ) {
-    final summaries = groups
-        .map((group) => _buildSummary(group, caches[group.queryKey]))
+    Map<String, ArtistImageCacheRecord> imageCaches, {
+    String? loadingKey,
+  }) {
+    // Keep the list order stable while artist metadata and images refresh in the
+    // background. Re-sorting on every incremental update makes the grid jump and
+    // looks like a loading flash to the user.
+    return groups
+        .map(
+          (group) => _buildSummary(
+            group,
+            caches[group.queryKey],
+            _artistImageCacheForGroup(group, caches, imageCaches),
+            isImageLoading: loadingKey == group.queryKey,
+          ),
+        )
         .toList(growable: false);
-    summaries.sort((left, right) {
-      final leftName = _artistSortLabel(left);
-      final rightName = _artistSortLabel(right);
-      final compare = leftName.compareTo(rightName);
-      if (compare != 0) return compare;
-      return left.name.toLowerCase().compareTo(right.name.toLowerCase());
-    });
-    return summaries;
   }
 
   List<_ArtistGroup> _sortGroupsForDisplay(
@@ -333,10 +501,145 @@ class ArtistLibraryRepository {
       final rightLabel = _groupSortLabel(right, rightCache);
       final compare = leftLabel.compareTo(rightLabel);
       if (compare != 0) return compare;
-      return _groupDisplayName(left, leftCache)
-          .compareTo(_groupDisplayName(right, rightCache));
+      return _artistDisplayName(left, leftCache)
+          .compareTo(_artistDisplayName(right, rightCache));
     });
     return sorted;
+  }
+
+  ArtistCacheRecord _loadingCacheRecord(
+    _ArtistGroup group,
+    _ArtistSearchHit searchHit,
+  ) {
+    return ArtistCacheRecord(
+      queryKey: group.queryKey,
+      artistId: searchHit.id,
+      artistName: searchHit.name.isNotEmpty ? searchHit.name : group.displayName,
+      sortName: searchHit.sortName,
+      disambiguation: searchHit.disambiguation,
+      country: searchHit.country,
+      noData: false,
+      updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  Future<ArtistImageCacheRecord?> _ensureArtistImageCache({
+    required String artistId,
+    required String artistName,
+    required String? imageUrl,
+  }) async {
+    final existing = await _database.getArtistImageCache(artistId);
+    if (existing != null && await File(existing.imagePath).exists()) {
+      _artistLibraryLog(
+        'image cache hit artistId=$artistId path=${existing.imagePath}',
+      );
+      return existing;
+    }
+
+    final sourceUrl = imageUrl?.trim();
+    if (sourceUrl == null || sourceUrl.isEmpty) {
+      _artistLibraryLog('image cache skip artistId=$artistId no sourceUrl');
+      return existing;
+    }
+
+    _artistLibraryLog('image download start artistId=$artistId url=$sourceUrl');
+    final imageBytes = await _downloadArtistImageBytes(sourceUrl);
+    if (imageBytes == null || imageBytes.isEmpty) {
+      _artistLibraryLog('image download empty artistId=$artistId');
+      return existing;
+    }
+
+    final processed = _resizeAndEncodeArtistImage(imageBytes);
+    if (processed == null) {
+      _artistLibraryLog('image process failed artistId=$artistId');
+      return existing;
+    }
+
+    final outputFile = await _writeArtistImageFile(
+      artistId: artistId,
+      artistName: artistName,
+      bytes: processed.bytes,
+    );
+
+    final record = ArtistImageCacheRecord(
+      artistId: artistId,
+      imagePath: outputFile.path,
+      sourceUrl: sourceUrl,
+      width: processed.width,
+      height: processed.height,
+      updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+    );
+    await _database.insertOrUpdateArtistImageCache(record);
+    _artistLibraryLog(
+      'image cache saved artistId=$artistId path=${outputFile.path} '
+      'size=${processed.width}x${processed.height}',
+    );
+    return record;
+  }
+
+  Future<Uint8List?> _downloadArtistImageBytes(String imageUrl) async {
+    try {
+      final response = await _networkClient.get<List<int>>(
+        imageUrl,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final data = response.data ?? const <int>[];
+      if (data.isEmpty) return null;
+      return Uint8List.fromList(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _ProcessedImage? _resizeAndEncodeArtistImage(Uint8List bytes) {
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) return null;
+
+    final maxSide = _artistImageMaxSide;
+    final resized = decoded.width >= decoded.height
+        ? (decoded.width <= maxSide
+              ? decoded
+              : img.copyResize(
+                  decoded,
+                  width: maxSide,
+                  interpolation: img.Interpolation.average,
+                ))
+        : (decoded.height <= maxSide
+              ? decoded
+              : img.copyResize(
+                  decoded,
+                  height: maxSide,
+                  interpolation: img.Interpolation.average,
+                ));
+
+    final encoded = Uint8List.fromList(img.encodeJpg(resized, quality: 90));
+    return _ProcessedImage(
+      bytes: encoded,
+      width: resized.width,
+      height: resized.height,
+    );
+  }
+
+  Future<File> _writeArtistImageFile({
+    required String artistId,
+    required String artistName,
+    required Uint8List bytes,
+  }) async {
+    final directory = await _artistImageDirectory();
+    final safeName = _sanitizeFileName(artistName);
+    final fileName = '${safeName.isEmpty ? artistId : safeName}_$artistId.jpg';
+    final file = File(p.join(directory.path, fileName));
+    await file.writeAsBytes(bytes, flush: true);
+    return file;
+  }
+
+  Future<Directory> _artistImageDirectory() async {
+    final support = await getApplicationSupportDirectory();
+    final directory = Directory(p.join(support.path, 'artist_images'));
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    return directory;
   }
 }
 
@@ -433,12 +736,6 @@ class _WikimediaImageInfo {
   final String url;
 }
 
-String _artistSortLabel(ArtistSummary summary) {
-  return summary.sortName?.trim().isNotEmpty == true
-      ? summary.sortName!.trim().toLowerCase()
-      : summary.name.toLowerCase();
-}
-
 String _groupSortLabel(_ArtistGroup group, ArtistCacheRecord? cache) {
   final cachedSortName = cache?.sortName?.trim();
   if (cachedSortName != null && cachedSortName.isNotEmpty) {
@@ -457,6 +754,57 @@ String _groupDisplayName(_ArtistGroup group, ArtistCacheRecord? cache) {
     return cachedName;
   }
   return group.displayName;
+}
+
+Future<Set<String>> _collectArtistIds(List<_ArtistGroup> groups) async {
+  final database = MetadataDatabase();
+  final artistIds = <String>{};
+  for (final group in groups) {
+    final cache = await database.getArtistCache(group.queryKey);
+    final artistId = cache?.artistId?.trim();
+    if (artistId != null && artistId.isNotEmpty) {
+      artistIds.add(artistId);
+    }
+  }
+  return artistIds;
+}
+
+String _artistDisplayName(_ArtistGroup group, ArtistCacheRecord? cache) {
+  return _groupDisplayName(group, cache);
+}
+
+ArtistImageCacheRecord? _artistImageCacheForGroup(
+  _ArtistGroup group,
+  Map<String, ArtistCacheRecord> caches,
+  Map<String, ArtistImageCacheRecord> imageCaches,
+) {
+  final artistId = caches[group.queryKey]?.artistId?.trim();
+  if (artistId == null || artistId.isEmpty) return null;
+  final cache = imageCaches[artistId];
+  if (cache == null) return null;
+  if (!File(cache.imagePath).existsSync()) return null;
+  return cache;
+}
+
+String _sanitizeFileName(String input) {
+  final cleaned = input.trim().replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1F]'), '_');
+  return cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+}
+
+int get _artistImageMaxSide {
+  return Platform.isWindows || Platform.isLinux || Platform.isMacOS ? 1000 : 600;
+}
+
+class _ProcessedImage {
+  const _ProcessedImage({
+    required this.bytes,
+    required this.width,
+    required this.height,
+  });
+
+  final Uint8List bytes;
+  final int width;
+  final int height;
 }
 
 bool _hasArtwork(MusicFile song) {
