@@ -1,0 +1,4335 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'metadata_database.dart';
+
+// ignore_for_file: type=lint
+class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SongsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _pathMeta = const VerificationMeta('path');
+  @override
+  late final GeneratedColumn<String> path = GeneratedColumn<String>(
+    'path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _albumMeta = const VerificationMeta('album');
+  @override
+  late final GeneratedColumn<String> album = GeneratedColumn<String>(
+    'album',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artistMeta = const VerificationMeta('artist');
+  @override
+  late final GeneratedColumn<String> artist = GeneratedColumn<String>(
+    'artist',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _durationMeta = const VerificationMeta(
+    'duration',
+  );
+  @override
+  late final GeneratedColumn<int> duration = GeneratedColumn<int>(
+    'duration',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artworkPathMeta = const VerificationMeta(
+    'artworkPath',
+  );
+  @override
+  late final GeneratedColumn<String> artworkPath = GeneratedColumn<String>(
+    'artworkPath',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _thumbnailPathMeta = const VerificationMeta(
+    'thumbnailPath',
+  );
+  @override
+  late final GeneratedColumn<String> thumbnailPath = GeneratedColumn<String>(
+    'thumbnailPath',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artworkWidthMeta = const VerificationMeta(
+    'artworkWidth',
+  );
+  @override
+  late final GeneratedColumn<int> artworkWidth = GeneratedColumn<int>(
+    'artworkWidth',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artworkHeightMeta = const VerificationMeta(
+    'artworkHeight',
+  );
+  @override
+  late final GeneratedColumn<int> artworkHeight = GeneratedColumn<int>(
+    'artworkHeight',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trackNumberMeta = const VerificationMeta(
+    'trackNumber',
+  );
+  @override
+  late final GeneratedColumn<int> trackNumber = GeneratedColumn<int>(
+    'trackNumber',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceFlagsMeta = const VerificationMeta(
+    'sourceFlags',
+  );
+  @override
+  late final GeneratedColumn<int> sourceFlags = GeneratedColumn<int>(
+    'sourceFlags',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _themeColorsBlobMeta = const VerificationMeta(
+    'themeColorsBlob',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> themeColorsBlob =
+      GeneratedColumn<Uint8List>(
+        'themeColorsBlob',
+        aliasedName,
+        true,
+        type: DriftSqlType.blob,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _waveformBlobMeta = const VerificationMeta(
+    'waveformBlob',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> waveformBlob =
+      GeneratedColumn<Uint8List>(
+        'waveformBlob',
+        aliasedName,
+        true,
+        type: DriftSqlType.blob,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastModifiedTimeMeta = const VerificationMeta(
+    'lastModifiedTime',
+  );
+  @override
+  late final GeneratedColumn<int> lastModifiedTime = GeneratedColumn<int>(
+    'lastModifiedTime',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _metadataTextScannedMeta =
+      const VerificationMeta('metadataTextScanned');
+  @override
+  late final GeneratedColumn<int> metadataTextScanned = GeneratedColumn<int>(
+    'metadataTextScanned',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _metadataImgScannedMeta =
+      const VerificationMeta('metadataImgScanned');
+  @override
+  late final GeneratedColumn<int> metadataImgScanned = GeneratedColumn<int>(
+    'metadataImgScanned',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'createdAt',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _genresMeta = const VerificationMeta('genres');
+  @override
+  late final GeneratedColumn<String> genres = GeneratedColumn<String>(
+    'genres',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    path,
+    title,
+    album,
+    artist,
+    duration,
+    artworkPath,
+    thumbnailPath,
+    artworkWidth,
+    artworkHeight,
+    trackNumber,
+    sourceFlags,
+    themeColorsBlob,
+    waveformBlob,
+    lastModifiedTime,
+    metadataTextScanned,
+    metadataImgScanned,
+    createdAt,
+    genres,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'songs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Song> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('path')) {
+      context.handle(
+        _pathMeta,
+        path.isAcceptableOrUnknown(data['path']!, _pathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pathMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('album')) {
+      context.handle(
+        _albumMeta,
+        album.isAcceptableOrUnknown(data['album']!, _albumMeta),
+      );
+    }
+    if (data.containsKey('artist')) {
+      context.handle(
+        _artistMeta,
+        artist.isAcceptableOrUnknown(data['artist']!, _artistMeta),
+      );
+    }
+    if (data.containsKey('duration')) {
+      context.handle(
+        _durationMeta,
+        duration.isAcceptableOrUnknown(data['duration']!, _durationMeta),
+      );
+    }
+    if (data.containsKey('artworkPath')) {
+      context.handle(
+        _artworkPathMeta,
+        artworkPath.isAcceptableOrUnknown(
+          data['artworkPath']!,
+          _artworkPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('thumbnailPath')) {
+      context.handle(
+        _thumbnailPathMeta,
+        thumbnailPath.isAcceptableOrUnknown(
+          data['thumbnailPath']!,
+          _thumbnailPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('artworkWidth')) {
+      context.handle(
+        _artworkWidthMeta,
+        artworkWidth.isAcceptableOrUnknown(
+          data['artworkWidth']!,
+          _artworkWidthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('artworkHeight')) {
+      context.handle(
+        _artworkHeightMeta,
+        artworkHeight.isAcceptableOrUnknown(
+          data['artworkHeight']!,
+          _artworkHeightMeta,
+        ),
+      );
+    }
+    if (data.containsKey('trackNumber')) {
+      context.handle(
+        _trackNumberMeta,
+        trackNumber.isAcceptableOrUnknown(
+          data['trackNumber']!,
+          _trackNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sourceFlags')) {
+      context.handle(
+        _sourceFlagsMeta,
+        sourceFlags.isAcceptableOrUnknown(
+          data['sourceFlags']!,
+          _sourceFlagsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('themeColorsBlob')) {
+      context.handle(
+        _themeColorsBlobMeta,
+        themeColorsBlob.isAcceptableOrUnknown(
+          data['themeColorsBlob']!,
+          _themeColorsBlobMeta,
+        ),
+      );
+    }
+    if (data.containsKey('waveformBlob')) {
+      context.handle(
+        _waveformBlobMeta,
+        waveformBlob.isAcceptableOrUnknown(
+          data['waveformBlob']!,
+          _waveformBlobMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lastModifiedTime')) {
+      context.handle(
+        _lastModifiedTimeMeta,
+        lastModifiedTime.isAcceptableOrUnknown(
+          data['lastModifiedTime']!,
+          _lastModifiedTimeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('metadataTextScanned')) {
+      context.handle(
+        _metadataTextScannedMeta,
+        metadataTextScanned.isAcceptableOrUnknown(
+          data['metadataTextScanned']!,
+          _metadataTextScannedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('metadataImgScanned')) {
+      context.handle(
+        _metadataImgScannedMeta,
+        metadataImgScanned.isAcceptableOrUnknown(
+          data['metadataImgScanned']!,
+          _metadataImgScannedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('createdAt')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['createdAt']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('genres')) {
+      context.handle(
+        _genresMeta,
+        genres.isAcceptableOrUnknown(data['genres']!, _genresMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Song map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Song(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      path: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}path'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      ),
+      album: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}album'],
+      ),
+      artist: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artist'],
+      ),
+      duration: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration'],
+      ),
+      artworkPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artworkPath'],
+      ),
+      thumbnailPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}thumbnailPath'],
+      ),
+      artworkWidth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}artworkWidth'],
+      ),
+      artworkHeight: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}artworkHeight'],
+      ),
+      trackNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trackNumber'],
+      ),
+      sourceFlags: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sourceFlags'],
+      ),
+      themeColorsBlob: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}themeColorsBlob'],
+      ),
+      waveformBlob: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}waveformBlob'],
+      ),
+      lastModifiedTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lastModifiedTime'],
+      ),
+      metadataTextScanned: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}metadataTextScanned'],
+      ),
+      metadataImgScanned: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}metadataImgScanned'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}createdAt'],
+      ),
+      genres: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}genres'],
+      ),
+    );
+  }
+
+  @override
+  $SongsTable createAlias(String alias) {
+    return $SongsTable(attachedDatabase, alias);
+  }
+}
+
+class Song extends DataClass implements Insertable<Song> {
+  final int id;
+  final String path;
+  final String? title;
+  final String? album;
+  final String? artist;
+  final int? duration;
+  final String? artworkPath;
+  final String? thumbnailPath;
+  final int? artworkWidth;
+  final int? artworkHeight;
+  final int? trackNumber;
+  final int? sourceFlags;
+  final Uint8List? themeColorsBlob;
+  final Uint8List? waveformBlob;
+  final int? lastModifiedTime;
+  final int? metadataTextScanned;
+  final int? metadataImgScanned;
+  final int? createdAt;
+  final String? genres;
+  const Song({
+    required this.id,
+    required this.path,
+    this.title,
+    this.album,
+    this.artist,
+    this.duration,
+    this.artworkPath,
+    this.thumbnailPath,
+    this.artworkWidth,
+    this.artworkHeight,
+    this.trackNumber,
+    this.sourceFlags,
+    this.themeColorsBlob,
+    this.waveformBlob,
+    this.lastModifiedTime,
+    this.metadataTextScanned,
+    this.metadataImgScanned,
+    this.createdAt,
+    this.genres,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['path'] = Variable<String>(path);
+    if (!nullToAbsent || title != null) {
+      map['title'] = Variable<String>(title);
+    }
+    if (!nullToAbsent || album != null) {
+      map['album'] = Variable<String>(album);
+    }
+    if (!nullToAbsent || artist != null) {
+      map['artist'] = Variable<String>(artist);
+    }
+    if (!nullToAbsent || duration != null) {
+      map['duration'] = Variable<int>(duration);
+    }
+    if (!nullToAbsent || artworkPath != null) {
+      map['artworkPath'] = Variable<String>(artworkPath);
+    }
+    if (!nullToAbsent || thumbnailPath != null) {
+      map['thumbnailPath'] = Variable<String>(thumbnailPath);
+    }
+    if (!nullToAbsent || artworkWidth != null) {
+      map['artworkWidth'] = Variable<int>(artworkWidth);
+    }
+    if (!nullToAbsent || artworkHeight != null) {
+      map['artworkHeight'] = Variable<int>(artworkHeight);
+    }
+    if (!nullToAbsent || trackNumber != null) {
+      map['trackNumber'] = Variable<int>(trackNumber);
+    }
+    if (!nullToAbsent || sourceFlags != null) {
+      map['sourceFlags'] = Variable<int>(sourceFlags);
+    }
+    if (!nullToAbsent || themeColorsBlob != null) {
+      map['themeColorsBlob'] = Variable<Uint8List>(themeColorsBlob);
+    }
+    if (!nullToAbsent || waveformBlob != null) {
+      map['waveformBlob'] = Variable<Uint8List>(waveformBlob);
+    }
+    if (!nullToAbsent || lastModifiedTime != null) {
+      map['lastModifiedTime'] = Variable<int>(lastModifiedTime);
+    }
+    if (!nullToAbsent || metadataTextScanned != null) {
+      map['metadataTextScanned'] = Variable<int>(metadataTextScanned);
+    }
+    if (!nullToAbsent || metadataImgScanned != null) {
+      map['metadataImgScanned'] = Variable<int>(metadataImgScanned);
+    }
+    if (!nullToAbsent || createdAt != null) {
+      map['createdAt'] = Variable<int>(createdAt);
+    }
+    if (!nullToAbsent || genres != null) {
+      map['genres'] = Variable<String>(genres);
+    }
+    return map;
+  }
+
+  SongsCompanion toCompanion(bool nullToAbsent) {
+    return SongsCompanion(
+      id: Value(id),
+      path: Value(path),
+      title: title == null && nullToAbsent
+          ? const Value.absent()
+          : Value(title),
+      album: album == null && nullToAbsent
+          ? const Value.absent()
+          : Value(album),
+      artist: artist == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artist),
+      duration: duration == null && nullToAbsent
+          ? const Value.absent()
+          : Value(duration),
+      artworkPath: artworkPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artworkPath),
+      thumbnailPath: thumbnailPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(thumbnailPath),
+      artworkWidth: artworkWidth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artworkWidth),
+      artworkHeight: artworkHeight == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artworkHeight),
+      trackNumber: trackNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trackNumber),
+      sourceFlags: sourceFlags == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceFlags),
+      themeColorsBlob: themeColorsBlob == null && nullToAbsent
+          ? const Value.absent()
+          : Value(themeColorsBlob),
+      waveformBlob: waveformBlob == null && nullToAbsent
+          ? const Value.absent()
+          : Value(waveformBlob),
+      lastModifiedTime: lastModifiedTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastModifiedTime),
+      metadataTextScanned: metadataTextScanned == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataTextScanned),
+      metadataImgScanned: metadataImgScanned == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadataImgScanned),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
+      genres: genres == null && nullToAbsent
+          ? const Value.absent()
+          : Value(genres),
+    );
+  }
+
+  factory Song.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Song(
+      id: serializer.fromJson<int>(json['id']),
+      path: serializer.fromJson<String>(json['path']),
+      title: serializer.fromJson<String?>(json['title']),
+      album: serializer.fromJson<String?>(json['album']),
+      artist: serializer.fromJson<String?>(json['artist']),
+      duration: serializer.fromJson<int?>(json['duration']),
+      artworkPath: serializer.fromJson<String?>(json['artworkPath']),
+      thumbnailPath: serializer.fromJson<String?>(json['thumbnailPath']),
+      artworkWidth: serializer.fromJson<int?>(json['artworkWidth']),
+      artworkHeight: serializer.fromJson<int?>(json['artworkHeight']),
+      trackNumber: serializer.fromJson<int?>(json['trackNumber']),
+      sourceFlags: serializer.fromJson<int?>(json['sourceFlags']),
+      themeColorsBlob: serializer.fromJson<Uint8List?>(json['themeColorsBlob']),
+      waveformBlob: serializer.fromJson<Uint8List?>(json['waveformBlob']),
+      lastModifiedTime: serializer.fromJson<int?>(json['lastModifiedTime']),
+      metadataTextScanned: serializer.fromJson<int?>(
+        json['metadataTextScanned'],
+      ),
+      metadataImgScanned: serializer.fromJson<int?>(json['metadataImgScanned']),
+      createdAt: serializer.fromJson<int?>(json['createdAt']),
+      genres: serializer.fromJson<String?>(json['genres']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'path': serializer.toJson<String>(path),
+      'title': serializer.toJson<String?>(title),
+      'album': serializer.toJson<String?>(album),
+      'artist': serializer.toJson<String?>(artist),
+      'duration': serializer.toJson<int?>(duration),
+      'artworkPath': serializer.toJson<String?>(artworkPath),
+      'thumbnailPath': serializer.toJson<String?>(thumbnailPath),
+      'artworkWidth': serializer.toJson<int?>(artworkWidth),
+      'artworkHeight': serializer.toJson<int?>(artworkHeight),
+      'trackNumber': serializer.toJson<int?>(trackNumber),
+      'sourceFlags': serializer.toJson<int?>(sourceFlags),
+      'themeColorsBlob': serializer.toJson<Uint8List?>(themeColorsBlob),
+      'waveformBlob': serializer.toJson<Uint8List?>(waveformBlob),
+      'lastModifiedTime': serializer.toJson<int?>(lastModifiedTime),
+      'metadataTextScanned': serializer.toJson<int?>(metadataTextScanned),
+      'metadataImgScanned': serializer.toJson<int?>(metadataImgScanned),
+      'createdAt': serializer.toJson<int?>(createdAt),
+      'genres': serializer.toJson<String?>(genres),
+    };
+  }
+
+  Song copyWith({
+    int? id,
+    String? path,
+    Value<String?> title = const Value.absent(),
+    Value<String?> album = const Value.absent(),
+    Value<String?> artist = const Value.absent(),
+    Value<int?> duration = const Value.absent(),
+    Value<String?> artworkPath = const Value.absent(),
+    Value<String?> thumbnailPath = const Value.absent(),
+    Value<int?> artworkWidth = const Value.absent(),
+    Value<int?> artworkHeight = const Value.absent(),
+    Value<int?> trackNumber = const Value.absent(),
+    Value<int?> sourceFlags = const Value.absent(),
+    Value<Uint8List?> themeColorsBlob = const Value.absent(),
+    Value<Uint8List?> waveformBlob = const Value.absent(),
+    Value<int?> lastModifiedTime = const Value.absent(),
+    Value<int?> metadataTextScanned = const Value.absent(),
+    Value<int?> metadataImgScanned = const Value.absent(),
+    Value<int?> createdAt = const Value.absent(),
+    Value<String?> genres = const Value.absent(),
+  }) => Song(
+    id: id ?? this.id,
+    path: path ?? this.path,
+    title: title.present ? title.value : this.title,
+    album: album.present ? album.value : this.album,
+    artist: artist.present ? artist.value : this.artist,
+    duration: duration.present ? duration.value : this.duration,
+    artworkPath: artworkPath.present ? artworkPath.value : this.artworkPath,
+    thumbnailPath: thumbnailPath.present
+        ? thumbnailPath.value
+        : this.thumbnailPath,
+    artworkWidth: artworkWidth.present ? artworkWidth.value : this.artworkWidth,
+    artworkHeight: artworkHeight.present
+        ? artworkHeight.value
+        : this.artworkHeight,
+    trackNumber: trackNumber.present ? trackNumber.value : this.trackNumber,
+    sourceFlags: sourceFlags.present ? sourceFlags.value : this.sourceFlags,
+    themeColorsBlob: themeColorsBlob.present
+        ? themeColorsBlob.value
+        : this.themeColorsBlob,
+    waveformBlob: waveformBlob.present ? waveformBlob.value : this.waveformBlob,
+    lastModifiedTime: lastModifiedTime.present
+        ? lastModifiedTime.value
+        : this.lastModifiedTime,
+    metadataTextScanned: metadataTextScanned.present
+        ? metadataTextScanned.value
+        : this.metadataTextScanned,
+    metadataImgScanned: metadataImgScanned.present
+        ? metadataImgScanned.value
+        : this.metadataImgScanned,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
+    genres: genres.present ? genres.value : this.genres,
+  );
+  Song copyWithCompanion(SongsCompanion data) {
+    return Song(
+      id: data.id.present ? data.id.value : this.id,
+      path: data.path.present ? data.path.value : this.path,
+      title: data.title.present ? data.title.value : this.title,
+      album: data.album.present ? data.album.value : this.album,
+      artist: data.artist.present ? data.artist.value : this.artist,
+      duration: data.duration.present ? data.duration.value : this.duration,
+      artworkPath: data.artworkPath.present
+          ? data.artworkPath.value
+          : this.artworkPath,
+      thumbnailPath: data.thumbnailPath.present
+          ? data.thumbnailPath.value
+          : this.thumbnailPath,
+      artworkWidth: data.artworkWidth.present
+          ? data.artworkWidth.value
+          : this.artworkWidth,
+      artworkHeight: data.artworkHeight.present
+          ? data.artworkHeight.value
+          : this.artworkHeight,
+      trackNumber: data.trackNumber.present
+          ? data.trackNumber.value
+          : this.trackNumber,
+      sourceFlags: data.sourceFlags.present
+          ? data.sourceFlags.value
+          : this.sourceFlags,
+      themeColorsBlob: data.themeColorsBlob.present
+          ? data.themeColorsBlob.value
+          : this.themeColorsBlob,
+      waveformBlob: data.waveformBlob.present
+          ? data.waveformBlob.value
+          : this.waveformBlob,
+      lastModifiedTime: data.lastModifiedTime.present
+          ? data.lastModifiedTime.value
+          : this.lastModifiedTime,
+      metadataTextScanned: data.metadataTextScanned.present
+          ? data.metadataTextScanned.value
+          : this.metadataTextScanned,
+      metadataImgScanned: data.metadataImgScanned.present
+          ? data.metadataImgScanned.value
+          : this.metadataImgScanned,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      genres: data.genres.present ? data.genres.value : this.genres,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Song(')
+          ..write('id: $id, ')
+          ..write('path: $path, ')
+          ..write('title: $title, ')
+          ..write('album: $album, ')
+          ..write('artist: $artist, ')
+          ..write('duration: $duration, ')
+          ..write('artworkPath: $artworkPath, ')
+          ..write('thumbnailPath: $thumbnailPath, ')
+          ..write('artworkWidth: $artworkWidth, ')
+          ..write('artworkHeight: $artworkHeight, ')
+          ..write('trackNumber: $trackNumber, ')
+          ..write('sourceFlags: $sourceFlags, ')
+          ..write('themeColorsBlob: $themeColorsBlob, ')
+          ..write('waveformBlob: $waveformBlob, ')
+          ..write('lastModifiedTime: $lastModifiedTime, ')
+          ..write('metadataTextScanned: $metadataTextScanned, ')
+          ..write('metadataImgScanned: $metadataImgScanned, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('genres: $genres')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    path,
+    title,
+    album,
+    artist,
+    duration,
+    artworkPath,
+    thumbnailPath,
+    artworkWidth,
+    artworkHeight,
+    trackNumber,
+    sourceFlags,
+    $driftBlobEquality.hash(themeColorsBlob),
+    $driftBlobEquality.hash(waveformBlob),
+    lastModifiedTime,
+    metadataTextScanned,
+    metadataImgScanned,
+    createdAt,
+    genres,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Song &&
+          other.id == this.id &&
+          other.path == this.path &&
+          other.title == this.title &&
+          other.album == this.album &&
+          other.artist == this.artist &&
+          other.duration == this.duration &&
+          other.artworkPath == this.artworkPath &&
+          other.thumbnailPath == this.thumbnailPath &&
+          other.artworkWidth == this.artworkWidth &&
+          other.artworkHeight == this.artworkHeight &&
+          other.trackNumber == this.trackNumber &&
+          other.sourceFlags == this.sourceFlags &&
+          $driftBlobEquality.equals(
+            other.themeColorsBlob,
+            this.themeColorsBlob,
+          ) &&
+          $driftBlobEquality.equals(other.waveformBlob, this.waveformBlob) &&
+          other.lastModifiedTime == this.lastModifiedTime &&
+          other.metadataTextScanned == this.metadataTextScanned &&
+          other.metadataImgScanned == this.metadataImgScanned &&
+          other.createdAt == this.createdAt &&
+          other.genres == this.genres);
+}
+
+class SongsCompanion extends UpdateCompanion<Song> {
+  final Value<int> id;
+  final Value<String> path;
+  final Value<String?> title;
+  final Value<String?> album;
+  final Value<String?> artist;
+  final Value<int?> duration;
+  final Value<String?> artworkPath;
+  final Value<String?> thumbnailPath;
+  final Value<int?> artworkWidth;
+  final Value<int?> artworkHeight;
+  final Value<int?> trackNumber;
+  final Value<int?> sourceFlags;
+  final Value<Uint8List?> themeColorsBlob;
+  final Value<Uint8List?> waveformBlob;
+  final Value<int?> lastModifiedTime;
+  final Value<int?> metadataTextScanned;
+  final Value<int?> metadataImgScanned;
+  final Value<int?> createdAt;
+  final Value<String?> genres;
+  const SongsCompanion({
+    this.id = const Value.absent(),
+    this.path = const Value.absent(),
+    this.title = const Value.absent(),
+    this.album = const Value.absent(),
+    this.artist = const Value.absent(),
+    this.duration = const Value.absent(),
+    this.artworkPath = const Value.absent(),
+    this.thumbnailPath = const Value.absent(),
+    this.artworkWidth = const Value.absent(),
+    this.artworkHeight = const Value.absent(),
+    this.trackNumber = const Value.absent(),
+    this.sourceFlags = const Value.absent(),
+    this.themeColorsBlob = const Value.absent(),
+    this.waveformBlob = const Value.absent(),
+    this.lastModifiedTime = const Value.absent(),
+    this.metadataTextScanned = const Value.absent(),
+    this.metadataImgScanned = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.genres = const Value.absent(),
+  });
+  SongsCompanion.insert({
+    this.id = const Value.absent(),
+    required String path,
+    this.title = const Value.absent(),
+    this.album = const Value.absent(),
+    this.artist = const Value.absent(),
+    this.duration = const Value.absent(),
+    this.artworkPath = const Value.absent(),
+    this.thumbnailPath = const Value.absent(),
+    this.artworkWidth = const Value.absent(),
+    this.artworkHeight = const Value.absent(),
+    this.trackNumber = const Value.absent(),
+    this.sourceFlags = const Value.absent(),
+    this.themeColorsBlob = const Value.absent(),
+    this.waveformBlob = const Value.absent(),
+    this.lastModifiedTime = const Value.absent(),
+    this.metadataTextScanned = const Value.absent(),
+    this.metadataImgScanned = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.genres = const Value.absent(),
+  }) : path = Value(path);
+  static Insertable<Song> custom({
+    Expression<int>? id,
+    Expression<String>? path,
+    Expression<String>? title,
+    Expression<String>? album,
+    Expression<String>? artist,
+    Expression<int>? duration,
+    Expression<String>? artworkPath,
+    Expression<String>? thumbnailPath,
+    Expression<int>? artworkWidth,
+    Expression<int>? artworkHeight,
+    Expression<int>? trackNumber,
+    Expression<int>? sourceFlags,
+    Expression<Uint8List>? themeColorsBlob,
+    Expression<Uint8List>? waveformBlob,
+    Expression<int>? lastModifiedTime,
+    Expression<int>? metadataTextScanned,
+    Expression<int>? metadataImgScanned,
+    Expression<int>? createdAt,
+    Expression<String>? genres,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (path != null) 'path': path,
+      if (title != null) 'title': title,
+      if (album != null) 'album': album,
+      if (artist != null) 'artist': artist,
+      if (duration != null) 'duration': duration,
+      if (artworkPath != null) 'artworkPath': artworkPath,
+      if (thumbnailPath != null) 'thumbnailPath': thumbnailPath,
+      if (artworkWidth != null) 'artworkWidth': artworkWidth,
+      if (artworkHeight != null) 'artworkHeight': artworkHeight,
+      if (trackNumber != null) 'trackNumber': trackNumber,
+      if (sourceFlags != null) 'sourceFlags': sourceFlags,
+      if (themeColorsBlob != null) 'themeColorsBlob': themeColorsBlob,
+      if (waveformBlob != null) 'waveformBlob': waveformBlob,
+      if (lastModifiedTime != null) 'lastModifiedTime': lastModifiedTime,
+      if (metadataTextScanned != null)
+        'metadataTextScanned': metadataTextScanned,
+      if (metadataImgScanned != null) 'metadataImgScanned': metadataImgScanned,
+      if (createdAt != null) 'createdAt': createdAt,
+      if (genres != null) 'genres': genres,
+    });
+  }
+
+  SongsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? path,
+    Value<String?>? title,
+    Value<String?>? album,
+    Value<String?>? artist,
+    Value<int?>? duration,
+    Value<String?>? artworkPath,
+    Value<String?>? thumbnailPath,
+    Value<int?>? artworkWidth,
+    Value<int?>? artworkHeight,
+    Value<int?>? trackNumber,
+    Value<int?>? sourceFlags,
+    Value<Uint8List?>? themeColorsBlob,
+    Value<Uint8List?>? waveformBlob,
+    Value<int?>? lastModifiedTime,
+    Value<int?>? metadataTextScanned,
+    Value<int?>? metadataImgScanned,
+    Value<int?>? createdAt,
+    Value<String?>? genres,
+  }) {
+    return SongsCompanion(
+      id: id ?? this.id,
+      path: path ?? this.path,
+      title: title ?? this.title,
+      album: album ?? this.album,
+      artist: artist ?? this.artist,
+      duration: duration ?? this.duration,
+      artworkPath: artworkPath ?? this.artworkPath,
+      thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+      artworkWidth: artworkWidth ?? this.artworkWidth,
+      artworkHeight: artworkHeight ?? this.artworkHeight,
+      trackNumber: trackNumber ?? this.trackNumber,
+      sourceFlags: sourceFlags ?? this.sourceFlags,
+      themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
+      waveformBlob: waveformBlob ?? this.waveformBlob,
+      lastModifiedTime: lastModifiedTime ?? this.lastModifiedTime,
+      metadataTextScanned: metadataTextScanned ?? this.metadataTextScanned,
+      metadataImgScanned: metadataImgScanned ?? this.metadataImgScanned,
+      createdAt: createdAt ?? this.createdAt,
+      genres: genres ?? this.genres,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (path.present) {
+      map['path'] = Variable<String>(path.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (album.present) {
+      map['album'] = Variable<String>(album.value);
+    }
+    if (artist.present) {
+      map['artist'] = Variable<String>(artist.value);
+    }
+    if (duration.present) {
+      map['duration'] = Variable<int>(duration.value);
+    }
+    if (artworkPath.present) {
+      map['artworkPath'] = Variable<String>(artworkPath.value);
+    }
+    if (thumbnailPath.present) {
+      map['thumbnailPath'] = Variable<String>(thumbnailPath.value);
+    }
+    if (artworkWidth.present) {
+      map['artworkWidth'] = Variable<int>(artworkWidth.value);
+    }
+    if (artworkHeight.present) {
+      map['artworkHeight'] = Variable<int>(artworkHeight.value);
+    }
+    if (trackNumber.present) {
+      map['trackNumber'] = Variable<int>(trackNumber.value);
+    }
+    if (sourceFlags.present) {
+      map['sourceFlags'] = Variable<int>(sourceFlags.value);
+    }
+    if (themeColorsBlob.present) {
+      map['themeColorsBlob'] = Variable<Uint8List>(themeColorsBlob.value);
+    }
+    if (waveformBlob.present) {
+      map['waveformBlob'] = Variable<Uint8List>(waveformBlob.value);
+    }
+    if (lastModifiedTime.present) {
+      map['lastModifiedTime'] = Variable<int>(lastModifiedTime.value);
+    }
+    if (metadataTextScanned.present) {
+      map['metadataTextScanned'] = Variable<int>(metadataTextScanned.value);
+    }
+    if (metadataImgScanned.present) {
+      map['metadataImgScanned'] = Variable<int>(metadataImgScanned.value);
+    }
+    if (createdAt.present) {
+      map['createdAt'] = Variable<int>(createdAt.value);
+    }
+    if (genres.present) {
+      map['genres'] = Variable<String>(genres.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SongsCompanion(')
+          ..write('id: $id, ')
+          ..write('path: $path, ')
+          ..write('title: $title, ')
+          ..write('album: $album, ')
+          ..write('artist: $artist, ')
+          ..write('duration: $duration, ')
+          ..write('artworkPath: $artworkPath, ')
+          ..write('thumbnailPath: $thumbnailPath, ')
+          ..write('artworkWidth: $artworkWidth, ')
+          ..write('artworkHeight: $artworkHeight, ')
+          ..write('trackNumber: $trackNumber, ')
+          ..write('sourceFlags: $sourceFlags, ')
+          ..write('themeColorsBlob: $themeColorsBlob, ')
+          ..write('waveformBlob: $waveformBlob, ')
+          ..write('lastModifiedTime: $lastModifiedTime, ')
+          ..write('metadataTextScanned: $metadataTextScanned, ')
+          ..write('metadataImgScanned: $metadataImgScanned, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('genres: $genres')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LyricsCachesTable extends LyricsCaches
+    with TableInfo<$LyricsCachesTable, LyricsCache> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LyricsCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _cacheKeyMeta = const VerificationMeta(
+    'cacheKey',
+  );
+  @override
+  late final GeneratedColumn<String> cacheKey = GeneratedColumn<String>(
+    'cacheKey',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'isSynced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("isSynced" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _syncedLyricsMeta = const VerificationMeta(
+    'syncedLyrics',
+  );
+  @override
+  late final GeneratedColumn<String> syncedLyrics = GeneratedColumn<String>(
+    'syncedLyrics',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncedLinesJsonMeta = const VerificationMeta(
+    'syncedLinesJson',
+  );
+  @override
+  late final GeneratedColumn<String> syncedLinesJson = GeneratedColumn<String>(
+    'syncedLinesJson',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timelineOffsetMillisMeta =
+      const VerificationMeta('timelineOffsetMillis');
+  @override
+  late final GeneratedColumn<int> timelineOffsetMillis = GeneratedColumn<int>(
+    'timelineOffsetMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    cacheKey,
+    source,
+    isSynced,
+    syncedLyrics,
+    syncedLinesJson,
+    timelineOffsetMillis,
+    updatedAtMillis,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'lyrics_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LyricsCache> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('cacheKey')) {
+      context.handle(
+        _cacheKeyMeta,
+        cacheKey.isAcceptableOrUnknown(data['cacheKey']!, _cacheKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cacheKeyMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('isSynced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['isSynced']!, _isSyncedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_isSyncedMeta);
+    }
+    if (data.containsKey('syncedLyrics')) {
+      context.handle(
+        _syncedLyricsMeta,
+        syncedLyrics.isAcceptableOrUnknown(
+          data['syncedLyrics']!,
+          _syncedLyricsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('syncedLinesJson')) {
+      context.handle(
+        _syncedLinesJsonMeta,
+        syncedLinesJson.isAcceptableOrUnknown(
+          data['syncedLinesJson']!,
+          _syncedLinesJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_syncedLinesJsonMeta);
+    }
+    if (data.containsKey('timelineOffsetMillis')) {
+      context.handle(
+        _timelineOffsetMillisMeta,
+        timelineOffsetMillis.isAcceptableOrUnknown(
+          data['timelineOffsetMillis']!,
+          _timelineOffsetMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_timelineOffsetMillisMeta);
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LyricsCache map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LyricsCache(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      cacheKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cacheKey'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}isSynced'],
+      )!,
+      syncedLyrics: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}syncedLyrics'],
+      ),
+      syncedLinesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}syncedLinesJson'],
+      )!,
+      timelineOffsetMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}timelineOffsetMillis'],
+      )!,
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $LyricsCachesTable createAlias(String alias) {
+    return $LyricsCachesTable(attachedDatabase, alias);
+  }
+}
+
+class LyricsCache extends DataClass implements Insertable<LyricsCache> {
+  final int id;
+  final String cacheKey;
+  final String source;
+  final bool isSynced;
+  final String? syncedLyrics;
+  final String syncedLinesJson;
+  final int timelineOffsetMillis;
+  final int updatedAtMillis;
+  const LyricsCache({
+    required this.id,
+    required this.cacheKey,
+    required this.source,
+    required this.isSynced,
+    this.syncedLyrics,
+    required this.syncedLinesJson,
+    required this.timelineOffsetMillis,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['cacheKey'] = Variable<String>(cacheKey);
+    map['source'] = Variable<String>(source);
+    map['isSynced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || syncedLyrics != null) {
+      map['syncedLyrics'] = Variable<String>(syncedLyrics);
+    }
+    map['syncedLinesJson'] = Variable<String>(syncedLinesJson);
+    map['timelineOffsetMillis'] = Variable<int>(timelineOffsetMillis);
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  LyricsCachesCompanion toCompanion(bool nullToAbsent) {
+    return LyricsCachesCompanion(
+      id: Value(id),
+      cacheKey: Value(cacheKey),
+      source: Value(source),
+      isSynced: Value(isSynced),
+      syncedLyrics: syncedLyrics == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedLyrics),
+      syncedLinesJson: Value(syncedLinesJson),
+      timelineOffsetMillis: Value(timelineOffsetMillis),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory LyricsCache.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LyricsCache(
+      id: serializer.fromJson<int>(json['id']),
+      cacheKey: serializer.fromJson<String>(json['cacheKey']),
+      source: serializer.fromJson<String>(json['source']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      syncedLyrics: serializer.fromJson<String?>(json['syncedLyrics']),
+      syncedLinesJson: serializer.fromJson<String>(json['syncedLinesJson']),
+      timelineOffsetMillis: serializer.fromJson<int>(
+        json['timelineOffsetMillis'],
+      ),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'cacheKey': serializer.toJson<String>(cacheKey),
+      'source': serializer.toJson<String>(source),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'syncedLyrics': serializer.toJson<String?>(syncedLyrics),
+      'syncedLinesJson': serializer.toJson<String>(syncedLinesJson),
+      'timelineOffsetMillis': serializer.toJson<int>(timelineOffsetMillis),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  LyricsCache copyWith({
+    int? id,
+    String? cacheKey,
+    String? source,
+    bool? isSynced,
+    Value<String?> syncedLyrics = const Value.absent(),
+    String? syncedLinesJson,
+    int? timelineOffsetMillis,
+    int? updatedAtMillis,
+  }) => LyricsCache(
+    id: id ?? this.id,
+    cacheKey: cacheKey ?? this.cacheKey,
+    source: source ?? this.source,
+    isSynced: isSynced ?? this.isSynced,
+    syncedLyrics: syncedLyrics.present ? syncedLyrics.value : this.syncedLyrics,
+    syncedLinesJson: syncedLinesJson ?? this.syncedLinesJson,
+    timelineOffsetMillis: timelineOffsetMillis ?? this.timelineOffsetMillis,
+    updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+  );
+  LyricsCache copyWithCompanion(LyricsCachesCompanion data) {
+    return LyricsCache(
+      id: data.id.present ? data.id.value : this.id,
+      cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
+      source: data.source.present ? data.source.value : this.source,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      syncedLyrics: data.syncedLyrics.present
+          ? data.syncedLyrics.value
+          : this.syncedLyrics,
+      syncedLinesJson: data.syncedLinesJson.present
+          ? data.syncedLinesJson.value
+          : this.syncedLinesJson,
+      timelineOffsetMillis: data.timelineOffsetMillis.present
+          ? data.timelineOffsetMillis.value
+          : this.timelineOffsetMillis,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LyricsCache(')
+          ..write('id: $id, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('source: $source, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncedLyrics: $syncedLyrics, ')
+          ..write('syncedLinesJson: $syncedLinesJson, ')
+          ..write('timelineOffsetMillis: $timelineOffsetMillis, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    cacheKey,
+    source,
+    isSynced,
+    syncedLyrics,
+    syncedLinesJson,
+    timelineOffsetMillis,
+    updatedAtMillis,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LyricsCache &&
+          other.id == this.id &&
+          other.cacheKey == this.cacheKey &&
+          other.source == this.source &&
+          other.isSynced == this.isSynced &&
+          other.syncedLyrics == this.syncedLyrics &&
+          other.syncedLinesJson == this.syncedLinesJson &&
+          other.timelineOffsetMillis == this.timelineOffsetMillis &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
+  final Value<int> id;
+  final Value<String> cacheKey;
+  final Value<String> source;
+  final Value<bool> isSynced;
+  final Value<String?> syncedLyrics;
+  final Value<String> syncedLinesJson;
+  final Value<int> timelineOffsetMillis;
+  final Value<int> updatedAtMillis;
+  const LyricsCachesCompanion({
+    this.id = const Value.absent(),
+    this.cacheKey = const Value.absent(),
+    this.source = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.syncedLyrics = const Value.absent(),
+    this.syncedLinesJson = const Value.absent(),
+    this.timelineOffsetMillis = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+  });
+  LyricsCachesCompanion.insert({
+    this.id = const Value.absent(),
+    required String cacheKey,
+    required String source,
+    required bool isSynced,
+    this.syncedLyrics = const Value.absent(),
+    required String syncedLinesJson,
+    required int timelineOffsetMillis,
+    required int updatedAtMillis,
+  }) : cacheKey = Value(cacheKey),
+       source = Value(source),
+       isSynced = Value(isSynced),
+       syncedLinesJson = Value(syncedLinesJson),
+       timelineOffsetMillis = Value(timelineOffsetMillis),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<LyricsCache> custom({
+    Expression<int>? id,
+    Expression<String>? cacheKey,
+    Expression<String>? source,
+    Expression<bool>? isSynced,
+    Expression<String>? syncedLyrics,
+    Expression<String>? syncedLinesJson,
+    Expression<int>? timelineOffsetMillis,
+    Expression<int>? updatedAtMillis,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (cacheKey != null) 'cacheKey': cacheKey,
+      if (source != null) 'source': source,
+      if (isSynced != null) 'isSynced': isSynced,
+      if (syncedLyrics != null) 'syncedLyrics': syncedLyrics,
+      if (syncedLinesJson != null) 'syncedLinesJson': syncedLinesJson,
+      if (timelineOffsetMillis != null)
+        'timelineOffsetMillis': timelineOffsetMillis,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+    });
+  }
+
+  LyricsCachesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? cacheKey,
+    Value<String>? source,
+    Value<bool>? isSynced,
+    Value<String?>? syncedLyrics,
+    Value<String>? syncedLinesJson,
+    Value<int>? timelineOffsetMillis,
+    Value<int>? updatedAtMillis,
+  }) {
+    return LyricsCachesCompanion(
+      id: id ?? this.id,
+      cacheKey: cacheKey ?? this.cacheKey,
+      source: source ?? this.source,
+      isSynced: isSynced ?? this.isSynced,
+      syncedLyrics: syncedLyrics ?? this.syncedLyrics,
+      syncedLinesJson: syncedLinesJson ?? this.syncedLinesJson,
+      timelineOffsetMillis: timelineOffsetMillis ?? this.timelineOffsetMillis,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (cacheKey.present) {
+      map['cacheKey'] = Variable<String>(cacheKey.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (isSynced.present) {
+      map['isSynced'] = Variable<bool>(isSynced.value);
+    }
+    if (syncedLyrics.present) {
+      map['syncedLyrics'] = Variable<String>(syncedLyrics.value);
+    }
+    if (syncedLinesJson.present) {
+      map['syncedLinesJson'] = Variable<String>(syncedLinesJson.value);
+    }
+    if (timelineOffsetMillis.present) {
+      map['timelineOffsetMillis'] = Variable<int>(timelineOffsetMillis.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LyricsCachesCompanion(')
+          ..write('id: $id, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('source: $source, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('syncedLyrics: $syncedLyrics, ')
+          ..write('syncedLinesJson: $syncedLinesJson, ')
+          ..write('timelineOffsetMillis: $timelineOffsetMillis, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AcoustidCachesTable extends AcoustidCaches
+    with TableInfo<$AcoustidCachesTable, AcoustidCache> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AcoustidCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _fingerprintMeta = const VerificationMeta(
+    'fingerprint',
+  );
+  @override
+  late final GeneratedColumn<String> fingerprint = GeneratedColumn<String>(
+    'fingerprint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationSecondsMeta = const VerificationMeta(
+    'durationSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> durationSeconds = GeneratedColumn<int>(
+    'durationSeconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _resultsJsonMeta = const VerificationMeta(
+    'resultsJson',
+  );
+  @override
+  late final GeneratedColumn<String> resultsJson = GeneratedColumn<String>(
+    'resultsJson',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    fingerprint,
+    durationSeconds,
+    resultsJson,
+    updatedAtMillis,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'acoustid_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AcoustidCache> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('fingerprint')) {
+      context.handle(
+        _fingerprintMeta,
+        fingerprint.isAcceptableOrUnknown(
+          data['fingerprint']!,
+          _fingerprintMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fingerprintMeta);
+    }
+    if (data.containsKey('durationSeconds')) {
+      context.handle(
+        _durationSecondsMeta,
+        durationSeconds.isAcceptableOrUnknown(
+          data['durationSeconds']!,
+          _durationSecondsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_durationSecondsMeta);
+    }
+    if (data.containsKey('resultsJson')) {
+      context.handle(
+        _resultsJsonMeta,
+        resultsJson.isAcceptableOrUnknown(
+          data['resultsJson']!,
+          _resultsJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_resultsJsonMeta);
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AcoustidCache map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AcoustidCache(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      fingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fingerprint'],
+      )!,
+      durationSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}durationSeconds'],
+      )!,
+      resultsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}resultsJson'],
+      )!,
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $AcoustidCachesTable createAlias(String alias) {
+    return $AcoustidCachesTable(attachedDatabase, alias);
+  }
+}
+
+class AcoustidCache extends DataClass implements Insertable<AcoustidCache> {
+  final int id;
+  final String fingerprint;
+  final int durationSeconds;
+  final String resultsJson;
+  final int updatedAtMillis;
+  const AcoustidCache({
+    required this.id,
+    required this.fingerprint,
+    required this.durationSeconds,
+    required this.resultsJson,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['fingerprint'] = Variable<String>(fingerprint);
+    map['durationSeconds'] = Variable<int>(durationSeconds);
+    map['resultsJson'] = Variable<String>(resultsJson);
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  AcoustidCachesCompanion toCompanion(bool nullToAbsent) {
+    return AcoustidCachesCompanion(
+      id: Value(id),
+      fingerprint: Value(fingerprint),
+      durationSeconds: Value(durationSeconds),
+      resultsJson: Value(resultsJson),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory AcoustidCache.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AcoustidCache(
+      id: serializer.fromJson<int>(json['id']),
+      fingerprint: serializer.fromJson<String>(json['fingerprint']),
+      durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
+      resultsJson: serializer.fromJson<String>(json['resultsJson']),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'fingerprint': serializer.toJson<String>(fingerprint),
+      'durationSeconds': serializer.toJson<int>(durationSeconds),
+      'resultsJson': serializer.toJson<String>(resultsJson),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  AcoustidCache copyWith({
+    int? id,
+    String? fingerprint,
+    int? durationSeconds,
+    String? resultsJson,
+    int? updatedAtMillis,
+  }) => AcoustidCache(
+    id: id ?? this.id,
+    fingerprint: fingerprint ?? this.fingerprint,
+    durationSeconds: durationSeconds ?? this.durationSeconds,
+    resultsJson: resultsJson ?? this.resultsJson,
+    updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+  );
+  AcoustidCache copyWithCompanion(AcoustidCachesCompanion data) {
+    return AcoustidCache(
+      id: data.id.present ? data.id.value : this.id,
+      fingerprint: data.fingerprint.present
+          ? data.fingerprint.value
+          : this.fingerprint,
+      durationSeconds: data.durationSeconds.present
+          ? data.durationSeconds.value
+          : this.durationSeconds,
+      resultsJson: data.resultsJson.present
+          ? data.resultsJson.value
+          : this.resultsJson,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AcoustidCache(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('resultsJson: $resultsJson, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    fingerprint,
+    durationSeconds,
+    resultsJson,
+    updatedAtMillis,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AcoustidCache &&
+          other.id == this.id &&
+          other.fingerprint == this.fingerprint &&
+          other.durationSeconds == this.durationSeconds &&
+          other.resultsJson == this.resultsJson &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class AcoustidCachesCompanion extends UpdateCompanion<AcoustidCache> {
+  final Value<int> id;
+  final Value<String> fingerprint;
+  final Value<int> durationSeconds;
+  final Value<String> resultsJson;
+  final Value<int> updatedAtMillis;
+  const AcoustidCachesCompanion({
+    this.id = const Value.absent(),
+    this.fingerprint = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    this.resultsJson = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+  });
+  AcoustidCachesCompanion.insert({
+    this.id = const Value.absent(),
+    required String fingerprint,
+    required int durationSeconds,
+    required String resultsJson,
+    required int updatedAtMillis,
+  }) : fingerprint = Value(fingerprint),
+       durationSeconds = Value(durationSeconds),
+       resultsJson = Value(resultsJson),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<AcoustidCache> custom({
+    Expression<int>? id,
+    Expression<String>? fingerprint,
+    Expression<int>? durationSeconds,
+    Expression<String>? resultsJson,
+    Expression<int>? updatedAtMillis,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fingerprint != null) 'fingerprint': fingerprint,
+      if (durationSeconds != null) 'durationSeconds': durationSeconds,
+      if (resultsJson != null) 'resultsJson': resultsJson,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+    });
+  }
+
+  AcoustidCachesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? fingerprint,
+    Value<int>? durationSeconds,
+    Value<String>? resultsJson,
+    Value<int>? updatedAtMillis,
+  }) {
+    return AcoustidCachesCompanion(
+      id: id ?? this.id,
+      fingerprint: fingerprint ?? this.fingerprint,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
+      resultsJson: resultsJson ?? this.resultsJson,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (fingerprint.present) {
+      map['fingerprint'] = Variable<String>(fingerprint.value);
+    }
+    if (durationSeconds.present) {
+      map['durationSeconds'] = Variable<int>(durationSeconds.value);
+    }
+    if (resultsJson.present) {
+      map['resultsJson'] = Variable<String>(resultsJson.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AcoustidCachesCompanion(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('resultsJson: $resultsJson, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReleaseCoverCachesTable extends ReleaseCoverCaches
+    with TableInfo<$ReleaseCoverCachesTable, ReleaseCoverCache> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReleaseCoverCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _releaseIdMeta = const VerificationMeta(
+    'releaseId',
+  );
+  @override
+  late final GeneratedColumn<String> releaseId = GeneratedColumn<String>(
+    'releaseId',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _largeUrlMeta = const VerificationMeta(
+    'largeUrl',
+  );
+  @override
+  late final GeneratedColumn<String> largeUrl = GeneratedColumn<String>(
+    'largeUrl',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _thumbnailUrlMeta = const VerificationMeta(
+    'thumbnailUrl',
+  );
+  @override
+  late final GeneratedColumn<String> thumbnailUrl = GeneratedColumn<String>(
+    'thumbnailUrl',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    releaseId,
+    largeUrl,
+    thumbnailUrl,
+    updatedAtMillis,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'release_cover_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReleaseCoverCache> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('releaseId')) {
+      context.handle(
+        _releaseIdMeta,
+        releaseId.isAcceptableOrUnknown(data['releaseId']!, _releaseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_releaseIdMeta);
+    }
+    if (data.containsKey('largeUrl')) {
+      context.handle(
+        _largeUrlMeta,
+        largeUrl.isAcceptableOrUnknown(data['largeUrl']!, _largeUrlMeta),
+      );
+    }
+    if (data.containsKey('thumbnailUrl')) {
+      context.handle(
+        _thumbnailUrlMeta,
+        thumbnailUrl.isAcceptableOrUnknown(
+          data['thumbnailUrl']!,
+          _thumbnailUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReleaseCoverCache map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReleaseCoverCache(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      releaseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}releaseId'],
+      )!,
+      largeUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}largeUrl'],
+      ),
+      thumbnailUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}thumbnailUrl'],
+      ),
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $ReleaseCoverCachesTable createAlias(String alias) {
+    return $ReleaseCoverCachesTable(attachedDatabase, alias);
+  }
+}
+
+class ReleaseCoverCache extends DataClass
+    implements Insertable<ReleaseCoverCache> {
+  final int id;
+  final String releaseId;
+  final String? largeUrl;
+  final String? thumbnailUrl;
+  final int updatedAtMillis;
+  const ReleaseCoverCache({
+    required this.id,
+    required this.releaseId,
+    this.largeUrl,
+    this.thumbnailUrl,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['releaseId'] = Variable<String>(releaseId);
+    if (!nullToAbsent || largeUrl != null) {
+      map['largeUrl'] = Variable<String>(largeUrl);
+    }
+    if (!nullToAbsent || thumbnailUrl != null) {
+      map['thumbnailUrl'] = Variable<String>(thumbnailUrl);
+    }
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  ReleaseCoverCachesCompanion toCompanion(bool nullToAbsent) {
+    return ReleaseCoverCachesCompanion(
+      id: Value(id),
+      releaseId: Value(releaseId),
+      largeUrl: largeUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(largeUrl),
+      thumbnailUrl: thumbnailUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(thumbnailUrl),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory ReleaseCoverCache.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReleaseCoverCache(
+      id: serializer.fromJson<int>(json['id']),
+      releaseId: serializer.fromJson<String>(json['releaseId']),
+      largeUrl: serializer.fromJson<String?>(json['largeUrl']),
+      thumbnailUrl: serializer.fromJson<String?>(json['thumbnailUrl']),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'releaseId': serializer.toJson<String>(releaseId),
+      'largeUrl': serializer.toJson<String?>(largeUrl),
+      'thumbnailUrl': serializer.toJson<String?>(thumbnailUrl),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  ReleaseCoverCache copyWith({
+    int? id,
+    String? releaseId,
+    Value<String?> largeUrl = const Value.absent(),
+    Value<String?> thumbnailUrl = const Value.absent(),
+    int? updatedAtMillis,
+  }) => ReleaseCoverCache(
+    id: id ?? this.id,
+    releaseId: releaseId ?? this.releaseId,
+    largeUrl: largeUrl.present ? largeUrl.value : this.largeUrl,
+    thumbnailUrl: thumbnailUrl.present ? thumbnailUrl.value : this.thumbnailUrl,
+    updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+  );
+  ReleaseCoverCache copyWithCompanion(ReleaseCoverCachesCompanion data) {
+    return ReleaseCoverCache(
+      id: data.id.present ? data.id.value : this.id,
+      releaseId: data.releaseId.present ? data.releaseId.value : this.releaseId,
+      largeUrl: data.largeUrl.present ? data.largeUrl.value : this.largeUrl,
+      thumbnailUrl: data.thumbnailUrl.present
+          ? data.thumbnailUrl.value
+          : this.thumbnailUrl,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReleaseCoverCache(')
+          ..write('id: $id, ')
+          ..write('releaseId: $releaseId, ')
+          ..write('largeUrl: $largeUrl, ')
+          ..write('thumbnailUrl: $thumbnailUrl, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, releaseId, largeUrl, thumbnailUrl, updatedAtMillis);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReleaseCoverCache &&
+          other.id == this.id &&
+          other.releaseId == this.releaseId &&
+          other.largeUrl == this.largeUrl &&
+          other.thumbnailUrl == this.thumbnailUrl &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class ReleaseCoverCachesCompanion extends UpdateCompanion<ReleaseCoverCache> {
+  final Value<int> id;
+  final Value<String> releaseId;
+  final Value<String?> largeUrl;
+  final Value<String?> thumbnailUrl;
+  final Value<int> updatedAtMillis;
+  const ReleaseCoverCachesCompanion({
+    this.id = const Value.absent(),
+    this.releaseId = const Value.absent(),
+    this.largeUrl = const Value.absent(),
+    this.thumbnailUrl = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+  });
+  ReleaseCoverCachesCompanion.insert({
+    this.id = const Value.absent(),
+    required String releaseId,
+    this.largeUrl = const Value.absent(),
+    this.thumbnailUrl = const Value.absent(),
+    required int updatedAtMillis,
+  }) : releaseId = Value(releaseId),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<ReleaseCoverCache> custom({
+    Expression<int>? id,
+    Expression<String>? releaseId,
+    Expression<String>? largeUrl,
+    Expression<String>? thumbnailUrl,
+    Expression<int>? updatedAtMillis,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (releaseId != null) 'releaseId': releaseId,
+      if (largeUrl != null) 'largeUrl': largeUrl,
+      if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+    });
+  }
+
+  ReleaseCoverCachesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? releaseId,
+    Value<String?>? largeUrl,
+    Value<String?>? thumbnailUrl,
+    Value<int>? updatedAtMillis,
+  }) {
+    return ReleaseCoverCachesCompanion(
+      id: id ?? this.id,
+      releaseId: releaseId ?? this.releaseId,
+      largeUrl: largeUrl ?? this.largeUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (releaseId.present) {
+      map['releaseId'] = Variable<String>(releaseId.value);
+    }
+    if (largeUrl.present) {
+      map['largeUrl'] = Variable<String>(largeUrl.value);
+    }
+    if (thumbnailUrl.present) {
+      map['thumbnailUrl'] = Variable<String>(thumbnailUrl.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReleaseCoverCachesCompanion(')
+          ..write('id: $id, ')
+          ..write('releaseId: $releaseId, ')
+          ..write('largeUrl: $largeUrl, ')
+          ..write('thumbnailUrl: $thumbnailUrl, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LyricsTranslationCachesTable extends LyricsTranslationCaches
+    with TableInfo<$LyricsTranslationCachesTable, LyricsTranslationCache> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LyricsTranslationCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _cacheKeyMeta = const VerificationMeta(
+    'cacheKey',
+  );
+  @override
+  late final GeneratedColumn<String> cacheKey = GeneratedColumn<String>(
+    'cacheKey',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _languageCodeMeta = const VerificationMeta(
+    'languageCode',
+  );
+  @override
+  late final GeneratedColumn<String> languageCode = GeneratedColumn<String>(
+    'languageCode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _translatedTextMeta = const VerificationMeta(
+    'translatedText',
+  );
+  @override
+  late final GeneratedColumn<String> translatedText = GeneratedColumn<String>(
+    'translatedText',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _translatedLinesJsonMeta =
+      const VerificationMeta('translatedLinesJson');
+  @override
+  late final GeneratedColumn<String> translatedLinesJson =
+      GeneratedColumn<String>(
+        'translatedLinesJson',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _providerMeta = const VerificationMeta(
+    'provider',
+  );
+  @override
+  late final GeneratedColumn<String> provider = GeneratedColumn<String>(
+    'provider',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    cacheKey,
+    languageCode,
+    translatedText,
+    translatedLinesJson,
+    provider,
+    updatedAtMillis,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'lyrics_translation_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LyricsTranslationCache> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('cacheKey')) {
+      context.handle(
+        _cacheKeyMeta,
+        cacheKey.isAcceptableOrUnknown(data['cacheKey']!, _cacheKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cacheKeyMeta);
+    }
+    if (data.containsKey('languageCode')) {
+      context.handle(
+        _languageCodeMeta,
+        languageCode.isAcceptableOrUnknown(
+          data['languageCode']!,
+          _languageCodeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_languageCodeMeta);
+    }
+    if (data.containsKey('translatedText')) {
+      context.handle(
+        _translatedTextMeta,
+        translatedText.isAcceptableOrUnknown(
+          data['translatedText']!,
+          _translatedTextMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_translatedTextMeta);
+    }
+    if (data.containsKey('translatedLinesJson')) {
+      context.handle(
+        _translatedLinesJsonMeta,
+        translatedLinesJson.isAcceptableOrUnknown(
+          data['translatedLinesJson']!,
+          _translatedLinesJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_translatedLinesJsonMeta);
+    }
+    if (data.containsKey('provider')) {
+      context.handle(
+        _providerMeta,
+        provider.isAcceptableOrUnknown(data['provider']!, _providerMeta),
+      );
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LyricsTranslationCache map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LyricsTranslationCache(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      cacheKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cacheKey'],
+      )!,
+      languageCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}languageCode'],
+      )!,
+      translatedText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}translatedText'],
+      )!,
+      translatedLinesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}translatedLinesJson'],
+      )!,
+      provider: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider'],
+      ),
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $LyricsTranslationCachesTable createAlias(String alias) {
+    return $LyricsTranslationCachesTable(attachedDatabase, alias);
+  }
+}
+
+class LyricsTranslationCache extends DataClass
+    implements Insertable<LyricsTranslationCache> {
+  final int id;
+  final String cacheKey;
+  final String languageCode;
+  final String translatedText;
+  final String translatedLinesJson;
+  final String? provider;
+  final int updatedAtMillis;
+  const LyricsTranslationCache({
+    required this.id,
+    required this.cacheKey,
+    required this.languageCode,
+    required this.translatedText,
+    required this.translatedLinesJson,
+    this.provider,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['cacheKey'] = Variable<String>(cacheKey);
+    map['languageCode'] = Variable<String>(languageCode);
+    map['translatedText'] = Variable<String>(translatedText);
+    map['translatedLinesJson'] = Variable<String>(translatedLinesJson);
+    if (!nullToAbsent || provider != null) {
+      map['provider'] = Variable<String>(provider);
+    }
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  LyricsTranslationCachesCompanion toCompanion(bool nullToAbsent) {
+    return LyricsTranslationCachesCompanion(
+      id: Value(id),
+      cacheKey: Value(cacheKey),
+      languageCode: Value(languageCode),
+      translatedText: Value(translatedText),
+      translatedLinesJson: Value(translatedLinesJson),
+      provider: provider == null && nullToAbsent
+          ? const Value.absent()
+          : Value(provider),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory LyricsTranslationCache.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LyricsTranslationCache(
+      id: serializer.fromJson<int>(json['id']),
+      cacheKey: serializer.fromJson<String>(json['cacheKey']),
+      languageCode: serializer.fromJson<String>(json['languageCode']),
+      translatedText: serializer.fromJson<String>(json['translatedText']),
+      translatedLinesJson: serializer.fromJson<String>(
+        json['translatedLinesJson'],
+      ),
+      provider: serializer.fromJson<String?>(json['provider']),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'cacheKey': serializer.toJson<String>(cacheKey),
+      'languageCode': serializer.toJson<String>(languageCode),
+      'translatedText': serializer.toJson<String>(translatedText),
+      'translatedLinesJson': serializer.toJson<String>(translatedLinesJson),
+      'provider': serializer.toJson<String?>(provider),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  LyricsTranslationCache copyWith({
+    int? id,
+    String? cacheKey,
+    String? languageCode,
+    String? translatedText,
+    String? translatedLinesJson,
+    Value<String?> provider = const Value.absent(),
+    int? updatedAtMillis,
+  }) => LyricsTranslationCache(
+    id: id ?? this.id,
+    cacheKey: cacheKey ?? this.cacheKey,
+    languageCode: languageCode ?? this.languageCode,
+    translatedText: translatedText ?? this.translatedText,
+    translatedLinesJson: translatedLinesJson ?? this.translatedLinesJson,
+    provider: provider.present ? provider.value : this.provider,
+    updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+  );
+  LyricsTranslationCache copyWithCompanion(
+    LyricsTranslationCachesCompanion data,
+  ) {
+    return LyricsTranslationCache(
+      id: data.id.present ? data.id.value : this.id,
+      cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
+      languageCode: data.languageCode.present
+          ? data.languageCode.value
+          : this.languageCode,
+      translatedText: data.translatedText.present
+          ? data.translatedText.value
+          : this.translatedText,
+      translatedLinesJson: data.translatedLinesJson.present
+          ? data.translatedLinesJson.value
+          : this.translatedLinesJson,
+      provider: data.provider.present ? data.provider.value : this.provider,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LyricsTranslationCache(')
+          ..write('id: $id, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('languageCode: $languageCode, ')
+          ..write('translatedText: $translatedText, ')
+          ..write('translatedLinesJson: $translatedLinesJson, ')
+          ..write('provider: $provider, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    cacheKey,
+    languageCode,
+    translatedText,
+    translatedLinesJson,
+    provider,
+    updatedAtMillis,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LyricsTranslationCache &&
+          other.id == this.id &&
+          other.cacheKey == this.cacheKey &&
+          other.languageCode == this.languageCode &&
+          other.translatedText == this.translatedText &&
+          other.translatedLinesJson == this.translatedLinesJson &&
+          other.provider == this.provider &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class LyricsTranslationCachesCompanion
+    extends UpdateCompanion<LyricsTranslationCache> {
+  final Value<int> id;
+  final Value<String> cacheKey;
+  final Value<String> languageCode;
+  final Value<String> translatedText;
+  final Value<String> translatedLinesJson;
+  final Value<String?> provider;
+  final Value<int> updatedAtMillis;
+  const LyricsTranslationCachesCompanion({
+    this.id = const Value.absent(),
+    this.cacheKey = const Value.absent(),
+    this.languageCode = const Value.absent(),
+    this.translatedText = const Value.absent(),
+    this.translatedLinesJson = const Value.absent(),
+    this.provider = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+  });
+  LyricsTranslationCachesCompanion.insert({
+    this.id = const Value.absent(),
+    required String cacheKey,
+    required String languageCode,
+    required String translatedText,
+    required String translatedLinesJson,
+    this.provider = const Value.absent(),
+    required int updatedAtMillis,
+  }) : cacheKey = Value(cacheKey),
+       languageCode = Value(languageCode),
+       translatedText = Value(translatedText),
+       translatedLinesJson = Value(translatedLinesJson),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<LyricsTranslationCache> custom({
+    Expression<int>? id,
+    Expression<String>? cacheKey,
+    Expression<String>? languageCode,
+    Expression<String>? translatedText,
+    Expression<String>? translatedLinesJson,
+    Expression<String>? provider,
+    Expression<int>? updatedAtMillis,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (cacheKey != null) 'cacheKey': cacheKey,
+      if (languageCode != null) 'languageCode': languageCode,
+      if (translatedText != null) 'translatedText': translatedText,
+      if (translatedLinesJson != null)
+        'translatedLinesJson': translatedLinesJson,
+      if (provider != null) 'provider': provider,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+    });
+  }
+
+  LyricsTranslationCachesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? cacheKey,
+    Value<String>? languageCode,
+    Value<String>? translatedText,
+    Value<String>? translatedLinesJson,
+    Value<String?>? provider,
+    Value<int>? updatedAtMillis,
+  }) {
+    return LyricsTranslationCachesCompanion(
+      id: id ?? this.id,
+      cacheKey: cacheKey ?? this.cacheKey,
+      languageCode: languageCode ?? this.languageCode,
+      translatedText: translatedText ?? this.translatedText,
+      translatedLinesJson: translatedLinesJson ?? this.translatedLinesJson,
+      provider: provider ?? this.provider,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (cacheKey.present) {
+      map['cacheKey'] = Variable<String>(cacheKey.value);
+    }
+    if (languageCode.present) {
+      map['languageCode'] = Variable<String>(languageCode.value);
+    }
+    if (translatedText.present) {
+      map['translatedText'] = Variable<String>(translatedText.value);
+    }
+    if (translatedLinesJson.present) {
+      map['translatedLinesJson'] = Variable<String>(translatedLinesJson.value);
+    }
+    if (provider.present) {
+      map['provider'] = Variable<String>(provider.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LyricsTranslationCachesCompanion(')
+          ..write('id: $id, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('languageCode: $languageCode, ')
+          ..write('translatedText: $translatedText, ')
+          ..write('translatedLinesJson: $translatedLinesJson, ')
+          ..write('provider: $provider, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+}
+
+abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
+  _$MetadataDriftDatabase(QueryExecutor e) : super(e);
+  $MetadataDriftDatabaseManager get managers =>
+      $MetadataDriftDatabaseManager(this);
+  late final $SongsTable songs = $SongsTable(this);
+  late final $LyricsCachesTable lyricsCaches = $LyricsCachesTable(this);
+  late final $AcoustidCachesTable acoustidCaches = $AcoustidCachesTable(this);
+  late final $ReleaseCoverCachesTable releaseCoverCaches =
+      $ReleaseCoverCachesTable(this);
+  late final $LyricsTranslationCachesTable lyricsTranslationCaches =
+      $LyricsTranslationCachesTable(this);
+  @override
+  Iterable<TableInfo<Table, Object?>> get allTables =>
+      allSchemaEntities.whereType<TableInfo<Table, Object?>>();
+  @override
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    songs,
+    lyricsCaches,
+    acoustidCaches,
+    releaseCoverCaches,
+    lyricsTranslationCaches,
+  ];
+}
+
+typedef $$SongsTableCreateCompanionBuilder =
+    SongsCompanion Function({
+      Value<int> id,
+      required String path,
+      Value<String?> title,
+      Value<String?> album,
+      Value<String?> artist,
+      Value<int?> duration,
+      Value<String?> artworkPath,
+      Value<String?> thumbnailPath,
+      Value<int?> artworkWidth,
+      Value<int?> artworkHeight,
+      Value<int?> trackNumber,
+      Value<int?> sourceFlags,
+      Value<Uint8List?> themeColorsBlob,
+      Value<Uint8List?> waveformBlob,
+      Value<int?> lastModifiedTime,
+      Value<int?> metadataTextScanned,
+      Value<int?> metadataImgScanned,
+      Value<int?> createdAt,
+      Value<String?> genres,
+    });
+typedef $$SongsTableUpdateCompanionBuilder =
+    SongsCompanion Function({
+      Value<int> id,
+      Value<String> path,
+      Value<String?> title,
+      Value<String?> album,
+      Value<String?> artist,
+      Value<int?> duration,
+      Value<String?> artworkPath,
+      Value<String?> thumbnailPath,
+      Value<int?> artworkWidth,
+      Value<int?> artworkHeight,
+      Value<int?> trackNumber,
+      Value<int?> sourceFlags,
+      Value<Uint8List?> themeColorsBlob,
+      Value<Uint8List?> waveformBlob,
+      Value<int?> lastModifiedTime,
+      Value<int?> metadataTextScanned,
+      Value<int?> metadataImgScanned,
+      Value<int?> createdAt,
+      Value<String?> genres,
+    });
+
+class $$SongsTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $SongsTable> {
+  $$SongsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get duration => $composableBuilder(
+    column: $table.duration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artworkPath => $composableBuilder(
+    column: $table.artworkPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get thumbnailPath => $composableBuilder(
+    column: $table.thumbnailPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get artworkWidth => $composableBuilder(
+    column: $table.artworkWidth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get artworkHeight => $composableBuilder(
+    column: $table.artworkHeight,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get trackNumber => $composableBuilder(
+    column: $table.trackNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourceFlags => $composableBuilder(
+    column: $table.sourceFlags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get themeColorsBlob => $composableBuilder(
+    column: $table.themeColorsBlob,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get waveformBlob => $composableBuilder(
+    column: $table.waveformBlob,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastModifiedTime => $composableBuilder(
+    column: $table.lastModifiedTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get metadataTextScanned => $composableBuilder(
+    column: $table.metadataTextScanned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get metadataImgScanned => $composableBuilder(
+    column: $table.metadataImgScanned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get genres => $composableBuilder(
+    column: $table.genres,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SongsTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $SongsTable> {
+  $$SongsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get duration => $composableBuilder(
+    column: $table.duration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artworkPath => $composableBuilder(
+    column: $table.artworkPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get thumbnailPath => $composableBuilder(
+    column: $table.thumbnailPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get artworkWidth => $composableBuilder(
+    column: $table.artworkWidth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get artworkHeight => $composableBuilder(
+    column: $table.artworkHeight,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get trackNumber => $composableBuilder(
+    column: $table.trackNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceFlags => $composableBuilder(
+    column: $table.sourceFlags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get themeColorsBlob => $composableBuilder(
+    column: $table.themeColorsBlob,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get waveformBlob => $composableBuilder(
+    column: $table.waveformBlob,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastModifiedTime => $composableBuilder(
+    column: $table.lastModifiedTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get metadataTextScanned => $composableBuilder(
+    column: $table.metadataTextScanned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get metadataImgScanned => $composableBuilder(
+    column: $table.metadataImgScanned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get genres => $composableBuilder(
+    column: $table.genres,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SongsTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $SongsTable> {
+  $$SongsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get album =>
+      $composableBuilder(column: $table.album, builder: (column) => column);
+
+  GeneratedColumn<String> get artist =>
+      $composableBuilder(column: $table.artist, builder: (column) => column);
+
+  GeneratedColumn<int> get duration =>
+      $composableBuilder(column: $table.duration, builder: (column) => column);
+
+  GeneratedColumn<String> get artworkPath => $composableBuilder(
+    column: $table.artworkPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get thumbnailPath => $composableBuilder(
+    column: $table.thumbnailPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get artworkWidth => $composableBuilder(
+    column: $table.artworkWidth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get artworkHeight => $composableBuilder(
+    column: $table.artworkHeight,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get trackNumber => $composableBuilder(
+    column: $table.trackNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sourceFlags => $composableBuilder(
+    column: $table.sourceFlags,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<Uint8List> get themeColorsBlob => $composableBuilder(
+    column: $table.themeColorsBlob,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<Uint8List> get waveformBlob => $composableBuilder(
+    column: $table.waveformBlob,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastModifiedTime => $composableBuilder(
+    column: $table.lastModifiedTime,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get metadataTextScanned => $composableBuilder(
+    column: $table.metadataTextScanned,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get metadataImgScanned => $composableBuilder(
+    column: $table.metadataImgScanned,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get genres =>
+      $composableBuilder(column: $table.genres, builder: (column) => column);
+}
+
+class $$SongsTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $SongsTable,
+          Song,
+          $$SongsTableFilterComposer,
+          $$SongsTableOrderingComposer,
+          $$SongsTableAnnotationComposer,
+          $$SongsTableCreateCompanionBuilder,
+          $$SongsTableUpdateCompanionBuilder,
+          (Song, BaseReferences<_$MetadataDriftDatabase, $SongsTable, Song>),
+          Song,
+          PrefetchHooks Function()
+        > {
+  $$SongsTableTableManager(_$MetadataDriftDatabase db, $SongsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SongsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SongsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SongsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> path = const Value.absent(),
+                Value<String?> title = const Value.absent(),
+                Value<String?> album = const Value.absent(),
+                Value<String?> artist = const Value.absent(),
+                Value<int?> duration = const Value.absent(),
+                Value<String?> artworkPath = const Value.absent(),
+                Value<String?> thumbnailPath = const Value.absent(),
+                Value<int?> artworkWidth = const Value.absent(),
+                Value<int?> artworkHeight = const Value.absent(),
+                Value<int?> trackNumber = const Value.absent(),
+                Value<int?> sourceFlags = const Value.absent(),
+                Value<Uint8List?> themeColorsBlob = const Value.absent(),
+                Value<Uint8List?> waveformBlob = const Value.absent(),
+                Value<int?> lastModifiedTime = const Value.absent(),
+                Value<int?> metadataTextScanned = const Value.absent(),
+                Value<int?> metadataImgScanned = const Value.absent(),
+                Value<int?> createdAt = const Value.absent(),
+                Value<String?> genres = const Value.absent(),
+              }) => SongsCompanion(
+                id: id,
+                path: path,
+                title: title,
+                album: album,
+                artist: artist,
+                duration: duration,
+                artworkPath: artworkPath,
+                thumbnailPath: thumbnailPath,
+                artworkWidth: artworkWidth,
+                artworkHeight: artworkHeight,
+                trackNumber: trackNumber,
+                sourceFlags: sourceFlags,
+                themeColorsBlob: themeColorsBlob,
+                waveformBlob: waveformBlob,
+                lastModifiedTime: lastModifiedTime,
+                metadataTextScanned: metadataTextScanned,
+                metadataImgScanned: metadataImgScanned,
+                createdAt: createdAt,
+                genres: genres,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String path,
+                Value<String?> title = const Value.absent(),
+                Value<String?> album = const Value.absent(),
+                Value<String?> artist = const Value.absent(),
+                Value<int?> duration = const Value.absent(),
+                Value<String?> artworkPath = const Value.absent(),
+                Value<String?> thumbnailPath = const Value.absent(),
+                Value<int?> artworkWidth = const Value.absent(),
+                Value<int?> artworkHeight = const Value.absent(),
+                Value<int?> trackNumber = const Value.absent(),
+                Value<int?> sourceFlags = const Value.absent(),
+                Value<Uint8List?> themeColorsBlob = const Value.absent(),
+                Value<Uint8List?> waveformBlob = const Value.absent(),
+                Value<int?> lastModifiedTime = const Value.absent(),
+                Value<int?> metadataTextScanned = const Value.absent(),
+                Value<int?> metadataImgScanned = const Value.absent(),
+                Value<int?> createdAt = const Value.absent(),
+                Value<String?> genres = const Value.absent(),
+              }) => SongsCompanion.insert(
+                id: id,
+                path: path,
+                title: title,
+                album: album,
+                artist: artist,
+                duration: duration,
+                artworkPath: artworkPath,
+                thumbnailPath: thumbnailPath,
+                artworkWidth: artworkWidth,
+                artworkHeight: artworkHeight,
+                trackNumber: trackNumber,
+                sourceFlags: sourceFlags,
+                themeColorsBlob: themeColorsBlob,
+                waveformBlob: waveformBlob,
+                lastModifiedTime: lastModifiedTime,
+                metadataTextScanned: metadataTextScanned,
+                metadataImgScanned: metadataImgScanned,
+                createdAt: createdAt,
+                genres: genres,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SongsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $SongsTable,
+      Song,
+      $$SongsTableFilterComposer,
+      $$SongsTableOrderingComposer,
+      $$SongsTableAnnotationComposer,
+      $$SongsTableCreateCompanionBuilder,
+      $$SongsTableUpdateCompanionBuilder,
+      (Song, BaseReferences<_$MetadataDriftDatabase, $SongsTable, Song>),
+      Song,
+      PrefetchHooks Function()
+    >;
+typedef $$LyricsCachesTableCreateCompanionBuilder =
+    LyricsCachesCompanion Function({
+      Value<int> id,
+      required String cacheKey,
+      required String source,
+      required bool isSynced,
+      Value<String?> syncedLyrics,
+      required String syncedLinesJson,
+      required int timelineOffsetMillis,
+      required int updatedAtMillis,
+    });
+typedef $$LyricsCachesTableUpdateCompanionBuilder =
+    LyricsCachesCompanion Function({
+      Value<int> id,
+      Value<String> cacheKey,
+      Value<String> source,
+      Value<bool> isSynced,
+      Value<String?> syncedLyrics,
+      Value<String> syncedLinesJson,
+      Value<int> timelineOffsetMillis,
+      Value<int> updatedAtMillis,
+    });
+
+class $$LyricsCachesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $LyricsCachesTable> {
+  $$LyricsCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncedLyrics => $composableBuilder(
+    column: $table.syncedLyrics,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncedLinesJson => $composableBuilder(
+    column: $table.syncedLinesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timelineOffsetMillis => $composableBuilder(
+    column: $table.timelineOffsetMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LyricsCachesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $LyricsCachesTable> {
+  $$LyricsCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncedLyrics => $composableBuilder(
+    column: $table.syncedLyrics,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncedLinesJson => $composableBuilder(
+    column: $table.syncedLinesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get timelineOffsetMillis => $composableBuilder(
+    column: $table.timelineOffsetMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LyricsCachesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $LyricsCachesTable> {
+  $$LyricsCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get cacheKey =>
+      $composableBuilder(column: $table.cacheKey, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get syncedLyrics => $composableBuilder(
+    column: $table.syncedLyrics,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncedLinesJson => $composableBuilder(
+    column: $table.syncedLinesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get timelineOffsetMillis => $composableBuilder(
+    column: $table.timelineOffsetMillis,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$LyricsCachesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $LyricsCachesTable,
+          LyricsCache,
+          $$LyricsCachesTableFilterComposer,
+          $$LyricsCachesTableOrderingComposer,
+          $$LyricsCachesTableAnnotationComposer,
+          $$LyricsCachesTableCreateCompanionBuilder,
+          $$LyricsCachesTableUpdateCompanionBuilder,
+          (
+            LyricsCache,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $LyricsCachesTable,
+              LyricsCache
+            >,
+          ),
+          LyricsCache,
+          PrefetchHooks Function()
+        > {
+  $$LyricsCachesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $LyricsCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LyricsCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LyricsCachesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LyricsCachesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> cacheKey = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<String?> syncedLyrics = const Value.absent(),
+                Value<String> syncedLinesJson = const Value.absent(),
+                Value<int> timelineOffsetMillis = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+              }) => LyricsCachesCompanion(
+                id: id,
+                cacheKey: cacheKey,
+                source: source,
+                isSynced: isSynced,
+                syncedLyrics: syncedLyrics,
+                syncedLinesJson: syncedLinesJson,
+                timelineOffsetMillis: timelineOffsetMillis,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String cacheKey,
+                required String source,
+                required bool isSynced,
+                Value<String?> syncedLyrics = const Value.absent(),
+                required String syncedLinesJson,
+                required int timelineOffsetMillis,
+                required int updatedAtMillis,
+              }) => LyricsCachesCompanion.insert(
+                id: id,
+                cacheKey: cacheKey,
+                source: source,
+                isSynced: isSynced,
+                syncedLyrics: syncedLyrics,
+                syncedLinesJson: syncedLinesJson,
+                timelineOffsetMillis: timelineOffsetMillis,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LyricsCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $LyricsCachesTable,
+      LyricsCache,
+      $$LyricsCachesTableFilterComposer,
+      $$LyricsCachesTableOrderingComposer,
+      $$LyricsCachesTableAnnotationComposer,
+      $$LyricsCachesTableCreateCompanionBuilder,
+      $$LyricsCachesTableUpdateCompanionBuilder,
+      (
+        LyricsCache,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $LyricsCachesTable,
+          LyricsCache
+        >,
+      ),
+      LyricsCache,
+      PrefetchHooks Function()
+    >;
+typedef $$AcoustidCachesTableCreateCompanionBuilder =
+    AcoustidCachesCompanion Function({
+      Value<int> id,
+      required String fingerprint,
+      required int durationSeconds,
+      required String resultsJson,
+      required int updatedAtMillis,
+    });
+typedef $$AcoustidCachesTableUpdateCompanionBuilder =
+    AcoustidCachesCompanion Function({
+      Value<int> id,
+      Value<String> fingerprint,
+      Value<int> durationSeconds,
+      Value<String> resultsJson,
+      Value<int> updatedAtMillis,
+    });
+
+class $$AcoustidCachesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $AcoustidCachesTable> {
+  $$AcoustidCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get resultsJson => $composableBuilder(
+    column: $table.resultsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AcoustidCachesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $AcoustidCachesTable> {
+  $$AcoustidCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get resultsJson => $composableBuilder(
+    column: $table.resultsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AcoustidCachesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $AcoustidCachesTable> {
+  $$AcoustidCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get resultsJson => $composableBuilder(
+    column: $table.resultsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$AcoustidCachesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $AcoustidCachesTable,
+          AcoustidCache,
+          $$AcoustidCachesTableFilterComposer,
+          $$AcoustidCachesTableOrderingComposer,
+          $$AcoustidCachesTableAnnotationComposer,
+          $$AcoustidCachesTableCreateCompanionBuilder,
+          $$AcoustidCachesTableUpdateCompanionBuilder,
+          (
+            AcoustidCache,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $AcoustidCachesTable,
+              AcoustidCache
+            >,
+          ),
+          AcoustidCache,
+          PrefetchHooks Function()
+        > {
+  $$AcoustidCachesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $AcoustidCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AcoustidCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AcoustidCachesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AcoustidCachesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> fingerprint = const Value.absent(),
+                Value<int> durationSeconds = const Value.absent(),
+                Value<String> resultsJson = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+              }) => AcoustidCachesCompanion(
+                id: id,
+                fingerprint: fingerprint,
+                durationSeconds: durationSeconds,
+                resultsJson: resultsJson,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String fingerprint,
+                required int durationSeconds,
+                required String resultsJson,
+                required int updatedAtMillis,
+              }) => AcoustidCachesCompanion.insert(
+                id: id,
+                fingerprint: fingerprint,
+                durationSeconds: durationSeconds,
+                resultsJson: resultsJson,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AcoustidCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $AcoustidCachesTable,
+      AcoustidCache,
+      $$AcoustidCachesTableFilterComposer,
+      $$AcoustidCachesTableOrderingComposer,
+      $$AcoustidCachesTableAnnotationComposer,
+      $$AcoustidCachesTableCreateCompanionBuilder,
+      $$AcoustidCachesTableUpdateCompanionBuilder,
+      (
+        AcoustidCache,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $AcoustidCachesTable,
+          AcoustidCache
+        >,
+      ),
+      AcoustidCache,
+      PrefetchHooks Function()
+    >;
+typedef $$ReleaseCoverCachesTableCreateCompanionBuilder =
+    ReleaseCoverCachesCompanion Function({
+      Value<int> id,
+      required String releaseId,
+      Value<String?> largeUrl,
+      Value<String?> thumbnailUrl,
+      required int updatedAtMillis,
+    });
+typedef $$ReleaseCoverCachesTableUpdateCompanionBuilder =
+    ReleaseCoverCachesCompanion Function({
+      Value<int> id,
+      Value<String> releaseId,
+      Value<String?> largeUrl,
+      Value<String?> thumbnailUrl,
+      Value<int> updatedAtMillis,
+    });
+
+class $$ReleaseCoverCachesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $ReleaseCoverCachesTable> {
+  $$ReleaseCoverCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get releaseId => $composableBuilder(
+    column: $table.releaseId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get largeUrl => $composableBuilder(
+    column: $table.largeUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get thumbnailUrl => $composableBuilder(
+    column: $table.thumbnailUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReleaseCoverCachesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $ReleaseCoverCachesTable> {
+  $$ReleaseCoverCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get releaseId => $composableBuilder(
+    column: $table.releaseId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get largeUrl => $composableBuilder(
+    column: $table.largeUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get thumbnailUrl => $composableBuilder(
+    column: $table.thumbnailUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReleaseCoverCachesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $ReleaseCoverCachesTable> {
+  $$ReleaseCoverCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get releaseId =>
+      $composableBuilder(column: $table.releaseId, builder: (column) => column);
+
+  GeneratedColumn<String> get largeUrl =>
+      $composableBuilder(column: $table.largeUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get thumbnailUrl => $composableBuilder(
+    column: $table.thumbnailUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$ReleaseCoverCachesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $ReleaseCoverCachesTable,
+          ReleaseCoverCache,
+          $$ReleaseCoverCachesTableFilterComposer,
+          $$ReleaseCoverCachesTableOrderingComposer,
+          $$ReleaseCoverCachesTableAnnotationComposer,
+          $$ReleaseCoverCachesTableCreateCompanionBuilder,
+          $$ReleaseCoverCachesTableUpdateCompanionBuilder,
+          (
+            ReleaseCoverCache,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $ReleaseCoverCachesTable,
+              ReleaseCoverCache
+            >,
+          ),
+          ReleaseCoverCache,
+          PrefetchHooks Function()
+        > {
+  $$ReleaseCoverCachesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $ReleaseCoverCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReleaseCoverCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReleaseCoverCachesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReleaseCoverCachesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> releaseId = const Value.absent(),
+                Value<String?> largeUrl = const Value.absent(),
+                Value<String?> thumbnailUrl = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+              }) => ReleaseCoverCachesCompanion(
+                id: id,
+                releaseId: releaseId,
+                largeUrl: largeUrl,
+                thumbnailUrl: thumbnailUrl,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String releaseId,
+                Value<String?> largeUrl = const Value.absent(),
+                Value<String?> thumbnailUrl = const Value.absent(),
+                required int updatedAtMillis,
+              }) => ReleaseCoverCachesCompanion.insert(
+                id: id,
+                releaseId: releaseId,
+                largeUrl: largeUrl,
+                thumbnailUrl: thumbnailUrl,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReleaseCoverCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $ReleaseCoverCachesTable,
+      ReleaseCoverCache,
+      $$ReleaseCoverCachesTableFilterComposer,
+      $$ReleaseCoverCachesTableOrderingComposer,
+      $$ReleaseCoverCachesTableAnnotationComposer,
+      $$ReleaseCoverCachesTableCreateCompanionBuilder,
+      $$ReleaseCoverCachesTableUpdateCompanionBuilder,
+      (
+        ReleaseCoverCache,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $ReleaseCoverCachesTable,
+          ReleaseCoverCache
+        >,
+      ),
+      ReleaseCoverCache,
+      PrefetchHooks Function()
+    >;
+typedef $$LyricsTranslationCachesTableCreateCompanionBuilder =
+    LyricsTranslationCachesCompanion Function({
+      Value<int> id,
+      required String cacheKey,
+      required String languageCode,
+      required String translatedText,
+      required String translatedLinesJson,
+      Value<String?> provider,
+      required int updatedAtMillis,
+    });
+typedef $$LyricsTranslationCachesTableUpdateCompanionBuilder =
+    LyricsTranslationCachesCompanion Function({
+      Value<int> id,
+      Value<String> cacheKey,
+      Value<String> languageCode,
+      Value<String> translatedText,
+      Value<String> translatedLinesJson,
+      Value<String?> provider,
+      Value<int> updatedAtMillis,
+    });
+
+class $$LyricsTranslationCachesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $LyricsTranslationCachesTable> {
+  $$LyricsTranslationCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get languageCode => $composableBuilder(
+    column: $table.languageCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get translatedText => $composableBuilder(
+    column: $table.translatedText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get translatedLinesJson => $composableBuilder(
+    column: $table.translatedLinesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get provider => $composableBuilder(
+    column: $table.provider,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LyricsTranslationCachesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $LyricsTranslationCachesTable> {
+  $$LyricsTranslationCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get languageCode => $composableBuilder(
+    column: $table.languageCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get translatedText => $composableBuilder(
+    column: $table.translatedText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get translatedLinesJson => $composableBuilder(
+    column: $table.translatedLinesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get provider => $composableBuilder(
+    column: $table.provider,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LyricsTranslationCachesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $LyricsTranslationCachesTable> {
+  $$LyricsTranslationCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get cacheKey =>
+      $composableBuilder(column: $table.cacheKey, builder: (column) => column);
+
+  GeneratedColumn<String> get languageCode => $composableBuilder(
+    column: $table.languageCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get translatedText => $composableBuilder(
+    column: $table.translatedText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get translatedLinesJson => $composableBuilder(
+    column: $table.translatedLinesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get provider =>
+      $composableBuilder(column: $table.provider, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$LyricsTranslationCachesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $LyricsTranslationCachesTable,
+          LyricsTranslationCache,
+          $$LyricsTranslationCachesTableFilterComposer,
+          $$LyricsTranslationCachesTableOrderingComposer,
+          $$LyricsTranslationCachesTableAnnotationComposer,
+          $$LyricsTranslationCachesTableCreateCompanionBuilder,
+          $$LyricsTranslationCachesTableUpdateCompanionBuilder,
+          (
+            LyricsTranslationCache,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $LyricsTranslationCachesTable,
+              LyricsTranslationCache
+            >,
+          ),
+          LyricsTranslationCache,
+          PrefetchHooks Function()
+        > {
+  $$LyricsTranslationCachesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $LyricsTranslationCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LyricsTranslationCachesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$LyricsTranslationCachesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LyricsTranslationCachesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> cacheKey = const Value.absent(),
+                Value<String> languageCode = const Value.absent(),
+                Value<String> translatedText = const Value.absent(),
+                Value<String> translatedLinesJson = const Value.absent(),
+                Value<String?> provider = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+              }) => LyricsTranslationCachesCompanion(
+                id: id,
+                cacheKey: cacheKey,
+                languageCode: languageCode,
+                translatedText: translatedText,
+                translatedLinesJson: translatedLinesJson,
+                provider: provider,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String cacheKey,
+                required String languageCode,
+                required String translatedText,
+                required String translatedLinesJson,
+                Value<String?> provider = const Value.absent(),
+                required int updatedAtMillis,
+              }) => LyricsTranslationCachesCompanion.insert(
+                id: id,
+                cacheKey: cacheKey,
+                languageCode: languageCode,
+                translatedText: translatedText,
+                translatedLinesJson: translatedLinesJson,
+                provider: provider,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LyricsTranslationCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $LyricsTranslationCachesTable,
+      LyricsTranslationCache,
+      $$LyricsTranslationCachesTableFilterComposer,
+      $$LyricsTranslationCachesTableOrderingComposer,
+      $$LyricsTranslationCachesTableAnnotationComposer,
+      $$LyricsTranslationCachesTableCreateCompanionBuilder,
+      $$LyricsTranslationCachesTableUpdateCompanionBuilder,
+      (
+        LyricsTranslationCache,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $LyricsTranslationCachesTable,
+          LyricsTranslationCache
+        >,
+      ),
+      LyricsTranslationCache,
+      PrefetchHooks Function()
+    >;
+
+class $MetadataDriftDatabaseManager {
+  final _$MetadataDriftDatabase _db;
+  $MetadataDriftDatabaseManager(this._db);
+  $$SongsTableTableManager get songs =>
+      $$SongsTableTableManager(_db, _db.songs);
+  $$LyricsCachesTableTableManager get lyricsCaches =>
+      $$LyricsCachesTableTableManager(_db, _db.lyricsCaches);
+  $$AcoustidCachesTableTableManager get acoustidCaches =>
+      $$AcoustidCachesTableTableManager(_db, _db.acoustidCaches);
+  $$ReleaseCoverCachesTableTableManager get releaseCoverCaches =>
+      $$ReleaseCoverCachesTableTableManager(_db, _db.releaseCoverCaches);
+  $$LyricsTranslationCachesTableTableManager get lyricsTranslationCaches =>
+      $$LyricsTranslationCachesTableTableManager(
+        _db,
+        _db.lyricsTranslationCaches,
+      );
+}

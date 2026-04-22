@@ -4,19 +4,15 @@ import 'package:path/path.dart' as p;
 
 import '../models/album_summary.dart';
 import '../models/music_file.dart';
-import 'audio_riverpod.dart';
 import 'metadata_database.dart';
 
-final albumLibraryProvider = FutureProvider<List<AlbumSummary>>((ref) async {
-  ref.watch(
-    scannerServiceProvider.select((scanner) => scanner.albumLibraryRevision),
-  );
-  final scanner = ref.read(scannerServiceProvider);
-  final payload = scanner.metadataMap.values
-      .map(_metadataToPayload)
-      .toList(growable: false);
-  final albumPayloads = await compute(_buildAlbumSummaryPayloads, payload);
-  return _hydrateAlbumSummaries(albumPayloads);
+final albumLibraryProvider = StreamProvider<List<AlbumSummary>>((ref) async* {
+  final db = MetadataDatabase();
+  await for (final songs in db.watchAllSongMetadata()) {
+    final payload = songs.map(_metadataToPayload).toList(growable: false);
+    final albumPayloads = await compute(_buildAlbumSummaryPayloads, payload);
+    yield _hydrateAlbumSummaries(albumPayloads);
+  }
 });
 
 List<AlbumSummary> buildAlbumSummaries(Iterable<SongMetadata> songs) {

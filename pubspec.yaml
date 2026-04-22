@@ -50,8 +50,6 @@ dependencies:
   device_info_plus: ^10.1.0
   photo_manager: ^3.9.0
   dio: ^5.7.0
-  sqflite: ^2.4.2
-  sqflite_common_ffi: ^2.3.4+1
   sqlite3_flutter_libs: ^0.5.24
   flutter_image_compress: ^2.4.0
   shared_preferences: ^2.5.2
@@ -88,6 +86,7 @@ dependencies:
   palette_generator_master: ^1.0.1
   shimmer: ^3.0.0
   drift: ^2.32.1
+  drift_dev: ^2.32.1
 
 
 
