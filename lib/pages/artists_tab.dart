@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/artist_summary.dart';
@@ -364,59 +363,47 @@ class _ArtistCover extends StatelessWidget {
   }
 
   Widget _loadingPlaceholder(ThemeData theme) {
-    final baseColor = theme.colorScheme.surfaceContainerHighest.withValues(
-      alpha: 0.95,
-    );
-    final highlightColor = theme.colorScheme.surface.withValues(alpha: 0.9);
-
-    return Shimmer.fromColors(
-      baseColor: baseColor,
-      highlightColor: highlightColor,
-      period: const Duration(milliseconds: 1400),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.95),
-              theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
-            ],
-          ),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      theme.colorScheme.primaryContainer.withValues(
-                        alpha: 0.16,
-                      ),
-                      theme.colorScheme.secondaryContainer.withValues(
-                        alpha: 0.08,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Center(
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.95),
+            theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
           ],
         ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.primaryContainer.withValues(alpha: 0.16),
+                    theme.colorScheme.secondaryContainer.withValues(
+                      alpha: 0.08,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: SizedBox(
+              width: 42,
+              height: 42,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

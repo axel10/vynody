@@ -52,7 +52,9 @@ class ArtistDetailPage extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(24),
                       child: _ArtistCover(
                         artist: artist,
-                        size: isWide ? 220 : math.min(220, constraints.maxWidth),
+                        size: isWide
+                            ? 220
+                            : math.min(220, constraints.maxWidth),
                       ),
                     ),
                   );
@@ -154,9 +156,7 @@ class ArtistDetailPage extends ConsumerWidget {
         color: theme.colorScheme.surface,
         child: Column(
           children: [
-            DesktopWindowTitleBar(
-              brightness: theme.brightness,
-            ),
+            DesktopWindowTitleBar(brightness: theme.brightness),
             Expanded(child: content),
           ],
         ),
@@ -231,11 +231,7 @@ class _ArtistInfo extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: chips,
-        ),
+        Wrap(spacing: 8, runSpacing: 8, children: chips),
         if (artist.tags.isNotEmpty) ...[
           const SizedBox(height: 16),
           Text(
@@ -305,20 +301,46 @@ class _ArtistCover extends StatelessWidget {
     if (cachedImagePath != null && cachedImagePath.isNotEmpty) {
       final file = File(cachedImagePath);
       if (file.existsSync()) {
-        return Image.file(
-          file,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-        );
+        return Image.file(file, width: size, height: size, fit: BoxFit.cover);
       }
     }
 
-    if (artist.isImageLoading || cachedImagePath == null || cachedImagePath.isEmpty) {
+    if (artist.isImageLoading) {
+      return _loadingPlaceholder(theme);
+    }
+
+    if (cachedImagePath == null || cachedImagePath.isEmpty) {
       return _fallback(theme);
     }
 
     return _fallback(theme);
+  }
+
+  Widget _loadingPlaceholder(ThemeData theme) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.95),
+            theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
+          ],
+        ),
+      ),
+      child: Center(
+        child: SizedBox(
+          width: 42,
+          height: 42,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _fallback(ThemeData theme) {
