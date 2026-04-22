@@ -24,10 +24,15 @@ typedef _LyricsGenerationInvoker =
     });
 
 class _LyricsGenerationSession {
-  _LyricsGenerationSession({required this.id, required this.songPath});
+  _LyricsGenerationSession({
+    required this.id,
+    required this.songPath,
+    required this.baseStatusLabel,
+  });
 
   final int id;
   final String songPath;
+  final String baseStatusLabel;
 }
 
 class LyricsGenerationCoordinator {
@@ -68,6 +73,7 @@ class LyricsGenerationCoordinator {
     return _LyricsGenerationSession(
       id: _context.lyricsGeneration.serial,
       songPath: song.path,
+      baseStatusLabel: statusLabel,
     );
   }
 
@@ -108,23 +114,59 @@ class LyricsGenerationCoordinator {
     if (!_isCurrentSong(session)) return;
     _support.setGenerationStage(stage);
     final current = _context.lyricsGenerationDisplayState;
+    final stageStatus = _generationStageLabel(stage, session.baseStatusLabel);
+    _context.setLyricsGenerationStatus(stageStatus);
     _context.updateLyricsGenerationDisplayState(
       current.copyWith(
         songPath: session.songPath,
         phase: switch (stage) {
           'uploading' => LyricsGenerationPhase.uploading,
           'processing' => LyricsGenerationPhase.processing,
+          'requesting' => LyricsGenerationPhase.requesting,
           'generating' => LyricsGenerationPhase.generating,
+          'retrying' => LyricsGenerationPhase.retrying,
           _ => LyricsGenerationPhase.idle,
         },
         progress: switch (stage) {
           'uploading' => 0.0,
           'processing' => 1.0,
+          'requesting' => 1.0,
           'generating' => 1.0,
+          'retrying' => 1.0,
           _ => 0.0,
         },
+        statusLabel: stageStatus,
       ),
     );
+    _context.updateSongTaskState(
+      session.songPath,
+      (currentState) => currentState.copyWith(generationStatus: stageStatus),
+    );
+  }
+
+  String _generationStageLabel(String stage, String currentStatus) {
+    final taskKind = _generationTaskKind(currentStatus);
+    switch (stage) {
+      case 'uploading':
+        return '正在上传歌曲文件';
+      case 'processing':
+        return '文件已上传，正在等待文件就绪';
+      case 'requesting':
+        return '正在请求模型响应';
+      case 'generating':
+        return '正在生成$taskKind';
+      case 'retrying':
+        return '正在重试生成$taskKind';
+      default:
+        return currentStatus.isNotEmpty ? currentStatus : '正在处理';
+    }
+  }
+
+  String _generationTaskKind(String statusLabel) {
+    if (statusLabel.contains('时间轴')) {
+      return '时间轴';
+    }
+    return '歌词';
   }
 
   void _updateLyricsGenerationModelLabel(String? modelLabel) {

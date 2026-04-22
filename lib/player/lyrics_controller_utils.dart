@@ -49,10 +49,24 @@ class LyricsControllerSupport {
           progress: 1.0,
         );
         return;
+      case 'requesting':
+        _context.setLyricsGenerating(
+          true,
+          phase: LyricsGenerationPhase.requesting,
+          progress: 1.0,
+        );
+        return;
       case 'generating':
         _context.setLyricsGenerating(
           true,
           phase: LyricsGenerationPhase.generating,
+          progress: 1.0,
+        );
+        return;
+      case 'retrying':
+        _context.setLyricsGenerating(
+          true,
+          phase: LyricsGenerationPhase.retrying,
           progress: 1.0,
         );
         return;

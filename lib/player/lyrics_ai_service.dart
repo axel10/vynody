@@ -567,6 +567,7 @@ class LyricsAiService {
         }
         return const LyricsGenerationResult.failure('上传后的文件未能就绪，请稍后重试。');
       }
+      onStageChanged?.call('requesting');
       final generationOutcome = await _generateWithUploadedFileUri(
         apiKey: apiKey,
         fileUri: fileUri,
@@ -579,6 +580,7 @@ class LyricsAiService {
         prompt: prompt,
         preserveTimestamps: preserveTimestamps,
         onModelLabelChanged: onModelLabelChanged,
+        onStageChanged: onStageChanged,
         onProgress: onProgress,
       );
       if (generationOutcome.shouldFallbackToOpenRouter &&
@@ -625,6 +627,7 @@ class LyricsAiService {
     required String prompt,
     required bool preserveTimestamps,
     void Function(String? modelLabel)? onModelLabelChanged,
+    void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
   }) async {
     String? lastErrorMessage;
@@ -665,6 +668,7 @@ class LyricsAiService {
         );
 
         try {
+          onStageChanged?.call('requesting');
           final response = await _client.post(
             'https://generativelanguage.googleapis.com/v1beta/models/$effectiveModelId:streamGenerateContent',
             queryParameters: {'key': apiKey},
@@ -679,6 +683,7 @@ class LyricsAiService {
           if (body == null || body.stream == null) {
             lastErrorMessage = 'Gemini 返回了空流响应。';
             debugPrint('[LyricsAi] Empty streaming body.');
+            onStageChanged?.call('retrying');
             if (attempt < 3) {
               debugPrint(
                 '[LyricsAi] generation retry scheduled attempt=${attempt + 1} '
@@ -690,6 +695,7 @@ class LyricsAiService {
           }
 
           debugPrint('[LyricsAi] generation stream connected');
+          onStageChanged?.call('generating');
           final generatedBuffer = StringBuffer();
           String lastEmitted = '';
 
@@ -748,6 +754,7 @@ class LyricsAiService {
             debugPrint(
               '[LyricsAi] raw generate response: ${generatedBuffer.toString()}',
             );
+            onStageChanged?.call('retrying');
             if (attempt < 3) {
               debugPrint(
                 '[LyricsAi] generation retry scheduled attempt=${attempt + 1} '
@@ -798,6 +805,7 @@ class LyricsAiService {
               _shouldUseFallbackModel(statusCode)) {
             // 这里只切换模型并重试同一个 fileUri，不会重新上传文件。
             shouldTryNextModel = true;
+            onStageChanged?.call('retrying');
             onModelLabelChanged?.call(_googleModelLabel(fallbackModelId));
             debugPrint(
               '[LyricsAi] model downgraded to $fallbackModelId '
@@ -820,6 +828,7 @@ class LyricsAiService {
         } catch (e) {
           lastErrorMessage = _formatGenerationErrorMessage(e);
           debugPrint('[LyricsAi] generation error: $e');
+          onStageChanged?.call('retrying');
         }
 
         if (attempt < 3) {

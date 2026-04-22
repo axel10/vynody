@@ -365,9 +365,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       case LyricsGenerationPhase.uploading:
         return '上传中 $percent%';
       case LyricsGenerationPhase.processing:
-        return '处理中...';
+        return '等待就绪...';
+      case LyricsGenerationPhase.requesting:
+        return '请求中...';
       case LyricsGenerationPhase.generating:
         return '生成中...';
+      case LyricsGenerationPhase.retrying:
+        return '重试中...';
       case LyricsGenerationPhase.idle:
         break;
     }

@@ -1,1 +1,8 @@
-enum LyricsGenerationPhase { idle, uploading, processing, generating }
+enum LyricsGenerationPhase {
+  idle,
+  uploading,
+  processing,
+  requesting,
+  generating,
+  retrying,
+}

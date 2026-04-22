@@ -49,7 +49,7 @@ class LyricsAiOpenRouterClient {
         '仅输出结果不输出其他内容。';
 
     try {
-      onStageChanged?.call('generating');
+      onStageChanged?.call('requesting');
       onUploadProgress?.call(1.0);
       final fileBytes = await file.readAsBytes();
       final audioFormat = _audioFormatForFilePath(filePath);
@@ -76,6 +76,7 @@ class LyricsAiOpenRouterClient {
       await _streamTextResponse(
         apiKey: apiKey,
         requestData: requestData,
+        onStageChanged: onStageChanged,
         onChunk: (chunk) {
           generatedBuffer.write(chunk);
           final current = LrcUtils.cleanGeneratedLyricsText(
@@ -144,7 +145,7 @@ class LyricsAiOpenRouterClient {
         '```';
 
     try {
-      onStageChanged?.call('generating');
+      onStageChanged?.call('requesting');
       onUploadProgress?.call(1.0);
       final requestData = {
         'model': textModelId,
@@ -174,6 +175,7 @@ class LyricsAiOpenRouterClient {
       await _streamTextResponse(
         apiKey: apiKey,
         requestData: requestData,
+        onStageChanged: onStageChanged,
         onChunk: (chunk) {
           _logChunk('generate_timeline', chunk);
           generatedBuffer.write(chunk);
@@ -241,6 +243,7 @@ class LyricsAiOpenRouterClient {
   Future<void> _streamTextResponse({
     required String apiKey,
     required Map<String, dynamic> requestData,
+    void Function(String stage)? onStageChanged,
     required void Function(String chunk) onChunk,
   }) async {
     debugPrint(
@@ -262,6 +265,7 @@ class LyricsAiOpenRouterClient {
       ),
     );
 
+    onStageChanged?.call('generating');
     debugPrint(
       '[OpenRouterLyrics] response metadata -> '
       'status=${response.statusCode} '

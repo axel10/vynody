@@ -47,8 +47,10 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
         generationState.phase != LyricsGenerationPhase.idle && progress > 0.0;
     final phaseLabel = switch (generationState.phase) {
       LyricsGenerationPhase.uploading => '上传中',
-      LyricsGenerationPhase.processing => '处理中',
+      LyricsGenerationPhase.processing => '等待就绪',
+      LyricsGenerationPhase.requesting => '请求中',
       LyricsGenerationPhase.generating => '生成中',
+      LyricsGenerationPhase.retrying => '重试中',
       LyricsGenerationPhase.idle => '',
     };
 

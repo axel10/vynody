@@ -33,9 +33,14 @@ class LyricsSongTaskState {
       if (generationLabel.isNotEmpty) {
         return generationLabel;
       }
-      return generationPhase == LyricsGenerationPhase.generating
-          ? '正在生成歌词'
-          : '正在生成时间轴';
+      return switch (generationPhase) {
+        LyricsGenerationPhase.uploading => '正在上传歌曲文件',
+        LyricsGenerationPhase.processing => '正在等待文件就绪',
+        LyricsGenerationPhase.requesting => '正在请求模型响应',
+        LyricsGenerationPhase.generating => '正在生成歌词',
+        LyricsGenerationPhase.retrying => '正在重试',
+        LyricsGenerationPhase.idle => '正在处理',
+      };
     }
 
     final translationLabel = translationStatus.trim();
