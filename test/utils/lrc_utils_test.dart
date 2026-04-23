@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:pure_player/utils/lrc_utils.dart';
+import 'package:vibe_flow/utils/lrc_utils.dart';
 
 void main() {
   group('LrcUtils.normalizeGeneratedLyricsText', () {
