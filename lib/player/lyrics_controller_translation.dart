@@ -6,6 +6,7 @@ import '../models/music_file.dart';
 import '../models/music_lyric.dart';
 import '../models/music_lyric_translation.dart';
 import '../utils/language_code_utils.dart';
+import '../utils/localized_text.dart';
 import 'lyrics_cache_models.dart';
 import 'lyrics_controller_context.dart';
 import 'lyrics_controller_utils.dart';
@@ -40,14 +41,14 @@ class LyricsTranslationCoordinator {
   }) async {
     final song = _context.currentMusic();
     if (song == null) {
-      return '没有可用的当前歌曲。';
+      return _t('没有可用的当前歌曲。', 'No current song available.');
     }
 
     final normalizedLanguageCode = LanguageCodeUtils.normalizeLanguageCode(
       targetLanguageCode ?? _context.state.lyricsTranslationLanguageCode,
     );
     if (normalizedLanguageCode.isEmpty) {
-      return '目标语言无效。';
+      return _t('目标语言无效。', 'Invalid target language.');
     }
     if (_context.state.lyricsTranslationLanguageCode !=
         normalizedLanguageCode) {
@@ -60,14 +61,17 @@ class LyricsTranslationCoordinator {
     }
 
     if (_context.isLyricsTranslationBusyForSong(song.path)) {
-      return '当前歌曲的歌词任务已在排队或翻译中。';
+      return _t(
+        '当前歌曲的歌词任务已在排队或翻译中。',
+        'The current song is already queued for translation.',
+      );
     }
 
     _context.updateSongTaskState(
       song.path,
       (current) => current.copyWith(
         isTranslationQueued: true,
-        translationStatus: '正在翻译歌词',
+        translationStatus: _t('正在翻译歌词', 'Translating lyrics'),
       ),
     );
 
@@ -85,13 +89,16 @@ class LyricsTranslationCoordinator {
   }) async {
     final currentSong = _support.songForPath(song.path);
     if (currentSong == null) {
-      return '当前歌曲已不存在，无法翻译歌词。';
+      return _t(
+        '当前歌曲已不存在，无法翻译歌词。',
+        'The current song no longer exists, so lyrics cannot be translated.',
+      );
     }
 
     try {
       final sourceLyrics = _lyricsSourceForTranslation(currentSong);
       if (sourceLyrics.isEmpty) {
-        return '没有可用于翻译的歌词。';
+        return _t('没有可用于翻译的歌词。', 'No lyrics available for translation.');
       }
 
       final request = await _buildLyricsTranslationRequest(
@@ -171,7 +178,7 @@ class LyricsTranslationCoordinator {
       (current) => current.copyWith(
         isTranslationQueued: false,
         isTranslationRunning: true,
-        translationStatus: '正在翻译歌词',
+        translationStatus: _t('正在翻译歌词', 'Translating lyrics'),
       ),
     );
 
@@ -210,6 +217,10 @@ class LyricsTranslationCoordinator {
         ),
       );
     }
+  }
+
+  String _t(String zh, String en) {
+    return localizedText(zh, en);
   }
 
   String _lyricsSourceForTranslation(MusicFile song) {

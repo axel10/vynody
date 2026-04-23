@@ -6,6 +6,7 @@ import 'package:dio/dio.dart' show DioException, Headers, ResponseType;
 import 'package:flutter/foundation.dart';
 
 import '../utils/lrc_utils.dart';
+import '../utils/localized_text.dart';
 import '../utils/network_client.dart';
 import 'lyrics_ai_api_client.dart';
 import 'lyrics_ai_openrouter.dart';
@@ -93,10 +94,16 @@ class LyricsAiService {
     required String action,
   }) {
     final providerName = _providerLabel(provider);
-    return '未找到 $providerName API Key，无法$action。';
+    return _t(
+      '未找到 $providerName API Key，无法$action。',
+      'API key for $providerName was not found, so $action is unavailable.',
+    );
   }
 
-  static const String _googleServerFlakyMessage = 'Google服务器开小差了，重试一下或许会成功哦';
+  static String get _googleServerFlakyMessage => localizedText(
+    'Google服务器开小差了，重试一下或许会成功哦',
+    'Google is having a rough moment. Please try again and it may succeed.',
+  );
 
   bool _shouldUseGoogleServerFlakyMessage(Object error) {
     if (_settingsService.lyricsAiProvider != LyricsAiProvider.googleAiStudio) {
@@ -123,7 +130,7 @@ class LyricsAiService {
       debugPrint('[LyricsAi] gemini API key not found, skip translation.');
       return _missingApiKeyMessage(
         LyricsAiProvider.googleAiStudio,
-        action: '翻译歌词',
+        action: _t('翻译歌词', 'translate lyrics'),
       );
     }
 
@@ -142,7 +149,7 @@ class LyricsAiService {
     final targetLineCount = compactSourceLines.length;
     if (targetLineCount == 0) {
       debugPrint('[LyricsAi] no usable lyrics after stripping timestamps.');
-      return '没有可用于翻译的歌词。';
+      return _t('没有可用于翻译的歌词。', 'No lyrics are available for translation.');
     }
     final targetLanguageName = _targetLanguageName(targetLanguageCode);
     final sourceLyricsForModel = _normalizeSourceLyrics(lyrics);
@@ -187,7 +194,10 @@ class LyricsAiService {
       final body = response.data;
       if (body == null || body.stream == null) {
         debugPrint('[LyricsAi] Empty streaming body.');
-        return 'Gemini 返回了空流响应。';
+        return _t(
+          'Gemini 返回了空流响应。',
+          'Gemini returned an empty streaming response.',
+        );
       }
 
       debugPrint('[LyricsAi] stream connected');
@@ -265,7 +275,7 @@ class LyricsAiService {
       if (!receivedAnyChunk || cleanedCurrent.trim().isEmpty) {
         debugPrint('[LyricsAi] empty translation response.');
         debugPrint('[LyricsAi] raw translation response: $rawCurrent');
-        return 'Gemini 返回了空响应。';
+        return _t('Gemini 返回了空响应。', 'Gemini returned an empty response.');
       }
       return null;
     } on DioException catch (e) {
@@ -273,10 +283,22 @@ class LyricsAiService {
       if (_shouldUseGoogleServerFlakyMessage(e)) {
         return _googleServerFlakyMessage;
       }
-      return _formatGenerationErrorMessage(e, fallback: '翻译歌词时发生未知错误。');
+      return _formatGenerationErrorMessage(
+        e,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        ),
+      );
     } catch (e) {
       debugPrint('[LyricsAi] translation failed: $e');
-      return _formatGenerationErrorMessage(e, fallback: '翻译歌词时发生未知错误。');
+      return _formatGenerationErrorMessage(
+        e,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        ),
+      );
     }
   }
 
@@ -295,7 +317,7 @@ class LyricsAiService {
       return LyricsGenerationResult.failure(
         _missingApiKeyMessage(
           _settingsService.lyricsAiProvider,
-          action: '生成歌词',
+          action: _t('生成歌词', 'generate lyrics'),
         ),
       );
     }
@@ -317,7 +339,12 @@ class LyricsAiService {
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[LyricsAi] file not found for generation: $filePath');
-      return const LyricsGenerationResult.failure('本地歌曲文件不存在，无法生成歌词。');
+      return LyricsGenerationResult.failure(
+        _t(
+          '本地歌曲文件不存在，无法生成歌词。',
+          'The local song file does not exist, so lyrics cannot be generated.',
+        ),
+      );
     }
 
     final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
@@ -341,7 +368,7 @@ class LyricsAiService {
         return LyricsGenerationResult.failure(
           _missingApiKeyMessage(
             LyricsAiProvider.googleAiStudio,
-            action: '生成歌词',
+            action: _t('生成歌词', 'generate lyrics'),
           ),
         );
       }
@@ -405,7 +432,7 @@ class LyricsAiService {
       return LyricsGenerationResult.failure(
         _missingApiKeyMessage(
           _settingsService.lyricsAiProvider,
-          action: '生成时间轴',
+          action: _t('生成时间轴', 'generate timeline'),
         ),
       );
     }
@@ -427,7 +454,12 @@ class LyricsAiService {
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[LyricsAi] file not found for timeline: $filePath');
-      return const LyricsGenerationResult.failure('本地歌曲文件不存在，无法生成时间轴。');
+      return LyricsGenerationResult.failure(
+        _t(
+          '本地歌曲文件不存在，无法生成时间轴。',
+          'The local song file does not exist, so a timeline cannot be generated.',
+        ),
+      );
     }
 
     final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
@@ -438,7 +470,12 @@ class LyricsAiService {
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       debugPrint('[LyricsAi] no usable lyrics for timeline generation.');
-      return const LyricsGenerationResult.failure('没有可用歌词，无法生成时间轴。');
+      return LyricsGenerationResult.failure(
+        _t(
+          '没有可用歌词，无法生成时间轴。',
+          'No lyrics are available for timeline generation.',
+        ),
+      );
     }
 
     final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
@@ -458,7 +495,7 @@ class LyricsAiService {
         return LyricsGenerationResult.failure(
           _missingApiKeyMessage(
             LyricsAiProvider.googleAiStudio,
-            action: '生成时间轴',
+            action: _t('生成时间轴', 'generate timeline'),
           ),
         );
       }
@@ -543,7 +580,9 @@ class LyricsAiService {
         if (fallbackResult != null) {
           return _normalizeGenerationResult(fallbackResult);
         }
-        return const LyricsGenerationResult.failure('文件上传失败，请重试。');
+        return LyricsGenerationResult.failure(
+          _t('文件上传失败，请重试。', 'File upload failed. Please try again.'),
+        );
       }
 
       onStageChanged?.call('processing');
@@ -567,7 +606,12 @@ class LyricsAiService {
         if (fallbackResult != null) {
           return _normalizeGenerationResult(fallbackResult);
         }
-        return const LyricsGenerationResult.failure('上传后的文件未能就绪，请稍后重试。');
+        return LyricsGenerationResult.failure(
+          _t(
+            '上传后的文件未能就绪，请稍后重试。',
+            'The uploaded file did not become ready. Please try again later.',
+          ),
+        );
       }
       onStageChanged?.call('requesting');
       final generationOutcome = await _generateWithUploadedFileUri(
@@ -612,7 +656,13 @@ class LyricsAiService {
         return _normalizeGenerationResult(fallbackResult);
       }
       return LyricsGenerationResult.failure(
-        _formatGenerationErrorMessage(e, fallback: '生成歌词时发生未知错误。'),
+        _formatGenerationErrorMessage(
+          e,
+          fallback: _t(
+            '生成歌词时发生未知错误。',
+            'An unknown error occurred while generating lyrics.',
+          ),
+        ),
       );
     }
   }
@@ -683,7 +733,10 @@ class LyricsAiService {
 
           final body = response.data;
           if (body == null || body.stream == null) {
-            lastErrorMessage = 'Gemini 返回了空流响应。';
+            lastErrorMessage = _t(
+              'Gemini 返回了空流响应。',
+              'Gemini returned an empty streaming response.',
+            );
             debugPrint('[LyricsAi] Empty streaming body.');
             onStageChanged?.call('retrying');
             if (attempt < maxGenerationAttempts) {
@@ -751,7 +804,10 @@ class LyricsAiService {
               ? LrcUtils.normalizeGeneratedLyricsText(finalText)
               : finalText;
           if (normalizedFinalText.isEmpty) {
-            lastErrorMessage = 'Gemini 返回了空响应。';
+            lastErrorMessage = _t(
+              'Gemini 返回了空响应。',
+              'Gemini returned an empty response.',
+            );
             debugPrint('[LyricsAi] empty lyrics response.');
             debugPrint(
               '[LyricsAi] raw generate response: ${generatedBuffer.toString()}',
@@ -859,7 +915,12 @@ class LyricsAiService {
     }
 
     return _LyricsGenerationOutcome(
-      result: LyricsGenerationResult.failure('生成歌词失败：$lastErrorMessage'),
+      result: LyricsGenerationResult.failure(
+        _t(
+          '生成歌词失败：$lastErrorMessage',
+          'Lyrics generation failed: $lastErrorMessage',
+        ),
+      ),
       shouldFallbackToOpenRouter:
           lastFailureEligibleForFallback &&
           _settingsService.shouldAutoSwitchLyricsProvider &&
@@ -916,7 +977,7 @@ class LyricsAiService {
       return text;
     }
 
-    return fallback ?? '未知错误';
+    return fallback ?? _t('未知错误', 'Unknown error');
   }
 
   bool _shouldUseFallbackModel(int? statusCode) {
@@ -929,10 +990,16 @@ class LyricsAiService {
 
   String? _fallbackFailureMessageForStatus(int? statusCode) {
     if (statusCode == 429) {
-      return '今天额度已用完，请等待明天额度恢复再试';
+      return _t(
+        '今天额度已用完，请等待明天额度恢复再试',
+        'Today’s quota has been exhausted. Please try again after it resets tomorrow.',
+      );
     }
     if (_isServerError(statusCode)) {
-      return '谷歌AI服务遭遇大量请求，暂时不可用';
+      return _t(
+        '谷歌AI服务遭遇大量请求，暂时不可用',
+        'Google AI is under heavy load and is temporarily unavailable.',
+      );
     }
     return null;
   }
@@ -995,33 +1062,39 @@ class LyricsAiService {
       case 'zh':
       case 'zh-cn':
       case 'zh-hans':
-        return '中文';
+        return _t('中文', 'Chinese');
       case 'zh-tw':
       case 'zh-hant':
-        return '繁体中文';
+        return _t('繁体中文', 'Traditional Chinese');
       case 'en':
-        return '英文';
+        return _t('英文', 'English');
       case 'ja':
-        return '日文';
+        return _t('日文', 'Japanese');
       case 'ko':
-        return '韩文';
+        return _t('韩文', 'Korean');
       case 'fr':
-        return '法文';
+        return _t('法文', 'French');
       case 'de':
-        return '德文';
+        return _t('德文', 'German');
       case 'es':
-        return '西班牙文';
+        return _t('西班牙文', 'Spanish');
       case 'pt':
-        return '葡萄牙文';
+        return _t('葡萄牙文', 'Portuguese');
       case 'ru':
-        return '俄文';
+        return _t('俄文', 'Russian');
       default:
-        return languageCode.trim().isEmpty ? '目标语言' : languageCode;
+        return languageCode.trim().isEmpty
+            ? _t('目标语言', 'Target language')
+            : languageCode;
     }
   }
 
   List<String> _splitTranslationLines(String text) {
     return text.split(_lineSplitPattern);
+  }
+
+  String _t(String zh, String en) {
+    return localizedText(zh, en);
   }
 
   List<String> _normalizeTranslationLines(String text, int targetLineCount) {

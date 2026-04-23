@@ -4,6 +4,7 @@ import 'package:audio_core/audio_core.dart';
 
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
+import '../utils/localized_text.dart';
 import 'metadata_database.dart';
 
 class ScannerTreeBuilder {
@@ -41,7 +42,7 @@ class ScannerTreeBuilder {
       items,
       compareNaturally,
       rootPath: 'system',
-      rootName: '系统媒体库',
+      rootName: localizedText('系统媒体库', 'System Media Library'),
     );
   }
 

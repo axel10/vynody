@@ -6,6 +6,7 @@ import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
 import '../player/metadata_database.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
+import '../utils/localized_text.dart';
 
 final songTagCompletionControllerProvider = ChangeNotifierProvider.autoDispose
     .family<SongTagCompletionController, String>((ref, songPath) {
@@ -160,7 +161,7 @@ class SongTagCompletionController extends ChangeNotifier {
         title: recording.title.isNotEmpty ? recording.title : fallbackTitle,
         artist: recording.artist.isNotEmpty
             ? recording.artist
-            : 'Unknown Artist',
+            : localizedText('未知艺术家', 'Unknown Artist'),
         album: albumTitle,
         duration: durationMillis,
         artworkBytes: coverArtBytes,
@@ -207,7 +208,7 @@ class SongTagCompletionController extends ChangeNotifier {
     } catch (e) {
       if (_disposed) return null;
       isApplying = false;
-      errorMessage = '保存失败：$e';
+      errorMessage = localizedText('保存失败：$e', 'Save failed: $e');
       _emit();
       return null;
     }
@@ -241,7 +242,7 @@ class SongTagCompletionController extends ChangeNotifier {
     } catch (e) {
       if (_disposed) return null;
       isApplying = false;
-      errorMessage = '保存失败：$e';
+      errorMessage = localizedText('保存失败：$e', 'Save failed: $e');
       _emit();
       return null;
     }
@@ -265,7 +266,9 @@ MusicBrainzTrackMatch _buildAcoustIDSelectionMatch({
   return MusicBrainzTrackMatch(
     recordingId: recording.id.isNotEmpty ? recording.id : trackResult.id,
     title: recording.title.isNotEmpty ? recording.title : fallbackTitle,
-    artist: recording.artist.isNotEmpty ? recording.artist : 'Unknown Artist',
+    artist: recording.artist.isNotEmpty
+        ? recording.artist
+        : localizedText('未知艺术家', 'Unknown Artist'),
     album: albumTitle,
     releaseId: releaseId,
     releaseGroupId: releaseGroupId,

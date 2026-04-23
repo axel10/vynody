@@ -28,6 +28,7 @@ import 'scanner_service_roots.dart';
 import 'scanner_scan_support.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
+import '../utils/localized_text.dart';
 
 export 'scanner_scan_support.dart';
 
@@ -734,7 +735,7 @@ class ScannerService extends ChangeNotifier {
           metadataByPath.values,
           _compareNaturally,
           rootPath: 'system',
-          rootName: '系统媒体库',
+          rootName: localizedText('系统媒体库', 'System Media Library'),
         );
         debugPrint(
           '[ScannerService] iOS system media tree built '
@@ -855,7 +856,7 @@ class ScannerService extends ChangeNotifier {
       _systemMediaFolder = _buildCachedFolderTree(
         songs: filteredSongs,
         rootPath: 'system',
-        rootName: '系统媒体库',
+        rootName: localizedText('系统媒体库', 'System Media Library'),
       );
       if (_systemMediaFolder != null) {
         _folderSorter.sortFolderRecursiveForTree(

@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../utils/lrc_utils.dart';
 import '../utils/network_client.dart';
+import '../utils/localized_text.dart';
 import 'lyrics_ai_stream_parser.dart';
 import 'lyrics_generation_result.dart';
 
@@ -36,7 +37,12 @@ class LyricsAiOpenRouterClient {
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[OpenRouterLyrics] file not found for generation: $filePath');
-      return const LyricsGenerationResult.failure('本地歌曲文件不存在，无法生成歌词。');
+      return LyricsGenerationResult.failure(
+        _t(
+          '本地歌曲文件不存在，无法生成歌词。',
+          'The local song file does not exist, so lyrics cannot be generated.',
+        ),
+      );
     }
 
     final normalizedTitle = songTitle?.trim();
@@ -98,7 +104,9 @@ class LyricsAiOpenRouterClient {
       );
       final normalizedText = LrcUtils.normalizeGeneratedLyricsText(cleanedText);
       if (normalizedText.trim().isEmpty) {
-        return const LyricsGenerationResult.failure('OpenRouter 返回了空响应。');
+        return LyricsGenerationResult.failure(
+          _t('OpenRouter 返回了空响应。', 'OpenRouter returned an empty response.'),
+        );
       }
 
       debugPrint('[OpenRouterLyrics] final generated lyrics:');
@@ -107,7 +115,13 @@ class LyricsAiOpenRouterClient {
       return LyricsGenerationResult.success(normalizedText);
     } catch (e) {
       return LyricsGenerationResult.failure(
-        _formatGenerationErrorMessage(e, fallback: '生成歌词时发生未知错误。'),
+        _formatGenerationErrorMessage(
+          e,
+          fallback: _t(
+            '生成歌词时发生未知错误。',
+            'An unknown error occurred while generating lyrics.',
+          ),
+        ),
       );
     }
   }
@@ -123,7 +137,12 @@ class LyricsAiOpenRouterClient {
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[OpenRouterLyrics] file not found for timeline: $filePath');
-      return const LyricsGenerationResult.failure('本地歌曲文件不存在，无法生成时间轴。');
+      return LyricsGenerationResult.failure(
+        _t(
+          '本地歌曲文件不存在，无法生成时间轴。',
+          'The local song file does not exist, so a timeline cannot be generated.',
+        ),
+      );
     }
 
     final normalizedLyrics = lyrics.trim();
@@ -131,7 +150,9 @@ class LyricsAiOpenRouterClient {
       debugPrint(
         '[OpenRouterLyrics] no usable lyrics for timeline generation.',
       );
-      return const LyricsGenerationResult.failure('没有可用歌词，无法生成时间轴。');
+      return LyricsGenerationResult.failure(
+        _t('没有可用歌词，无法生成时间轴。', 'No lyrics available for timeline generation.'),
+      );
     }
 
     final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
@@ -202,14 +223,22 @@ class LyricsAiOpenRouterClient {
         'rawLength=${generatedBuffer.length} cleanedLength=${normalizedText.length}',
       );
       if (normalizedText.trim().isEmpty) {
-        return const LyricsGenerationResult.failure('OpenRouter 返回了空响应。');
+        return LyricsGenerationResult.failure(
+          _t('OpenRouter 返回了空响应。', 'OpenRouter returned an empty response.'),
+        );
       }
 
       onProgress?.call(normalizedText, true);
       return LyricsGenerationResult.success(normalizedText);
     } catch (e) {
       return LyricsGenerationResult.failure(
-        _formatGenerationErrorMessage(e, fallback: '生成时间轴时发生未知错误。'),
+        _formatGenerationErrorMessage(
+          e,
+          fallback: _t(
+            '生成时间轴时发生未知错误。',
+            'An unknown error occurred while generating the timeline.',
+          ),
+        ),
       );
     }
   }
@@ -274,7 +303,12 @@ class LyricsAiOpenRouterClient {
 
     final body = response.data;
     if (body == null || body.stream == null) {
-      throw Exception('OpenRouter 返回了空流响应。');
+      throw Exception(
+        _t(
+          'OpenRouter 返回了空流响应。',
+          'OpenRouter returned an empty streaming response.',
+        ),
+      );
     }
 
     final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
@@ -442,6 +476,10 @@ class LyricsAiOpenRouterClient {
       return text;
     }
 
-    return fallback ?? '未知错误';
+    return fallback ?? _t('未知错误', 'Unknown error');
+  }
+
+  String _t(String zh, String en) {
+    return localizedText(zh, en);
   }
 }

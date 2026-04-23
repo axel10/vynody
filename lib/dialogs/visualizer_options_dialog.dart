@@ -417,7 +417,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
             items: FftAggregationMode.values.map((mode) {
               return DropdownMenuItem(
                 value: mode,
-                child: Text(mode.name.toUpperCase()),
+                child: Text(_aggregationModeLabel(context, mode)),
               );
             }).toList(),
             onChanged: (val) {
@@ -810,10 +810,19 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               visualDensity: VisualDensity.compact,
             ),
             icon: const Icon(Icons.restart_alt_rounded, size: 18),
-            label: Text(resetLabel ?? 'Reset'),
+            label: Text(resetLabel ?? AppLocalizations.of(context)!.reset),
           ),
       ],
     );
+  }
+
+  String _aggregationModeLabel(BuildContext context, FftAggregationMode mode) {
+    final isZh = AppLocalizations.of(context)!.localeName.startsWith('zh');
+    return switch (mode) {
+      FftAggregationMode.peak => isZh ? '峰值' : 'Peak',
+      FftAggregationMode.mean => isZh ? '平均值' : 'Mean',
+      FftAggregationMode.rms => isZh ? '均方根' : 'RMS',
+    };
   }
 
   Widget _buildSectionCard({required Widget child}) {
