@@ -371,20 +371,31 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     bool isPlayback,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    const padding = EdgeInsets.symmetric(vertical: 12);
+    // Keep the destination box close to the rail's built-in M3 geometry.
+    // A much taller custom box makes the hover/indicator highlight appear
+    // vertically offset because NavigationRail positions it from the icon size.
+    const iconBoxSize = 32.0;
+
+    Widget railIcon(Widget child) {
+      return SizedBox(
+        width: iconBoxSize,
+        height: iconBoxSize,
+        child: Center(child: child),
+      );
+    }
+    const verticalPadding = 10.0;
     return [
       NavigationRailDestination(
-        icon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
+        icon: railIcon(
+          _buildTooltipIcon(
             message: l10n.file,
             icon: Icons.folder_outlined,
             color: isPlayback ? Colors.white70 : null,
           ),
         ),
-        selectedIcon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        selectedIcon: railIcon(
+          _buildTooltipIcon(
             message: l10n.file,
             icon: Icons.folder,
             color: isPlayback ? Colors.white : null,
@@ -393,17 +404,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         label: Text(l10n.file),
       ),
       NavigationRailDestination(
-        icon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
+        icon: railIcon(
+          _buildTooltipIcon(
             message: l10n.play,
             icon: Icons.play_circle_outline,
             color: isPlayback ? Colors.white70 : null,
           ),
         ),
-        selectedIcon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        selectedIcon: railIcon(
+          _buildTooltipIcon(
             message: l10n.play,
             icon: Icons.play_circle,
             color: isPlayback ? Colors.white : null,
@@ -412,17 +422,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         label: Text(l10n.play),
       ),
       NavigationRailDestination(
-        icon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
+        icon: railIcon(
+          _buildTooltipIcon(
             message: l10n.list,
             icon: Icons.playlist_play_outlined,
             color: isPlayback ? Colors.white70 : null,
           ),
         ),
-        selectedIcon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        selectedIcon: railIcon(
+          _buildTooltipIcon(
             message: l10n.list,
             icon: Icons.playlist_play,
             color: isPlayback ? Colors.white : null,
@@ -431,17 +440,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         label: Text(l10n.list),
       ),
       NavigationRailDestination(
-        icon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
+        icon: railIcon(
+          _buildTooltipIcon(
             message: l10n.queueTab,
             icon: Icons.queue_music_outlined,
             color: isPlayback ? Colors.white70 : null,
           ),
         ),
-        selectedIcon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        selectedIcon: railIcon(
+          _buildTooltipIcon(
             message: l10n.queueTab,
             icon: Icons.queue_music,
             color: isPlayback ? Colors.white : null,
@@ -450,17 +458,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         label: Text(l10n.queueTab),
       ),
       NavigationRailDestination(
-        icon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
+        icon: railIcon(
+          _buildTooltipIcon(
             message: l10n.settings,
             icon: Icons.settings_outlined,
             color: isPlayback ? Colors.white70 : null,
           ),
         ),
-        selectedIcon: Padding(
-          padding: padding,
-          child: _buildTooltipIcon(
+        selectedIcon: railIcon(
+          _buildTooltipIcon(
             message: l10n.settings,
             icon: Icons.settings,
             color: isPlayback ? Colors.white : null,
