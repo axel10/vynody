@@ -974,6 +974,200 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tagCompletion => 'Tag completion';
 
   @override
+  String get tagCompletionDescription =>
+      'Match tags with AcoustID and MusicBrainz results';
+
+  @override
+  String get goToSettings => 'Go to Settings';
+
+  @override
+  String get searchReleaseTitles => 'Search release titles';
+
+  @override
+  String get closeSearch => 'Close search';
+
+  @override
+  String get refreshResults => 'Refresh results';
+
+  @override
+  String get filterMusicBrainzReleaseTitle =>
+      'Filter MusicBrainz release titles';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String get localTitle => 'Local title';
+
+  @override
+  String get queryConditions => 'Query conditions';
+
+  @override
+  String get musicBrainzLoading => 'MusicBrainz is loading';
+
+  @override
+  String get musicBrainzLoadingWithResults =>
+      'Existing results will stay in the panel';
+
+  @override
+  String get musicBrainzLoadingHint => 'Please wait';
+
+  @override
+  String get musicBrainzQueryFailed => 'MusicBrainz query failed';
+
+  @override
+  String get musicBrainzNetworkErrorHint =>
+      'The request failed, usually because of unstable network, timeout, or server rejection. Try again later.';
+
+  @override
+  String get musicBrainzFilteredEmptyHint =>
+      'No release titles containing that keyword were found under the current filters.';
+
+  @override
+  String get musicBrainzEmptyHint =>
+      'MusicBrainz returned no usable results. Try loosening the title, artist, or album filters.';
+
+  @override
+  String get musicBrainzEmptyMoreCompleteHint =>
+      'Try again later, or confirm the current title or artist info is more complete.';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get noMatchingRelease => 'No matching release found';
+
+  @override
+  String get noMatchingResults => 'No matching results found';
+
+  @override
+  String get searchAgain => 'Search again';
+
+  @override
+  String get acoustidRecognitionRecords => 'AcoustID recognition records';
+
+  @override
+  String get musicBrainzRecordings => 'MusicBrainz recordings';
+
+  @override
+  String get noExpandableReleaseGroups =>
+      'No expandable release groups available';
+
+  @override
+  String get noExpandableReleases => 'No expandable releases available';
+
+  @override
+  String get noMatchingResultHint =>
+      'Try again later, or confirm the current title or artist info is more complete.';
+
+  @override
+  String releaseCountLabel(int count) {
+    return '$count release versions';
+  }
+
+  @override
+  String recordingCountLabel(int count) {
+    return '$count recordings';
+  }
+
+  @override
+  String trackCountShort(int count) {
+    return '$count tracks';
+  }
+
+  @override
+  String scoreLabel(int score) {
+    return 'Score $score';
+  }
+
+  @override
+  String matchScoreLabel(int score) {
+    return 'Match $score%';
+  }
+
+  @override
+  String get editQueryCondition => 'Edit query condition';
+
+  @override
+  String get enterNewQueryText => 'Enter new query text';
+
+  @override
+  String get durationLabel => 'Duration';
+
+  @override
+  String get customShortcuts => 'Custom Shortcuts';
+
+  @override
+  String get pressShortcutCombo => 'Press the shortcut combination';
+
+  @override
+  String get clickToRecord => 'Click to record';
+
+  @override
+  String get searchingLyrics => 'Searching lyrics';
+
+  @override
+  String get noLyrics => 'No lyrics yet';
+
+  @override
+  String get providerLabel => 'Provider';
+
+  @override
+  String get modelLabel => 'Model';
+
+  @override
+  String get unspecified => 'Not specified';
+
+  @override
+  String targetTimeLabel(String duration) {
+    return 'Target time $duration';
+  }
+
+  @override
+  String get songDeletedSkipped => 'Song deleted, skipped';
+
+  @override
+  String get songDeleted => 'Song deleted';
+
+  @override
+  String get lyricsTaskUploading => 'Uploading';
+
+  @override
+  String get lyricsTaskWaiting => 'Waiting';
+
+  @override
+  String get lyricsTaskRequesting => 'Requesting';
+
+  @override
+  String get lyricsTaskGenerating => 'Generating';
+
+  @override
+  String get lyricsTaskRetrying => 'Retrying';
+
+  @override
+  String get lyricsTaskProcessing => 'Processing';
+
+  @override
+  String get unknownModel => 'Unknown model';
+
+  @override
+  String selectedFolders(int count) {
+    return '$count folders selected';
+  }
+
+  @override
+  String foldersDeleted(int count) {
+    return '$count folders deleted';
+  }
+
+  @override
+  String get persistentAccessDenied =>
+      'Could not save access to that folder. Please select it again.';
+
+  @override
+  String get folderAddFailed => 'Failed to add the folder';
+
+  @override
   String get sleepTimer => 'Sleep timer';
 
   @override

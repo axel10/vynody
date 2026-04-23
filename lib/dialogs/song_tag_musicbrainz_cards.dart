@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
 import 'song_tag_completion_widgets.dart';
 
@@ -31,6 +32,7 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final releaseCount = match.releases.length;
     final hasReleases = releaseCount > 0;
     final durationText = match.durationLabel;
@@ -126,8 +128,8 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
                           Text(
                             [
                               durationText,
-                              '$releaseCount 个发行版',
-                              '评分 ${match.score}',
+                              l10n.releaseCountLabel(releaseCount),
+                              l10n.scoreLabel(match.score),
                             ].join(' · '),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -188,7 +190,7 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
                               ],
                             )
                           : Text(
-                              '没有可展开的发行版',
+                              l10n.noExpandableReleases,
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.42),
                                 fontSize: 11,
@@ -224,6 +226,7 @@ class SongTagMusicBrainzReleaseItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: Colors.white.withValues(alpha: 0.03),
       borderRadius: BorderRadius.circular(9),
@@ -278,7 +281,7 @@ class SongTagMusicBrainzReleaseItem extends StatelessWidget {
                             release.dateLabel!.isNotEmpty)
                           release.dateLabel!,
                         if (release.trackCount != null)
-                          '${release.trackCount} 首',
+                          l10n.trackCountShort(release.trackCount!),
                       ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

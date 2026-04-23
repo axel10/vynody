@@ -950,6 +950,192 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tagCompletion => '歌曲标签补全';
 
   @override
+  String get tagCompletionDescription => '根据 AcoustID 和 MusicBrainz 结果匹配标签';
+
+  @override
+  String get goToSettings => '去设置页';
+
+  @override
+  String get searchReleaseTitles => '搜索 release 标题';
+
+  @override
+  String get closeSearch => '关闭搜索';
+
+  @override
+  String get refreshResults => '刷新结果';
+
+  @override
+  String get filterMusicBrainzReleaseTitle => '过滤 MusicBrainz release 标题';
+
+  @override
+  String get clearSearch => '清空搜索';
+
+  @override
+  String get localTitle => '本地标题';
+
+  @override
+  String get queryConditions => '查询条件';
+
+  @override
+  String get musicBrainzLoading => '正在查询 MusicBrainz';
+
+  @override
+  String get musicBrainzLoadingWithResults => '现有结果会先保留在面板里';
+
+  @override
+  String get musicBrainzLoadingHint => '请稍候';
+
+  @override
+  String get musicBrainzQueryFailed => 'MusicBrainz 查询失败';
+
+  @override
+  String get musicBrainzNetworkErrorHint =>
+      'MusicBrainz 请求失败，通常是网络连接不稳定、超时或被服务端拒绝。可以稍后重试。';
+
+  @override
+  String get musicBrainzFilteredEmptyHint => '当前过滤条件下没有包含该关键词的 release 标题。';
+
+  @override
+  String get musicBrainzEmptyHint =>
+      'MusicBrainz 没有返回可用结果。可以放宽标题、艺人或专辑条件后再试一次。';
+
+  @override
+  String get musicBrainzEmptyMoreCompleteHint => '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。';
+
+  @override
+  String get retry => '重试';
+
+  @override
+  String get noMatchingRelease => '没有找到匹配的 release';
+
+  @override
+  String get noMatchingResults => '没有找到匹配结果';
+
+  @override
+  String get searchAgain => '重新搜索';
+
+  @override
+  String get acoustidRecognitionRecords => 'AcoustID 识别记录';
+
+  @override
+  String get musicBrainzRecordings => 'MusicBrainz 录音';
+
+  @override
+  String get noExpandableReleaseGroups => '没有可展开的发行版分组';
+
+  @override
+  String get noExpandableReleases => '没有可展开的发行版';
+
+  @override
+  String get noMatchingResultHint => '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。';
+
+  @override
+  String releaseCountLabel(int count) {
+    return '$count 个发行版';
+  }
+
+  @override
+  String recordingCountLabel(int count) {
+    return '$count 条录音';
+  }
+
+  @override
+  String trackCountShort(int count) {
+    return '$count 首';
+  }
+
+  @override
+  String scoreLabel(int score) {
+    return '评分 $score';
+  }
+
+  @override
+  String matchScoreLabel(int score) {
+    return '匹配度 $score%';
+  }
+
+  @override
+  String get editQueryCondition => '编辑查询条件';
+
+  @override
+  String get enterNewQueryText => '输入新的查询文字';
+
+  @override
+  String get durationLabel => '时长';
+
+  @override
+  String get customShortcuts => '自定义快捷键';
+
+  @override
+  String get pressShortcutCombo => '请按下组合键';
+
+  @override
+  String get clickToRecord => '点击录制';
+
+  @override
+  String get searchingLyrics => '正在查找歌词';
+
+  @override
+  String get noLyrics => '暂无歌词';
+
+  @override
+  String get providerLabel => '提供商';
+
+  @override
+  String get modelLabel => '模型';
+
+  @override
+  String get unspecified => '未指定';
+
+  @override
+  String targetTimeLabel(String duration) {
+    return '目标时间 $duration';
+  }
+
+  @override
+  String get songDeletedSkipped => '歌曲已删除，已跳过';
+
+  @override
+  String get songDeleted => '歌曲已删除';
+
+  @override
+  String get lyricsTaskUploading => '上传中';
+
+  @override
+  String get lyricsTaskWaiting => '等待就绪';
+
+  @override
+  String get lyricsTaskRequesting => '请求中';
+
+  @override
+  String get lyricsTaskGenerating => '生成中';
+
+  @override
+  String get lyricsTaskRetrying => '重试中';
+
+  @override
+  String get lyricsTaskProcessing => '正在处理';
+
+  @override
+  String get unknownModel => '未知模型';
+
+  @override
+  String selectedFolders(int count) {
+    return '已选中 $count 个目录';
+  }
+
+  @override
+  String foldersDeleted(int count) {
+    return '已删除 $count 个目录';
+  }
+
+  @override
+  String get persistentAccessDenied => '无法保存该目录的访问权限，请重新选择一次';
+
+  @override
+  String get folderAddFailed => '目录添加失败';
+
+  @override
   String get sleepTimer => '睡眠定时器';
 
   @override

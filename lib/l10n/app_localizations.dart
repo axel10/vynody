@@ -1892,6 +1892,342 @@ abstract class AppLocalizations {
   /// **'歌曲标签补全'**
   String get tagCompletion;
 
+  /// No description provided for @tagCompletionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'根据 AcoustID 和 MusicBrainz 结果匹配标签'**
+  String get tagCompletionDescription;
+
+  /// No description provided for @goToSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'去设置页'**
+  String get goToSettings;
+
+  /// No description provided for @searchReleaseTitles.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索 release 标题'**
+  String get searchReleaseTitles;
+
+  /// No description provided for @closeSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭搜索'**
+  String get closeSearch;
+
+  /// No description provided for @refreshResults.
+  ///
+  /// In zh, this message translates to:
+  /// **'刷新结果'**
+  String get refreshResults;
+
+  /// No description provided for @filterMusicBrainzReleaseTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'过滤 MusicBrainz release 标题'**
+  String get filterMusicBrainzReleaseTitle;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空搜索'**
+  String get clearSearch;
+
+  /// No description provided for @localTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地标题'**
+  String get localTitle;
+
+  /// No description provided for @queryConditions.
+  ///
+  /// In zh, this message translates to:
+  /// **'查询条件'**
+  String get queryConditions;
+
+  /// No description provided for @musicBrainzLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在查询 MusicBrainz'**
+  String get musicBrainzLoading;
+
+  /// No description provided for @musicBrainzLoadingWithResults.
+  ///
+  /// In zh, this message translates to:
+  /// **'现有结果会先保留在面板里'**
+  String get musicBrainzLoadingWithResults;
+
+  /// No description provided for @musicBrainzLoadingHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请稍候'**
+  String get musicBrainzLoadingHint;
+
+  /// No description provided for @musicBrainzQueryFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'MusicBrainz 查询失败'**
+  String get musicBrainzQueryFailed;
+
+  /// No description provided for @musicBrainzNetworkErrorHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'MusicBrainz 请求失败，通常是网络连接不稳定、超时或被服务端拒绝。可以稍后重试。'**
+  String get musicBrainzNetworkErrorHint;
+
+  /// No description provided for @musicBrainzFilteredEmptyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前过滤条件下没有包含该关键词的 release 标题。'**
+  String get musicBrainzFilteredEmptyHint;
+
+  /// No description provided for @musicBrainzEmptyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'MusicBrainz 没有返回可用结果。可以放宽标题、艺人或专辑条件后再试一次。'**
+  String get musicBrainzEmptyHint;
+
+  /// No description provided for @musicBrainzEmptyMoreCompleteHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。'**
+  String get musicBrainzEmptyMoreCompleteHint;
+
+  /// No description provided for @retry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试'**
+  String get retry;
+
+  /// No description provided for @noMatchingRelease.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有找到匹配的 release'**
+  String get noMatchingRelease;
+
+  /// No description provided for @noMatchingResults.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有找到匹配结果'**
+  String get noMatchingResults;
+
+  /// No description provided for @searchAgain.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新搜索'**
+  String get searchAgain;
+
+  /// No description provided for @acoustidRecognitionRecords.
+  ///
+  /// In zh, this message translates to:
+  /// **'AcoustID 识别记录'**
+  String get acoustidRecognitionRecords;
+
+  /// No description provided for @musicBrainzRecordings.
+  ///
+  /// In zh, this message translates to:
+  /// **'MusicBrainz 录音'**
+  String get musicBrainzRecordings;
+
+  /// No description provided for @noExpandableReleaseGroups.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有可展开的发行版分组'**
+  String get noExpandableReleaseGroups;
+
+  /// No description provided for @noExpandableReleases.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有可展开的发行版'**
+  String get noExpandableReleases;
+
+  /// No description provided for @noMatchingResultHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。'**
+  String get noMatchingResultHint;
+
+  /// No description provided for @releaseCountLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个发行版'**
+  String releaseCountLabel(int count);
+
+  /// No description provided for @recordingCountLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 条录音'**
+  String recordingCountLabel(int count);
+
+  /// No description provided for @trackCountShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 首'**
+  String trackCountShort(int count);
+
+  /// No description provided for @scoreLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'评分 {score}'**
+  String scoreLabel(int score);
+
+  /// No description provided for @matchScoreLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'匹配度 {score}%'**
+  String matchScoreLabel(int score);
+
+  /// No description provided for @editQueryCondition.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑查询条件'**
+  String get editQueryCondition;
+
+  /// No description provided for @enterNewQueryText.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入新的查询文字'**
+  String get enterNewQueryText;
+
+  /// No description provided for @durationLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'时长'**
+  String get durationLabel;
+
+  /// No description provided for @customShortcuts.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义快捷键'**
+  String get customShortcuts;
+
+  /// No description provided for @pressShortcutCombo.
+  ///
+  /// In zh, this message translates to:
+  /// **'请按下组合键'**
+  String get pressShortcutCombo;
+
+  /// No description provided for @clickToRecord.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击录制'**
+  String get clickToRecord;
+
+  /// No description provided for @searchingLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在查找歌词'**
+  String get searchingLyrics;
+
+  /// No description provided for @noLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无歌词'**
+  String get noLyrics;
+
+  /// No description provided for @providerLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'提供商'**
+  String get providerLabel;
+
+  /// No description provided for @modelLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'模型'**
+  String get modelLabel;
+
+  /// No description provided for @unspecified.
+  ///
+  /// In zh, this message translates to:
+  /// **'未指定'**
+  String get unspecified;
+
+  /// No description provided for @targetTimeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'目标时间 {duration}'**
+  String targetTimeLabel(String duration);
+
+  /// No description provided for @songDeletedSkipped.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲已删除，已跳过'**
+  String get songDeletedSkipped;
+
+  /// No description provided for @songDeleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲已删除'**
+  String get songDeleted;
+
+  /// No description provided for @lyricsTaskUploading.
+  ///
+  /// In zh, this message translates to:
+  /// **'上传中'**
+  String get lyricsTaskUploading;
+
+  /// No description provided for @lyricsTaskWaiting.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待就绪'**
+  String get lyricsTaskWaiting;
+
+  /// No description provided for @lyricsTaskRequesting.
+  ///
+  /// In zh, this message translates to:
+  /// **'请求中'**
+  String get lyricsTaskRequesting;
+
+  /// No description provided for @lyricsTaskGenerating.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成中'**
+  String get lyricsTaskGenerating;
+
+  /// No description provided for @lyricsTaskRetrying.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试中'**
+  String get lyricsTaskRetrying;
+
+  /// No description provided for @lyricsTaskProcessing.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在处理'**
+  String get lyricsTaskProcessing;
+
+  /// No description provided for @unknownModel.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知模型'**
+  String get unknownModel;
+
+  /// No description provided for @selectedFolders.
+  ///
+  /// In zh, this message translates to:
+  /// **'已选中 {count} 个目录'**
+  String selectedFolders(int count);
+
+  /// No description provided for @foldersDeleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'已删除 {count} 个目录'**
+  String foldersDeleted(int count);
+
+  /// No description provided for @persistentAccessDenied.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法保存该目录的访问权限，请重新选择一次'**
+  String get persistentAccessDenied;
+
+  /// No description provided for @folderAddFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'目录添加失败'**
+  String get folderAddFailed;
+
   /// No description provided for @sleepTimer.
   ///
   /// In zh, this message translates to:

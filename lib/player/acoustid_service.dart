@@ -721,5 +721,7 @@ String _extractErrorMessage(DioException error) {
     return message;
   }
 
-  return 'AcoustID 请求失败';
+  return PlatformDispatcher.instance.locale.languageCode == 'zh'
+      ? 'AcoustID 请求失败'
+      : 'AcoustID request failed';
 }

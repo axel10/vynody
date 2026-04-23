@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import 'lyrics_generation_phase.dart';
 
 class LyricsSongTaskState {
@@ -29,23 +31,31 @@ class LyricsSongTaskState {
 
   String get activeStatusLabel {
     final generationLabel = generationStatus.trim();
+    final isZh =
+        WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
     if (isGenerationBusy) {
       if (generationLabel.isNotEmpty) {
         return generationLabel;
       }
       return switch (generationPhase) {
-        LyricsGenerationPhase.uploading => '正在上传歌曲文件',
-        LyricsGenerationPhase.processing => '正在等待文件就绪',
-        LyricsGenerationPhase.requesting => '正在请求模型响应',
-        LyricsGenerationPhase.generating => '正在生成歌词',
-        LyricsGenerationPhase.retrying => '正在重试',
-        LyricsGenerationPhase.idle => '正在处理',
+        LyricsGenerationPhase.uploading =>
+          isZh ? '正在上传歌曲文件' : 'Uploading song file',
+        LyricsGenerationPhase.processing =>
+          isZh ? '正在等待文件就绪' : 'Waiting for file readiness',
+        LyricsGenerationPhase.requesting =>
+          isZh ? '正在请求模型响应' : 'Requesting model response',
+        LyricsGenerationPhase.generating =>
+          isZh ? '正在生成歌词' : 'Generating lyrics',
+        LyricsGenerationPhase.retrying => isZh ? '正在重试' : 'Retrying',
+        LyricsGenerationPhase.idle => isZh ? '正在处理' : 'Processing',
       };
     }
 
     final translationLabel = translationStatus.trim();
     if (isTranslationBusy) {
-      return translationLabel.isNotEmpty ? translationLabel : '正在翻译歌词';
+      return translationLabel.isNotEmpty
+          ? translationLabel
+          : (isZh ? '正在翻译歌词' : 'Translating lyrics');
     }
 
     return '';

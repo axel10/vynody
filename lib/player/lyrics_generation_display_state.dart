@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import 'lyrics_generation_phase.dart';
 
 class LyricsGenerationDisplayState {
@@ -46,7 +48,11 @@ class LyricsGenerationDisplayState {
     if (retryAttempt <= 0 || maxRetryCount <= 0) {
       return '';
     }
-    return '重试第 $retryAttempt 次 / 共 $maxRetryCount 次';
+    final isZh =
+        WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
+    return isZh
+        ? '重试第 $retryAttempt 次 / 共 $maxRetryCount 次'
+        : 'Retry $retryAttempt / $maxRetryCount';
   }
 
   @override

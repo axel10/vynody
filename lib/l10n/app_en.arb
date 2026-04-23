@@ -346,6 +346,118 @@
   "queueTabBarFavoriteAdded": "Added to favorites",
   "queueTabBarFavoriteRemoved": "Removed from favorites",
   "tagCompletion": "Tag completion",
+  "tagCompletionDescription": "Match tags with AcoustID and MusicBrainz results",
+  "goToSettings": "Go to Settings",
+  "searchReleaseTitles": "Search release titles",
+  "closeSearch": "Close search",
+  "refreshResults": "Refresh results",
+  "filterMusicBrainzReleaseTitle": "Filter MusicBrainz release titles",
+  "clearSearch": "Clear search",
+  "localTitle": "Local title",
+  "queryConditions": "Query conditions",
+  "musicBrainzLoading": "MusicBrainz is loading",
+  "musicBrainzLoadingWithResults": "Existing results will stay in the panel",
+  "musicBrainzLoadingHint": "Please wait",
+  "musicBrainzQueryFailed": "MusicBrainz query failed",
+  "musicBrainzNetworkErrorHint": "The request failed, usually because of unstable network, timeout, or server rejection. Try again later.",
+  "musicBrainzFilteredEmptyHint": "No release titles containing that keyword were found under the current filters.",
+  "musicBrainzEmptyHint": "MusicBrainz returned no usable results. Try loosening the title, artist, or album filters.",
+  "musicBrainzEmptyMoreCompleteHint": "Try again later, or confirm the current title or artist info is more complete.",
+  "retry": "Retry",
+  "noMatchingRelease": "No matching release found",
+  "noMatchingResults": "No matching results found",
+  "searchAgain": "Search again",
+  "acoustidRecognitionRecords": "AcoustID recognition records",
+  "musicBrainzRecordings": "MusicBrainz recordings",
+  "noExpandableReleaseGroups": "No expandable release groups available",
+  "noExpandableReleases": "No expandable releases available",
+  "noMatchingResultHint": "Try again later, or confirm the current title or artist info is more complete.",
+  "releaseCountLabel": "{count} release versions",
+  "@releaseCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordingCountLabel": "{count} recordings",
+  "@recordingCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackCountShort": "{count} tracks",
+  "@trackCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreLabel": "Score {score}",
+  "@scoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "matchScoreLabel": "Match {score}%",
+  "@matchScoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "editQueryCondition": "Edit query condition",
+  "enterNewQueryText": "Enter new query text",
+  "durationLabel": "Duration",
+  "customShortcuts": "Custom Shortcuts",
+  "pressShortcutCombo": "Press the shortcut combination",
+  "clickToRecord": "Click to record",
+  "searchingLyrics": "Searching lyrics",
+  "noLyrics": "No lyrics yet",
+  "providerLabel": "Provider",
+  "modelLabel": "Model",
+  "unspecified": "Not specified",
+  "targetTimeLabel": "Target time {duration}",
+  "@targetTimeLabel": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "songDeletedSkipped": "Song deleted, skipped",
+  "songDeleted": "Song deleted",
+  "lyricsTaskUploading": "Uploading",
+  "lyricsTaskWaiting": "Waiting",
+  "lyricsTaskRequesting": "Requesting",
+  "lyricsTaskGenerating": "Generating",
+  "lyricsTaskRetrying": "Retrying",
+  "lyricsTaskProcessing": "Processing",
+  "unknownModel": "Unknown model",
+  "selectedFolders": "{count} folders selected",
+  "@selectedFolders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "foldersDeleted": "{count} folders deleted",
+  "@foldersDeleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "persistentAccessDenied": "Could not save access to that folder. Please select it again.",
+  "folderAddFailed": "Failed to add the folder",
   "sleepTimer": "Sleep timer",
   "sleepTimerRemaining": "Sleep timer {duration}",
   "@sleepTimerRemaining": {

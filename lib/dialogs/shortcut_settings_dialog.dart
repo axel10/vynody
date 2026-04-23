@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
 import '../player/shortcut_bindings.dart';
 
@@ -61,11 +62,12 @@ class _ShortcutSettingsDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final maxHeight = MediaQuery.of(context).size.height * 0.72;
 
     return AlertDialog(
-      title: const Text('自定义快捷键'),
+      title: Text(l10n.customShortcuts),
       content: SizedBox(
         width: 760,
         child: ConstrainedBox(
@@ -98,10 +100,13 @@ class _ShortcutSettingsDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
-        OutlinedButton(onPressed: _restoreDefaults, child: const Text('恢复默认')),
-        FilledButton(onPressed: _save, child: const Text('确定')),
+        OutlinedButton(
+          onPressed: _restoreDefaults,
+          child: Text(l10n.restoreDefault),
+        ),
+        FilledButton(onPressed: _save, child: Text(l10n.confirm)),
       ],
     );
   }
@@ -210,6 +215,7 @@ class _ShortcutRecorderFieldState extends State<ShortcutRecorderField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final effectiveBinding = widget.value;
 
@@ -240,7 +246,7 @@ class _ShortcutRecorderFieldState extends State<ShortcutRecorderField> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _isFocused ? '请按下组合键' : '点击录制',
+                _isFocused ? l10n.pressShortcutCombo : l10n.clickToRecord,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: _isFocused
                       ? theme.colorScheme.primary

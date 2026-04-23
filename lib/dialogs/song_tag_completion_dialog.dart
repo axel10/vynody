@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../utils/clean_helper.dart';
 import '../player/acoustid_service.dart';
 import '../player/metadata_helper.dart';
@@ -192,14 +193,18 @@ class _SongTagCompletionSheetState
     return title.trim().toLowerCase().contains(query);
   }
 
-  String _musicBrainzLoadingSubtitle(SongTagCompletionController controller) {
+  String _musicBrainzLoadingSubtitle(
+    AppLocalizations l10n,
+    SongTagCompletionController controller,
+  ) {
     if (controller.acoustidResults.isNotEmpty) {
-      return 'MusicBrainz 正在查询中，现有结果会先保留在面板里。';
+      return l10n.musicBrainzLoadingWithResults;
     }
-    return 'MusicBrainz 正在查询中，请稍候。';
+    return l10n.musicBrainzLoadingHint;
   }
 
   String _musicBrainzEmptySubtitle(
+    AppLocalizations l10n,
     SongTagCompletionController controller, {
     required bool isFilteredSearch,
   }) {
@@ -211,16 +216,16 @@ class _SongTagCompletionSheetState
           lower.contains('network') ||
           lower.contains('timeout') ||
           lower.contains('dioexception')) {
-        return 'MusicBrainz 请求失败，通常是网络连接不稳定、超时或被服务端拒绝。可以稍后重试。';
+        return l10n.musicBrainzNetworkErrorHint;
       }
       return errorMessage;
     }
 
     if (isFilteredSearch) {
-      return '当前过滤条件下没有包含该关键词的 release 标题。';
+      return l10n.musicBrainzFilteredEmptyHint;
     }
 
-    return 'MusicBrainz 没有返回可用结果。可以放宽标题、艺人或专辑条件后再试一次。';
+    return l10n.musicBrainzEmptyHint;
   }
 
   bool _hasMeaningfulText(String? value) {
@@ -320,6 +325,7 @@ class _SongTagCompletionSheetState
   }
 
   Future<void> _loadAcoustIDResult() async {
+    final l10n = AppLocalizations.of(context)!;
     _lastAcoustIDClientErrorMessage = null;
     final durationSec = (_fileMetadata?.duration ?? widget.durationMillis ?? 0);
     await _controller.loadAcoustIDResult(durationMillis: durationSec);
@@ -333,7 +339,7 @@ class _SongTagCompletionSheetState
         SnackBar(
           content: Text(acoustidErrorMessage),
           action: SnackBarAction(
-            label: '去设置页',
+            label: l10n.goToSettings,
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushReplacement(
                 buildMainLayoutRoute(args: const [], initialIndex: 4),
@@ -455,6 +461,7 @@ class _SongTagCompletionSheetState
 
   Widget _buildHeader(
     BuildContext context,
+    AppLocalizations l10n,
     SongTagCompletionController controller,
   ) {
     return Padding(
@@ -469,8 +476,8 @@ class _SongTagCompletionSheetState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '歌曲标签补全',
+                    Text(
+                      l10n.tagCompletion,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 22,
@@ -479,7 +486,7 @@ class _SongTagCompletionSheetState
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '根据音频指纹检索 AcoustID，同时检索 MusicBrainz 的录音结果；点开录音后选择具体 release 封面来补全信息。',
+                      l10n.tagCompletionDescription,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 12,
@@ -500,20 +507,20 @@ class _SongTagCompletionSheetState
                       : Colors.white70,
                 ),
                 tooltip: _isMusicBrainzSearchExpanded
-                    ? '关闭搜索'
-                    : '搜索 release 标题',
+                    ? l10n.closeSearch
+                    : l10n.searchReleaseTitles,
               ),
               IconButton(
                 onPressed: controller.isMusicBrainzLoading
                     ? null
                     : _loadMatches,
                 icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
-                tooltip: '刷新结果',
+                tooltip: l10n.refreshResults,
               ),
               IconButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.close_rounded, color: Colors.white70),
-                tooltip: '关闭',
+                tooltip: l10n.close,
               ),
             ],
           ),
@@ -530,7 +537,7 @@ class _SongTagCompletionSheetState
                       style: const TextStyle(color: Colors.white),
                       cursorColor: const Color(0xFF46D27A),
                       decoration: InputDecoration(
-                        hintText: '过滤 MusicBrainz release 标题',
+                        hintText: l10n.filterMusicBrainzReleaseTitle,
                         hintStyle: TextStyle(
                           color: Colors.white.withValues(alpha: 0.35),
                         ),
@@ -545,7 +552,7 @@ class _SongTagCompletionSheetState
                                   Icons.clear_rounded,
                                   color: Colors.white.withValues(alpha: 0.55),
                                 ),
-                                tooltip: '清空搜索',
+                                tooltip: l10n.clearSearch,
                               )
                             : null,
                         filled: true,
@@ -583,11 +590,12 @@ class _SongTagCompletionSheetState
 
   Widget _buildSummary(
     BuildContext context,
+    AppLocalizations l10n,
     SongTagCompletionController controller,
   ) {
     final summaryItems = <Widget>[
       SongTagSummaryChip(
-        label: '本地标题',
+        label: l10n.localTitle,
         value: _summaryConditionText(_SummaryCondition.title) ?? _displayTitle,
         enabled: _isSummaryConditionEnabled(_SummaryCondition.title),
         onTap: () => _toggleSummaryCondition(_SummaryCondition.title),
@@ -597,7 +605,7 @@ class _SongTagCompletionSheetState
           .trim()
           .isNotEmpty)
         SongTagSummaryChip(
-          label: '艺术家',
+          label: l10n.artistLabel,
           value:
               _summaryConditionText(_SummaryCondition.artist) ??
               (_fileMetadata?.artist ?? widget.currentArtist!).trim(),
@@ -607,7 +615,7 @@ class _SongTagCompletionSheetState
         ),
       if ((_fileMetadata?.album ?? widget.currentAlbum ?? '').trim().isNotEmpty)
         SongTagSummaryChip(
-          label: '专辑',
+          label: l10n.albumLabel,
           value:
               _summaryConditionText(_SummaryCondition.album) ??
               (_fileMetadata?.album ?? widget.currentAlbum!).trim(),
@@ -617,7 +625,7 @@ class _SongTagCompletionSheetState
         ),
       if (_fileMetadata?.duration != null || widget.durationMillis != null)
         SongTagSummaryChip(
-          label: '时长',
+          label: l10n.durationLabel,
           value:
               '${((_fileMetadata?.duration ?? widget.durationMillis!) ~/ 60000).toString().padLeft(2, '0')}:${(((_fileMetadata?.duration ?? widget.durationMillis!) ~/ 1000) % 60).toString().padLeft(2, '0')}',
           enabled: _isSummaryConditionEnabled(_SummaryCondition.duration),
@@ -631,7 +639,7 @@ class _SongTagCompletionSheetState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '查询条件',
+            l10n.queryConditions,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.68),
               fontSize: 11,
@@ -648,6 +656,7 @@ class _SongTagCompletionSheetState
 
   Widget _buildBody(
     BuildContext context,
+    AppLocalizations l10n,
     SongTagCompletionController controller,
   ) {
     final filteredMusicBrainzMatches = _filteredMusicBrainzMatches(controller);
@@ -677,8 +686,8 @@ class _SongTagCompletionSheetState
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
-                '正在查询 MusicBrainz',
+              Text(
+                l10n.musicBrainzLoading,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -688,7 +697,7 @@ class _SongTagCompletionSheetState
               ),
               const SizedBox(height: 8),
               Text(
-                _musicBrainzLoadingSubtitle(controller),
+                _musicBrainzLoadingSubtitle(l10n, controller),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.6),
@@ -707,12 +716,13 @@ class _SongTagCompletionSheetState
         !hasFilteredMusicBrainzMatches) {
       return SongTagEmptyState(
         icon: Icons.wifi_off_rounded,
-        title: 'MusicBrainz 查询失败',
+        title: l10n.musicBrainzQueryFailed,
         subtitle: _musicBrainzEmptySubtitle(
+          l10n,
           controller,
           isFilteredSearch: isMusicBrainzFilteringEmpty,
         ),
-        actionLabel: '重试',
+        actionLabel: l10n.retry,
         onAction: () {
           _loadMatches();
           _loadAcoustIDResult();
@@ -746,7 +756,7 @@ class _SongTagCompletionSheetState
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    _musicBrainzLoadingSubtitle(controller),
+                    _musicBrainzLoadingSubtitle(l10n, controller),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.72),
                       fontSize: 12,
@@ -785,7 +795,7 @@ class _SongTagCompletionSheetState
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
           child: Text(
-            'AcoustID 识别记录',
+            l10n.acoustidRecognitionRecords,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.72),
               fontSize: 12,
@@ -840,12 +850,17 @@ class _SongTagCompletionSheetState
         return Center(
           child: SongTagEmptyState(
             icon: Icons.search_off_rounded,
-            title: _hasMusicBrainzSearchQuery ? '没有找到匹配的 release' : '没有找到匹配结果',
+            title: _hasMusicBrainzSearchQuery
+                ? l10n.noMatchingRelease
+                : l10n.noMatchingResults,
             subtitle: _musicBrainzEmptySubtitle(
+              l10n,
               controller,
               isFilteredSearch: isMusicBrainzFilteringEmpty,
             ),
-            actionLabel: _hasMusicBrainzSearchQuery ? '清空搜索' : '重新搜索',
+            actionLabel: _hasMusicBrainzSearchQuery
+                ? l10n.clearSearch
+                : l10n.searchAgain,
             onAction: () {
               if (_hasMusicBrainzSearchQuery) {
                 _clearMusicBrainzSearch();
@@ -864,7 +879,7 @@ class _SongTagCompletionSheetState
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
               child: Text(
-                'MusicBrainz 录音',
+                l10n.musicBrainzRecordings,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.72),
                   fontSize: 12,
@@ -913,9 +928,9 @@ class _SongTagCompletionSheetState
       return Center(
         child: SongTagEmptyState(
           icon: Icons.search_off_rounded,
-          title: '没有找到匹配结果',
-          subtitle: '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。',
-          actionLabel: '重新搜索',
+          title: l10n.noMatchingResults,
+          subtitle: l10n.noMatchingResultHint,
+          actionLabel: l10n.searchAgain,
           onAction: () {
             _loadMatches();
             _loadAcoustIDResult();
@@ -935,6 +950,7 @@ class _SongTagCompletionSheetState
     final controller = ref.watch(
       songTagCompletionControllerProvider(widget.songPath),
     );
+    final l10n = AppLocalizations.of(context)!;
 
     return SafeArea(
       top: false,
@@ -958,10 +974,10 @@ class _SongTagCompletionSheetState
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(context, controller),
-                    _buildSummary(context, controller),
+                    _buildHeader(context, l10n, controller),
+                    _buildSummary(context, l10n, controller),
                     const SizedBox(height: 14),
-                    Expanded(child: _buildBody(context, controller)),
+                    Expanded(child: _buildBody(context, l10n, controller)),
                   ],
                 ),
                 if (controller.isApplying)
@@ -1014,19 +1030,23 @@ class _EditSummaryConditionDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final canSave = _controller.text.trim().isNotEmpty;
 
     return AlertDialog(
       backgroundColor: const Color(0xFF171717),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      title: const Text('编辑查询条件', style: TextStyle(color: Colors.white)),
+      title: Text(
+        l10n.editQueryCondition,
+        style: const TextStyle(color: Colors.white),
+      ),
       content: TextField(
         controller: _controller,
         autofocus: true,
         style: const TextStyle(color: Colors.white),
         cursorColor: const Color(0xFF46D27A),
         decoration: InputDecoration(
-          hintText: '输入新的查询文字',
+          hintText: l10n.enterNewQueryText,
           hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
         ),
         onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
@@ -1036,11 +1056,11 @@ class _EditSummaryConditionDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: canSave ? _submit : null,
-          child: const Text('保存'),
+          child: Text(l10n.save),
         ),
       ],
     );

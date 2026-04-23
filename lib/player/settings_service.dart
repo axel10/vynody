@@ -28,14 +28,18 @@ extension ThemeModeX on ThemeMode {
 }
 
 extension LyricsAiProviderX on LyricsAiProvider {
+  bool get _isZhLocale =>
+      WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
+
   String get storageValue => switch (this) {
     LyricsAiProvider.googleAiStudio => 'google_ai_studio',
     LyricsAiProvider.openRouter => 'openrouter',
   };
 
   String get displayName => switch (this) {
-    LyricsAiProvider.googleAiStudio => 'Google AI Studio',
-    LyricsAiProvider.openRouter => 'OpenRouter',
+    LyricsAiProvider.googleAiStudio =>
+      _isZhLocale ? 'Google AI Studio' : 'Google AI Studio',
+    LyricsAiProvider.openRouter => _isZhLocale ? 'OpenRouter' : 'OpenRouter',
   };
 
   static LyricsAiProvider fromStorageValue(String? value) {
@@ -255,13 +259,17 @@ class SettingsService extends ChangeNotifier {
   }
 
   static String geminiModelDisplayName(String modelId) {
+    final isZh =
+        WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
     switch (modelId.trim()) {
       case defaultGeminiPrimaryModelId:
         return 'Gemini 3.1 Flash Lite Preview';
       case defaultGeminiFallbackModelId:
         return 'Gemini 2.5 Flash';
       default:
-        return modelId.trim().isEmpty ? '未选择模型' : modelId.trim();
+        return modelId.trim().isEmpty
+            ? (isZh ? '未选择模型' : 'No model selected')
+            : modelId.trim();
     }
   }
 

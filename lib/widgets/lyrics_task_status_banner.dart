@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/lyrics_generation_phase.dart';
 import '../player/lyrics_riverpod.dart';
 import '../player/lyrics_task_queue_summary.dart';
@@ -19,6 +20,7 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final summary = ref.watch(lyricsTaskQueueSummaryProvider);
     final generationState = ref.watch(lyricsGenerationDisplayStateProvider);
     final theme = Theme.of(context);
@@ -40,17 +42,17 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
         ? summary.activeStatusLabel.trim()
         : generationState.statusLabel.trim().isNotEmpty
         ? generationState.statusLabel.trim()
-        : '正在处理';
+        : l10n.lyricsTaskProcessing;
     final activeSong = summary.activeSong?.displayName.trim() ?? '';
     final progress = generationState.progress.clamp(0.0, 1.0);
     final showProgress =
         generationState.phase != LyricsGenerationPhase.idle && progress > 0.0;
     final phaseLabel = switch (generationState.phase) {
-      LyricsGenerationPhase.uploading => '上传中',
-      LyricsGenerationPhase.processing => '等待就绪',
-      LyricsGenerationPhase.requesting => '请求中',
-      LyricsGenerationPhase.generating => '生成中',
-      LyricsGenerationPhase.retrying => '重试中',
+      LyricsGenerationPhase.uploading => l10n.lyricsTaskUploading,
+      LyricsGenerationPhase.processing => l10n.lyricsTaskWaiting,
+      LyricsGenerationPhase.requesting => l10n.lyricsTaskRequesting,
+      LyricsGenerationPhase.generating => l10n.lyricsTaskGenerating,
+      LyricsGenerationPhase.retrying => l10n.lyricsTaskRetrying,
       LyricsGenerationPhase.idle => '',
     };
 
@@ -141,6 +143,7 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
                           providerLabel: providerLabel,
                           modelNameLabel: modelNameLabel,
                           retryLabel: generationState.retryLabel,
+                          l10n: l10n,
                           theme: theme,
                           colorScheme: colorScheme,
                           accent: accent,
@@ -187,6 +190,7 @@ class _BusyBannerBody extends StatelessWidget {
     required this.providerLabel,
     required this.modelNameLabel,
     required this.retryLabel,
+    required this.l10n,
     required this.theme,
     required this.colorScheme,
     required this.accent,
@@ -202,6 +206,7 @@ class _BusyBannerBody extends StatelessWidget {
   final String providerLabel;
   final String modelNameLabel;
   final String retryLabel;
+  final AppLocalizations l10n;
   final ThemeData theme;
   final ColorScheme colorScheme;
   final Color accent;
@@ -300,7 +305,7 @@ class _BusyBannerBody extends StatelessWidget {
                           highlightColor: shimmerHighlight,
                           period: shimmerDuration,
                           child: _BannerPill(
-                            label: '队列 ${summary.taskCount}',
+                            label: '${l10n.queueTab} ${summary.taskCount}',
                             accent: accent,
                             filled: true,
                           ),
@@ -348,6 +353,7 @@ class _BannerInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = theme.colorScheme;
 
     return Opacity(
@@ -358,7 +364,7 @@ class _BannerInfoRow extends StatelessWidget {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              value.isNotEmpty ? value : '未知模型',
+              value.isNotEmpty ? value : l10n.unknownModel,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelSmall?.copyWith(

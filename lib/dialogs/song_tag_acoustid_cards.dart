@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/acoustid_service.dart';
 import 'song_tag_completion_widgets.dart';
 
@@ -42,6 +43,7 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Material(
@@ -136,9 +138,13 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
                           const SizedBox(height: 8),
                           Text(
                             [
-                              '录音 ${result.recordings.length} 条',
+                              l10n.recordingCountLabel(
+                                result.recordings.length,
+                              ),
                               result.durationLabel,
-                              '匹配度 ${(result.score * 100).round()}%',
+                              l10n.matchScoreLabel(
+                                (result.score * 100).round(),
+                              ),
                             ].join(' · '),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -233,6 +239,7 @@ class SongTagAcoustIDRecordingBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
@@ -302,7 +309,7 @@ class SongTagAcoustIDRecordingBlock extends StatelessWidget {
             const SizedBox(height: 10),
             if (recording.releaseGroups.isEmpty)
               Text(
-                '没有可展开的专辑列表',
+                l10n.noExpandableReleaseGroups,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.42),
                   fontSize: 11,
@@ -373,6 +380,7 @@ class SongTagAcoustIDReleaseGroupRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasReleases = releaseGroup.releases.isNotEmpty;
 
     return Container(
@@ -443,7 +451,9 @@ class SongTagAcoustIDReleaseGroupRow extends StatelessWidget {
                               releaseGroup.type!,
                             if (releaseGroup.secondaryTypes.isNotEmpty)
                               releaseGroup.secondaryTypes.join('/'),
-                            '${releaseGroup.releases.length} 个发行版',
+                            l10n.releaseCountLabel(
+                              releaseGroup.releases.length,
+                            ),
                           ].where((item) => item.isNotEmpty).join(' · '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -530,6 +540,7 @@ class SongTagAcoustIDReleaseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: Colors.white.withValues(alpha: 0.04),
       borderRadius: BorderRadius.circular(10),
@@ -587,7 +598,7 @@ class SongTagAcoustIDReleaseRow extends StatelessWidget {
                             release.dateLabel!.isNotEmpty)
                           release.dateLabel!,
                         if (release.trackCount != null)
-                          '${release.trackCount} 首',
+                          l10n.trackCountShort(release.trackCount!),
                       ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

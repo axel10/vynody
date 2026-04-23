@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
+import '../l10n/app_localizations.dart';
 import '../player/lyrics_controller_state.dart';
 import 'auto_size_single_line_text.dart';
 
@@ -32,6 +33,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final buttonForegroundColor =
         ThemeData.estimateBrightnessForColor(accentColor) == Brightness.dark
         ? Colors.white
@@ -56,15 +58,13 @@ class LyricsPanelEmptyState extends StatelessWidget {
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      accentColor,
-                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                   ),
                 ),
                 const SizedBox(height: 12),
               ],
               Text(
-                isLoading ? '正在查找歌词' : '暂无歌词',
+                isLoading ? l10n.searchingLyrics : l10n.noLyrics,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.7),
@@ -76,13 +76,9 @@ class LyricsPanelEmptyState extends StatelessWidget {
                 SizedBox(
                   height: 42,
                   child: FilledButton.icon(
-                    onPressed: isGenerating
-                        ? null
-                        : () => onGeneratePressed(),
+                    onPressed: isGenerating ? null : () => onGeneratePressed(),
                     style: FilledButton.styleFrom(
-                      backgroundColor: accentColor.withValues(
-                        alpha: 0.95,
-                      ),
+                      backgroundColor: accentColor.withValues(alpha: 0.95),
                       foregroundColor: buttonForegroundColor,
                       padding: const EdgeInsets.symmetric(horizontal: 18),
                     ),
@@ -325,11 +321,14 @@ class _LyricsFadeShaderMask extends StatelessWidget {
 
         const topFadeHeight = 30.0;
         final topFadeEnd = (topFadeHeight / bounds.height).clamp(0.0, 1.0);
-        
-        // If bottomSpacerHeight is 0, we still want the top fade, 
+
+        // If bottomSpacerHeight is 0, we still want the top fade,
         // so we set bottomFadeStart to 1.0.
         final bottomFadeStart = bottomSpacerHeight > 0
-            ? ((bounds.height - bottomSpacerHeight) / bounds.height).clamp(0.0, 1.0)
+            ? ((bounds.height - bottomSpacerHeight) / bounds.height).clamp(
+                0.0,
+                1.0,
+              )
             : 1.0;
 
         // Ensure stops are in increasing order

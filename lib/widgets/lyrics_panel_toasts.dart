@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 class LyricsStatusToast extends StatelessWidget {
   const LyricsStatusToast({
     super.key,
@@ -14,6 +16,7 @@ class LyricsStatusToast extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? const Color(0xFF1F1F1F) : Colors.white;
@@ -94,14 +97,14 @@ class LyricsStatusToast extends StatelessWidget {
                         runSpacing: 8,
                         children: [
                           _InfoPill(
-                            label: '提供商',
+                            label: l10n.providerLabel,
                             value: providerLabel,
                             accentColor: accentColor,
                             theme: theme,
                             surface: colorScheme.surfaceContainerHighest,
                           ),
                           _InfoPill(
-                            label: '模型',
+                            label: l10n.modelLabel,
                             value: modelNameLabel,
                             accentColor: accentColor,
                             theme: theme,
@@ -155,6 +158,7 @@ class _InfoPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = theme.colorScheme;
 
     return Container(
@@ -178,7 +182,7 @@ class _InfoPill extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            value.isNotEmpty ? value : '未指定',
+            value.isNotEmpty ? value : l10n.unspecified,
             softWrap: true,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -205,6 +209,7 @@ class LyricsSeekToast extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? const Color(0xFF1F1F1F) : Colors.white;
@@ -234,7 +239,7 @@ class LyricsSeekToast extends StatelessWidget {
             Icon(Icons.schedule_rounded, size: 18, color: accentColor),
             const SizedBox(width: 10),
             Text(
-              '目标时间 ${_formatDuration(target)}',
+              l10n.targetTimeLabel(_formatDuration(target)),
               style: theme.textTheme.labelLarge?.copyWith(
                 color: onSurface,
                 fontWeight: FontWeight.w700,

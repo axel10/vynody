@@ -759,6 +759,118 @@
   "queueTabBarFavoriteAdded": "已加入收藏",
   "queueTabBarFavoriteRemoved": "已取消收藏",
   "tagCompletion": "歌曲标签补全",
+  "tagCompletionDescription": "根据 AcoustID 和 MusicBrainz 结果匹配标签",
+  "goToSettings": "去设置页",
+  "searchReleaseTitles": "搜索 release 标题",
+  "closeSearch": "关闭搜索",
+  "refreshResults": "刷新结果",
+  "filterMusicBrainzReleaseTitle": "过滤 MusicBrainz release 标题",
+  "clearSearch": "清空搜索",
+  "localTitle": "本地标题",
+  "queryConditions": "查询条件",
+  "musicBrainzLoading": "正在查询 MusicBrainz",
+  "musicBrainzLoadingWithResults": "现有结果会先保留在面板里",
+  "musicBrainzLoadingHint": "请稍候",
+  "musicBrainzQueryFailed": "MusicBrainz 查询失败",
+  "musicBrainzNetworkErrorHint": "MusicBrainz 请求失败，通常是网络连接不稳定、超时或被服务端拒绝。可以稍后重试。",
+  "musicBrainzFilteredEmptyHint": "当前过滤条件下没有包含该关键词的 release 标题。",
+  "musicBrainzEmptyHint": "MusicBrainz 没有返回可用结果。可以放宽标题、艺人或专辑条件后再试一次。",
+  "musicBrainzEmptyMoreCompleteHint": "可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。",
+  "retry": "重试",
+  "noMatchingRelease": "没有找到匹配的 release",
+  "noMatchingResults": "没有找到匹配结果",
+  "searchAgain": "重新搜索",
+  "acoustidRecognitionRecords": "AcoustID 识别记录",
+  "musicBrainzRecordings": "MusicBrainz 录音",
+  "noExpandableReleaseGroups": "没有可展开的发行版分组",
+  "noExpandableReleases": "没有可展开的发行版",
+  "noMatchingResultHint": "可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。",
+  "releaseCountLabel": "{count} 个发行版",
+  "@releaseCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordingCountLabel": "{count} 条录音",
+  "@recordingCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackCountShort": "{count} 首",
+  "@trackCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreLabel": "评分 {score}",
+  "@scoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "matchScoreLabel": "匹配度 {score}%",
+  "@matchScoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "editQueryCondition": "编辑查询条件",
+  "enterNewQueryText": "输入新的查询文字",
+  "durationLabel": "时长",
+  "customShortcuts": "自定义快捷键",
+  "pressShortcutCombo": "请按下组合键",
+  "clickToRecord": "点击录制",
+  "searchingLyrics": "正在查找歌词",
+  "noLyrics": "暂无歌词",
+  "providerLabel": "提供商",
+  "modelLabel": "模型",
+  "unspecified": "未指定",
+  "targetTimeLabel": "目标时间 {duration}",
+  "@targetTimeLabel": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "songDeletedSkipped": "歌曲已删除，已跳过",
+  "songDeleted": "歌曲已删除",
+  "lyricsTaskUploading": "上传中",
+  "lyricsTaskWaiting": "等待就绪",
+  "lyricsTaskRequesting": "请求中",
+  "lyricsTaskGenerating": "生成中",
+  "lyricsTaskRetrying": "重试中",
+  "lyricsTaskProcessing": "正在处理",
+  "unknownModel": "未知模型",
+  "selectedFolders": "已选中 {count} 个目录",
+  "@selectedFolders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "foldersDeleted": "已删除 {count} 个目录",
+  "@foldersDeleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "persistentAccessDenied": "无法保存该目录的访问权限，请重新选择一次",
+  "folderAddFailed": "目录添加失败",
   "sleepTimer": "睡眠定时器",
   "sleepTimerRemaining": "睡眠定时器 {duration}",
   "@sleepTimerRemaining": {

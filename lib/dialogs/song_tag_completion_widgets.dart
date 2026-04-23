@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/acoustid_service.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
 import '../utils/network_client.dart';
@@ -57,6 +58,7 @@ class SongTagSummaryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final accentColor = enabled
         ? const Color(0xFF46D27A)
         : Colors.white.withValues(alpha: 0.35);
@@ -127,7 +129,7 @@ class SongTagSummaryChip extends StatelessWidget {
                       ? Colors.white.withValues(alpha: 0.8)
                       : Colors.white.withValues(alpha: 0.42),
                 ),
-                tooltip: '编辑查询文字',
+                tooltip: l10n.editQueryCondition,
               ),
             ],
           ],
@@ -314,11 +316,7 @@ class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
       opacity: 1,
       duration: widget.frameDuration,
       curve: Curves.easeOut,
-      child: Image.memory(
-        bytes,
-        fit: widget.fit,
-        gaplessPlayback: true,
-      ),
+      child: Image.memory(bytes, fit: widget.fit, gaplessPlayback: true),
     );
   }
 }

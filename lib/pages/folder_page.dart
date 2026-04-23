@@ -226,7 +226,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     if (_selectedRootPaths.isEmpty) return;
 
     final selectedCount = _selectedRootPaths.length;
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     final paths = _selectedRootPaths.toList(growable: false);
     await scanner.removeRootPaths(paths);
     if (!mounted) return;
@@ -236,13 +236,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       _isRootSelectionMode = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isZh ? '已删除 $selectedCount 个目录' : '$selectedCount folders deleted',
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.foldersDeleted(selectedCount))));
   }
 
   List<MusicFile> _selectedSongsFromFolder(List<MusicFile> files) {
@@ -297,14 +293,10 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
           message = AppLocalizations.of(context)!.directoryAddedNoMusic;
           break;
         case RootPathAddStatus.persistentAccessDenied:
-          message = Localizations.localeOf(context).languageCode == 'zh'
-              ? '无法保存该目录的访问权限，请重新选择一次'
-              : 'Could not save access to that folder. Please select it again.';
+          message = AppLocalizations.of(context)!.persistentAccessDenied;
           break;
         case RootPathAddStatus.failed:
-          message = Localizations.localeOf(context).languageCode == 'zh'
-              ? '目录添加失败'
-              : 'Failed to add the folder';
+          message = AppLocalizations.of(context)!.folderAddFailed;
           break;
       }
       ScaffoldMessenger.of(
@@ -355,10 +347,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
     Widget currentBody;
     if (currentFolder == null) {
-      final isZh = Localizations.localeOf(context).languageCode == 'zh';
-      final selectionLabel = isZh
-          ? '已选中 ${_selectedRootPaths.length} 个目录'
-          : '${_selectedRootPaths.length} folders selected';
+      final l10n = AppLocalizations.of(context)!;
+      final selectionLabel = l10n.selectedFolders(_selectedRootPaths.length);
       final rootListBottomPadding = _isRootSelectionMode ? 224.0 : 160.0;
       currentBody = Stack(
         children: [

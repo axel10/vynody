@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/network_client.dart';
@@ -8,6 +10,7 @@ class AIApiKeyService {
     : _client = client ?? NetworkClient.instance;
 
   final NetworkClient _client;
+  bool get _isZh => PlatformDispatcher.instance.locale.languageCode == 'zh';
 
   Future<String?> loadApiKey() async {
     final prefs = await SharedPreferences.getInstance();
@@ -23,9 +26,9 @@ class AIApiKeyService {
   Future<GeminiApiKeyTestResult> testConnection(String apiKey) async {
     final normalizedKey = apiKey.trim();
     if (normalizedKey.isEmpty) {
-      return const GeminiApiKeyTestResult(
+      return GeminiApiKeyTestResult(
         success: false,
-        message: '请输入 API key。',
+        message: _isZh ? '请输入 API key。' : 'Please enter an API key.',
       );
     }
 
@@ -39,8 +42,12 @@ class AIApiKeyService {
       return GeminiApiKeyTestResult(
         success: true,
         message: models.isEmpty
-            ? '连接成功，已通过验证。'
-            : '连接成功，检测到 ${models.length} 个模型。',
+            ? (_isZh
+                  ? '连接成功，已通过验证。'
+                  : 'Connection successful, verification passed.')
+            : (_isZh
+                  ? '连接成功，检测到 ${models.length} 个模型。'
+                  : 'Connection successful, detected ${models.length} models.'),
         models: models,
       );
     } catch (e) {
@@ -63,8 +70,8 @@ class AIApiKeyService {
             final modelId = rawName.isEmpty
                 ? ''
                 : rawName.contains('/')
-                    ? rawName.split('/').last.trim()
-                    : rawName;
+                ? rawName.split('/').last.trim()
+                : rawName;
             final displayName =
                 item['displayName']?.toString().trim() ?? modelId;
             return GeminiModelInfo(id: modelId, displayName: displayName);
@@ -87,22 +94,36 @@ class AIApiKeyService {
         if (errorMap is Map) {
           final message = errorMap['message']?.toString().trim();
           if (message != null && message.isNotEmpty) {
-            return statusCode == null ? message : '测试失败（$statusCode）：$message';
+            return statusCode == null
+                ? message
+                : (_isZh
+                      ? '测试失败（$statusCode）：$message'
+                      : 'Test failed ($statusCode): $message');
           }
         }
       }
 
       final message = error.message?.trim();
       if (message != null && message.isNotEmpty) {
-        return statusCode == null ? message : '测试失败（$statusCode）：$message';
+        return statusCode == null
+            ? message
+            : (_isZh
+                  ? '测试失败（$statusCode）：$message'
+                  : 'Test failed ($statusCode): $message');
       }
 
       return statusCode == null
-          ? '测试失败，请检查网络或 API key。'
-          : '测试失败（$statusCode），请检查 API key 是否有效。';
+          ? (_isZh
+                ? '测试失败，请检查网络或 API key。'
+                : 'Test failed. Please check your network or API key.')
+          : (_isZh
+                ? '测试失败（$statusCode），请检查 API key 是否有效。'
+                : 'Test failed ($statusCode). Please check whether the API key is valid.');
     }
 
-    return '测试失败，请检查网络或 API key。';
+    return _isZh
+        ? '测试失败，请检查网络或 API key。'
+        : 'Test failed. Please check your network or API key.';
   }
 }
 
