@@ -96,17 +96,4 @@ class ScannerPathUtils {
     return normalizedPath;
   }
 
-  static bool isShortcutRoot({
-    required String path,
-    required Iterable<String> declaredRootPaths,
-  }) {
-    final normalizedPath = normalizePath(path);
-    final declaredMatch = declaredRootPaths.any(
-      (existing) => pathsEqual(existing, normalizedPath),
-    );
-    if (!declaredMatch) return false;
-
-    final scanRoots = computeScanRoots(declaredRootPaths);
-    return !scanRoots.any((existing) => pathsEqual(existing, normalizedPath));
-  }
 }

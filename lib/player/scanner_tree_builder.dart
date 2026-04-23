@@ -5,7 +5,6 @@ import 'package:audio_core/audio_core.dart';
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import 'metadata_database.dart';
-import 'scanner_path_utils.dart';
 
 class ScannerTreeBuilder {
   ScannerTreeBuilder({
@@ -133,16 +132,6 @@ class ScannerTreeBuilder {
     }
 
     return null;
-  }
-
-  bool isShortcutRoot({
-    required String path,
-    required Iterable<String> declaredRootPaths,
-  }) {
-    return ScannerPathUtils.isShortcutRoot(
-      path: path,
-      declaredRootPaths: declaredRootPaths,
-    );
   }
 
   List<_FolderItem> _folderItemsFromMetadata(

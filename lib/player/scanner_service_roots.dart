@@ -157,13 +157,6 @@ class ScannerServiceRoots {
     }
   }
 
-  bool isShortcutRoot(String path) {
-    return ScannerPathUtils.isShortcutRoot(
-      path: path,
-      declaredRootPaths: _rootPaths,
-    );
-  }
-
   void dispose() {
     for (final subscription in _rootWatchSubscriptions.values) {
       unawaited(subscription.cancel());

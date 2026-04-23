@@ -433,7 +433,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   },
                   itemBuilder: (context, index) {
                     final folder = rootFolders[index];
-                    final isShortcut = scanner.isShortcutRoot(folder.path);
                     final isSelected = _selectedRootPaths.contains(folder.path);
                     return GestureDetector(
                       key: ValueKey(folder.path),
@@ -468,11 +467,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                 onChanged: (_) =>
                                     _toggleRootSelection(folder.path),
                               )
-                            : Icon(
-                                isShortcut
-                                    ? Icons.shortcut
-                                    : Icons.folder_shared,
-                                color: isShortcut ? Colors.blue : Colors.amber,
+                            : const Icon(
+                                Icons.folder_shared,
+                                color: Colors.amber,
                               ),
                         title: Text(folder.name),
                         subtitle: Text(folder.path),

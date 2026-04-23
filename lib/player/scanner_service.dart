@@ -2093,13 +2093,6 @@ class ScannerService extends ChangeNotifier {
     return ScannerPathUtils.pathContains(parent, child);
   }
 
-  bool isShortcutRoot(String path) {
-    return _treeBuilder.isShortcutRoot(
-      path: path,
-      declaredRootPaths: _roots.rootPaths,
-    );
-  }
-
   String _displayNameForPath(String path) {
     return ScannerPathUtils.displayNameForPath(path);
   }
