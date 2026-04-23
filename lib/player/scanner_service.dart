@@ -50,10 +50,14 @@ class ScannerService extends ChangeNotifier {
   bool _scanNotifyPending = false;
   bool _lastNotifiedScanningState = false;
   bool _isDisposed = false;
+  bool _pendingRootPathRescan = false;
   Future<void> _incrementalEventQueue = Future<void>.value();
   final List<FileSystemEvent> _pendingIncrementalEvents = [];
+  final List<FileSystemEvent> _batchedIncrementalEvents = [];
   List<SongMetadata>? _pendingWatchedSongs;
   bool _isMetadataWatchReady = false;
+  Timer? _incrementalBatchTimer;
+  bool _suppressNextMetadataWatchRefresh = false;
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -69,6 +73,8 @@ class ScannerService extends ChangeNotifier {
   static const String _keyGlobalSortOrder = 'folder_sort_global_order';
   static const String _keyFolderSortOverrides = 'folder_sort_overrides';
   static const bool _scanTimingEnabled = kDebugMode;
+  static const Duration _incrementalBatchWindow = Duration(milliseconds: 900);
+  static const int _incrementalBatchRescanThreshold = 48;
 
   SortCriteria _globalSortCriteria = SortCriteria.filename;
   SortOrder _globalSortOrder = SortOrder.ascending;
@@ -443,7 +449,11 @@ class ScannerService extends ChangeNotifier {
       }
     }
 
-    await scan();
+    if (_isScanning) {
+      _scheduleRootPathRescan();
+    } else {
+      await scan();
+    }
 
     final addedFolder = _rootFolders.firstWhereOrNull(
       (folder) => _pathsEqual(folder.path, normalizedPath),
@@ -476,8 +486,22 @@ class ScannerService extends ChangeNotifier {
           normalizedTargets.any((target) => _pathsEqual(existing, target)),
     );
     await _roots.setRootPaths(updatedRoots);
+    _removeRootsFromScannedTree(normalizedTargets);
+    _purgeRemovedRootsFromMetadataCache(normalizedTargets);
     _rebuildDisplayedRootFolders();
+    _syncNavigationStateToLatestTree();
     notifyListeners();
+
+    _suppressNextMetadataWatchRefresh = true;
+    await MetadataDatabase().syncSongSourcePresence(
+      sourceMask: SongSourceFlags.rootScan,
+      presentPaths: const [],
+      scopeRoots: normalizedTargets,
+    );
+
+    if (_isScanning) {
+      _scheduleRootPathRescan();
+    }
   }
 
   Future<void> moveRootPath(int oldIndex, int newIndex) async {
@@ -491,6 +515,10 @@ class ScannerService extends ChangeNotifier {
     await _roots.setRootPaths(updatedRoots);
     _rebuildDisplayedRootFolders();
     notifyListeners();
+
+    if (_isScanning) {
+      _scheduleRootPathRescan();
+    }
   }
 
   Future<bool> _registerPersistentAccess(String path) async {
@@ -929,6 +957,11 @@ class ScannerService extends ChangeNotifier {
     if (songs == null) return;
     _pendingWatchedSongs = null;
 
+    if (_suppressNextMetadataWatchRefresh) {
+      _suppressNextMetadataWatchRefresh = false;
+      return;
+    }
+
     final declaredRoots = _roots.rootPaths
         .map(_normalizePath)
         .where((path) => path.isNotEmpty)
@@ -1140,13 +1173,29 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
-    _incrementalEventQueue = _incrementalEventQueue
-        .then((_) async {
-          await _processIncrementalFileEvent(event);
-        })
-        .catchError((e, st) {
-          debugPrint('[ScannerService] Incremental file event error: $e');
-        });
+    _batchedIncrementalEvents.add(event);
+    _scheduleIncrementalEventBatch();
+  }
+
+  void _scheduleIncrementalEventBatch() {
+    _incrementalBatchTimer?.cancel();
+    _incrementalBatchTimer = Timer(_incrementalBatchWindow, () {
+      _incrementalBatchTimer = null;
+      if (_isDisposed || _batchedIncrementalEvents.isEmpty) {
+        return;
+      }
+
+      final events = List<FileSystemEvent>.from(_batchedIncrementalEvents);
+      _batchedIncrementalEvents.clear();
+
+      _incrementalEventQueue = _incrementalEventQueue
+          .then((_) async {
+            await _processIncrementalEventBatch(events);
+          })
+          .catchError((e, st) {
+            debugPrint('[ScannerService] Incremental event batch error: $e');
+          });
+    });
   }
 
   Future<void> _drainPendingIncrementalFileEvents() async {
@@ -1166,6 +1215,53 @@ class ScannerService extends ChangeNotifier {
         });
 
     await _incrementalEventQueue;
+  }
+
+  Future<void> _processIncrementalEventBatch(
+    List<FileSystemEvent> events,
+  ) async {
+    if (events.isEmpty || _isDisposed) return;
+    if (_isScanning) {
+      _pendingIncrementalEvents.addAll(events);
+      return;
+    }
+
+    final affectedRoots = <String>{};
+    var hasDirectoryEvent = false;
+
+    for (final event in events) {
+      final normalizedPath = _normalizePath(event.path);
+      if (normalizedPath.isEmpty) {
+        continue;
+      }
+
+      if (event.isDirectory) {
+        hasDirectoryEvent = true;
+      }
+
+      final matchedRoot = _findScanRootForPath(normalizedPath);
+      if (matchedRoot != null) {
+        affectedRoots.add(matchedRoot);
+      }
+    }
+
+    final shouldRescan =
+        hasDirectoryEvent || events.length >= _incrementalBatchRescanThreshold;
+
+    if (shouldRescan && affectedRoots.isNotEmpty) {
+      _suppressNextMetadataWatchRefresh = true;
+      await scan(targetRoots: affectedRoots);
+      return;
+    }
+
+    for (final event in events) {
+      await _processIncrementalFileEvent(event, notify: false);
+    }
+
+    if (_isDisposed) return;
+
+    _suppressNextMetadataWatchRefresh = true;
+    _sortAndNotify();
   }
 
   Future<void> _processIncrementalFileEvent(
@@ -1505,6 +1601,40 @@ class ScannerService extends ChangeNotifier {
     _logScanTiming('stage 3 preprocess text tags total', totalStopwatch);
   }
 
+  void _removeRootsFromScannedTree(Iterable<String> roots) {
+    final normalizedRoots = _normalizeDeclaredRootPaths(roots);
+    if (normalizedRoots.isEmpty) return;
+    _scannedRootFolders.removeWhere(
+      (folder) => normalizedRoots.any((root) => _pathsEqual(folder.path, root)),
+    );
+  }
+
+  void _purgeRemovedRootsFromMetadataCache(Iterable<String> roots) {
+    final normalizedRoots = _normalizeDeclaredRootPaths(roots);
+    if (normalizedRoots.isEmpty) return;
+
+    final pathsToRemove = _metadataStore.metadataMap.keys
+        .where(
+          (path) => normalizedRoots.any((root) => _pathContains(root, path)),
+        )
+        .toList(growable: false);
+    if (pathsToRemove.isEmpty) return;
+
+    _metadataStore.deleteMissingFromCache(pathsToRemove);
+    for (final path in pathsToRemove) {
+      _notifySongMissingState(path, true);
+    }
+  }
+
+  void _scheduleRootPathRescan() {
+    _pendingRootPathRescan = true;
+  }
+
+  bool _isScanRootStillActive(String rootPath) {
+    final currentScanRoots = _computeScanRoots(_roots.rootPaths);
+    return currentScanRoots.any((current) => _pathsEqual(current, rootPath));
+  }
+
   Future<List<String>> _discoverAndBuildRootFolder(
     String rootPath,
     ScanProgressState scanState,
@@ -1733,8 +1863,11 @@ class ScannerService extends ChangeNotifier {
     );
   }
 
-  Future<void> scan() async {
-    if (_roots.rootPaths.isEmpty) return;
+  Future<void> scan({Iterable<String>? targetRoots}) async {
+    final requestedRoots = targetRoots == null
+        ? _roots.rootPaths
+        : targetRoots.toList(growable: false);
+    if (requestedRoots.isEmpty) return;
     if (_isScanning) {
       return;
     }
@@ -1750,18 +1883,25 @@ class ScannerService extends ChangeNotifier {
       _logScanTiming('stage 0 permissions', permissionsStopwatch);
 
       if (hasPermission) {
+        _suppressNextMetadataWatchRefresh = true;
         final rootScanSessionId = DateTime.now().microsecondsSinceEpoch;
         final scanState = ScanProgressState(
           metadataConcurrency: 4,
           comparePaths: _compareNaturally,
         );
         final scanRoots = _timeScanStepSync('stage 1 root discovery', () {
-          final roots = _computeScanRoots(_roots.rootPaths);
+          final roots = _computeScanRoots(requestedRoots);
           roots.sort(_compareNaturally);
           return roots;
         });
 
         for (final path in scanRoots) {
+          if (!_isScanRootStillActive(path)) {
+            debugPrint(
+              '[ScannerService] Skipping stale scan root after root-path change: $path',
+            );
+            continue;
+          }
           debugPrint('Starting scan at: $path');
 
           if (Platform.isAndroid) {
@@ -1782,6 +1922,16 @@ class ScannerService extends ChangeNotifier {
             () => _discoverAndBuildRootFolder(path, scanState),
           );
 
+          if (!_isScanRootStillActive(path)) {
+            debugPrint(
+              '[ScannerService] Discarding stale scan result after root-path change: $path',
+            );
+            _scannedRootFolders.removeWhere(
+              (existing) => _pathsEqual(existing.path, path),
+            );
+            continue;
+          }
+
           await _processDiscoveredPaths(
             discoveredPaths,
             scanState,
@@ -1792,12 +1942,15 @@ class ScannerService extends ChangeNotifier {
           notifyListeners();
         }
 
-        final presentPaths = _timeScanStepSync('stage 5 collect present paths', () {
-          return scanState.pendingMetadataPaths
-              .map(_normalizePath)
-              .where((path) => path.isNotEmpty)
-              .toSet();
-        });
+        final presentPaths = _timeScanStepSync(
+          'stage 5 collect present paths',
+          () {
+            return scanState.pendingMetadataPaths
+                .map(_normalizePath)
+                .where((path) => path.isNotEmpty)
+                .toSet();
+          },
+        );
         final missingPaths = await _timeScanStep(
           'stage 5.1 finalize root scan session',
           () => MetadataDatabase().finalizeRootScanSession(
@@ -1832,6 +1985,11 @@ class ScannerService extends ChangeNotifier {
       );
       totalStopwatch.stop();
       _logScanTiming('scan total', totalStopwatch);
+
+      if (_pendingRootPathRescan && !_isDisposed) {
+        _pendingRootPathRescan = false;
+        await scan();
+      }
     }
   }
 
@@ -2167,6 +2325,7 @@ class ScannerService extends ChangeNotifier {
     _mediaObserverSubscription?.cancel();
     _metadataNotifyTimer?.cancel();
     _metadataWatchTimer?.cancel();
+    _incrementalBatchTimer?.cancel();
     _scanNotifyTimer?.cancel();
     _scanProgressController.close();
     super.dispose();
