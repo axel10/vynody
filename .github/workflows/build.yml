@@ -105,3 +105,55 @@ jobs:
         with:
           name: linux-package
           path: vibeflow-linux.tar.gz
+
+  macos:
+    name: Build macOS Package
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Verify universal binary
+        run: |
+          APP_BINARY="build/macos/Build/Products/Release/VibeFlow.app/Contents/MacOS/VibeFlow"
+          ARCHS="$(lipo -archs "$APP_BINARY")"
+          echo "$ARCHS"
+          if [[ "$ARCHS" != *"arm64"* || "$ARCHS" != *"x86_64"* ]]; then
+            echo "Expected a universal binary with arm64 and x86_64 slices."
+            exit 1
+          fi
+
+      - name: Build DMG staging folder
+        run: |
+          rm -rf vibeflow-dmg
+          mkdir -p vibeflow-dmg
+          cp -R build/macos/Build/Products/Release/VibeFlow.app vibeflow-dmg/
+          ln -s /Applications vibeflow-dmg/Applications
+
+      - name: Package macOS DMG
+        run: |
+          hdiutil create \
+            -volname "VibeFlow" \
+            -srcfolder vibeflow-dmg \
+            -ov \
+            -format UDZO \
+            vibeflow-macos.dmg
+
+      - name: Upload macOS package
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-package
+          path: vibeflow-macos.dmg
