@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
 
 enum _SleepTimerSheetMode { configure, active }
@@ -79,6 +80,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
   @override
   Widget build(BuildContext context) {
     final remaining = ref.watch(audioSleepTimerRemainingProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -97,8 +99,8 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 220),
             child: _mode == _SleepTimerSheetMode.active
-                ? _buildActiveView(context, remaining)
-                : _buildConfigureView(context),
+                ? _buildActiveView(context, remaining, l10n)
+                : _buildConfigureView(context, l10n),
           ),
         ),
       ),
@@ -126,13 +128,13 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
     );
   }
 
-  Widget _buildConfigureView(BuildContext context) {
+  Widget _buildConfigureView(BuildContext context, AppLocalizations l10n) {
     return Column(
       key: const ValueKey('configure'),
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTitle('睡眠定时器', '选择倒计时，时间到后会暂停播放。'),
+        _buildTitle(l10n.sleepTimerTitle, l10n.sleepTimerDescription),
         const SizedBox(height: 18),
         Container(
           decoration: BoxDecoration(
@@ -173,14 +175,14 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
             Expanded(
               child: OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('取消'),
+                child: Text(l10n.cancel),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: FilledButton(
                 onPressed: _startCustomTimer,
-                child: const Text('开始倒计时'),
+                child: Text(l10n.startCountdown),
               ),
             ),
           ],
@@ -189,14 +191,21 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
     );
   }
 
-  Widget _buildActiveView(BuildContext context, Duration? remaining) {
+  Widget _buildActiveView(
+    BuildContext context,
+    Duration? remaining,
+    AppLocalizations l10n,
+  ) {
     final displayRemaining = remaining ?? Duration.zero;
     return Column(
       key: const ValueKey('active'),
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTitle('睡眠定时器运行中', '倒计时结束后会自动暂停当前播放。'),
+        _buildTitle(
+          l10n.sleepTimerRunningTitle,
+          l10n.sleepTimerRunningDescription,
+        ),
         const SizedBox(height: 22),
         Center(
           child: Text(
@@ -212,7 +221,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
         const SizedBox(height: 10),
         Center(
           child: Text(
-            '剩余时间',
+            l10n.remainingTime,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.65),
               fontSize: 13,
@@ -223,9 +232,9 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
+            child: OutlinedButton(
                 onPressed: _resetTimer,
-                child: const Text('重置'),
+                child: Text(l10n.reset),
               ),
             ),
             const SizedBox(width: 12),
@@ -236,7 +245,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: _endTimer,
-                child: const Text('结束'),
+                child: Text(l10n.end),
               ),
             ),
           ],

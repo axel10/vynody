@@ -372,6 +372,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addToFavorites => 'Add to Favorites';
 
   @override
+  String get removeFromFavorites => 'Remove from Favorites';
+
+  @override
   String get viewAlbumDetails => 'View Album Details';
 
   @override
@@ -632,4 +635,352 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clearPlaylist => 'Clear List';
+
+  @override
+  String get copyTitle => 'Copy Title';
+
+  @override
+  String get openFolderLocation => 'Open Folder Location';
+
+  @override
+  String get songTagsSavedToSourceFileAndApp =>
+      'Song tags saved to the source file and the app';
+
+  @override
+  String get songTagsSavedToApp => 'Song tags saved to the app';
+
+  @override
+  String get durationZero => '0:00';
+
+  @override
+  String get generateLyrics => 'Generate Lyrics';
+
+  @override
+  String get generateTimeline => 'Generate Timeline';
+
+  @override
+  String get queueGenerateLyrics => 'Queue Lyrics Generation';
+
+  @override
+  String get pauseAutoScroll => 'Pause Auto Scroll';
+
+  @override
+  String get resumeAutoScroll => 'Resume Auto Scroll';
+
+  @override
+  String get translateLyrics => 'Translate Lyrics';
+
+  @override
+  String get clearLyricsCache => 'Clear Current Lyrics Cache';
+
+  @override
+  String get clearTranslationCache => 'Clear Current Translation Cache';
+
+  @override
+  String get requery => 'Requery';
+
+  @override
+  String get sleepTimerTitle => 'Sleep Timer';
+
+  @override
+  String get sleepTimerDescription =>
+      'Choose a countdown and playback will pause when time is up.';
+
+  @override
+  String get sleepTimerRunningTitle => 'Sleep Timer Running';
+
+  @override
+  String get sleepTimerRunningDescription =>
+      'Playback will pause automatically when the countdown ends.';
+
+  @override
+  String get remainingTime => 'Remaining time';
+
+  @override
+  String get startCountdown => 'Start Countdown';
+
+  @override
+  String get end => 'End';
+
+  @override
+  String get equalizer => 'Equalizer';
+
+  @override
+  String get equalizerEnabledStatus => 'High-fidelity adjustment enabled';
+
+  @override
+  String get equalizerDisabledStatus => 'Disabled';
+
+  @override
+  String get bassBoost => 'Bass Boost';
+
+  @override
+  String get preampGain => 'Preamp Gain';
+
+  @override
+  String get reset => 'Reset';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get timelineAdjustmentTitle => 'Adjust Timeline';
+
+  @override
+  String get timelineAdjustmentDescription =>
+      'Drag right to delay the lyrics, drag left to make them play earlier.';
+
+  @override
+  String timelineOffsetEarlier(Object seconds) {
+    return 'Ahead by ${seconds}s';
+  }
+
+  @override
+  String timelineOffsetLater(Object seconds) {
+    return 'Behind by ${seconds}s';
+  }
+
+  @override
+  String get timelineOffsetCurrent => 'Current offset: 0.0s';
+
+  @override
+  String get enterAcoustidApiKeyTitle => 'Enter AcoustID API Key';
+
+  @override
+  String get acoustidApiKeyDescription =>
+      'Used for audio fingerprinting. Leaving it blank will restore the built-in default key.';
+
+  @override
+  String get acoustidApiKeyHint => 'Paste your AcoustID API Key';
+
+  @override
+  String get apiKey => 'API Key';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get enterLyricsTitle => 'Enter Lyrics';
+
+  @override
+  String get lyricsInputHint =>
+      'Paste or type lyrics here. Multiline text is supported.';
+
+  @override
+  String get enterGoogleAiStudioApiKeyTitle => 'Enter Google AI Studio API Key';
+
+  @override
+  String get googleAiStudioApiKeyDescription =>
+      'Used for lyric generation, timeline generation, and translation in Google AI Studio.';
+
+  @override
+  String get pasteGoogleAiStudioApiKey => 'Paste Google AI Studio API Key';
+
+  @override
+  String get enterOpenRouterApiKeyTitle => 'Enter OpenRouter API Key';
+
+  @override
+  String get openRouterApiKeyDescription =>
+      'Used for lyric generation and timeline generation in OpenRouter. Translation always uses Gemini.';
+
+  @override
+  String get pasteOpenRouterApiKey => 'Paste OpenRouter API Key';
+
+  @override
+  String get enterGeminiApiKeyTitle => 'Enter Gemini API Key';
+
+  @override
+  String get geminiApiKeyDescription => 'Used for lyric translation.';
+
+  @override
+  String get pasteGeminiApiKey => 'Paste Gemini API Key';
+
+  @override
+  String get testConnection => 'Test Connection';
+
+  @override
+  String get enterApiKey => 'Please enter an API key.';
+
+  @override
+  String get testingConnection => 'Testing connection...';
+
+  @override
+  String get getKey => 'Get key';
+
+  @override
+  String get editSongTagsTitle => 'Edit Song Tags';
+
+  @override
+  String get editSongTagsDescription =>
+      'You can save changes only in the app, or write them back to the source file as well.';
+
+  @override
+  String get artistLabel => 'Artist';
+
+  @override
+  String get albumLabel => 'Album';
+
+  @override
+  String get trackNumberLabel => 'Track Number';
+
+  @override
+  String get trackNumberMustBeInteger => 'Track number must be an integer';
+
+  @override
+  String get leaveBlankKeepsCurrentValue =>
+      'Leave blank to keep the current value';
+
+  @override
+  String get currentFileFormatCannotWriteBack =>
+      'This file format does not support writing back to the source file. Changes can only be saved in the app.';
+
+  @override
+  String get leaveBlankDoesNotClearOriginalValue =>
+      'Tip: leaving a field blank will not clear the original value; it keeps the current tag.';
+
+  @override
+  String get saveToApp => 'Save to App';
+
+  @override
+  String get saveToSourceFileAndApp => 'Save to Source File and App';
+
+  @override
+  String get saveToSourceFileFailed =>
+      'Failed to save to the source file. Please make sure the file format supports writing and the file is not in use.';
+
+  @override
+  String get saveFailed => 'Save failed. Please try again later.';
+
+  @override
+  String apiKeySaved(Object provider) {
+    return '$provider API key saved';
+  }
+
+  @override
+  String get apiKeySavedAcoustid => 'AcoustID API key saved';
+
+  @override
+  String get generalSectionTitle => 'Interface';
+
+  @override
+  String get generalSectionDescription =>
+      'These options affect the overall appearance of the pages and playback UI.';
+
+  @override
+  String get shortcutSettingsTitle => 'Custom Shortcuts';
+
+  @override
+  String get shortcutSettingsDescription =>
+      'Click to re-record and save shortcuts for player actions.';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get lyricsSectionTitle => 'Lyrics';
+
+  @override
+  String get lyricsSectionDescription =>
+      'These settings only affect lyric generation and timeline generation.';
+
+  @override
+  String get autoSwitchLyricsProvider => 'Auto-switch lyric provider';
+
+  @override
+  String get autoSwitchLyricsProviderEnabledDesc =>
+      'Google AI Studio is tried first. If both the primary and fallback models fail with 429 or 5xx errors, the app automatically switches to OpenRouter and keeps trying.';
+
+  @override
+  String get autoSwitchLyricsProviderDisabledDesc =>
+      'You need API keys for both Google AI Studio and OpenRouter before auto-switching can be enabled.';
+
+  @override
+  String get lyricsAiProviderTitle => 'Lyrics AI Provider';
+
+  @override
+  String get lyricsAiProviderDescription =>
+      'This only affects lyric generation and timeline generation. Translation always uses Google AI Studio.';
+
+  @override
+  String get googleAiStudioApiKeySaved => 'Google AI Studio API key saved';
+
+  @override
+  String get googleAiStudioApiKeyMissing =>
+      'No Google AI Studio API key is saved yet. Lyric generation and timeline generation will prompt you first.';
+
+  @override
+  String get openRouterApiKeySaved => 'OpenRouter API key saved';
+
+  @override
+  String get openRouterApiKeyMissing =>
+      'No OpenRouter API key is saved yet. Lyric generation and timeline generation will prompt you first.';
+
+  @override
+  String get fill => 'Fill in';
+
+  @override
+  String get modify => 'Modify';
+
+  @override
+  String get geminiModelsSectionTitle => 'Gemini Models';
+
+  @override
+  String get geminiModelsSectionDescription =>
+      'These two models are used for lyric generation and timeline generation in Google AI Studio.';
+
+  @override
+  String get primaryModelLabel => 'Primary model';
+
+  @override
+  String get backupModelLabel => 'Fallback model';
+
+  @override
+  String get fetching => 'Fetching...';
+
+  @override
+  String get fetchModelList => 'Fetch model list';
+
+  @override
+  String get restoreDefault => 'Restore default';
+
+  @override
+  String get acoustidSectionTitle => 'Fingerprinting';
+
+  @override
+  String get acoustidApiKeyTitle => 'AcoustID API Key';
+
+  @override
+  String get acoustidApiKeyHelp =>
+      'AcoustID is used for audio fingerprinting. We recommend using your own API key.';
+
+  @override
+  String get acoustidApiKeySaved => 'AcoustID API key saved';
+
+  @override
+  String get acoustidApiKeyDefault =>
+      'The built-in default key is currently in use. We recommend replacing it with your own key.';
+
+  @override
+  String get applyForApiKey =>
+      'Apply for API key: https://acoustid.org/new-application';
+
+  @override
+  String get queueTabBarFavoriteAdded => 'Added to favorites';
+
+  @override
+  String get queueTabBarFavoriteRemoved => 'Removed from favorites';
+
+  @override
+  String get tagCompletion => 'Tag completion';
+
+  @override
+  String get sleepTimer => 'Sleep timer';
+
+  @override
+  String sleepTimerRemaining(Object duration) {
+    return 'Sleep timer $duration';
+  }
+
+  @override
+  String get unknownArtistOrAlbum => 'Unknown';
 }

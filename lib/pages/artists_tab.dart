@@ -38,9 +38,9 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
       '[ArtistsTab] build loading=${artistsAsync.isLoading} '
       'hasValue=${artistsAsync.hasValue} hasError=${artistsAsync.hasError}',
     );
-    final l10n = AppLocalizations.of(context);
-    final artistsLabel = l10n?.artists ?? 'Artists';
-    final noArtistsLabel = l10n?.noArtists ?? 'No artists found yet';
+    final l10n = AppLocalizations.of(context)!;
+    final artistsLabel = l10n.artists;
+    final noArtistsLabel = l10n.noArtists;
 
     return artistsAsync.when(
       loading: () => const Center(
@@ -187,10 +187,9 @@ class _ArtistCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
-    final playAllLabel = l10n?.playAll ?? 'Play all';
-    final songCountLabel =
-        l10n?.songCount(artist.songCount) ?? '${artist.songCount} songs';
+    final l10n = AppLocalizations.of(context)!;
+    final playAllLabel = l10n.playAll;
+    final songCountLabel = l10n.songCount(artist.songCount);
     final audio = ref.read(audioServiceProvider);
 
     return Material(
@@ -290,12 +289,11 @@ class _ArtistCard extends ConsumerWidget {
     WidgetRef ref,
     Offset globalPosition,
   ) async {
-    final l10n = AppLocalizations.of(context);
-    final playAllLabel = l10n?.playAll ?? 'Play all';
-    final shufflePlayLabel = l10n?.shufflePlay ?? 'Shuffle play';
-    final viewArtistDetailsLabel =
-        l10n?.viewArtistDetails ?? 'View artist details';
-    final copyArtistNameLabel = l10n?.copyArtistName ?? 'Copy artist name';
+    final l10n = AppLocalizations.of(context)!;
+    final playAllLabel = l10n.playAll;
+    final shufflePlayLabel = l10n.shufflePlay;
+    final viewArtistDetailsLabel = l10n.viewArtistDetails;
+    final copyArtistNameLabel = l10n.copyArtistName;
     final overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
@@ -485,9 +483,9 @@ class _ArtistsToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final searchArtistsLabel = l10n?.searchArtists ?? 'Search artists';
+    final searchArtistsLabel = l10n.searchArtists;
     final artistCountLabel = '$artistCount $artistsLabel';
     final sortControls = Wrap(
       spacing: 8,
@@ -495,16 +493,16 @@ class _ArtistsToolbar extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         PopupMenuButton<_ArtistSortField>(
-          tooltip: l10n?.albumSort ?? 'Sort',
+          tooltip: l10n.albumSort,
           onSelected: onSortFieldSelected,
           itemBuilder: (context) => [
             PopupMenuItem(
               value: _ArtistSortField.artist,
-              child: Text(l10n?.sortArtistAsc ?? 'Artist A-Z'),
+              child: Text(l10n.sortArtistAsc),
             ),
             PopupMenuItem(
               value: _ArtistSortField.songCount,
-              child: Text(l10n?.sortTrackCount ?? 'Song Count'),
+              child: Text(l10n.sortTrackCount),
             ),
           ],
           child: Container(
@@ -524,9 +522,7 @@ class _ArtistsToolbar extends StatelessWidget {
           ),
         ),
         IconButton.filledTonal(
-          tooltip: sortAscending
-              ? (l10n?.sortAscending ?? 'Ascending')
-              : (l10n?.sortDescending ?? 'Descending'),
+          tooltip: sortAscending ? l10n.sortAscending : l10n.sortDescending,
           onPressed: onSortOrderToggled,
           icon: Icon(
             sortAscending
@@ -644,8 +640,8 @@ class _ArtistsToolbar extends StatelessWidget {
 
   String _sortFieldLabel(AppLocalizations? l10n, _ArtistSortField field) {
     return switch (field) {
-      _ArtistSortField.artist => l10n?.sortArtistAsc ?? 'Artist A-Z',
-      _ArtistSortField.songCount => l10n?.sortTrackCount ?? 'Song Count',
+      _ArtistSortField.artist => l10n!.sortArtistAsc,
+      _ArtistSortField.songCount => l10n!.sortTrackCount,
     };
   }
 }

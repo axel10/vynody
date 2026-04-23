@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 import '../player/audio_riverpod.dart';
 import '../player/audio_service.dart';
+import '../l10n/app_localizations.dart';
 
 class EqualizerPanel extends ConsumerStatefulWidget {
   const EqualizerPanel({super.key});
@@ -35,6 +36,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
   Widget build(BuildContext context) {
     final audio = ref.read(audioServiceProvider);
     final config = ref.watch(audioSnapshotProvider).equalizerConfig;
+    final l10n = AppLocalizations.of(context)!;
     const accentColor = Colors.blueAccent;
 
     return BackdropFilter(
@@ -53,26 +55,30 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(audio, config),
+            _buildHeader(audio, config, l10n),
             const SizedBox(height: 24),
             _buildEqSliders(audio, config, accentColor),
             const SizedBox(height: 32),
-            _buildBottomControls(audio, config, accentColor),
+            _buildBottomControls(audio, config, accentColor, l10n),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(AudioService audio, EqualizerConfig config) {
+  Widget _buildHeader(
+    AudioService audio,
+    EqualizerConfig config,
+    AppLocalizations l10n,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '均衡器',
+            Text(
+              l10n.equalizer,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -81,7 +87,9 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
               ),
             ),
             Text(
-              config.enabled ? '已启用高保真调节' : '已禁用',
+              config.enabled
+                  ? l10n.equalizerEnabledStatus
+                  : l10n.equalizerDisabledStatus,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 12,
@@ -147,11 +155,12 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     AudioService audio,
     EqualizerConfig config,
     Color accentColor,
+    AppLocalizations l10n,
   ) {
     return Row(
       children: [
         _buildKnobControl(
-          label: '低音增强',
+          label: l10n.bassBoost,
           value: config.bassBoostDb,
           min: 0,
           max: 100,
@@ -166,8 +175,8 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    '前置增益',
+                  Text(
+                    l10n.preampGain,
                     style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                   Text(
@@ -207,7 +216,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
         IconButton(
           onPressed: () => audio.resetEqualizerDefaults(),
           icon: const Icon(Icons.refresh, color: Colors.white54),
-          tooltip: '重置',
+          tooltip: l10n.reset,
         ),
       ],
     );

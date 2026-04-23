@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 Future<String?> showAcoustidApiKeyDialog(
   BuildContext context, {
   required String initialApiKey,
@@ -7,15 +9,38 @@ Future<String?> showAcoustidApiKeyDialog(
   return showDialog<String?>(
     context: context,
     builder: (dialogContext) {
-      return _AcoustidApiKeyDialog(initialApiKey: initialApiKey);
+      final l10n = AppLocalizations.of(dialogContext)!;
+      return _AcoustidApiKeyDialog(
+        initialApiKey: initialApiKey,
+        title: l10n.enterAcoustidApiKeyTitle,
+        description: l10n.acoustidApiKeyDescription,
+        apiKeyLabel: l10n.apiKey,
+        apiKeyHint: l10n.acoustidApiKeyHint,
+        cancelLabel: l10n.cancel,
+        saveLabel: l10n.save,
+      );
     },
   );
 }
 
 class _AcoustidApiKeyDialog extends StatefulWidget {
-  const _AcoustidApiKeyDialog({required this.initialApiKey});
+  const _AcoustidApiKeyDialog({
+    required this.initialApiKey,
+    required this.title,
+    required this.description,
+    required this.apiKeyLabel,
+    required this.apiKeyHint,
+    required this.cancelLabel,
+    required this.saveLabel,
+  });
 
   final String initialApiKey;
+  final String title;
+  final String description;
+  final String apiKeyLabel;
+  final String apiKeyHint;
+  final String cancelLabel;
+  final String saveLabel;
 
   @override
   State<_AcoustidApiKeyDialog> createState() => _AcoustidApiKeyDialogState();
@@ -41,7 +66,7 @@ class _AcoustidApiKeyDialogState extends State<_AcoustidApiKeyDialog> {
     final apiKey = _controller.text.trim();
 
     return AlertDialog(
-      title: const Text('填写 AcoustID API Key'),
+      title: Text(widget.title),
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
@@ -49,7 +74,7 @@ class _AcoustidApiKeyDialogState extends State<_AcoustidApiKeyDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('用于音频指纹识别。留空后会恢复使用应用内置的默认 key。'),
+              Text(widget.description),
               const SizedBox(height: 16),
               TextField(
                 controller: _controller,
@@ -57,9 +82,9 @@ class _AcoustidApiKeyDialogState extends State<_AcoustidApiKeyDialog> {
                 obscureText: true,
                 enableSuggestions: false,
                 autocorrect: false,
-                decoration: const InputDecoration(
-                  labelText: 'API Key',
-                  hintText: '粘贴你的 AcoustID API Key',
+                decoration: InputDecoration(
+                  labelText: widget.apiKeyLabel,
+                  hintText: widget.apiKeyHint,
                 ),
                 onChanged: (_) {
                   setState(() {});
@@ -72,13 +97,13 @@ class _AcoustidApiKeyDialogState extends State<_AcoustidApiKeyDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(widget.cancelLabel),
         ),
         FilledButton(
           onPressed: apiKey.isNotEmpty || _controller.text.isEmpty
               ? () => Navigator.of(context).pop(_controller.text)
               : null,
-          child: const Text('保存'),
+          child: Text(widget.saveLabel),
         ),
       ],
     );

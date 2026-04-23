@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 Future<String?> showManualLyricsDialog(
   BuildContext context, {
   required String initialLyrics,
@@ -7,15 +9,32 @@ Future<String?> showManualLyricsDialog(
   return showDialog<String?>(
     context: context,
     builder: (dialogContext) {
-      return _ManualLyricsDialog(initialLyrics: initialLyrics);
+      final l10n = AppLocalizations.of(dialogContext)!;
+      return _ManualLyricsDialog(
+        initialLyrics: initialLyrics,
+        title: l10n.enterLyricsTitle,
+        hintText: l10n.lyricsInputHint,
+        cancelLabel: l10n.cancel,
+        confirmLabel: l10n.confirm,
+      );
     },
   );
 }
 
 class _ManualLyricsDialog extends StatefulWidget {
-  const _ManualLyricsDialog({required this.initialLyrics});
+  const _ManualLyricsDialog({
+    required this.initialLyrics,
+    required this.title,
+    required this.hintText,
+    required this.cancelLabel,
+    required this.confirmLabel,
+  });
 
   final String initialLyrics;
+  final String title;
+  final String hintText;
+  final String cancelLabel;
+  final String confirmLabel;
 
   @override
   State<_ManualLyricsDialog> createState() => _ManualLyricsDialogState();
@@ -42,7 +61,7 @@ class _ManualLyricsDialogState extends State<_ManualLyricsDialog> {
     final canSave = currentValue.trim().isNotEmpty;
 
     return AlertDialog(
-      title: const Text('填写歌词'),
+      title: Text(widget.title),
       content: SizedBox(
         width: 520,
         child: TextField(
@@ -52,8 +71,8 @@ class _ManualLyricsDialogState extends State<_ManualLyricsDialog> {
           textInputAction: TextInputAction.newline,
           maxLines: 14,
           minLines: 8,
-          decoration: const InputDecoration(
-            hintText: '在这里粘贴或输入歌词，支持多行文本',
+          decoration: InputDecoration(
+            hintText: widget.hintText,
             alignLabelWithHint: true,
           ),
           onChanged: (_) {
@@ -64,13 +83,13 @@ class _ManualLyricsDialogState extends State<_ManualLyricsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(widget.cancelLabel),
         ),
         FilledButton(
           onPressed: canSave
               ? () => Navigator.of(context).pop(currentValue.trim())
               : null,
-          child: const Text('确认'),
+          child: Text(widget.confirmLabel),
         ),
       ],
     );

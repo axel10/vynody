@@ -217,6 +217,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     BuildContext context,
     AudioService audio,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final song = ref.read(audioCurrentMusicProvider);
     if (song == null) return;
     final messenger = ScaffoldMessenger.of(context);
@@ -230,8 +231,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       metadata: result.metadata,
       artworkBytes: result.artworkBytes,
       successMessage: result.savedToSourceFile
-          ? '歌曲标签已保存到源文件和 App'
-          : '歌曲标签已保存到 App',
+          ? l10n.songTagsSavedToSourceFileAndApp
+          : l10n.songTagsSavedToApp,
     );
   }
 
@@ -284,9 +285,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 Icons.edit_rounded,
                 color: Colors.orangeAccent,
               ),
-              title: const Text(
-                '编辑歌曲标签',
-                style: TextStyle(color: Colors.white),
+              title: Text(
+                l10n.editSongTagsTitle,
+                style: const TextStyle(color: Colors.white),
               ),
               enabled: currentSong != null,
               onTap: () {

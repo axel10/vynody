@@ -776,6 +776,12 @@ abstract class AppLocalizations {
   /// **'加入收藏'**
   String get addToFavorites;
 
+  /// No description provided for @removeFromFavorites.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消收藏'**
+  String get removeFromFavorites;
+
   /// View album details action
   ///
   /// In zh, this message translates to:
@@ -1273,6 +1279,636 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'清空列表'**
   String get clearPlaylist;
+
+  /// No description provided for @copyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制标题'**
+  String get copyTitle;
+
+  /// No description provided for @openFolderLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开文件夹所在位置'**
+  String get openFolderLocation;
+
+  /// No description provided for @songTagsSavedToSourceFileAndApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲标签已保存到源文件和 App'**
+  String get songTagsSavedToSourceFileAndApp;
+
+  /// No description provided for @songTagsSavedToApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲标签已保存到 App'**
+  String get songTagsSavedToApp;
+
+  /// No description provided for @durationZero.
+  ///
+  /// In zh, this message translates to:
+  /// **'0:00'**
+  String get durationZero;
+
+  /// No description provided for @generateLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成歌词'**
+  String get generateLyrics;
+
+  /// No description provided for @generateTimeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成时间轴'**
+  String get generateTimeline;
+
+  /// No description provided for @queueGenerateLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'排队生成'**
+  String get queueGenerateLyrics;
+
+  /// No description provided for @pauseAutoScroll.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂停自动滚动'**
+  String get pauseAutoScroll;
+
+  /// No description provided for @resumeAutoScroll.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复自动滚动'**
+  String get resumeAutoScroll;
+
+  /// No description provided for @translateLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻译歌词'**
+  String get translateLyrics;
+
+  /// No description provided for @clearLyricsCache.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除当前歌词缓存'**
+  String get clearLyricsCache;
+
+  /// No description provided for @clearTranslationCache.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除当前翻译缓存'**
+  String get clearTranslationCache;
+
+  /// No description provided for @requery.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新查询'**
+  String get requery;
+
+  /// No description provided for @sleepTimerTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'睡眠定时器'**
+  String get sleepTimerTitle;
+
+  /// No description provided for @sleepTimerDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择倒计时，时间到后会暂停播放。'**
+  String get sleepTimerDescription;
+
+  /// No description provided for @sleepTimerRunningTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'睡眠定时器运行中'**
+  String get sleepTimerRunningTitle;
+
+  /// No description provided for @sleepTimerRunningDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'倒计时结束后会自动暂停当前播放。'**
+  String get sleepTimerRunningDescription;
+
+  /// No description provided for @remainingTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'剩余时间'**
+  String get remainingTime;
+
+  /// No description provided for @startCountdown.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始倒计时'**
+  String get startCountdown;
+
+  /// No description provided for @end.
+  ///
+  /// In zh, this message translates to:
+  /// **'结束'**
+  String get end;
+
+  /// No description provided for @equalizer.
+  ///
+  /// In zh, this message translates to:
+  /// **'均衡器'**
+  String get equalizer;
+
+  /// No description provided for @equalizerEnabledStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'已启用高保真调节'**
+  String get equalizerEnabledStatus;
+
+  /// No description provided for @equalizerDisabledStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'已禁用'**
+  String get equalizerDisabledStatus;
+
+  /// No description provided for @bassBoost.
+  ///
+  /// In zh, this message translates to:
+  /// **'低音增强'**
+  String get bassBoost;
+
+  /// No description provided for @preampGain.
+  ///
+  /// In zh, this message translates to:
+  /// **'前置增益'**
+  String get preampGain;
+
+  /// No description provided for @reset.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置'**
+  String get reset;
+
+  /// No description provided for @close.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get close;
+
+  /// No description provided for @timelineAdjustmentTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'手动调整时间轴'**
+  String get timelineAdjustmentTitle;
+
+  /// No description provided for @timelineAdjustmentDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'向右拖动会让歌词整体延后，向左拖动会让歌词整体提前。'**
+  String get timelineAdjustmentDescription;
+
+  /// No description provided for @timelineOffsetEarlier.
+  ///
+  /// In zh, this message translates to:
+  /// **'提前 {seconds} 秒'**
+  String timelineOffsetEarlier(Object seconds);
+
+  /// No description provided for @timelineOffsetLater.
+  ///
+  /// In zh, this message translates to:
+  /// **'延后 {seconds} 秒'**
+  String timelineOffsetLater(Object seconds);
+
+  /// No description provided for @timelineOffsetCurrent.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前偏移：0.0 秒'**
+  String get timelineOffsetCurrent;
+
+  /// No description provided for @enterAcoustidApiKeyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'填写 AcoustID API Key'**
+  String get enterAcoustidApiKeyTitle;
+
+  /// No description provided for @acoustidApiKeyDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'用于音频指纹识别。留空后会恢复使用应用内置的默认 key。'**
+  String get acoustidApiKeyDescription;
+
+  /// No description provided for @acoustidApiKeyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴你的 AcoustID API Key'**
+  String get acoustidApiKeyHint;
+
+  /// No description provided for @apiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'API Key'**
+  String get apiKey;
+
+  /// No description provided for @save.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存'**
+  String get save;
+
+  /// No description provided for @enterLyricsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'填写歌词'**
+  String get enterLyricsTitle;
+
+  /// No description provided for @lyricsInputHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在这里粘贴或输入歌词，支持多行文本'**
+  String get lyricsInputHint;
+
+  /// No description provided for @enterGoogleAiStudioApiKeyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'填写 Google AI Studio API Key'**
+  String get enterGoogleAiStudioApiKeyTitle;
+
+  /// No description provided for @googleAiStudioApiKeyDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'用于 Google AI Studio 的歌词生成、时间轴生成和翻译。'**
+  String get googleAiStudioApiKeyDescription;
+
+  /// No description provided for @pasteGoogleAiStudioApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴 Google AI Studio API Key'**
+  String get pasteGoogleAiStudioApiKey;
+
+  /// No description provided for @enterOpenRouterApiKeyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'填写 OpenRouter API Key'**
+  String get enterOpenRouterApiKeyTitle;
+
+  /// No description provided for @openRouterApiKeyDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'用于 OpenRouter 的歌词生成和时间轴生成，翻译始终走 Gemini。'**
+  String get openRouterApiKeyDescription;
+
+  /// No description provided for @pasteOpenRouterApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴 OpenRouter API Key'**
+  String get pasteOpenRouterApiKey;
+
+  /// No description provided for @enterGeminiApiKeyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'填写 Gemini API Key'**
+  String get enterGeminiApiKeyTitle;
+
+  /// No description provided for @geminiApiKeyDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'用于歌词翻译。'**
+  String get geminiApiKeyDescription;
+
+  /// No description provided for @pasteGeminiApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴 Gemini API Key'**
+  String get pasteGeminiApiKey;
+
+  /// No description provided for @testConnection.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试连接'**
+  String get testConnection;
+
+  /// No description provided for @enterApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 API key。'**
+  String get enterApiKey;
+
+  /// No description provided for @testingConnection.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在测试连接...'**
+  String get testingConnection;
+
+  /// No description provided for @getKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'获取key'**
+  String get getKey;
+
+  /// No description provided for @editSongTagsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑歌曲标签'**
+  String get editSongTagsTitle;
+
+  /// No description provided for @editSongTagsDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'修改后可以只保存到 App，也可以同步写回源文件。'**
+  String get editSongTagsDescription;
+
+  /// No description provided for @artistLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'艺术家'**
+  String get artistLabel;
+
+  /// No description provided for @albumLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'专辑'**
+  String get albumLabel;
+
+  /// No description provided for @trackNumberLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'曲目号'**
+  String get trackNumberLabel;
+
+  /// No description provided for @trackNumberMustBeInteger.
+  ///
+  /// In zh, this message translates to:
+  /// **'曲目号必须是整数'**
+  String get trackNumberMustBeInteger;
+
+  /// No description provided for @leaveBlankKeepsCurrentValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空则保留当前值'**
+  String get leaveBlankKeepsCurrentValue;
+
+  /// No description provided for @currentFileFormatCannotWriteBack.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前文件格式不支持写回源文件，只能保存到 App。'**
+  String get currentFileFormatCannotWriteBack;
+
+  /// No description provided for @leaveBlankDoesNotClearOriginalValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'提示：留空不会清空原值，而是沿用当前标签。'**
+  String get leaveBlankDoesNotClearOriginalValue;
+
+  /// No description provided for @saveToApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存到 App'**
+  String get saveToApp;
+
+  /// No description provided for @saveToSourceFileAndApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存到源文件和 App'**
+  String get saveToSourceFileAndApp;
+
+  /// No description provided for @saveToSourceFileFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存到源文件失败，请确认文件格式支持写入且文件未被占用'**
+  String get saveToSourceFileFailed;
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存失败，请稍后重试'**
+  String get saveFailed;
+
+  /// No description provided for @apiKeySaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'{provider} API Key 已保存'**
+  String apiKeySaved(Object provider);
+
+  /// No description provided for @apiKeySavedAcoustid.
+  ///
+  /// In zh, this message translates to:
+  /// **'AcoustID API Key 已保存'**
+  String get apiKeySavedAcoustid;
+
+  /// No description provided for @generalSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'界面'**
+  String get generalSectionTitle;
+
+  /// No description provided for @generalSectionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'这些选项会影响页面和播放界面的整体显示方式。'**
+  String get generalSectionDescription;
+
+  /// No description provided for @shortcutSettingsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义快捷键'**
+  String get shortcutSettingsTitle;
+
+  /// No description provided for @shortcutSettingsDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击后可以为播放器操作重新录制快捷键并保存。'**
+  String get shortcutSettingsDescription;
+
+  /// No description provided for @edit.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑'**
+  String get edit;
+
+  /// No description provided for @lyricsSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词'**
+  String get lyricsSectionTitle;
+
+  /// No description provided for @lyricsSectionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'这里的配置只影响歌词生成和时间轴生成。'**
+  String get lyricsSectionDescription;
+
+  /// No description provided for @autoSwitchLyricsProvider.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动切换歌词供应商'**
+  String get autoSwitchLyricsProvider;
+
+  /// No description provided for @autoSwitchLyricsProviderEnabledDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。'**
+  String get autoSwitchLyricsProviderEnabledDesc;
+
+  /// No description provided for @autoSwitchLyricsProviderDisabledDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。'**
+  String get autoSwitchLyricsProviderDisabledDesc;
+
+  /// No description provided for @lyricsAiProviderTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词生成 AI 提供方'**
+  String get lyricsAiProviderTitle;
+
+  /// No description provided for @lyricsAiProviderDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio。'**
+  String get lyricsAiProviderDescription;
+
+  /// No description provided for @googleAiStudioApiKeySaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'Google AI Studio API Key 已保存'**
+  String get googleAiStudioApiKeySaved;
+
+  /// No description provided for @googleAiStudioApiKeyMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。'**
+  String get googleAiStudioApiKeyMissing;
+
+  /// No description provided for @openRouterApiKeySaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'OpenRouter API Key 已保存'**
+  String get openRouterApiKeySaved;
+
+  /// No description provided for @openRouterApiKeyMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。'**
+  String get openRouterApiKeyMissing;
+
+  /// No description provided for @fill.
+  ///
+  /// In zh, this message translates to:
+  /// **'填写'**
+  String get fill;
+
+  /// No description provided for @modify.
+  ///
+  /// In zh, this message translates to:
+  /// **'修改'**
+  String get modify;
+
+  /// No description provided for @geminiModelsSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Gemini 模型'**
+  String get geminiModelsSectionTitle;
+
+  /// No description provided for @geminiModelsSectionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'这两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。'**
+  String get geminiModelsSectionDescription;
+
+  /// No description provided for @primaryModelLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'主模型'**
+  String get primaryModelLabel;
+
+  /// No description provided for @backupModelLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'备用模型'**
+  String get backupModelLabel;
+
+  /// No description provided for @fetching.
+  ///
+  /// In zh, this message translates to:
+  /// **'获取中...'**
+  String get fetching;
+
+  /// No description provided for @fetchModelList.
+  ///
+  /// In zh, this message translates to:
+  /// **'获取模型列表'**
+  String get fetchModelList;
+
+  /// No description provided for @restoreDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复默认'**
+  String get restoreDefault;
+
+  /// No description provided for @acoustidSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'指纹识别'**
+  String get acoustidSectionTitle;
+
+  /// No description provided for @acoustidApiKeyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'AcoustID API Key'**
+  String get acoustidApiKeyTitle;
+
+  /// No description provided for @acoustidApiKeyHelp.
+  ///
+  /// In zh, this message translates to:
+  /// **'AcoustID 用于音频指纹识别，建议使用你自己的 API Key。'**
+  String get acoustidApiKeyHelp;
+
+  /// No description provided for @acoustidApiKeySaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'AcoustID API Key 已保存'**
+  String get acoustidApiKeySaved;
+
+  /// No description provided for @acoustidApiKeyDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前使用应用内置的默认 key，建议申请你自己的 key 后替换。'**
+  String get acoustidApiKeyDefault;
+
+  /// No description provided for @applyForApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'申请 API key: https://acoustid.org/new-application'**
+  String get applyForApiKey;
+
+  /// No description provided for @queueTabBarFavoriteAdded.
+  ///
+  /// In zh, this message translates to:
+  /// **'已加入收藏'**
+  String get queueTabBarFavoriteAdded;
+
+  /// No description provided for @queueTabBarFavoriteRemoved.
+  ///
+  /// In zh, this message translates to:
+  /// **'已取消收藏'**
+  String get queueTabBarFavoriteRemoved;
+
+  /// No description provided for @tagCompletion.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲标签补全'**
+  String get tagCompletion;
+
+  /// No description provided for @sleepTimer.
+  ///
+  /// In zh, this message translates to:
+  /// **'睡眠定时器'**
+  String get sleepTimer;
+
+  /// No description provided for @sleepTimerRemaining.
+  ///
+  /// In zh, this message translates to:
+  /// **'睡眠定时器 {duration}'**
+  String sleepTimerRemaining(Object duration);
+
+  /// No description provided for @unknownArtistOrAlbum.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知'**
+  String get unknownArtistOrAlbum;
 }
 
 class _AppLocalizationsDelegate

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
 import '../player/settings_service.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -23,6 +24,7 @@ Future<String?> _showApiKeyDialog(
   required String emptyMessage,
   required String dialogActionLabel,
   required String fieldLabel,
+  required String getKeyButtonLabel,
   String initialApiKey = '',
   String? getKeyUrl,
 }) async {
@@ -38,6 +40,7 @@ Future<String?> _showApiKeyDialog(
         emptyMessage: emptyMessage,
         dialogActionLabel: dialogActionLabel,
         fieldLabel: fieldLabel,
+        getKeyButtonLabel: getKeyButtonLabel,
         initialApiKey: initialApiKey,
         testConnection: testConnection,
         getKeyUrl: getKeyUrl,
@@ -56,6 +59,7 @@ class _ApiKeyDialog extends StatefulWidget {
     required this.emptyMessage,
     required this.dialogActionLabel,
     required this.fieldLabel,
+    required this.getKeyButtonLabel,
     required this.initialApiKey,
     required this.testConnection,
     this.getKeyUrl,
@@ -69,6 +73,7 @@ class _ApiKeyDialog extends StatefulWidget {
   final String emptyMessage;
   final String dialogActionLabel;
   final String fieldLabel;
+  final String getKeyButtonLabel;
   final String initialApiKey;
   final Future<_ApiKeyDialogResult> Function(String apiKey) testConnection;
   final String? getKeyUrl;
@@ -107,7 +112,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
 
     setState(() {
       _isTesting = true;
-      _statusText = '正在测试连接...';
+      _statusText = AppLocalizations.of(context)!.testingConnection;
       _statusColor = Colors.white70;
     });
 
@@ -173,12 +178,16 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
         ),
         TextButton(
           onPressed: _isTesting ? null : _runTest,
-          child: Text(_isTesting ? '测试中...' : widget.testButtonLabel),
+          child: Text(
+            _isTesting
+                ? AppLocalizations.of(context)!.testingConnection
+                : widget.testButtonLabel,
+          ),
         ),
         if (widget.getKeyUrl != null)
           TextButton(
             onPressed: () => launchUrlString(widget.getKeyUrl!),
-            child: const Text('获取key'),
+            child: Text(widget.getKeyButtonLabel),
           ),
         FilledButton(
           onPressed: canSave ? () => Navigator.of(context).pop(apiKey) : null,
@@ -195,16 +204,18 @@ Future<String?> showGoogleAiStudioApiKeyDialog(
   required String initialApiKey,
 }) async {
   final service = ref.read(geminiApiKeyServiceProvider);
+  final l10n = AppLocalizations.of(context)!;
   return _showApiKeyDialog(
     context,
-    title: '填写 Google AI Studio API Key',
-    description: '用于 Google AI Studio 的歌词生成、时间轴生成和翻译。',
-    hintText: '粘贴 Google AI Studio API Key',
-    testButtonLabel: '测试连接',
-    saveButtonLabel: '保存',
-    emptyMessage: '请输入 API key。',
-    dialogActionLabel: '取消',
-    fieldLabel: 'API Key',
+    title: l10n.enterGoogleAiStudioApiKeyTitle,
+    description: l10n.googleAiStudioApiKeyDescription,
+    hintText: l10n.pasteGoogleAiStudioApiKey,
+    testButtonLabel: l10n.testConnection,
+    saveButtonLabel: l10n.save,
+    emptyMessage: l10n.enterApiKey,
+    dialogActionLabel: l10n.cancel,
+    fieldLabel: l10n.apiKey,
+    getKeyButtonLabel: l10n.getKey,
     initialApiKey: initialApiKey,
     getKeyUrl: 'https://aistudio.google.com/app/api-keys',
     testConnection: (apiKey) async {
@@ -223,16 +234,18 @@ Future<String?> showOpenRouterApiKeyDialog(
   required String initialApiKey,
 }) async {
   final service = ref.read(openRouterApiKeyServiceProvider);
+  final l10n = AppLocalizations.of(context)!;
   return _showApiKeyDialog(
     context,
-    title: '填写 OpenRouter API Key',
-    description: '用于 OpenRouter 的歌词生成和时间轴生成，翻译始终走 Gemini。',
-    hintText: '粘贴 OpenRouter API Key',
-    testButtonLabel: '测试连接',
-    saveButtonLabel: '保存',
-    emptyMessage: '请输入 API key。',
-    dialogActionLabel: '取消',
-    fieldLabel: 'API Key',
+    title: l10n.enterOpenRouterApiKeyTitle,
+    description: l10n.openRouterApiKeyDescription,
+    hintText: l10n.pasteOpenRouterApiKey,
+    testButtonLabel: l10n.testConnection,
+    saveButtonLabel: l10n.save,
+    emptyMessage: l10n.enterApiKey,
+    dialogActionLabel: l10n.cancel,
+    fieldLabel: l10n.apiKey,
+    getKeyButtonLabel: l10n.getKey,
     initialApiKey: initialApiKey,
     getKeyUrl: 'https://openrouter.ai/settings/keys',
     testConnection: (apiKey) async {
@@ -251,16 +264,18 @@ Future<String?> showGeminiApiKeyDialog(
   required String initialApiKey,
 }) async {
   final service = ref.read(geminiApiKeyServiceProvider);
+  final l10n = AppLocalizations.of(context)!;
   return _showApiKeyDialog(
     context,
-    title: '填写 Gemini API Key',
-    description: '用于歌词翻译。',
-    hintText: '粘贴 Gemini API Key',
-    testButtonLabel: '测试连接',
-    saveButtonLabel: '保存',
-    emptyMessage: '请输入 API key。',
-    dialogActionLabel: '取消',
-    fieldLabel: 'API Key',
+    title: l10n.enterGeminiApiKeyTitle,
+    description: l10n.geminiApiKeyDescription,
+    hintText: l10n.pasteGeminiApiKey,
+    testButtonLabel: l10n.testConnection,
+    saveButtonLabel: l10n.save,
+    emptyMessage: l10n.enterApiKey,
+    dialogActionLabel: l10n.cancel,
+    fieldLabel: l10n.apiKey,
+    getKeyButtonLabel: l10n.getKey,
     initialApiKey: initialApiKey,
     getKeyUrl: 'https://aistudio.google.com/app/api-keys',
     testConnection: (apiKey) async {

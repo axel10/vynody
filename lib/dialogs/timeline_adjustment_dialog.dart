@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 const double _timelineOffsetMinSeconds = -10.0;
 const double _timelineOffsetMaxSeconds = 10.0;
 const double _timelineOffsetStepSeconds = 0.1;
@@ -26,12 +28,14 @@ Future<void> showTimelineAdjustmentDialog(
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext)!;
         return AlertDialog(
-          title: const Text('手动调整时间轴'),
+          title: Text(l10n.timelineAdjustmentTitle),
           content: StatefulBuilder(
             builder: (context, setDialogState) {
+              final dialogL10n = AppLocalizations.of(context)!;
               final value = _normalizeTimelineOffsetSeconds(dialogValue.value);
-              final label = _timelineOffsetLabel(value);
+              final label = _timelineOffsetLabel(dialogL10n, value);
               return ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 440),
                 child: Column(
@@ -39,7 +43,7 @@ Future<void> showTimelineAdjustmentDialog(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      '向右拖动会让歌词整体延后，向左拖动会让歌词整体提前。',
+                      dialogL10n.timelineAdjustmentDescription,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withValues(alpha: 0.8),
                         height: 1.4,
@@ -81,14 +85,14 @@ Future<void> showTimelineAdjustmentDialog(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '提前 30.0 秒',
+                          dialogL10n.timelineOffsetEarlier('30.0'),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.5),
                             fontSize: 12,
                           ),
                         ),
                         Text(
-                          '延后 30.0 秒',
+                          dialogL10n.timelineOffsetLater('30.0'),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.5),
                             fontSize: 12,
@@ -111,11 +115,11 @@ Future<void> showTimelineAdjustmentDialog(
                       onPreviewChanged(snapped);
                       unawaited(commitOffset(snapped));
                     },
-              child: const Text('重置'),
+              child: Text(l10n.reset),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('关闭'),
+              child: Text(l10n.close),
             ),
           ],
         );
@@ -134,12 +138,14 @@ double _normalizeTimelineOffsetSeconds(double value) {
   return (clamped * 10).roundToDouble() / 10.0;
 }
 
-String _timelineOffsetLabel(double seconds) {
+String _timelineOffsetLabel(AppLocalizations l10n, double seconds) {
   final normalized = _normalizeTimelineOffsetSeconds(seconds);
   if (normalized == 0) {
-    return '当前偏移：0.0 秒';
+    return l10n.timelineOffsetCurrent;
   }
 
-  final direction = normalized > 0 ? '延后' : '提前';
-  return '当前偏移：$direction ${normalized.abs().toStringAsFixed(1)} 秒';
+  final value = normalized.abs().toStringAsFixed(1);
+  return normalized > 0
+      ? l10n.timelineOffsetLater(value)
+      : l10n.timelineOffsetEarlier(value);
 }

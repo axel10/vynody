@@ -17,8 +17,8 @@ class ArtistDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final unknownAlbumLabel = l10n?.unknownAlbum ?? 'Unknown Album';
+    final l10n = AppLocalizations.of(context)!;
+    final unknownAlbumLabel = l10n.unknownAlbum;
     final theme = Theme.of(context);
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
@@ -180,13 +180,12 @@ class _ArtistInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final artistCountLabel =
-        l10n?.songCount(artist.songCount) ?? '${artist.songCount} songs';
-    final artistsLabel = l10n?.artists ?? 'Artists';
-    final playAllLabel = l10n?.playAll ?? 'Play all';
-    final shufflePlayLabel = l10n?.shufflePlay ?? 'Shuffle play';
+    final artistCountLabel = l10n.songCount(artist.songCount);
+    final artistsLabel = l10n.artists;
+    final playAllLabel = l10n.playAll;
+    final shufflePlayLabel = l10n.shufflePlay;
     final chips = <Widget>[
       _InfoChip(label: artistCountLabel),
       if (artist.country?.trim().isNotEmpty ?? false)

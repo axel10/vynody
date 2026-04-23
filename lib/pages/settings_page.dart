@@ -67,8 +67,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final apiKey = settings.geminiApiKey.trim();
     if (apiKey.isEmpty) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先填写 Google AI Studio API Key')),
+        SnackBar(content: Text(l10n.enterApiKey)),
       );
       return;
     }
@@ -100,9 +101,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     setState(() {
       _geminiModels = const [];
     });
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('已恢复默认 Gemini 模型')));
+    ).showSnackBar(SnackBar(content: Text(l10n.restoreDefault)));
   }
 
   Widget _buildSectionHeader(String title, [String? description]) {
@@ -165,6 +167,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     BuildContext context,
     SettingsService settings,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final options = _mergedGeminiModels(settings);
     final primaryValue = settings.geminiPrimaryModelId;
     final fallbackValue = settings.geminiFallbackModelId;
@@ -175,16 +178,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '这里的两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。',
+            l10n.geminiModelsSectionDescription,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: primaryValue.isEmpty ? null : primaryValue,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: '主模型',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.primaryModelLabel,
+              border: const OutlineInputBorder(),
             ),
             items: options
                 .map(
@@ -203,9 +206,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           DropdownButtonFormField<String>(
             initialValue: fallbackValue.isEmpty ? null : fallbackValue,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: '备用模型',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.backupModelLabel,
+              border: const OutlineInputBorder(),
             ),
             items: options
                 .map(
@@ -236,12 +239,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.download),
-                label: Text(_isLoadingGeminiModels ? '获取中...' : '获取模型列表'),
+                label: Text(
+                  _isLoadingGeminiModels
+                      ? l10n.fetching
+                      : l10n.fetchModelList,
+                ),
               ),
               OutlinedButton.icon(
                 onPressed: _restoreDefaultGeminiModels,
                 icon: const Icon(Icons.restart_alt),
-                label: const Text('恢复默认'),
+                label: Text(l10n.restoreDefault),
               ),
             ],
           ),
@@ -256,7 +263,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return ListView(
       padding: const EdgeInsets.only(bottom: 100),
       children: [
-        _buildSectionHeader('界面', '这些选项会影响页面和播放界面的整体显示方式。'),
+        _buildSectionHeader(
+          l10n.generalSectionTitle,
+          l10n.generalSectionDescription,
+        ),
         _buildThemeModeSection(context, settings),
         SwitchListTile(
           title: Text(l10n.immersiveTabBar),
@@ -301,23 +311,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         ListTile(
           leading: const Icon(Icons.keyboard),
-          title: const Text('自定义快捷键'),
-          subtitle: const Text('点击后可以为播放器操作重新录制快捷键并保存。'),
+          title: Text(l10n.shortcutSettingsTitle),
+          subtitle: Text(l10n.shortcutSettingsDescription),
           trailing: FilledButton.tonal(
             onPressed: () {
               showShortcutSettingsDialog(context);
             },
-            child: const Text('编辑'),
+            child: Text(l10n.edit),
           ),
         ),
         const Divider(height: 1),
-        _buildSectionHeader('歌词', '这里的配置只影响歌词生成和时间轴生成。'),
+        _buildSectionHeader(l10n.lyricsSectionTitle, l10n.lyricsSectionDescription),
         SwitchListTile(
-          title: const Text('自动切换歌词供应商'),
+          title: Text(l10n.autoSwitchLyricsProvider),
           subtitle: Text(
             settings.canAutoSwitchLyricsProvider
-                ? '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。'
-                : '请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。',
+                ? l10n.autoSwitchLyricsProviderEnabledDesc
+                : l10n.autoSwitchLyricsProviderDisabledDesc,
           ),
           value: settings.isLyricsAiAutoSwitchEnabled,
           onChanged: settings.canAutoSwitchLyricsProvider
@@ -327,8 +337,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               : null,
         ),
         ListTile(
-          title: const Text('歌词生成 AI 提供方'),
-          subtitle: const Text('这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio'),
+          title: Text(l10n.lyricsAiProviderTitle),
+          subtitle: Text(l10n.lyricsAiProviderDescription),
           trailing: DropdownButtonHideUnderline(
             child: DropdownButton<LyricsAiProvider>(
               value: settings.lyricsAiProvider,
@@ -354,11 +364,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           subtitle: Text(
             settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio
                 ? (settings.geminiApiKey.trim().isEmpty
-                      ? '当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。'
-                      : '已保存 Google AI Studio key，可用于歌词生成和时间轴生成。')
+                      ? l10n.googleAiStudioApiKeyMissing
+                      : l10n.googleAiStudioApiKeySaved)
                 : (settings.openRouterApiKey.trim().isEmpty
-                      ? '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。'
-                      : '已保存 OpenRouter key，可用于歌词生成和时间轴生成。'),
+                      ? l10n.openRouterApiKeyMissing
+                      : l10n.openRouterApiKeySaved),
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
@@ -387,39 +397,40 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(
-                    '${settings.lyricsAiProvider.displayName} API Key 已保存',
-                  ),
+                  content: Text(l10n.apiKeySaved(settings.lyricsAiProvider.displayName)),
                 ),
               );
             },
             child: Text(switch (settings.lyricsAiProvider) {
               LyricsAiProvider.googleAiStudio =>
-                settings.geminiApiKey.trim().isEmpty ? '填写' : '修改',
+                settings.geminiApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
               LyricsAiProvider.openRouter =>
-                settings.openRouterApiKey.trim().isEmpty ? '填写' : '修改',
+                settings.openRouterApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
             }),
           ),
         ),
         if (settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio)
           _buildSectionHeader(
-            'Gemini 模型',
-            '这两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。',
+            l10n.geminiModelsSectionTitle,
+            l10n.geminiModelsSectionDescription,
           ),
         if (settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio)
           _buildGeminiModelSection(context, settings),
-        _buildSectionHeader('指纹识别', 'AcoustID 用于音频指纹识别，建议使用你自己的 API Key。'),
+        _buildSectionHeader(
+          l10n.acoustidSectionTitle,
+          l10n.acoustidApiKeyHelp,
+        ),
         ListTile(
           isThreeLine: true,
           leading: const Icon(Icons.fingerprint),
-          title: const Text('AcoustID API Key'),
+          title: Text(l10n.acoustidApiKeyTitle),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 settings.hasCustomAcoustidApiKey
-                    ? '已保存自定义 key，音频指纹识别会优先使用它。'
-                    : '当前使用应用内置的默认 key，建议申请你自己的 key 后替换。',
+                    ? l10n.acoustidApiKeySaved
+                    : l10n.acoustidApiKeyDefault,
               ),
               const SizedBox(height: 4),
               InkWell(
@@ -427,8 +438,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   final uri = Uri.parse('https://acoustid.org/new-application');
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 },
-                child: const Text(
-                  '申请 API key: https://acoustid.org/new-application',
+                child: Text(
+                  l10n.applyForApiKey,
                   style: TextStyle(
                     color: Colors.lightBlueAccent,
                     decoration: TextDecoration.underline,
@@ -452,10 +463,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               settings.acoustidApiKey = enteredApiKey;
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('AcoustID API Key 已保存')),
+                SnackBar(content: Text(l10n.acoustidApiKeySaved)),
               );
             },
-            child: Text(settings.hasCustomAcoustidApiKey ? '修改' : '填写'),
+            child: Text(settings.hasCustomAcoustidApiKey ? l10n.modify : l10n.fill),
           ),
         ),
       ],

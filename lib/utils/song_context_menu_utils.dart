@@ -99,6 +99,7 @@ Future<void> showSongContextMenu(
 }) async {
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
   if (overlay == null) return;
+  final l10n = AppLocalizations.of(context)!;
 
   final titleText = song?.displayName.trim() ?? '';
   final artistText = song?.artist?.trim() ?? '';
@@ -119,23 +120,23 @@ Future<void> showSongContextMenu(
         PopupMenuItem<String>(
           value: 'open_file_location',
           enabled: canOpenLocation,
-          child: const Text('打开文件所在位置'),
+          child: Text(l10n.openFileLocation),
         ),
         const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'copy_title',
           enabled: hasTitle,
-          child: const Text('复制标题'),
+          child: Text(l10n.copyTitle),
         ),
         PopupMenuItem<String>(
           value: 'copy_album',
           enabled: hasAlbum,
-          child: const Text('复制专辑'),
+          child: Text(l10n.copyAlbumTitle),
         ),
         PopupMenuItem<String>(
           value: 'copy_artist',
           enabled: hasArtist,
-          child: const Text('复制艺术家'),
+          child: Text(l10n.copyArtistName),
         ),
       ]);
       break;
@@ -144,13 +145,13 @@ Future<void> showSongContextMenu(
         PopupMenuItem<String>(
           value: 'copy_title',
           enabled: hasTitle,
-          child: const Text('复制标题'),
+          child: Text(l10n.copyTitle),
         ),
         const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'open_file_location',
           enabled: canOpenLocation,
-          child: const Text('打开文件所在位置'),
+          child: Text(l10n.openFileLocation),
         ),
       ]);
       break;
@@ -159,12 +160,12 @@ Future<void> showSongContextMenu(
         PopupMenuItem<String>(
           value: 'copy_artist',
           enabled: hasArtist,
-          child: const Text('复制艺术家'),
+          child: Text(l10n.copyArtistName),
         ),
         PopupMenuItem<String>(
           value: 'copy_album',
           enabled: hasAlbum,
-          child: const Text('复制专辑'),
+          child: Text(l10n.copyAlbumTitle),
         ),
       ]);
       break;
@@ -174,10 +175,10 @@ Future<void> showSongContextMenu(
     if (items.isNotEmpty) {
       items.add(const PopupMenuDivider());
     }
-    items.add(
+      items.add(
       PopupMenuItem<String>(
         value: 'add_to_playlist',
-        child: Text(AppLocalizations.of(context)!.addToPlaylist),
+        child: Text(l10n.addToPlaylist),
       ),
     );
   }
@@ -340,6 +341,7 @@ Future<void> showFolderContextMenu(
 }) async {
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
   if (overlay == null) return;
+  final l10n = AppLocalizations.of(context)!;
 
   final canOpenLocation =
       (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
@@ -351,11 +353,11 @@ Future<void> showFolderContextMenu(
       Rect.fromPoints(globalPosition, globalPosition),
       Offset.zero & overlay.size,
     ),
-    items: [
+      items: [
       PopupMenuItem<String>(
         value: 'open_folder_location',
         enabled: canOpenLocation,
-        child: const Text('打开文件夹所在位置'),
+        child: Text(l10n.openFolderLocation),
       ),
     ],
   );

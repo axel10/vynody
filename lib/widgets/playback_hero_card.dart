@@ -744,10 +744,10 @@ class PlaybackHeroCard extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
@@ -791,9 +791,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     child: Text(
                       hasArtist && hasAlbum
                           ? '$rawArtist — $rawAlbum'
-                          : (hasArtist
-                                ? rawArtist
-                                : (hasAlbum ? rawAlbum : 'Unknown')),
+                          : (hasArtist ? rawArtist : (hasAlbum ? rawAlbum : l10n.unknown)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -844,7 +842,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                       final playlistService = ref.read(playlistServiceProvider);
                       await playlistService.toggleFavoriteSong(currentMusic);
                     },
-              tooltip: isFavorite ? '取消收藏' : '收藏',
+              tooltip: isFavorite
+                  ? l10n.removeFromFavorites
+                  : l10n.addToFavorites,
             ),
             GestureDetector(
               onLongPress: onShowPlaylistModeSelector,
@@ -895,12 +895,14 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
               onPressed: onTagCompletionTap,
               onLongPress: onTagCompletionLongPress,
-              tooltip: '歌曲标签补全',
+              tooltip: l10n.tagCompletion,
             ),
             Tooltip(
               message: sleepTimerRemaining != null
-                  ? '睡眠定时器 ${_formatSleepTimer(sleepTimerRemaining)}'
-                  : '睡眠定时器',
+                  ? l10n.sleepTimerRemaining(
+                      _formatSleepTimer(sleepTimerRemaining),
+                    )
+                  : l10n.sleepTimer,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: onSleepTimerTap,
@@ -942,7 +944,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 color: Colors.white70,
               ),
               onPressed: onEqualizerTap,
-              tooltip: "均衡器",
+              tooltip: l10n.equalizer,
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../player/metadata_database.dart';
 import '../player/metadata_helper.dart';
@@ -79,6 +80,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
 
   Future<void> _save({required bool writeToFile}) async {
     if (_isSaving) return;
+    final l10n = AppLocalizations.of(context)!;
 
     setState(() {
       _isSaving = true;
@@ -92,7 +94,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     if (trackNumberText.isNotEmpty && trackNumber == null) {
       setState(() {
         _isSaving = false;
-        _errorMessage = '曲目号必须是整数';
+        _errorMessage = l10n.trackNumberMustBeInteger;
       });
       return;
     }
@@ -114,8 +116,8 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       setState(() {
         _isSaving = false;
         _errorMessage = writeToFile
-            ? '保存到源文件失败，请确认文件格式支持写入且文件未被占用'
-            : '保存失败，请稍后重试';
+            ? l10n.saveToSourceFileFailed
+            : l10n.saveFailed;
       });
       return;
     }
@@ -133,6 +135,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
   Widget build(BuildContext context) {
     final canWriteToSourceFile = isMetadataWritable(widget.song.path);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final l10n = AppLocalizations.of(context)!;
 
     return SafeArea(
       top: false,
@@ -164,8 +167,8 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                '编辑歌曲标签',
+                              Text(
+                                l10n.editSongTagsTitle,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 22,
@@ -174,7 +177,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                '修改后可以只保存到 App，也可以同步写回源文件。',
+                                l10n.editSongTagsDescription,
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.6),
                                   fontSize: 12,
@@ -202,32 +205,32 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                       children: [
                         _buildField(
                           controller: _titleController,
-                          label: '标题',
+                          label: l10n.title,
                           icon: Icons.title_rounded,
                         ),
                         const SizedBox(height: 12),
                         _buildField(
                           controller: _artistController,
-                          label: '艺术家',
+                          label: l10n.artistLabel,
                           icon: Icons.person_rounded,
                         ),
                         const SizedBox(height: 12),
                         _buildField(
                           controller: _albumController,
-                          label: '专辑',
+                          label: l10n.albumLabel,
                           icon: Icons.album_rounded,
                         ),
                         const SizedBox(height: 12),
                         _buildField(
                           controller: _trackNumberController,
-                          label: '曲目号',
+                          label: l10n.trackNumberLabel,
                           icon: Icons.numbers_rounded,
                           keyboardType: TextInputType.number,
-                          helperText: '留空则保留当前值',
+                          helperText: l10n.leaveBlankKeepsCurrentValue,
                         ),
                         const SizedBox(height: 16),
                         _buildReadonlyInfo(
-                          label: '文件',
+                          label: l10n.file,
                           value: widget.song.path,
                           icon: Icons.folder_open_rounded,
                         ),
@@ -236,7 +239,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: Text(
-                              '当前文件格式不支持写回源文件，只能保存到 App。',
+                              l10n.currentFileFormatCannotWriteBack,
                               style: TextStyle(
                                 color: Colors.orangeAccent.withValues(
                                   alpha: 0.9,
@@ -258,7 +261,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                           const SizedBox(height: 10),
                         ],
                         Text(
-                          '提示：留空不会清空原值，而是沿用当前标签。',
+                          l10n.leaveBlankDoesNotClearOriginalValue,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.45),
                             fontSize: 12,
@@ -285,14 +288,14 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Text('保存到 App'),
+                              : Text(l10n.saveToApp),
                         ),
                         const SizedBox(height: 10),
                         FilledButton.tonal(
                           onPressed: _isSaving || !canWriteToSourceFile
                               ? null
                               : () => _save(writeToFile: true),
-                          child: const Text('保存到源文件和 App'),
+                          child: Text(l10n.saveToSourceFileAndApp),
                         ),
                       ],
                     ),

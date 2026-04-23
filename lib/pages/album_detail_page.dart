@@ -212,7 +212,7 @@ class _AlbumInfo extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          '${l10n.songCount(album.trackCount)} · ${_formatDuration(album.totalDurationMillis) ?? '0:00'}',
+          '${l10n.songCount(album.trackCount)} · ${_formatDuration(album.totalDurationMillis) ?? l10n.durationZero}',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

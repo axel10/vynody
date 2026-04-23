@@ -369,6 +369,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addToFavorites => '加入收藏';
 
   @override
+  String get removeFromFavorites => '取消收藏';
+
+  @override
   String get viewAlbumDetails => '查看专辑详情';
 
   @override
@@ -624,4 +627,336 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get clearPlaylist => '清空列表';
+
+  @override
+  String get copyTitle => '复制标题';
+
+  @override
+  String get openFolderLocation => '打开文件夹所在位置';
+
+  @override
+  String get songTagsSavedToSourceFileAndApp => '歌曲标签已保存到源文件和 App';
+
+  @override
+  String get songTagsSavedToApp => '歌曲标签已保存到 App';
+
+  @override
+  String get durationZero => '0:00';
+
+  @override
+  String get generateLyrics => '生成歌词';
+
+  @override
+  String get generateTimeline => '生成时间轴';
+
+  @override
+  String get queueGenerateLyrics => '排队生成';
+
+  @override
+  String get pauseAutoScroll => '暂停自动滚动';
+
+  @override
+  String get resumeAutoScroll => '恢复自动滚动';
+
+  @override
+  String get translateLyrics => '翻译歌词';
+
+  @override
+  String get clearLyricsCache => '清除当前歌词缓存';
+
+  @override
+  String get clearTranslationCache => '清除当前翻译缓存';
+
+  @override
+  String get requery => '重新查询';
+
+  @override
+  String get sleepTimerTitle => '睡眠定时器';
+
+  @override
+  String get sleepTimerDescription => '选择倒计时，时间到后会暂停播放。';
+
+  @override
+  String get sleepTimerRunningTitle => '睡眠定时器运行中';
+
+  @override
+  String get sleepTimerRunningDescription => '倒计时结束后会自动暂停当前播放。';
+
+  @override
+  String get remainingTime => '剩余时间';
+
+  @override
+  String get startCountdown => '开始倒计时';
+
+  @override
+  String get end => '结束';
+
+  @override
+  String get equalizer => '均衡器';
+
+  @override
+  String get equalizerEnabledStatus => '已启用高保真调节';
+
+  @override
+  String get equalizerDisabledStatus => '已禁用';
+
+  @override
+  String get bassBoost => '低音增强';
+
+  @override
+  String get preampGain => '前置增益';
+
+  @override
+  String get reset => '重置';
+
+  @override
+  String get close => '关闭';
+
+  @override
+  String get timelineAdjustmentTitle => '手动调整时间轴';
+
+  @override
+  String get timelineAdjustmentDescription => '向右拖动会让歌词整体延后，向左拖动会让歌词整体提前。';
+
+  @override
+  String timelineOffsetEarlier(Object seconds) {
+    return '提前 $seconds 秒';
+  }
+
+  @override
+  String timelineOffsetLater(Object seconds) {
+    return '延后 $seconds 秒';
+  }
+
+  @override
+  String get timelineOffsetCurrent => '当前偏移：0.0 秒';
+
+  @override
+  String get enterAcoustidApiKeyTitle => '填写 AcoustID API Key';
+
+  @override
+  String get acoustidApiKeyDescription => '用于音频指纹识别。留空后会恢复使用应用内置的默认 key。';
+
+  @override
+  String get acoustidApiKeyHint => '粘贴你的 AcoustID API Key';
+
+  @override
+  String get apiKey => 'API Key';
+
+  @override
+  String get save => '保存';
+
+  @override
+  String get enterLyricsTitle => '填写歌词';
+
+  @override
+  String get lyricsInputHint => '在这里粘贴或输入歌词，支持多行文本';
+
+  @override
+  String get enterGoogleAiStudioApiKeyTitle => '填写 Google AI Studio API Key';
+
+  @override
+  String get googleAiStudioApiKeyDescription =>
+      '用于 Google AI Studio 的歌词生成、时间轴生成和翻译。';
+
+  @override
+  String get pasteGoogleAiStudioApiKey => '粘贴 Google AI Studio API Key';
+
+  @override
+  String get enterOpenRouterApiKeyTitle => '填写 OpenRouter API Key';
+
+  @override
+  String get openRouterApiKeyDescription =>
+      '用于 OpenRouter 的歌词生成和时间轴生成，翻译始终走 Gemini。';
+
+  @override
+  String get pasteOpenRouterApiKey => '粘贴 OpenRouter API Key';
+
+  @override
+  String get enterGeminiApiKeyTitle => '填写 Gemini API Key';
+
+  @override
+  String get geminiApiKeyDescription => '用于歌词翻译。';
+
+  @override
+  String get pasteGeminiApiKey => '粘贴 Gemini API Key';
+
+  @override
+  String get testConnection => '测试连接';
+
+  @override
+  String get enterApiKey => '请输入 API key。';
+
+  @override
+  String get testingConnection => '正在测试连接...';
+
+  @override
+  String get getKey => '获取key';
+
+  @override
+  String get editSongTagsTitle => '编辑歌曲标签';
+
+  @override
+  String get editSongTagsDescription => '修改后可以只保存到 App，也可以同步写回源文件。';
+
+  @override
+  String get artistLabel => '艺术家';
+
+  @override
+  String get albumLabel => '专辑';
+
+  @override
+  String get trackNumberLabel => '曲目号';
+
+  @override
+  String get trackNumberMustBeInteger => '曲目号必须是整数';
+
+  @override
+  String get leaveBlankKeepsCurrentValue => '留空则保留当前值';
+
+  @override
+  String get currentFileFormatCannotWriteBack => '当前文件格式不支持写回源文件，只能保存到 App。';
+
+  @override
+  String get leaveBlankDoesNotClearOriginalValue => '提示：留空不会清空原值，而是沿用当前标签。';
+
+  @override
+  String get saveToApp => '保存到 App';
+
+  @override
+  String get saveToSourceFileAndApp => '保存到源文件和 App';
+
+  @override
+  String get saveToSourceFileFailed => '保存到源文件失败，请确认文件格式支持写入且文件未被占用';
+
+  @override
+  String get saveFailed => '保存失败，请稍后重试';
+
+  @override
+  String apiKeySaved(Object provider) {
+    return '$provider API Key 已保存';
+  }
+
+  @override
+  String get apiKeySavedAcoustid => 'AcoustID API Key 已保存';
+
+  @override
+  String get generalSectionTitle => '界面';
+
+  @override
+  String get generalSectionDescription => '这些选项会影响页面和播放界面的整体显示方式。';
+
+  @override
+  String get shortcutSettingsTitle => '自定义快捷键';
+
+  @override
+  String get shortcutSettingsDescription => '点击后可以为播放器操作重新录制快捷键并保存。';
+
+  @override
+  String get edit => '编辑';
+
+  @override
+  String get lyricsSectionTitle => '歌词';
+
+  @override
+  String get lyricsSectionDescription => '这里的配置只影响歌词生成和时间轴生成。';
+
+  @override
+  String get autoSwitchLyricsProvider => '自动切换歌词供应商';
+
+  @override
+  String get autoSwitchLyricsProviderEnabledDesc =>
+      '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。';
+
+  @override
+  String get autoSwitchLyricsProviderDisabledDesc =>
+      '请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。';
+
+  @override
+  String get lyricsAiProviderTitle => '歌词生成 AI 提供方';
+
+  @override
+  String get lyricsAiProviderDescription =>
+      '这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio。';
+
+  @override
+  String get googleAiStudioApiKeySaved => 'Google AI Studio API Key 已保存';
+
+  @override
+  String get googleAiStudioApiKeyMissing =>
+      '当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。';
+
+  @override
+  String get openRouterApiKeySaved => 'OpenRouter API Key 已保存';
+
+  @override
+  String get openRouterApiKeyMissing =>
+      '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。';
+
+  @override
+  String get fill => '填写';
+
+  @override
+  String get modify => '修改';
+
+  @override
+  String get geminiModelsSectionTitle => 'Gemini 模型';
+
+  @override
+  String get geminiModelsSectionDescription =>
+      '这两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。';
+
+  @override
+  String get primaryModelLabel => '主模型';
+
+  @override
+  String get backupModelLabel => '备用模型';
+
+  @override
+  String get fetching => '获取中...';
+
+  @override
+  String get fetchModelList => '获取模型列表';
+
+  @override
+  String get restoreDefault => '恢复默认';
+
+  @override
+  String get acoustidSectionTitle => '指纹识别';
+
+  @override
+  String get acoustidApiKeyTitle => 'AcoustID API Key';
+
+  @override
+  String get acoustidApiKeyHelp => 'AcoustID 用于音频指纹识别，建议使用你自己的 API Key。';
+
+  @override
+  String get acoustidApiKeySaved => 'AcoustID API Key 已保存';
+
+  @override
+  String get acoustidApiKeyDefault => '当前使用应用内置的默认 key，建议申请你自己的 key 后替换。';
+
+  @override
+  String get applyForApiKey =>
+      '申请 API key: https://acoustid.org/new-application';
+
+  @override
+  String get queueTabBarFavoriteAdded => '已加入收藏';
+
+  @override
+  String get queueTabBarFavoriteRemoved => '已取消收藏';
+
+  @override
+  String get tagCompletion => '歌曲标签补全';
+
+  @override
+  String get sleepTimer => '睡眠定时器';
+
+  @override
+  String sleepTimerRemaining(Object duration) {
+    return '睡眠定时器 $duration';
+  }
+
+  @override
+  String get unknownArtistOrAlbum => '未知';
 }

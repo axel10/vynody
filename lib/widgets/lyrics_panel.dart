@@ -9,6 +9,7 @@ import 'package:oktoast/oktoast.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
+import '../l10n/app_localizations.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
 import '../dialogs/manual_lyrics_dialog.dart';
 import '../dialogs/timeline_adjustment_dialog.dart';
@@ -164,35 +165,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     ).showSnackBar(SnackBar(content: Text(message.trim())));
   }
 
-  String _lyricsSourceLabel() {
-    final source = widget.lyrics?.source.trim().toLowerCase() ?? '';
-    if (source.startsWith('openrouter')) {
-      return 'OpenRouter';
-    }
-    if (source.startsWith('ai') ||
-        source.startsWith('google') ||
-        source.startsWith('gemini')) {
-      return 'AI';
-    }
-    return 'AI';
-  }
-
-  String _buildGenerateMenuLabel() {
-    final sourceLabel = _lyricsSourceLabel();
-    if (sourceLabel != 'AI') {
-      return '重新生成歌词（来源$sourceLabel）';
-    }
-    return '使用AI生成歌词（来源是lrclib）';
-  }
-
-  String _buildGenerateTimelineMenuLabel() {
-    final sourceLabel = _lyricsSourceLabel();
-    if (sourceLabel != 'AI') {
-      return '重新生成时间轴（来源$sourceLabel）';
-    }
-    return '使用AI生成时间轴';
-  }
-
   @override
   void didUpdateWidget(covariant LyricsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -219,24 +191,25 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final items = <PopupMenuEntry<String>>[
       PopupMenuItem<String>(
         value: 'fill_lyrics',
         enabled: hasCurrentSong,
-        child: const Text('填写歌词'),
+        child: Text(l10n.enterLyricsTitle),
       ),
       if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate',
           enabled: hasCurrentSong && !taskState.isGenerationBusy,
-          child: Text(_buildGenerateMenuLabel()),
+          child: Text(l10n.generateLyrics),
         ),
       if (lyricsState.hasLyrics)
         PopupMenuItem<String>(
           value: 'generate_timeline',
           enabled: hasCurrentSong && !taskState.isGenerationBusy,
-          child: Text(_buildGenerateTimelineMenuLabel()),
+          child: Text(l10n.generateTimeline),
         ),
       if (!requeryOnly &&
           _hasTimedLyrics(displayLines) &&
@@ -248,31 +221,33 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         PopupMenuItem<String>(
           value: 'adjust_timeline',
           enabled: hasCurrentSong,
-          child: Text('手动调整时间轴'),
+          child: Text(l10n.timelineAdjustmentTitle),
         ),
       if (!requeryOnly && _hasTimedLyrics(displayLines))
         PopupMenuItem<String>(
           value: 'toggle_auto_scroll',
           enabled: hasCurrentSong,
-          child: Text(_isAutoScrollPaused ? '恢复自动滚动' : '暂停自动滚动'),
+          child: Text(
+            _isAutoScrollPaused ? l10n.resumeAutoScroll : l10n.pauseAutoScroll,
+          ),
         ),
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'translate',
           enabled: hasCurrentSong && !taskState.isTranslationBusy,
-          child: const Text('翻译歌词'),
+          child: Text(l10n.translateLyrics),
         ),
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'clear_lyrics_cache',
           enabled: hasCurrentSong && lyricsState.hasLyrics,
-          child: const Text('清除当前歌词缓存'),
+          child: Text(l10n.clearLyricsCache),
         ),
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'clear_translation_cache',
           enabled: hasCurrentSong && lyricsState.hasLyrics,
-          child: const Text('清除当前翻译缓存'),
+          child: Text(l10n.clearTranslationCache),
         ),
       if (requeryOnly)
         PopupMenuItem<String>(
@@ -281,7 +256,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               hasCurrentSong &&
               !lyricsState.isLyricsLoading &&
               !taskState.isGenerationBusy,
-          child: const Text('重新查询'),
+          child: Text(l10n.requery),
         ),
     ];
 
@@ -356,13 +331,18 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     await _lyricsControllerActions.fillLyricsForCurrentSong(submittedLyrics);
   }
 
-  String _buildGenerateButtonLabel(LyricsSongTaskState taskState) {
+  String _buildGenerateButtonLabel(
+    AppLocalizations l10n,
+    LyricsSongTaskState taskState,
+  ) {
     final activeLabel = taskState.activeStatusLabel.trim();
     if (activeLabel.isNotEmpty) {
       return activeLabel;
     }
 
-    return taskState.isGenerationBusy ? '排队生成' : '生成歌词';
+    return taskState.isGenerationBusy
+        ? l10n.queueGenerateLyrics
+        : l10n.generateLyrics;
   }
 
   void _scheduleScrollIfNeeded({
@@ -620,6 +600,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final lyricsState = ref.watch(lyricsControllerProvider);
     final currentSongTaskState = ref.watch(lyricsCurrentSongTaskStateProvider);
     final displayLines = ref.watch(lyricsDisplayLinesProvider(widget.lyrics));
@@ -645,7 +626,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         isLoading: lyricsState.isLyricsLoading,
         isGenerating: currentSongTaskState.isGenerationBusy,
         canGenerateLyrics: canGenerateLyrics,
-        generateButtonLabel: _buildGenerateButtonLabel(currentSongTaskState),
+        generateButtonLabel: _buildGenerateButtonLabel(
+          l10n,
+          currentSongTaskState,
+        ),
         bottomSpacerHeight: widget.bottomSpacerHeight,
         bottomTabBarHeight: widget.bottomTabBarHeight,
         onGeneratePressed: () async {
