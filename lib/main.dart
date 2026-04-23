@@ -57,7 +57,7 @@ void main(List<String> args) async {
   // AppLog.install();
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details); // 强制在控制台显示
-    print("Caught Error: ${details.exception}");
+    debugPrint("Caught Error: ${details.exception}");
   };
 
   if (Platform.isWindows) {

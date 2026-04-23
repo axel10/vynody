@@ -30,14 +30,14 @@ class FftPainter extends CustomPainter {
     if (values.isEmpty) return;
 
     final paint = Paint()
-      ..color = color.withOpacity(opacity)
+      ..color = color.withValues(alpha: opacity)
       ..style = PaintingStyle.fill;
 
     if (useGradient && startColor != null && endColor != null) {
       paint.shader = LinearGradient(
         colors: [
-          startColor!.withOpacity(opacity),
-          endColor!.withOpacity(opacity),
+          startColor!.withValues(alpha: opacity),
+          endColor!.withValues(alpha: opacity),
         ],
         stops: gradientStop1 != null && gradientStop2 != null
             ? [gradientStop1!, gradientStop2!]

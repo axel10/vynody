@@ -68,7 +68,9 @@ dependencies:
   windows_single_instance: ^1.1.0
   intl: ^0.20.2
   mesh_gradient: 
-    path: ./mesh-gradient
+    git:
+      url: https://github.com/axel10/mesh-gradient
+      ref: main
   windows_taskbar:
     git:
       url: https://github.com/alexmercerind/windows_taskbar
@@ -77,6 +79,7 @@ dependencies:
   audio_metadata_reader:  
     git:
       url: https://github.com/axel10/audio_metadata_reader
+      ref: main
   riverpod: ^3.2.1
   flutter_riverpod: ^3.0.3
   freezed_annotation: ^3.1.0
@@ -85,6 +88,7 @@ dependencies:
   proxy_getter:
     git:
       url: https://github.com/axel10/proxy_getter
+      ref: main
   worker_manager: ^7.2.9
   palette_generator: ^0.3.3+7
   palette_generator_master: ^1.0.1

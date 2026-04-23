@@ -54,7 +54,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
+      ref: main
       resolved-ref: "58c77f8db96d85123c5f2f99ba079dfeb1acc63c"
       url: "https://github.com/axel10/audio_metadata_reader"
     source: git
@@ -754,9 +754,11 @@ packages:
   mesh_gradient:
     dependency: "direct main"
     description:
-      path: mesh-gradient
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: bc2a64c4aeea0ae7869a5497978000594b765aff
+      url: "https://github.com/axel10/mesh-gradient"
+    source: git
     version: "1.3.8"
   meta:
     dependency: transitive
@@ -1036,7 +1038,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
+      ref: main
       resolved-ref: f831f6d648d7d33a6926e687a00fbcd0729d0687
       url: "https://github.com/axel10/proxy_getter"
     source: git

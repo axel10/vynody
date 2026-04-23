@@ -224,9 +224,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   }
 
   Future<void> _openSettingsPage() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const SettingsPage()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
   }
 
   Map<ShortcutActivator, Intent> _buildShortcutMap(SettingsService settings) {

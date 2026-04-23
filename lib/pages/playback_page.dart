@@ -394,11 +394,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
   Future<void> _saveQueueTags(BuildContext context, AudioService audio) async {
     final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
     final queue = ref.read(audioPlaybackQueueProvider);
     if (queue.isEmpty) return;
 
     // Show initial loading message
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.savingTags),
         duration: const Duration(seconds: 5),
@@ -432,18 +433,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     }
 
     if (modifiedSongs.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.noModifiedTagsToSave)));
-      }
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(SnackBar(content: Text(l10n.noModifiedTagsToSave)));
       return;
     }
 
     // Show initial snackbar with progress
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         content: Text('${l10n.savingTags} 0/${modifiedSongs.length}'),
         duration: Duration(seconds: modifiedSongs.length + 2),
@@ -451,13 +449,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
 
     // Start background saving task
-    _runBackgroundSaveTask(modifiedSongs, artworkBytesMap, context, l10n);
+    _runBackgroundSaveTask(modifiedSongs, artworkBytesMap, messenger, l10n);
   }
 
   void _runBackgroundSaveTask(
     List<SongMetadata> songs,
     Map<String, Uint8List?> artworkBytesMap,
-    BuildContext context,
+    ScaffoldMessengerState messenger,
     AppLocalizations l10n,
   ) async {
     int savedCount = 0;
@@ -496,35 +494,31 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       }
 
       // Update progress snackbar
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${l10n.savingTags} ${i + 1}/${songs.length}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${l10n.savingTags} ${i + 1}/${songs.length}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
 
     // Show final result
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      final messages = <String>[];
-      if (savedCount > 0) {
-        messages.add(l10n.tagsSavedCount(savedCount));
-      }
-      if (failedCount > 0) {
-        messages.add(l10n.tagsSaveFailedCount(failedCount));
-      }
-      if (unsupportedCount > 0) {
-        messages.add(l10n.unsupportedFormat(unsupportedCount));
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(messages.join(' '))));
+    if (!mounted) return;
+    messenger.hideCurrentSnackBar();
+    final messages = <String>[];
+    if (savedCount > 0) {
+      messages.add(l10n.tagsSavedCount(savedCount));
     }
+    if (failedCount > 0) {
+      messages.add(l10n.tagsSaveFailedCount(failedCount));
+    }
+    if (unsupportedCount > 0) {
+      messages.add(l10n.unsupportedFormat(unsupportedCount));
+    }
+
+    messenger.showSnackBar(SnackBar(content: Text(messages.join(' '))));
   }
 
   void _showRandomModeSelector(BuildContext context, AudioService audio) {
@@ -543,83 +537,50 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 l10n.randomRange,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              RadioListTile<int>(
-                title: Text(l10n.currentQueue),
-                value: 0,
+              RadioGroup<int>(
                 groupValue: settings.randomRange,
                 onChanged: (val) {
-                  if (val != null) {
-                    settings.randomRange = val;
-                    if (audio.isRandomMode) {
-                      audio.toggleRandomMode(); // Off
-                      audio
-                          .toggleRandomMode(); // Re-apply with new range (Current)
-                    }
-                  }
+                  if (val == null) return;
+                  settings.randomRange = val;
+                  _reapplyRandomMode(audio);
                 },
-              ),
-              RadioListTile<int>(
-                title: Text(l10n.globalRange),
-                value: 1,
-                groupValue: settings.randomRange,
-                onChanged: (val) {
-                  if (val != null) {
-                    settings.randomRange = val;
-                    if (audio.isRandomMode) {
-                      audio.toggleRandomMode(); // Off
-                      final playlistService = ref.read(playlistServiceProvider);
-                      final allSongs = _getGlobalSongs(playlistService);
-                      audio.toggleRandomMode(globalSongs: allSongs);
-                    }
-                  }
-                },
+                child: Column(
+                  children: [
+                    RadioListTile<int>(
+                      title: Text(l10n.currentQueue),
+                      value: 0,
+                    ),
+                    RadioListTile<int>(
+                      title: Text(l10n.globalRange),
+                      value: 1,
+                    ),
+                  ],
+                ),
               ),
               const Divider(),
               Text(
                 l10n.randomMethod,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              RadioListTile<int>(
-                title: Text(l10n.completeRandom),
-                value: 0,
+              RadioGroup<int>(
                 groupValue: settings.randomMethod,
                 onChanged: (val) {
-                  if (val != null) {
-                    settings.randomMethod = val;
-                    if (audio.isRandomMode) {
-                      audio.toggleRandomMode(); // Off
-                      if (settings.randomRange == 1) {
-                        final allSongs = _getGlobalSongs(
-                          ref.read(playlistServiceProvider),
-                        );
-                        audio.toggleRandomMode(globalSongs: allSongs);
-                      } else {
-                        audio.toggleRandomMode();
-                      }
-                    }
-                  }
+                  if (val == null) return;
+                  settings.randomMethod = val;
+                  _reapplyRandomMode(audio);
                 },
-              ),
-              RadioListTile<int>(
-                title: Text(l10n.shuffleRandom),
-                value: 1,
-                groupValue: settings.randomMethod,
-                onChanged: (val) {
-                  if (val != null) {
-                    settings.randomMethod = val;
-                    if (audio.isRandomMode) {
-                      audio.toggleRandomMode(); // Off
-                      if (settings.randomRange == 1) {
-                        final allSongs = _getGlobalSongs(
-                          ref.read(playlistServiceProvider),
-                        );
-                        audio.toggleRandomMode(globalSongs: allSongs);
-                      } else {
-                        audio.toggleRandomMode();
-                      }
-                    }
-                  }
-                },
+                child: Column(
+                  children: [
+                    RadioListTile<int>(
+                      title: Text(l10n.completeRandom),
+                      value: 0,
+                    ),
+                    RadioListTile<int>(
+                      title: Text(l10n.shuffleRandom),
+                      value: 1,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -643,6 +604,18 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       }
     }
     return allSongs;
+  }
+
+  void _reapplyRandomMode(AudioService audio) {
+    if (!audio.isRandomMode) return;
+
+    audio.toggleRandomMode();
+    if (ref.read(settingsServiceProvider).randomRange == 1) {
+      final allSongs = _getGlobalSongs(ref.read(playlistServiceProvider));
+      audio.toggleRandomMode(globalSongs: allSongs);
+    } else {
+      audio.toggleRandomMode();
+    }
   }
 
   void _showPlaylistModeSelector(BuildContext context, AudioService audio) {

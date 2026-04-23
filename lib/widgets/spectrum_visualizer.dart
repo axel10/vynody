@@ -51,7 +51,10 @@ class SpectrumPainter extends CustomPainter {
       paint.shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [color.withOpacity(0.8), color.withOpacity(0.1)],
+        colors: [
+          color.withValues(alpha: 0.8),
+          color.withValues(alpha: 0.1),
+        ],
       ).createShader(rect);
 
       canvas.drawRRect(
