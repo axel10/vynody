@@ -1467,6 +1467,7 @@ class ScannerService extends ChangeNotifier {
       );
 
       final writeStopwatch = Stopwatch()..start();
+      final metadataBatch = <SongMetadata>[];
       for (final result in results) {
         final filePath = result['path'] as String? ?? '';
         if (filePath.isEmpty) continue;
@@ -1481,8 +1482,8 @@ class ScannerService extends ChangeNotifier {
             existing: existing,
             sourceFlags: SongSourceFlags.rootScan,
           );
-          await db.insertOrUpdateSong(metadata);
-          _metadataStore.updateMetadataForPath(metadata, notify: false);
+          metadataBatch.add(metadata);
+          _metadataStore.cacheMetadata(metadata);
           scanState.preprocessedCount++;
         } catch (e) {
           debugPrint('Metadata batch scan error for $filePath: $e');
@@ -1490,9 +1491,12 @@ class ScannerService extends ChangeNotifier {
           _emitScanProgress(scanState, filePath);
         }
       }
+      if (metadataBatch.isNotEmpty) {
+        await db.insertOrUpdateSongsMerged(metadataBatch);
+      }
       writeStopwatch.stop();
       _logScanTiming(
-        'stage 3 batch ${start + 1}-$end db+store update',
+        'stage 3 batch ${start + 1}-$end db+cache update',
         writeStopwatch,
       );
       batchStopwatch.stop();
@@ -1558,10 +1562,8 @@ class ScannerService extends ChangeNotifier {
               );
 
           if (updatedMetadata != null) {
-            _metadataStore.updateMetadataForPath(
-              updatedMetadata,
-              notify: false,
-            );
+            await db.insertOrUpdateSong(updatedMetadata);
+            _metadataStore.cacheMetadata(updatedMetadata);
           }
           scanState.completedCount++;
         } catch (inner) {
@@ -1619,7 +1621,7 @@ class ScannerService extends ChangeNotifier {
       var updatedMetadata = SongMetadata.fromMap(metadataMap);
 
       await db.insertOrUpdateSong(updatedMetadata);
-      _metadataStore.updateMetadataForPath(updatedMetadata, notify: false);
+      _metadataStore.cacheMetadata(updatedMetadata);
       scanState.completedCount++;
     } catch (e) {
       debugPrint('Worker artwork/theme scan error for $filePath: $e');
@@ -1752,11 +1754,7 @@ class ScannerService extends ChangeNotifier {
         final presentPaths = _timeScanStepSync(
           'stage 5 collect present paths',
           () {
-            final result = <String>{};
-            for (final root in _scannedRootFolders) {
-              _treeBuilder.collectFilePaths(root, result);
-            }
-            return result;
+            return scanState.pendingMetadataPaths.toSet();
           },
         );
         final normalizedPresentPaths = _timeScanStepSync(

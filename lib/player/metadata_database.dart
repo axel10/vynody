@@ -393,6 +393,9 @@ class MetadataDatabase {
   Future<void> insertOrUpdateSong(SongMetadata song) =>
       _db.insertOrUpdateSong(song);
 
+  Future<void> insertOrUpdateSongsMerged(Iterable<SongMetadata> songs) =>
+      _db.insertOrUpdateSongsMerged(songs);
+
   Future<void> insertOrUpdateLyricsCache(LyricsCacheRecord record) =>
       _db.insertOrUpdateLyricsCache(record);
 

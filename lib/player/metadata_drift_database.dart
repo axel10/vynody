@@ -359,6 +359,19 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     await into(songs).insert(companion);
   }
 
+  Future<void> insertOrUpdateSongsMerged(
+    Iterable<SongMetadata> songsList,
+  ) async {
+    final normalizedSongs = songsList.toList(growable: false);
+    if (normalizedSongs.isEmpty) return;
+
+    await transaction(() async {
+      for (final song in normalizedSongs) {
+        await into(songs).insertOnConflictUpdate(_songCompanion(song));
+      }
+    });
+  }
+
   Future<void> recordSongPlayback({
     required String songPath,
     required int playedAt,

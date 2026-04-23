@@ -203,6 +203,7 @@ class ScannerMetadataStore {
     SongMetadata metadata, {
     Uint8List? artworkBytes,
     bool notify = true,
+    bool syncTree = true,
   }) {
     final existing = _metadataMap[metadata.path];
     final mergedMetadata = metadata.copyWith(
@@ -227,20 +228,22 @@ class ScannerMetadataStore {
       _onAlbumMetadataMutated();
     }
 
-    for (final root in _rootFolders()) {
-      _updateMusicFileInFolder(
-        root,
-        mergedMetadata,
-        artworkBytes: artworkBytes,
-      );
-    }
-    final systemFolder = _systemMediaFolder();
-    if (systemFolder != null) {
-      _updateMusicFileInFolder(
-        systemFolder,
-        mergedMetadata,
-        artworkBytes: artworkBytes,
-      );
+    if (syncTree) {
+      for (final root in _rootFolders()) {
+        _updateMusicFileInFolder(
+          root,
+          mergedMetadata,
+          artworkBytes: artworkBytes,
+        );
+      }
+      final systemFolder = _systemMediaFolder();
+      if (systemFolder != null) {
+        _updateMusicFileInFolder(
+          systemFolder,
+          mergedMetadata,
+          artworkBytes: artworkBytes,
+        );
+      }
     }
 
     if (notify) {
