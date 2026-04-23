@@ -371,69 +371,100 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     bool isPlayback,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    const padding = EdgeInsets.symmetric(vertical: 12);
     return [
       NavigationRailDestination(
-        icon: _buildTooltipIcon(
-          message: l10n.file,
-          icon: Icons.folder_outlined,
-          color: isPlayback ? Colors.white70 : null,
+        icon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.file,
+            icon: Icons.folder_outlined,
+            color: isPlayback ? Colors.white70 : null,
+          ),
         ),
-        selectedIcon: _buildTooltipIcon(
-          message: l10n.file,
-          icon: Icons.folder,
-          color: isPlayback ? Colors.white : null,
+        selectedIcon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.file,
+            icon: Icons.folder,
+            color: isPlayback ? Colors.white : null,
+          ),
         ),
         label: Text(l10n.file),
       ),
       NavigationRailDestination(
-        icon: _buildTooltipIcon(
-          message: l10n.play,
-          icon: Icons.play_circle_outline,
-          color: isPlayback ? Colors.white70 : null,
+        icon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.play,
+            icon: Icons.play_circle_outline,
+            color: isPlayback ? Colors.white70 : null,
+          ),
         ),
-        selectedIcon: _buildTooltipIcon(
-          message: l10n.play,
-          icon: Icons.play_circle,
-          color: isPlayback ? Colors.white : null,
+        selectedIcon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.play,
+            icon: Icons.play_circle,
+            color: isPlayback ? Colors.white : null,
+          ),
         ),
         label: Text(l10n.play),
       ),
       NavigationRailDestination(
-        icon: _buildTooltipIcon(
-          message: l10n.list,
-          icon: Icons.playlist_play_outlined,
-          color: isPlayback ? Colors.white70 : null,
+        icon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.list,
+            icon: Icons.playlist_play_outlined,
+            color: isPlayback ? Colors.white70 : null,
+          ),
         ),
-        selectedIcon: _buildTooltipIcon(
-          message: l10n.list,
-          icon: Icons.playlist_play,
-          color: isPlayback ? Colors.white : null,
+        selectedIcon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.list,
+            icon: Icons.playlist_play,
+            color: isPlayback ? Colors.white : null,
+          ),
         ),
         label: Text(l10n.list),
       ),
       NavigationRailDestination(
-        icon: _buildTooltipIcon(
-          message: l10n.queueTab,
-          icon: Icons.queue_music_outlined,
-          color: isPlayback ? Colors.white70 : null,
+        icon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.queueTab,
+            icon: Icons.queue_music_outlined,
+            color: isPlayback ? Colors.white70 : null,
+          ),
         ),
-        selectedIcon: _buildTooltipIcon(
-          message: l10n.queueTab,
-          icon: Icons.queue_music,
-          color: isPlayback ? Colors.white : null,
+        selectedIcon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.queueTab,
+            icon: Icons.queue_music,
+            color: isPlayback ? Colors.white : null,
+          ),
         ),
         label: Text(l10n.queueTab),
       ),
       NavigationRailDestination(
-        icon: _buildTooltipIcon(
-          message: l10n.settings,
-          icon: Icons.settings_outlined,
-          color: isPlayback ? Colors.white70 : null,
+        icon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.settings,
+            icon: Icons.settings_outlined,
+            color: isPlayback ? Colors.white70 : null,
+          ),
         ),
-        selectedIcon: _buildTooltipIcon(
-          message: l10n.settings,
-          icon: Icons.settings,
-          color: isPlayback ? Colors.white : null,
+        selectedIcon: Padding(
+          padding: padding,
+          child: _buildTooltipIcon(
+            message: l10n.settings,
+            icon: Icons.settings,
+            color: isPlayback ? Colors.white : null,
+          ),
         ),
         label: Text(l10n.settings),
       ),
