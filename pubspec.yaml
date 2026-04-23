@@ -61,7 +61,8 @@ dependencies:
   collection: ^1.19.1
 
   audio_core: 
-    path: ./audio_core
+    git:
+      url: https://github.com/axel10/audio_core
   flutter_colorpicker: ^1.1.0
   windows_single_instance: ^1.1.0
   intl: ^0.20.2
@@ -73,14 +74,16 @@ dependencies:
   smtc_windows: ^1.1.0
   audio_service: ^0.18.18 
   audio_metadata_reader:  
-    path: ../audio_metadata_reader
+    git:
+      url: https://github.com/axel10/audio_metadata_reader
   riverpod: ^3.2.1
   flutter_riverpod: ^3.0.3
   freezed_annotation: ^3.1.0
   json_annotation: ^4.11.0
   oktoast: ^3.4.0
   proxy_getter:
-    path: ./proxy_getter
+    git:
+      url: https://github.com/axel10/proxy_getter
   worker_manager: ^7.2.9
   palette_generator: ^0.3.3+7
   palette_generator_master: ^1.0.1
@@ -94,6 +97,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: ^0.14.4
+  msix: ^3.16.13
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -173,3 +177,13 @@ flutter_launcher_icons:
     linux:
       generate: true
       image_path: "assets/images/icon.png"
+
+msix_config:
+  display_name: VibeFlow
+  publisher_display_name: VibeFlow
+  identity_name: app.vibeflow.player
+  msix_version: 1.0.0.0
+  logo_path: assets/images/icon.png
+  output_name: VibeFlow
+  output_path: build/windows/msix
+  install_certificate: false

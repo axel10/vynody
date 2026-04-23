@@ -1,4 +1,4 @@
-package com.example.pure_player
+package app.vibeflow.player
 
 import android.database.ContentObserver
 import android.net.Uri
@@ -10,7 +10,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 
 class MainActivity : AudioServiceActivity() {
-    private val MEDIA_OBSERVER_CHANNEL = "com.example.pure_player/media_observer"
+    private val MEDIA_OBSERVER_CHANNEL = "app.vibeflow.player/media_observer"
     private var eventSink: EventChannel.EventSink? = null
     private var contentObserver: ContentObserver? = null
 
@@ -37,7 +37,7 @@ class MainActivity : AudioServiceActivity() {
 
     private fun registerMediaObserver() {
         if (contentObserver != null) return
-        
+
         val handler = Handler(Looper.getMainLooper())
         contentObserver = object : ContentObserver(handler) {
             override fun onChange(selfChange: Boolean, uri: Uri?) {
@@ -49,7 +49,7 @@ class MainActivity : AudioServiceActivity() {
                 }, 1000)
             }
         }
-        
+
         try {
             contentResolver.registerContentObserver(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
