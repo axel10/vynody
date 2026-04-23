@@ -359,6 +359,8 @@
   "@playlist": {
     "description": "Playlist"
   },
+  "mostPlayed": "最多播放",
+  "recentlyAdded": "最近添加",
   "albums": "专辑",
   "@albums": {
     "description": "Albums tab and section label"
@@ -366,6 +368,26 @@
   "artists": "艺术家",
   "@artists": {
     "description": "Artists tab and section label"
+  },
+  "mostPlayedDescription": "按有效播放次数排序",
+  "recentlyAddedDescription": "按进入媒体库的时间排序",
+  "allTime": "全部时间",
+  "pastWeek": "过去一周",
+  "pastMonth": "过去一个月",
+  "past90Days": "过去三个月",
+  "noPlayHistory": "还没有播放记录",
+  "noPlayHistoryInRange": "这个时间范围内还没有播放记录",
+  "noRecentlyAddedSongs": "媒体库中还没有歌曲",
+  "noRecentlyAddedInRange": "这个时间范围内没有新添加的歌曲",
+  "addedOn": "添加时间",
+  "lastPlayed": "最近播放",
+  "playCountLabel": "{count} 次",
+  "@playCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "playAll": "播放全部",
   "@playAll": {

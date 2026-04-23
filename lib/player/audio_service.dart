@@ -26,6 +26,7 @@ import 'lyrics_controller.dart';
 import 'lyrics_controller_state.dart';
 import 'lyrics_controller_dependencies.dart';
 import 'audio_riverpod.dart';
+import 'library_insights_service.dart';
 import 'lyrics_riverpod.dart';
 
 class AudioService extends Notifier<AudioSnapshot> {
@@ -62,6 +63,9 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _disposed = false;
   late final VoidCallback _settingsListener;
   DateTime _lastPositionDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
+  String? _trackedPlaybackSongPath;
+  bool _hasLoggedCurrentPlayback = false;
+  Duration _lastPlaybackObservedPosition = Duration.zero;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -375,8 +379,69 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> _syncCurrentPlaybackSong(MusicFile song) async {
+    if (_trackedPlaybackSongPath != song.path) {
+      _resetPlaybackTrackingForSong(song);
+    }
     await _updateCurrentMetadata(song);
     await _refreshCurrentWaveform(notify: false);
+  }
+
+  void _resetPlaybackTrackingForSong(MusicFile? song) {
+    _trackedPlaybackSongPath = song?.path;
+    _hasLoggedCurrentPlayback = false;
+    _lastPlaybackObservedPosition = Duration.zero;
+  }
+
+  void _updatePlaybackTrackingForCurrentSong() {
+    final song = currentMusic;
+    if (song == null) {
+      _resetPlaybackTrackingForSong(null);
+      return;
+    }
+
+    if (_trackedPlaybackSongPath != song.path) {
+      _resetPlaybackTrackingForSong(song);
+    } else if (_position <= const Duration(seconds: 2) &&
+        _lastPlaybackObservedPosition >= const Duration(seconds: 20)) {
+      // Treat a jump back to the beginning after meaningful progress as a new play.
+      _resetPlaybackTrackingForSong(song);
+    }
+
+    _lastPlaybackObservedPosition = _position;
+
+    if (!_isPlaying || _hasLoggedCurrentPlayback) {
+      return;
+    }
+
+    final durationMillis = _duration.inMilliseconds > 0
+        ? _duration.inMilliseconds
+        : (song.durationMillis ?? 0);
+    final positionMillis = _position.inMilliseconds;
+    final reachedThirtySeconds = positionMillis >= 30000;
+    final reachedHalfway =
+        durationMillis > 0 && positionMillis * 2 >= durationMillis;
+
+    if (!reachedThirtySeconds && !reachedHalfway) {
+      return;
+    }
+
+    _hasLoggedCurrentPlayback = true;
+    unawaited(
+      ref
+          .read(libraryInsightsServiceProvider)
+          .recordPlayback(
+            song: song,
+            playedAtMillis: DateTime.now().millisecondsSinceEpoch,
+            playedDurationMillis: positionMillis,
+            source: 'queue',
+          )
+          .catchError((Object error, StackTrace stackTrace) {
+            _hasLoggedCurrentPlayback = false;
+            debugPrint(
+              'AudioService: failed to record playback for ${song.path}: $error',
+            );
+          }),
+    );
   }
 
   Future<void> _prepareCurrentPlaybackArtwork(MusicFile song) async {
@@ -501,6 +566,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _androidIntegration?.updateTimeline(_position, _duration);
     _windowsIntegration?.updatePlaybackStatus(_isPlaying);
     _androidIntegration?.updatePlaybackStatus(_isPlaying);
+    _updatePlaybackTrackingForCurrentSong();
 
     // 如果当前开启了歌词模式，但因为切歌瞬间加载太快（时长 Duration 还没准备好）
     // 导致 API 没匹配到或尚未开始加载，当时长变为有效正值时，自动触发补抓取。
@@ -1406,6 +1472,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> _clearCurrentMusicState() async {
     _currentIndex = -1;
+    _resetPlaybackTrackingForSong(null);
   }
 
   Future<void> clearPlaylist() async {

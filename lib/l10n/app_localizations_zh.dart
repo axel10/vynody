@@ -268,10 +268,57 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playlist => '播放列表';
 
   @override
+  String get mostPlayed => '最多播放';
+
+  @override
+  String get recentlyAdded => '最近添加';
+
+  @override
   String get albums => '专辑';
 
   @override
   String get artists => '艺术家';
+
+  @override
+  String get mostPlayedDescription => '按有效播放次数排序';
+
+  @override
+  String get recentlyAddedDescription => '按进入媒体库的时间排序';
+
+  @override
+  String get allTime => '全部时间';
+
+  @override
+  String get pastWeek => '过去一周';
+
+  @override
+  String get pastMonth => '过去一个月';
+
+  @override
+  String get past90Days => '过去三个月';
+
+  @override
+  String get noPlayHistory => '还没有播放记录';
+
+  @override
+  String get noPlayHistoryInRange => '这个时间范围内还没有播放记录';
+
+  @override
+  String get noRecentlyAddedSongs => '媒体库中还没有歌曲';
+
+  @override
+  String get noRecentlyAddedInRange => '这个时间范围内没有新添加的歌曲';
+
+  @override
+  String get addedOn => '添加时间';
+
+  @override
+  String get lastPlayed => '最近播放';
+
+  @override
+  String playCountLabel(int count) {
+    return '$count 次';
+  }
 
   @override
   String get playAll => '播放全部';

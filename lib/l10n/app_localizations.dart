@@ -578,6 +578,18 @@ abstract class AppLocalizations {
   /// **'播放列表'**
   String get playlist;
 
+  /// No description provided for @mostPlayed.
+  ///
+  /// In zh, this message translates to:
+  /// **'最多播放'**
+  String get mostPlayed;
+
+  /// No description provided for @recentlyAdded.
+  ///
+  /// In zh, this message translates to:
+  /// **'最近添加'**
+  String get recentlyAdded;
+
   /// Albums tab and section label
   ///
   /// In zh, this message translates to:
@@ -589,6 +601,84 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'艺术家'**
   String get artists;
+
+  /// No description provided for @mostPlayedDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'按有效播放次数排序'**
+  String get mostPlayedDescription;
+
+  /// No description provided for @recentlyAddedDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'按进入媒体库的时间排序'**
+  String get recentlyAddedDescription;
+
+  /// No description provided for @allTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部时间'**
+  String get allTime;
+
+  /// No description provided for @pastWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'过去一周'**
+  String get pastWeek;
+
+  /// No description provided for @pastMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'过去一个月'**
+  String get pastMonth;
+
+  /// No description provided for @past90Days.
+  ///
+  /// In zh, this message translates to:
+  /// **'过去三个月'**
+  String get past90Days;
+
+  /// No description provided for @noPlayHistory.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有播放记录'**
+  String get noPlayHistory;
+
+  /// No description provided for @noPlayHistoryInRange.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个时间范围内还没有播放记录'**
+  String get noPlayHistoryInRange;
+
+  /// No description provided for @noRecentlyAddedSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'媒体库中还没有歌曲'**
+  String get noRecentlyAddedSongs;
+
+  /// No description provided for @noRecentlyAddedInRange.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个时间范围内没有新添加的歌曲'**
+  String get noRecentlyAddedInRange;
+
+  /// No description provided for @addedOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加时间'**
+  String get addedOn;
+
+  /// No description provided for @lastPlayed.
+  ///
+  /// In zh, this message translates to:
+  /// **'最近播放'**
+  String get lastPlayed;
+
+  /// No description provided for @playCountLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 次'**
+  String playCountLabel(int count);
 
   /// Play all songs in the current album
   ///

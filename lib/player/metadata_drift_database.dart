@@ -3,6 +3,7 @@ part of 'metadata_database.dart';
 @DriftDatabase(
   tables: [
     Songs,
+    SongPlayHistories,
     LyricsCaches,
     AcoustidCaches,
     ReleaseCoverCaches,
@@ -17,7 +18,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -212,6 +213,26 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           WHERE imageFetchCompleted IS NULL
         ''');
       }
+      if (from < 23) {
+        await m.database.customStatement('''
+          CREATE TABLE IF NOT EXISTS song_play_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            songPath TEXT NOT NULL,
+            playedAt INTEGER NOT NULL,
+            playedDurationMillis INTEGER,
+            songDurationMillis INTEGER,
+            source TEXT
+          )
+        ''');
+        await m.database.customStatement('''
+          CREATE INDEX IF NOT EXISTS idx_song_play_history_song_path_played_at
+          ON song_play_history(songPath, playedAt DESC)
+        ''');
+        await m.database.customStatement('''
+          CREATE INDEX IF NOT EXISTS idx_song_play_history_played_at
+          ON song_play_history(playedAt DESC)
+        ''');
+      }
     },
   );
 
@@ -329,13 +350,138 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final companion = _songCompanion(updatedSong);
 
     if (existing != null) {
-      await (update(songs)..where((t) => t.path.equals(existing.path))).write(
-        companion,
-      );
+      await (update(
+        songs,
+      )..where((t) => t.path.equals(existing.path))).write(companion);
       return;
     }
 
     await into(songs).insert(companion);
+  }
+
+  Future<void> recordSongPlayback({
+    required String songPath,
+    required int playedAt,
+    int? playedDurationMillis,
+    int? songDurationMillis,
+    String? source,
+  }) async {
+    final normalizedPath = _normalizePath(songPath);
+    if (normalizedPath.isEmpty) return;
+
+    await into(songPlayHistories).insert(
+      SongPlayHistoriesCompanion.insert(
+        songPath: normalizedPath,
+        playedAt: playedAt,
+        playedDurationMillis: Value(playedDurationMillis),
+        songDurationMillis: Value(songDurationMillis),
+        source: Value(source?.trim().isEmpty == true ? null : source?.trim()),
+      ),
+    );
+  }
+
+  Stream<List<LibraryInsightSongRecord>> watchRecentlyAddedSongs({
+    int? startAtMillis,
+  }) {
+    final buffer = StringBuffer()
+      ..writeln('SELECT')
+      ..writeln('  s.id,')
+      ..writeln('  s.path,')
+      ..writeln('  s.title,')
+      ..writeln('  s.album,')
+      ..writeln('  s.artist,')
+      ..writeln('  s.duration,')
+      ..writeln('  s.artworkPath,')
+      ..writeln('  s.thumbnailPath,')
+      ..writeln('  s.artworkWidth,')
+      ..writeln('  s.artworkHeight,')
+      ..writeln('  s.trackNumber,')
+      ..writeln('  s.sourceFlags,')
+      ..writeln('  s.themeColorsBlob,')
+      ..writeln('  s.waveformBlob,')
+      ..writeln('  s.lastModifiedTime,')
+      ..writeln('  s.metadataTextScanned,')
+      ..writeln('  s.metadataImgScanned,')
+      ..writeln('  s.createdAt,')
+      ..writeln('  s.genres,')
+      ..writeln('  0 AS playCount,')
+      ..writeln('  NULL AS lastPlayedAt')
+      ..writeln('FROM songs s')
+      ..writeln('WHERE s.createdAt IS NOT NULL');
+
+    final variables = <Variable<Object>>[];
+    if (startAtMillis != null) {
+      buffer.writeln('  AND s.createdAt >= ?');
+      variables.add(Variable.withInt(startAtMillis));
+    }
+
+    buffer
+      ..writeln('ORDER BY s.createdAt DESC,')
+      ..writeln("LOWER(COALESCE(s.title, '')) ASC,")
+      ..writeln('LOWER(s.path) ASC');
+
+    return customSelect(
+      buffer.toString(),
+      variables: variables,
+      readsFrom: {songs},
+    ).watch().map(
+      (rows) => rows
+          .map((row) => _libraryInsightSongRecordFromRow(row))
+          .toList(growable: false),
+    );
+  }
+
+  Stream<List<LibraryInsightSongRecord>> watchMostPlayedSongs({
+    int? startAtMillis,
+  }) {
+    final buffer = StringBuffer()
+      ..writeln('SELECT')
+      ..writeln('  s.id,')
+      ..writeln('  s.path,')
+      ..writeln('  s.title,')
+      ..writeln('  s.album,')
+      ..writeln('  s.artist,')
+      ..writeln('  s.duration,')
+      ..writeln('  s.artworkPath,')
+      ..writeln('  s.thumbnailPath,')
+      ..writeln('  s.artworkWidth,')
+      ..writeln('  s.artworkHeight,')
+      ..writeln('  s.trackNumber,')
+      ..writeln('  s.sourceFlags,')
+      ..writeln('  s.themeColorsBlob,')
+      ..writeln('  s.waveformBlob,')
+      ..writeln('  s.lastModifiedTime,')
+      ..writeln('  s.metadataTextScanned,')
+      ..writeln('  s.metadataImgScanned,')
+      ..writeln('  s.createdAt,')
+      ..writeln('  s.genres,')
+      ..writeln('  COUNT(h.id) AS playCount,')
+      ..writeln('  MAX(h.playedAt) AS lastPlayedAt')
+      ..writeln('FROM songs s')
+      ..writeln('JOIN song_play_history h ON h.songPath = s.path');
+
+    final variables = <Variable<Object>>[];
+    if (startAtMillis != null) {
+      buffer.writeln('WHERE h.playedAt >= ?');
+      variables.add(Variable.withInt(startAtMillis));
+    }
+
+    buffer
+      ..writeln('GROUP BY s.path')
+      ..writeln('ORDER BY playCount DESC,')
+      ..writeln('lastPlayedAt DESC,')
+      ..writeln("LOWER(COALESCE(s.title, '')) ASC,")
+      ..writeln('LOWER(s.path) ASC');
+
+    return customSelect(
+      buffer.toString(),
+      variables: variables,
+      readsFrom: {songs, songPlayHistories},
+    ).watch().map(
+      (rows) => rows
+          .map((row) => _libraryInsightSongRecordFromRow(row))
+          .toList(growable: false),
+    );
   }
 
   Future<void> deleteSongByPath(String path) async {
@@ -619,8 +765,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
     final existing = await getArtistCache(normalizedKey);
     if (existing != null) {
-      await (update(artistCaches)..where((t) => t.queryKey.equals(normalizedKey)))
-          .write(companion);
+      await (update(
+        artistCaches,
+      )..where((t) => t.queryKey.equals(normalizedKey))).write(companion);
       return;
     }
 
@@ -695,15 +842,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final rows = await (select(
       artistCaches,
     )..where((t) => t.queryKey.isIn(normalizedKeys))).get();
-    return {
-      for (final row in rows) row.queryKey: _artistCacheFromRow(row),
-    };
+    return {for (final row in rows) row.queryKey: _artistCacheFromRow(row)};
   }
 
   Future<List<ArtistCacheRecord>> getAllArtistCaches() async {
-    final rows = await (select(artistCaches)..orderBy([
-      (t) => OrderingTerm(expression: t.queryKey, mode: OrderingMode.asc),
-    ])).get();
+    final rows =
+        await (select(artistCaches)..orderBy([
+              (t) =>
+                  OrderingTerm(expression: t.queryKey, mode: OrderingMode.asc),
+            ]))
+            .get();
     return rows.map(_artistCacheFromRow).toList(growable: false);
   }
 
@@ -874,6 +1022,34 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         .map((item) => item?.toString() ?? '')
         .toList(growable: false);
   }
+
+  LibraryInsightSongRecord _libraryInsightSongRecordFromRow(QueryRow row) {
+    return LibraryInsightSongRecord(
+      song: SongMetadata(
+        id: row.read<int?>('id'),
+        path: row.read<String>('path'),
+        title: row.read<String?>('title') ?? 'Unknown',
+        album: row.read<String?>('album') ?? 'Unknown',
+        artist: row.read<String?>('artist') ?? 'Unknown',
+        duration: row.read<int?>('duration'),
+        artworkPath: row.read<String?>('artworkPath'),
+        thumbnailPath: row.read<String?>('thumbnailPath'),
+        artworkWidth: row.read<int?>('artworkWidth'),
+        artworkHeight: row.read<int?>('artworkHeight'),
+        trackNumber: row.read<int?>('trackNumber'),
+        sourceFlags: row.read<int?>('sourceFlags'),
+        themeColorsBlob: row.read<Uint8List?>('themeColorsBlob'),
+        waveformBlob: row.read<Uint8List?>('waveformBlob'),
+        lastModifiedTime: row.read<int?>('lastModifiedTime'),
+        metadataTextScanned: row.read<int?>('metadataTextScanned'),
+        metadataImgScanned: row.read<int?>('metadataImgScanned'),
+        createdAt: row.read<int?>('createdAt'),
+        genres: _decodeGenres(row.read<String?>('genres')),
+      ),
+      playCount: row.read<int>('playCount'),
+      lastPlayedAt: row.read<int?>('lastPlayedAt'),
+    );
+  }
 }
 
 class Songs extends Table {
@@ -906,6 +1082,20 @@ class Songs extends Table {
 
   @override
   List<String> get customConstraints => const ['UNIQUE(path)'];
+}
+
+class SongPlayHistories extends Table {
+  @override
+  String get tableName => 'song_play_history';
+
+  IntColumn get id => integer().autoIncrement().named('id')();
+  TextColumn get songPath => text().named('songPath')();
+  IntColumn get playedAt => integer().named('playedAt')();
+  IntColumn get playedDurationMillis =>
+      integer().nullable().named('playedDurationMillis')();
+  IntColumn get songDurationMillis =>
+      integer().nullable().named('songDurationMillis')();
+  TextColumn get source => text().nullable().named('source')();
 }
 
 class LyricsCaches extends Table {

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:audio_core/audio_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

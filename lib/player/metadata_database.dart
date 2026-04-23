@@ -108,6 +108,18 @@ abstract class SongMetadata with _$SongMetadata {
   }
 }
 
+class LibraryInsightSongRecord {
+  const LibraryInsightSongRecord({
+    required this.song,
+    required this.playCount,
+    this.lastPlayedAt,
+  });
+
+  final SongMetadata song;
+  final int playCount;
+  final int? lastPlayedAt;
+}
+
 class AcoustIDCacheRecord {
   final int? id;
   final String fingerprint;
@@ -313,8 +325,7 @@ class ArtistCacheRecord {
       rawSearchJson: rawSearchJson ?? this.rawSearchJson,
       rawDetailJson: rawDetailJson ?? this.rawDetailJson,
       noData: noData ?? this.noData,
-      imageFetchCompleted:
-          imageFetchCompleted ?? this.imageFetchCompleted,
+      imageFetchCompleted: imageFetchCompleted ?? this.imageFetchCompleted,
       updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
     );
   }
@@ -447,6 +458,28 @@ class MetadataDatabase {
   Future<Map<String, SongMetadata>> getSongMetadataByPaths(
     Iterable<String> paths,
   ) => _db.getSongMetadataByPaths(paths);
+
+  Future<void> recordSongPlayback({
+    required String songPath,
+    required int playedAt,
+    int? playedDurationMillis,
+    int? songDurationMillis,
+    String? source,
+  }) => _db.recordSongPlayback(
+    songPath: songPath,
+    playedAt: playedAt,
+    playedDurationMillis: playedDurationMillis,
+    songDurationMillis: songDurationMillis,
+    source: source,
+  );
+
+  Stream<List<LibraryInsightSongRecord>> watchRecentlyAddedSongs({
+    int? startAtMillis,
+  }) => _db.watchRecentlyAddedSongs(startAtMillis: startAtMillis);
+
+  Stream<List<LibraryInsightSongRecord>> watchMostPlayedSongs({
+    int? startAtMillis,
+  }) => _db.watchMostPlayedSongs(startAtMillis: startAtMillis);
 
   Future<int> syncSongSourcePresence({
     required int sourceMask,

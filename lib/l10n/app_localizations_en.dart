@@ -270,10 +270,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlist => 'Playlist';
 
   @override
+  String get mostPlayed => 'Most Played';
+
+  @override
+  String get recentlyAdded => 'Recently Added';
+
+  @override
   String get albums => 'Albums';
 
   @override
   String get artists => 'Artists';
+
+  @override
+  String get mostPlayedDescription => 'Ranked by completed plays';
+
+  @override
+  String get recentlyAddedDescription =>
+      'Sorted by when songs entered your library';
+
+  @override
+  String get allTime => 'All Time';
+
+  @override
+  String get pastWeek => 'Past Week';
+
+  @override
+  String get pastMonth => 'Past Month';
+
+  @override
+  String get past90Days => 'Past 90 Days';
+
+  @override
+  String get noPlayHistory => 'No play history yet';
+
+  @override
+  String get noPlayHistoryInRange => 'No play history in this time range';
+
+  @override
+  String get noRecentlyAddedSongs => 'No songs in your library yet';
+
+  @override
+  String get noRecentlyAddedInRange => 'No songs were added in this time range';
+
+  @override
+  String get addedOn => 'Added On';
+
+  @override
+  String get lastPlayed => 'Last played';
+
+  @override
+  String playCountLabel(int count) {
+    return '$count plays';
+  }
 
   @override
   String get playAll => 'Play All';

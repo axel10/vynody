@@ -98,8 +98,30 @@
   "createdPlaylist": "Created playlist \"{name}\" and added {count} songs",
   "rename": "Rename",
   "playlist": "Playlist",
+  "mostPlayed": "Most Played",
+  "recentlyAdded": "Recently Added",
   "albums": "Albums",
   "artists": "Artists",
+  "mostPlayedDescription": "Ranked by completed plays",
+  "recentlyAddedDescription": "Sorted by when songs entered your library",
+  "allTime": "All Time",
+  "pastWeek": "Past Week",
+  "pastMonth": "Past Month",
+  "past90Days": "Past 90 Days",
+  "noPlayHistory": "No play history yet",
+  "noPlayHistoryInRange": "No play history in this time range",
+  "noRecentlyAddedSongs": "No songs in your library yet",
+  "noRecentlyAddedInRange": "No songs were added in this time range",
+  "addedOn": "Added On",
+  "lastPlayed": "Last played",
+  "playCountLabel": "{count} plays",
+  "@playCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "playAll": "Play All",
   "shufflePlay": "Shuffle Play",
   "noAlbums": "No albums found yet",
