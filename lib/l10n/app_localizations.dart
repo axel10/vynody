@@ -1267,6 +1267,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'没有需要保存的已修改标签'**
   String get noModifiedTagsToSave;
+
+  /// No description provided for @clearPlaylist.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空列表'**
+  String get clearPlaylist;
 }
 
 class _AppLocalizationsDelegate

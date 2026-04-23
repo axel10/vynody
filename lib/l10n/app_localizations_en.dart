@@ -629,4 +629,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noModifiedTagsToSave => 'No modified tags to save';
+
+  @override
+  String get clearPlaylist => 'Clear List';
 }

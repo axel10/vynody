@@ -219,5 +219,6 @@
   "unsupportedFormat": "{count} songs have unsupported formats (OGG/Opus cannot be saved)",
   "unsupportedFormatSingle": "This format (OGG/Opus) does not support saving tags",
   "savingTags": "Saving tags...",
-  "noModifiedTagsToSave": "No modified tags to save"
+  "noModifiedTagsToSave": "No modified tags to save",
+  "clearPlaylist": "Clear List"
 }

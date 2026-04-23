@@ -621,4 +621,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noModifiedTagsToSave => '没有需要保存的已修改标签';
+
+  @override
+  String get clearPlaylist => '清空列表';
 }

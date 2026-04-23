@@ -638,5 +638,6 @@
   "unsupportedFormat": "{count} 首歌曲格式不支持保存标签 (OGG/Opus)",
   "unsupportedFormatSingle": "此格式 (OGG/Opus) 不支持保存标签",
   "savingTags": "正在保存标签...",
-  "noModifiedTagsToSave": "没有需要保存的已修改标签"
+  "noModifiedTagsToSave": "没有需要保存的已修改标签",
+  "clearPlaylist": "清空列表"
 }
