@@ -33,6 +33,13 @@ class ScanProgressState {
   final List<String> pendingMetadataPaths = [];
 }
 
+class RootScanTicket {
+  const RootScanTicket({required this.rootPath, required this.generation});
+
+  final String rootPath;
+  final int generation;
+}
+
 class OrderedTaskRunner {
   OrderedTaskRunner(int maxConcurrent, {required this.comparePaths})
     : maxConcurrent = maxConcurrent < 1 ? 1 : maxConcurrent;

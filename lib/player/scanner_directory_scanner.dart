@@ -19,31 +19,44 @@ class ScannerDirectoryScanner {
 
   Future<List<String>> discoverMusicFiles(
     String path,
-    ScanProgressState scanState,
-  ) async {
+    ScanProgressState scanState, {
+    bool Function()? shouldCancel,
+  }) async {
     try {
-      return await _discoverMusicFilesWithIsolate(path, scanState);
+      return await _discoverMusicFilesWithIsolate(
+        path,
+        scanState,
+        shouldCancel: shouldCancel,
+      );
     } catch (_) {
-      return _discoverMusicFilesInline(path, scanState);
+      return _discoverMusicFilesInline(
+        path,
+        scanState,
+        shouldCancel: shouldCancel,
+      );
     }
   }
 
   Future<List<String>> _discoverMusicFilesWithIsolate(
     String path,
-    ScanProgressState scanState,
-  ) async {
+    ScanProgressState scanState, {
+    bool Function()? shouldCancel,
+  }) async {
     final receivePort = ReceivePort();
     final errorPort = ReceivePort();
     final exitPort = ReceivePort();
+    final cancelPort = ReceivePort();
     final discoveredPaths = <String>[];
 
     Isolate? isolate;
+    Timer? cancelTimer;
     try {
       isolate = await Isolate.spawn<_DirectoryDiscoveryRequest>(
         _discoverMusicFilesIsolateEntry,
         _DirectoryDiscoveryRequest(
           rootPath: path,
           replyPort: receivePort.sendPort,
+          cancelPort: cancelPort.sendPort,
         ),
         onError: errorPort.sendPort,
         onExit: exitPort.sendPort,
@@ -54,7 +67,10 @@ class ScannerDirectoryScanner {
       late final StreamSubscription receiveSub;
       late final StreamSubscription errorSub;
       late final StreamSubscription exitSub;
+      late final StreamSubscription cancelSub;
       var finished = false;
+      var cancelRequested = false;
+      SendPort? isolateCancelPort;
 
       void completeSuccess() {
         if (finished) return;
@@ -68,9 +84,19 @@ class ScannerDirectoryScanner {
         completer.completeError(error, st);
       }
 
+      cancelSub = cancelPort.listen((message) {
+        if (message is SendPort) {
+          isolateCancelPort = message;
+        }
+      });
+
       receiveSub = receivePort.listen((message) {
         if (message is! Map) {
           return;
+        }
+        if ((shouldCancel?.call() ?? false) && !cancelRequested) {
+          cancelRequested = true;
+          isolateCancelPort?.send(true);
         }
         final type = message['type'];
         if (type == _DirectoryDiscoveryMessage.batchType) {
@@ -83,7 +109,6 @@ class ScannerDirectoryScanner {
             return;
           }
           discoveredPaths.addAll(batch);
-          scanState.pendingMetadataPaths.addAll(batch);
           scanState.discoveredCount += batch.length;
           _emitScanProgress(scanState, batch.last);
           return;
@@ -114,9 +139,23 @@ class ScannerDirectoryScanner {
         }
       });
 
+      if (shouldCancel != null) {
+        cancelTimer = Timer.periodic(const Duration(milliseconds: 80), (_) {
+          if (finished || cancelRequested) {
+            return;
+          }
+          if (shouldCancel()) {
+            cancelRequested = true;
+            isolateCancelPort?.send(true);
+          }
+        });
+      }
+
       try {
         return await completer.future;
       } finally {
+        cancelTimer?.cancel();
+        await cancelSub.cancel();
         await receiveSub.cancel();
         await errorSub.cancel();
         await exitSub.cancel();
@@ -125,14 +164,16 @@ class ScannerDirectoryScanner {
       receivePort.close();
       errorPort.close();
       exitPort.close();
+      cancelPort.close();
       isolate?.kill(priority: Isolate.immediate);
     }
   }
 
   Future<List<String>> _discoverMusicFilesInline(
     String path,
-    ScanProgressState scanState,
-  ) async {
+    ScanProgressState scanState, {
+    bool Function()? shouldCancel,
+  }) async {
     final rootDir = Directory(path);
     if (!await rootDir.exists()) {
       return const <String>[];
@@ -144,10 +185,16 @@ class ScannerDirectoryScanner {
     var processedEntries = 0;
 
     while (pendingDirectories.isNotEmpty) {
+      if (shouldCancel?.call() ?? false) {
+        break;
+      }
       final currentPath = pendingDirectories.removeFirst();
       final dir = Directory(currentPath);
       try {
         await for (final entity in dir.list(followLinks: false)) {
+          if (shouldCancel?.call() ?? false) {
+            return discoveredPaths;
+          }
           if (entity is Directory) {
             if (p.basename(entity.path).startsWith('.')) {
               continue;
@@ -157,7 +204,6 @@ class ScannerDirectoryScanner {
               MusicFileUtils.isMusicFilePath(entity.path)) {
             final filePath = entity.path;
             discoveredPaths.add(filePath);
-            scanState.pendingMetadataPaths.add(filePath);
             scanState.discoveredCount++;
             _emitScanProgress(scanState, filePath);
           }
@@ -180,10 +226,12 @@ class _DirectoryDiscoveryRequest {
   const _DirectoryDiscoveryRequest({
     required this.rootPath,
     required this.replyPort,
+    required this.cancelPort,
   });
 
   final String rootPath;
   final SendPort replyPort;
+  final SendPort cancelPort;
 }
 
 class _DirectoryDiscoveryMessage {
@@ -194,8 +242,18 @@ class _DirectoryDiscoveryMessage {
 Future<void> _discoverMusicFilesIsolateEntry(
   _DirectoryDiscoveryRequest request,
 ) async {
+  final cancelReceivePort = ReceivePort();
+  request.cancelPort.send(cancelReceivePort.sendPort);
+  var cancelled = false;
+  late final StreamSubscription cancelSub;
+  cancelSub = cancelReceivePort.listen((_) {
+    cancelled = true;
+  });
+
   final rootDir = Directory(request.rootPath);
   if (!await rootDir.exists()) {
+    await cancelSub.cancel();
+    cancelReceivePort.close();
     request.replyPort.send(const {'type': _DirectoryDiscoveryMessage.doneType});
     return;
   }
@@ -204,11 +262,14 @@ Future<void> _discoverMusicFilesIsolateEntry(
   final pendingDirectories = ListQueue<String>()..add(request.rootPath);
   final batch = <String>[];
 
-  while (pendingDirectories.isNotEmpty) {
+  while (pendingDirectories.isNotEmpty && !cancelled) {
     final currentPath = pendingDirectories.removeFirst();
     final dir = Directory(currentPath);
     try {
       await for (final entity in dir.list(followLinks: false)) {
+        if (cancelled) {
+          break;
+        }
         if (entity is Directory) {
           if (p.basename(entity.path).startsWith('.')) {
             continue;
@@ -237,5 +298,7 @@ Future<void> _discoverMusicFilesIsolateEntry(
       'paths': List<String>.from(batch),
     });
   }
+  await cancelSub.cancel();
+  cancelReceivePort.close();
   request.replyPort.send(const {'type': _DirectoryDiscoveryMessage.doneType});
 }

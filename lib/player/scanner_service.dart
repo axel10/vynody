@@ -68,6 +68,8 @@ class ScannerService extends ChangeNotifier {
   late final ScannerDirectoryScanner _directoryScanner;
   int _metadataRevision = 0;
   int _albumLibraryRevision = 0;
+  int _rootGenerationSequence = 0;
+  final Map<String, int> _rootGenerations = {};
 
   static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
   static const String _keyGlobalSortOrder = 'folder_sort_global_order';
@@ -329,6 +331,7 @@ class ScannerService extends ChangeNotifier {
               : null,
         );
       });
+      _ensureRootPathGenerations(_roots.rootPaths);
       await _timeInitStep('load sort settings', _loadSortSettings);
       final cachedSongs = await _timeInitStep(
         'load cached songs from database',
@@ -437,6 +440,7 @@ class ScannerService extends ChangeNotifier {
 
     final updatedRoots = [..._roots.rootPaths, normalizedPath];
     await _roots.setRootPaths(updatedRoots);
+    _bumpRootPathGenerations([normalizedPath]);
     await _loadCachedRootFoldersFromDatabase(rootPaths: [normalizedPath]);
     _rebuildDisplayedRootFolders();
     notifyListeners();
@@ -486,6 +490,7 @@ class ScannerService extends ChangeNotifier {
           normalizedTargets.any((target) => _pathsEqual(existing, target)),
     );
     await _roots.setRootPaths(updatedRoots);
+    _bumpRootPathGenerations(normalizedTargets);
     _removeRootsFromScannedTree(normalizedTargets);
     _purgeRemovedRootsFromMetadataCache(normalizedTargets);
     _rebuildDisplayedRootFolders();
@@ -569,6 +574,7 @@ class ScannerService extends ChangeNotifier {
       hasPersistentAccess: _hasPersistentAccess,
       forgetPersistentAccess: _forgetPersistentAccess,
     );
+    _ensureRootPathGenerations(_roots.rootPaths);
     _rebuildDisplayedRootFolders();
     notifyListeners();
   }
@@ -1515,9 +1521,13 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<ScanFileClassification> _classifyDiscoveredFiles(
-    List<String> filePaths,
-  ) async {
-    return _scanPipeline.classifyDiscoveredFiles(filePaths);
+    List<String> filePaths, {
+    bool Function()? shouldCancel,
+  }) async {
+    return _scanPipeline.classifyDiscoveredFiles(
+      filePaths,
+      shouldCancel: shouldCancel,
+    );
   }
 
   void _seedMetadataFromDatabase(
@@ -1531,6 +1541,7 @@ class ScannerService extends ChangeNotifier {
     ScanProgressState scanState, {
     required Map<String, SongMetadata> existingMetadataByPath,
     int? rootScanSessionId,
+    bool Function()? shouldCancel,
   }) async {
     if (fullPaths.isEmpty) return;
 
@@ -1540,6 +1551,9 @@ class ScannerService extends ChangeNotifier {
 
     const batchSize = 200;
     for (var start = 0; start < sortedPaths.length; start += batchSize) {
+      if (shouldCancel?.call() ?? false) {
+        return;
+      }
       final end = start + batchSize < sortedPaths.length
           ? start + batchSize
           : sortedPaths.length;
@@ -1551,6 +1565,9 @@ class ScannerService extends ChangeNotifier {
         chunk,
         getImage: false,
       );
+      if (shouldCancel?.call() ?? false) {
+        return;
+      }
       readStopwatch.stop();
       _logScanTiming(
         'stage 3 batch ${start + 1}-$end readMetadataBatch',
@@ -1560,6 +1577,9 @@ class ScannerService extends ChangeNotifier {
       final writeStopwatch = Stopwatch()..start();
       final metadataBatch = <SongMetadata>[];
       for (final result in results) {
+        if (shouldCancel?.call() ?? false) {
+          return;
+        }
         final filePath = result['path'] as String? ?? '';
         if (filePath.isEmpty) continue;
 
@@ -1635,14 +1655,36 @@ class ScannerService extends ChangeNotifier {
     return currentScanRoots.any((current) => _pathsEqual(current, rootPath));
   }
 
+  bool _isScanTicketStillValid(RootScanTicket ticket) {
+    if (!_isScanRootStillActive(ticket.rootPath)) {
+      return false;
+    }
+    final currentGeneration = _rootGenerationForPath(ticket.rootPath);
+    if (currentGeneration != ticket.generation) {
+      return false;
+    }
+    return Directory(ticket.rootPath).existsSync();
+  }
+
   Future<List<String>> _discoverAndBuildRootFolder(
     String rootPath,
     ScanProgressState scanState,
+    RootScanTicket ticket,
   ) async {
+    if (!_isScanTicketStillValid(ticket)) {
+      return const <String>[];
+    }
     final discoveredPaths = await _directoryScanner.discoverMusicFiles(
       rootPath,
       scanState,
+      shouldCancel: () => !_isScanTicketStillValid(ticket),
     );
+    if (!_isScanTicketStillValid(ticket)) {
+      _scannedRootFolders.removeWhere(
+        (existing) => _pathsEqual(existing.path, rootPath),
+      );
+      return const <String>[];
+    }
     if (discoveredPaths.isEmpty) {
       _scannedRootFolders.removeWhere(
         (existing) => _pathsEqual(existing.path, rootPath),
@@ -1670,15 +1712,25 @@ class ScannerService extends ChangeNotifier {
     List<String> discoveredPaths,
     ScanProgressState scanState,
     int rootScanSessionId,
+    RootScanTicket ticket,
   ) async {
     if (discoveredPaths.isEmpty) {
+      return;
+    }
+    if (!_isScanTicketStillValid(ticket)) {
       return;
     }
 
     final classification = await _timeScanStep(
       'stage 2 classify discovered files batch',
-      () => _classifyDiscoveredFiles(discoveredPaths),
+      () => _classifyDiscoveredFiles(
+        discoveredPaths,
+        shouldCancel: () => !_isScanTicketStillValid(ticket),
+      ),
     );
+    if (!_isScanTicketStillValid(ticket)) {
+      return;
+    }
     _timeScanStepSync('stage 2.1 seed metadata from db batch', () {
       _seedMetadataFromDatabase(classification.existingMetadataByPath);
     });
@@ -1693,16 +1745,24 @@ class ScannerService extends ChangeNotifier {
         scanState,
         existingMetadataByPath: classification.existingMetadataByPath,
         rootScanSessionId: rootScanSessionId,
+        shouldCancel: () => !_isScanTicketStillValid(ticket),
       ),
     );
+    if (!_isScanTicketStillValid(ticket)) {
+      return;
+    }
 
     await _timeScanStep(
       'stage 4 preprocess artwork/theme batch',
-      () => _applyArtworkAndThemeToChangedFiles([
-        ...fullPaths,
-        ...imageOnlyPaths,
-      ], scanState),
+      () => _applyArtworkAndThemeToChangedFiles(
+        [...fullPaths, ...imageOnlyPaths],
+        scanState,
+        shouldCancel: () => !_isScanTicketStillValid(ticket),
+      ),
     );
+    if (!_isScanTicketStillValid(ticket)) {
+      return;
+    }
 
     await _timeScanStep(
       'stage 4.1 mark root scan session batch',
@@ -1712,12 +1772,17 @@ class ScannerService extends ChangeNotifier {
         sourceMask: SongSourceFlags.rootScan,
       ),
     );
+    if (!_isScanTicketStillValid(ticket)) {
+      return;
+    }
+    scanState.pendingMetadataPaths.addAll(discoveredPaths);
   }
 
   Future<void> _applyArtworkAndThemeToChangedFiles(
     List<String> imageOnlyPaths,
-    ScanProgressState scanState,
-  ) async {
+    ScanProgressState scanState, {
+    bool Function()? shouldCancel,
+  }) async {
     if (imageOnlyPaths.isEmpty) return;
 
     final sortedPaths = imageOnlyPaths.toList()..sort(_compareNaturally);
@@ -1727,6 +1792,9 @@ class ScannerService extends ChangeNotifier {
       final supportDir = await getApplicationSupportDirectory();
       const batchSize = 6;
       for (var start = 0; start < sortedPaths.length; start += batchSize) {
+        if (shouldCancel?.call() ?? false) {
+          return;
+        }
         final end = start + batchSize < sortedPaths.length
             ? start + batchSize
             : sortedPaths.length;
@@ -1739,6 +1807,7 @@ class ScannerService extends ChangeNotifier {
               filePath: filePath,
               supportDirPath: supportDir.path,
               scanState: scanState,
+              shouldCancel: shouldCancel,
             ),
           ),
         );
@@ -1750,6 +1819,9 @@ class ScannerService extends ChangeNotifier {
       final db = MetadataDatabase();
       final fallbackStopwatch = Stopwatch()..start();
       for (final filePath in sortedPaths) {
+        if (shouldCancel?.call() ?? false) {
+          return;
+        }
         try {
           final baseMetadata =
               _metadataStore.getMetadata(filePath) ??
@@ -1791,11 +1863,15 @@ class ScannerService extends ChangeNotifier {
     required String filePath,
     required String supportDirPath,
     required ScanProgressState scanState,
+    bool Function()? shouldCancel,
   }) async {
     final db = MetadataDatabase();
     final totalStopwatch = Stopwatch()..start();
 
     try {
+      if (shouldCancel?.call() ?? false) {
+        return;
+      }
       final baseMetadata =
           _metadataStore.getMetadata(filePath) ??
           await db.getSongMetadata(filePath);
@@ -1816,6 +1892,9 @@ class ScannerService extends ChangeNotifier {
       workerStopwatch.stop();
       _logScanTiming('stage 4 worker $filePath', workerStopwatch);
 
+      if (shouldCancel?.call() ?? false) {
+        return;
+      }
       if (result == null) {
         return;
       }
@@ -1889,14 +1968,23 @@ class ScannerService extends ChangeNotifier {
           metadataConcurrency: 4,
           comparePaths: _compareNaturally,
         );
-        final scanRoots = _timeScanStepSync('stage 1 root discovery', () {
+        final scanTickets = _timeScanStepSync('stage 1 root discovery', () {
           final roots = _computeScanRoots(requestedRoots);
           roots.sort(_compareNaturally);
-          return roots;
+          _ensureRootPathGenerations(roots);
+          return roots
+              .map(
+                (root) => RootScanTicket(
+                  rootPath: root,
+                  generation: _rootGenerationForPath(root),
+                ),
+              )
+              .toList(growable: false);
         });
 
-        for (final path in scanRoots) {
-          if (!_isScanRootStillActive(path)) {
+        for (final ticket in scanTickets) {
+          final path = ticket.rootPath;
+          if (!_isScanTicketStillValid(ticket)) {
             debugPrint(
               '[ScannerService] Skipping stale scan root after root-path change: $path',
             );
@@ -1919,10 +2007,10 @@ class ScannerService extends ChangeNotifier {
 
           final discoveredPaths = await _timeScanStep(
             'stage 1.2 directory traversal for $path',
-            () => _discoverAndBuildRootFolder(path, scanState),
+            () => _discoverAndBuildRootFolder(path, scanState, ticket),
           );
 
-          if (!_isScanRootStillActive(path)) {
+          if (!_isScanTicketStillValid(ticket)) {
             debugPrint(
               '[ScannerService] Discarding stale scan result after root-path change: $path',
             );
@@ -1936,7 +2024,18 @@ class ScannerService extends ChangeNotifier {
             discoveredPaths,
             scanState,
             rootScanSessionId,
+            ticket,
           );
+
+          if (!_isScanTicketStillValid(ticket)) {
+            debugPrint(
+              '[ScannerService] Root scan became stale before tree refresh: $path',
+            );
+            _scannedRootFolders.removeWhere(
+              (existing) => _pathsEqual(existing.path, path),
+            );
+            continue;
+          }
 
           _rebuildDisplayedRootFolders();
           notifyListeners();
@@ -1956,7 +2055,7 @@ class ScannerService extends ChangeNotifier {
           () => MetadataDatabase().finalizeRootScanSession(
             sessionId: rootScanSessionId,
             sourceMask: SongSourceFlags.rootScan,
-            scopeRoots: scanRoots,
+            scopeRoots: scanTickets.map((ticket) => ticket.rootPath),
           ),
         );
         _timeScanStepSync('stage 5.4 notify missing states', () {
@@ -2182,6 +2281,25 @@ class ScannerService extends ChangeNotifier {
 
   List<String> _computeScanRoots(Iterable<String> paths) {
     return ScannerPathUtils.computeScanRoots(paths);
+  }
+
+  void _ensureRootPathGenerations(Iterable<String> paths) {
+    for (final path in _normalizeDeclaredRootPaths(paths)) {
+      final key = _pathLookupKey(path);
+      _rootGenerations.putIfAbsent(key, () => ++_rootGenerationSequence);
+    }
+  }
+
+  void _bumpRootPathGenerations(Iterable<String> paths) {
+    for (final path in _normalizeDeclaredRootPaths(paths)) {
+      _rootGenerations[_pathLookupKey(path)] = ++_rootGenerationSequence;
+    }
+  }
+
+  int _rootGenerationForPath(String path) {
+    final normalizedPath = _normalizePath(path);
+    final key = _pathLookupKey(normalizedPath);
+    return _rootGenerations.putIfAbsent(key, () => ++_rootGenerationSequence);
   }
 
   void _rebuildDisplayedRootFolders() {

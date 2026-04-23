@@ -28,8 +28,9 @@ class ScannerScanPipeline {
   }
 
   Future<Map<String, int?>> loadLastModifiedTimes(
-    Iterable<String> filePaths,
-  ) async {
+    Iterable<String> filePaths, {
+    bool Function()? shouldCancel,
+  }) async {
     final totalStopwatch = Stopwatch()..start();
     final normalizedPaths = <String>[];
     final seen = <String>{};
@@ -53,6 +54,9 @@ class ScannerScanPipeline {
 
     const batchSize = 128;
     for (var start = 0; start < normalizedPaths.length; start += batchSize) {
+      if (shouldCancel?.call() ?? false) {
+        break;
+      }
       final end = start + batchSize < normalizedPaths.length
           ? start + batchSize
           : normalizedPaths.length;
@@ -89,8 +93,9 @@ class ScannerScanPipeline {
   }
 
   Future<ScanFileClassification> classifyDiscoveredFiles(
-    List<String> filePaths,
-  ) async {
+    List<String> filePaths, {
+    bool Function()? shouldCancel,
+  }) async {
     final totalStopwatch = Stopwatch()..start();
     if (filePaths.isEmpty) {
       totalStopwatch.stop();
@@ -108,7 +113,10 @@ class ScannerScanPipeline {
     _logTiming('classifyDiscoveredFiles database lookup', dbStopwatch);
 
     final statStopwatch = Stopwatch()..start();
-    final lastModifiedByPath = await loadLastModifiedTimes(filePaths);
+    final lastModifiedByPath = await loadLastModifiedTimes(
+      filePaths,
+      shouldCancel: shouldCancel,
+    );
     statStopwatch.stop();
     _logTiming('classifyDiscoveredFiles file stat lookup', statStopwatch);
 
@@ -117,6 +125,9 @@ class ScannerScanPipeline {
     final classifyStopwatch = Stopwatch()..start();
 
     for (final path in filePaths) {
+      if (shouldCancel?.call() ?? false) {
+        break;
+      }
       final lookupKey = _pathLookupKey(path);
       if (!seen.add(lookupKey)) {
         continue;
