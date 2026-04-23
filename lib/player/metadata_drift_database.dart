@@ -18,7 +18,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -233,6 +233,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           ON song_play_history(playedAt DESC)
         ''');
       }
+      if (from < 24) {
+        await _addColumnIfMissing(
+          m,
+          'songs',
+          'lastSeenRootScanSessionId',
+          'INTEGER',
+        );
+      }
     },
   );
 
@@ -339,7 +347,10 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     };
   }
 
-  Future<void> insertOrUpdateSong(SongMetadata song) async {
+  Future<void> insertOrUpdateSong(
+    SongMetadata song, {
+    int? rootScanSessionId,
+  }) async {
     final existing = await getSongMetadata(song.path);
     final mergedSourceFlags = _mergeSourceFlags(
       existing?.sourceFlags,
@@ -347,7 +358,10 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     );
 
     final updatedSong = song.copyWith(sourceFlags: mergedSourceFlags);
-    final companion = _songCompanion(updatedSong);
+    final companion = _songCompanion(
+      updatedSong,
+      lastSeenRootScanSessionId: rootScanSessionId,
+    );
 
     if (existing != null) {
       await (update(
@@ -360,14 +374,20 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<void> insertOrUpdateSongsMerged(
-    Iterable<SongMetadata> songsList,
-  ) async {
+    Iterable<SongMetadata> songsList, {
+    int? rootScanSessionId,
+  }) async {
     final normalizedSongs = songsList.toList(growable: false);
     if (normalizedSongs.isEmpty) return;
 
     await transaction(() async {
       for (final song in normalizedSongs) {
-        await into(songs).insertOnConflictUpdate(_songCompanion(song));
+        await into(songs).insertOnConflictUpdate(
+          _songCompanion(
+            song,
+            lastSeenRootScanSessionId: rootScanSessionId,
+          ),
+        );
       }
     });
   }
@@ -514,6 +534,41 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     );
   }
 
+  Future<void> markRootScanSeen(
+    Iterable<String> paths, {
+    required int sessionId,
+    required int sourceMask,
+  }) async {
+    final normalizedPaths = paths
+        .map(_normalizePath)
+        .where((path) => path.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (normalizedPaths.isEmpty) {
+      return;
+    }
+
+    const batchSize = 200;
+    for (var start = 0; start < normalizedPaths.length; start += batchSize) {
+      final end = start + batchSize < normalizedPaths.length
+          ? start + batchSize
+          : normalizedPaths.length;
+      final chunk = normalizedPaths.sublist(start, end);
+      await customStatement(
+        '''
+        UPDATE songs
+        SET sourceFlags = CASE
+              WHEN sourceFlags IS NULL OR sourceFlags = 0 THEN ?
+              ELSE sourceFlags | ?
+            END,
+            lastSeenRootScanSessionId = ?
+        WHERE path IN (${List.filled(chunk.length, '?').join(', ')})
+        ''',
+        <Object>[sourceMask, sourceMask, sessionId, ...chunk],
+      );
+    }
+  }
+
   Future<int> syncSongSourcePresence({
     required int sourceMask,
     required Iterable<String> presentPaths,
@@ -575,6 +630,82 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     });
 
     return changedCount;
+  }
+
+  Future<List<String>> finalizeRootScanSession({
+    required int sessionId,
+    required int sourceMask,
+    required Iterable<String> scopeRoots,
+  }) async {
+    final normalizedScopeRoots = scopeRoots
+        .map(_normalizePath)
+        .where((path) => path.isNotEmpty)
+        .toList(growable: false);
+    if (normalizedScopeRoots.isEmpty) {
+      return const <String>[];
+    }
+
+    final whereBuffer = StringBuffer();
+    final variables = <Variable<Object>>[];
+    for (var i = 0; i < normalizedScopeRoots.length; i++) {
+      final root = normalizedScopeRoots[i];
+      final normalizedRoot = Platform.isWindows ? root.toLowerCase() : root;
+      final prefix = normalizedRoot.endsWith(Platform.isWindows ? r'\' : '/')
+          ? normalizedRoot
+          : '$normalizedRoot${Platform.isWindows ? r'\' : '/'}';
+      if (i > 0) {
+        whereBuffer.write(' OR ');
+      }
+      if (Platform.isWindows) {
+        whereBuffer.write('(LOWER(path) = ? OR LOWER(path) LIKE ?)');
+      } else {
+        whereBuffer.write('(path = ? OR path LIKE ?)');
+      }
+      variables.add(Variable(normalizedRoot));
+      variables.add(Variable('$prefix%'));
+    }
+
+    final staleRows = await customSelect(
+      '''
+      SELECT path, sourceFlags
+      FROM songs
+      WHERE ($whereBuffer)
+        AND (sourceFlags IS NULL OR sourceFlags = 0 OR (sourceFlags & ?) != 0)
+        AND COALESCE(lastSeenRootScanSessionId, -1) != ?
+      ''',
+      variables: [
+        ...variables,
+        Variable(sourceMask),
+        Variable(sessionId),
+      ],
+      readsFrom: {songs},
+    ).get();
+
+    if (staleRows.isEmpty) {
+      return const <String>[];
+    }
+
+    final stalePaths = <String>[];
+    await transaction(() async {
+      for (final row in staleRows) {
+        final path = row.read<String>('path');
+        final currentFlags = row.read<int?>('sourceFlags') ?? 0;
+        final nextFlags = currentFlags == 0
+            ? 0
+            : currentFlags & ~sourceMask;
+
+        if (nextFlags == 0) {
+          await (delete(songs)..where((t) => t.path.equals(path))).go();
+        } else {
+          await (update(songs)..where((t) => t.path.equals(path))).write(
+            SongsCompanion(sourceFlags: Value(nextFlags)),
+          );
+        }
+        stalePaths.add(path);
+      }
+    });
+
+    return stalePaths;
   }
 
   Future<void> insertOrUpdateLyricsCache(LyricsCacheRecord record) async {
@@ -898,7 +1029,10 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return row == null ? null : _songFromRow(row);
   }
 
-  SongsCompanion _songCompanion(SongMetadata song) {
+  SongsCompanion _songCompanion(
+    SongMetadata song, {
+    int? lastSeenRootScanSessionId,
+  }) {
     return SongsCompanion(
       path: Value(song.path),
       title: Value(song.title),
@@ -918,6 +1052,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       metadataImgScanned: Value(song.metadataImgScanned),
       createdAt: Value(song.createdAt),
       genres: Value(song.genres == null ? null : jsonEncode(song.genres)),
+      lastSeenRootScanSessionId: lastSeenRootScanSessionId == null
+          ? const Value.absent()
+          : Value(lastSeenRootScanSessionId),
     );
   }
 
@@ -1092,6 +1229,8 @@ class Songs extends Table {
       integer().nullable().named('metadataImgScanned')();
   IntColumn get createdAt => integer().nullable().named('createdAt')();
   TextColumn get genres => text().nullable().named('genres')();
+  IntColumn get lastSeenRootScanSessionId =>
+      integer().nullable().named('lastSeenRootScanSessionId')();
 
   @override
   List<String> get customConstraints => const ['UNIQUE(path)'];

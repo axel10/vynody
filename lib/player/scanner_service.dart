@@ -142,13 +142,7 @@ class ScannerService extends ChangeNotifier {
       pathsEqual: _pathsEqual,
     );
     _directoryScanner = ScannerDirectoryScanner(
-      displayNameForPath: _displayNameForPath,
-      pathsEqual: _pathsEqual,
-      compareNaturally: _compareNaturally,
       emitScanProgress: _emitScanProgress,
-      metadataForPath: (path) =>
-          _metadataStore.getMetadata(_normalizePath(path)) ??
-          _metadataStore.getMetadata(path),
     );
     _navigationState.addListener(_handleNavigationChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1440,6 +1434,7 @@ class ScannerService extends ChangeNotifier {
     List<String> fullPaths,
     ScanProgressState scanState, {
     required Map<String, SongMetadata> existingMetadataByPath,
+    int? rootScanSessionId,
   }) async {
     if (fullPaths.isEmpty) return;
 
@@ -1492,7 +1487,10 @@ class ScannerService extends ChangeNotifier {
         }
       }
       if (metadataBatch.isNotEmpty) {
-        await db.insertOrUpdateSongsMerged(metadataBatch);
+        await db.insertOrUpdateSongsMerged(
+          metadataBatch,
+          rootScanSessionId: rootScanSessionId,
+        );
       }
       writeStopwatch.stop();
       _logScanTiming(
@@ -1505,6 +1503,85 @@ class ScannerService extends ChangeNotifier {
 
     totalStopwatch.stop();
     _logScanTiming('stage 3 preprocess text tags total', totalStopwatch);
+  }
+
+  Future<List<String>> _discoverAndBuildRootFolder(
+    String rootPath,
+    ScanProgressState scanState,
+  ) async {
+    final discoveredPaths = await _directoryScanner.discoverMusicFiles(
+      rootPath,
+      scanState,
+    );
+    if (discoveredPaths.isEmpty) {
+      _scannedRootFolders.removeWhere(
+        (existing) => _pathsEqual(existing.path, rootPath),
+      );
+      return const <String>[];
+    }
+
+    final rootFolder = _timeScanStepSync(
+      'stage 1.2.1 build tree for $rootPath',
+      () => _treeBuilder.buildFolderTreeFromFilePaths(
+        discoveredPaths,
+        _compareNaturally,
+        rootPath: rootPath,
+        rootName: _displayNameForPath(rootPath),
+        metadataForPath: (path) =>
+            _metadataStore.getMetadata(_normalizePath(path)) ??
+            _metadataStore.getMetadata(path),
+      ),
+    );
+    _upsertScannedRootFolder(rootFolder);
+    return discoveredPaths;
+  }
+
+  Future<void> _processDiscoveredPaths(
+    List<String> discoveredPaths,
+    ScanProgressState scanState,
+    int rootScanSessionId,
+  ) async {
+    if (discoveredPaths.isEmpty) {
+      return;
+    }
+
+    final classification = await _timeScanStep(
+      'stage 2 classify discovered files batch',
+      () => _classifyDiscoveredFiles(discoveredPaths),
+    );
+    _timeScanStepSync('stage 2.1 seed metadata from db batch', () {
+      _seedMetadataFromDatabase(classification.existingMetadataByPath);
+    });
+
+    final fullPaths = classification.pathsFor(ScanFileStage.full);
+    final imageOnlyPaths = classification.pathsFor(ScanFileStage.imageOnly);
+
+    await _timeScanStep(
+      'stage 3 preprocess text tags batch',
+      () => _preprocessChangedFiles(
+        fullPaths,
+        scanState,
+        existingMetadataByPath: classification.existingMetadataByPath,
+        rootScanSessionId: rootScanSessionId,
+      ),
+    );
+
+    await _timeScanStep(
+      'stage 4 preprocess artwork/theme batch',
+      () => _applyArtworkAndThemeToChangedFiles([
+        ...fullPaths,
+        ...imageOnlyPaths,
+      ], scanState),
+    );
+
+    await _timeScanStep(
+      'stage 4.1 mark root scan session batch',
+      () => MetadataDatabase().markRootScanSeen(
+        discoveredPaths,
+        sessionId: rootScanSessionId,
+        sourceMask: SongSourceFlags.rootScan,
+      ),
+    );
   }
 
   Future<void> _applyArtworkAndThemeToChangedFiles(
@@ -1673,6 +1750,7 @@ class ScannerService extends ChangeNotifier {
       _logScanTiming('stage 0 permissions', permissionsStopwatch);
 
       if (hasPermission) {
+        final rootScanSessionId = DateTime.now().microsecondsSinceEpoch;
         final scanState = ScanProgressState(
           metadataConcurrency: 4,
           comparePaths: _compareNaturally,
@@ -1685,11 +1763,6 @@ class ScannerService extends ChangeNotifier {
 
         for (final path in scanRoots) {
           debugPrint('Starting scan at: $path');
-
-          final rootFolder = MusicFolder(
-            path: path,
-            name: _displayNameForPath(path),
-          );
 
           if (Platform.isAndroid) {
             await _timeScanStep(
@@ -1704,109 +1777,43 @@ class ScannerService extends ChangeNotifier {
             );
           }
 
-          await _timeScanStep(
+          final discoveredPaths = await _timeScanStep(
             'stage 1.2 directory traversal for $path',
-            () => _directoryScanner.scanDirectoryInto(
-              rootFolder,
-              path,
-              scanState,
-              notifyListeners: notifyListeners,
-            ),
+            () => _discoverAndBuildRootFolder(path, scanState),
           );
 
-          _upsertScannedRootFolder(rootFolder);
+          await _processDiscoveredPaths(
+            discoveredPaths,
+            scanState,
+            rootScanSessionId,
+          );
+
           _rebuildDisplayedRootFolders();
           notifyListeners();
         }
 
-        final discoveredPaths = _timeScanStepSync(
-          'stage 1.3 collect discovered paths',
-          () => scanState.pendingMetadataPaths.toList(growable: false),
-        );
-        final classification = await _timeScanStep(
-          'stage 2 classify discovered files',
-          () => _classifyDiscoveredFiles(discoveredPaths),
-        );
-        _timeScanStepSync('stage 2.1 seed metadata from db', () {
-          _seedMetadataFromDatabase(classification.existingMetadataByPath);
-        });
-
-        final fullPaths = classification.pathsFor(ScanFileStage.full);
-        final imageOnlyPaths = classification.pathsFor(ScanFileStage.imageOnly);
-
-        await _timeScanStep(
-          'stage 3 preprocess text tags',
-          () => _preprocessChangedFiles(
-            fullPaths,
-            scanState,
-            existingMetadataByPath: classification.existingMetadataByPath,
-          ),
-        );
-
-        await _timeScanStep(
-          'stage 4 preprocess artwork/theme',
-          () => _applyArtworkAndThemeToChangedFiles([
-            ...fullPaths,
-            ...imageOnlyPaths,
-          ], scanState),
-        );
-
-        final presentPaths = _timeScanStepSync(
-          'stage 5 collect present paths',
-          () {
-            return scanState.pendingMetadataPaths.toSet();
-          },
-        );
-        final normalizedPresentPaths = _timeScanStepSync(
-          'stage 5.1 normalize present paths',
-          () => presentPaths
+        final presentPaths = _timeScanStepSync('stage 5 collect present paths', () {
+          return scanState.pendingMetadataPaths
               .map(_normalizePath)
               .where((path) => path.isNotEmpty)
-              .toSet(),
-        );
-        final presentPathIndex = _timeScanStepSync(
-          'stage 5.2 build present index',
-          () => Platform.isWindows
-              ? normalizedPresentPaths.map((path) => path.toLowerCase()).toSet()
-              : normalizedPresentPaths,
-        );
-        final missingPaths = _timeScanStepSync(
-          'stage 5.3 detect missing paths',
-          () {
-            final result = <String>[];
-            for (final path in _metadataStore.metadataMap.keys) {
-              final normalizedPath = _normalizePath(path);
-              if (!_roots.rootPaths.any(
-                (root) => _pathContains(root, normalizedPath),
-              )) {
-                continue;
-              }
-              final lookupKey = Platform.isWindows
-                  ? normalizedPath.toLowerCase()
-                  : normalizedPath;
-              if (!presentPathIndex.contains(lookupKey)) {
-                result.add(normalizedPath);
-              }
-            }
-            return result;
-          },
+              .toSet();
+        });
+        final missingPaths = await _timeScanStep(
+          'stage 5.1 finalize root scan session',
+          () => MetadataDatabase().finalizeRootScanSession(
+            sessionId: rootScanSessionId,
+            sourceMask: SongSourceFlags.rootScan,
+            scopeRoots: scanRoots,
+          ),
         );
         _timeScanStepSync('stage 5.4 notify missing states', () {
-          for (final path in normalizedPresentPaths) {
+          for (final path in presentPaths) {
             _notifySongMissingState(path, false);
           }
           for (final path in missingPaths) {
             _notifySongMissingState(path, true);
           }
         });
-        await _timeScanStep(
-          'stage 5.5 delete missing db rows',
-          () => MetadataDatabase().syncSongSourcePresence(
-            sourceMask: SongSourceFlags.rootScan,
-            scopeRoots: _roots.rootPaths,
-            presentPaths: presentPaths,
-          ),
-        );
       } else {
         debugPrint('Scan aborted: Permission not granted.');
       }

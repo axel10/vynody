@@ -390,11 +390,18 @@ class MetadataDatabase {
   Stream<SongMetadata?> watchSongMetadata(String path) =>
       _db.watchSongMetadata(path);
 
-  Future<void> insertOrUpdateSong(SongMetadata song) =>
-      _db.insertOrUpdateSong(song);
+  Future<void> insertOrUpdateSong(
+    SongMetadata song, {
+    int? rootScanSessionId,
+  }) => _db.insertOrUpdateSong(song, rootScanSessionId: rootScanSessionId);
 
-  Future<void> insertOrUpdateSongsMerged(Iterable<SongMetadata> songs) =>
-      _db.insertOrUpdateSongsMerged(songs);
+  Future<void> insertOrUpdateSongsMerged(
+    Iterable<SongMetadata> songs, {
+    int? rootScanSessionId,
+  }) => _db.insertOrUpdateSongsMerged(
+    songs,
+    rootScanSessionId: rootScanSessionId,
+  );
 
   Future<void> insertOrUpdateLyricsCache(LyricsCacheRecord record) =>
       _db.insertOrUpdateLyricsCache(record);
@@ -491,6 +498,26 @@ class MetadataDatabase {
   }) => _db.syncSongSourcePresence(
     sourceMask: sourceMask,
     presentPaths: presentPaths,
+        scopeRoots: scopeRoots,
+      );
+
+  Future<void> markRootScanSeen(
+    Iterable<String> paths, {
+    required int sessionId,
+    required int sourceMask,
+  }) => _db.markRootScanSeen(
+    paths,
+    sessionId: sessionId,
+    sourceMask: sourceMask,
+  );
+
+  Future<List<String>> finalizeRootScanSession({
+    required int sessionId,
+    required int sourceMask,
+    required Iterable<String> scopeRoots,
+  }) => _db.finalizeRootScanSession(
+    sessionId: sessionId,
+    sourceMask: sourceMask,
     scopeRoots: scopeRoots,
   );
 

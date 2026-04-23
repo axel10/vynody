@@ -209,6 +209,17 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _lastSeenRootScanSessionIdMeta =
+      const VerificationMeta('lastSeenRootScanSessionId');
+  @override
+  late final GeneratedColumn<int> lastSeenRootScanSessionId =
+      GeneratedColumn<int>(
+        'lastSeenRootScanSessionId',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -230,6 +241,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     metadataImgScanned,
     createdAt,
     genres,
+    lastSeenRootScanSessionId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -389,6 +401,15 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         genres.isAcceptableOrUnknown(data['genres']!, _genresMeta),
       );
     }
+    if (data.containsKey('lastSeenRootScanSessionId')) {
+      context.handle(
+        _lastSeenRootScanSessionIdMeta,
+        lastSeenRootScanSessionId.isAcceptableOrUnknown(
+          data['lastSeenRootScanSessionId']!,
+          _lastSeenRootScanSessionIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -474,6 +495,10 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         DriftSqlType.string,
         data['${effectivePrefix}genres'],
       ),
+      lastSeenRootScanSessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lastSeenRootScanSessionId'],
+      ),
     );
   }
 
@@ -503,6 +528,7 @@ class Song extends DataClass implements Insertable<Song> {
   final int? metadataImgScanned;
   final int? createdAt;
   final String? genres;
+  final int? lastSeenRootScanSessionId;
   const Song({
     required this.id,
     required this.path,
@@ -523,6 +549,7 @@ class Song extends DataClass implements Insertable<Song> {
     this.metadataImgScanned,
     this.createdAt,
     this.genres,
+    this.lastSeenRootScanSessionId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -579,6 +606,11 @@ class Song extends DataClass implements Insertable<Song> {
     }
     if (!nullToAbsent || genres != null) {
       map['genres'] = Variable<String>(genres);
+    }
+    if (!nullToAbsent || lastSeenRootScanSessionId != null) {
+      map['lastSeenRootScanSessionId'] = Variable<int>(
+        lastSeenRootScanSessionId,
+      );
     }
     return map;
   }
@@ -638,6 +670,10 @@ class Song extends DataClass implements Insertable<Song> {
       genres: genres == null && nullToAbsent
           ? const Value.absent()
           : Value(genres),
+      lastSeenRootScanSessionId:
+          lastSeenRootScanSessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSeenRootScanSessionId),
     );
   }
 
@@ -668,6 +704,9 @@ class Song extends DataClass implements Insertable<Song> {
       metadataImgScanned: serializer.fromJson<int?>(json['metadataImgScanned']),
       createdAt: serializer.fromJson<int?>(json['createdAt']),
       genres: serializer.fromJson<String?>(json['genres']),
+      lastSeenRootScanSessionId: serializer.fromJson<int?>(
+        json['lastSeenRootScanSessionId'],
+      ),
     );
   }
   @override
@@ -693,6 +732,9 @@ class Song extends DataClass implements Insertable<Song> {
       'metadataImgScanned': serializer.toJson<int?>(metadataImgScanned),
       'createdAt': serializer.toJson<int?>(createdAt),
       'genres': serializer.toJson<String?>(genres),
+      'lastSeenRootScanSessionId': serializer.toJson<int?>(
+        lastSeenRootScanSessionId,
+      ),
     };
   }
 
@@ -716,6 +758,7 @@ class Song extends DataClass implements Insertable<Song> {
     Value<int?> metadataImgScanned = const Value.absent(),
     Value<int?> createdAt = const Value.absent(),
     Value<String?> genres = const Value.absent(),
+    Value<int?> lastSeenRootScanSessionId = const Value.absent(),
   }) => Song(
     id: id ?? this.id,
     path: path ?? this.path,
@@ -748,6 +791,9 @@ class Song extends DataClass implements Insertable<Song> {
         : this.metadataImgScanned,
     createdAt: createdAt.present ? createdAt.value : this.createdAt,
     genres: genres.present ? genres.value : this.genres,
+    lastSeenRootScanSessionId: lastSeenRootScanSessionId.present
+        ? lastSeenRootScanSessionId.value
+        : this.lastSeenRootScanSessionId,
   );
   Song copyWithCompanion(SongsCompanion data) {
     return Song(
@@ -792,6 +838,9 @@ class Song extends DataClass implements Insertable<Song> {
           : this.metadataImgScanned,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       genres: data.genres.present ? data.genres.value : this.genres,
+      lastSeenRootScanSessionId: data.lastSeenRootScanSessionId.present
+          ? data.lastSeenRootScanSessionId.value
+          : this.lastSeenRootScanSessionId,
     );
   }
 
@@ -816,7 +865,8 @@ class Song extends DataClass implements Insertable<Song> {
           ..write('metadataTextScanned: $metadataTextScanned, ')
           ..write('metadataImgScanned: $metadataImgScanned, ')
           ..write('createdAt: $createdAt, ')
-          ..write('genres: $genres')
+          ..write('genres: $genres, ')
+          ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
   }
@@ -842,6 +892,7 @@ class Song extends DataClass implements Insertable<Song> {
     metadataImgScanned,
     createdAt,
     genres,
+    lastSeenRootScanSessionId,
   );
   @override
   bool operator ==(Object other) =>
@@ -868,7 +919,8 @@ class Song extends DataClass implements Insertable<Song> {
           other.metadataTextScanned == this.metadataTextScanned &&
           other.metadataImgScanned == this.metadataImgScanned &&
           other.createdAt == this.createdAt &&
-          other.genres == this.genres);
+          other.genres == this.genres &&
+          other.lastSeenRootScanSessionId == this.lastSeenRootScanSessionId);
 }
 
 class SongsCompanion extends UpdateCompanion<Song> {
@@ -891,6 +943,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
   final Value<int?> metadataImgScanned;
   final Value<int?> createdAt;
   final Value<String?> genres;
+  final Value<int?> lastSeenRootScanSessionId;
   const SongsCompanion({
     this.id = const Value.absent(),
     this.path = const Value.absent(),
@@ -911,6 +964,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.metadataImgScanned = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.genres = const Value.absent(),
+    this.lastSeenRootScanSessionId = const Value.absent(),
   });
   SongsCompanion.insert({
     this.id = const Value.absent(),
@@ -932,6 +986,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.metadataImgScanned = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.genres = const Value.absent(),
+    this.lastSeenRootScanSessionId = const Value.absent(),
   }) : path = Value(path);
   static Insertable<Song> custom({
     Expression<int>? id,
@@ -953,6 +1008,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Expression<int>? metadataImgScanned,
     Expression<int>? createdAt,
     Expression<String>? genres,
+    Expression<int>? lastSeenRootScanSessionId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -975,6 +1031,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
       if (metadataImgScanned != null) 'metadataImgScanned': metadataImgScanned,
       if (createdAt != null) 'createdAt': createdAt,
       if (genres != null) 'genres': genres,
+      if (lastSeenRootScanSessionId != null)
+        'lastSeenRootScanSessionId': lastSeenRootScanSessionId,
     });
   }
 
@@ -998,6 +1056,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Value<int?>? metadataImgScanned,
     Value<int?>? createdAt,
     Value<String?>? genres,
+    Value<int?>? lastSeenRootScanSessionId,
   }) {
     return SongsCompanion(
       id: id ?? this.id,
@@ -1019,6 +1078,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
       metadataImgScanned: metadataImgScanned ?? this.metadataImgScanned,
       createdAt: createdAt ?? this.createdAt,
       genres: genres ?? this.genres,
+      lastSeenRootScanSessionId:
+          lastSeenRootScanSessionId ?? this.lastSeenRootScanSessionId,
     );
   }
 
@@ -1082,6 +1143,11 @@ class SongsCompanion extends UpdateCompanion<Song> {
     if (genres.present) {
       map['genres'] = Variable<String>(genres.value);
     }
+    if (lastSeenRootScanSessionId.present) {
+      map['lastSeenRootScanSessionId'] = Variable<int>(
+        lastSeenRootScanSessionId.value,
+      );
+    }
     return map;
   }
 
@@ -1106,7 +1172,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
           ..write('metadataTextScanned: $metadataTextScanned, ')
           ..write('metadataImgScanned: $metadataImgScanned, ')
           ..write('createdAt: $createdAt, ')
-          ..write('genres: $genres')
+          ..write('genres: $genres, ')
+          ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
   }
@@ -4893,6 +4960,7 @@ typedef $$SongsTableCreateCompanionBuilder =
       Value<int?> metadataImgScanned,
       Value<int?> createdAt,
       Value<String?> genres,
+      Value<int?> lastSeenRootScanSessionId,
     });
 typedef $$SongsTableUpdateCompanionBuilder =
     SongsCompanion Function({
@@ -4915,6 +4983,7 @@ typedef $$SongsTableUpdateCompanionBuilder =
       Value<int?> metadataImgScanned,
       Value<int?> createdAt,
       Value<String?> genres,
+      Value<int?> lastSeenRootScanSessionId,
     });
 
 class $$SongsTableFilterComposer
@@ -5018,6 +5087,11 @@ class $$SongsTableFilterComposer
 
   ColumnFilters<String> get genres => $composableBuilder(
     column: $table.genres,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSeenRootScanSessionId => $composableBuilder(
+    column: $table.lastSeenRootScanSessionId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5125,6 +5199,11 @@ class $$SongsTableOrderingComposer
     column: $table.genres,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get lastSeenRootScanSessionId => $composableBuilder(
+    column: $table.lastSeenRootScanSessionId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SongsTableAnnotationComposer
@@ -5214,6 +5293,11 @@ class $$SongsTableAnnotationComposer
 
   GeneratedColumn<String> get genres =>
       $composableBuilder(column: $table.genres, builder: (column) => column);
+
+  GeneratedColumn<int> get lastSeenRootScanSessionId => $composableBuilder(
+    column: $table.lastSeenRootScanSessionId,
+    builder: (column) => column,
+  );
 }
 
 class $$SongsTableTableManager
@@ -5263,6 +5347,7 @@ class $$SongsTableTableManager
                 Value<int?> metadataImgScanned = const Value.absent(),
                 Value<int?> createdAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
+                Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion(
                 id: id,
                 path: path,
@@ -5283,6 +5368,7 @@ class $$SongsTableTableManager
                 metadataImgScanned: metadataImgScanned,
                 createdAt: createdAt,
                 genres: genres,
+                lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           createCompanionCallback:
               ({
@@ -5305,6 +5391,7 @@ class $$SongsTableTableManager
                 Value<int?> metadataImgScanned = const Value.absent(),
                 Value<int?> createdAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
+                Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion.insert(
                 id: id,
                 path: path,
@@ -5325,6 +5412,7 @@ class $$SongsTableTableManager
                 metadataImgScanned: metadataImgScanned,
                 createdAt: createdAt,
                 genres: genres,
+                lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

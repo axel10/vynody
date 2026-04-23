@@ -61,6 +61,40 @@ class ScannerTreeBuilder {
     );
   }
 
+  MusicFolder buildFolderTreeFromFilePaths(
+    Iterable<String> filePaths,
+    int Function(String a, String b) compareNaturally, {
+    required String rootPath,
+    required String rootName,
+    SongMetadata? Function(String path)? metadataForPath,
+  }) {
+    final items = <_FolderItem>[];
+    for (final filePath in filePaths) {
+      final normalizedPath = _normalizePath(filePath);
+      if (normalizedPath.isEmpty) continue;
+
+      final metadata = metadataForPath?.call(normalizedPath);
+      final folderPath = _folderPathFromMetadataPath(
+        normalizedPath,
+        rootPath: rootPath,
+        isSystem: rootPath == 'system',
+      );
+      items.add(
+        _FolderItem(
+          file: _musicFileFromPath(normalizedPath, metadata: metadata),
+          folderPath: folderPath,
+        ),
+      );
+    }
+
+    return _buildFolderTree(
+      items,
+      compareNaturally,
+      rootPath: rootPath,
+      rootName: rootName,
+    );
+  }
+
   void collectFilePaths(MusicFolder folder, Set<String> out) {
     for (final file in folder.files) {
       out.add(_normalizePath(file.path));
@@ -179,6 +213,25 @@ class ScannerTreeBuilder {
       themeColorsBlob: song.themeColorsBlob,
       waveformBlob: song.waveformBlob,
       lastModifiedTime: song.lastModifiedTime,
+    );
+  }
+
+  MusicFile _musicFileFromPath(String path, {SongMetadata? metadata}) {
+    return MusicFile(
+      path: path,
+      name: p.basename(path),
+      title: _cleanText(metadata?.title),
+      artist: _cleanText(metadata?.artist),
+      album: _cleanText(metadata?.album),
+      trackNumber: metadata?.trackNumber,
+      durationMillis: metadata?.duration,
+      thumbnailPath: metadata?.thumbnailPath,
+      artworkPath: metadata?.artworkPath,
+      artworkWidth: metadata?.artworkWidth,
+      artworkHeight: metadata?.artworkHeight,
+      themeColorsBlob: metadata?.themeColorsBlob,
+      waveformBlob: metadata?.waveformBlob,
+      lastModifiedTime: metadata?.lastModifiedTime,
     );
   }
 

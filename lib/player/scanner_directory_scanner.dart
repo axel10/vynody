@@ -1,131 +1,241 @@
+import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:path/path.dart' as p;
 
-import '../models/music_file.dart';
-import '../models/music_folder.dart';
-import 'metadata_database.dart';
 import 'music_file_utils.dart';
 import 'scanner_scan_support.dart';
 
 class ScannerDirectoryScanner {
   ScannerDirectoryScanner({
-    required String Function(String path) displayNameForPath,
-    required bool Function(String left, String right) pathsEqual,
-    required int Function(String a, String b) compareNaturally,
     required void Function(ScanProgressState scanState, String filePath)
     emitScanProgress,
-    required SongMetadata? Function(String path) metadataForPath,
-  }) : _displayNameForPath = displayNameForPath,
-       _pathsEqual = pathsEqual,
-       _compareNaturally = compareNaturally,
-       _emitScanProgress = emitScanProgress,
-       _metadataForPath = metadataForPath;
+  }) : _emitScanProgress = emitScanProgress;
 
-  final String Function(String path) _displayNameForPath;
-  final bool Function(String left, String right) _pathsEqual;
-  final int Function(String a, String b) _compareNaturally;
   final void Function(ScanProgressState scanState, String filePath)
   _emitScanProgress;
-  final SongMetadata? Function(String path) _metadataForPath;
 
-  Future<bool> scanDirectoryInto(
-    MusicFolder folder,
+  Future<List<String>> discoverMusicFiles(
     String path,
-    ScanProgressState scanState, {
-    required void Function() notifyListeners,
-  }) async {
-    final dir = Directory(path);
-    if (!await dir.exists()) {
-      return false;
+    ScanProgressState scanState,
+  ) async {
+    try {
+      return await _discoverMusicFilesWithIsolate(path, scanState);
+    } catch (_) {
+      return _discoverMusicFilesInline(path, scanState);
+    }
+  }
+
+  Future<List<String>> _discoverMusicFilesWithIsolate(
+    String path,
+    ScanProgressState scanState,
+  ) async {
+    final receivePort = ReceivePort();
+    final errorPort = ReceivePort();
+    final exitPort = ReceivePort();
+    final discoveredPaths = <String>[];
+
+    Isolate? isolate;
+    try {
+      isolate = await Isolate.spawn<_DirectoryDiscoveryRequest>(
+        _discoverMusicFilesIsolateEntry,
+        _DirectoryDiscoveryRequest(
+          rootPath: path,
+          replyPort: receivePort.sendPort,
+        ),
+        onError: errorPort.sendPort,
+        onExit: exitPort.sendPort,
+        errorsAreFatal: true,
+      );
+
+      final completer = Completer<List<String>>();
+      late final StreamSubscription receiveSub;
+      late final StreamSubscription errorSub;
+      late final StreamSubscription exitSub;
+      var finished = false;
+
+      void completeSuccess() {
+        if (finished) return;
+        finished = true;
+        completer.complete(discoveredPaths);
+      }
+
+      void completeError(Object error, [StackTrace? st]) {
+        if (finished) return;
+        finished = true;
+        completer.completeError(error, st);
+      }
+
+      receiveSub = receivePort.listen((message) {
+        if (message is! Map) {
+          return;
+        }
+        final type = message['type'];
+        if (type == _DirectoryDiscoveryMessage.batchType) {
+          final rawPaths = message['paths'];
+          if (rawPaths is! List) {
+            return;
+          }
+          final batch = rawPaths.whereType<String>().toList(growable: false);
+          if (batch.isEmpty) {
+            return;
+          }
+          discoveredPaths.addAll(batch);
+          scanState.pendingMetadataPaths.addAll(batch);
+          scanState.discoveredCount += batch.length;
+          _emitScanProgress(scanState, batch.last);
+          return;
+        }
+        if (type == _DirectoryDiscoveryMessage.doneType) {
+          completeSuccess();
+        }
+      });
+
+      errorSub = errorPort.listen((message) {
+        if (message is List && message.isNotEmpty) {
+          final error = message.first;
+          final stackTrace = message.length > 1 && message[1] is String
+              ? StackTrace.fromString(message[1] as String)
+              : null;
+          completeError(
+            error is Object ? error : Exception(error.toString()),
+            stackTrace,
+          );
+          return;
+        }
+        completeError(Exception('Directory discovery isolate failed.'));
+      });
+
+      exitSub = exitPort.listen((_) {
+        if (!finished) {
+          completeError(Exception('Directory discovery isolate exited early.'));
+        }
+      });
+
+      try {
+        return await completer.future;
+      } finally {
+        await receiveSub.cancel();
+        await errorSub.cancel();
+        await exitSub.cancel();
+      }
+    } finally {
+      receivePort.close();
+      errorPort.close();
+      exitPort.close();
+      isolate?.kill(priority: Isolate.immediate);
+    }
+  }
+
+  Future<List<String>> _discoverMusicFilesInline(
+    String path,
+    ScanProgressState scanState,
+  ) async {
+    final rootDir = Directory(path);
+    if (!await rootDir.exists()) {
+      return const <String>[];
     }
 
-    bool hasContent = false;
+    const yieldEvery = 256;
+    final pendingDirectories = ListQueue<String>()..add(path);
+    final discoveredPaths = <String>[];
+    var processedEntries = 0;
 
+    while (pendingDirectories.isNotEmpty) {
+      final currentPath = pendingDirectories.removeFirst();
+      final dir = Directory(currentPath);
+      try {
+        await for (final entity in dir.list(followLinks: false)) {
+          if (entity is Directory) {
+            if (p.basename(entity.path).startsWith('.')) {
+              continue;
+            }
+            pendingDirectories.add(entity.path);
+          } else if (entity is File &&
+              MusicFileUtils.isMusicFilePath(entity.path)) {
+            final filePath = entity.path;
+            discoveredPaths.add(filePath);
+            scanState.pendingMetadataPaths.add(filePath);
+            scanState.discoveredCount++;
+            _emitScanProgress(scanState, filePath);
+          }
+
+          processedEntries++;
+          if (processedEntries % yieldEvery == 0) {
+            await Future<void>.delayed(Duration.zero);
+          }
+        }
+      } catch (_) {
+        // Swallow and continue scanning sibling paths; caller handles logging.
+      }
+    }
+
+    return discoveredPaths;
+  }
+}
+
+class _DirectoryDiscoveryRequest {
+  const _DirectoryDiscoveryRequest({
+    required this.rootPath,
+    required this.replyPort,
+  });
+
+  final String rootPath;
+  final SendPort replyPort;
+}
+
+class _DirectoryDiscoveryMessage {
+  static const String batchType = 'batch';
+  static const String doneType = 'done';
+}
+
+Future<void> _discoverMusicFilesIsolateEntry(
+  _DirectoryDiscoveryRequest request,
+) async {
+  final rootDir = Directory(request.rootPath);
+  if (!await rootDir.exists()) {
+    request.replyPort.send(const {'type': _DirectoryDiscoveryMessage.doneType});
+    return;
+  }
+
+  const batchSize = 128;
+  final pendingDirectories = ListQueue<String>()..add(request.rootPath);
+  final batch = <String>[];
+
+  while (pendingDirectories.isNotEmpty) {
+    final currentPath = pendingDirectories.removeFirst();
+    final dir = Directory(currentPath);
     try {
-      final List<FileSystemEntity> entities = await dir
-          .list(followLinks: false)
-          .toList();
-
-      final directories = <Directory>[];
-      final audioFiles = <File>[];
-
-      for (var entity in entities) {
+      await for (final entity in dir.list(followLinks: false)) {
         if (entity is Directory) {
-          if (p.basename(entity.path).startsWith('.')) continue;
-          directories.add(entity);
-        } else if (entity is File) {
-          if (MusicFileUtils.isMusicFilePath(entity.path)) {
-            audioFiles.add(entity);
+          if (p.basename(entity.path).startsWith('.')) {
+            continue;
+          }
+          pendingDirectories.add(entity.path);
+        } else if (entity is File &&
+            MusicFileUtils.isMusicFilePath(entity.path)) {
+          batch.add(entity.path);
+          if (batch.length >= batchSize) {
+            request.replyPort.send({
+              'type': _DirectoryDiscoveryMessage.batchType,
+              'paths': List<String>.from(batch),
+            });
+            batch.clear();
           }
         }
       }
-
-      directories.sort((a, b) => _compareNaturally(a.path, b.path));
-      audioFiles.sort((a, b) => _compareNaturally(a.path, b.path));
-
-      for (final entity in audioFiles) {
-        final filePath = entity.path;
-        final metadata = _metadataForPath(filePath);
-        folder.files.add(
-          MusicFile(
-            path: filePath,
-            name: p.basename(filePath),
-            title: metadata?.title,
-            artist: metadata?.artist,
-            album: metadata?.album,
-            trackNumber: metadata?.trackNumber,
-            id: null,
-            durationMillis: metadata?.duration,
-            thumbnailPath: metadata?.thumbnailPath,
-            artworkPath: metadata?.artworkPath,
-            artworkWidth: metadata?.artworkWidth,
-            artworkHeight: metadata?.artworkHeight,
-            themeColorsBlob: metadata?.themeColorsBlob,
-            waveformBlob: metadata?.waveformBlob,
-            lastModifiedTime: metadata?.lastModifiedTime,
-          ),
-        );
-        scanState.discoveredCount++;
-        _emitScanProgress(scanState, filePath);
-        hasContent = true;
-        scanState.pendingMetadataPaths.add(filePath);
-      }
-
-      for (final entity in directories) {
-        final subFolder = MusicFolder(
-          path: entity.path,
-          name: _displayNameForPath(entity.path),
-        );
-        folder.subFolders.add(subFolder);
-        final subFolderHasContent = await scanDirectoryInto(
-          subFolder,
-          entity.path,
-          scanState,
-          notifyListeners: notifyListeners,
-        );
-        if (subFolderHasContent) {
-          hasContent = true;
-        } else {
-          folder.subFolders.removeWhere(
-            (existing) => _pathsEqual(existing.path, subFolder.path),
-          );
-          notifyListeners();
-        }
-      }
     } catch (_) {
-      // Swallow and continue scanning sibling paths; caller handles logging.
-    }
-
-    _sortFolderRecursive(folder);
-    return hasContent;
-  }
-
-  void _sortFolderRecursive(MusicFolder folder) {
-    folder.subFolders.sort((a, b) => _compareNaturally(a.name, b.name));
-    folder.files.sort((a, b) => _compareNaturally(a.name, b.name));
-    for (final sub in folder.subFolders) {
-      _sortFolderRecursive(sub);
+      // Ignore unreadable directories and continue with siblings.
     }
   }
+
+  if (batch.isNotEmpty) {
+    request.replyPort.send({
+      'type': _DirectoryDiscoveryMessage.batchType,
+      'paths': List<String>.from(batch),
+    });
+  }
+  request.replyPort.send(const {'type': _DirectoryDiscoveryMessage.doneType});
 }
