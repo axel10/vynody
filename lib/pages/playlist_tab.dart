@@ -264,6 +264,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
             Expanded(
               child: ReorderableListView.builder(
                 buildDefaultDragHandles: false,
+                cacheExtent: 1000,
                 padding: const EdgeInsets.only(bottom: 160),
                 itemCount: currentPlaylist.songs.length,
                 onReorder: (oldIndex, newIndex) {

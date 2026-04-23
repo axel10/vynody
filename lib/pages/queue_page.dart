@@ -274,6 +274,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               Expanded(
                 child: ReorderableListView.builder(
                   buildDefaultDragHandles: false,
+                  cacheExtent: 1000,
                   padding: const EdgeInsets.only(bottom: 160),
                   itemCount: _viewIndex == 1
                       ? randomHistory.length

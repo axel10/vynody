@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../player/audio_riverpod.dart';
+import '../player/audio_service.dart';
 import '../player/library_insights_service.dart';
+import '../player/playlist_service.dart';
 import '../utils/song_context_menu_utils.dart';
 import 'song_thumbnail.dart';
 
@@ -128,103 +130,160 @@ class LibraryRankedSongList extends ConsumerWidget {
                     ),
                   ),
                 )
-              : ListView.separated(
+                : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 140),
                   itemCount: items.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final entry = items[index];
-                    final song = entry.song;
-                    return Card(
-                      margin: EdgeInsets.zero,
-                      elevation: 0,
-                      color: theme.colorScheme.surfaceContainerLow,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () {
-                          audio.playPlaylist(
-                            items
-                                .map((item) => item.song)
-                                .toList(growable: false),
-                            initialIndex: index,
-                          );
-                        },
-                        onLongPress: () async {
-                          await showAddSongsToPlaylistDialog(
-                            context,
-                            playlistService,
-                            [song],
-                          );
-                        },
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onSecondaryTapDown: (details) async {
-                            await showSongContextMenu(
-                              context,
-                              details.globalPosition,
-                              song: song,
-                              onAddToPlaylist: () =>
-                                  showAddSongsToPlaylistDialog(
-                                    context,
-                                    playlistService,
-                                    [song],
-                                  ),
-                            );
-                          },
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            leading: SizedBox(
-                              width: 72,
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 24,
-                                    child: Text(
-                                      '${index + 1}',
-                                      style: theme.textTheme.labelLarge
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  SongThumbnail(
-                                    path: song.path,
-                                    id: song.id,
-                                    size: 40,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            title: Text(
-                              song.displayName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              _songSubtitle(l10n, song),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: ConstrainedBox(
-                              constraints: const BoxConstraints(minWidth: 96),
-                              child: trailingBuilder(context, entry),
-                            ),
+                  cacheExtent: 1000,
+                  prototypeItem: items.isNotEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _SongListItem(
+                            entry: items.first,
+                            index: 0,
+                            l10n: l10n,
+                            audio: audio,
+                            playlistService: playlistService,
+                            items: items,
+                            trailingBuilder: trailingBuilder,
                           ),
-                        ),
+                        )
+                      : null,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _SongListItem(
+                        entry: items[index],
+                        index: index,
+                        l10n: l10n,
+                        audio: audio,
+                        playlistService: playlistService,
+                        items: items,
+                        trailingBuilder: trailingBuilder,
                       ),
                     );
                   },
                 ),
         ),
       ],
+    );
+  }
+
+  String _timeRangeLabel(AppLocalizations l10n, LibraryTimeRange range) {
+    return switch (range) {
+      LibraryTimeRange.allTime => l10n.allTime,
+      LibraryTimeRange.last7Days => l10n.pastWeek,
+      LibraryTimeRange.last30Days => l10n.pastMonth,
+      LibraryTimeRange.last90Days => l10n.past90Days,
+    };
+  }
+}
+
+class _SongListItem extends StatelessWidget {
+  const _SongListItem({
+    required this.entry,
+    required this.index,
+    required this.l10n,
+    required this.audio,
+    required this.playlistService,
+    required this.items,
+    required this.trailingBuilder,
+  });
+
+  final LibraryInsightSongEntry entry;
+  final int index;
+  final AppLocalizations l10n;
+  final AudioService audio;
+  final PlaylistService playlistService;
+  final List<LibraryInsightSongEntry> items;
+  final Widget Function(BuildContext, LibraryInsightSongEntry) trailingBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final song = entry.song;
+
+    return RepaintBoundary(
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        color: theme.colorScheme.surfaceContainerLow,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            audio.playPlaylist(
+              items.map((item) => item.song).toList(growable: false),
+              initialIndex: index,
+            );
+          },
+          onLongPress: () async {
+            await showAddSongsToPlaylistDialog(
+              context,
+              playlistService,
+              [song],
+            );
+          },
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: (details) async {
+              await showSongContextMenu(
+                context,
+                details.globalPosition,
+                song: song,
+                onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                  context,
+                  playlistService,
+                  [song],
+                ),
+              );
+            },
+            child: ListTile(
+              isThreeLine: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              leading: SizedBox(
+                width: 72,
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        '${index + 1}',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SongThumbnail(
+                      path: song.path,
+                      id: song.id,
+                      size: 40,
+                    ),
+                  ],
+                ),
+              ),
+              title: Text(
+                song.displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                _songSubtitle(l10n, song),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 96),
+                child: trailingBuilder(context, entry),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -236,15 +295,6 @@ class LibraryRankedSongList extends ConsumerWidget {
         ? song.album!.trim()
         : l10n.unknownAlbum;
     return '$artist · $album';
-  }
-
-  String _timeRangeLabel(AppLocalizations l10n, LibraryTimeRange range) {
-    return switch (range) {
-      LibraryTimeRange.allTime => l10n.allTime,
-      LibraryTimeRange.last7Days => l10n.pastWeek,
-      LibraryTimeRange.last30Days => l10n.pastMonth,
-      LibraryTimeRange.last90Days => l10n.past90Days,
-    };
   }
 }
 

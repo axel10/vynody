@@ -74,6 +74,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
             };
 
             return CustomScrollView(
+              cacheExtent: 1000,
               slivers: [
                 SliverToBoxAdapter(
                   child: _ArtistsToolbar(

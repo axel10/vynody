@@ -423,6 +423,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 child: ReorderableListView.builder(
                   buildDefaultDragHandles: false,
                   scrollController: _scrollController,
+                  cacheExtent: 1000,
                   padding: EdgeInsets.only(bottom: rootListBottomPadding),
                   itemCount: rootFolders.length,
                   onReorder: (oldIndex, newIndex) {
@@ -569,6 +570,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
+                cacheExtent: 1000,
                 padding: const EdgeInsets.only(bottom: 160),
                 itemCount:
                     1 +

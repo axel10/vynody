@@ -80,6 +80,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
             };
 
             return CustomScrollView(
+              cacheExtent: 1000,
               slivers: [
                 SliverToBoxAdapter(
                   child: _AlbumsToolbar(
