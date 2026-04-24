@@ -129,3 +129,13 @@ class ScanFileClassification {
         .toList(growable: false);
   }
 }
+
+class ScanPreprocessResult {
+  const ScanPreprocessResult({
+    required this.keptPaths,
+    required this.artworkPendingPaths,
+  });
+
+  final List<String> keptPaths;
+  final List<String> artworkPendingPaths;
+}

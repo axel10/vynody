@@ -51,11 +51,9 @@ packages:
   audio_metadata_reader:
     dependency: "direct main"
     description:
-      path: "."
-      ref: main
-      resolved-ref: "58c77f8db96d85123c5f2f99ba079dfeb1acc63c"
-      url: "https://github.com/axel10/audio_metadata_reader"
-    source: git
+      path: "../audio_metadata_reader"
+      relative: true
+    source: path
     version: "1.4.2"
   audio_service:
     dependency: "direct main"
