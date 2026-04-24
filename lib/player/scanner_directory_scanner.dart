@@ -9,6 +9,11 @@ import 'package:path/path.dart' as p;
 import 'music_file_utils.dart';
 import 'scanner_scan_support.dart';
 
+const Set<String> _windowsProtectedDirectoryNames = {
+  r'$recycle.bin',
+  'system volume information',
+};
+
 class ScannerDirectoryScanner {
   ScannerDirectoryScanner({
     required void Function(ScanProgressState scanState, String filePath)
@@ -57,6 +62,9 @@ class ScannerDirectoryScanner {
     ScanProgressState scanState, {
     bool Function()? shouldCancel,
   }) async {
+    debugPrint(
+      '[ScannerDirectoryScanner] spawning discovery isolate path=$path',
+    );
     final receivePort = ReceivePort();
     final errorPort = ReceivePort();
     final exitPort = ReceivePort();
@@ -84,8 +92,28 @@ class ScannerDirectoryScanner {
       late final StreamSubscription exitSub;
       late final StreamSubscription cancelSub;
       var finished = false;
-      var cancelRequested = false;
+      var cancelPending = false;
+      var cancelSignalSent = false;
       SendPort? isolateCancelPort;
+
+      void requestCancel() {
+        if (cancelSignalSent) {
+          return;
+        }
+        cancelPending = true;
+        if (isolateCancelPort == null) {
+          debugPrint(
+            '[ScannerDirectoryScanner] cancel requested before isolate '
+            'port ready path=$path',
+          );
+          return;
+        }
+        cancelSignalSent = true;
+        isolateCancelPort!.send(true);
+        debugPrint(
+          '[ScannerDirectoryScanner] cancel signal sent to isolate path=$path',
+        );
+      }
 
       void completeSuccess() {
         if (finished) return;
@@ -102,6 +130,17 @@ class ScannerDirectoryScanner {
       cancelSub = cancelPort.listen((message) {
         if (message is SendPort) {
           isolateCancelPort = message;
+          debugPrint(
+            '[ScannerDirectoryScanner] isolate cancel port ready path=$path',
+          );
+          if (cancelPending && !cancelSignalSent) {
+            cancelSignalSent = true;
+            isolateCancelPort!.send(true);
+            debugPrint(
+              '[ScannerDirectoryScanner] pending cancel delivered '
+              'to isolate path=$path',
+            );
+          }
         }
       });
 
@@ -109,9 +148,8 @@ class ScannerDirectoryScanner {
         if (message is! Map) {
           return;
         }
-        if ((shouldCancel?.call() ?? false) && !cancelRequested) {
-          cancelRequested = true;
-          isolateCancelPort?.send(true);
+        if (shouldCancel?.call() ?? false) {
+          requestCancel();
         }
         final type = message['type'];
         if (type == _DirectoryDiscoveryMessage.batchType) {
@@ -156,12 +194,11 @@ class ScannerDirectoryScanner {
 
       if (shouldCancel != null) {
         cancelTimer = Timer.periodic(const Duration(milliseconds: 80), (_) {
-          if (finished || cancelRequested) {
+          if (finished || cancelSignalSent) {
             return;
           }
           if (shouldCancel()) {
-            cancelRequested = true;
-            isolateCancelPort?.send(true);
+            requestCancel();
           }
         });
       }
@@ -223,7 +260,7 @@ class ScannerDirectoryScanner {
             return discoveredPaths;
           }
           if (entity is Directory) {
-            if (p.basename(entity.path).startsWith('.')) {
+            if (_shouldSkipDirectory(entity.path)) {
               continue;
             }
             pendingDirectories.add(entity.path);
@@ -272,6 +309,9 @@ class _DirectoryDiscoveryMessage {
 Future<void> _discoverMusicFilesIsolateEntry(
   _DirectoryDiscoveryRequest request,
 ) async {
+  debugPrint(
+    '[ScannerDirectoryScanner] isolate entry start path=${request.rootPath}',
+  );
   final cancelReceivePort = ReceivePort();
   request.cancelPort.send(cancelReceivePort.sendPort);
   var cancelled = false;
@@ -305,7 +345,7 @@ Future<void> _discoverMusicFilesIsolateEntry(
           break;
         }
         if (entity is Directory) {
-          if (p.basename(entity.path).startsWith('.')) {
+          if (_shouldSkipDirectory(entity.path)) {
             continue;
           }
           pendingDirectories.add(entity.path);
@@ -344,4 +384,19 @@ Future<void> _discoverMusicFilesIsolateEntry(
     );
   }
   request.replyPort.send(const {'type': _DirectoryDiscoveryMessage.doneType});
+}
+
+bool _shouldSkipDirectory(String path) {
+  final name = p.basename(path);
+  if (name.isEmpty) {
+    return false;
+  }
+  if (name.startsWith('.')) {
+    return true;
+  }
+  if (Platform.isWindows &&
+      _windowsProtectedDirectoryNames.contains(name.toLowerCase())) {
+    return true;
+  }
+  return false;
 }
