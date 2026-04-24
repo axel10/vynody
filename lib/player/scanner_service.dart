@@ -203,10 +203,10 @@ class ScannerService extends ChangeNotifier {
 
   Future<bool> _shouldRunArtworkScanForFile(
     String filePath, {
+    required bool hasArtwork,
     required bool hasMetadataError,
-    Uint8List? artworkBytes,
   }) async {
-    if (artworkBytes != null && artworkBytes.isNotEmpty) {
+    if (hasArtwork) {
       return true;
     }
     if (!hasMetadataError) {
@@ -1359,7 +1359,7 @@ class ScannerService extends ChangeNotifier {
       final readStopwatch = Stopwatch()..start();
       final results = await MetadataHelper.readMetadataBatch(
         chunk,
-        getImage: true,
+        getImage: false,
       );
       if (shouldCancel?.call() ?? false) {
         flushSkippedPaths();
@@ -1401,12 +1401,12 @@ class ScannerService extends ChangeNotifier {
             skippedPaths.add(filePath);
             continue;
           }
-          final artworkBytes = result['artworkBytes'] as Uint8List?;
+          final hasArtwork = result['hasArtwork'] as bool? ?? false;
           final hasMetadataError = (result['error'] as String?) != null;
           final shouldRunArtworkScan = await _shouldRunArtworkScanForFile(
             filePath,
+            hasArtwork: hasArtwork,
             hasMetadataError: hasMetadataError,
-            artworkBytes: artworkBytes,
           );
           if (!shouldRunArtworkScan) {
             final processedAt =
@@ -1481,7 +1481,7 @@ class ScannerService extends ChangeNotifier {
       final chunk = sortedPaths.sublist(start, end);
       final results = await MetadataHelper.readMetadataBatch(
         chunk,
-        getImage: true,
+        getImage: false,
       );
       if (shouldCancel?.call() ?? false) {
         return artworkPendingPaths;
@@ -1505,12 +1505,12 @@ class ScannerService extends ChangeNotifier {
             continue;
           }
 
-          final artworkBytes = result['artworkBytes'] as Uint8List?;
+          final hasArtwork = result['hasArtwork'] as bool? ?? false;
           final hasMetadataError = (result['error'] as String?) != null;
           final shouldRunArtworkScan = await _shouldRunArtworkScanForFile(
             filePath,
+            hasArtwork: hasArtwork,
             hasMetadataError: hasMetadataError,
-            artworkBytes: artworkBytes,
           );
           if (shouldRunArtworkScan) {
             artworkPendingPaths.add(filePath);

@@ -641,11 +641,14 @@ class MetadataHelper {
   /// 探测文件内是否存在内嵌封面，不生成任何缓存文件。
   static Future<bool> hasEmbeddedArtwork(String filePath) async {
     try {
-      // final metadata = await compute(readMetadataWithImageIsolate, filePath);
-      final metadata = await readMetadataWithImageIsolate(filePath);
-      if (metadata.pictures.isEmpty) return false;
-      final bytes = metadata.pictures.first.bytes;
-      return bytes.isNotEmpty;
+      final metadata = readMetadataIsolate(filePath);
+      return metadata.hasArtwork;
+    } on MetadataParserException catch (_) {
+      // Probe-only API: tagless or slightly malformed files should behave like
+      // "no artwork" here instead of polluting logs.
+      return false;
+    } on NoMetadataParserException catch (_) {
+      return false;
     } catch (e) {
       debugPrint('Error probing embedded artwork for $filePath: $e');
       return false;
@@ -693,6 +696,7 @@ class MetadataHelper {
               'duration': metadata.duration?.inMilliseconds,
               'trackNumber': metadata.trackNumber,
               'lastModifiedTime': lastModified,
+              'hasArtwork': metadata.hasArtwork,
               'artworkBytes': getImage && metadata.pictures.isNotEmpty
                   ? metadata.pictures.first.bytes
                   : null,
@@ -708,6 +712,7 @@ class MetadataHelper {
               'duration': null,
               'trackNumber': null,
               'lastModifiedTime': lastModified,
+              'hasArtwork': false,
               'artworkBytes': null,
               'error': e.toString(),
             };
