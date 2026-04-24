@@ -116,6 +116,10 @@ dev_dependencies:
   freezed: ^3.2.5
   json_serializable: ^6.9.5
 
+dependency_overrides:
+  audio_core:
+    path: audio_core
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

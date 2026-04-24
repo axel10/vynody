@@ -12,7 +12,6 @@ import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:collection/collection.dart';
-import 'package:worker_manager/worker_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
@@ -28,6 +27,7 @@ import 'scanner_service_roots.dart';
 import 'scanner_scan_support.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
+import 'theme_color_helper.dart';
 import '../utils/localized_text.dart';
 
 export 'scanner_scan_support.dart';
@@ -1886,9 +1886,13 @@ class ScannerService extends ChangeNotifier {
 
     final sortedPaths = imageOnlyPaths.toList()..sort(_compareNaturally);
     final totalStopwatch = Stopwatch()..start();
+    final supportDir = await getApplicationSupportDirectory();
+    final controller = _playerController ?? AudioCoreController();
+    if (!controller.isInitialized) {
+      await controller.initialize();
+    }
 
     try {
-      final supportDir = await getApplicationSupportDirectory();
       const batchSize = 6;
       for (var start = 0; start < sortedPaths.length; start += batchSize) {
         if (shouldCancel?.call() ?? false) {
@@ -1902,8 +1906,9 @@ class ScannerService extends ChangeNotifier {
 
         await Future.wait(
           batch.map(
-            (filePath) => _processArtworkAndThemeWithWorker(
+            (filePath) => _processArtworkAndThemeWithAudioCore(
               filePath: filePath,
+              controller: controller,
               supportDirPath: supportDir.path,
               scanState: scanState,
               shouldCancel: shouldCancel,
@@ -1914,41 +1919,21 @@ class ScannerService extends ChangeNotifier {
         _logScanTiming('stage 4 batch ${start + 1}-$end total', batchStopwatch);
       }
     } catch (e) {
-      debugPrint('Worker artwork scan failed, falling back to serial mode: $e');
-      final db = MetadataDatabase();
+      debugPrint(
+        'AudioCore artwork scan failed, falling back to serial mode: $e',
+      );
       final fallbackStopwatch = Stopwatch()..start();
       for (final filePath in sortedPaths) {
         if (shouldCancel?.call() ?? false) {
           return;
         }
-        try {
-          final baseMetadata =
-              _metadataStore.getMetadata(filePath) ??
-              await db.getSongMetadata(filePath);
-          if (baseMetadata == null) {
-            continue;
-          }
-
-          final artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(
-            filePath,
-          );
-          final updatedMetadata =
-              await MetadataHelper.applyArtworkAndThemeToMetadata(
-                metadata: baseMetadata,
-                artworkBytes: artworkBytes,
-                saveLarge: !Platform.isWindows,
-              );
-
-          if (updatedMetadata != null) {
-            await db.insertOrUpdateSong(updatedMetadata);
-            _metadataStore.cacheMetadata(updatedMetadata);
-          }
-          scanState.completedCount++;
-        } catch (inner) {
-          debugPrint('Artwork/theme scan error for $filePath: $inner');
-        } finally {
-          _emitScanProgress(scanState, filePath);
-        }
+        await _processArtworkAndThemeWithAudioCore(
+          filePath: filePath,
+          controller: controller,
+          supportDirPath: supportDir.path,
+          scanState: scanState,
+          shouldCancel: shouldCancel,
+        );
       }
       fallbackStopwatch.stop();
       _logScanTiming('stage 4 fallback serial total', fallbackStopwatch);
@@ -1958,8 +1943,9 @@ class ScannerService extends ChangeNotifier {
     _logScanTiming('stage 4 preprocess artwork/theme total', totalStopwatch);
   }
 
-  Future<void> _processArtworkAndThemeWithWorker({
+  Future<void> _processArtworkAndThemeWithAudioCore({
     required String filePath,
+    required AudioCoreController controller,
     required String supportDirPath,
     required ScanProgressState scanState,
     bool Function()? shouldCancel,
@@ -1978,38 +1964,64 @@ class ScannerService extends ChangeNotifier {
         return;
       }
 
-      final workerStopwatch = Stopwatch()..start();
-      final result = await workerManager.execute<Map<String, dynamic>?>(
-        () => processArtworkThumbnailWorkerTask({
-          'filePath': filePath,
-          'supportDirPath': supportDirPath,
-          'saveLarge': !Platform.isWindows,
-          'baseMetadata': baseMetadata.toMap(),
-        }),
-        priority: WorkPriority.immediately,
+      final nativeStopwatch = Stopwatch()..start();
+      final processedAt =
+          baseMetadata.lastModifiedTime ??
+          DateTime.now().millisecondsSinceEpoch;
+
+      final artwork = await controller.generateTrackArtwork(
+        path: filePath,
+        cacheRootPath: supportDirPath,
+        saveLargeArtwork: !Platform.isWindows,
+        thumbnailSize: 200,
       );
-      workerStopwatch.stop();
-      _logScanTiming('stage 4 worker $filePath', workerStopwatch);
+      nativeStopwatch.stop();
+      _logScanTiming('stage 4 native artwork $filePath', nativeStopwatch);
 
       if (shouldCancel?.call() ?? false) {
         return;
       }
-      if (result == null) {
-        return;
-      }
 
-      final metadataMap = result['metadata'] as Map<String, dynamic>?;
-      if (metadataMap == null) {
-        return;
-      }
+      var updatedMetadata = baseMetadata.copyWith(
+        artworkPath: artwork.artworkPath,
+        thumbnailPath: artwork.thumbnailPath,
+        artworkWidth: artwork.artworkWidth,
+        artworkHeight: artwork.artworkHeight,
+        metadataImgScanned: artwork.artworkFound ? null : processedAt,
+      );
 
-      var updatedMetadata = SongMetadata.fromMap(metadataMap);
+      if (artwork.artworkFound && artwork.themeColorsBlob != null) {
+        updatedMetadata = updatedMetadata.copyWith(
+          themeColorsBlob: artwork.themeColorsBlob,
+          metadataImgScanned: processedAt,
+        );
+      } else if (artwork.artworkFound &&
+          artwork.thumbnailPath != null &&
+          artwork.thumbnailPath!.trim().isNotEmpty) {
+        final paletteStopwatch = Stopwatch()..start();
+        final palette = await ThemeColorHelper.generatePalette(
+          path: artwork.thumbnailPath,
+        );
+        paletteStopwatch.stop();
+        _logScanTiming('stage 4 palette $filePath', paletteStopwatch);
+
+        if (palette.colorsMap.isNotEmpty) {
+          updatedMetadata = updatedMetadata.copyWith(
+            themeColorsBlob: ThemeColorHelper.colorsMapToBlob(
+              palette.colorsMap,
+            ),
+            metadataImgScanned: processedAt,
+          );
+        }
+      }
 
       await db.insertOrUpdateSong(updatedMetadata);
       _metadataStore.cacheMetadata(updatedMetadata);
-      scanState.completedCount++;
+      if (updatedMetadata.metadataImgScanned == processedAt) {
+        scanState.completedCount++;
+      }
     } catch (e) {
-      debugPrint('Worker artwork/theme scan error for $filePath: $e');
+      debugPrint('AudioCore artwork/theme scan error for $filePath: $e');
     } finally {
       totalStopwatch.stop();
       _logScanTiming('stage 4 item $filePath total', totalStopwatch);
