@@ -90,6 +90,9 @@ class ScannerServiceRoots {
     if (_isDisposed()) return;
 
     final desiredRoots = ScannerPathUtils.computeScanRoots(_rootPaths);
+    debugPrint(
+      '[ScannerServiceRoots] refreshRootWatchers desiredRoots=$desiredRoots',
+    );
     final desiredKeys = desiredRoots
         .map(ScannerPathUtils.pathLookupKey)
         .toSet();
@@ -109,51 +112,61 @@ class ScannerServiceRoots {
 
     for (final root in desiredRoots) {
       final directory = Directory(root);
-      if (!directory.existsSync()) {
-        continue;
-      }
+      try {
+        if (!directory.existsSync()) {
+          debugPrint(
+            '[ScannerServiceRoots] skip watcher for missing root=$root',
+          );
+          continue;
+        }
 
-      final key = ScannerPathUtils.pathLookupKey(root);
-      _rootWatchSubscriptions[key] = directory
-          .watch(recursive: true)
-          .listen(
-            (event) {
-              if ((event.type & FileSystemEvent.delete) != 0 ||
-                  (event.type & FileSystemEvent.move) != 0) {
-                if (MusicFileUtils.isMusicFilePath(event.path)) {
-                  _notifySongMissingState(event.path, true);
-                }
-              } else if ((event.type & FileSystemEvent.create) != 0 &&
-                  MusicFileUtils.isMusicFilePath(event.path)) {
-                _notifySongMissingState(event.path, false);
-              }
-
-              if (event is FileSystemMoveEvent) {
-                final destination = event.destination?.trim() ?? '';
-                if (destination.isNotEmpty &&
-                    MusicFileUtils.isMusicFilePath(destination)) {
-                  _notifySongMissingState(destination, false);
-                  _onFileEvent(FileSystemCreateEvent(destination, false));
-                }
-              }
-
-              if (event.isDirectory) {
+        final key = ScannerPathUtils.pathLookupKey(root);
+        _rootWatchSubscriptions[key] = directory
+            .watch(recursive: true)
+            .listen(
+              (event) {
                 if ((event.type & FileSystemEvent.delete) != 0 ||
                     (event.type & FileSystemEvent.move) != 0) {
+                  if (MusicFileUtils.isMusicFilePath(event.path)) {
+                    _notifySongMissingState(event.path, true);
+                  }
+                } else if ((event.type & FileSystemEvent.create) != 0 &&
+                    MusicFileUtils.isMusicFilePath(event.path)) {
+                  _notifySongMissingState(event.path, false);
+                }
+
+                if (event is FileSystemMoveEvent) {
+                  final destination = event.destination?.trim() ?? '';
+                  if (destination.isNotEmpty &&
+                      MusicFileUtils.isMusicFilePath(destination)) {
+                    _notifySongMissingState(destination, false);
+                    _onFileEvent(FileSystemCreateEvent(destination, false));
+                  }
+                }
+
+                if (event.isDirectory) {
+                  if ((event.type & FileSystemEvent.delete) != 0 ||
+                      (event.type & FileSystemEvent.move) != 0) {
+                    _onFileEvent(event);
+                  }
+                  return;
+                }
+
+                if (event.path.trim().isNotEmpty &&
+                    MusicFileUtils.isMusicFilePath(event.path)) {
                   _onFileEvent(event);
                 }
-                return;
-              }
-
-              if (event.path.trim().isNotEmpty &&
-                  MusicFileUtils.isMusicFilePath(event.path)) {
-                _onFileEvent(event);
-              }
-            },
-            onError: (err) {
-              debugPrint('Root watcher error for $root: $err');
-            },
-          );
+              },
+              onError: (err) {
+                debugPrint('Root watcher error for $root: $err');
+              },
+            );
+        debugPrint('[ScannerServiceRoots] watcher attached root=$root');
+      } catch (e, st) {
+        debugPrint(
+          '[ScannerServiceRoots] failed to attach watcher root=$root: $e\n$st',
+        );
+      }
     }
   }
 

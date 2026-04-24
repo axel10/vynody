@@ -192,3 +192,4 @@ msix_config:
   output_name: VibeFlow
   output_path: build/windows/msix
   install_certificate: false
+  capabilities: "fileWideCustomCapabilities, rescap:runFullTrust"

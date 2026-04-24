@@ -478,6 +478,10 @@ class ScannerService extends ChangeNotifier {
   Future<void> removeRootPaths(Iterable<String> paths) async {
     final normalizedTargets = _normalizeDeclaredRootPaths(paths);
     if (normalizedTargets.isEmpty) return;
+    debugPrint(
+      '[ScannerService] removeRootPaths requested=$normalizedTargets '
+      'currentRoots=${_roots.rootPaths} isScanning=$_isScanning',
+    );
 
     if (_supportsPersistentAccess) {
       for (final path in normalizedTargets) {
@@ -497,6 +501,10 @@ class ScannerService extends ChangeNotifier {
     _rebuildDisplayedRootFolders();
     _syncNavigationStateToLatestTree();
     notifyListeners();
+    debugPrint(
+      '[ScannerService] removeRootPaths applied '
+      'remainingRoots=${_roots.rootPaths}',
+    );
 
     _suppressNextMetadataWatchRefresh = true;
     await MetadataDatabase().syncSongSourcePresence(
@@ -1648,6 +1656,10 @@ class ScannerService extends ChangeNotifier {
   }
 
   void _scheduleRootPathRescan() {
+    debugPrint(
+      '[ScannerService] root path rescan scheduled '
+      'pending=$_pendingRootPathRescan currentRoots=${_roots.rootPaths}',
+    );
     _pendingRootPathRescan = true;
   }
 
@@ -1658,31 +1670,71 @@ class ScannerService extends ChangeNotifier {
 
   bool _isScanTicketStillValid(RootScanTicket ticket) {
     if (!_isScanRootStillActive(ticket.rootPath)) {
+      debugPrint(
+        '[ScannerService] scan ticket invalid: root no longer active '
+        'path=${ticket.rootPath} generation=${ticket.generation}',
+      );
       return false;
     }
     final currentGeneration = _rootGenerationForPath(ticket.rootPath);
     if (currentGeneration != ticket.generation) {
+      debugPrint(
+        '[ScannerService] scan ticket invalid: generation changed '
+        'path=${ticket.rootPath} ticket=${ticket.generation} '
+        'current=$currentGeneration',
+      );
       return false;
     }
-    return Directory(ticket.rootPath).existsSync();
+    try {
+      final exists = Directory(ticket.rootPath).existsSync();
+      if (!exists) {
+        debugPrint(
+          '[ScannerService] scan ticket invalid: root no longer exists '
+          'path=${ticket.rootPath}',
+        );
+      }
+      return exists;
+    } catch (e, st) {
+      debugPrint(
+        '[ScannerService] scan ticket invalid: existsSync failed '
+        'path=${ticket.rootPath}: $e\n$st',
+      );
+      return false;
+    }
   }
 
-  Future<List<String>> _discoverAndBuildRootFolder(
+  Future<List<String>> _discoverRootFilePaths(
     String rootPath,
     ScanProgressState scanState,
     RootScanTicket ticket,
   ) async {
     if (!_isScanTicketStillValid(ticket)) {
+      debugPrint(
+        '[ScannerService] skip directory traversal for stale root '
+        'path=$rootPath',
+      );
       return const <String>[];
     }
+    debugPrint(
+      '[ScannerService] begin directory traversal path=$rootPath '
+      'generation=${ticket.generation}',
+    );
     final discoveredPaths = await _directoryScanner.discoverMusicFiles(
       rootPath,
       scanState,
       shouldCancel: () => !_isScanTicketStillValid(ticket),
     );
+    debugPrint(
+      '[ScannerService] directory traversal finished path=$rootPath '
+      'count=${discoveredPaths.length}',
+    );
     if (!_isScanTicketStillValid(ticket)) {
       _scannedRootFolders.removeWhere(
         (existing) => _pathsEqual(existing.path, rootPath),
+      );
+      debugPrint(
+        '[ScannerService] discard traversal result for stale root '
+        'path=$rootPath',
       );
       return const <String>[];
     }
@@ -1690,23 +1742,50 @@ class ScannerService extends ChangeNotifier {
       _scannedRootFolders.removeWhere(
         (existing) => _pathsEqual(existing.path, rootPath),
       );
+      debugPrint(
+        '[ScannerService] traversal found no music files path=$rootPath',
+      );
       return const <String>[];
+    }
+    return discoveredPaths;
+  }
+
+  void _rebuildScannedRootFolderFromMetadata(
+    String rootPath,
+    Iterable<String> discoveredPaths,
+  ) {
+    final metadataByLookupKey = <String, SongMetadata>{};
+    for (final path in discoveredPaths) {
+      final normalizedPath = _normalizePath(path);
+      if (normalizedPath.isEmpty) {
+        continue;
+      }
+      final metadata =
+          _metadataStore.getMetadata(normalizedPath) ??
+          _metadataStore.getMetadata(path);
+      if (metadata == null) {
+        continue;
+      }
+      metadataByLookupKey[_pathLookupKey(normalizedPath)] = metadata;
+    }
+
+    if (metadataByLookupKey.isEmpty) {
+      _scannedRootFolders.removeWhere(
+        (existing) => _pathsEqual(existing.path, rootPath),
+      );
+      return;
     }
 
     final rootFolder = _timeScanStepSync(
-      'stage 1.2.1 build tree for $rootPath',
-      () => _treeBuilder.buildFolderTreeFromFilePaths(
-        discoveredPaths,
+      'stage 4.2 build metadata tree for $rootPath',
+      () => _treeBuilder.buildFolderTreeFromMetadata(
+        metadataByLookupKey.values,
         _compareNaturally,
         rootPath: rootPath,
         rootName: _displayNameForPath(rootPath),
-        metadataForPath: (path) =>
-            _metadataStore.getMetadata(_normalizePath(path)) ??
-            _metadataStore.getMetadata(path),
       ),
     );
     _upsertScannedRootFolder(rootFolder);
-    return discoveredPaths;
   }
 
   Future<void> _processDiscoveredPaths(
@@ -1773,6 +1852,12 @@ class ScannerService extends ChangeNotifier {
         sourceMask: SongSourceFlags.rootScan,
       ),
     );
+    if (!_isScanTicketStillValid(ticket)) {
+      return;
+    }
+    _timeScanStepSync('stage 4.2 rebuild root tree from metadata', () {
+      _rebuildScannedRootFolderFromMetadata(ticket.rootPath, discoveredPaths);
+    });
     if (!_isScanTicketStillValid(ticket)) {
       return;
     }
@@ -1973,6 +2058,10 @@ class ScannerService extends ChangeNotifier {
           final roots = _computeScanRoots(requestedRoots);
           roots.sort(_compareNaturally);
           _ensureRootPathGenerations(roots);
+          debugPrint(
+            '[ScannerService] scan root discovery requested=$requestedRoots '
+            'resolved=$roots currentRoots=${_roots.rootPaths}',
+          );
           return roots
               .map(
                 (root) => RootScanTicket(
@@ -2008,7 +2097,11 @@ class ScannerService extends ChangeNotifier {
 
           final discoveredPaths = await _timeScanStep(
             'stage 1.2 directory traversal for $path',
-            () => _discoverAndBuildRootFolder(path, scanState, ticket),
+            () => _discoverRootFilePaths(path, scanState, ticket),
+          );
+          debugPrint(
+            '[ScannerService] traversal stage returned path=$path '
+            'count=${discoveredPaths.length}',
           );
 
           if (!_isScanTicketStillValid(ticket)) {
@@ -2087,6 +2180,10 @@ class ScannerService extends ChangeNotifier {
       _logScanTiming('scan total', totalStopwatch);
 
       if (_pendingRootPathRescan && !_isDisposed) {
+        debugPrint(
+          '[ScannerService] running deferred root rescan '
+          'currentRoots=${_roots.rootPaths}',
+        );
         _pendingRootPathRescan = false;
         await scan();
       }

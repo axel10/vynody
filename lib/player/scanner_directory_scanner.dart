@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import 'music_file_utils.dart';
@@ -22,18 +23,32 @@ class ScannerDirectoryScanner {
     ScanProgressState scanState, {
     bool Function()? shouldCancel,
   }) async {
+    debugPrint('[ScannerDirectoryScanner] discoverMusicFiles start path=$path');
     try {
-      return await _discoverMusicFilesWithIsolate(
+      final discoveredPaths = await _discoverMusicFilesWithIsolate(
         path,
         scanState,
         shouldCancel: shouldCancel,
       );
-    } catch (_) {
-      return _discoverMusicFilesInline(
+      debugPrint(
+        '[ScannerDirectoryScanner] discoverMusicFiles finished via isolate '
+        'path=$path count=${discoveredPaths.length}',
+      );
+      return discoveredPaths;
+    } catch (e, st) {
+      debugPrint(
+        '[ScannerDirectoryScanner] isolate discovery failed for $path: $e\n$st',
+      );
+      final discoveredPaths = await _discoverMusicFilesInline(
         path,
         scanState,
         shouldCancel: shouldCancel,
       );
+      debugPrint(
+        '[ScannerDirectoryScanner] discoverMusicFiles finished via inline '
+        'path=$path count=${discoveredPaths.length}',
+      );
+      return discoveredPaths;
     }
   }
 
@@ -176,6 +191,9 @@ class ScannerDirectoryScanner {
   }) async {
     final rootDir = Directory(path);
     if (!await rootDir.exists()) {
+      debugPrint(
+        '[ScannerDirectoryScanner] inline discovery skipped missing path=$path',
+      );
       return const <String>[];
     }
 
@@ -186,6 +204,10 @@ class ScannerDirectoryScanner {
 
     while (pendingDirectories.isNotEmpty) {
       if (shouldCancel?.call() ?? false) {
+        debugPrint(
+          '[ScannerDirectoryScanner] inline discovery cancelled before next '
+          'directory path=$path discovered=${discoveredPaths.length}',
+        );
         break;
       }
       final currentPath = pendingDirectories.removeFirst();
@@ -193,6 +215,11 @@ class ScannerDirectoryScanner {
       try {
         await for (final entity in dir.list(followLinks: false)) {
           if (shouldCancel?.call() ?? false) {
+            debugPrint(
+              '[ScannerDirectoryScanner] inline discovery cancelled during '
+              'listing root=$path current=$currentPath '
+              'discovered=${discoveredPaths.length}',
+            );
             return discoveredPaths;
           }
           if (entity is Directory) {
@@ -213,8 +240,11 @@ class ScannerDirectoryScanner {
             await Future<void>.delayed(Duration.zero);
           }
         }
-      } catch (_) {
-        // Swallow and continue scanning sibling paths; caller handles logging.
+      } catch (e, st) {
+        debugPrint(
+          '[ScannerDirectoryScanner] inline discovery list error '
+          'root=$path current=$currentPath: $e\n$st',
+        );
       }
     }
 
@@ -252,6 +282,10 @@ Future<void> _discoverMusicFilesIsolateEntry(
 
   final rootDir = Directory(request.rootPath);
   if (!await rootDir.exists()) {
+    debugPrint(
+      '[ScannerDirectoryScanner] isolate discovery skipped missing '
+      'path=${request.rootPath}',
+    );
     await cancelSub.cancel();
     cancelReceivePort.close();
     request.replyPort.send(const {'type': _DirectoryDiscoveryMessage.doneType});
@@ -287,8 +321,11 @@ Future<void> _discoverMusicFilesIsolateEntry(
           }
         }
       }
-    } catch (_) {
-      // Ignore unreadable directories and continue with siblings.
+    } catch (e, st) {
+      debugPrint(
+        '[ScannerDirectoryScanner] isolate discovery list error '
+        'root=${request.rootPath} current=$currentPath: $e\n$st',
+      );
     }
   }
 
@@ -300,5 +337,11 @@ Future<void> _discoverMusicFilesIsolateEntry(
   }
   await cancelSub.cancel();
   cancelReceivePort.close();
+  if (cancelled) {
+    debugPrint(
+      '[ScannerDirectoryScanner] isolate discovery cancelled '
+      'path=${request.rootPath}',
+    );
+  }
   request.replyPort.send(const {'type': _DirectoryDiscoveryMessage.doneType});
 }
