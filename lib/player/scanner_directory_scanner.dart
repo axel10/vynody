@@ -7,22 +7,13 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import 'music_file_utils.dart';
+import 'scanner_path_utils.dart';
 import 'scanner_scan_support.dart';
 
 const Set<String> _windowsProtectedDirectoryNames = {
   r'$recycle.bin',
   'system volume information',
 };
-
-bool _isLikelyPackagedWindowsApp() {
-  if (!Platform.isWindows) return false;
-  try {
-    final executablePath = Platform.resolvedExecutable.replaceAll('/', r'\');
-    return executablePath.toLowerCase().contains(r'\windowsapps\');
-  } catch (_) {
-    return false;
-  }
-}
 
 class ScannerDirectoryScanner {
   ScannerDirectoryScanner({
@@ -32,8 +23,8 @@ class ScannerDirectoryScanner {
 
   final void Function(ScanProgressState scanState, String filePath)
   _emitScanProgress;
-  final bool _preferComputeDiscoveryOnWindowsPackage =
-      _isLikelyPackagedWindowsApp();
+  final bool _useInlineDiscoveryOnWindowsPackage =
+      ScannerPathUtils.isLikelyPackagedWindowsApp();
 
   Future<List<String>> discoverMusicFiles(
     String path,
@@ -41,38 +32,21 @@ class ScannerDirectoryScanner {
     bool Function()? shouldCancel,
   }) async {
     debugPrint('[ScannerDirectoryScanner] discoverMusicFiles start path=$path');
-    if (_preferComputeDiscoveryOnWindowsPackage) {
+    if (_useInlineDiscoveryOnWindowsPackage) {
       debugPrint(
         '[ScannerDirectoryScanner] packaged Windows app detected, '
-        'using compute discovery path=$path',
+        'using inline discovery path=$path',
       );
-      try {
-        final discoveredPaths = await _discoverMusicFilesWithCompute(
-          path,
-          scanState,
-          shouldCancel: shouldCancel,
-        );
-        debugPrint(
-          '[ScannerDirectoryScanner] discoverMusicFiles finished via compute '
-          'path=$path count=${discoveredPaths.length}',
-        );
-        return discoveredPaths;
-      } catch (e, st) {
-        debugPrint(
-          '[ScannerDirectoryScanner] compute discovery failed for $path: '
-          '$e\n$st',
-        );
-        final discoveredPaths = await _discoverMusicFilesInline(
-          path,
-          scanState,
-          shouldCancel: shouldCancel,
-        );
-        debugPrint(
-          '[ScannerDirectoryScanner] discoverMusicFiles finished via inline '
-          'path=$path count=${discoveredPaths.length}',
-        );
-        return discoveredPaths;
-      }
+      final discoveredPaths = await _discoverMusicFilesInline(
+        path,
+        scanState,
+        shouldCancel: shouldCancel,
+      );
+      debugPrint(
+        '[ScannerDirectoryScanner] discoverMusicFiles finished via inline '
+        'path=$path count=${discoveredPaths.length}',
+      );
+      return discoveredPaths;
     }
     try {
       final discoveredPaths = await _discoverMusicFilesWithIsolate(
@@ -266,40 +240,6 @@ class ScannerDirectoryScanner {
     }
   }
 
-  Future<List<String>> _discoverMusicFilesWithCompute(
-    String path,
-    ScanProgressState scanState, {
-    bool Function()? shouldCancel,
-  }) async {
-    if (shouldCancel?.call() ?? false) {
-      debugPrint(
-        '[ScannerDirectoryScanner] compute discovery cancelled before start '
-        'path=$path',
-      );
-      return const <String>[];
-    }
-
-    final discoveredPaths = await compute(
-      _discoverMusicFilesComputeEntry,
-      path,
-      debugLabel: 'directory_discovery',
-    );
-
-    if (shouldCancel?.call() ?? false) {
-      debugPrint(
-        '[ScannerDirectoryScanner] compute discovery cancelled after finish '
-        'path=$path count=${discoveredPaths.length}',
-      );
-      return const <String>[];
-    }
-
-    if (discoveredPaths.isNotEmpty) {
-      scanState.discoveredCount += discoveredPaths.length;
-      _emitScanProgress(scanState, discoveredPaths.last);
-    }
-    return discoveredPaths;
-  }
-
   Future<List<String>> _discoverMusicFilesInline(
     String path,
     ScanProgressState scanState, {
@@ -463,58 +403,6 @@ Future<void> _discoverMusicFilesIsolateEntry(
     );
   }
   request.replyPort.send(const {'type': _DirectoryDiscoveryMessage.doneType});
-}
-
-Future<List<String>> _discoverMusicFilesComputeEntry(String rootPath) async {
-  debugPrint(
-    '[ScannerDirectoryScanner] compute entry start path=$rootPath',
-  );
-  final rootDir = Directory(rootPath);
-  if (!await rootDir.exists()) {
-    debugPrint(
-      '[ScannerDirectoryScanner] compute discovery skipped missing '
-      'path=$rootPath',
-    );
-    return const <String>[];
-  }
-
-  final pendingDirectories = ListQueue<String>()..add(rootPath);
-  final discoveredPaths = <String>[];
-  var processedDirectories = 0;
-
-  while (pendingDirectories.isNotEmpty) {
-    final currentPath = pendingDirectories.removeFirst();
-    final dir = Directory(currentPath);
-    try {
-      await for (final entity in dir.list(followLinks: false)) {
-        if (entity is Directory) {
-          if (_shouldSkipDirectory(entity.path)) {
-            continue;
-          }
-          pendingDirectories.add(entity.path);
-        } else if (entity is File &&
-            MusicFileUtils.isMusicFilePath(entity.path)) {
-          discoveredPaths.add(entity.path);
-        }
-      }
-    } catch (e, st) {
-      debugPrint(
-        '[ScannerDirectoryScanner] compute discovery list error '
-        'root=$rootPath current=$currentPath: $e\n$st',
-      );
-    }
-
-    processedDirectories++;
-    if (processedDirectories % 256 == 0) {
-      debugPrint(
-        '[ScannerDirectoryScanner] compute discovery progress '
-        'root=$rootPath directories=$processedDirectories '
-        'discovered=${discoveredPaths.length}',
-      );
-    }
-  }
-
-  return discoveredPaths;
 }
 
 bool _shouldSkipDirectory(String path) {

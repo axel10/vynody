@@ -457,7 +457,7 @@ class ScannerService extends ChangeNotifier {
     if (_isScanning) {
       _scheduleRootPathRescan();
     } else {
-      await scan();
+      await scan(targetRoots: [normalizedPath]);
     }
 
     final addedFolder = _rootFolders.firstWhereOrNull(

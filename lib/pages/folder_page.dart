@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
@@ -275,12 +276,50 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     super.dispose();
   }
 
+  Future<String?> _getDirectoryPath() {
+    if (Platform.isWindows) {
+      debugPrint('[FoldersPage] picking directory with file_selector');
+      return file_selector.getDirectoryPath();
+    }
+
+    debugPrint('[FoldersPage] picking directory with file_picker');
+    return FilePicker.platform.getDirectoryPath(lockParentWindow: true);
+  }
+
   Future<void> _pickFolder(ScannerService scanner) async {
-    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    // 记住当前的工作目录，因为 Windows 原生目录选择器可能会改变它。
+    // MSIX 下对话框返回后的短时间内尤其敏感，后续逻辑要尽量轻。
+    Directory? cwd;
+    try {
+      cwd = Directory.current;
+    } catch (_) {}
+
+    final selectedDirectory = await _getDirectoryPath();
+    debugPrint(
+      '[FoldersPage] directory picker returned '
+      'hasSelection=${selectedDirectory != null}',
+    );
+
+    // 恢复工作目录
+    if (cwd != null) {
+      try {
+        Directory.current = cwd;
+      } catch (_) {}
+    }
+
     if (selectedDirectory != null) {
       if (!mounted) return;
 
+      // 给 Windows 一点时间完全关闭对话框并释放 COM 资源，避免卡死
+      if (Platform.isWindows) {
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+
+      debugPrint('[FoldersPage] adding selected root path=$selectedDirectory');
       final result = await scanner.addRootPath(selectedDirectory);
+      debugPrint(
+        '[FoldersPage] add root path completed status=${result.status}',
+      );
 
       if (!mounted) return;
       String message;

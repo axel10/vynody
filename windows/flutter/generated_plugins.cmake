@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   dart_chromaprint
   desktop_drop
+  file_selector_windows
   permission_handler_windows
   screen_retriever_windows
   sqlite3_flutter_libs

@@ -3,6 +3,16 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 class ScannerPathUtils {
+  static bool isLikelyPackagedWindowsApp() {
+    if (!Platform.isWindows) return false;
+    try {
+      final executablePath = Platform.resolvedExecutable.replaceAll('/', r'\');
+      return executablePath.toLowerCase().contains(r'\windowsapps\');
+    } catch (_) {
+      return false;
+    }
+  }
+
   static String normalizePath(String path) {
     var normalized = p.normalize(path.trim());
     if (Platform.isWindows) {
@@ -95,5 +105,4 @@ class ScannerPathUtils {
 
     return normalizedPath;
   }
-
 }
