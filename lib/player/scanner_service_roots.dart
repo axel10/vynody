@@ -7,6 +7,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'music_file_utils.dart';
 import 'scanner_path_utils.dart';
 
+bool _isLikelyPackagedWindowsApp() {
+  if (!Platform.isWindows) return false;
+  try {
+    final executablePath = Platform.resolvedExecutable.replaceAll('/', r'\');
+    return executablePath.toLowerCase().contains(r'\windowsapps\');
+  } catch (_) {
+    return false;
+  }
+}
+
 class ScannerServiceRoots {
   ScannerServiceRoots({
     required bool Function() isDisposed,
@@ -19,6 +29,8 @@ class ScannerServiceRoots {
   final bool Function() _isDisposed;
   final void Function(FileSystemEvent event) _onFileEvent;
   final void Function(String path, bool isMissing) _notifySongMissingState;
+  final bool _disableRecursiveWatchersOnWindowsPackage =
+      _isLikelyPackagedWindowsApp();
 
   final List<String> _rootPaths = [];
   final Map<String, StreamSubscription<FileSystemEvent>>
@@ -91,7 +103,9 @@ class ScannerServiceRoots {
 
     final desiredRoots = ScannerPathUtils.computeScanRoots(_rootPaths);
     debugPrint(
-      '[ScannerServiceRoots] refreshRootWatchers desiredRoots=$desiredRoots',
+      '[ScannerServiceRoots] refreshRootWatchers desiredRoots=$desiredRoots '
+      'disableRecursiveWatchersOnWindowsPackage='
+      '$_disableRecursiveWatchersOnWindowsPackage',
     );
     final desiredKeys = desiredRoots
         .map(ScannerPathUtils.pathLookupKey)
@@ -109,6 +123,14 @@ class ScannerServiceRoots {
       await subscription.cancel();
     }
     _rootWatchSubscriptions.clear();
+
+    if (_disableRecursiveWatchersOnWindowsPackage) {
+      debugPrint(
+        '[ScannerServiceRoots] skip attaching recursive watchers for '
+        'packaged Windows app',
+      );
+      return;
+    }
 
     for (final root in desiredRoots) {
       final directory = Directory(root);

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -15,6 +16,7 @@ import 'player/audio_riverpod.dart';
 import 'player/music_file_utils.dart';
 import 'player/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
+import 'utils/app_log.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -54,59 +56,93 @@ void handleFileOpen(List<String> args) {
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  // AppLog.install();
+  await AppLog.init();
+  AppLog.install();
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details); // 强制在控制台显示
-    debugPrint("Caught Error: ${details.exception}");
+    AppLog.log(
+      'Caught FlutterError: ${details.exceptionAsString()}',
+      mirrorToConsole: true,
+      stackTrace: details.stack,
+    );
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    AppLog.log(
+      'Caught PlatformDispatcher error: $error',
+      mirrorToConsole: true,
+      stackTrace: stack,
+    );
+    return false;
   };
 
-  if (Platform.isWindows) {
-    await WindowsSingleInstance.ensureSingleInstance(
-      args,
-      "custom_identifier",
-      onSecondWindow: (args) {
-        handleFileOpen(args);
-      },
-    );
-  }
+  await runZonedGuarded(() async {
+    AppLog.log('main start args=$args', mirrorToConsole: true);
 
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await windowManager.ensureInitialized();
-    WindowOptions windowOptions = const WindowOptions(
-      size: Size(1280, 720),
-      minimumSize: Size(400, 600),
-      center: true,
-      backgroundColor: Colors.transparent,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.hidden,
-      title: 'Pure Player',
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
-  }
-
-  if (Platform.isWindows) {
-    await SMTCWindows.initialize();
-  }
-
-  final settingsService = await SettingsService.init();
-  unawaited(workerManager.init(isolatesCount: 8));
-
-  runApp(
-    ProviderScope(
-      overrides: [
-        settingsServiceProvider.overrideWith((ref) => settingsService),
-      ],
-      child: Consumer(
-        builder: (context, ref, _) {
-          ref.watch(audioServiceWiringProvider);
-          return MyApp(args: args);
+    if (Platform.isWindows) {
+      AppLog.log(
+        'ensuring single instance on Windows',
+        mirrorToConsole: true,
+      );
+      await WindowsSingleInstance.ensureSingleInstance(
+        args,
+        "custom_identifier",
+        onSecondWindow: (args) {
+          AppLog.log('second window args=$args', mirrorToConsole: true);
+          handleFileOpen(args);
         },
+      );
+    }
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      AppLog.log('initializing window manager', mirrorToConsole: true);
+      await windowManager.ensureInitialized();
+      WindowOptions windowOptions = const WindowOptions(
+        size: Size(1280, 720),
+        minimumSize: Size(400, 600),
+        center: true,
+        backgroundColor: Colors.transparent,
+        skipTaskbar: false,
+        titleBarStyle: TitleBarStyle.hidden,
+        title: 'Pure Player',
+      );
+      windowManager.waitUntilReadyToShow(windowOptions, () async {
+        AppLog.log('window ready to show', mirrorToConsole: true);
+        await windowManager.show();
+        await windowManager.focus();
+      });
+    }
+
+    if (Platform.isWindows) {
+      AppLog.log('initializing SMTCWindows', mirrorToConsole: true);
+      await SMTCWindows.initialize();
+    }
+
+    AppLog.log('initializing settings service', mirrorToConsole: true);
+    final settingsService = await SettingsService.init();
+    AppLog.log('initializing worker manager', mirrorToConsole: true);
+    unawaited(workerManager.init(isolatesCount: 8));
+
+    AppLog.log('calling runApp', mirrorToConsole: true);
+    runApp(
+      ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settingsService),
+        ],
+        child: Consumer(
+          builder: (context, ref, _) {
+            ref.watch(audioServiceWiringProvider);
+            return MyApp(args: args);
+          },
+        ),
       ),
-    ),
-  );
+    );
+  }, (error, stack) {
+    AppLog.log(
+      'Caught zone error: $error',
+      mirrorToConsole: true,
+      stackTrace: stack,
+    );
+  });
 }
 
 class MyApp extends ConsumerWidget {
