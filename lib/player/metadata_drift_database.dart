@@ -1434,7 +1434,7 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final directory = await getApplicationSupportDirectory();
     final file = File(p.join(directory.path, 'metadata.db'));
-    return NativeDatabase(file);
+    return NativeDatabase.createInBackground(file);
   });
 }
 
