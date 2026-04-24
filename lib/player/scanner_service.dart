@@ -1317,9 +1317,7 @@ class ScannerService extends ChangeNotifier {
 
     void flushSkippedPaths() {
       if (skippedPaths.isEmpty) return;
-      for (final path in skippedPaths) {
-        _metadataStore.removeMetadataForPath(path);
-      }
+      _metadataStore.deleteMissingFromCache(skippedPaths);
       skippedPaths.clear();
     }
 
@@ -1688,8 +1686,8 @@ class ScannerService extends ChangeNotifier {
     }
 
     try {
-      // final batchSize = Platform.isWindows ? 2 : 6;
-      final batchSize = 2;
+      final batchSize = Platform.isWindows ? 4 : 6;
+      // final batchSize = 2;
       for (var start = 0; start < sortedPaths.length; start += batchSize) {
         if (shouldCancel?.call() ?? false) {
           return;

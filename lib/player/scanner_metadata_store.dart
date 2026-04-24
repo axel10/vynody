@@ -269,30 +269,11 @@ class ScannerMetadataStore {
   }
 
   void deleteMissingFromCache(Iterable<String> paths) {
-    var changed = false;
-    var albumChanged = false;
-    for (final path in paths) {
-      final removed = _metadataMap.remove(path);
-      changed = removed != null || changed;
-      albumChanged = removed != null || albumChanged;
-    }
-    if (changed) {
-      _onMetadataMutated();
-      if (albumChanged) {
-        _onAlbumMetadataMutated();
-      }
-    }
+    _removeMetadataForPaths(paths);
   }
 
   void removeMetadataForPath(String path) {
-    final normalizedPath = _normalizePath(path);
-    if (normalizedPath.isEmpty) return;
-    final beforeLength = _metadataMap.length;
-    _metadataMap.removeWhere((key, _) => _pathsEqual(key, normalizedPath));
-    if (_metadataMap.length != beforeLength) {
-      _onMetadataMutated();
-      _onAlbumMetadataMutated();
-    }
+    _removeMetadataForPaths([path]);
   }
 
   void clearWaveformForPath(String path) {
@@ -310,6 +291,33 @@ class ScannerMetadataStore {
     if (incoming == null) return existing;
     if (existing == null) return incoming;
     return existing | incoming;
+  }
+
+  void _removeMetadataForPaths(Iterable<String> paths) {
+    final normalizedTargets = paths
+        .map(_normalizePath)
+        .where((path) => path.isNotEmpty)
+        .toList(growable: false);
+    if (normalizedTargets.isEmpty || _metadataMap.isEmpty) {
+      return;
+    }
+
+    final targetLookup = normalizedTargets
+        .map((path) => Platform.isWindows ? path.toLowerCase() : path)
+        .toSet();
+    final beforeLength = _metadataMap.length;
+    _metadataMap.removeWhere((key, _) {
+      final normalizedKey = _normalizePath(key);
+      final lookupKey = Platform.isWindows
+          ? normalizedKey.toLowerCase()
+          : normalizedKey;
+      return targetLookup.contains(lookupKey);
+    });
+
+    if (_metadataMap.length != beforeLength) {
+      _onMetadataMutated();
+      _onAlbumMetadataMutated();
+    }
   }
 
   void _updateMusicFileInFolder(
