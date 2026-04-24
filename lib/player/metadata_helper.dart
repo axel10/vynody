@@ -101,91 +101,6 @@ Future<Map<String, dynamic>?> _buildArtworkFiles({
   }
 }
 
-@pragma('vm:entry-point')
-Future<Map<String, dynamic>?> processArtworkThumbnailWorkerTask(
-  Map<String, dynamic> args,
-) async {
-  try {
-    final filePath = args['filePath'] as String;
-    final supportDirPath = args['supportDirPath'] as String;
-    final saveLarge = args['saveLarge'] as bool? ?? true;
-    final baseMetadataMap = Map<String, dynamic>.from(
-      args['baseMetadata'] as Map,
-    );
-    final baseMetadata = SongMetadata.fromMap(baseMetadataMap);
-    final processedAt =
-        baseMetadata.lastModifiedTime ?? DateTime.now().millisecondsSinceEpoch;
-    Map<String, dynamic> skippedArtworkResult() {
-      final updated = baseMetadata.copyWith(metadataImgScanned: processedAt);
-      return {'metadata': updated.toMap(), 'themeColorsBlob': null};
-    }
-
-    final file = File(filePath);
-    final metadata = readMetadata(file, getImage: true);
-    final artworkData = metadata.pictures.isNotEmpty
-        ? metadata.pictures.first.bytes
-        : null;
-
-    if (artworkData == null || artworkData.isEmpty) {
-      return skippedArtworkResult();
-    }
-
-    final artworkInfo = await _buildArtworkFiles(
-      songPath: filePath,
-      data: artworkData,
-      supportDirPath: supportDirPath,
-      saveLarge: saveLarge,
-    );
-    if (artworkInfo == null) {
-      return skippedArtworkResult();
-    }
-
-    final updated = baseMetadata.copyWith(
-      artworkPath: artworkInfo['artworkPath'] as String?,
-      thumbnailPath: artworkInfo['thumbnailPath'] as String?,
-      artworkWidth: artworkInfo['width'] as int?,
-      artworkHeight: artworkInfo['height'] as int?,
-      themeColorsBlob: artworkInfo['themeColorsBlob'] as Uint8List?,
-      metadataImgScanned: processedAt,
-    );
-
-    return {
-      'metadata': updated.toMap(),
-      'themeColorsBlob': artworkInfo['themeColorsBlob'] as Uint8List?,
-    };
-  } on NoMetadataParserException catch (_) {
-    final baseMetadataMap = Map<String, dynamic>.from(
-      args['baseMetadata'] as Map,
-    );
-    final baseMetadata = SongMetadata.fromMap(baseMetadataMap);
-    final processedAt =
-        baseMetadata.lastModifiedTime ?? DateTime.now().millisecondsSinceEpoch;
-    final updated = baseMetadata.copyWith(metadataImgScanned: processedAt);
-    return {'metadata': updated.toMap(), 'themeColorsBlob': null};
-  } on MetadataParserException catch (e) {
-    final filePath = args['filePath'] as String;
-    final baseMetadataMap = Map<String, dynamic>.from(
-      args['baseMetadata'] as Map,
-    );
-    final baseMetadata = SongMetadata.fromMap(baseMetadataMap);
-    final processedAt =
-        baseMetadata.lastModifiedTime ?? DateTime.now().millisecondsSinceEpoch;
-    debugPrint('Artwork thumbnail worker skipped for $filePath: $e');
-    final updated = baseMetadata.copyWith(metadataImgScanned: processedAt);
-    return {'metadata': updated.toMap(), 'themeColorsBlob': null};
-  } catch (e) {
-    final baseMetadataMap = Map<String, dynamic>.from(
-      args['baseMetadata'] as Map,
-    );
-    final baseMetadata = SongMetadata.fromMap(baseMetadataMap);
-    final processedAt =
-        baseMetadata.lastModifiedTime ?? DateTime.now().millisecondsSinceEpoch;
-    debugPrint('Artwork thumbnail worker failed: $e');
-    final updated = baseMetadata.copyWith(metadataImgScanned: processedAt);
-    return {'metadata': updated.toMap(), 'themeColorsBlob': null};
-  }
-}
-
 /// Supported file extensions for writing metadata
 const Set<String> writableMetadataExtensions = {
   '.mp3',
@@ -202,19 +117,6 @@ const Set<String> unsupportedMetadataExtensions = {'.ogg', '.opus'};
 bool isMetadataWritable(String filePath) {
   final ext = p.extension(filePath).toLowerCase();
   return writableMetadataExtensions.contains(ext);
-}
-
-/// Returns a human-readable format name for unsupported files
-String getUnsupportedFormatName(String filePath) {
-  final ext = p.extension(filePath).toLowerCase();
-  switch (ext) {
-    case '.ogg':
-      return 'OGG';
-    case '.opus':
-      return 'Opus';
-    default:
-      return ext.isEmpty ? 'Unknown' : ext.toUpperCase().replaceFirst('.', '');
-  }
 }
 
 /// Result of saving metadata to file
@@ -635,50 +537,6 @@ class MetadataHelper {
     }
   }
 
-  /// Applies artwork and theme colors to an already preprocessed metadata row.
-  /// This keeps the text-tag preprocessing and artwork generation as two
-  /// separate steps for the scanner pipeline.
-  static Future<SongMetadata?> applyArtworkAndThemeToMetadata({
-    required SongMetadata metadata,
-    Uint8List? artworkBytes,
-    bool saveLarge = true,
-  }) async {
-    if (artworkBytes == null || artworkBytes.isEmpty) {
-      final updated = metadata.copyWith(
-        metadataImgScanned: metadata.lastModifiedTime,
-      );
-      final db = MetadataDatabase();
-      await db.insertOrUpdateSong(updated);
-      return updated;
-    }
-
-    final artworkInfo = await saveArtworkAndThumbnail(
-      metadata.path,
-      artworkBytes,
-      saveLarge: saveLarge,
-    );
-    if (artworkInfo == null) {
-      return null;
-    }
-
-    Uint8List? themeColorsBlob;
-    final thumbnailPath = artworkInfo['thumbnailPath'] as String?;
-    themeColorsBlob = artworkInfo['themeColorsBlob'] as Uint8List?;
-
-    final updated = metadata.copyWith(
-      artworkPath: artworkInfo['artworkPath'] as String?,
-      thumbnailPath: thumbnailPath,
-      artworkWidth: artworkInfo['width'] as int?,
-      artworkHeight: artworkInfo['height'] as int?,
-      themeColorsBlob: themeColorsBlob,
-      metadataImgScanned: metadata.lastModifiedTime,
-    );
-
-    final db = MetadataDatabase();
-    await db.insertOrUpdateSong(updated);
-    return updated;
-  }
-
   static Map<String, dynamic>? _processImageWindowsIsolate(Uint8List data) {
     try {
       final originalImage = img.decodeImage(data);
@@ -790,33 +648,6 @@ class MetadataHelper {
     } catch (e) {
       debugPrint('Error probing embedded artwork for $filePath: $e');
       return false;
-    }
-  }
-
-  static Uint8List? processAndResizeImageIsolate(Map<String, dynamic> params) {
-    try {
-      final data = params['data'] as Uint8List;
-      final maxWidth = params['maxWidth'] as int;
-      final maxHeight = params['maxHeight'] as int;
-
-      final originalImage = img.decodeImage(data);
-      if (originalImage == null) return null;
-
-      if (originalImage.width <= maxWidth &&
-          originalImage.height <= maxHeight) {
-        return data; // 不需要缩放
-      }
-
-      final resized = img.copyResize(
-        originalImage,
-        width: originalImage.width > originalImage.height ? maxWidth : null,
-        height: originalImage.width <= originalImage.height ? maxHeight : null,
-        interpolation: img.Interpolation.average,
-      );
-
-      return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
-    } catch (e) {
-      return null;
     }
   }
 
