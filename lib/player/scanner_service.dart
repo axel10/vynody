@@ -1682,17 +1682,17 @@ class ScannerService extends ChangeNotifier {
     _upsertScannedRootFolder(rootFolder);
   }
 
-  Future<void> _processDiscoveredPaths(
+  Future<_RootArtworkScanJob?> _processDiscoveredPaths(
     List<String> discoveredPaths,
     ScanProgressState scanState,
     int scanToken, {
     required String rootPath,
   }) async {
     if (discoveredPaths.isEmpty) {
-      return;
+      return null;
     }
     if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return;
+      return null;
     }
 
     final classification = await _timeScanStep(
@@ -1705,7 +1705,7 @@ class ScannerService extends ChangeNotifier {
       ),
     );
     if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return;
+      return null;
     }
     final existingMetadataByPath = Map<String, SongMetadata>.from(
       classification.existingMetadataByPath,
@@ -1766,7 +1766,7 @@ class ScannerService extends ChangeNotifier {
       ),
     );
     if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return;
+      return null;
     }
     final keptFullPaths = preprocessResult.keptPaths;
     final artworkPendingImageOnlyPaths = await _timeScanStep(
@@ -1781,7 +1781,7 @@ class ScannerService extends ChangeNotifier {
       ),
     );
     if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return;
+      return null;
     }
 
     final visiblePaths = <String>[
@@ -1799,7 +1799,7 @@ class ScannerService extends ChangeNotifier {
       ),
     );
     if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return;
+      return null;
     }
 
     _timeScanStepSync('stage 3.2 rebuild visible root tree', () {
@@ -1810,29 +1810,14 @@ class ScannerService extends ChangeNotifier {
     scanState.pendingMetadataPaths.addAll(visiblePaths);
     _notifyListenersImmediately();
 
-    await _timeScanStep(
-      'stage 4 preprocess artwork/theme batch',
-      () => _applyArtworkAndThemeToChangedFiles(
-        [
-          ...preprocessResult.artworkPendingPaths,
-          ...artworkPendingImageOnlyPaths,
-        ],
-        scanState,
-        shouldCancel: () =>
-            !_isScanTokenCurrent(scanToken) ||
-            !_isScanRootStillActive(rootPath),
-      ),
+    return _RootArtworkScanJob(
+      rootPath: rootPath,
+      visiblePaths: visiblePaths,
+      artworkPendingPaths: [
+        ...preprocessResult.artworkPendingPaths,
+        ...artworkPendingImageOnlyPaths,
+      ],
     );
-    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return;
-    }
-
-    _timeScanStepSync('stage 4.2 rebuild root tree from metadata', () {
-      _rebuildScannedRootFolderFromMetadata(rootPath, visiblePaths);
-    });
-    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return;
-    }
   }
 
   Future<void> _applyArtworkAndThemeToChangedFiles(
@@ -1995,6 +1980,7 @@ class ScannerService extends ChangeNotifier {
     _queuedFullRescan = false;
     final scanToken = ++_activeRootScanToken;
     final requestedRoots = _roots.rootPaths.toList(growable: false);
+    final artworkJobs = <_RootArtworkScanJob>[];
     _isScanning = true;
     notifyListeners();
 
@@ -2069,12 +2055,15 @@ class ScannerService extends ChangeNotifier {
             continue;
           }
 
-          await _processDiscoveredPaths(
+          final artworkJob = await _processDiscoveredPaths(
             discoveredPaths,
             scanState,
             scanToken,
             rootPath: path,
           );
+          if (artworkJob != null) {
+            artworkJobs.add(artworkJob);
+          }
 
           if (!_isScanTokenCurrent(scanToken) ||
               !_isScanRootStillActive(path)) {
@@ -2089,6 +2078,41 @@ class ScannerService extends ChangeNotifier {
 
           _rebuildDisplayedRootFolders();
           notifyListeners();
+        }
+
+        if (_isScanTokenCurrent(scanToken)) {
+          for (final job in artworkJobs) {
+            if (!_isScanTokenCurrent(scanToken) ||
+                !_isScanRootStillActive(job.rootPath)) {
+              continue;
+            }
+
+            await _timeScanStep(
+              'stage 4 preprocess artwork/theme batch for ${job.rootPath}',
+              () => _applyArtworkAndThemeToChangedFiles(
+                job.artworkPendingPaths,
+                scanState,
+                shouldCancel: () =>
+                    !_isScanTokenCurrent(scanToken) ||
+                    !_isScanRootStillActive(job.rootPath),
+              ),
+            );
+
+            if (!_isScanTokenCurrent(scanToken) ||
+                !_isScanRootStillActive(job.rootPath)) {
+              continue;
+            }
+
+            _timeScanStepSync(
+              'stage 4.2 rebuild root tree from metadata for ${job.rootPath}',
+              () {
+                _rebuildScannedRootFolderFromMetadata(
+                  job.rootPath,
+                  job.visiblePaths,
+                );
+              },
+            );
+          }
         }
 
         if (_isScanTokenCurrent(scanToken)) {
@@ -2574,4 +2598,16 @@ class RootPathAddResult {
       status == RootPathAddStatus.alreadyAdded;
 
   bool get accessDenied => status == RootPathAddStatus.persistentAccessDenied;
+}
+
+class _RootArtworkScanJob {
+  const _RootArtworkScanJob({
+    required this.rootPath,
+    required this.visiblePaths,
+    required this.artworkPendingPaths,
+  });
+
+  final String rootPath;
+  final List<String> visiblePaths;
+  final List<String> artworkPendingPaths;
 }
