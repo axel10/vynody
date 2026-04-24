@@ -104,6 +104,11 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLandscapeGap = 'visualizer_landscape_gap';
   static const String _keyIsWaveformProgressBarEnabled =
       'waveform_progress_bar_enabled';
+  static const String skipShortAudioScanEnabledStorageKey =
+      'scan_skip_short_audio_enabled';
+  static const String skipShortAudioScanMinimumDurationSecondsStorageKey =
+      'scan_skip_short_audio_min_duration_seconds';
+  static const int defaultSkipShortAudioScanMinimumDurationSeconds = 30;
   static const String _keyRandomRange = 'random_range';
   static const String _keyRandomMethod = 'random_method';
 
@@ -141,6 +146,8 @@ class SettingsService extends ChangeNotifier {
   late double _portraitGap;
   late double _landscapeGap;
   late bool _isWaveformProgressBarEnabled;
+  late bool _skipShortAudioScanEnabled;
+  late int _skipShortAudioScanMinimumDurationSeconds;
   late int _randomRange; // 0: current, 1: global
   late int _randomMethod; // 0: complete, 1: shuffle
 
@@ -206,6 +213,11 @@ class SettingsService extends ChangeNotifier {
     _landscapeGap = _prefs.getDouble(_keyLandscapeGap) ?? 2.0;
     _isWaveformProgressBarEnabled =
         _prefs.getBool(_keyIsWaveformProgressBarEnabled) ?? false;
+    _skipShortAudioScanEnabled =
+        _prefs.getBool(skipShortAudioScanEnabledStorageKey) ?? false;
+    _skipShortAudioScanMinimumDurationSeconds =
+        _prefs.getInt(skipShortAudioScanMinimumDurationSecondsStorageKey) ??
+        defaultSkipShortAudioScanMinimumDurationSeconds;
     _randomRange = _prefs.getInt(_keyRandomRange) ?? 0;
     _randomMethod = _prefs.getInt(_keyRandomMethod) ?? 1; // Default to shuffle
   }
@@ -314,6 +326,9 @@ class SettingsService extends ChangeNotifier {
   double get portraitGap => _portraitGap;
   double get landscapeGap => _landscapeGap;
   bool get isWaveformProgressBarEnabled => _isWaveformProgressBarEnabled;
+  bool get skipShortAudioScanEnabled => _skipShortAudioScanEnabled;
+  int get skipShortAudioScanMinimumDurationSeconds =>
+      _skipShortAudioScanMinimumDurationSeconds;
   int get randomRange => _randomRange;
   int get randomMethod => _randomMethod;
 
@@ -688,6 +703,28 @@ class SettingsService extends ChangeNotifier {
   set isWaveformProgressBarEnabled(bool value) {
     _isWaveformProgressBarEnabled = value;
     _prefs.setBool(_keyIsWaveformProgressBarEnabled, value);
+    notifyListeners();
+  }
+
+  set skipShortAudioScanEnabled(bool value) {
+    if (_skipShortAudioScanEnabled == value) {
+      return;
+    }
+    _skipShortAudioScanEnabled = value;
+    _prefs.setBool(skipShortAudioScanEnabledStorageKey, value);
+    notifyListeners();
+  }
+
+  set skipShortAudioScanMinimumDurationSeconds(int value) {
+    final normalized = value.clamp(1, 3600).toInt();
+    if (_skipShortAudioScanMinimumDurationSeconds == normalized) {
+      return;
+    }
+    _skipShortAudioScanMinimumDurationSeconds = normalized;
+    _prefs.setInt(
+      skipShortAudioScanMinimumDurationSecondsStorageKey,
+      normalized,
+    );
     notifyListeners();
   }
 

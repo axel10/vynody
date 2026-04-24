@@ -1700,6 +1700,48 @@ abstract class AppLocalizations {
   /// **'这些选项会影响页面和播放界面的整体显示方式。'**
   String get generalSectionDescription;
 
+  /// No description provided for @scanSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描'**
+  String get scanSectionTitle;
+
+  /// No description provided for @scanSectionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'这些选项会控制媒体库扫描如何处理音频文件。'**
+  String get scanSectionDescription;
+
+  /// No description provided for @skipShortAudioDuringScan.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描时跳过短音频'**
+  String get skipShortAudioDuringScan;
+
+  /// No description provided for @skipShortAudioDuringScanDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'短于阈值的音频不会加入媒体库。'**
+  String get skipShortAudioDuringScanDescription;
+
+  /// No description provided for @shortAudioScanThreshold.
+  ///
+  /// In zh, this message translates to:
+  /// **'短音频阈值'**
+  String get shortAudioScanThreshold;
+
+  /// No description provided for @shortAudioScanThresholdDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'短于该时长的文件会被跳过。'**
+  String get shortAudioScanThresholdDescription;
+
+  /// No description provided for @shortAudioScanThresholdValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'{seconds} 秒'**
+  String shortAudioScanThresholdValue(Object seconds);
+
   /// No description provided for @shortcutSettingsTitle.
   ///
   /// In zh, this message translates to:

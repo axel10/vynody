@@ -68,9 +68,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (apiKey.isEmpty) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.enterApiKey)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.enterApiKey)));
       return;
     }
 
@@ -163,6 +163,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildScanSection(BuildContext context, SettingsService settings) {
+    final l10n = AppLocalizations.of(context)!;
+    const minSeconds = 5;
+    const maxSeconds = 300;
+    const stepSeconds = 5;
+    final enabled = settings.skipShortAudioScanEnabled;
+    final currentSeconds = settings.skipShortAudioScanMinimumDurationSeconds;
+
+    return Column(
+      children: [
+        SwitchListTile(
+          title: Text(l10n.skipShortAudioDuringScan),
+          subtitle: Text(l10n.skipShortAudioDuringScanDescription),
+          value: enabled,
+          onChanged: (value) {
+            settings.skipShortAudioScanEnabled = value;
+          },
+        ),
+        ListTile(
+          enabled: enabled,
+          title: Text(l10n.shortAudioScanThreshold),
+          subtitle: Text(l10n.shortAudioScanThresholdDescription),
+          trailing: SizedBox(
+            width: 156,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove),
+                  onPressed: enabled && currentSeconds > minSeconds
+                      ? () {
+                          settings.skipShortAudioScanMinimumDurationSeconds =
+                              currentSeconds - stepSeconds;
+                        }
+                      : null,
+                ),
+                Text(l10n.shortAudioScanThresholdValue(currentSeconds)),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: enabled && currentSeconds < maxSeconds
+                      ? () {
+                          settings.skipShortAudioScanMinimumDurationSeconds =
+                              currentSeconds + stepSeconds;
+                        }
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildGeminiModelSection(
     BuildContext context,
     SettingsService settings,
@@ -240,9 +294,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       )
                     : const Icon(Icons.download),
                 label: Text(
-                  _isLoadingGeminiModels
-                      ? l10n.fetching
-                      : l10n.fetchModelList,
+                  _isLoadingGeminiModels ? l10n.fetching : l10n.fetchModelList,
                 ),
               ),
               OutlinedButton.icon(
@@ -309,6 +361,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             settings.isWaveformProgressBarEnabled = value;
           },
         ),
+        const Divider(height: 1),
+        _buildSectionHeader(l10n.scanSectionTitle, l10n.scanSectionDescription),
+        _buildScanSection(context, settings),
         ListTile(
           leading: const Icon(Icons.keyboard),
           title: Text(l10n.shortcutSettingsTitle),
@@ -321,7 +376,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         ),
         const Divider(height: 1),
-        _buildSectionHeader(l10n.lyricsSectionTitle, l10n.lyricsSectionDescription),
+        _buildSectionHeader(
+          l10n.lyricsSectionTitle,
+          l10n.lyricsSectionDescription,
+        ),
         SwitchListTile(
           title: Text(l10n.autoSwitchLyricsProvider),
           subtitle: Text(
@@ -397,7 +455,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(l10n.apiKeySaved(settings.lyricsAiProvider.displayName)),
+                  content: Text(
+                    l10n.apiKeySaved(settings.lyricsAiProvider.displayName),
+                  ),
                 ),
               );
             },
@@ -405,7 +465,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               LyricsAiProvider.googleAiStudio =>
                 settings.geminiApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
               LyricsAiProvider.openRouter =>
-                settings.openRouterApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
+                settings.openRouterApiKey.trim().isEmpty
+                    ? l10n.fill
+                    : l10n.modify,
             }),
           ),
         ),
@@ -416,10 +478,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         if (settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio)
           _buildGeminiModelSection(context, settings),
-        _buildSectionHeader(
-          l10n.acoustidSectionTitle,
-          l10n.acoustidApiKeyHelp,
-        ),
+        _buildSectionHeader(l10n.acoustidSectionTitle, l10n.acoustidApiKeyHelp),
         ListTile(
           isThreeLine: true,
           leading: const Icon(Icons.fingerprint),
@@ -462,11 +521,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
               settings.acoustidApiKey = enteredApiKey;
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.acoustidApiKeySaved)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(l10n.acoustidApiKeySaved)));
             },
-            child: Text(settings.hasCustomAcoustidApiKey ? l10n.modify : l10n.fill),
+            child: Text(
+              settings.hasCustomAcoustidApiKey ? l10n.modify : l10n.fill,
+            ),
           ),
         ),
       ],
@@ -481,9 +542,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     Widget content = Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.settings),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
       body: _buildBody(context, settings),
     );
 
@@ -492,9 +551,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         color: theme.colorScheme.surface,
         child: Column(
           children: [
-            DesktopWindowTitleBar(
-              brightness: theme.brightness,
-            ),
+            DesktopWindowTitleBar(brightness: theme.brightness),
             Expanded(child: content),
           ],
         ),

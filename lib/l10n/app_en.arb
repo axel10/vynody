@@ -307,6 +307,18 @@
   "apiKeySavedAcoustid": "AcoustID API key saved",
   "generalSectionTitle": "Interface",
   "generalSectionDescription": "These options affect the overall appearance of the pages and playback UI.",
+  "scanSectionTitle": "Scanning",
+  "scanSectionDescription": "These options control how the library scan treats audio files.",
+  "skipShortAudioDuringScan": "Skip short audio during scan",
+  "skipShortAudioDuringScanDescription": "Audio shorter than the threshold will not be added to the library.",
+  "shortAudioScanThreshold": "Short audio threshold",
+  "shortAudioScanThresholdDescription": "Files shorter than this duration will be skipped.",
+  "shortAudioScanThresholdValue": "{seconds} s",
+  "@shortAudioScanThresholdValue": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
   "shortcutSettingsTitle": "Custom Shortcuts",
   "shortcutSettingsDescription": "Click to re-record and save shortcuts for player actions.",
   "edit": "Edit",

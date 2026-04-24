@@ -726,6 +726,18 @@
   "apiKeySavedAcoustid": "AcoustID API Key 已保存",
   "generalSectionTitle": "界面",
   "generalSectionDescription": "这些选项会影响页面和播放界面的整体显示方式。",
+  "scanSectionTitle": "扫描",
+  "scanSectionDescription": "这些选项会控制媒体库扫描如何处理音频文件。",
+  "skipShortAudioDuringScan": "扫描时跳过短音频",
+  "skipShortAudioDuringScanDescription": "短于阈值的音频不会加入媒体库。",
+  "shortAudioScanThreshold": "短音频阈值",
+  "shortAudioScanThresholdDescription": "短于该时长的文件会被跳过。",
+  "shortAudioScanThresholdValue": "{seconds} 秒",
+  "@shortAudioScanThresholdValue": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
   "shortcutSettingsTitle": "自定义快捷键",
   "shortcutSettingsDescription": "点击后可以为播放器操作重新录制快捷键并保存。",
   "edit": "编辑",

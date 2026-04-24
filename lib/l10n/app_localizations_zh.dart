@@ -847,6 +847,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get generalSectionDescription => '这些选项会影响页面和播放界面的整体显示方式。';
 
   @override
+  String get scanSectionTitle => '扫描';
+
+  @override
+  String get scanSectionDescription => '这些选项会控制媒体库扫描如何处理音频文件。';
+
+  @override
+  String get skipShortAudioDuringScan => '扫描时跳过短音频';
+
+  @override
+  String get skipShortAudioDuringScanDescription => '短于阈值的音频不会加入媒体库。';
+
+  @override
+  String get shortAudioScanThreshold => '短音频阈值';
+
+  @override
+  String get shortAudioScanThresholdDescription => '短于该时长的文件会被跳过。';
+
+  @override
+  String shortAudioScanThresholdValue(Object seconds) {
+    return '$seconds 秒';
+  }
+
+  @override
   String get shortcutSettingsTitle => '自定义快捷键';
 
   @override

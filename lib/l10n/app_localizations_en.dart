@@ -867,6 +867,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'These options affect the overall appearance of the pages and playback UI.';
 
   @override
+  String get scanSectionTitle => 'Scanning';
+
+  @override
+  String get scanSectionDescription =>
+      'These options control how the library scan treats audio files.';
+
+  @override
+  String get skipShortAudioDuringScan => 'Skip short audio during scan';
+
+  @override
+  String get skipShortAudioDuringScanDescription =>
+      'Audio shorter than the threshold will not be added to the library.';
+
+  @override
+  String get shortAudioScanThreshold => 'Short audio threshold';
+
+  @override
+  String get shortAudioScanThresholdDescription =>
+      'Files shorter than this duration will be skipped.';
+
+  @override
+  String shortAudioScanThresholdValue(Object seconds) {
+    return '$seconds s';
+  }
+
+  @override
   String get shortcutSettingsTitle => 'Custom Shortcuts';
 
   @override

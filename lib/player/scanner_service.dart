@@ -27,6 +27,7 @@ import 'scanner_service_roots.dart';
 import 'scanner_scan_support.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
+import 'settings_service.dart';
 import '../utils/localized_text.dart';
 
 export 'scanner_scan_support.dart';
@@ -70,10 +71,13 @@ class ScannerService extends ChangeNotifier {
   int _albumLibraryRevision = 0;
   int _rootGenerationSequence = 0;
   final Map<String, int> _rootGenerations = {};
+  bool _skipShortAudioScanEnabled = false;
+  int _skipShortAudioScanThresholdSeconds = _defaultShortAudioThresholdSeconds;
 
   static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
   static const String _keyGlobalSortOrder = 'folder_sort_global_order';
   static const String _keyFolderSortOverrides = 'folder_sort_overrides';
+  static const int _defaultShortAudioThresholdSeconds = 30;
   static const bool _scanTimingEnabled = kDebugMode;
   static const Duration _incrementalBatchWindow = Duration(milliseconds: 900);
   static const int _incrementalBatchRescanThreshold = 48;
@@ -86,6 +90,9 @@ class ScannerService extends ChangeNotifier {
   SortOrder get sortOrder => _currentSortSettings.order;
   SortCriteria get globalSortCriteria => _globalSortCriteria;
   SortOrder get globalSortOrder => _globalSortOrder;
+  bool get skipShortAudioScanEnabled => _skipShortAudioScanEnabled;
+  int get skipShortAudioScanThresholdSeconds =>
+      _skipShortAudioScanThresholdSeconds;
   bool get _supportsPersistentAccess => Platform.isMacOS || Platform.isIOS;
 
   List<String> get rootPaths => _roots.rootPaths;
@@ -172,6 +179,33 @@ class ScannerService extends ChangeNotifier {
     debugPrint(
       '[ScannerService][init] $label ${stopwatch.elapsedMilliseconds} ms',
     );
+  }
+
+  Future<void> _loadScanSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _skipShortAudioScanEnabled =
+        prefs.getBool(SettingsService.skipShortAudioScanEnabledStorageKey) ??
+        false;
+    _skipShortAudioScanThresholdSeconds =
+        prefs.getInt(
+          SettingsService.skipShortAudioScanMinimumDurationSecondsStorageKey,
+        ) ??
+        _defaultShortAudioThresholdSeconds;
+  }
+
+  bool _shouldSkipShortAudioDuration(int? durationMillis) {
+    if (!_skipShortAudioScanEnabled) {
+      return false;
+    }
+    if (durationMillis == null) {
+      return false;
+    }
+    return durationMillis <
+        Duration(seconds: _skipShortAudioScanThresholdSeconds).inMilliseconds;
+  }
+
+  bool _shouldKeepSongMetadata(SongMetadata song) {
+    return !_shouldSkipShortAudioDuration(song.duration);
   }
 
   @override
@@ -333,6 +367,7 @@ class ScannerService extends ChangeNotifier {
       });
       _ensureRootPathGenerations(_roots.rootPaths);
       await _timeInitStep('load sort settings', _loadSortSettings);
+      await _timeInitStep('load scan settings', _loadScanSettings);
       final cachedSongs = await _timeInitStep(
         'load cached songs from database',
         _loadCachedSongsFromDatabase,
@@ -638,6 +673,7 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> scanSystemMedia() async {
+    await _loadScanSettings();
     debugPrint(
       '[ScannerService] scanSystemMedia start '
       'platform=${Platform.operatingSystem} '
@@ -679,7 +715,35 @@ class ScannerService extends ChangeNotifier {
           return;
         }
 
-        final filePaths = scanResult.entries
+        final keptEntries = scanResult.entries
+            .where(
+              (entry) =>
+                  !_shouldSkipShortAudioDuration(entry.duration.inMilliseconds),
+            )
+            .toList(growable: false);
+        final skippedEntryPaths = scanResult.entries
+            .where(
+              (entry) =>
+                  _shouldSkipShortAudioDuration(entry.duration.inMilliseconds),
+            )
+            .map(_androidEntryFilePath)
+            .whereType<String>()
+            .toList(growable: false);
+        if (skippedEntryPaths.isNotEmpty) {
+          for (final path in skippedEntryPaths) {
+            _metadataStore.removeMetadataForPath(path);
+          }
+        }
+        if (keptEntries.isEmpty) {
+          _systemMediaFolder = null;
+          await MetadataDatabase().syncSongSourcePresence(
+            sourceMask: SongSourceFlags.systemMedia,
+            presentPaths: const [],
+          );
+          notifyListeners();
+          return;
+        }
+        final filePaths = keptEntries
             .map(_androidEntryFilePath)
             .whereType<String>()
             .toList(growable: false);
@@ -688,7 +752,7 @@ class ScannerService extends ChangeNotifier {
             : await MetadataDatabase().getSongMetadataByPaths(filePaths);
 
         _systemMediaFolder = _treeBuilder.buildAndroidMediaLibrary(
-          scanResult.entries,
+          keptEntries,
           metadataByPath,
           _compareNaturally,
         );
@@ -710,7 +774,7 @@ class ScannerService extends ChangeNotifier {
         );
         notifyListeners();
 
-        unawaited(_processAndSaveAndroidSongsBackground(scanResult.entries));
+        unawaited(_processAndSaveAndroidSongsBackground(keptEntries));
         return;
       }
 
@@ -722,12 +786,37 @@ class ScannerService extends ChangeNotifier {
           uriType: UriType.EXTERNAL,
           ignoreCase: true,
         );
+        final keptSongs = songs
+            .where((song) {
+              return !_shouldSkipShortAudioDuration(song.duration);
+            })
+            .toList(growable: false);
+        final skippedSongPaths = songs
+            .where((song) => _shouldSkipShortAudioDuration(song.duration))
+            .map((song) => _normalizePath(song.data))
+            .where((path) => path.isNotEmpty)
+            .toList(growable: false);
+        if (skippedSongPaths.isNotEmpty) {
+          for (final path in skippedSongPaths) {
+            _metadataStore.removeMetadataForPath(path);
+          }
+        }
+        if (keptSongs.isEmpty) {
+          _systemMediaFolder = null;
+          await MetadataDatabase().syncSongSourcePresence(
+            sourceMask: SongSourceFlags.systemMedia,
+            presentPaths: const [],
+          );
+          notifyListeners();
+          return;
+        }
         debugPrint(
-          '[ScannerService] iOS media scan result count=${songs.length}',
+          '[ScannerService] iOS media scan result count=${songs.length} '
+          'kept=${keptSongs.length}',
         );
 
         final metadataByPath = await _buildScannedMetadataMap(
-          songs,
+          keptSongs,
           filePathOf: (song) => song.data,
           songIdOf: (song) => song.id,
           fallbackTitleOf: (song) => song.title,
@@ -758,11 +847,11 @@ class ScannerService extends ChangeNotifier {
         }
         await MetadataDatabase().syncSongSourcePresence(
           sourceMask: SongSourceFlags.systemMedia,
-          presentPaths: songs.map((song) => song.data),
+          presentPaths: keptSongs.map((song) => song.data),
         );
         notifyListeners();
 
-        unawaited(_processAndSaveIosSongsBackground(songs));
+        unawaited(_processAndSaveIosSongsBackground(keptSongs));
       }
     } catch (e) {
       debugPrint('[ScannerService] Error scanning system media: $e');
@@ -797,6 +886,9 @@ class ScannerService extends ChangeNotifier {
           SongSourceFlags.rootScan,
           includeLegacy: true,
         )) {
+          continue;
+        }
+        if (!_shouldKeepSongMetadata(song)) {
           continue;
         }
         final normalizedPath = _normalizePath(song.path);
@@ -850,11 +942,13 @@ class ScannerService extends ChangeNotifier {
     try {
       final songs = cachedSongs ?? await _loadCachedSongsFromDatabase();
       final filteredSongs = songs.where(
-        (song) => _songMatchesSource(
-          song,
-          SongSourceFlags.systemMedia,
-          includeLegacy: true,
-        ),
+        (song) =>
+            _songMatchesSource(
+              song,
+              SongSourceFlags.systemMedia,
+              includeLegacy: true,
+            ) &&
+            _shouldKeepSongMetadata(song),
       );
       if (filteredSongs.isEmpty) {
         return;
@@ -1315,15 +1409,17 @@ class ScannerService extends ChangeNotifier {
     );
     if (processed == null) return;
 
-    var metadata = processed.$1.copyWith(
-      sourceFlags: SongSourceFlags.rootScan,
-    );
+    var metadata = processed.$1.copyWith(sourceFlags: SongSourceFlags.rootScan);
+    final existing = await MetadataDatabase().getSongMetadata(normalizedPath);
+    if (_shouldSkipShortAudioDuration(metadata.duration)) {
+      if (existing != null) {
+        await _removeIncrementalSong(normalizedPath, notify: notify);
+      }
+      return;
+    }
 
     await MetadataDatabase().insertOrUpdateSong(metadata);
-    _metadataStore.updateMetadataForPath(
-      metadata,
-      notify: false,
-    );
+    _metadataStore.updateMetadataForPath(metadata, notify: false);
 
     if (!(metadata.thumbnailPath?.trim().isNotEmpty ?? false)) {
       final recoveredMetadata = await _recoverThumbnailCacheWithAudioCore(
@@ -1338,10 +1434,7 @@ class ScannerService extends ChangeNotifier {
       }
     }
 
-    _insertOrUpdateSongInLibrary(
-      metadata,
-      sort: notify,
-    );
+    _insertOrUpdateSongInLibrary(metadata, sort: notify);
     if (notify) {
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree();
@@ -1560,23 +1653,34 @@ class ScannerService extends ChangeNotifier {
     _scanPipeline.seedMetadataFromDatabase(existingMetadataByPath);
   }
 
-  Future<void> _preprocessChangedFiles(
+  Future<List<String>> _preprocessChangedFiles(
     List<String> fullPaths,
     ScanProgressState scanState, {
     required Map<String, SongMetadata> existingMetadataByPath,
     int? rootScanSessionId,
     bool Function()? shouldCancel,
   }) async {
-    if (fullPaths.isEmpty) return;
+    if (fullPaths.isEmpty) return const <String>[];
 
     final db = MetadataDatabase();
     final sortedPaths = fullPaths.toList()..sort(_compareNaturally);
     final totalStopwatch = Stopwatch()..start();
+    final keptPaths = <String>[];
+    final skippedPaths = <String>[];
+
+    void flushSkippedPaths() {
+      if (skippedPaths.isEmpty) return;
+      for (final path in skippedPaths) {
+        _metadataStore.removeMetadataForPath(path);
+      }
+      skippedPaths.clear();
+    }
 
     const batchSize = 200;
     for (var start = 0; start < sortedPaths.length; start += batchSize) {
       if (shouldCancel?.call() ?? false) {
-        return;
+        flushSkippedPaths();
+        return keptPaths;
       }
       final end = start + batchSize < sortedPaths.length
           ? start + batchSize
@@ -1590,7 +1694,8 @@ class ScannerService extends ChangeNotifier {
         getImage: false,
       );
       if (shouldCancel?.call() ?? false) {
-        return;
+        flushSkippedPaths();
+        return keptPaths;
       }
       readStopwatch.stop();
       _logScanTiming(
@@ -1602,7 +1707,8 @@ class ScannerService extends ChangeNotifier {
       final metadataBatch = <SongMetadata>[];
       for (final result in results) {
         if (shouldCancel?.call() ?? false) {
-          return;
+          flushSkippedPaths();
+          return keptPaths;
         }
         final filePath = result['path'] as String? ?? '';
         if (filePath.isEmpty) continue;
@@ -1617,7 +1723,12 @@ class ScannerService extends ChangeNotifier {
             existing: existing,
             sourceFlags: SongSourceFlags.rootScan,
           );
+          if (_shouldSkipShortAudioDuration(metadata.duration)) {
+            skippedPaths.add(filePath);
+            continue;
+          }
           metadataBatch.add(metadata);
+          keptPaths.add(filePath);
           _metadataStore.cacheMetadata(metadata);
           scanState.preprocessedCount++;
         } catch (e) {
@@ -1641,8 +1752,10 @@ class ScannerService extends ChangeNotifier {
       _logScanTiming('stage 3 batch ${start + 1}-$end total', batchStopwatch);
     }
 
+    flushSkippedPaths();
     totalStopwatch.stop();
     _logScanTiming('stage 3 preprocess text tags total', totalStopwatch);
+    return keptPaths;
   }
 
   void _removeRootsFromScannedTree(Iterable<String> roots) {
@@ -1826,19 +1939,49 @@ class ScannerService extends ChangeNotifier {
     if (!_isScanTicketStillValid(ticket)) {
       return;
     }
+    final existingMetadataByPath = Map<String, SongMetadata>.from(
+      classification.existingMetadataByPath,
+    );
+    existingMetadataByPath.removeWhere(
+      (path, metadata) => _shouldSkipShortAudioDuration(metadata.duration),
+    );
     _timeScanStepSync('stage 2.1 seed metadata from db batch', () {
-      _seedMetadataFromDatabase(classification.existingMetadataByPath);
+      _seedMetadataFromDatabase(existingMetadataByPath);
     });
 
-    final fullPaths = classification.pathsFor(ScanFileStage.full);
-    final imageOnlyPaths = classification.pathsFor(ScanFileStage.imageOnly);
+    final skippedKnownPaths = <String>[];
+    final fullPaths = <String>[];
+    for (final path in classification.pathsFor(ScanFileStage.full)) {
+      final existing =
+          classification.existingMetadataByPath[_pathLookupKey(path)];
+      if (_shouldSkipShortAudioDuration(existing?.duration)) {
+        skippedKnownPaths.add(path);
+        continue;
+      }
+      fullPaths.add(path);
+    }
+    final imageOnlyPaths = <String>[];
+    for (final path in classification.pathsFor(ScanFileStage.imageOnly)) {
+      final existing =
+          classification.existingMetadataByPath[_pathLookupKey(path)];
+      if (_shouldSkipShortAudioDuration(existing?.duration)) {
+        skippedKnownPaths.add(path);
+        continue;
+      }
+      imageOnlyPaths.add(path);
+    }
+    if (skippedKnownPaths.isNotEmpty) {
+      for (final path in skippedKnownPaths) {
+        _metadataStore.removeMetadataForPath(path);
+      }
+    }
 
-    await _timeScanStep(
+    final keptFullPaths = await _timeScanStep(
       'stage 3 preprocess text tags batch',
       () => _preprocessChangedFiles(
         fullPaths,
         scanState,
-        existingMetadataByPath: classification.existingMetadataByPath,
+        existingMetadataByPath: existingMetadataByPath,
         rootScanSessionId: rootScanSessionId,
         shouldCancel: () => !_isScanTicketStillValid(ticket),
       ),
@@ -1847,18 +1990,20 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
+    final visiblePaths = <String>[...keptFullPaths, ...imageOnlyPaths];
+
     _timeScanStepSync('stage 3.1 rebuild visible root tree', () {
-      _rebuildScannedRootFolderFromMetadata(ticket.rootPath, discoveredPaths);
+      _rebuildScannedRootFolderFromMetadata(ticket.rootPath, visiblePaths);
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree();
     });
-    scanState.pendingMetadataPaths.addAll(discoveredPaths);
+    scanState.pendingMetadataPaths.addAll(visiblePaths);
     _notifyListenersImmediately();
 
     await _timeScanStep(
       'stage 4 preprocess artwork/theme batch',
       () => _applyArtworkAndThemeToChangedFiles(
-        [...fullPaths, ...imageOnlyPaths],
+        visiblePaths,
         scanState,
         shouldCancel: () => !_isScanTicketStillValid(ticket),
       ),
@@ -1870,7 +2015,7 @@ class ScannerService extends ChangeNotifier {
     await _timeScanStep(
       'stage 4.1 mark root scan session batch',
       () => MetadataDatabase().markRootScanSeen(
-        discoveredPaths,
+        visiblePaths,
         sessionId: rootScanSessionId,
         sourceMask: SongSourceFlags.rootScan,
       ),
@@ -1880,7 +2025,7 @@ class ScannerService extends ChangeNotifier {
     }
 
     _timeScanStepSync('stage 4.2 rebuild root tree from metadata', () {
-      _rebuildScannedRootFolderFromMetadata(ticket.rootPath, discoveredPaths);
+      _rebuildScannedRootFolderFromMetadata(ticket.rootPath, visiblePaths);
     });
     if (!_isScanTicketStillValid(ticket)) {
       return;
@@ -2039,6 +2184,7 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> scan({Iterable<String>? targetRoots}) async {
+    await _loadScanSettings();
     final requestedRoots = targetRoots == null
         ? _roots.rootPaths
         : targetRoots.toList(growable: false);
