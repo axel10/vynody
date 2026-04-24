@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:audio_core/audio_core.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
@@ -223,55 +224,42 @@ class PlaybackQueueProcessor {
               // Extract thumbnail if missing
               if (meta.thumbnailPath == null) {
                 try {
-                  // Extract raw artwork data first
-                  final rawMetadata = await compute(
-                    MetadataHelper.readMetadataIsolate,
-                    song.path,
+                  final supportDir = await getApplicationSupportDirectory();
+                  final artwork = await player.generateTrackArtwork(
+                    path: song.path,
+                    cacheRootPath: supportDir.path,
+                    saveLargeArtwork: !Platform.isWindows,
+                    thumbnailSize: 200,
                   );
                   if (_disposed) return;
-                  final artworkData =
-                      rawMetadata.pictures.isNotEmpty
-                          ? rawMetadata.pictures.first.bytes
-                          : null;
 
-                  if (artworkData != null) {
-                    final artworkInfo =
-                        await MetadataHelper.saveArtworkAndThumbnail(
-                          song.path,
-                          artworkData,
-                          saveLarge: !Platform.isWindows,
-                        );
-                    if (_disposed) return;
+                  if (artwork.artworkFound &&
+                      (artwork.thumbnailPath?.trim().isNotEmpty ?? false)) {
+                    final themeColorsBlob =
+                        artwork.themeColorsBlob ?? meta.themeColorsBlob;
 
-                    if (artworkInfo != null) {
-                      final thumbPath =
-                          artworkInfo['thumbnailPath'] as String?;
-                      final themeColorsBlob =
-                          artworkInfo['themeColorsBlob'] as Uint8List?;
+                    meta = meta.copyWith(
+                      thumbnailPath: artwork.thumbnailPath,
+                      artworkPath: artwork.artworkPath,
+                      artworkWidth: artwork.artworkWidth,
+                      artworkHeight: artwork.artworkHeight,
+                      themeColorsBlob: themeColorsBlob,
+                    );
+                    await db.insertOrUpdateSong(meta);
 
-                      meta = meta.copyWith(
-                        thumbnailPath: thumbPath,
-                        artworkPath: artworkInfo['artworkPath'] as String?,
-                        artworkWidth: artworkInfo['width'] as int?,
-                        artworkHeight: artworkInfo['height'] as int?,
-                        themeColorsBlob: themeColorsBlob ?? meta.themeColorsBlob,
+                    final updates = <String, dynamic>{
+                      'thumbnailPath': artwork.thumbnailPath,
+                      'artworkWidth': meta.artworkWidth,
+                      'artworkHeight': meta.artworkHeight,
+                    };
+                    if (themeColorsBlob != null) {
+                      updates['themeColorsBlob'] = themeColorsBlob;
+                      updates['themeColors'] = ThemeColorHelper.blobToColors(
+                        themeColorsBlob,
                       );
-                      await db.insertOrUpdateSong(meta);
-
-                      final updates = <String, dynamic>{
-                        'thumbnailPath': thumbPath,
-                        'artworkWidth': meta.artworkWidth,
-                        'artworkHeight': meta.artworkHeight,
-                      };
-                      if (themeColorsBlob != null) {
-                        updates['themeColorsBlob'] = themeColorsBlob;
-                        updates['themeColors'] = ThemeColorHelper.blobToColors(
-                          themeColorsBlob,
-                        );
-                      }
-
-                      onUpdate(song.path, updates);
                     }
+
+                    onUpdate(song.path, updates);
                   }
                 } catch (e) {
                   debugPrint('Thumbnail extraction error for ${song.path}: $e');

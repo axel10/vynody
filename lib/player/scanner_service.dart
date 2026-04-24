@@ -1311,24 +1311,35 @@ class ScannerService extends ChangeNotifier {
 
     final processed = await MetadataHelper.processMetadata(
       normalizedPath,
-      generateThumbnail: true,
+      generateThumbnail: false,
     );
     if (processed == null) return;
 
-    final metadata = processed.$1.copyWith(
+    var metadata = processed.$1.copyWith(
       sourceFlags: SongSourceFlags.rootScan,
     );
-    final artworkBytes = processed.$2;
 
     await MetadataDatabase().insertOrUpdateSong(metadata);
     _metadataStore.updateMetadataForPath(
       metadata,
-      artworkBytes: artworkBytes,
       notify: false,
     );
+
+    if (!(metadata.thumbnailPath?.trim().isNotEmpty ?? false)) {
+      final recoveredMetadata = await _recoverThumbnailCacheWithAudioCore(
+        normalizedPath,
+        existingMetadata: metadata,
+        notifyStore: false,
+      );
+      if (recoveredMetadata != null) {
+        metadata = recoveredMetadata.copyWith(
+          sourceFlags: SongSourceFlags.rootScan,
+        );
+      }
+    }
+
     _insertOrUpdateSongInLibrary(
       metadata,
-      artworkBytes: artworkBytes,
       sort: notify,
     );
     if (notify) {
@@ -2230,18 +2241,19 @@ class ScannerService extends ChangeNotifier {
     );
   }
 
-  Future<void> _recoverThumbnailCacheWithAudioCore(
+  Future<SongMetadata?> _recoverThumbnailCacheWithAudioCore(
     String path, {
     SongMetadata? existingMetadata,
+    bool notifyStore = true,
   }) async {
     final file = File(path);
     if (!await file.exists()) {
-      return;
+      return null;
     }
 
     final hasEmbeddedArtwork = await MetadataHelper.hasEmbeddedArtwork(path);
     if (!hasEmbeddedArtwork) {
-      return;
+      return null;
     }
 
     final controller = _playerController ?? AudioCoreController();
@@ -2256,7 +2268,7 @@ class ScannerService extends ChangeNotifier {
 
       if (!artwork.artworkFound ||
           !(artwork.thumbnailPath?.trim().isNotEmpty ?? false)) {
-        return;
+        return null;
       }
 
       final lastModified =
@@ -2286,9 +2298,11 @@ class ScannerService extends ChangeNotifier {
               );
 
       await MetadataDatabase().insertOrUpdateSong(updated);
-      _metadataStore.updateMetadataForPath(updated);
+      _metadataStore.updateMetadataForPath(updated, notify: notifyStore);
+      return updated;
     } catch (e) {
       debugPrint('Thumbnail recovery with audio core failed for $path: $e');
+      return null;
     }
   }
 

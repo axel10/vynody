@@ -164,18 +164,13 @@ class ScannerMetadataStore {
 
     final db = MetadataDatabase();
     SongMetadata? metadata = await db.getSongMetadata(path);
-    if (metadata != null && (metadata.thumbnailPath?.isNotEmpty ?? false)) {
-      _metadataMap[path] = metadata;
-      _onMetadataMutated();
-      _notifyListeners();
-      return;
+    if (metadata == null) {
+      final result = await MetadataHelper.processMetadata(
+        path,
+        generateThumbnail: false,
+      );
+      metadata = result?.$1;
     }
-
-    final result = await MetadataHelper.processMetadata(
-      path,
-      generateThumbnail: true,
-    );
-    metadata = result?.$1 ?? metadata;
 
     if (metadata != null) {
       final mergedMetadata = metadata.copyWith(
