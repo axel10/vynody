@@ -27,7 +27,6 @@ import 'scanner_service_roots.dart';
 import 'scanner_scan_support.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
-import 'theme_color_helper.dart';
 import '../utils/localized_text.dart';
 
 export 'scanner_scan_support.dart';
@@ -1987,39 +1986,13 @@ class ScannerService extends ChangeNotifier {
         thumbnailPath: artwork.thumbnailPath,
         artworkWidth: artwork.artworkWidth,
         artworkHeight: artwork.artworkHeight,
-        metadataImgScanned: artwork.artworkFound ? null : processedAt,
+        themeColorsBlob: artwork.themeColorsBlob,
+        metadataImgScanned: processedAt,
       );
-
-      if (artwork.artworkFound && artwork.themeColorsBlob != null) {
-        updatedMetadata = updatedMetadata.copyWith(
-          themeColorsBlob: artwork.themeColorsBlob,
-          metadataImgScanned: processedAt,
-        );
-      } else if (artwork.artworkFound &&
-          artwork.thumbnailPath != null &&
-          artwork.thumbnailPath!.trim().isNotEmpty) {
-        final paletteStopwatch = Stopwatch()..start();
-        final palette = await ThemeColorHelper.generatePalette(
-          path: artwork.thumbnailPath,
-        );
-        paletteStopwatch.stop();
-        _logScanTiming('stage 4 palette $filePath', paletteStopwatch);
-
-        if (palette.colorsMap.isNotEmpty) {
-          updatedMetadata = updatedMetadata.copyWith(
-            themeColorsBlob: ThemeColorHelper.colorsMapToBlob(
-              palette.colorsMap,
-            ),
-            metadataImgScanned: processedAt,
-          );
-        }
-      }
 
       await db.insertOrUpdateSong(updatedMetadata);
       _metadataStore.cacheMetadata(updatedMetadata);
-      if (updatedMetadata.metadataImgScanned == processedAt) {
-        scanState.completedCount++;
-      }
+      scanState.completedCount++;
     } catch (e) {
       debugPrint('AudioCore artwork/theme scan error for $filePath: $e');
     } finally {
