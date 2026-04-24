@@ -1029,6 +1029,11 @@ class ScannerService extends ChangeNotifier {
     super.notifyListeners();
   }
 
+  void _notifyListenersImmediately() {
+    if (_isDisposed) return;
+    super.notifyListeners();
+  }
+
   void pauseBackgroundTasks() {
     if (!_isBackgroundTaskPaused) {
       _isBackgroundTaskPaused = true;
@@ -1832,6 +1837,14 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
+    _timeScanStepSync('stage 3.1 rebuild visible root tree', () {
+      _rebuildScannedRootFolderFromMetadata(ticket.rootPath, discoveredPaths);
+      _rebuildDisplayedRootFolders();
+      _syncNavigationStateToLatestTree();
+    });
+    scanState.pendingMetadataPaths.addAll(discoveredPaths);
+    _notifyListenersImmediately();
+
     await _timeScanStep(
       'stage 4 preprocess artwork/theme batch',
       () => _applyArtworkAndThemeToChangedFiles(
@@ -1855,13 +1868,13 @@ class ScannerService extends ChangeNotifier {
     if (!_isScanTicketStillValid(ticket)) {
       return;
     }
+
     _timeScanStepSync('stage 4.2 rebuild root tree from metadata', () {
       _rebuildScannedRootFolderFromMetadata(ticket.rootPath, discoveredPaths);
     });
     if (!_isScanTicketStillValid(ticket)) {
       return;
     }
-    scanState.pendingMetadataPaths.addAll(discoveredPaths);
   }
 
   Future<void> _applyArtworkAndThemeToChangedFiles(
