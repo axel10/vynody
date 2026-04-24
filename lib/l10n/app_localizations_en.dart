@@ -19,17 +19,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String filesPreprocessed(Object count) {
-    return 'Preprocessed $count songs';
+    return 'Preprocessed $count';
   }
 
   @override
   String filesDiscovered(Object count) {
-    return 'Discovered $count files';
+    return 'Discovered $count';
   }
 
   @override
   String filesFullyProcessed(Object count) {
-    return 'Fully processed $count songs';
+    return 'Fully processed $count';
   }
 
   @override

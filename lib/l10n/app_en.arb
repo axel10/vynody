@@ -3,21 +3,21 @@
   "appTitle": "Pure Player",
   "systemMediaLibrary": "System Media Library",
   "scanningDirectory": "Scanning directory...",
-  "filesPreprocessed": "Preprocessed {count} songs",
+  "filesPreprocessed": "Preprocessed {count}",
   "@filesPreprocessed": {
     "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
     "placeholders": {
       "count": {}
     }
   },
-  "filesDiscovered": "Discovered {count} files",
+  "filesDiscovered": "Discovered {count}",
   "@filesDiscovered": {
     "description": "Scanning progress toast message showing how many files have been discovered",
     "placeholders": {
       "count": {}
     }
   },
-  "filesFullyProcessed": "Fully processed {count} songs",
+  "filesFullyProcessed": "Fully processed {count}",
   "@filesFullyProcessed": {
     "description": "Scanning progress toast message showing how many songs have been fully processed with thumbnails and theme colors",
     "placeholders": {
