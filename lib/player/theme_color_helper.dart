@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart' as palette_legacy;
@@ -31,12 +32,12 @@ Future<Map<String, int>> _generatePaletteColorMapTask(
     final resized = image.width >= image.height
         ? img.copyResize(
             image,
-            width: 200,
+            width: generatedArtworkThumbnailSize,
             interpolation: img.Interpolation.average,
           )
         : img.copyResize(
             image,
-            height: 200,
+            height: generatedArtworkThumbnailSize,
             interpolation: img.Interpolation.average,
           );
 
@@ -110,8 +111,8 @@ Future<Map<String, int>> _generatePaletteMasterColorMapTask(
 
     final resized = img.copyResize(
       square,
-      width: 200,
-      height: 200,
+      width: generatedArtworkThumbnailSize,
+      height: generatedArtworkThumbnailSize,
       interpolation: img.Interpolation.average,
     );
 

@@ -1984,7 +1984,7 @@ class ScannerService extends ChangeNotifier {
         path: filePath,
         cacheRootPath: supportDirPath,
         saveLargeArtwork: !Platform.isWindows,
-        thumbnailSize: 200,
+        thumbnailSize: generatedArtworkThumbnailSize,
       );
       nativeStopwatch.stop();
       _logScanTiming('stage 4 native artwork $filePath', nativeStopwatch);
@@ -2263,7 +2263,7 @@ class ScannerService extends ChangeNotifier {
         path: path,
         cacheRootPath: supportDir.path,
         saveLargeArtwork: !Platform.isWindows,
-        thumbnailSize: 200,
+        thumbnailSize: generatedArtworkThumbnailSize,
       );
 
       if (!artwork.artworkFound ||

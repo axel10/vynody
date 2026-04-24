@@ -229,7 +229,7 @@ class PlaybackQueueProcessor {
                     path: song.path,
                     cacheRootPath: supportDir.path,
                     saveLargeArtwork: !Platform.isWindows,
-                    thumbnailSize: 200,
+                    thumbnailSize: generatedArtworkThumbnailSize,
                   );
                   if (_disposed) return;
 

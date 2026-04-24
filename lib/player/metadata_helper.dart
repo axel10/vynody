@@ -72,8 +72,8 @@ Future<Map<String, dynamic>?> _buildArtworkFiles({
 
     final resized = img.copyResize(
       square,
-      width: 200,
-      height: 200,
+      width: generatedArtworkThumbnailSize,
+      height: generatedArtworkThumbnailSize,
       interpolation: img.Interpolation.average,
     );
 
@@ -497,8 +497,8 @@ class MetadataHelper {
 
         thumbnailData = await FlutterImageCompress.compressWithList(
           data,
-          minWidth: 200,
-          minHeight: 200,
+          minWidth: generatedArtworkThumbnailSize,
+          minHeight: generatedArtworkThumbnailSize,
           quality: 80,
           format: CompressFormat.jpeg,
         );
@@ -558,8 +558,8 @@ class MetadataHelper {
 
       final resized = img.copyResize(
         square,
-        width: 200,
-        height: 200,
+        width: generatedArtworkThumbnailSize,
+        height: generatedArtworkThumbnailSize,
         interpolation: img.Interpolation.average,
       );
 
