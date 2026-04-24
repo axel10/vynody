@@ -2206,6 +2206,13 @@ class ScannerService extends ChangeNotifier {
 
   Future<void> loadThumbnailForPath(String path) async {
     await _metadataStore.loadThumbnailForPath(path);
+    final cached =
+        _metadataStore.getMetadata(path) ??
+        await MetadataDatabase().getSongMetadata(path);
+    if (cached != null && (cached.thumbnailPath?.trim().isNotEmpty ?? false)) {
+      return;
+    }
+    await _recoverThumbnailCacheWithAudioCore(path, existingMetadata: cached);
   }
 
   void updateMetadataForPath(SongMetadata metadata, {Uint8List? artworkBytes}) {
@@ -2221,6 +2228,68 @@ class ScannerService extends ChangeNotifier {
         completedCount: scanState.completedCount,
       ),
     );
+  }
+
+  Future<void> _recoverThumbnailCacheWithAudioCore(
+    String path, {
+    SongMetadata? existingMetadata,
+  }) async {
+    final file = File(path);
+    if (!await file.exists()) {
+      return;
+    }
+
+    final hasEmbeddedArtwork = await MetadataHelper.hasEmbeddedArtwork(path);
+    if (!hasEmbeddedArtwork) {
+      return;
+    }
+
+    final controller = _playerController ?? AudioCoreController();
+    try {
+      final supportDir = await getApplicationSupportDirectory();
+      final artwork = await controller.generateTrackArtwork(
+        path: path,
+        cacheRootPath: supportDir.path,
+        saveLargeArtwork: !Platform.isWindows,
+        thumbnailSize: 200,
+      );
+
+      if (!artwork.artworkFound ||
+          !(artwork.thumbnailPath?.trim().isNotEmpty ?? false)) {
+        return;
+      }
+
+      final lastModified =
+          existingMetadata?.lastModifiedTime ??
+          (await file.lastModified()).millisecondsSinceEpoch;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final updated =
+          (existingMetadata ??
+                  SongMetadata(
+                    path: path,
+                    title: p.basenameWithoutExtension(path),
+                    album: 'Unknown Album',
+                    artist: 'Unknown Artist',
+                    lastModifiedTime: lastModified,
+                    metadataTextScanned: lastModified,
+                    createdAt: now,
+                  ))
+              .copyWith(
+                artworkPath: artwork.artworkPath,
+                thumbnailPath: artwork.thumbnailPath,
+                artworkWidth: artwork.artworkWidth,
+                artworkHeight: artwork.artworkHeight,
+                themeColorsBlob: artwork.themeColorsBlob,
+                lastModifiedTime: lastModified,
+                metadataImgScanned: lastModified,
+                createdAt: existingMetadata?.createdAt ?? now,
+              );
+
+      await MetadataDatabase().insertOrUpdateSong(updated);
+      _metadataStore.updateMetadataForPath(updated);
+    } catch (e) {
+      debugPrint('Thumbnail recovery with audio core failed for $path: $e');
+    }
   }
 
   int _compareNaturally(String a, String b) {

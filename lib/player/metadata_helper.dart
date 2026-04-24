@@ -780,6 +780,19 @@ class MetadataHelper {
     }
   }
 
+  /// 探测文件内是否存在内嵌封面，不生成任何缓存文件。
+  static Future<bool> hasEmbeddedArtwork(String filePath) async {
+    try {
+      final metadata = await compute(readMetadataWithImageIsolate, filePath);
+      if (metadata.pictures.isEmpty) return false;
+      final bytes = metadata.pictures.first.bytes;
+      return bytes.isNotEmpty;
+    } catch (e) {
+      debugPrint('Error probing embedded artwork for $filePath: $e');
+      return false;
+    }
+  }
+
   static Uint8List? processAndResizeImageIsolate(Map<String, dynamic> params) {
     try {
       final data = params['data'] as Uint8List;
