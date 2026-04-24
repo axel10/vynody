@@ -1892,7 +1892,8 @@ class ScannerService extends ChangeNotifier {
     }
 
     try {
-      const batchSize = 6;
+      // final batchSize = Platform.isWindows ? 2 : 6;
+      final batchSize = 2;
       for (var start = 0; start < sortedPaths.length; start += batchSize) {
         if (shouldCancel?.call() ?? false) {
           return;
