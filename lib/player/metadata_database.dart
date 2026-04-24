@@ -120,6 +120,16 @@ class LibraryInsightSongRecord {
   final int? lastPlayedAt;
 }
 
+class RootScanSweepResult {
+  const RootScanSweepResult({
+    required this.deletedPaths,
+    required this.softDeletedPaths,
+  });
+
+  final List<String> deletedPaths;
+  final List<String> softDeletedPaths;
+}
+
 class AcoustIDCacheRecord {
   final int? id;
   final String fingerprint;
@@ -501,24 +511,24 @@ class MetadataDatabase {
         scopeRoots: scopeRoots,
       );
 
-  Future<void> markRootScanSeen(
+  Future<void> markRootScanSeenWithToken(
     Iterable<String> paths, {
-    required int sessionId,
+    required int scanToken,
     required int sourceMask,
-  }) => _db.markRootScanSeen(
+  }) => _db.markRootScanSeenWithToken(
     paths,
-    sessionId: sessionId,
+    scanToken: scanToken,
     sourceMask: sourceMask,
   );
 
-  Future<List<String>> finalizeRootScanSession({
-    required int sessionId,
+  Future<RootScanSweepResult> sweepRootScanState({
+    required int scanToken,
     required int sourceMask,
-    required Iterable<String> scopeRoots,
-  }) => _db.finalizeRootScanSession(
-    sessionId: sessionId,
+    required Iterable<String> activeRoots,
+  }) => _db.sweepRootScanState(
+    scanToken: scanToken,
     sourceMask: sourceMask,
-    scopeRoots: scopeRoots,
+    activeRoots: activeRoots,
   );
 
   Future<void> deleteSongByPath(String path) => _db.deleteSongByPath(path);

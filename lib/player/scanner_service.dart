@@ -13,9 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:collection/collection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/music_file.dart';
 import '../models/music_folder.dart';
-import 'music_file_utils.dart';
 import 'scanner_navigation_state.dart';
 import 'scanner_path_utils.dart';
 import 'scanner_sorting.dart';
@@ -51,14 +49,12 @@ class ScannerService extends ChangeNotifier {
   bool _scanNotifyPending = false;
   bool _lastNotifiedScanningState = false;
   bool _isDisposed = false;
-  bool _pendingRootPathRescan = false;
-  Future<void> _incrementalEventQueue = Future<void>.value();
-  final List<FileSystemEvent> _pendingIncrementalEvents = [];
-  final List<FileSystemEvent> _batchedIncrementalEvents = [];
   List<SongMetadata>? _pendingWatchedSongs;
   bool _isMetadataWatchReady = false;
   Timer? _incrementalBatchTimer;
   bool _suppressNextMetadataWatchRefresh = false;
+  int _activeRootScanToken = 0;
+  bool _queuedFullRescan = false;
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -69,8 +65,6 @@ class ScannerService extends ChangeNotifier {
   late final ScannerDirectoryScanner _directoryScanner;
   int _metadataRevision = 0;
   int _albumLibraryRevision = 0;
-  int _rootGenerationSequence = 0;
-  final Map<String, int> _rootGenerations = {};
   bool _skipShortAudioScanEnabled = false;
   int _skipShortAudioScanThresholdSeconds = _defaultShortAudioThresholdSeconds;
 
@@ -80,7 +74,6 @@ class ScannerService extends ChangeNotifier {
   static const int _defaultShortAudioThresholdSeconds = 30;
   static const bool _scanTimingEnabled = kDebugMode;
   static const Duration _incrementalBatchWindow = Duration(milliseconds: 900);
-  static const int _incrementalBatchRescanThreshold = 48;
 
   SortCriteria _globalSortCriteria = SortCriteria.filename;
   SortOrder _globalSortOrder = SortOrder.ascending;
@@ -365,7 +358,6 @@ class ScannerService extends ChangeNotifier {
               : null,
         );
       });
-      _ensureRootPathGenerations(_roots.rootPaths);
       await _timeInitStep('load sort settings', _loadSortSettings);
       await _timeInitStep('load scan settings', _loadScanSettings);
       final cachedSongs = await _timeInitStep(
@@ -475,8 +467,7 @@ class ScannerService extends ChangeNotifier {
 
     final updatedRoots = [..._roots.rootPaths, normalizedPath];
     await _roots.setRootPaths(updatedRoots);
-    _bumpRootPathGenerations([normalizedPath]);
-    await _loadCachedRootFoldersFromDatabase(rootPaths: [normalizedPath]);
+    await _loadCachedRootFoldersFromDatabase(rootPaths: updatedRoots);
     _rebuildDisplayedRootFolders();
     notifyListeners();
 
@@ -488,11 +479,7 @@ class ScannerService extends ChangeNotifier {
       }
     }
 
-    if (_isScanning) {
-      _scheduleRootPathRescan();
-    } else {
-      await scan(targetRoots: [normalizedPath]);
-    }
+    _restartFullRootScan();
 
     final addedFolder = _rootFolders.firstWhereOrNull(
       (folder) => _pathsEqual(folder.path, normalizedPath),
@@ -529,7 +516,6 @@ class ScannerService extends ChangeNotifier {
           normalizedTargets.any((target) => _pathsEqual(existing, target)),
     );
     await _roots.setRootPaths(updatedRoots);
-    _bumpRootPathGenerations(normalizedTargets);
     _removeRootsFromScannedTree(normalizedTargets);
     _purgeRemovedRootsFromMetadataCache(normalizedTargets);
     _rebuildDisplayedRootFolders();
@@ -540,16 +526,7 @@ class ScannerService extends ChangeNotifier {
       'remainingRoots=${_roots.rootPaths}',
     );
 
-    _suppressNextMetadataWatchRefresh = true;
-    await MetadataDatabase().syncSongSourcePresence(
-      sourceMask: SongSourceFlags.rootScan,
-      presentPaths: const [],
-      scopeRoots: normalizedTargets,
-    );
-
-    if (_isScanning) {
-      _scheduleRootPathRescan();
-    }
+    _restartFullRootScan();
   }
 
   Future<void> moveRootPath(int oldIndex, int newIndex) async {
@@ -563,10 +540,7 @@ class ScannerService extends ChangeNotifier {
     await _roots.setRootPaths(updatedRoots);
     _rebuildDisplayedRootFolders();
     notifyListeners();
-
-    if (_isScanning) {
-      _scheduleRootPathRescan();
-    }
+    _restartFullRootScan();
   }
 
   Future<bool> _registerPersistentAccess(String path) async {
@@ -617,7 +591,6 @@ class ScannerService extends ChangeNotifier {
       hasPersistentAccess: _hasPersistentAccess,
       forgetPersistentAccess: _forgetPersistentAccess,
     );
-    _ensureRootPathGenerations(_roots.rootPaths);
     _rebuildDisplayedRootFolders();
     notifyListeners();
   }
@@ -1280,361 +1253,35 @@ class ScannerService extends ChangeNotifier {
 
   void _enqueueIncrementalFileEvent(FileSystemEvent event) {
     if (_isDisposed) return;
-
-    if (_isScanning) {
-      _pendingIncrementalEvents.add(event);
-      return;
-    }
-
-    _batchedIncrementalEvents.add(event);
-    _scheduleIncrementalEventBatch();
-  }
-
-  void _scheduleIncrementalEventBatch() {
     _incrementalBatchTimer?.cancel();
     _incrementalBatchTimer = Timer(_incrementalBatchWindow, () {
       _incrementalBatchTimer = null;
-      if (_isDisposed || _batchedIncrementalEvents.isEmpty) {
+      if (_isDisposed) {
         return;
       }
-
-      final events = List<FileSystemEvent>.from(_batchedIncrementalEvents);
-      _batchedIncrementalEvents.clear();
-
-      _incrementalEventQueue = _incrementalEventQueue
-          .then((_) async {
-            await _processIncrementalEventBatch(events);
-          })
-          .catchError((e, st) {
-            debugPrint('[ScannerService] Incremental event batch error: $e');
-          });
+      _restartFullRootScan();
     });
   }
 
-  Future<void> _drainPendingIncrementalFileEvents() async {
-    if (_pendingIncrementalEvents.isEmpty) return;
-
-    final pendingEvents = List<FileSystemEvent>.from(_pendingIncrementalEvents);
-    _pendingIncrementalEvents.clear();
-
-    _incrementalEventQueue = _incrementalEventQueue
-        .then((_) async {
-          for (final event in pendingEvents) {
-            await _processIncrementalFileEvent(event, notify: false);
-          }
-        })
-        .catchError((e, st) {
-          debugPrint('[ScannerService] Pending incremental event error: $e');
-        });
-
-    await _incrementalEventQueue;
+  void cancelScan() {
+    if (!_isScanning) {
+      return;
+    }
+    _queuedFullRescan = false;
+    _activeRootScanToken++;
   }
 
-  Future<void> _processIncrementalEventBatch(
-    List<FileSystemEvent> events,
-  ) async {
-    if (events.isEmpty || _isDisposed) return;
+  void _restartFullRootScan() {
+    _queuedFullRescan = true;
+    _activeRootScanToken++;
     if (_isScanning) {
-      _pendingIncrementalEvents.addAll(events);
       return;
     }
-
-    final affectedRoots = <String>{};
-    var hasDirectoryEvent = false;
-
-    for (final event in events) {
-      final normalizedPath = _normalizePath(event.path);
-      if (normalizedPath.isEmpty) {
-        continue;
-      }
-
-      if (event.isDirectory) {
-        hasDirectoryEvent = true;
-      }
-
-      final matchedRoot = _findScanRootForPath(normalizedPath);
-      if (matchedRoot != null) {
-        affectedRoots.add(matchedRoot);
-      }
-    }
-
-    final shouldRescan =
-        hasDirectoryEvent || events.length >= _incrementalBatchRescanThreshold;
-
-    if (shouldRescan && affectedRoots.isNotEmpty) {
-      _suppressNextMetadataWatchRefresh = true;
-      await scan(targetRoots: affectedRoots);
-      return;
-    }
-
-    for (final event in events) {
-      await _processIncrementalFileEvent(event, notify: false);
-    }
-
-    if (_isDisposed) return;
-
-    _suppressNextMetadataWatchRefresh = true;
-    _sortAndNotify();
+    unawaited(scan());
   }
 
-  Future<void> _processIncrementalFileEvent(
-    FileSystemEvent event, {
-    bool notify = true,
-  }) async {
-    if (_isDisposed) return;
-
-    final normalizedPath = _normalizePath(event.path);
-    if (normalizedPath.isEmpty) return;
-    if (event.isDirectory) {
-      if ((event.type & FileSystemEvent.delete) != 0 ||
-          (event.type & FileSystemEvent.move) != 0) {
-        await _removeIncrementalDirectory(normalizedPath, notify: notify);
-      }
-      return;
-    }
-    if (!MusicFileUtils.isMusicFilePath(normalizedPath)) return;
-    if (!_roots.rootPaths.any((root) => _pathContains(root, normalizedPath))) {
-      return;
-    }
-
-    final exists = await File(normalizedPath).exists();
-    if (!exists) {
-      await _removeIncrementalSong(normalizedPath, notify: notify);
-      return;
-    }
-
-    final processed = await MetadataHelper.processMetadata(
-      normalizedPath,
-      generateThumbnail: false,
-    );
-    if (processed == null) return;
-
-    var metadata = processed.$1.copyWith(sourceFlags: SongSourceFlags.rootScan);
-    final existing = await MetadataDatabase().getSongMetadata(normalizedPath);
-    if (_shouldSkipShortAudioDuration(metadata.duration)) {
-      if (existing != null) {
-        await _removeIncrementalSong(normalizedPath, notify: notify);
-      }
-      return;
-    }
-
-    await MetadataDatabase().insertOrUpdateSong(metadata);
-    _metadataStore.updateMetadataForPath(metadata, notify: false);
-
-    if (!(metadata.thumbnailPath?.trim().isNotEmpty ?? false)) {
-      final recoveredMetadata = await _recoverThumbnailCacheWithAudioCore(
-        normalizedPath,
-        existingMetadata: metadata,
-        notifyStore: false,
-      );
-      if (recoveredMetadata != null) {
-        metadata = recoveredMetadata.copyWith(
-          sourceFlags: SongSourceFlags.rootScan,
-        );
-      }
-    }
-
-    _insertOrUpdateSongInLibrary(metadata, sort: notify);
-    if (notify) {
-      _rebuildDisplayedRootFolders();
-      _syncNavigationStateToLatestTree();
-      _scheduleMetadataNotify();
-    }
-  }
-
-  Future<void> _removeIncrementalDirectory(
-    String directoryPath, {
-    required bool notify,
-  }) async {
-    final normalizedDirectory = _normalizePath(directoryPath);
-    if (normalizedDirectory.isEmpty) return;
-
-    final pathsToRemove = _metadataStore.metadataMap.keys
-        .where((path) => _pathContains(normalizedDirectory, path))
-        .toList(growable: false);
-    if (pathsToRemove.isEmpty) {
-      return;
-    }
-
-    for (final path in pathsToRemove) {
-      _metadataStore.removeMetadataForPath(path);
-      final matchedRoot = _findScanRootForPath(path);
-      if (matchedRoot != null) {
-        final rootFolder = _findScannedRootFolder(matchedRoot);
-        if (rootFolder != null) {
-          _treeBuilder.removeSongFromFolder(rootFolder, path);
-          if (rootFolder.isEmpty) {
-            _scannedRootFolders.removeWhere(
-              (existing) => _pathsEqual(existing.path, rootFolder.path),
-            );
-          }
-        }
-      }
-
-      if (_systemMediaFolder != null) {
-        _treeBuilder.removeSongFromFolder(_systemMediaFolder!, path);
-        if (_systemMediaFolder!.isEmpty) {
-          _systemMediaFolder = null;
-        }
-      }
-
-      await MetadataDatabase().syncSongSourcePresence(
-        sourceMask: SongSourceFlags.rootScan,
-        scopeRoots: [path],
-        presentPaths: const [],
-      );
-      _notifySongMissingState(path, true);
-    }
-
-    if (notify) {
-      _rebuildDisplayedRootFolders();
-      _syncNavigationStateToLatestTree();
-      _scheduleMetadataNotify();
-    }
-  }
-
-  void _insertOrUpdateSongInLibrary(
-    SongMetadata metadata, {
-    Uint8List? artworkBytes,
-    bool sort = true,
-  }) {
-    final rootPath = _findScanRootForPath(metadata.path);
-    if (rootPath == null) return;
-
-    final rootFolder =
-        _findScannedRootFolder(rootPath) ??
-        MusicFolder(path: rootPath, name: _displayNameForPath(rootPath));
-    _upsertScannedRootFolder(rootFolder);
-
-    final targetFolder = _ensureFolderChain(rootFolder, metadata.path);
-    final musicFile = MusicFile(
-      path: metadata.path,
-      name: p.basename(metadata.path),
-      title: metadata.title,
-      artist: metadata.artist,
-      album: metadata.album,
-      trackNumber: metadata.trackNumber,
-      durationMillis: metadata.duration,
-      thumbnailPath: metadata.thumbnailPath,
-      artworkPath: metadata.artworkPath,
-      artworkWidth: metadata.artworkWidth,
-      artworkHeight: metadata.artworkHeight,
-      themeColorsBlob: metadata.themeColorsBlob,
-      artworkBytes: artworkBytes,
-      lastModifiedTime: metadata.lastModifiedTime,
-    );
-    _upsertMusicFile(targetFolder, musicFile);
-    if (sort) {
-      _folderSorter.sortFolderRecursiveForTree(
-        rootFolder,
-        resolveSettings: _resolveSortSettingsForFolder,
-      );
-    }
-  }
-
-  Future<void> _removeIncrementalSong(
-    String path, {
-    required bool notify,
-  }) async {
-    _metadataStore.removeMetadataForPath(path);
-
-    final matchedRoot = _findScanRootForPath(path);
-    if (matchedRoot != null) {
-      final rootFolder = _findScannedRootFolder(matchedRoot);
-      if (rootFolder != null) {
-        _treeBuilder.removeSongFromFolder(rootFolder, path);
-        if (rootFolder.isEmpty) {
-          _scannedRootFolders.removeWhere(
-            (existing) => _pathsEqual(existing.path, rootFolder.path),
-          );
-        }
-      }
-    }
-
-    if (_systemMediaFolder != null) {
-      _treeBuilder.removeSongFromFolder(_systemMediaFolder!, path);
-      if (_systemMediaFolder!.isEmpty) {
-        _systemMediaFolder = null;
-      }
-    }
-
-    await MetadataDatabase().syncSongSourcePresence(
-      sourceMask: SongSourceFlags.rootScan,
-      scopeRoots: [path],
-      presentPaths: const [],
-    );
-    _notifySongMissingState(path, true);
-    if (notify) {
-      _rebuildDisplayedRootFolders();
-      _syncNavigationStateToLatestTree();
-      _scheduleMetadataNotify();
-    }
-  }
-
-  String? _findScanRootForPath(String path) {
-    String? bestMatch;
-    for (final root in _computeScanRoots(_roots.rootPaths)) {
-      if (!_pathContains(root, path)) continue;
-      if (bestMatch == null || root.length > bestMatch.length) {
-        bestMatch = root;
-      }
-    }
-    return bestMatch;
-  }
-
-  MusicFolder? _findScannedRootFolder(String rootPath) {
-    for (final root in _scannedRootFolders) {
-      if (_pathsEqual(root.path, rootPath)) {
-        return root;
-      }
-    }
-    return null;
-  }
-
-  MusicFolder _ensureFolderChain(MusicFolder root, String filePath) {
-    final normalizedRoot = _normalizePath(root.path);
-    final normalizedFile = _normalizePath(filePath);
-    final relative = p.relative(normalizedFile, from: normalizedRoot);
-    final parts = p.split(relative);
-    if (parts.isEmpty ||
-        (parts.length == 1 && parts.first == p.basename(normalizedFile))) {
-      return root;
-    }
-
-    var currentFolder = root;
-    var currentPath = normalizedRoot;
-    for (var i = 0; i < parts.length - 1; i++) {
-      final segment = parts[i];
-      if (segment.trim().isEmpty || segment == '.') continue;
-      currentPath = p.join(currentPath, segment);
-      final existing = currentFolder.subFolders.firstWhereOrNull(
-        (folder) => _pathsEqual(folder.path, currentPath),
-      );
-      if (existing != null) {
-        currentFolder = existing;
-        continue;
-      }
-
-      final created = MusicFolder(
-        path: currentPath,
-        name: _displayNameForPath(currentPath),
-      );
-      currentFolder.subFolders.add(created);
-      currentFolder = created;
-    }
-
-    return currentFolder;
-  }
-
-  void _upsertMusicFile(MusicFolder folder, MusicFile file) {
-    final index = folder.files.indexWhere(
-      (existing) => _pathsEqual(existing.path, file.path),
-    );
-    if (index >= 0) {
-      folder.files[index] = file;
-    } else {
-      folder.files.add(file);
-    }
+  bool _isScanTokenCurrent(int scanToken) {
+    return !_isDisposed && _activeRootScanToken == scanToken;
   }
 
   Future<ScanFileClassification> _classifyDiscoveredFiles(
@@ -1783,49 +1430,24 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  void _scheduleRootPathRescan() {
-    debugPrint(
-      '[ScannerService] root path rescan scheduled '
-      'pending=$_pendingRootPathRescan currentRoots=${_roots.rootPaths}',
-    );
-    _pendingRootPathRescan = true;
-  }
-
   bool _isScanRootStillActive(String rootPath) {
     final currentScanRoots = _computeScanRoots(_roots.rootPaths);
-    return currentScanRoots.any((current) => _pathsEqual(current, rootPath));
-  }
-
-  bool _isScanTicketStillValid(RootScanTicket ticket) {
-    if (!_isScanRootStillActive(ticket.rootPath)) {
-      debugPrint(
-        '[ScannerService] scan ticket invalid: root no longer active '
-        'path=${ticket.rootPath} generation=${ticket.generation}',
-      );
-      return false;
-    }
-    final currentGeneration = _rootGenerationForPath(ticket.rootPath);
-    if (currentGeneration != ticket.generation) {
-      debugPrint(
-        '[ScannerService] scan ticket invalid: generation changed '
-        'path=${ticket.rootPath} ticket=${ticket.generation} '
-        'current=$currentGeneration',
-      );
+    if (!currentScanRoots.any((current) => _pathsEqual(current, rootPath))) {
       return false;
     }
     try {
-      final exists = Directory(ticket.rootPath).existsSync();
+      final exists = Directory(rootPath).existsSync();
       if (!exists) {
         debugPrint(
-          '[ScannerService] scan ticket invalid: root no longer exists '
-          'path=${ticket.rootPath}',
+          '[ScannerService] scan root inactive because path no longer exists '
+          'path=$rootPath',
         );
       }
       return exists;
     } catch (e, st) {
       debugPrint(
-        '[ScannerService] scan ticket invalid: existsSync failed '
-        'path=${ticket.rootPath}: $e\n$st',
+        '[ScannerService] scan root inactive because existsSync failed '
+        'path=$rootPath: $e\n$st',
       );
       return false;
     }
@@ -1834,9 +1456,9 @@ class ScannerService extends ChangeNotifier {
   Future<List<String>> _discoverRootFilePaths(
     String rootPath,
     ScanProgressState scanState,
-    RootScanTicket ticket,
+    int scanToken,
   ) async {
-    if (!_isScanTicketStillValid(ticket)) {
+    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
       debugPrint(
         '[ScannerService] skip directory traversal for stale root '
         'path=$rootPath',
@@ -1845,18 +1467,19 @@ class ScannerService extends ChangeNotifier {
     }
     debugPrint(
       '[ScannerService] begin directory traversal path=$rootPath '
-      'generation=${ticket.generation}',
+      'scanToken=$scanToken',
     );
     final discoveredPaths = await _directoryScanner.discoverMusicFiles(
       rootPath,
       scanState,
-      shouldCancel: () => !_isScanTicketStillValid(ticket),
+      shouldCancel: () =>
+          !_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath),
     );
     debugPrint(
       '[ScannerService] directory traversal finished path=$rootPath '
       'count=${discoveredPaths.length}',
     );
-    if (!_isScanTicketStillValid(ticket)) {
+    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
       _scannedRootFolders.removeWhere(
         (existing) => _pathsEqual(existing.path, rootPath),
       );
@@ -1919,13 +1542,14 @@ class ScannerService extends ChangeNotifier {
   Future<void> _processDiscoveredPaths(
     List<String> discoveredPaths,
     ScanProgressState scanState,
-    int rootScanSessionId,
-    RootScanTicket ticket,
+    int scanToken, {
+    required String rootPath,
+  }
   ) async {
     if (discoveredPaths.isEmpty) {
       return;
     }
-    if (!_isScanTicketStillValid(ticket)) {
+    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
       return;
     }
 
@@ -1933,10 +1557,11 @@ class ScannerService extends ChangeNotifier {
       'stage 2 classify discovered files batch',
       () => _classifyDiscoveredFiles(
         discoveredPaths,
-        shouldCancel: () => !_isScanTicketStillValid(ticket),
+        shouldCancel: () =>
+            !_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath),
       ),
     );
-    if (!_isScanTicketStillValid(ticket)) {
+    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
       return;
     }
     final existingMetadataByPath = Map<String, SongMetadata>.from(
@@ -1970,6 +1595,16 @@ class ScannerService extends ChangeNotifier {
       }
       imageOnlyPaths.add(path);
     }
+    final unchangedPaths = <String>[];
+    for (final path in classification.pathsFor(ScanFileStage.unchanged)) {
+      final existing =
+          classification.existingMetadataByPath[_pathLookupKey(path)];
+      if (_shouldSkipShortAudioDuration(existing?.duration)) {
+        skippedKnownPaths.add(path);
+        continue;
+      }
+      unchangedPaths.add(path);
+    }
     if (skippedKnownPaths.isNotEmpty) {
       for (final path in skippedKnownPaths) {
         _metadataStore.removeMetadataForPath(path);
@@ -1982,18 +1617,34 @@ class ScannerService extends ChangeNotifier {
         fullPaths,
         scanState,
         existingMetadataByPath: existingMetadataByPath,
-        rootScanSessionId: rootScanSessionId,
-        shouldCancel: () => !_isScanTicketStillValid(ticket),
+        shouldCancel: () =>
+            !_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath),
       ),
     );
-    if (!_isScanTicketStillValid(ticket)) {
+    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
       return;
     }
 
-    final visiblePaths = <String>[...keptFullPaths, ...imageOnlyPaths];
+    final visiblePaths = <String>[
+      ...unchangedPaths,
+      ...keptFullPaths,
+      ...imageOnlyPaths,
+    ];
 
-    _timeScanStepSync('stage 3.1 rebuild visible root tree', () {
-      _rebuildScannedRootFolderFromMetadata(ticket.rootPath, visiblePaths);
+    await _timeScanStep(
+      'stage 3.1 mark root scan token batch',
+      () => MetadataDatabase().markRootScanSeenWithToken(
+        visiblePaths,
+        scanToken: scanToken,
+        sourceMask: SongSourceFlags.rootScan,
+      ),
+    );
+    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
+      return;
+    }
+
+    _timeScanStepSync('stage 3.2 rebuild visible root tree', () {
+      _rebuildScannedRootFolderFromMetadata(rootPath, visiblePaths);
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree();
     });
@@ -2003,31 +1654,20 @@ class ScannerService extends ChangeNotifier {
     await _timeScanStep(
       'stage 4 preprocess artwork/theme batch',
       () => _applyArtworkAndThemeToChangedFiles(
-        visiblePaths,
+        [...keptFullPaths, ...imageOnlyPaths],
         scanState,
-        shouldCancel: () => !_isScanTicketStillValid(ticket),
+        shouldCancel: () =>
+            !_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath),
       ),
     );
-    if (!_isScanTicketStillValid(ticket)) {
-      return;
-    }
-
-    await _timeScanStep(
-      'stage 4.1 mark root scan session batch',
-      () => MetadataDatabase().markRootScanSeen(
-        visiblePaths,
-        sessionId: rootScanSessionId,
-        sourceMask: SongSourceFlags.rootScan,
-      ),
-    );
-    if (!_isScanTicketStillValid(ticket)) {
+    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
       return;
     }
 
     _timeScanStepSync('stage 4.2 rebuild root tree from metadata', () {
-      _rebuildScannedRootFolderFromMetadata(ticket.rootPath, visiblePaths);
+      _rebuildScannedRootFolderFromMetadata(rootPath, visiblePaths);
     });
-    if (!_isScanTicketStillValid(ticket)) {
+    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
       return;
     }
   }
@@ -2183,16 +1823,15 @@ class ScannerService extends ChangeNotifier {
     );
   }
 
-  Future<void> scan({Iterable<String>? targetRoots}) async {
+  Future<void> scan() async {
     await _loadScanSettings();
-    final requestedRoots = targetRoots == null
-        ? _roots.rootPaths
-        : targetRoots.toList(growable: false);
-    if (requestedRoots.isEmpty) return;
     if (_isScanning) {
       return;
     }
 
+    _queuedFullRescan = false;
+    final scanToken = ++_activeRootScanToken;
+    final requestedRoots = _roots.rootPaths.toList(growable: false);
     _isScanning = true;
     notifyListeners();
 
@@ -2203,36 +1842,31 @@ class ScannerService extends ChangeNotifier {
       permissionsStopwatch.stop();
       _logScanTiming('stage 0 permissions', permissionsStopwatch);
 
-      if (hasPermission) {
+      if (hasPermission || requestedRoots.isEmpty) {
         _suppressNextMetadataWatchRefresh = true;
-        final rootScanSessionId = DateTime.now().microsecondsSinceEpoch;
         final scanState = ScanProgressState(
           metadataConcurrency: 4,
           comparePaths: _compareNaturally,
         );
-        final scanTickets = _timeScanStepSync('stage 1 root discovery', () {
+        final scanRoots = _timeScanStepSync('stage 1 root discovery', () {
           final roots = _computeScanRoots(requestedRoots);
           roots.sort(_compareNaturally);
-          _ensureRootPathGenerations(roots);
           debugPrint(
             '[ScannerService] scan root discovery requested=$requestedRoots '
             'resolved=$roots currentRoots=${_roots.rootPaths}',
           );
-          return roots
-              .map(
-                (root) => RootScanTicket(
-                  rootPath: root,
-                  generation: _rootGenerationForPath(root),
-                ),
-              )
-              .toList(growable: false);
+          return roots;
         });
 
-        for (final ticket in scanTickets) {
-          final path = ticket.rootPath;
-          if (!_isScanTicketStillValid(ticket)) {
+        _scannedRootFolders.clear();
+        _rebuildDisplayedRootFolders();
+        _syncNavigationStateToLatestTree();
+        notifyListeners();
+
+        for (final path in scanRoots) {
+          if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(path)) {
             debugPrint(
-              '[ScannerService] Skipping stale scan root after root-path change: $path',
+              '[ScannerService] Skipping stale scan root after scan restart: $path',
             );
             continue;
           }
@@ -2253,16 +1887,16 @@ class ScannerService extends ChangeNotifier {
 
           final discoveredPaths = await _timeScanStep(
             'stage 1.2 directory traversal for $path',
-            () => _discoverRootFilePaths(path, scanState, ticket),
+            () => _discoverRootFilePaths(path, scanState, scanToken),
           );
           debugPrint(
             '[ScannerService] traversal stage returned path=$path '
             'count=${discoveredPaths.length}',
           );
 
-          if (!_isScanTicketStillValid(ticket)) {
+          if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(path)) {
             debugPrint(
-              '[ScannerService] Discarding stale scan result after root-path change: $path',
+              '[ScannerService] Discarding stale scan result after scan restart: $path',
             );
             _scannedRootFolders.removeWhere(
               (existing) => _pathsEqual(existing.path, path),
@@ -2273,11 +1907,11 @@ class ScannerService extends ChangeNotifier {
           await _processDiscoveredPaths(
             discoveredPaths,
             scanState,
-            rootScanSessionId,
-            ticket,
+            scanToken,
+            rootPath: path,
           );
 
-          if (!_isScanTicketStillValid(ticket)) {
+          if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(path)) {
             debugPrint(
               '[ScannerService] Root scan became stale before tree refresh: $path',
             );
@@ -2291,31 +1925,37 @@ class ScannerService extends ChangeNotifier {
           notifyListeners();
         }
 
-        final presentPaths = _timeScanStepSync(
-          'stage 5 collect present paths',
-          () {
-            return scanState.pendingMetadataPaths
-                .map(_normalizePath)
-                .where((path) => path.isNotEmpty)
-                .toSet();
-          },
-        );
-        final missingPaths = await _timeScanStep(
-          'stage 5.1 finalize root scan session',
-          () => MetadataDatabase().finalizeRootScanSession(
-            sessionId: rootScanSessionId,
-            sourceMask: SongSourceFlags.rootScan,
-            scopeRoots: scanTickets.map((ticket) => ticket.rootPath),
-          ),
-        );
-        _timeScanStepSync('stage 5.4 notify missing states', () {
-          for (final path in presentPaths) {
-            _notifySongMissingState(path, false);
-          }
-          for (final path in missingPaths) {
-            _notifySongMissingState(path, true);
-          }
-        });
+        if (_isScanTokenCurrent(scanToken)) {
+          final presentPaths = _timeScanStepSync(
+            'stage 5 collect present paths',
+            () {
+              return scanState.pendingMetadataPaths
+                  .map(_normalizePath)
+                  .where((path) => path.isNotEmpty)
+                  .toSet();
+            },
+          );
+          final sweepResult = await _timeScanStep(
+            'stage 5.1 sweep root scan state',
+            () => MetadataDatabase().sweepRootScanState(
+              scanToken: scanToken,
+              sourceMask: SongSourceFlags.rootScan,
+              activeRoots: scanRoots,
+            ),
+          );
+          _timeScanStepSync('stage 5.4 notify missing states', () {
+            for (final path in presentPaths) {
+              _notifySongMissingState(path, false);
+            }
+            for (final path in sweepResult.deletedPaths) {
+              _notifySongMissingState(path, true);
+            }
+            for (final path in sweepResult.softDeletedPaths) {
+              _notifySongMissingState(path, true);
+              _metadataStore.removeMetadataForPath(path);
+            }
+          });
+        }
       } else {
         debugPrint('Scan aborted: Permission not granted.');
       }
@@ -2325,22 +1965,14 @@ class ScannerService extends ChangeNotifier {
       _isScanning = false;
       _flushScanNotifications();
       await _timeScanStep(
-        'stage 5.6 drain pending incremental file events',
-        () => _drainPendingIncrementalFileEvents(),
-      );
-      await _timeScanStep(
         'stage 5.7 final sort and notify',
         () async => _sortAndNotify(),
       );
       totalStopwatch.stop();
       _logScanTiming('scan total', totalStopwatch);
 
-      if (_pendingRootPathRescan && !_isDisposed) {
-        debugPrint(
-          '[ScannerService] running deferred root rescan '
-          'currentRoots=${_roots.rootPaths}',
-        );
-        _pendingRootPathRescan = false;
+      if (_queuedFullRescan && !_isDisposed) {
+        debugPrint('[ScannerService] running queued full rescan');
         await scan();
       }
     }
@@ -2607,25 +2239,6 @@ class ScannerService extends ChangeNotifier {
 
   List<String> _computeScanRoots(Iterable<String> paths) {
     return ScannerPathUtils.computeScanRoots(paths);
-  }
-
-  void _ensureRootPathGenerations(Iterable<String> paths) {
-    for (final path in _normalizeDeclaredRootPaths(paths)) {
-      final key = _pathLookupKey(path);
-      _rootGenerations.putIfAbsent(key, () => ++_rootGenerationSequence);
-    }
-  }
-
-  void _bumpRootPathGenerations(Iterable<String> paths) {
-    for (final path in _normalizeDeclaredRootPaths(paths)) {
-      _rootGenerations[_pathLookupKey(path)] = ++_rootGenerationSequence;
-    }
-  }
-
-  int _rootGenerationForPath(String path) {
-    final normalizedPath = _normalizePath(path);
-    final key = _pathLookupKey(normalizedPath);
-    return _rootGenerations.putIfAbsent(key, () => ++_rootGenerationSequence);
   }
 
   void _rebuildDisplayedRootFolders() {

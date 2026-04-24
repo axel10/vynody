@@ -854,8 +854,21 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
             right: 24,
             bottom: 84, // 24 + 60 (NavigationBar height)
             child: FloatingActionButton(
-              tooltip: AppLocalizations.of(context)!.rebuildTagDatabase,
-              onPressed: () => _showRebuildDialog(context, scanner),
+              tooltip: isScanning
+                  ? AppLocalizations.of(context)!.cancel
+                  : AppLocalizations.of(context)!.rebuildTagDatabase,
+              onPressed: () {
+                if (isScanning) {
+                  scanner.cancelScan();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.cancel),
+                    ),
+                  );
+                  return;
+                }
+                _showRebuildDialog(context, scanner);
+              },
               child: isScanning
                   ? const SizedBox(
                       width: 24,
