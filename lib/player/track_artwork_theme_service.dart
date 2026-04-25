@@ -187,7 +187,10 @@ class TrackArtworkThemeService {
         path: path,
         cacheRootPath: cacheRootPath,
         saveLargeArtwork: saveLargeArtwork,
-        thumbnailSize: thumbnailSize,
+        options: TrackArtworkOptions(
+          thumbnailSize: thumbnailSize,
+          meshMuddyPenaltyMultiplier: 0.0
+        ),
       );
 
       if (!artwork.artworkFound &&

@@ -30,7 +30,7 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
   }
 
   void _initializePoints() {
-    // Initialize 4 points with the default monochrome palette.
+    // Keep the original monochrome fallback palette for the default state.
     points = [
       MeshGradientPoint(position: const Offset(0.2, 0.2), color: Colors.white),
       MeshGradientPoint(position: const Offset(0.8, 0.2), color: Colors.black),
@@ -115,7 +115,9 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground> {
                   builder: (context, animatedColors, child) {
                     return AnimatedMeshGradient(
                       colors: animatedColors,
-                      options: AnimatedMeshGradientOptions(totalSpeed: meshSpeed),
+                      options: AnimatedMeshGradientOptions(
+                        totalSpeed: meshSpeed,
+                      ),
                     );
                   },
                 ),

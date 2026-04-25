@@ -218,6 +218,18 @@ class ThemeColorHelper {
     Color? dynamicStartColor,
     Color? dynamicEndColor,
   }) {
+    if (themeColors.containsKey('mesh1') &&
+        themeColors.containsKey('mesh2') &&
+        themeColors.containsKey('mesh3') &&
+        themeColors.containsKey('mesh4')) {
+      return <Color>[
+        themeColors['mesh1']!,
+        themeColors['mesh2']!,
+        themeColors['mesh3']!,
+        themeColors['mesh4']!,
+      ];
+    }
+
     final color1 = resolveMeshColor(themeColors, const [
       'dominant',
       'vibrant',
@@ -228,12 +240,14 @@ class ThemeColorHelper {
     ], fallback: dynamicEndColor ?? Colors.black)!;
     final color3 = resolveMeshColor(themeColors, const [
       'lightVibrant',
+      'lightMuted',
       'muted',
-    ], fallback: Colors.black)!;
+    ], fallback: dynamicStartColor ?? color2)!;
     final color4 = resolveMeshColor(themeColors, const [
       'darkVibrant',
       'darkMuted',
-    ], fallback: Colors.black)!;
+      'muted',
+    ], fallback: dynamicEndColor ?? color2)!;
 
     return [color1, color2, color3, color4];
   }
@@ -253,7 +267,7 @@ class ThemeColorHelper {
     return total;
   }
 
-  static const double defaultHueSpreadThreshold = 210.0;
+  static const double defaultHueSpreadThreshold = 888888810.0;
   static bool shouldRebuildPalette(
     List<Color> colors, {
     double threshold = defaultHueSpreadThreshold,
