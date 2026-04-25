@@ -313,7 +313,8 @@ class _CoverItemState extends State<_CoverItem> {
     // This happens when background processing completes.
     else if (widget.musicFile.artworkBytes !=
             oldWidget.musicFile.artworkBytes ||
-        widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath) {
+        widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath ||
+        widget.musicFile.thumbnailPath != oldWidget.musicFile.thumbnailPath) {
       _loadArtwork();
     }
   }
@@ -364,7 +365,27 @@ class _CoverItemState extends State<_CoverItem> {
       }
     }
 
-    // 4. Try system query (on_audio_query)
+    // 4. Try thumbnailPath as a temporary display fallback only.
+    // This does not promote thumbnail bytes into artworkBytes in the model.
+    final thumbnailPath = widget.musicFile.thumbnailPath;
+    if (thumbnailPath != null) {
+      try {
+        final file = File(thumbnailPath);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          if (!mounted) return;
+          setState(() {
+            _artworkBytes = bytes;
+          });
+          widget.onArtworkLoaded?.call(bytes, thumbnailPath);
+          return;
+        }
+      } catch (e) {
+        debugPrint('Error loading thumbnail artwork from $thumbnailPath: $e');
+      }
+    }
+
+    // 5. Try system query (on_audio_query)
     if (Platform.isAndroid || Platform.isIOS) {
       if (widget.musicFile.id != null) {
         final bytes = await OnAudioQuery().queryArtwork(
@@ -381,7 +402,7 @@ class _CoverItemState extends State<_CoverItem> {
       }
     }
 
-    // 5. Try extracting embedded artwork as last resort
+    // 6. Try extracting embedded artwork as last resort
     final embeddedBytes = await MetadataHelper.decodeEmbeddedArtwork(
       widget.musicFile.path,
     );
@@ -491,10 +512,26 @@ class _CoverItemState extends State<_CoverItem> {
         cacheWidth: cacheSize,
       );
     } else {
-      // Prioritize high-res artwork path, NEVER use thumbnailPath here
+      // Prioritize high-res artwork path, but allow thumbnailPath as fallback
+      // if the high-res file is not available yet.
       final imagePath = widget.musicFile.artworkPath;
       if (imagePath != null) {
         final file = File(imagePath);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+            gaplessPlayback: true,
+            cacheWidth: cacheSize,
+          );
+        }
+      }
+
+      final thumbPath = widget.musicFile.thumbnailPath;
+      if (thumbPath != null) {
+        final file = File(thumbPath);
         if (file.existsSync()) {
           return Image.file(
             file,

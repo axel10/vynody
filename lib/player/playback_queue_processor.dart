@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 /// 播放队列后台处理器
 ///
 /// 负责在后台异步处理播放列表中的歌曲。
@@ -8,12 +9,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:audio_core/audio_core.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/music_file.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
+import 'track_artwork_theme_service.dart';
 
 /// Handles background processing of the playback queue (waveforms, colors, etc.)
 class PlaybackQueueProcessor {
@@ -27,7 +28,6 @@ class PlaybackQueueProcessor {
   bool _disposed = false;
   bool get isProcessing => _isProcessing;
   bool get isPaused => _isPaused;
-
 
   PlaybackQueueProcessor({
     required this.db,
@@ -57,13 +57,11 @@ class PlaybackQueueProcessor {
     if (existing == null) return false;
 
     final bool showWaveform = settingsService.isWaveformProgressBarEnabled;
-    final bool needsWaveform =
-        showWaveform && (existing.waveformBlob == null);
+    final bool needsWaveform = showWaveform && (existing.waveformBlob == null);
     final bool needsThemeColor = existing.themeColorsBlob == null;
 
     return !needsWaveform && !needsThemeColor;
   }
-
 
   Future<void> processQueue({
     required List<MusicFile> playlist,
@@ -72,6 +70,7 @@ class PlaybackQueueProcessor {
     Function(String path, Uint8List bytes)? onHdArtworkLoaded,
   }) async {
     if (_disposed) return;
+    final artworkThemeService = TrackArtworkThemeService(db: db);
     // If already processing, we signal to stop the current one and start fresh with new priority
     _currentProcessId++;
     final int myId = _currentProcessId;
@@ -125,11 +124,10 @@ class PlaybackQueueProcessor {
       // This ensures that when skipping fast, covers are already in memory.
       // We look at the top 15 songs from our sorted list (which includes current and upcoming).
       final int topCount = math.min(15, sortedList.length);
-      final artworkBytesByPath = <String, Uint8List>{};
       for (int i = 0; i < topCount; i++) {
         if (_disposed || myId != _currentProcessId) return;
         final song = sortedList[i];
-        
+
         // Skip if already has artwork bytes in memory
         if (song.artworkBytes != null) continue;
 
@@ -156,15 +154,15 @@ class PlaybackQueueProcessor {
           if (finalBytes == null) {
             try {
               final m = readMetadata(File(song.path), getImage: true);
-              finalBytes =
-                  m.pictures.isNotEmpty ? m.pictures.first.bytes : null;
+              finalBytes = m.pictures.isNotEmpty
+                  ? m.pictures.first.bytes
+                  : null;
             } catch (e) {
               // Ignore failure
             }
           }
 
           if (finalBytes != null && onHdArtworkLoaded != null) {
-            artworkBytesByPath[song.path] = finalBytes;
             onHdArtworkLoaded(song.path, finalBytes);
           }
         } catch (e) {
@@ -201,7 +199,7 @@ class PlaybackQueueProcessor {
               needsThemeColor ||
               existing.thumbnailPath == null) {
             if (_disposed) return;
-            
+
             debugPrint(
               'Background processing (Thumbnail/Colors/Waveform): ${song.path}',
             );
@@ -221,67 +219,60 @@ class PlaybackQueueProcessor {
               // Use a non-nullable reference
               SongMetadata meta = m;
 
-              // Extract thumbnail if missing
-              if (meta.thumbnailPath == null) {
-                try {
-                  final supportDir = await getApplicationSupportDirectory();
-                  final artwork = await player.generateTrackArtwork(
-                    path: song.path,
-                    cacheRootPath: supportDir.path,
+              final artworkTheme = await artworkThemeService
+                  .getTrackArtworkTheme(
+                    song.path,
+                    controller: player,
                     saveLargeArtwork: !Platform.isWindows,
                     thumbnailSize: generatedArtworkThumbnailSize,
                   );
-                  if (_disposed) return;
+              if (_disposed) return;
 
-                  if (artwork.artworkFound &&
-                      (artwork.thumbnailPath?.trim().isNotEmpty ?? false)) {
-                    final themeColorsBlob =
-                        artwork.themeColorsBlob ?? meta.themeColorsBlob;
+              if (artworkTheme != null &&
+                  (artworkTheme.hasArtworkPath ||
+                      artworkTheme.hasThemeColors)) {
+                meta = artworkTheme.toSongMetadata(base: meta);
+                await db.insertOrUpdateSong(meta);
 
-                    meta = meta.copyWith(
-                      thumbnailPath: artwork.thumbnailPath,
-                      artworkPath: artwork.artworkPath,
-                      artworkWidth: artwork.artworkWidth,
-                      artworkHeight: artwork.artworkHeight,
-                      themeColorsBlob: themeColorsBlob,
-                    );
-                    await db.insertOrUpdateSong(meta);
-
-                    final updates = <String, dynamic>{
-                      'thumbnailPath': artwork.thumbnailPath,
-                      'artworkWidth': meta.artworkWidth,
-                      'artworkHeight': meta.artworkHeight,
-                    };
-                    if (themeColorsBlob != null) {
-                      updates['themeColorsBlob'] = themeColorsBlob;
-                      updates['themeColors'] = ThemeColorHelper.blobToColors(
-                        themeColorsBlob,
-                      );
-                    }
-
-                    onUpdate(song.path, updates);
-                  }
-                } catch (e) {
-                  debugPrint('Thumbnail extraction error for ${song.path}: $e');
+                final updates = <String, dynamic>{
+                  'thumbnailPath':
+                      artworkTheme.thumbnailPath ?? meta.thumbnailPath,
+                  'artworkPath': artworkTheme.artworkPath ?? meta.artworkPath,
+                  'artworkWidth': meta.artworkWidth,
+                  'artworkHeight': meta.artworkHeight,
+                };
+                if (meta.themeColorsBlob != null) {
+                  updates['themeColorsBlob'] = meta.themeColorsBlob;
+                  updates['themeColors'] = ThemeColorHelper.blobToColors(
+                    meta.themeColorsBlob!,
+                  );
                 }
-              }
 
-              // Extract theme colors if missing
-              if (meta.themeColorsBlob == null) {
+                onUpdate(song.path, updates);
+              } else if (meta.themeColorsBlob == null) {
                 try {
-                  if (_disposed) return;
-
                   final paletteBytes =
-                      artworkBytesByPath[song.path] ?? song.artworkBytes;
-                  if (paletteBytes != null && paletteBytes.isNotEmpty) {
-                    final palette = await ThemeColorHelper.generatePalette(
-                      bytes: paletteBytes,
-                      path: null,
-                    );
-                    if (_disposed) return;
-                    final themeColorsBlob =
-                        ThemeColorHelper.colorsMapToBlob(palette.colorsMap);
+                      song.artworkBytes ??
+                      (meta.artworkPath != null
+                          ? await File(meta.artworkPath!).readAsBytes()
+                          : null);
+                  Uint8List? themeColorsBlob =
+                      await TrackArtworkThemeService.generateThemeColorsBlob(
+                        bytes: paletteBytes,
+                        path: meta.artworkPath ?? meta.thumbnailPath,
+                      );
 
+                  if (themeColorsBlob == null) {
+                    final extractedBytes =
+                        await MetadataHelper.decodeEmbeddedArtwork(song.path);
+                    if (_disposed) return;
+                    themeColorsBlob =
+                        await TrackArtworkThemeService.generateThemeColorsBlob(
+                          bytes: extractedBytes,
+                        );
+                  }
+
+                  if (themeColorsBlob != null) {
                     meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
                     await db.insertOrUpdateSong(meta);
 
@@ -291,28 +282,6 @@ class PlaybackQueueProcessor {
                       ),
                       'themeColorsBlob': themeColorsBlob,
                     });
-                  } else {
-                    final extractedBytes =
-                        await MetadataHelper.decodeEmbeddedArtwork(song.path);
-                    if (_disposed) return;
-                    if (extractedBytes != null && extractedBytes.isNotEmpty) {
-                      final palette = await ThemeColorHelper.generatePalette(
-                        bytes: extractedBytes,
-                        path: null,
-                      );
-                      if (_disposed) return;
-                      final themeColorsBlob =
-                          ThemeColorHelper.colorsMapToBlob(palette.colorsMap);
-                      meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
-                      await db.insertOrUpdateSong(meta);
-
-                      onUpdate(song.path, {
-                        'themeColors': ThemeColorHelper.blobToColors(
-                          themeColorsBlob,
-                        ),
-                        'themeColorsBlob': themeColorsBlob,
-                      });
-                    }
                   }
                 } catch (e) {
                   debugPrint(

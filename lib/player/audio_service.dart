@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models/music_file.dart';
 import 'audio_snapshot.dart';
@@ -14,6 +15,7 @@ import 'metadata_database.dart';
 
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
+import 'track_artwork_theme_service.dart';
 import 'visualizer_options_service.dart';
 import 'playback_queue_processor.dart';
 import 'waveform_service.dart';
@@ -448,25 +450,46 @@ class AudioService extends Notifier<AudioSnapshot> {
     try {
       Uint8List? artworkBytes = song.artworkBytes;
       String? artworkPath = song.artworkPath;
+      String? thumbnailPath = song.thumbnailPath;
       Uint8List? themeColorsBlob = song.themeColorsBlob;
 
-      if (artworkBytes == null || artworkBytes.isEmpty) {
-        final dbMetadata = await _db.getSongMetadata(song.path);
-        if (dbMetadata != null) {
-          artworkPath ??= dbMetadata.artworkPath;
-          themeColorsBlob ??= dbMetadata.themeColorsBlob;
+      final artworkThemeService = TrackArtworkThemeService(db: _db);
+      final dbMetadata = await _db.getSongMetadata(song.path);
+      if (dbMetadata != null) {
+        artworkPath ??= dbMetadata.artworkPath;
+        thumbnailPath ??= dbMetadata.thumbnailPath;
+        themeColorsBlob ??= dbMetadata.themeColorsBlob;
 
-          if (artworkPath != null && artworkPath.trim().isNotEmpty) {
-            try {
-              final file = File(artworkPath);
-              if (await file.exists()) {
-                artworkBytes = await file.readAsBytes();
-              }
-            } catch (_) {}
-          }
+        final dbArtworkPath = dbMetadata.artworkPath;
+        if (dbArtworkPath != null && dbArtworkPath.trim().isNotEmpty) {
+          artworkPath = dbArtworkPath;
+          try {
+            final file = File(dbArtworkPath);
+            if (await file.exists()) {
+              artworkBytes = await file.readAsBytes();
+            }
+          } catch (_) {}
         }
+      }
 
-        artworkBytes ??= await MetadataHelper.decodeEmbeddedArtwork(song.path);
+      artworkBytes ??= await MetadataHelper.decodeEmbeddedArtwork(song.path);
+
+      if (artworkPath == null ||
+          thumbnailPath == null ||
+          themeColorsBlob == null) {
+        final supportDir = await getApplicationSupportDirectory();
+        final artworkTheme = await artworkThemeService.getTrackArtworkTheme(
+          song.path,
+          controller: _player,
+          cacheRootPath: supportDir.path,
+          saveLargeArtwork: !Platform.isWindows,
+        );
+        if (artworkTheme != null) {
+          artworkPath ??=
+              artworkTheme.artworkPath ?? artworkTheme.thumbnailPath;
+          thumbnailPath ??= artworkTheme.thumbnailPath;
+          themeColorsBlob ??= artworkTheme.themeColorsBlob;
+        }
       }
 
       if (artworkBytes != null && artworkBytes.isNotEmpty) {
@@ -476,6 +499,7 @@ class AudioService extends Notifier<AudioSnapshot> {
             _queue[_currentIndex] = currentSong.copyWith(
               artworkBytes: artworkBytes,
               artworkPath: artworkPath,
+              thumbnailPath: thumbnailPath,
               themeColorsBlob: themeColorsBlob ?? currentSong.themeColorsBlob,
             );
             notifyListeners();
@@ -1073,16 +1097,20 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _themePaletteRecomputeInProgressPath = songPath;
     try {
-      final palette = await ThemeColorHelper.generatePaletteMaster(
-        bytes: bytes,
-        path: sourcePath,
-      );
+      final themeColorsBlob =
+          await TrackArtworkThemeService.generateThemeColorsBlob(
+            bytes: bytes,
+            path: sourcePath,
+            useMaster: true,
+          );
 
-      if (currentMusic?.path != songPath || palette.colorsMap.isEmpty) {
+      if (currentMusic?.path != songPath || themeColorsBlob == null) {
         return;
       }
 
-      await saveCurrentSongThemeColors(palette.colorsMap);
+      await saveCurrentSongThemeColors(
+        ThemeColorHelper.blobToColors(themeColorsBlob),
+      );
     } catch (e) {
       debugPrint('Error recomputing theme colors for $songPath: $e');
     } finally {
@@ -1094,9 +1122,13 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> _updatePalette() async {
     final artworkBytes = currentMusic?.artworkBytes;
-    final artworkPath = currentMusic?.artworkPath;
+    final artworkPath =
+        currentMusic?.artworkPath ?? currentMusic?.thumbnailPath;
+    final themeColorsBlob = currentMusic?.themeColorsBlob;
 
-    if (artworkBytes == null && artworkPath == null) {
+    if (artworkBytes == null &&
+        artworkPath == null &&
+        themeColorsBlob == null) {
       _dynamicStartColor = null;
       _dynamicEndColor = null;
       _currentThemeColorsMap = const {};
@@ -1104,15 +1136,34 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
-    // Use the ThemeColorHelper which wraps the PaletteGenerator
-    final palette = await ThemeColorHelper.generatePalette(
+    if (themeColorsBlob != null && themeColorsBlob.isNotEmpty) {
+      final colorsMap = ThemeColorHelper.blobToColors(themeColorsBlob);
+      _applyThemeColors(colorsMap);
+      _dynamicStartColor = colorsMap['dominant'] ?? colorsMap['vibrant'];
+      _dynamicEndColor =
+          (colorsMap['vibrant']?.withValues(alpha: 0.8)) ?? colorsMap['muted'];
+      notifyListeners();
+      return;
+    }
+
+    final paletteBlob = await TrackArtworkThemeService.generateThemeColorsBlob(
       bytes: artworkBytes,
       path: artworkPath,
     );
 
-    _applyThemeColors(palette.colorsMap);
-    _dynamicStartColor = palette.startColor;
-    _dynamicEndColor = palette.endColor;
+    if (paletteBlob == null || paletteBlob.isEmpty) {
+      _dynamicStartColor = null;
+      _dynamicEndColor = null;
+      _currentThemeColorsMap = const {};
+      notifyListeners();
+      return;
+    }
+
+    final colorsMap = ThemeColorHelper.blobToColors(paletteBlob);
+    _applyThemeColors(colorsMap);
+    _dynamicStartColor = colorsMap['dominant'] ?? colorsMap['vibrant'];
+    _dynamicEndColor =
+        (colorsMap['vibrant']?.withValues(alpha: 0.8)) ?? colorsMap['muted'];
     notifyListeners();
   }
 

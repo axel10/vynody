@@ -4,17 +4,57 @@ import 'dart:io';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:palette_generator/palette_generator.dart' as palette_legacy;
 import 'package:palette_generator_master/palette_generator_master.dart'
     as palette_master;
 import 'package:image/image.dart' as img;
 
+class _ThemeBucketStat {
+  int count = 0;
+  int sumRed = 0;
+  int sumGreen = 0;
+  int sumBlue = 0;
+
+  void addColor(Color color, int weight) {
+    final argb = color.toARGB32();
+    count += weight;
+    sumRed += ((argb >> 16) & 0xFF) * weight;
+    sumGreen += ((argb >> 8) & 0xFF) * weight;
+    sumBlue += (argb & 0xFF) * weight;
+  }
+
+  Color toColor() {
+    if (count <= 0) {
+      return Colors.transparent;
+    }
+
+    return Color.fromARGB(
+      0xFF,
+      (sumRed / count).round().clamp(0, 255).toInt(),
+      (sumGreen / count).round().clamp(0, 255).toInt(),
+      (sumBlue / count).round().clamp(0, 255).toInt(),
+    );
+  }
+}
+
+class _ThemeColorCandidate {
+  _ThemeColorCandidate(this.color, this.count)
+    : hsl = HSLColor.fromColor(color);
+
+  final Color color;
+  final int count;
+  final HSLColor hsl;
+
+  double get saturation => hsl.saturation;
+  double get lightness => hsl.lightness;
+}
+
 @pragma('vm:entry-point')
-Future<Map<String, int>> _generatePaletteColorMapTask(
+Future<Map<String, int>> _generateThemeColorMapTask(
   Map<String, dynamic> args,
 ) async {
   final bytes = args['bytes'] as Uint8List?;
   final path = args['path'] as String?;
+  final squareCrop = args['squareCrop'] as bool? ?? false;
 
   try {
     img.Image? image;
@@ -29,50 +69,10 @@ Future<Map<String, int>> _generatePaletteColorMapTask(
       return const {};
     }
 
-    final resized = image.width >= image.height
-        ? img.copyResize(
-            image,
-            width: generatedArtworkThumbnailSize,
-            interpolation: img.Interpolation.average,
-          )
-        : img.copyResize(
-            image,
-            height: generatedArtworkThumbnailSize,
-            interpolation: img.Interpolation.average,
-          );
-
-    final rgbaBytes = resized.getBytes(order: img.ChannelOrder.rgba);
-    final palette = await palette_legacy.PaletteGenerator.fromByteData(
-      palette_legacy.EncodedImage(
-        ByteData.sublistView(rgbaBytes),
-        width: resized.width,
-        height: resized.height,
-      ),
-      maximumColorCount: 20,
-    );
-    final Map<String, int> colors = {};
-    if (palette.dominantColor != null) {
-      colors['dominant'] = palette.dominantColor!.color.toARGB32();
-    }
-    if (palette.vibrantColor != null) {
-      colors['vibrant'] = palette.vibrantColor!.color.toARGB32();
-    }
-    if (palette.lightVibrantColor != null) {
-      colors['lightVibrant'] = palette.lightVibrantColor!.color.toARGB32();
-    }
-    if (palette.darkVibrantColor != null) {
-      colors['darkVibrant'] = palette.darkVibrantColor!.color.toARGB32();
-    }
-    if (palette.mutedColor != null) {
-      colors['muted'] = palette.mutedColor!.color.toARGB32();
-    }
-    if (palette.lightMutedColor != null) {
-      colors['lightMuted'] = palette.lightMutedColor!.color.toARGB32();
-    }
-    if (palette.darkMutedColor != null) {
-      colors['darkMuted'] = palette.darkMutedColor!.color.toARGB32();
-    }
-    return colors;
+    final workingImage = squareCrop
+        ? _cropSquare(image)
+        : _resizeForSampling(image);
+    return _buildThemeColorMap(workingImage);
   } catch (_) {
     return const {};
   }
@@ -156,24 +156,6 @@ Future<Map<String, int>> _generatePaletteMasterColorMapTask(
 }
 
 class ThemeColorHelper {
-
-  static Uint8List paletteToBlob(palette_legacy.PaletteGenerator palette) {
-    return colorsMapToBlob({
-      if (palette.dominantColor != null)
-        'dominant': palette.dominantColor!.color,
-      if (palette.vibrantColor != null) 'vibrant': palette.vibrantColor!.color,
-      if (palette.lightVibrantColor != null)
-        'lightVibrant': palette.lightVibrantColor!.color,
-      if (palette.darkVibrantColor != null)
-        'darkVibrant': palette.darkVibrantColor!.color,
-      if (palette.mutedColor != null) 'muted': palette.mutedColor!.color,
-      if (palette.lightMutedColor != null)
-        'lightMuted': palette.lightMutedColor!.color,
-      if (palette.darkMutedColor != null)
-        'darkMuted': palette.darkMutedColor!.color,
-    });
-  }
-
   static Uint8List colorsMapToBlob(Map<String, Color> colorsMap) {
     final colors = <String, int>{};
     for (final entry in colorsMap.entries) {
@@ -270,6 +252,7 @@ class ThemeColorHelper {
     }
     return total;
   }
+
   static const double defaultHueSpreadThreshold = 210.0;
   static bool shouldRebuildPalette(
     List<Color> colors, {
@@ -356,8 +339,8 @@ class ThemeColorHelper {
 
     try {
       final colorMap = await compute(
-        _generatePaletteColorMapTask,
-        <String, dynamic>{'bytes': bytes, 'path': path},
+        _generateThemeColorMapTask,
+        <String, dynamic>{'bytes': bytes, 'path': path, 'squareCrop': false},
       );
 
       Color? colorOf(String key) {
@@ -407,4 +390,215 @@ class CustomPalette {
     required this.endColor,
     required this.colorsMap,
   });
+}
+
+img.Image _resizeForSampling(img.Image image) {
+  if (image.width <= 0 || image.height <= 0) {
+    return image;
+  }
+
+  if (image.width >= image.height) {
+    return img.copyResize(
+      image,
+      width: generatedArtworkThumbnailSize,
+      interpolation: img.Interpolation.average,
+    );
+  }
+
+  return img.copyResize(
+    image,
+    height: generatedArtworkThumbnailSize,
+    interpolation: img.Interpolation.average,
+  );
+}
+
+img.Image _cropSquare(img.Image image) {
+  final cropSize = image.width < image.height ? image.width : image.height;
+  final offsetX = (image.width - cropSize) ~/ 2;
+  final offsetY = (image.height - cropSize) ~/ 2;
+
+  final square = img.copyCrop(
+    image,
+    x: offsetX,
+    y: offsetY,
+    width: cropSize,
+    height: cropSize,
+  );
+
+  return img.copyResize(
+    square,
+    width: generatedArtworkThumbnailSize,
+    height: generatedArtworkThumbnailSize,
+    interpolation: img.Interpolation.average,
+  );
+}
+
+Map<String, int> _buildThemeColorMap(img.Image image) {
+  if (image.width <= 0 || image.height <= 0) {
+    return const {};
+  }
+
+  final buckets = <int, _ThemeBucketStat>{};
+  final stepX = (image.width / 48).ceil().clamp(1, 8).toInt();
+  final stepY = (image.height / 48).ceil().clamp(1, 8).toInt();
+
+  for (var y = 0; y < image.height; y += stepY) {
+    for (var x = 0; x < image.width; x += stepX) {
+      final pixel = image.getPixel(x, y);
+      final alpha = pixel.a.toInt();
+      if (alpha < 24) {
+        continue;
+      }
+
+      final color = Color.fromARGB(
+        alpha,
+        pixel.r.toInt(),
+        pixel.g.toInt(),
+        pixel.b.toInt(),
+      );
+      final key = _quantizeColorKey(color);
+      final bucket = buckets.putIfAbsent(key, _ThemeBucketStat.new);
+      final weight = alpha < 24 ? 24 : alpha;
+      bucket.addColor(color, weight);
+    }
+  }
+
+  if (buckets.isEmpty) {
+    return const {};
+  }
+
+  final candidates = buckets.values
+      .map((bucket) => _ThemeColorCandidate(bucket.toColor(), bucket.count))
+      .where((candidate) => candidate.color.a > 0)
+      .toList(growable: false);
+
+  if (candidates.isEmpty) {
+    return const {};
+  }
+
+  _ThemeColorCandidate pickDominant() {
+    return candidates.reduce(
+      (best, candidate) => candidate.count > best.count ? candidate : best,
+    );
+  }
+
+  _ThemeColorCandidate pickVibrant() {
+    final saturated = candidates
+        .where((candidate) => candidate.saturation >= 0.35)
+        .toList(growable: false);
+    if (saturated.isEmpty) return pickDominant();
+
+    return saturated.reduce((best, candidate) {
+      final bestScore =
+          best.count * (0.35 + best.saturation) * (0.45 + best.lightness);
+      final candidateScore =
+          candidate.count *
+          (0.35 + candidate.saturation) *
+          (0.45 + candidate.lightness);
+      return candidateScore > bestScore ? candidate : best;
+    });
+  }
+
+  _ThemeColorCandidate pickMuted() {
+    final muted = candidates
+        .where((candidate) => candidate.saturation <= 0.55)
+        .toList(growable: false);
+    if (muted.isEmpty) return pickDominant();
+
+    return muted.reduce((best, candidate) {
+      final bestScore =
+          best.count *
+          (1.2 - best.saturation) *
+          (1.1 - (best.lightness - 0.5).abs());
+      final candidateScore =
+          candidate.count *
+          (1.2 - candidate.saturation) *
+          (1.1 - (candidate.lightness - 0.5).abs());
+      return candidateScore > bestScore ? candidate : best;
+    });
+  }
+
+  Color lighten(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withLightness((hsl.lightness + amount).clamp(0.0, 1.0))
+        .toColor();
+  }
+
+  Color darken(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
+        .toColor();
+  }
+
+  final dominant = pickDominant().color;
+  final vibrant = pickVibrant().color;
+  final muted = pickMuted().color;
+
+  final lightVibrant =
+      candidates
+          .where((candidate) => candidate.saturation >= 0.35)
+          .fold<_ThemeColorCandidate?>(null, (best, candidate) {
+            if (best == null || candidate.lightness > best.lightness) {
+              return candidate;
+            }
+            return best;
+          })
+          ?.color ??
+      lighten(vibrant, 0.18);
+
+  final darkVibrant =
+      candidates
+          .where((candidate) => candidate.saturation >= 0.35)
+          .fold<_ThemeColorCandidate?>(null, (best, candidate) {
+            if (best == null || candidate.lightness < best.lightness) {
+              return candidate;
+            }
+            return best;
+          })
+          ?.color ??
+      darken(vibrant, 0.18);
+
+  final lightMuted =
+      candidates
+          .where((candidate) => candidate.saturation <= 0.55)
+          .fold<_ThemeColorCandidate?>(null, (best, candidate) {
+            if (best == null || candidate.lightness > best.lightness) {
+              return candidate;
+            }
+            return best;
+          })
+          ?.color ??
+      lighten(muted, 0.18);
+
+  final darkMuted =
+      candidates
+          .where((candidate) => candidate.saturation <= 0.55)
+          .fold<_ThemeColorCandidate?>(null, (best, candidate) {
+            if (best == null || candidate.lightness < best.lightness) {
+              return candidate;
+            }
+            return best;
+          })
+          ?.color ??
+      darken(muted, 0.18);
+
+  return {
+    'dominant': dominant.toARGB32(),
+    'vibrant': vibrant.toARGB32(),
+    'lightVibrant': lightVibrant.toARGB32(),
+    'darkVibrant': darkVibrant.toARGB32(),
+    'muted': muted.toARGB32(),
+    'lightMuted': lightMuted.toARGB32(),
+    'darkMuted': darkMuted.toARGB32(),
+  };
+}
+
+int _quantizeColorKey(Color color) {
+  final argb = color.toARGB32();
+  final red = (argb >> 16) & 0xFF;
+  final green = (argb >> 8) & 0xFF;
+  final blue = argb & 0xFF;
+  return (red << 8) | (green << 4) | blue;
 }

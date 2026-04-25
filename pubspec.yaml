@@ -89,7 +89,6 @@ dependencies:
       url: https://github.com/axel10/proxy_getter
       ref: main
   worker_manager: ^7.2.9
-  palette_generator: ^0.3.3+7
   palette_generator_master: ^1.0.1
   shimmer: ^3.0.0
   drift: ^2.32.1

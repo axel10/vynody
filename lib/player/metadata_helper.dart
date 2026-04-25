@@ -6,27 +6,12 @@ import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
-import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'metadata_database.dart';
-import 'theme_color_helper.dart';
+import 'track_artwork_theme_service.dart';
 
 Future<Uint8List?> _generateThemeColorsBlobFromImage(img.Image image) async {
-  try {
-    final rgbaBytes = image.getBytes(order: img.ChannelOrder.rgba);
-    final palette = await PaletteGenerator.fromByteData(
-      EncodedImage(
-        ByteData.sublistView(rgbaBytes),
-        width: image.width,
-        height: image.height,
-      ),
-      maximumColorCount: 20,
-    );
-    return ThemeColorHelper.paletteToBlob(palette);
-  } catch (e) {
-    debugPrint('Error generating theme colors from image: $e');
-    return null;
-  }
+  return TrackArtworkThemeService.generateThemeColorsBlobFromImage(image);
 }
 
 Future<Map<String, dynamic>?> _buildArtworkFiles({

@@ -26,6 +26,7 @@ import 'scanner_scan_support.dart';
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 import 'settings_service.dart';
+import 'track_artwork_theme_service.dart';
 import '../utils/localized_text.dart';
 
 export 'scanner_scan_support.dart';
@@ -1895,6 +1896,7 @@ class ScannerService extends ChangeNotifier {
     bool Function()? shouldCancel,
   }) async {
     final db = MetadataDatabase();
+    final artworkThemeService = TrackArtworkThemeService(db: db);
     final totalStopwatch = Stopwatch()..start();
 
     try {
@@ -1913,8 +1915,9 @@ class ScannerService extends ChangeNotifier {
           baseMetadata.lastModifiedTime ??
           DateTime.now().millisecondsSinceEpoch;
 
-      final artwork = await controller.generateTrackArtwork(
-        path: filePath,
+      final artwork = await artworkThemeService.getTrackArtworkTheme(
+        filePath,
+        controller: controller,
         cacheRootPath: supportDirPath,
         saveLargeArtwork: !Platform.isWindows,
         thumbnailSize: generatedArtworkThumbnailSize,
@@ -1927,11 +1930,12 @@ class ScannerService extends ChangeNotifier {
       }
 
       var updatedMetadata = baseMetadata.copyWith(
-        artworkPath: artwork.artworkPath,
-        thumbnailPath: artwork.thumbnailPath,
-        artworkWidth: artwork.artworkWidth,
-        artworkHeight: artwork.artworkHeight,
-        themeColorsBlob: artwork.themeColorsBlob,
+        artworkPath: artwork?.artworkPath ?? baseMetadata.artworkPath,
+        thumbnailPath: artwork?.thumbnailPath ?? baseMetadata.thumbnailPath,
+        artworkWidth: artwork?.artworkWidth ?? baseMetadata.artworkWidth,
+        artworkHeight: artwork?.artworkHeight ?? baseMetadata.artworkHeight,
+        themeColorsBlob:
+            artwork?.themeColorsBlob ?? baseMetadata.themeColorsBlob,
         metadataImgScanned: processedAt,
       );
 
@@ -2224,18 +2228,17 @@ class ScannerService extends ChangeNotifier {
       return null;
     }
 
-    final controller = _playerController ?? AudioCoreController();
     try {
-      final supportDir = await getApplicationSupportDirectory();
-      final artwork = await controller.generateTrackArtwork(
-        path: path,
-        cacheRootPath: supportDir.path,
-        saveLargeArtwork: !Platform.isWindows,
-        thumbnailSize: generatedArtworkThumbnailSize,
-      );
+      final controller = _playerController ?? AudioCoreController();
+      final artwork = await TrackArtworkThemeService(db: MetadataDatabase())
+          .getTrackArtworkTheme(
+            path,
+            controller: controller,
+            saveLargeArtwork: !Platform.isWindows,
+            thumbnailSize: generatedArtworkThumbnailSize,
+          );
 
-      if (!artwork.artworkFound ||
-          !(artwork.thumbnailPath?.trim().isNotEmpty ?? false)) {
+      if (artwork == null || !artwork.hasThumbnailPath) {
         return null;
       }
 
@@ -2255,11 +2258,17 @@ class ScannerService extends ChangeNotifier {
                     createdAt: now,
                   ))
               .copyWith(
-                artworkPath: artwork.artworkPath,
-                thumbnailPath: artwork.thumbnailPath,
-                artworkWidth: artwork.artworkWidth,
-                artworkHeight: artwork.artworkHeight,
-                themeColorsBlob: artwork.themeColorsBlob,
+                artworkPath:
+                    artwork.artworkPath ?? existingMetadata?.artworkPath,
+                thumbnailPath:
+                    artwork.thumbnailPath ?? existingMetadata?.thumbnailPath,
+                artworkWidth:
+                    artwork.artworkWidth ?? existingMetadata?.artworkWidth,
+                artworkHeight:
+                    artwork.artworkHeight ?? existingMetadata?.artworkHeight,
+                themeColorsBlob:
+                    artwork.themeColorsBlob ??
+                    existingMetadata?.themeColorsBlob,
                 lastModifiedTime: lastModified,
                 metadataImgScanned: lastModified,
                 createdAt: existingMetadata?.createdAt ?? now,
