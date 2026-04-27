@@ -189,7 +189,8 @@ class TrackArtworkThemeService {
         saveLargeArtwork: saveLargeArtwork,
         options: TrackArtworkOptions(
           thumbnailSize: thumbnailSize,
-          meshMuddyPenaltyMultiplier: 0.0
+          meshMuddyPenaltyMultiplier: 1,
+          paletteBlurRadius: 0
         ),
       );
 
