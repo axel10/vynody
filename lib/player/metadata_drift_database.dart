@@ -18,7 +18,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 25;
+  int get schemaVersion => 26;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -248,9 +248,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           'lastSeenRootScanToken',
           'INTEGER',
         );
-        await _addColumnIfMissing(m, 'songs', 'isSoftDeleted', 'INTEGER');
         await _addColumnIfMissing(m, 'songs', 'missingReason', 'TEXT');
         await _addColumnIfMissing(m, 'songs', 'deletedAt', 'INTEGER');
+      }
+      if (from < 26) {
+        await _addColumnIfMissing(m, 'songs', 'isSoftDeleted', 'INTEGER');
         await m.database.customStatement('''
           UPDATE songs
           SET isSoftDeleted = 0
@@ -1300,6 +1302,7 @@ class Songs extends Table {
       integer().nullable().named('metadataImgScanned')();
   IntColumn get createdAt => integer().nullable().named('createdAt')();
   TextColumn get genres => text().nullable().named('genres')();
+  BoolColumn get isSoftDeleted => boolean().nullable().named('isSoftDeleted')();
   IntColumn get lastSeenRootScanSessionId =>
       integer().nullable().named('lastSeenRootScanSessionId')();
 
