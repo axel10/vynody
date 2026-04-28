@@ -569,7 +569,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         },
         child: Column(
           children: [
-            if (Platform.isWindows) const SizedBox(height: 32),
+
             _buildBreadcrumbs(currentFolder, scanner),
             if (_isSelectionMode)
               Container(
