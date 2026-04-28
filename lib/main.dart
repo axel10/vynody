@@ -55,7 +55,6 @@ void handleFileOpen(List<String> args) {
 }
 
 void main(List<String> args) async {
-  WidgetsFlutterBinding.ensureInitialized();
   await AppLog.init();
   AppLog.install();
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -76,6 +75,7 @@ void main(List<String> args) async {
   };
 
   await runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
     AppLog.log('main start args=$args', mirrorToConsole: true);
 
     if (Platform.isWindows) {
