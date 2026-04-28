@@ -7,13 +7,17 @@ class MusicFileUtils {
     '.aiff',
     '.alac',
     '.caf',
-    '.mp3',
+    '.flac',
     '.m4a',
     '.m4b',
-    '.flac',
+    '.m4p',
+    '.mid',
+    '.midi',
+    '.mp3',
     '.ogg',
     '.opus',
     '.wav',
+    '.webm',
   };
 
   static bool isMusicFilePath(String path) {

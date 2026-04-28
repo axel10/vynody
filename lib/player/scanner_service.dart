@@ -56,6 +56,7 @@ class ScannerService extends ChangeNotifier {
   bool _suppressNextMetadataWatchRefresh = false;
   int _activeRootScanToken = 0;
   bool _queuedFullRescan = false;
+  final Set<String> _activeScopedRootPaths = <String>{};
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -265,7 +266,7 @@ class ScannerService extends ChangeNotifier {
     if (Platform.isAndroid) {
       unawaited(checkAndRequestPermissions());
     } else if (_supportsPersistentAccess) {
-      unawaited(_syncPersistentAccessState());
+      unawaited(_syncAppleScopedAccessState());
     }
   }
 
@@ -373,6 +374,12 @@ class ScannerService extends ChangeNotifier {
               : null,
         );
       });
+      if (canUsePersistentAccess) {
+        await _timeInitStep(
+          'sync active scoped root access',
+          _syncActiveScopedRootAccess,
+        );
+      }
       await _timeInitStep('load sort settings', _loadSortSettings);
       await _timeInitStep('load scan settings', _loadScanSettings);
       final cachedSongs = await _timeInitStep(
@@ -466,6 +473,17 @@ class ScannerService extends ChangeNotifier {
           path: normalizedPath,
         );
       }
+
+      final scopedAccessReady = await _ensureScopedRootAccess(normalizedPath);
+      if (!scopedAccessReady) {
+        debugPrint(
+          '[ScannerService] Failed to begin scoped access for $normalizedPath',
+        );
+        return RootPathAddResult(
+          RootPathAddStatus.persistentAccessDenied,
+          path: normalizedPath,
+        );
+      }
     }
 
     if (existingRoot != null) {
@@ -482,6 +500,9 @@ class ScannerService extends ChangeNotifier {
 
     final updatedRoots = [..._roots.rootPaths, normalizedPath];
     await _roots.setRootPaths(updatedRoots);
+    if (_supportsPersistentAccess) {
+      await _syncActiveScopedRootAccess();
+    }
     await _loadCachedRootFoldersFromDatabase(rootPaths: updatedRoots);
     _rebuildDisplayedRootFolders();
     notifyListeners();
@@ -495,16 +516,7 @@ class ScannerService extends ChangeNotifier {
     }
 
     _restartFullRootScan();
-
-    final addedFolder = _rootFolders.firstWhereOrNull(
-      (folder) => _pathsEqual(folder.path, normalizedPath),
-    );
-    return RootPathAddResult(
-      addedFolder != null && !addedFolder.isEmpty
-          ? RootPathAddStatus.added
-          : RootPathAddStatus.noMusic,
-      path: normalizedPath,
-    );
+    return RootPathAddResult(RootPathAddStatus.added, path: normalizedPath);
   }
 
   Future<void> removeRootPath(String path) async {
@@ -531,6 +543,9 @@ class ScannerService extends ChangeNotifier {
           normalizedTargets.any((target) => _pathsEqual(existing, target)),
     );
     await _roots.setRootPaths(updatedRoots);
+    if (_supportsPersistentAccess) {
+      await _syncActiveScopedRootAccess();
+    }
     _removeRootsFromScannedTree(normalizedTargets);
     _purgeRemovedRootsFromMetadataCache(normalizedTargets);
     _rebuildDisplayedRootFolders();
@@ -594,7 +609,7 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  Future<void> _syncPersistentAccessState() async {
+  Future<void> _syncAppleScopedAccessState() async {
     if (!_supportsPersistentAccess) return;
 
     final currentRoots = List<String>.from(_roots.rootPaths);
@@ -606,8 +621,72 @@ class ScannerService extends ChangeNotifier {
       hasPersistentAccess: _hasPersistentAccess,
       forgetPersistentAccess: _forgetPersistentAccess,
     );
+    await _syncActiveScopedRootAccess();
     _rebuildDisplayedRootFolders();
     notifyListeners();
+  }
+
+  Future<bool> _ensureScopedRootAccess(String path) async {
+    if (!_supportsPersistentAccess) return true;
+
+    final controller = _playerController;
+    if (controller == null) return true;
+
+    final normalizedPath = _normalizePath(path);
+    if (normalizedPath.isEmpty) return false;
+    if (_activeScopedRootPaths.contains(normalizedPath)) {
+      return true;
+    }
+
+    try {
+      final started = await controller.beginScopedAccess(path: normalizedPath);
+      if (started) {
+        _activeScopedRootPaths.add(normalizedPath);
+      }
+      return started;
+    } catch (e) {
+      debugPrint(
+        '[ScannerService] beginScopedAccess failed for $normalizedPath: $e',
+      );
+      return false;
+    }
+  }
+
+  Future<void> _syncActiveScopedRootAccess() async {
+    if (!_supportsPersistentAccess) return;
+
+    final controller = _playerController;
+    if (controller == null) return;
+
+    final desiredRoots = _roots.rootPaths
+        .map(_normalizePath)
+        .where((path) => path.isNotEmpty)
+        .toSet();
+
+    final staleRoots = _activeScopedRootPaths
+        .where((path) => !desiredRoots.contains(path))
+        .toList(growable: false);
+    for (final path in staleRoots) {
+      try {
+        await controller.endScopedAccess(path: path);
+      } catch (e) {
+        debugPrint('[ScannerService] endScopedAccess failed for $path: $e');
+      } finally {
+        _activeScopedRootPaths.remove(path);
+      }
+    }
+
+    final missingRoots = desiredRoots
+        .where((path) => !_activeScopedRootPaths.contains(path))
+        .toList(growable: false);
+    for (final path in missingRoots) {
+      final started = await _ensureScopedRootAccess(path);
+      if (!started) {
+        debugPrint(
+          '[ScannerService] beginScopedAccess returned false for $path',
+        );
+      }
+    }
   }
 
   Future<bool> _checkPermissions() async {
@@ -2584,6 +2663,12 @@ class ScannerService extends ChangeNotifier {
     _incrementalBatchTimer?.cancel();
     _scanNotifyTimer?.cancel();
     _scanProgressController.close();
+    if (_supportsPersistentAccess && _playerController != null) {
+      for (final path in _activeScopedRootPaths.toList(growable: false)) {
+        unawaited(_playerController!.endScopedAccess(path: path));
+      }
+      _activeScopedRootPaths.clear();
+    }
     super.dispose();
   }
 }

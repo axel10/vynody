@@ -23,7 +23,9 @@ class ScannerDirectoryScanner {
 
   final void Function(ScanProgressState scanState, String filePath)
   _emitScanProgress;
-  final bool _useInlineDiscoveryOnWindowsPackage =
+  final bool _useInlineDiscovery =
+      Platform.isMacOS ||
+      Platform.isIOS ||
       ScannerPathUtils.isLikelyPackagedWindowsApp();
 
   Future<List<String>> discoverMusicFiles(
@@ -32,11 +34,8 @@ class ScannerDirectoryScanner {
     bool Function()? shouldCancel,
   }) async {
     debugPrint('[ScannerDirectoryScanner] discoverMusicFiles start path=$path');
-    if (_useInlineDiscoveryOnWindowsPackage) {
-      debugPrint(
-        '[ScannerDirectoryScanner] packaged Windows app detected, '
-        'using inline discovery path=$path',
-      );
+    if (_useInlineDiscovery) {
+      debugPrint('[ScannerDirectoryScanner] using inline discovery path=$path');
       final discoveredPaths = await _discoverMusicFilesInline(
         path,
         scanState,
@@ -253,6 +252,14 @@ class ScannerDirectoryScanner {
       return const <String>[];
     }
 
+    if (Platform.isMacOS || Platform.isIOS) {
+      return _discoverMusicFilesInlineForApple(
+        rootDir,
+        scanState,
+        shouldCancel: shouldCancel,
+      );
+    }
+
     const yieldEvery = 256;
     final pendingDirectories = ListQueue<String>()..add(path);
     final discoveredPaths = <String>[];
@@ -301,6 +308,42 @@ class ScannerDirectoryScanner {
           '[ScannerDirectoryScanner] inline discovery list error '
           'root=$path current=$currentPath: $e\n$st',
         );
+      }
+    }
+
+    return discoveredPaths;
+  }
+
+  Future<List<String>> _discoverMusicFilesInlineForApple(
+    Directory rootDir,
+    ScanProgressState scanState, {
+    bool Function()? shouldCancel,
+  }) async {
+    final discoveredPaths = <String>[];
+    var processedEntries = 0;
+
+    await for (final entity in rootDir.list(
+      recursive: true,
+      followLinks: false,
+    )) {
+      if (shouldCancel?.call() ?? false) {
+        debugPrint(
+          '[ScannerDirectoryScanner] apple inline discovery cancelled '
+          'root=${rootDir.path} discovered=${discoveredPaths.length}',
+        );
+        return discoveredPaths;
+      }
+
+      if (entity is File && MusicFileUtils.isMusicFilePath(entity.path)) {
+        final filePath = entity.path;
+        discoveredPaths.add(filePath);
+        scanState.discoveredCount++;
+        _emitScanProgress(scanState, filePath);
+      }
+
+      processedEntries++;
+      if (processedEntries % 256 == 0) {
+        await Future<void>.delayed(Duration.zero);
       }
     }
 

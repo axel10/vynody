@@ -435,7 +435,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     Iterable<SongMetadata> songsList, {
     int? rootScanSessionId,
   }) async {
-    final normalizedSongs = songsList.toList(growable: false);
+    final dedupedByPath = <String, SongMetadata>{};
+    for (final song in songsList) {
+      final normalizedPath = _normalizePath(song.path);
+      if (normalizedPath.isEmpty) continue;
+      dedupedByPath[_pathLookupKey(normalizedPath)] = song.copyWith(
+        path: normalizedPath,
+      );
+    }
+
+    final normalizedSongs = dedupedByPath.values.toList(growable: false);
     if (normalizedSongs.isEmpty) return;
     final existingByPath = await getSongMetadataByPaths(
       normalizedSongs.map((song) => song.path),
@@ -444,16 +453,18 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     await transaction(() async {
       for (final song in normalizedSongs) {
         final existing = existingByPath[_pathLookupKey(song.path)];
-        await into(songs).insertOnConflictUpdate(
-          _songCompanion(
-            song.copyWith(
-              sourceFlags: _mergeSourceFlags(
-                existing?.sourceFlags,
-                song.sourceFlags,
-              ),
+        final mergedCompanion = _songCompanion(
+          song.copyWith(
+            sourceFlags: _mergeSourceFlags(
+              existing?.sourceFlags,
+              song.sourceFlags,
             ),
-            lastSeenRootScanSessionId: rootScanSessionId,
           ),
+          lastSeenRootScanSessionId: rootScanSessionId,
+        );
+        await into(songs).insert(
+          mergedCompanion,
+          onConflict: DoUpdate((old) => mergedCompanion, target: [songs.path]),
         );
       }
     });
@@ -630,10 +641,8 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
               WHEN sourceFlags IS NULL OR sourceFlags = 0 THEN ?
               ELSE sourceFlags | ?
             END,
-            lastSeenRootScanToken = ?,
-            isSoftDeleted = 0,
-            missingReason = NULL,
-            deletedAt = NULL
+            lastSeenRootScanSessionId = ?,
+            isSoftDeleted = 0
         WHERE path IN (${List.filled(chunk.length, '?').join(', ')})
         ''',
         <Object>[sourceMask, sourceMask, scanToken, ...chunk],
@@ -715,7 +724,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         .toList(growable: false);
     final candidateRows = await customSelect(
       '''
-      SELECT path, sourceFlags, lastSeenRootScanToken
+      SELECT path, sourceFlags, lastSeenRootScanSessionId
       FROM songs
       WHERE sourceFlags IS NULL
          OR sourceFlags = 0
@@ -734,12 +743,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
     final deletedPaths = <String>[];
     final softDeletedPaths = <String>[];
-    final deletedAt = DateTime.now().millisecondsSinceEpoch;
     await transaction(() async {
       for (final row in candidateRows) {
         final path = row.read<String>('path');
         final currentFlags = row.read<int?>('sourceFlags') ?? 0;
-        final seenToken = row.read<int?>('lastSeenRootScanToken');
+        final seenToken = row.read<int?>('lastSeenRootScanSessionId');
         if (seenToken == scanToken) {
           continue;
         }
@@ -748,12 +756,10 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           await customStatement(
             '''
             UPDATE songs
-            SET isSoftDeleted = 1,
-                missingReason = ?,
-                deletedAt = ?
+            SET isSoftDeleted = 1
             WHERE path = ?
             ''',
-            <Object>['missing_on_disk', deletedAt, path],
+            <Object>[path],
           );
           softDeletedPaths.add(path);
           continue;
@@ -767,9 +773,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
             '''
             UPDATE songs
             SET sourceFlags = ?,
-                isSoftDeleted = 0,
-                missingReason = NULL,
-                deletedAt = NULL
+                isSoftDeleted = 0
             WHERE path = ?
             ''',
             <Object>[nextFlags, path],
