@@ -214,57 +214,59 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                               leadingDistribution: TextLeadingDistribution.even,
                             );
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Center(
-                          child: AnimatedScale(
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOutCubic,
-                            scale: targetScale,
-                            alignment: Alignment.center,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Expanded(
-                                      child: DefaultTextStyle(
-                                        style: lineStyle,
-                                        child: AutoSizeSingleLineText(
-                                          line.text,
-                                          textAlign: TextAlign.center,
-                                          maxLines: hasTimedLyrics ? 1 : 2,
+                      return RepaintBoundary(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Center(
+                            child: AnimatedScale(
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeOutCubic,
+                              scale: targetScale,
+                              alignment: Alignment.center,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: DefaultTextStyle(
+                                          style: lineStyle,
+                                          child: AutoSizeSingleLineText(
+                                            line.text,
+                                            textAlign: TextAlign.center,
+                                            maxLines: hasTimedLyrics ? 1 : 2,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (hasTimedLyrics &&
+                                      translated.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
+                                      child: Text(
+                                        translated,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.62,
+                                          ),
+                                          fontSize: 13,
+                                          height: 1.3,
+                                          leadingDistribution:
+                                              TextLeadingDistribution.even,
                                         ),
                                       ),
                                     ),
                                   ],
-                                ),
-                                if (hasTimedLyrics &&
-                                    translated.isNotEmpty) ...[
-                                  const SizedBox(height: 3),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    child: Text(
-                                      translated,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.62,
-                                        ),
-                                        fontSize: 13,
-                                        height: 1.3,
-                                        leadingDistribution:
-                                            TextLeadingDistribution.even,
-                                      ),
-                                    ),
-                                  ),
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -310,48 +312,51 @@ class _LyricsFadeShaderMask extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.dstIn,
-      shaderCallback: (bounds) {
-        if (bounds.height <= 0) {
-          return const LinearGradient(
-            colors: [Colors.white, Colors.white],
+    return RepaintBoundary(
+      child: ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (bounds) {
+          final height = bounds.height > 0 ? bounds.height : 1.0;
+          if (height <= 1.0) {
+            return const LinearGradient(
+              colors: [Colors.white, Colors.white],
+            ).createShader(bounds);
+          }
+
+          const topFadeHeight = 30.0;
+          final topFadeEnd = (topFadeHeight / height).clamp(0.0, 1.0);
+
+          // If bottomSpacerHeight is 0, we still want the top fade,
+          // so we set bottomFadeStart to 1.0.
+          final bottomFadeStart = bottomSpacerHeight > 0
+              ? ((bounds.height - bottomSpacerHeight) / bounds.height).clamp(
+                  0.0,
+                  1.0,
+                )
+              : 1.0;
+
+          // Ensure stops are in increasing order
+          final stops = [
+            0.0,
+            topFadeEnd,
+            bottomFadeStart.clamp(topFadeEnd, 1.0),
+            1.0,
+          ];
+
+          return LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: const [
+              Colors.transparent,
+              Colors.white,
+              Colors.white,
+              Colors.transparent,
+            ],
+            stops: stops,
           ).createShader(bounds);
-        }
-
-        const topFadeHeight = 30.0;
-        final topFadeEnd = (topFadeHeight / bounds.height).clamp(0.0, 1.0);
-
-        // If bottomSpacerHeight is 0, we still want the top fade,
-        // so we set bottomFadeStart to 1.0.
-        final bottomFadeStart = bottomSpacerHeight > 0
-            ? ((bounds.height - bottomSpacerHeight) / bounds.height).clamp(
-                0.0,
-                1.0,
-              )
-            : 1.0;
-
-        // Ensure stops are in increasing order
-        final stops = [
-          0.0,
-          topFadeEnd,
-          bottomFadeStart.clamp(topFadeEnd, 1.0),
-          1.0,
-        ];
-
-        return LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: const [
-            Colors.transparent,
-            Colors.white,
-            Colors.white,
-            Colors.transparent,
-          ],
-          stops: stops,
-        ).createShader(bounds);
-      },
-      child: child,
+        },
+        child: child,
+      ),
     );
   }
 }

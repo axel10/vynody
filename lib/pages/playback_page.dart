@@ -831,7 +831,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
                 _buildLyricsModeScrim(isLyricsMode),
-                content,
+                RepaintBoundary(child: content),
                 Positioned(
                   left: 0,
                   right: 0,

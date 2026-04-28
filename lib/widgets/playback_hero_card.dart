@@ -96,7 +96,8 @@ class PlaybackHeroCard extends ConsumerWidget {
   ) {
     final p = lerpDouble(pN, pL, tLyrics) ?? pN;
     final l = lerpDouble(lN, lL, tLyrics) ?? lN;
-    return lerpDouble(p, l, tLand) ?? p;
+    // Round to avoid subpixel jitter during or after animation on high-DPI screens
+    return (lerpDouble(p, l, tLand) ?? p).roundToDouble();
   }
 
   Future<void> _showTrackInfoContextMenu(
@@ -272,26 +273,23 @@ class PlaybackHeroCard extends ConsumerWidget {
     // - 歌词面板从下而上“浮现”
     // - 播放控制按键在手机竖屏时向下滑出屏幕
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(
-        begin: isLandscape ? 1.0 : 0.0,
-        end: isLandscape ? 1.0 : 0.0,
-      ),
       duration: animDuration,
       curve: animCurve,
+      tween: Tween<double>(
+        end: isLandscape ? 1.0 : 0.0,
+      ),
       builder: (context, tLand, _) {
         return TweenAnimationBuilder<double>(
-          tween: Tween<double>(
-            // tLyrics 即为 0.0（普通模式）到 1.0（歌词模式）的动画插值因子
-            begin: isLyricsMode ? 1.0 : 0.0,
-            end: isLyricsMode ? 1.0 : 0.0,
-          ),
           duration: animDuration,
           curve: animCurve,
+          tween: Tween<double>(
+            end: isLyricsMode ? 1.0 : 0.0,
+          ),
           builder: (context, tLyrics, _) {
             return LayoutBuilder(
               builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final height = constraints.maxHeight;
+                final width = constraints.maxWidth.roundToDouble();
+                final height = constraints.maxHeight.roundToDouble();
 
                 // ---------------- Portrait Normal ----------------
                 final pNormalCoverSide = math.min(width * 0.98, height * 0.55);
