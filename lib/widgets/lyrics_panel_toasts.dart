@@ -16,7 +16,7 @@ class LyricsStatusToast extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? const Color(0xFF1F1F1F) : Colors.white;
@@ -97,14 +97,14 @@ class LyricsStatusToast extends StatelessWidget {
                         runSpacing: 8,
                         children: [
                           _InfoPill(
-                            label: l10n.providerLabel,
+                            label: l10n?.providerLabel ?? 'Provider',
                             value: providerLabel,
                             accentColor: accentColor,
                             theme: theme,
                             surface: colorScheme.surfaceContainerHighest,
                           ),
                           _InfoPill(
-                            label: l10n.modelLabel,
+                            label: l10n?.modelLabel ?? 'Model',
                             value: modelNameLabel,
                             accentColor: accentColor,
                             theme: theme,
@@ -158,7 +158,7 @@ class _InfoPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final colorScheme = theme.colorScheme;
 
     return Container(
@@ -182,7 +182,7 @@ class _InfoPill extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            value.isNotEmpty ? value : l10n.unspecified,
+            value.isNotEmpty ? value : (l10n?.unspecified ?? 'Not specified'),
             softWrap: true,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -201,15 +201,16 @@ class LyricsSeekToast extends StatelessWidget {
   const LyricsSeekToast({
     super.key,
     required this.target,
+    required this.timeLabel,
     required this.accentColor,
   });
 
   final Duration target;
+  final String timeLabel;
   final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? const Color(0xFF1F1F1F) : Colors.white;
@@ -239,7 +240,7 @@ class LyricsSeekToast extends StatelessWidget {
             Icon(Icons.schedule_rounded, size: 18, color: accentColor),
             const SizedBox(width: 10),
             Text(
-              l10n.targetTimeLabel(_formatDuration(target)),
+              timeLabel,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: onSurface,
                 fontWeight: FontWeight.w700,
@@ -250,12 +251,5 @@ class LyricsSeekToast extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDuration(Duration duration) {
-    final safe = duration < Duration.zero ? Duration.zero : duration;
-    final minutes = safe.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = safe.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
   }
 }

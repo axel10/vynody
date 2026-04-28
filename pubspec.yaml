@@ -49,7 +49,6 @@ dependencies:
   permission_handler: ^12.0.1
   path_provider: ^2.1.5
   device_info_plus: ^10.1.0
-  photo_manager: ^3.9.0
   dio: ^5.7.0
   sqlite3_flutter_libs: ^0.5.24
   flutter_image_compress: ^2.4.0

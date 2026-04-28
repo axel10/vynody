@@ -19,9 +19,6 @@ PODS:
   - flutter_image_compress_macos (1.0.0):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
-  - photo_manager (3.9.0):
-    - Flutter
-    - FlutterMacOS
   - proxy_getter (0.0.1):
     - FlutterMacOS
   - screen_retriever_macos (0.0.1):
@@ -73,7 +70,6 @@ DEPENDENCIES:
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
   - flutter_image_compress_macos (from `Flutter/ephemeral/.symlinks/plugins/flutter_image_compress_macos/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - photo_manager (from `Flutter/ephemeral/.symlinks/plugins/photo_manager/darwin`)
   - proxy_getter (from `Flutter/ephemeral/.symlinks/plugins/proxy_getter/macos`)
   - screen_retriever_macos (from `Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos`)
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -107,8 +103,6 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/flutter_image_compress_macos/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
-  photo_manager:
-    :path: Flutter/ephemeral/.symlinks/plugins/photo_manager/darwin
   proxy_getter:
     :path: Flutter/ephemeral/.symlinks/plugins/proxy_getter/macos
   screen_retriever_macos:
@@ -135,7 +129,6 @@ SPEC CHECKSUMS:
   file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
   flutter_image_compress_macos: e68daf54bb4bf2144c580fd4d151c949cbf492f0
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  photo_manager: 25fd77df14f4f0ba5ef99e2c61814dde77e2bceb
   proxy_getter: 5687a846a29858a5af86bc93bfbd51b8c3cac101
   screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb

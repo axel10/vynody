@@ -123,6 +123,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _seekToastSignature = null;
   }
 
+  String _formatDuration(Duration duration) {
+    final safe = duration < Duration.zero ? Duration.zero : duration;
+    final minutes = safe.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = safe.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
   void _syncSeekToast(Duration target) {
     final signature = target.inMilliseconds.toString();
     if (_seekToastSignature == signature && _seekToast?.mounted == true) {
@@ -131,9 +138,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     _dismissSeekToast();
     _seekToastSignature = signature;
+    final l10n = AppLocalizations.of(context);
+    final timeText = _formatDuration(target);
     _seekToast = showToastWidget(
       LyricsSeekToast(
         target: target,
+        timeLabel: l10n?.targetTimeLabel(timeText) ?? 'Target time $timeText',
         accentColor:
             widget.accentColor ?? Theme.of(context).colorScheme.primary,
       ),
