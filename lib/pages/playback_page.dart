@@ -707,7 +707,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               ),
               child: Column(
                 children: [
-                  if (Platform.isWindows) const SizedBox(height: 32),
+                  if (Platform.isWindows || Platform.isMacOS || Platform.isLinux)
+                    const SizedBox(height: 32),
                   Expanded(
                     child: Center(
                       child: Builder(
