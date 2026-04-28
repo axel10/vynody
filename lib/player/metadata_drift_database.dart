@@ -790,29 +790,41 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<void> insertOrUpdateLyricsCache(LyricsCacheRecord record) async {
-    await into(lyricsCaches).insertOnConflictUpdate(
-      LyricsCachesCompanion(
-        cacheKey: Value(record.cacheKey.trim()),
-        source: Value(record.source.dbValue),
-        isSynced: Value(record.isSynced),
-        syncedLyrics: Value(record.syncedLyrics),
-        syncedLinesJson: Value(
-          jsonEncode(
-            record.syncedLines
-                .map((line) => line.toJson())
-                .toList(growable: false),
+    final normalizedCacheKey = record.cacheKey.trim();
+    if (normalizedCacheKey.isEmpty) return;
+
+    await transaction(() async {
+      await (delete(
+        lyricsCaches,
+      )..where((t) => t.cacheKey.equals(normalizedCacheKey))).go();
+
+      await into(lyricsCaches).insert(
+        LyricsCachesCompanion(
+          cacheKey: Value(normalizedCacheKey),
+          source: Value(record.source.dbValue),
+          isSynced: Value(record.isSynced),
+          syncedLyrics: Value(record.syncedLyrics),
+          syncedLinesJson: Value(
+            jsonEncode(
+              record.syncedLines
+                  .map((line) => line.toJson())
+                  .toList(growable: false),
+            ),
           ),
+          timelineOffsetMillis: Value(record.timelineOffsetMillis),
+          updatedAtMillis: Value(record.updatedAtMillis),
         ),
-        timelineOffsetMillis: Value(record.timelineOffsetMillis),
-        updatedAtMillis: Value(record.updatedAtMillis),
-      ),
-    );
+      );
+    });
   }
 
   Future<LyricsCacheRecord?> getLyricsCache(String cacheKey) async {
+    final normalizedCacheKey = cacheKey.trim();
+    if (normalizedCacheKey.isEmpty) return null;
+
     final row =
         await (select(lyricsCaches)
-              ..where((t) => t.cacheKey.equals(cacheKey))
+              ..where((t) => t.cacheKey.equals(normalizedCacheKey))
               ..limit(1))
             .getSingleOrNull();
     return row == null ? null : _lyricsCacheFromRow(row);
@@ -872,9 +884,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<List<LyricsTranslationCacheRecord>> getLyricsTranslationCaches(
     String cacheKey,
   ) async {
+    final normalizedCacheKey = cacheKey.trim();
+    if (normalizedCacheKey.isEmpty) {
+      return const <LyricsTranslationCacheRecord>[];
+    }
+
     final rows =
         await (select(lyricsTranslationCaches)
-              ..where((t) => t.cacheKey.equals(cacheKey))
+              ..where((t) => t.cacheKey.equals(normalizedCacheKey))
               ..orderBy([
                 (t) => OrderingTerm(
                   expression: t.updatedAtMillis,
