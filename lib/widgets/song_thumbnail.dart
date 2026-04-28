@@ -99,27 +99,26 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     );
 
     final scanner = ref.read(scannerServiceProvider);
+    final metadata = scanner.metadataMap[widget.path];
+    final imagePath = metadata?.thumbnailPath;
+
+    if (imagePath != null) {
+      final file = File(imagePath);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.file(
+          file,
+          width: widget.size,
+          height: widget.size,
+          fit: BoxFit.cover,
+          cacheWidth: (widget.size * 2).toInt(),
+          cacheHeight: (widget.size * 2).toInt(),
+          errorBuilder: (_, _, _) => _fallbackIcon(),
+        ),
+      );
+    }
 
     if (Platform.isAndroid || Platform.isIOS) {
-      final metadata = scanner.metadataMap[widget.path];
-      final imagePath = metadata?.thumbnailPath;
-
-      if (imagePath != null) {
-        final file = File(imagePath);
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: Image.file(
-            file,
-            width: widget.size,
-            height: widget.size,
-            fit: BoxFit.cover,
-            cacheWidth: (widget.size * 2).toInt(),
-            cacheHeight: (widget.size * 2).toInt(),
-            errorBuilder: (_, _, _) => _fallbackIcon(),
-          ),
-        );
-      }
-
       if (_artworkQueried && _artworkBytes != null) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(4),
@@ -137,26 +136,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       }
       // Still fetching or no artwork — show fallback without flickering.
       return _fallbackIcon();
-    } else if (Platform.isWindows) {
-      final metadata = scanner.metadataMap[widget.path];
-
-      final imagePath = metadata?.thumbnailPath;
-      if (imagePath != null) {
-        final file = File(imagePath);
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: Image.file(
-            file,
-            width: widget.size,
-            height: widget.size,
-            fit: BoxFit.cover,
-            cacheWidth: (widget.size * 2).toInt(),
-            cacheHeight: (widget.size * 2).toInt(),
-            errorBuilder: (_, _, _) => _fallbackIcon(),
-          ),
-        );
-      }
-
+    } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       // Metadata not yet in map, or the cached entry still lacks a thumbnail.
       if (metadata == null || metadata.thumbnailPath == null) {
         _triggerLoad();
