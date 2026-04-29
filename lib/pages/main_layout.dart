@@ -686,18 +686,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        child: SafeArea(
-                          top: false,
-                          child: _buildBottomNavigationBar(
-                            context,
-                            isPlayback: isPlayback,
-                            navBgBaseColor: navBgBaseColor,
-                            navIndicatorBaseColor: navIndicatorBaseColor,
-                            navBgOpacityTarget: navBgOpacityTarget,
-                            isHidden:
-                                settings.isImmersiveTabBarEnabled &&
-                                settings.isUserInactive,
-                          ),
+                        child: _buildBottomNavigationBar(
+                          context,
+                          isPlayback: isPlayback,
+                          navBgBaseColor: navBgBaseColor,
+                          navIndicatorBaseColor: navIndicatorBaseColor,
+                          navBgOpacityTarget: navBgOpacityTarget,
+                          isHidden:
+                              settings.isImmersiveTabBarEnabled &&
+                              settings.isUserInactive,
+                          includeBottomPadding: true,
                         ),
                       ),
                   ],
@@ -714,6 +712,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                             isPlayback &&
                             settings.isImmersiveTabBarEnabled &&
                             settings.isUserInactive,
+                        includeBottomPadding: false,
                       ),
               ),
             ),
@@ -730,7 +729,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     required Color navIndicatorBaseColor,
     required double navBgOpacityTarget,
     required bool isHidden,
+    required bool includeBottomPadding,
   }) {
+    final bottomPadding =
+        includeBottomPadding ? MediaQuery.of(context).padding.bottom : 0.0;
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 500),
       opacity: isHidden ? 0.0 : 1.0,
@@ -742,7 +744,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
           builder: (context, animatedOpacity, child) {
             return NavigationBar(
-              height: 60,
+              height: 60 + bottomPadding,
               labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
               selectedIndex: _currentIndex,
               backgroundColor: Color.lerp(
