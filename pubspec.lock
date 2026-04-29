@@ -1083,11 +1083,9 @@ packages:
   proxy_getter:
     dependency: "direct main"
     description:
-      path: "."
-      ref: main
-      resolved-ref: f831f6d648d7d33a6926e687a00fbcd0729d0687
-      url: "https://github.com/axel10/proxy_getter"
-    source: git
+      path: proxy_getter
+      relative: true
+    source: path
     version: "1.1.1"
   pub_semver:
     dependency: transitive
