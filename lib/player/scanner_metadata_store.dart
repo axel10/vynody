@@ -254,17 +254,8 @@ class ScannerMetadataStore {
 
     _notifySongMissingState(normalizedPath, true);
 
-    for (final root in _rootFolders()) {
-      _removeSongFromFolder(root, normalizedPath);
-    }
-    final systemFolder = _systemMediaFolder();
-    if (systemFolder != null) {
-      _removeSongFromFolder(systemFolder, normalizedPath);
-    }
-
     await MetadataDatabase().deleteSongByPath(normalizedPath);
-    _onMetadataMutated();
-    _onAlbumMetadataMutated();
+    _removeMetadataForPaths([normalizedPath]);
     _notifyListeners();
   }
 
@@ -302,6 +293,8 @@ class ScannerMetadataStore {
       return;
     }
 
+    _removePathsFromVisibleTrees(normalizedTargets);
+
     final targetLookup = normalizedTargets
         .map((path) => Platform.isWindows ? path.toLowerCase() : path)
         .toSet();
@@ -317,6 +310,20 @@ class ScannerMetadataStore {
     if (_metadataMap.length != beforeLength) {
       _onMetadataMutated();
       _onAlbumMetadataMutated();
+    }
+  }
+
+  void _removePathsFromVisibleTrees(Iterable<String> paths) {
+    for (final root in _rootFolders()) {
+      for (final path in paths) {
+        _removeSongFromFolder(root, path);
+      }
+    }
+    final systemFolder = _systemMediaFolder();
+    if (systemFolder != null) {
+      for (final path in paths) {
+        _removeSongFromFolder(systemFolder, path);
+      }
     }
   }
 
