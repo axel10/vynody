@@ -1,13 +1,22 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vibe_flow/l10n/app_localizations.dart';
+import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/models/music_folder.dart';
+import 'package:vibe_flow/pages/folder_page.dart';
+import 'package:vibe_flow/player/audio_riverpod.dart';
+import 'package:vibe_flow/player/audio_service.dart';
 import 'package:vibe_flow/player/metadata_database.dart';
 import 'package:vibe_flow/player/scanner_service.dart';
+import 'package:vibe_flow/player/scanner_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -60,9 +69,9 @@ void main() {
 
           await _waitUntil(
             () =>
-                !scanner.isScanning &&
+                scanner.runtimeState.phase == ScanPhase.scanningArtwork &&
                 _firstFolderWithFiles(scanner.rootFolders) != null,
-            reason: 'waiting for initial root scan to finish',
+            reason: 'waiting for stage 3 root tree refresh before copy test',
           );
           await _pumpEventQueue();
 
@@ -105,6 +114,208 @@ void main() {
             initialFileCount + 1,
           );
           expect(notifications.length, greaterThan(initialNotificationCount));
+        } finally {
+          if (copiedFile != null && await copiedFile.exists()) {
+            await copiedFile.delete();
+          }
+          scanner.dispose();
+        }
+      },
+      skip: !Platform.environment.containsKey(
+        'RUN_SCANNER_SERVICE_MUSIC_COPY_TEST',
+      ),
+    );
+
+    testWidgets(
+      'should show copied song within three seconds without scan toast',
+      (tester) async {
+        const rootPath = '/Users/axel10/Music';
+        if (!await Directory(rootPath).exists()) {
+          return;
+        }
+
+        final scanner = ScannerService(
+          autoInitialize: false,
+          incrementalBatchWindow: const Duration(milliseconds: 80),
+        );
+
+        File? copiedFile;
+        try {
+          await tester.pumpWidget(_buildFoldersPageTestApp(scanner));
+
+          final addResult = await scanner.addRootPath(rootPath);
+          expect(addResult.status, RootPathAddStatus.added);
+
+          await _pumpUntil(
+            tester,
+            () =>
+                scanner.runtimeState.phase == ScanPhase.scanningArtwork &&
+                _findFolderWithUniqueSongDisplayName(scanner.rootFolders) !=
+                    null,
+            reason: 'waiting for stage 3 widget tree refresh before add test',
+            timeout: const Duration(seconds: 20),
+          );
+
+          await tester.pump();
+
+          final target = _findFolderWithUniqueSongDisplayName(
+            scanner.rootFolders,
+          );
+          expect(target, isNotNull);
+
+          final folder = target!.$1;
+          final sourceSong = target.$2;
+
+          scanner.setNavigationState(folder, <MusicFolder>[]);
+          await tester.pumpAndSettle();
+
+          expect(find.text(sourceSong.displayName), findsOneWidget);
+
+          copiedFile = await _copySongWithinSameDirectory(sourceSong.path);
+
+          final stopwatch = Stopwatch()..start();
+          var copiedSongVisible = false;
+          var scanToastVisible = false;
+
+          while (stopwatch.elapsed <= const Duration(seconds: 3)) {
+            await tester.pump(const Duration(milliseconds: 100));
+
+            if (find.text('Scanning directory...').evaluate().isNotEmpty) {
+              scanToastVisible = true;
+            }
+
+            final currentFolder = scanner.navigationCurrentFolder;
+            final copiedInService =
+                currentFolder != null &&
+                currentFolder.files.any((file) => file.path == copiedFile!.path);
+            final duplicateTitleCount = find
+                .text(sourceSong.displayName)
+                .evaluate()
+                .length;
+
+            if (copiedInService && duplicateTitleCount >= 2) {
+              copiedSongVisible = true;
+              break;
+            }
+          }
+
+          expect(
+            copiedSongVisible,
+            isTrue,
+            reason: 'copied song should be visible in UI within three seconds',
+          );
+          expect(
+            stopwatch.elapsed,
+            lessThanOrEqualTo(const Duration(seconds: 3)),
+          );
+          expect(
+            scanToastVisible,
+            isFalse,
+            reason: 'incremental add should not show scan toast in UI',
+          );
+          expect(find.text('Scanning directory...'), findsNothing);
+        } finally {
+          if (copiedFile != null && await copiedFile.exists()) {
+            await copiedFile.delete();
+          }
+          scanner.dispose();
+        }
+      },
+      skip: !Platform.environment.containsKey(
+        'RUN_SCANNER_SERVICE_MUSIC_COPY_TEST',
+      ),
+    );
+
+    testWidgets(
+      'should remove deleted copied song from UI after incremental sync',
+      (tester) async {
+        const rootPath = '/Users/axel10/Music';
+        if (!await Directory(rootPath).exists()) {
+          return;
+        }
+
+        final scanner = ScannerService(
+          autoInitialize: false,
+          incrementalBatchWindow: const Duration(milliseconds: 80),
+        );
+
+        File? copiedFile;
+        try {
+          await tester.pumpWidget(_buildFoldersPageTestApp(scanner));
+
+          final addResult = await scanner.addRootPath(rootPath);
+          expect(addResult.status, RootPathAddStatus.added);
+
+          await _pumpUntil(
+            tester,
+            () =>
+                scanner.runtimeState.phase == ScanPhase.scanningArtwork &&
+                _findFolderWithUniqueSongDisplayName(scanner.rootFolders) !=
+                    null,
+            reason:
+                'waiting for stage 3 widget tree refresh before delete test',
+            timeout: const Duration(seconds: 20),
+          );
+
+          final target = _findFolderWithUniqueSongDisplayName(
+            scanner.rootFolders,
+          );
+          expect(target, isNotNull);
+
+          final folder = target!.$1;
+          final sourceSong = target.$2;
+
+          scanner.setNavigationState(folder, <MusicFolder>[]);
+          await tester.pumpAndSettle();
+          expect(find.text(sourceSong.displayName), findsOneWidget);
+
+          copiedFile = await _copySongWithinSameDirectory(sourceSong.path);
+
+          await _pumpUntil(
+            tester,
+            () {
+              final currentFolder = scanner.navigationCurrentFolder;
+              final copiedInService =
+                  currentFolder != null &&
+                  currentFolder.files.any(
+                    (file) => file.path == copiedFile!.path,
+                  );
+              final duplicateTitleCount = find
+                  .text(sourceSong.displayName)
+                  .evaluate()
+                  .length;
+              return copiedInService && duplicateTitleCount >= 2;
+            },
+            reason: 'waiting for copied song to appear before delete',
+          );
+
+          await copiedFile.delete();
+
+          await _pumpUntil(
+            tester,
+            () {
+              final currentFolder = scanner.navigationCurrentFolder;
+              final copiedStillInService =
+                  currentFolder != null &&
+                  currentFolder.files.any(
+                    (file) => file.path == copiedFile!.path,
+                  );
+              final remainingTitleCount = find
+                  .text(sourceSong.displayName)
+                  .evaluate()
+                  .length;
+              return !copiedStillInService && remainingTitleCount == 1;
+            },
+            reason: 'waiting for deleted copied song to disappear from UI',
+          );
+
+          expect(
+            scanner.navigationCurrentFolder?.files.any(
+              (file) => file.path == copiedFile!.path,
+            ),
+            isFalse,
+          );
+          expect(find.text(sourceSong.displayName), findsOneWidget);
         } finally {
           if (copiedFile != null && await copiedFile.exists()) {
             await copiedFile.delete();
@@ -165,6 +376,66 @@ Future<void> _pumpEventQueue() async {
   await Future<void>.delayed(const Duration(milliseconds: 50));
 }
 
+Future<void> _pumpUntil(
+  WidgetTester tester,
+  bool Function() condition, {
+  required String reason,
+  Duration timeout = const Duration(seconds: 45),
+  Duration step = const Duration(milliseconds: 100),
+}) async {
+  final stopwatch = Stopwatch()..start();
+  while (stopwatch.elapsed <= timeout) {
+    await tester.pump(step);
+    if (condition()) {
+      return;
+    }
+  }
+  fail('Timed out while $reason');
+}
+
+(MusicFolder, MusicFile)? _findFolderWithUniqueSongDisplayName(
+  Iterable<MusicFolder> folders,
+) {
+  for (final folder in folders) {
+    if (folder.subFolders.isEmpty && folder.files.isNotEmpty) {
+      final counts = <String, int>{};
+      for (final file in folder.files) {
+        counts.update(file.displayName, (value) => value + 1, ifAbsent: () => 1);
+      }
+      if (folder.files.length <= 20) {
+        for (final file in folder.files) {
+          if (counts[file.displayName] == 1) {
+            return (folder, file);
+          }
+        }
+      }
+    }
+    final nested = _findFolderWithUniqueSongDisplayName(folder.subFolders);
+    if (nested != null) {
+      return nested;
+    }
+  }
+  return null;
+}
+
+Widget _buildFoldersPageTestApp(ScannerService scanner) {
+  return ProviderScope(
+    overrides: [
+      scannerServiceProvider.overrideWith((ref) => scanner),
+      audioServiceProvider.overrideWith((ref) => _FakeAudioService()),
+      audioCurrentMusicProvider.overrideWith((ref) => null),
+    ],
+    child: OKToast(
+      child: MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const Scaffold(body: FoldersPage()),
+      ),
+    ),
+  );
+}
+
 class _TestPathProviderPlatform extends Fake
     with MockPlatformInterfaceMixin
     implements PathProviderPlatform {
@@ -184,3 +455,5 @@ class _TestPathProviderPlatform extends Fake
   @override
   Future<String?> getLibraryPath() async => supportPath;
 }
+
+class _FakeAudioService extends AudioService {}
