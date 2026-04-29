@@ -36,6 +36,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   ToastFuture? _scanToast;
   bool _wasScanning = false;
   Timer? _scanToastUpdateTimer;
+  Timer? _scanToastAutoDismissTimer;
   ScanProgress? _pendingScanProgress;
   DateTime? _lastScanToastUpdateAt;
   AppLocalizations? _l10n;
@@ -143,6 +144,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   void _dismissScanToast({bool notifyListeners = true}) {
     _scanToastUpdateTimer?.cancel();
     _scanToastUpdateTimer = null;
+    _scanToastAutoDismissTimer?.cancel();
+    _scanToastAutoDismissTimer = null;
     _pendingScanProgress = null;
     _lastScanToastUpdateAt = null;
     _scanToast?.dismiss(showAnim: false);
@@ -201,6 +204,23 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       completedLabelText: l10n.filesFullyProcessed(progress.completedCount),
     );
     _lastScanToastUpdateAt = DateTime.now();
+    _scheduleScanToastAutoDismiss();
+  }
+
+  void _scheduleScanToastAutoDismiss() {
+    _scanToastAutoDismissTimer?.cancel();
+    _scanToastAutoDismissTimer = Timer(const Duration(seconds: 2), () {
+      _scanToastAutoDismissTimer = null;
+      if (!mounted) return;
+
+      final scanner = _scanner;
+      if (scanner != null && scanner.isScanning) {
+        _scheduleScanToastAutoDismiss();
+        return;
+      }
+
+      _dismissScanToast();
+    });
   }
 
   void _toggleSelection(String path) {
@@ -268,6 +288,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   @override
   void dispose() {
     _scanToastUpdateTimer?.cancel();
+    _scanToastAutoDismissTimer?.cancel();
     _scanProgressSubscription?.cancel();
     _scanner?.removeListener(_handleScannerChanged);
     _dismissScanToast(notifyListeners: false);
@@ -569,7 +590,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         },
         child: Column(
           children: [
-
             _buildBreadcrumbs(currentFolder, scanner),
             if (_isSelectionMode)
               Container(
