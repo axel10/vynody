@@ -111,8 +111,9 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           width: widget.size,
           height: widget.size,
           fit: BoxFit.cover,
-          cacheWidth: (widget.size * 2).toInt(),
-          cacheHeight: (widget.size * 2).toInt(),
+          cacheWidth: (widget.size * MediaQuery.of(context).devicePixelRatio).round(),
+          cacheHeight: (widget.size * MediaQuery.of(context).devicePixelRatio).round(),
+          filterQuality: FilterQuality.low,
           errorBuilder: (_, _, _) => _fallbackIcon(),
         ),
       );
@@ -127,6 +128,9 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
             width: widget.size,
             height: widget.size,
             fit: BoxFit.cover,
+            cacheWidth: (widget.size * MediaQuery.of(context).devicePixelRatio).round(),
+            cacheHeight: (widget.size * MediaQuery.of(context).devicePixelRatio).round(),
+            filterQuality: FilterQuality.low,
             errorBuilder: (_, _, _) => _fallbackIcon(),
           ),
         );

@@ -20,11 +20,13 @@ class MiniArtwork extends ConsumerWidget {
             ? DecorationImage(
                 image: MemoryImage(currentMusic!.artworkBytes!),
                 fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
               )
             : currentMusic?.artworkPath != null
             ? DecorationImage(
                 image: FileImage(File(currentMusic!.artworkPath!)),
                 fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
               )
             : null,
         color: Colors.grey[900],

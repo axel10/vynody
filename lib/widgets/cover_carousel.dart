@@ -418,6 +418,7 @@ class _CoverItemState extends State<_CoverItem> {
 
   @override
   Widget build(BuildContext context) {
+    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     return AnimatedBuilder(
       animation: widget.animation,
       builder: (context, child) {
@@ -425,7 +426,18 @@ class _CoverItemState extends State<_CoverItem> {
         final double opacity = (1 - pageOffset.abs() * 1.2).clamp(0.0, 1.0);
         final double scale = (1 - (pageOffset.abs() * 0.3)).clamp(0.8, 1.0);
         final double rotationY = pageOffset * -0.3;
-        final double translateX = pageOffset * -widget.width;
+        
+        // Round translation to nearest physical pixel to avoid blurriness
+        final double rawTranslateX = pageOffset * -widget.width;
+        final double translateX = (rawTranslateX * devicePixelRatio).round() / devicePixelRatio;
+
+        // Snapping scale to 1.0 and rotation to 0.0 when very close to 0 to ensure pixel-perfect rendering
+        final bool isCentered = pageOffset.abs() < 0.001;
+        final double effectiveScale = isCentered ? 1.0 : scale;
+        final double effectiveRotationY = isCentered ? 0.0 : rotationY;
+        
+        // Only apply perspective if there is actual rotation
+        final double perspective = effectiveRotationY != 0 ? 0.001 : 0.0;
 
         return RepaintBoundary(
           child: Opacity(
@@ -433,11 +445,10 @@ class _CoverItemState extends State<_CoverItem> {
             child: Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001)
-                ..translateByDouble(translateX, 0, 0, 1.0)
-                ..rotateY(rotationY)
-                ..setEntry(0, 0, scale)
-                ..setEntry(1, 1, scale),
+                ..setEntry(3, 2, perspective)
+                ..translateByDouble(translateX, 0, 0)
+                ..rotateY(effectiveRotationY)
+                ..scaleByDouble(effectiveScale),
               child: Center(
                 child: AspectRatio(
                   aspectRatio: 1,
@@ -456,7 +467,7 @@ class _CoverItemState extends State<_CoverItem> {
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: _buildCoverImage(),
+                    child: _buildCoverImage(isCentered),
                   ),
                 ),
               ),
@@ -467,14 +478,20 @@ class _CoverItemState extends State<_CoverItem> {
     );
   }
 
-  Widget _buildCoverImage() {
+  Widget _buildCoverImage(bool isCentered) {
     final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
     final int limit = isPc ? 1200 : 800;
 
-    final int cacheSize = widget.displaySize != null
-        ? math.min((widget.displaySize! * devicePixelRatio).round(), limit)
-        : limit;
+    // Use exact physical pixels when not animating for maximum sharpness.
+    // During animation, use a slightly coarser rounding to avoid constant re-decoding.
+    final bool isAnimating = widget.animation.isAnimating;
+    final double rawSize = (widget.displaySize ?? 400) * devicePixelRatio;
+    final int cacheSize = isAnimating
+        ? (rawSize / 20).round() * 20
+        : rawSize.round();
+    
+    final int finalCacheWidth = math.min(cacheSize, limit);
 
     final cachedBytes = widget.audioService.getCachedArtwork(
       widget.musicFile.path,
@@ -482,11 +499,13 @@ class _CoverItemState extends State<_CoverItem> {
     if (cachedBytes != null) {
       return Image.memory(
         cachedBytes,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
-        cacheWidth: cacheSize,
+        cacheWidth: finalCacheWidth,
+        cacheHeight: finalCacheWidth,
+        filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
       );
     }
 
@@ -494,37 +513,41 @@ class _CoverItemState extends State<_CoverItem> {
         widget.audioService.currentMusic?.artworkBytes != null) {
       return Image.memory(
         widget.audioService.currentMusic!.artworkBytes!,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
-        cacheWidth: cacheSize,
+        cacheWidth: finalCacheWidth,
+        cacheHeight: finalCacheWidth,
+        filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
       );
     }
 
     if (_artworkBytes != null) {
       return Image.memory(
         _artworkBytes!,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
-        cacheWidth: cacheSize,
+        cacheWidth: finalCacheWidth,
+        cacheHeight: finalCacheWidth,
+        filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
       );
     } else {
-      // Prioritize high-res artwork path, but allow thumbnailPath as fallback
-      // if the high-res file is not available yet.
       final imagePath = widget.musicFile.artworkPath;
       if (imagePath != null) {
         final file = File(imagePath);
         if (file.existsSync()) {
           return Image.file(
             file,
-            fit: BoxFit.contain,
+            fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
             gaplessPlayback: true,
-            cacheWidth: cacheSize,
+            cacheWidth: finalCacheWidth,
+            cacheHeight: finalCacheWidth,
+            filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
           );
         }
       }
@@ -535,11 +558,13 @@ class _CoverItemState extends State<_CoverItem> {
         if (file.existsSync()) {
           return Image.file(
             file,
-            fit: BoxFit.contain,
+            fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
             gaplessPlayback: true,
-            cacheWidth: cacheSize,
+            cacheWidth: finalCacheWidth,
+            cacheHeight: finalCacheWidth,
+            filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
           );
         }
       }

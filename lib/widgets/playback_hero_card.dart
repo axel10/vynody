@@ -87,6 +87,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   final double lyricsBottomTabBarHeight;
 
   double _lerp2D(
+    BuildContext context,
     double pN,
     double pL,
     double lN,
@@ -96,8 +97,9 @@ class PlaybackHeroCard extends ConsumerWidget {
   ) {
     final p = lerpDouble(pN, pL, tLyrics) ?? pN;
     final l = lerpDouble(lN, lL, tLyrics) ?? lN;
-    // Round to avoid subpixel jitter during or after animation on high-DPI screens
-    return (lerpDouble(p, l, tLand) ?? p).roundToDouble();
+    final dpr = MediaQuery.of(context).devicePixelRatio;
+    final raw = lerpDouble(p, l, tLand) ?? p;
+    return (raw * dpr).round() / dpr;
   }
 
   Future<void> _showTrackInfoContextMenu(
@@ -403,6 +405,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 // 这实现了点击封面后跨越多种状态的极其平等的变幻。
 
                 final coverSide = _lerp2D(
+                  context,
                   pNormalCoverSide,
                   pLyricsCoverSide,
                   lNormalCoverSide,
@@ -411,6 +414,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final coverTop = _lerp2D(
+                  context,
                   pNormalCoverTop,
                   pLyricsCoverTop,
                   lNormalCoverTop,
@@ -419,6 +423,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final coverLeft = _lerp2D(
+                  context,
                   pNormalCoverLeft,
                   pLyricsCoverLeft,
                   lNormalCoverLeft,
@@ -428,6 +433,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 );
 
                 final infoTop = _lerp2D(
+                  context,
                   pNormalInfoTop,
                   pLyricsInfoTop,
                   lNormalInfoTop,
@@ -436,6 +442,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final infoLeft = _lerp2D(
+                  context,
                   pNormalInfoLeft,
                   pLyricsInfoLeft,
                   lNormalInfoLeft,
@@ -444,6 +451,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final infoWidth = _lerp2D(
+                  context,
                   pNormalInfoWidth,
                   pLyricsInfoWidth,
                   lNormalInfoWidth,
@@ -452,6 +460,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final infoHeight = _lerp2D(
+                  context,
                   pNormalInfoHeight,
                   pLyricsInfoHeight,
                   lNormalInfoHeight,
@@ -461,6 +470,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 );
 
                 final controlsTop = _lerp2D(
+                  context,
                   pNormalControlsTop,
                   pLyricsControlsTop,
                   lNormalControlsTop,
@@ -469,6 +479,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final controlsLeft = _lerp2D(
+                  context,
                   pNormalControlsLeft,
                   pLyricsControlsLeft,
                   lNormalControlsLeft,
@@ -477,6 +488,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final controlsWidth = _lerp2D(
+                  context,
                   pNormalControlsWidth,
                   pLyricsControlsWidth,
                   lNormalControlsWidth,
@@ -485,6 +497,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final controlsHeight = _lerp2D(
+                  context,
                   pNormalControlsHeight,
                   pLyricsControlsHeight,
                   lNormalControlsHeight,
@@ -493,6 +506,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final controlsOpacity = _lerp2D(
+                  context,
                   pNormalControlsOpacity,
                   pLyricsControlsOpacity,
                   lNormalControlsOpacity,
@@ -502,6 +516,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 );
 
                 final lyricsTop = _lerp2D(
+                  context,
                   pNormalLyricsTop,
                   pLyricsLyricsTop,
                   lNormalLyricsTop,
@@ -510,6 +525,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final lyricsLeft = _lerp2D(
+                  context,
                   pNormalLyricsLeft,
                   pLyricsLyricsLeft,
                   lNormalLyricsLeft,
@@ -518,6 +534,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final lyricsWidth = _lerp2D(
+                  context,
                   pNormalLyricsWidth,
                   pLyricsLyricsWidth,
                   lNormalLyricsWidth,
@@ -526,6 +543,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final lyricsHeight = _lerp2D(
+                  context,
                   pNormalLyricsHeight,
                   pLyricsLyricsHeight,
                   lNormalLyricsHeight,
@@ -534,6 +552,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand,
                 );
                 final lyricsOpacity = _lerp2D(
+                  context,
                   pNormalLyricsOpacity,
                   pLyricsLyricsOpacity,
                   lNormalLyricsOpacity,
