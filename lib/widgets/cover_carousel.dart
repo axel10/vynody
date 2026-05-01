@@ -446,9 +446,9 @@ class _CoverItemState extends State<_CoverItem> {
               alignment: Alignment.center,
               transform: Matrix4.identity()
                 ..setEntry(3, 2, perspective)
-                ..translateByDouble(translateX, 0, 0)
+                ..translateByDouble(translateX, 0, 0, 1.0)
                 ..rotateY(effectiveRotationY)
-                ..scaleByDouble(effectiveScale),
+                ..scaleByDouble(effectiveScale, effectiveScale, effectiveScale, 1.0),
               child: Center(
                 child: AspectRatio(
                   aspectRatio: 1,
