@@ -499,12 +499,11 @@ class _CoverItemState extends State<_CoverItem> {
     if (cachedBytes != null) {
       return Image.memory(
         cachedBytes,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
         cacheWidth: finalCacheWidth,
-        cacheHeight: finalCacheWidth,
         filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
       );
     }
@@ -513,12 +512,11 @@ class _CoverItemState extends State<_CoverItem> {
         widget.audioService.currentMusic?.artworkBytes != null) {
       return Image.memory(
         widget.audioService.currentMusic!.artworkBytes!,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
         cacheWidth: finalCacheWidth,
-        cacheHeight: finalCacheWidth,
         filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
       );
     }
@@ -526,12 +524,11 @@ class _CoverItemState extends State<_CoverItem> {
     if (_artworkBytes != null) {
       return Image.memory(
         _artworkBytes!,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
         cacheWidth: finalCacheWidth,
-        cacheHeight: finalCacheWidth,
         filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
       );
     } else {
@@ -541,12 +538,11 @@ class _CoverItemState extends State<_CoverItem> {
         if (file.existsSync()) {
           return Image.file(
             file,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             width: double.infinity,
             height: double.infinity,
             gaplessPlayback: true,
             cacheWidth: finalCacheWidth,
-            cacheHeight: finalCacheWidth,
             filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
           );
         }
@@ -558,12 +554,11 @@ class _CoverItemState extends State<_CoverItem> {
         if (file.existsSync()) {
           return Image.file(
             file,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             width: double.infinity,
             height: double.infinity,
             gaplessPlayback: true,
             cacheWidth: finalCacheWidth,
-            cacheHeight: finalCacheWidth,
             filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
           );
         }
