@@ -898,7 +898,7 @@ class LyricsService {
       buffer.writeln(result.lyricsText);
     }
 
-    debugPrint(buffer.toString());
+    // debugPrint(buffer.toString());
   }
 
   String _formatTimestamp(Duration duration) {

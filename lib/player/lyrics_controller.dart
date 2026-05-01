@@ -45,6 +45,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
   _lyricsTranslationCacheSubscription;
   String? _watchedLyricsCacheKey;
   String? _watchedLyricsSongPath;
+  bool _lyricsCacheWatchPrimed = false;
 
   @override
   LyricsControllerState build() {
@@ -290,6 +291,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _lyricsTranslationCacheSubscription = null;
     _watchedLyricsCacheKey = null;
     _watchedLyricsSongPath = null;
+    _lyricsCacheWatchPrimed = false;
   }
 
   Future<void> retryFetchUntilReady(MusicFile song) {
@@ -383,13 +385,24 @@ class LyricsController extends Notifier<LyricsControllerState> {
       cacheKey,
     );
     if (lyricsRecord == null) {
+      if (!_lyricsCacheWatchPrimed) {
+        _logDebug(
+          'lyrics cache watch initial null ignored -> path="$songPath" '
+          'cacheKey="$cacheKey"',
+        );
+        return;
+      }
       if (currentSong.lyrics != null) {
+        _logDebug(
+          'lyrics cache watch cleared -> path="$songPath" cacheKey="$cacheKey"',
+        );
         _support.clearLyricsStateForPath(songPath);
         _context.setLyricsTranslationStatus('');
         _context.bumpRevision();
       }
       return;
     }
+    _lyricsCacheWatchPrimed = true;
 
     final translationRecords = await _context.lyricsCacheRepository
         .getLyricsTranslationCaches(cacheKey);
@@ -425,6 +438,12 @@ class LyricsController extends Notifier<LyricsControllerState> {
       _context.setCurrentLyricsText(nextLyrics.plainText);
       _context.setLyricsTranslationStatus('');
     }
+
+    _logDebug(
+      'lyrics cache watch applied -> path="$songPath" cacheKey="$cacheKey" '
+      'hasLyrics=${nextLyrics.plainText.trim().isNotEmpty || nextLyrics.syncedLines.isNotEmpty || nextLyrics.translations.isNotEmpty} '
+      'lines=${nextLyrics.syncedLines.length} textLen=${nextLyrics.plainText.trim().length}',
+    );
 
     _context.bumpRevision();
   }

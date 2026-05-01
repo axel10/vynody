@@ -128,6 +128,13 @@ class LyricsFetchCoordinator {
         unawaited(_support.restoreCachedTranslations(updated));
       }
 
+      _support.logDebug(
+        'fetch state committed -> title="${song.displayName}" '
+        'requestId=$requestId hasLyrics=${_context.state.hasLyrics} '
+        'searched=${_context.state.lyricsSearchAttempted} '
+        'lines=${_context.state.currentLyricsLines.length} '
+        'textLen=${_context.state.currentLyricsText.trim().length}',
+      );
       _context.bumpRevision();
       _support.logDebug(
         'fetch completed -> title="${song.displayName}" requestId=$requestId '

@@ -1246,12 +1246,21 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
     }());
 
-    // If the incoming song already carries lyrics, restore them directly.
+    // Prefer the latest current queue item here rather than the async input
+    // snapshot. A lyrics fetch can complete while metadata refresh is still in
+    // flight, and the queue entry may already contain the freshly attached
+    // lyrics even if `song` was captured earlier without them.
+    final latestCurrentSong =
+        (_currentIndex >= 0 && _currentIndex < _queue.length)
+        ? _queue[_currentIndex]
+        : song;
+
+    // If the current song already carries lyrics, restore them directly.
     // Otherwise clear lyric state and let the async lyric fetch pipeline decide
     // whether anything should be loaded.
-    final songLyrics = song.lyrics;
+    final songLyrics = latestCurrentSong.lyrics;
     if (isLyricsActive && songLyrics != null) {
-      _lyricsController.restoreFromSongLyrics(song);
+      _lyricsController.restoreFromSongLyrics(latestCurrentSong);
     } else {
       _logLyricsDebug(
         'lyrics state cleared -> title="${song.displayName}" '
