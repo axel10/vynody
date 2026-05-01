@@ -697,7 +697,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               curve: Curves.fastOutSlowIn,
               padding: EdgeInsets.fromLTRB(
                 isLyricsMode
-                    ? (isLandscape ? 40.0 : 16.0)
+                    ? (isLandscape ? 60.0 : 16.0) // 歌词模式下播放页左侧区域距离屏幕左侧的距离
                     : (isLandscape ? 32.0 : 24.0),
                 isLyricsMode ? 8.0 : (isLandscape ? 32.0 : 24.0),
                 isLyricsMode
