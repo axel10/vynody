@@ -18,7 +18,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 26;
+  int get schemaVersion => 27;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -251,13 +251,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         await _addColumnIfMissing(m, 'songs', 'missingReason', 'TEXT');
         await _addColumnIfMissing(m, 'songs', 'deletedAt', 'INTEGER');
       }
-      if (from < 26) {
-        await _addColumnIfMissing(m, 'songs', 'isSoftDeleted', 'INTEGER');
-        await m.database.customStatement('''
-          UPDATE songs
-          SET isSoftDeleted = 0
-          WHERE isSoftDeleted IS NULL
-        ''');
+      if (from < 27) {
+        if (await _columnExists('songs', 'isSoftDeleted')) {
+          final deletedAtMillis = DateTime.now().millisecondsSinceEpoch;
+          await customStatement('''
+            UPDATE songs
+            SET deletedAt = $deletedAtMillis
+            WHERE isSoftDeleted = 1
+              AND deletedAt IS NULL
+          ''');
+        }
       }
     },
   );
@@ -316,7 +319,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       '''
       SELECT *
       FROM songs
-      WHERE COALESCE(isSoftDeleted, 0) = 0
+      WHERE deletedAt IS NULL
       ORDER BY LOWER(path) ASC
       ''',
       readsFrom: {songs},
@@ -330,7 +333,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       '''
       SELECT *
       FROM songs
-      WHERE COALESCE(isSoftDeleted, 0) = 0
+      WHERE deletedAt IS NULL
       ORDER BY LOWER(path) ASC
       ''',
       readsFrom: {songs},
@@ -348,7 +351,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       SELECT *
       FROM songs
       WHERE path = ?
-        AND COALESCE(isSoftDeleted, 0) = 0
+        AND deletedAt IS NULL
       LIMIT 1
       ''',
       variables: [Variable(normalizedPath)],
@@ -368,7 +371,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       SELECT *
       FROM songs
       WHERE path = ?
-        AND COALESCE(isSoftDeleted, 0) = 0
+        AND deletedAt IS NULL
       LIMIT 1
       ''',
       variables: [Variable(normalizedPath)],
@@ -394,7 +397,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       SELECT *
       FROM songs
       WHERE path IN (${List.filled(normalizedPaths.length, '?').join(', ')})
-        AND COALESCE(isSoftDeleted, 0) = 0
+        AND deletedAt IS NULL
       ''',
       variables: normalizedPaths.map(Variable.new).toList(growable: false),
       readsFrom: {songs},
@@ -409,13 +412,22 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     SongMetadata song, {
     int? rootScanSessionId,
   }) async {
-    final existing = await getSongMetadata(song.path);
+    final normalizedPath = _normalizePath(song.path);
+    if (normalizedPath.isEmpty) return;
+
+    final existing = await (select(songs)
+          ..where((t) => t.path.equals(normalizedPath))
+          ..limit(1))
+        .getSingleOrNull();
     final mergedSourceFlags = _mergeSourceFlags(
       existing?.sourceFlags,
       song.sourceFlags,
     );
 
-    final updatedSong = song.copyWith(sourceFlags: mergedSourceFlags);
+    final updatedSong = song.copyWith(
+      path: normalizedPath,
+      sourceFlags: mergedSourceFlags,
+    );
     final companion = _songCompanion(
       updatedSong,
       lastSeenRootScanSessionId: rootScanSessionId,
@@ -446,9 +458,13 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
     final normalizedSongs = dedupedByPath.values.toList(growable: false);
     if (normalizedSongs.isEmpty) return;
-    final existingByPath = await getSongMetadataByPaths(
-      normalizedSongs.map((song) => song.path),
-    );
+    final existingRows = await (select(songs)..where(
+          (t) => t.path.isIn(normalizedSongs.map((song) => song.path).toList()),
+        )).get();
+    final existingByPath = {
+      for (final row in existingRows)
+        _pathLookupKey(row.path): _songFromTableRow(row),
+    };
 
     await transaction(() async {
       for (final song in normalizedSongs) {
@@ -519,7 +535,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       ..writeln('  NULL AS lastPlayedAt')
       ..writeln('FROM songs s')
       ..writeln('WHERE s.createdAt IS NOT NULL')
-      ..writeln('  AND COALESCE(s.isSoftDeleted, 0) = 0');
+      ..writeln('  AND s.deletedAt IS NULL');
 
     final variables = <Variable<Object>>[];
     if (startAtMillis != null) {
@@ -571,7 +587,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       ..writeln('  MAX(h.playedAt) AS lastPlayedAt')
       ..writeln('FROM songs s')
       ..writeln('JOIN song_play_history h ON h.songPath = s.path')
-      ..writeln('WHERE COALESCE(s.isSoftDeleted, 0) = 0');
+      ..writeln('WHERE s.deletedAt IS NULL');
 
     final variables = <Variable<Object>>[];
     if (startAtMillis != null) {
@@ -601,7 +617,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) return;
 
-    await (delete(songs)..where((t) => t.path.equals(normalizedPath))).go();
+    await customStatement(
+      '''
+      UPDATE songs
+      SET deletedAt = ?
+      WHERE path = ?
+      ''',
+      <Object>[DateTime.now().millisecondsSinceEpoch, normalizedPath],
+    );
   }
 
   Future<void> clearAllSongs() async {
@@ -642,7 +665,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
               ELSE sourceFlags | ?
             END,
             lastSeenRootScanSessionId = ?,
-            isSoftDeleted = 0
+            deletedAt = NULL
         WHERE path IN (${List.filled(chunk.length, '?').join(', ')})
         ''',
         <Object>[sourceMask, sourceMask, scanToken, ...chunk],
@@ -743,6 +766,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
     final deletedPaths = <String>[];
     final softDeletedPaths = <String>[];
+    final deletedAtMillis = DateTime.now().millisecondsSinceEpoch;
     await transaction(() async {
       for (final row in candidateRows) {
         final path = row.read<String>('path');
@@ -756,7 +780,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           await customStatement(
             '''
             UPDATE songs
-            SET isSoftDeleted = 1
+            SET deletedAt = $deletedAtMillis
             WHERE path = ?
             ''',
             <Object>[path],
@@ -773,7 +797,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
             '''
             UPDATE songs
             SET sourceFlags = ?,
-                isSoftDeleted = 0
+                deletedAt = NULL
             WHERE path = ?
             ''',
             <Object>[nextFlags, path],
@@ -1119,7 +1143,33 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       metadataTextScanned: row.read<int?>('metadataTextScanned'),
       metadataImgScanned: row.read<int?>('metadataImgScanned'),
       createdAt: row.read<int?>('createdAt'),
+      deletedAt: row.read<int?>('deletedAt'),
       genres: _decodeGenres(row.read<String?>('genres')),
+    );
+  }
+
+  SongMetadata _songFromTableRow(Song row) {
+    return SongMetadata(
+      id: row.id,
+      path: row.path,
+      title: row.title ?? 'Unknown',
+      album: row.album ?? 'Unknown',
+      artist: row.artist ?? 'Unknown',
+      duration: row.duration,
+      artworkPath: row.artworkPath,
+      thumbnailPath: row.thumbnailPath,
+      artworkWidth: row.artworkWidth,
+      artworkHeight: row.artworkHeight,
+      trackNumber: row.trackNumber,
+      sourceFlags: row.sourceFlags,
+      themeColorsBlob: row.themeColorsBlob,
+      waveformBlob: row.waveformBlob,
+      lastModifiedTime: row.lastModifiedTime,
+      metadataTextScanned: row.metadataTextScanned,
+      metadataImgScanned: row.metadataImgScanned,
+      createdAt: row.createdAt,
+      deletedAt: row.deletedAt,
+      genres: _decodeGenres(row.genres),
     );
   }
 
@@ -1145,6 +1195,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       metadataTextScanned: Value(song.metadataTextScanned),
       metadataImgScanned: Value(song.metadataImgScanned),
       createdAt: Value(song.createdAt),
+      deletedAt: Value(song.deletedAt),
       genres: Value(song.genres == null ? null : jsonEncode(song.genres)),
       lastSeenRootScanSessionId: lastSeenRootScanSessionId == null
           ? const Value.absent()
@@ -1322,8 +1373,8 @@ class Songs extends Table {
   IntColumn get metadataImgScanned =>
       integer().nullable().named('metadataImgScanned')();
   IntColumn get createdAt => integer().nullable().named('createdAt')();
+  IntColumn get deletedAt => integer().nullable().named('deletedAt')();
   TextColumn get genres => text().nullable().named('genres')();
-  BoolColumn get isSoftDeleted => boolean().nullable().named('isSoftDeleted')();
   IntColumn get lastSeenRootScanSessionId =>
       integer().nullable().named('lastSeenRootScanSessionId')();
 

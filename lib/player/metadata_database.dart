@@ -45,6 +45,7 @@ abstract class SongMetadata with _$SongMetadata {
     int? metadataTextScanned,
     int? metadataImgScanned,
     int? createdAt,
+    int? deletedAt,
     List<String>? genres,
   }) = _SongMetadata;
 
@@ -72,6 +73,7 @@ abstract class SongMetadata with _$SongMetadata {
       'metadataTextScanned': metadataTextScanned,
       'metadataImgScanned': metadataImgScanned,
       'createdAt': createdAt,
+      'deletedAt': deletedAt,
       'genres': genres != null ? jsonEncode(genres) : null,
     };
   }
@@ -103,6 +105,7 @@ abstract class SongMetadata with _$SongMetadata {
       metadataTextScanned: map['metadataTextScanned'],
       metadataImgScanned: map['metadataImgScanned'],
       createdAt: map['createdAt'],
+      deletedAt: map['deletedAt'],
       genres: genres,
     );
   }
