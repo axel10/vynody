@@ -640,6 +640,166 @@ class AppLocalizationsEn extends AppLocalizations {
   String get copyTitle => 'Copy Title';
 
   @override
+  String get transcodeAction => 'Transcode...';
+
+  @override
+  String get transcodeSectionTitle => 'Audio Transcoding';
+
+  @override
+  String get transcodeSectionDescription =>
+      'Set default output format, quality preset, and ffmpeg path for audio conversion.';
+
+  @override
+  String get transcodeDefaultFormat => 'Default Output Format';
+
+  @override
+  String get transcodeDefaultQuality => 'Default Quality Preset';
+
+  @override
+  String get transcodeAutoScanOutput => 'Auto-scan converted files';
+
+  @override
+  String get transcodeAutoScanOutputDescription =>
+      'Refresh the music library after a successful transcode.';
+
+  @override
+  String get transcodeFfmpegPath => 'ffmpeg Path';
+
+  @override
+  String get transcodeFfmpegPathHint => 'Leave empty to use ffmpeg from PATH';
+
+  @override
+  String get transcodeFfmpegPathDefault => 'Use ffmpeg from PATH';
+
+  @override
+  String get transcodeTitle => 'Audio Transcode';
+
+  @override
+  String transcodeSongCount(int count) {
+    return '$count songs';
+  }
+
+  @override
+  String transcodeCompletedCount(int count) {
+    return 'Transcoded $count files';
+  }
+
+  @override
+  String transcodeCompletedWithFailures(int success, int total, int failed) {
+    return 'Transcoded $success / $total files, $failed failed';
+  }
+
+  @override
+  String get transcodeFailedGeneric => 'Transcode failed';
+
+  @override
+  String get transcodePreparing => 'Preparing transcode...';
+
+  @override
+  String transcodeProgress(int current, int total) {
+    return 'Transcoding $current / $total';
+  }
+
+  @override
+  String get transcoding => 'Transcoding...';
+
+  @override
+  String get startTranscode => 'Start Transcode';
+
+  @override
+  String transcodeEngine(Object engine) {
+    return 'Engine: $engine';
+  }
+
+  @override
+  String get transcodeUsingSystemFfmpeg =>
+      'Using ffmpeg from your system PATH.';
+
+  @override
+  String transcodeUsingCustomFfmpeg(Object path) {
+    return 'Using custom ffmpeg: $path';
+  }
+
+  @override
+  String get transcodeFormat => 'Output Format';
+
+  @override
+  String get transcodeQualityPreset => 'Quality Preset';
+
+  @override
+  String get transcodeQualityLow => 'Low';
+
+  @override
+  String get transcodeQualityMedium => 'Medium';
+
+  @override
+  String get transcodeQualityHigh => 'High';
+
+  @override
+  String get transcodeQualityExtreme => 'Highest';
+
+  @override
+  String get transcodeLosslessPresetHint =>
+      'This lossless format does not use quality tiers or bitrate mode.';
+
+  @override
+  String get transcodeAdvancedOptions => 'Advanced Options';
+
+  @override
+  String get transcodeAdvancedCustomized =>
+      'Advanced parameters were customized';
+
+  @override
+  String get transcodeAdvancedFollowingPreset =>
+      'Advanced parameters follow the current preset';
+
+  @override
+  String get transcodeLosslessAdvancedHint =>
+      'Only source-preserving options are available for this lossless format.';
+
+  @override
+  String get transcodeBitRateInvalid => 'Please enter a valid bitrate';
+
+  @override
+  String get transcodeBitRate => 'Bitrate';
+
+  @override
+  String get transcodeBitRateMode => 'Bitrate Mode';
+
+  @override
+  String get transcodeSampleRate => 'Sample Rate';
+
+  @override
+  String get transcodeChannels => 'Channels';
+
+  @override
+  String get transcodeResetToPreset => 'Reset to Current Preset';
+
+  @override
+  String get transcodeResetLosslessOptions => 'Reset Lossless Options';
+
+  @override
+  String get transcodeOutputDirectory => 'Output Directory';
+
+  @override
+  String get transcodeOutputPreview => 'Preview';
+
+  @override
+  String get transcodeChooseDirectory => 'Choose Directory';
+
+  @override
+  String get transcodeUseSourceDirectory => 'Use Source Directory';
+
+  @override
+  String get transcodeKeepSource => 'Keep source';
+
+  @override
+  String get transcodeMono => 'Mono';
+
+  @override
+  String get transcodeStereo => 'Stereo';
+
+  @override
   String get openFolderLocation => 'Open Folder Location';
 
   @override

@@ -1,4 +1,6 @@
 PODS:
+  - audio_converter (0.0.1):
+    - FlutterMacOS
   - audio_core (0.0.1):
     - FlutterMacOS
   - audio_service (0.0.1):
@@ -60,6 +62,7 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - audio_converter (from `Flutter/ephemeral/.symlinks/plugins/audio_converter/macos`)
   - audio_core (from `Flutter/ephemeral/.symlinks/plugins/audio_core/macos`)
   - audio_service (from `Flutter/ephemeral/.symlinks/plugins/audio_service/darwin`)
   - audio_session (from `Flutter/ephemeral/.symlinks/plugins/audio_session/macos`)
@@ -83,6 +86,8 @@ SPEC REPOS:
     - sqlite3
 
 EXTERNAL SOURCES:
+  audio_converter:
+    :path: Flutter/ephemeral/.symlinks/plugins/audio_converter/macos
   audio_core:
     :path: Flutter/ephemeral/.symlinks/plugins/audio_core/macos
   audio_service:
@@ -119,6 +124,7 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/window_manager/macos
 
 SPEC CHECKSUMS:
+  audio_converter: f3432b5dd1f55d643d05c72d12154bdf3bd112a9
   audio_core: ae97c2db63691525f4123f847942bc32306b4d4c
   audio_service: aa99a6ba2ae7565996015322b0bb024e1d25c6fd
   audio_session: eaca2512cf2b39212d724f35d11f46180ad3a33e
@@ -138,6 +144,6 @@ SPEC CHECKSUMS:
   url_launcher_macos: f87a979182d112f911de6820aefddaf56ee9fbfd
   window_manager: b729e31d38fb04905235df9ea896128991cad99e
 
-PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
+PODFILE CHECKSUM: 346bfb2deb41d4a6ebd6f6799f92188bde2d246f
 
 COCOAPODS: 1.16.2
