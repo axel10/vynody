@@ -200,6 +200,17 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deletedAt',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _genresMeta = const VerificationMeta('genres');
   @override
   late final GeneratedColumn<String> genres = GeneratedColumn<String>(
@@ -208,20 +219,6 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-  );
-  static const VerificationMeta _isSoftDeletedMeta = const VerificationMeta(
-    'isSoftDeleted',
-  );
-  @override
-  late final GeneratedColumn<bool> isSoftDeleted = GeneratedColumn<bool>(
-    'isSoftDeleted',
-    aliasedName,
-    true,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("isSoftDeleted" IN (0, 1))',
-    ),
   );
   static const VerificationMeta _lastSeenRootScanSessionIdMeta =
       const VerificationMeta('lastSeenRootScanSessionId');
@@ -254,8 +251,8 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     metadataTextScanned,
     metadataImgScanned,
     createdAt,
+    deletedAt,
     genres,
-    isSoftDeleted,
     lastSeenRootScanSessionId,
   ];
   @override
@@ -410,19 +407,16 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         createdAt.isAcceptableOrUnknown(data['createdAt']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('deletedAt')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deletedAt']!, _deletedAtMeta),
+      );
+    }
     if (data.containsKey('genres')) {
       context.handle(
         _genresMeta,
         genres.isAcceptableOrUnknown(data['genres']!, _genresMeta),
-      );
-    }
-    if (data.containsKey('isSoftDeleted')) {
-      context.handle(
-        _isSoftDeletedMeta,
-        isSoftDeleted.isAcceptableOrUnknown(
-          data['isSoftDeleted']!,
-          _isSoftDeletedMeta,
-        ),
       );
     }
     if (data.containsKey('lastSeenRootScanSessionId')) {
@@ -515,13 +509,13 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         DriftSqlType.int,
         data['${effectivePrefix}createdAt'],
       ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deletedAt'],
+      ),
       genres: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}genres'],
-      ),
-      isSoftDeleted: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}isSoftDeleted'],
       ),
       lastSeenRootScanSessionId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -555,8 +549,8 @@ class Song extends DataClass implements Insertable<Song> {
   final int? metadataTextScanned;
   final int? metadataImgScanned;
   final int? createdAt;
+  final int? deletedAt;
   final String? genres;
-  final bool? isSoftDeleted;
   final int? lastSeenRootScanSessionId;
   const Song({
     required this.id,
@@ -577,8 +571,8 @@ class Song extends DataClass implements Insertable<Song> {
     this.metadataTextScanned,
     this.metadataImgScanned,
     this.createdAt,
+    this.deletedAt,
     this.genres,
-    this.isSoftDeleted,
     this.lastSeenRootScanSessionId,
   });
   @override
@@ -634,11 +628,11 @@ class Song extends DataClass implements Insertable<Song> {
     if (!nullToAbsent || createdAt != null) {
       map['createdAt'] = Variable<int>(createdAt);
     }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deletedAt'] = Variable<int>(deletedAt);
+    }
     if (!nullToAbsent || genres != null) {
       map['genres'] = Variable<String>(genres);
-    }
-    if (!nullToAbsent || isSoftDeleted != null) {
-      map['isSoftDeleted'] = Variable<bool>(isSoftDeleted);
     }
     if (!nullToAbsent || lastSeenRootScanSessionId != null) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
@@ -700,12 +694,12 @@ class Song extends DataClass implements Insertable<Song> {
       createdAt: createdAt == null && nullToAbsent
           ? const Value.absent()
           : Value(createdAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       genres: genres == null && nullToAbsent
           ? const Value.absent()
           : Value(genres),
-      isSoftDeleted: isSoftDeleted == null && nullToAbsent
-          ? const Value.absent()
-          : Value(isSoftDeleted),
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId == null && nullToAbsent
           ? const Value.absent()
@@ -739,8 +733,8 @@ class Song extends DataClass implements Insertable<Song> {
       ),
       metadataImgScanned: serializer.fromJson<int?>(json['metadataImgScanned']),
       createdAt: serializer.fromJson<int?>(json['createdAt']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
       genres: serializer.fromJson<String?>(json['genres']),
-      isSoftDeleted: serializer.fromJson<bool?>(json['isSoftDeleted']),
       lastSeenRootScanSessionId: serializer.fromJson<int?>(
         json['lastSeenRootScanSessionId'],
       ),
@@ -768,8 +762,8 @@ class Song extends DataClass implements Insertable<Song> {
       'metadataTextScanned': serializer.toJson<int?>(metadataTextScanned),
       'metadataImgScanned': serializer.toJson<int?>(metadataImgScanned),
       'createdAt': serializer.toJson<int?>(createdAt),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
       'genres': serializer.toJson<String?>(genres),
-      'isSoftDeleted': serializer.toJson<bool?>(isSoftDeleted),
       'lastSeenRootScanSessionId': serializer.toJson<int?>(
         lastSeenRootScanSessionId,
       ),
@@ -795,8 +789,8 @@ class Song extends DataClass implements Insertable<Song> {
     Value<int?> metadataTextScanned = const Value.absent(),
     Value<int?> metadataImgScanned = const Value.absent(),
     Value<int?> createdAt = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
     Value<String?> genres = const Value.absent(),
-    Value<bool?> isSoftDeleted = const Value.absent(),
     Value<int?> lastSeenRootScanSessionId = const Value.absent(),
   }) => Song(
     id: id ?? this.id,
@@ -829,10 +823,8 @@ class Song extends DataClass implements Insertable<Song> {
         ? metadataImgScanned.value
         : this.metadataImgScanned,
     createdAt: createdAt.present ? createdAt.value : this.createdAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     genres: genres.present ? genres.value : this.genres,
-    isSoftDeleted: isSoftDeleted.present
-        ? isSoftDeleted.value
-        : this.isSoftDeleted,
     lastSeenRootScanSessionId: lastSeenRootScanSessionId.present
         ? lastSeenRootScanSessionId.value
         : this.lastSeenRootScanSessionId,
@@ -879,10 +871,8 @@ class Song extends DataClass implements Insertable<Song> {
           ? data.metadataImgScanned.value
           : this.metadataImgScanned,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       genres: data.genres.present ? data.genres.value : this.genres,
-      isSoftDeleted: data.isSoftDeleted.present
-          ? data.isSoftDeleted.value
-          : this.isSoftDeleted,
       lastSeenRootScanSessionId: data.lastSeenRootScanSessionId.present
           ? data.lastSeenRootScanSessionId.value
           : this.lastSeenRootScanSessionId,
@@ -910,8 +900,8 @@ class Song extends DataClass implements Insertable<Song> {
           ..write('metadataTextScanned: $metadataTextScanned, ')
           ..write('metadataImgScanned: $metadataImgScanned, ')
           ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('genres: $genres, ')
-          ..write('isSoftDeleted: $isSoftDeleted, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -937,8 +927,8 @@ class Song extends DataClass implements Insertable<Song> {
     metadataTextScanned,
     metadataImgScanned,
     createdAt,
+    deletedAt,
     genres,
-    isSoftDeleted,
     lastSeenRootScanSessionId,
   ]);
   @override
@@ -966,8 +956,8 @@ class Song extends DataClass implements Insertable<Song> {
           other.metadataTextScanned == this.metadataTextScanned &&
           other.metadataImgScanned == this.metadataImgScanned &&
           other.createdAt == this.createdAt &&
+          other.deletedAt == this.deletedAt &&
           other.genres == this.genres &&
-          other.isSoftDeleted == this.isSoftDeleted &&
           other.lastSeenRootScanSessionId == this.lastSeenRootScanSessionId);
 }
 
@@ -990,8 +980,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
   final Value<int?> metadataTextScanned;
   final Value<int?> metadataImgScanned;
   final Value<int?> createdAt;
+  final Value<int?> deletedAt;
   final Value<String?> genres;
-  final Value<bool?> isSoftDeleted;
   final Value<int?> lastSeenRootScanSessionId;
   const SongsCompanion({
     this.id = const Value.absent(),
@@ -1012,8 +1002,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.metadataTextScanned = const Value.absent(),
     this.metadataImgScanned = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.genres = const Value.absent(),
-    this.isSoftDeleted = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   });
   SongsCompanion.insert({
@@ -1035,8 +1025,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.metadataTextScanned = const Value.absent(),
     this.metadataImgScanned = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.genres = const Value.absent(),
-    this.isSoftDeleted = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   }) : path = Value(path);
   static Insertable<Song> custom({
@@ -1058,8 +1048,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Expression<int>? metadataTextScanned,
     Expression<int>? metadataImgScanned,
     Expression<int>? createdAt,
+    Expression<int>? deletedAt,
     Expression<String>? genres,
-    Expression<bool>? isSoftDeleted,
     Expression<int>? lastSeenRootScanSessionId,
   }) {
     return RawValuesInsertable({
@@ -1082,8 +1072,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
         'metadataTextScanned': metadataTextScanned,
       if (metadataImgScanned != null) 'metadataImgScanned': metadataImgScanned,
       if (createdAt != null) 'createdAt': createdAt,
+      if (deletedAt != null) 'deletedAt': deletedAt,
       if (genres != null) 'genres': genres,
-      if (isSoftDeleted != null) 'isSoftDeleted': isSoftDeleted,
       if (lastSeenRootScanSessionId != null)
         'lastSeenRootScanSessionId': lastSeenRootScanSessionId,
     });
@@ -1108,8 +1098,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Value<int?>? metadataTextScanned,
     Value<int?>? metadataImgScanned,
     Value<int?>? createdAt,
+    Value<int?>? deletedAt,
     Value<String?>? genres,
-    Value<bool?>? isSoftDeleted,
     Value<int?>? lastSeenRootScanSessionId,
   }) {
     return SongsCompanion(
@@ -1131,8 +1121,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
       metadataTextScanned: metadataTextScanned ?? this.metadataTextScanned,
       metadataImgScanned: metadataImgScanned ?? this.metadataImgScanned,
       createdAt: createdAt ?? this.createdAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       genres: genres ?? this.genres,
-      isSoftDeleted: isSoftDeleted ?? this.isSoftDeleted,
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId ?? this.lastSeenRootScanSessionId,
     );
@@ -1195,11 +1185,11 @@ class SongsCompanion extends UpdateCompanion<Song> {
     if (createdAt.present) {
       map['createdAt'] = Variable<int>(createdAt.value);
     }
+    if (deletedAt.present) {
+      map['deletedAt'] = Variable<int>(deletedAt.value);
+    }
     if (genres.present) {
       map['genres'] = Variable<String>(genres.value);
-    }
-    if (isSoftDeleted.present) {
-      map['isSoftDeleted'] = Variable<bool>(isSoftDeleted.value);
     }
     if (lastSeenRootScanSessionId.present) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
@@ -1230,8 +1220,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
           ..write('metadataTextScanned: $metadataTextScanned, ')
           ..write('metadataImgScanned: $metadataImgScanned, ')
           ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('genres: $genres, ')
-          ..write('isSoftDeleted: $isSoftDeleted, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -5018,8 +5008,8 @@ typedef $$SongsTableCreateCompanionBuilder =
       Value<int?> metadataTextScanned,
       Value<int?> metadataImgScanned,
       Value<int?> createdAt,
+      Value<int?> deletedAt,
       Value<String?> genres,
-      Value<bool?> isSoftDeleted,
       Value<int?> lastSeenRootScanSessionId,
     });
 typedef $$SongsTableUpdateCompanionBuilder =
@@ -5042,8 +5032,8 @@ typedef $$SongsTableUpdateCompanionBuilder =
       Value<int?> metadataTextScanned,
       Value<int?> metadataImgScanned,
       Value<int?> createdAt,
+      Value<int?> deletedAt,
       Value<String?> genres,
-      Value<bool?> isSoftDeleted,
       Value<int?> lastSeenRootScanSessionId,
     });
 
@@ -5146,13 +5136,13 @@ class $$SongsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get genres => $composableBuilder(
-    column: $table.genres,
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isSoftDeleted => $composableBuilder(
-    column: $table.isSoftDeleted,
+  ColumnFilters<String> get genres => $composableBuilder(
+    column: $table.genres,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5261,13 +5251,13 @@ class $$SongsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get genres => $composableBuilder(
-    column: $table.genres,
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isSoftDeleted => $composableBuilder(
-    column: $table.isSoftDeleted,
+  ColumnOrderings<String> get genres => $composableBuilder(
+    column: $table.genres,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -5362,13 +5352,11 @@ class $$SongsTableAnnotationComposer
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
   GeneratedColumn<String> get genres =>
       $composableBuilder(column: $table.genres, builder: (column) => column);
-
-  GeneratedColumn<bool> get isSoftDeleted => $composableBuilder(
-    column: $table.isSoftDeleted,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
@@ -5422,8 +5410,8 @@ class $$SongsTableTableManager
                 Value<int?> metadataTextScanned = const Value.absent(),
                 Value<int?> metadataImgScanned = const Value.absent(),
                 Value<int?> createdAt = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
-                Value<bool?> isSoftDeleted = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion(
                 id: id,
@@ -5444,8 +5432,8 @@ class $$SongsTableTableManager
                 metadataTextScanned: metadataTextScanned,
                 metadataImgScanned: metadataImgScanned,
                 createdAt: createdAt,
+                deletedAt: deletedAt,
                 genres: genres,
-                isSoftDeleted: isSoftDeleted,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           createCompanionCallback:
@@ -5468,8 +5456,8 @@ class $$SongsTableTableManager
                 Value<int?> metadataTextScanned = const Value.absent(),
                 Value<int?> metadataImgScanned = const Value.absent(),
                 Value<int?> createdAt = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
-                Value<bool?> isSoftDeleted = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion.insert(
                 id: id,
@@ -5490,8 +5478,8 @@ class $$SongsTableTableManager
                 metadataTextScanned: metadataTextScanned,
                 metadataImgScanned: metadataImgScanned,
                 createdAt: createdAt,
+                deletedAt: deletedAt,
                 genres: genres,
-                isSoftDeleted: isSoftDeleted,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           withReferenceMapper: (p0) => p0
