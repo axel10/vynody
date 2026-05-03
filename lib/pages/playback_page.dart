@@ -682,16 +682,17 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           }
 
           final settings = ref.watch(settingsServiceProvider);
+          final bottomPadding = MediaQuery.of(context).padding.bottom;
           final isImmersiveActive =
               settings.isImmersiveTabBarEnabled && settings.isUserInactive;
           final shouldReserveBottomNavSpace = !isLyricsMode && !isLandscape;
           final lyricsBottomSpacerHeight = isLandscape
               ? 0.0
-              : (isImmersiveActive ? 0.0 : 60.0);
-          final lyricsBottomTabBarHeight = isLandscape ? 0.0 : 60.0;
+              : (isImmersiveActive ? 0.0 : 60.0 + bottomPadding);
+          final lyricsBottomTabBarHeight = isLandscape ? 0.0 : 60.0 + bottomPadding;
 
           final content = SafeArea(
-            bottom: !isLyricsMode,
+            bottom: false,
             child: AnimatedPadding(
               duration: const Duration(milliseconds: 400),
               curve: Curves.fastOutSlowIn,
@@ -703,7 +704,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 isLyricsMode
                     ? (isLandscape ? 24.0 : 16.0)
                     : (isLandscape ? 32.0 : 24.0),
-                shouldReserveBottomNavSpace ? 60.0 : 0.0,
+                shouldReserveBottomNavSpace ? 60.0 + bottomPadding : 0.0,
               ),
               child: Column(
                 children: [
