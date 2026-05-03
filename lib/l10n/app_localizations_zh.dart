@@ -632,6 +632,159 @@ class AppLocalizationsZh extends AppLocalizations {
   String get copyTitle => '复制标题';
 
   @override
+  String get transcodeAction => '转码...';
+
+  @override
+  String get transcodeSectionTitle => '音频转码';
+
+  @override
+  String get transcodeSectionDescription => '设置默认输出格式、质量预设以及 ffmpeg 路径。';
+
+  @override
+  String get transcodeDefaultFormat => '默认输出格式';
+
+  @override
+  String get transcodeDefaultQuality => '默认质量预设';
+
+  @override
+  String get transcodeAutoScanOutput => '自动扫描转码结果';
+
+  @override
+  String get transcodeAutoScanOutputDescription => '转码成功后自动刷新媒体库。';
+
+  @override
+  String get transcodeFfmpegPath => 'ffmpeg 路径';
+
+  @override
+  String get transcodeFfmpegPathHint => '留空则使用 PATH 中的 ffmpeg';
+
+  @override
+  String get transcodeFfmpegPathDefault => '使用 PATH 中的 ffmpeg';
+
+  @override
+  String get transcodeTitle => '音频转码';
+
+  @override
+  String transcodeSongCount(int count) {
+    return '$count 首歌曲';
+  }
+
+  @override
+  String transcodeCompletedCount(int count) {
+    return '已完成 $count 个转码任务';
+  }
+
+  @override
+  String transcodeCompletedWithFailures(int success, int total, int failed) {
+    return '已完成 $success/$total 个转码任务，失败 $failed 个';
+  }
+
+  @override
+  String get transcodeFailedGeneric => '转码失败';
+
+  @override
+  String get transcodePreparing => '正在准备转码...';
+
+  @override
+  String transcodeProgress(int current, int total) {
+    return '正在转码 $current/$total';
+  }
+
+  @override
+  String get transcoding => '转码中...';
+
+  @override
+  String get startTranscode => '开始转码';
+
+  @override
+  String transcodeEngine(Object engine) {
+    return '引擎：$engine';
+  }
+
+  @override
+  String get transcodeUsingSystemFfmpeg => '使用系统 PATH 中的 ffmpeg。';
+
+  @override
+  String transcodeUsingCustomFfmpeg(Object path) {
+    return '使用自定义 ffmpeg：$path';
+  }
+
+  @override
+  String get transcodeFormat => '输出格式';
+
+  @override
+  String get transcodeQualityPreset => '质量预设';
+
+  @override
+  String get transcodeQualityLow => '低';
+
+  @override
+  String get transcodeQualityMedium => '中';
+
+  @override
+  String get transcodeQualityHigh => '高';
+
+  @override
+  String get transcodeQualityExtreme => '最高';
+
+  @override
+  String get transcodeLosslessPresetHint => '当前无损格式不使用质量档位和码率控制模式。';
+
+  @override
+  String get transcodeAdvancedOptions => '高级选项';
+
+  @override
+  String get transcodeAdvancedCustomized => '高级参数已被手动修改';
+
+  @override
+  String get transcodeAdvancedFollowingPreset => '高级参数跟随当前预设';
+
+  @override
+  String get transcodeLosslessAdvancedHint => '当前无损格式仅保留与源文件相关的高级选项。';
+
+  @override
+  String get transcodeBitRateInvalid => '请输入有效的比特率';
+
+  @override
+  String get transcodeBitRate => '比特率';
+
+  @override
+  String get transcodeBitRateMode => '码率控制模式';
+
+  @override
+  String get transcodeSampleRate => '采样率';
+
+  @override
+  String get transcodeChannels => '声道';
+
+  @override
+  String get transcodeResetToPreset => '重置为当前预设';
+
+  @override
+  String get transcodeResetLosslessOptions => '重置无损选项';
+
+  @override
+  String get transcodeOutputDirectory => '输出目录';
+
+  @override
+  String get transcodeOutputPreview => '预览';
+
+  @override
+  String get transcodeChooseDirectory => '选择目录';
+
+  @override
+  String get transcodeUseSourceDirectory => '使用源文件目录';
+
+  @override
+  String get transcodeKeepSource => '保持源文件';
+
+  @override
+  String get transcodeMono => '单声道';
+
+  @override
+  String get transcodeStereo => '双声道';
+
+  @override
   String get openFolderLocation => '打开文件夹所在位置';
 
   @override

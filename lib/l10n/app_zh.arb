@@ -642,6 +642,100 @@
   "noModifiedTagsToSave": "没有需要保存的已修改标签",
   "clearPlaylist": "清空列表",
   "copyTitle": "复制标题",
+  "transcodeAction": "转码...",
+  "transcodeSectionTitle": "音频转码",
+  "transcodeSectionDescription": "设置默认输出格式、质量预设以及 ffmpeg 路径。",
+  "transcodeDefaultFormat": "默认输出格式",
+  "transcodeDefaultQuality": "默认质量预设",
+  "transcodeAutoScanOutput": "自动扫描转码结果",
+  "transcodeAutoScanOutputDescription": "转码成功后自动刷新媒体库。",
+  "transcodeFfmpegPath": "ffmpeg 路径",
+  "transcodeFfmpegPathHint": "留空则使用 PATH 中的 ffmpeg",
+  "transcodeFfmpegPathDefault": "使用 PATH 中的 ffmpeg",
+  "transcodeTitle": "音频转码",
+  "transcodeSongCount": "{count} 首歌曲",
+  "@transcodeSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeCompletedCount": "已完成 {count} 个转码任务",
+  "@transcodeCompletedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeCompletedWithFailures": "已完成 {success}/{total} 个转码任务，失败 {failed} 个",
+  "@transcodeCompletedWithFailures": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeFailedGeneric": "转码失败",
+  "transcodePreparing": "正在准备转码...",
+  "transcodeProgress": "正在转码 {current}/{total}",
+  "@transcodeProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "transcoding": "转码中...",
+  "startTranscode": "开始转码",
+  "transcodeEngine": "引擎：{engine}",
+  "@transcodeEngine": {
+    "placeholders": {
+      "engine": {}
+    }
+  },
+  "transcodeUsingSystemFfmpeg": "使用系统 PATH 中的 ffmpeg。",
+  "transcodeUsingCustomFfmpeg": "使用自定义 ffmpeg：{path}",
+  "@transcodeUsingCustomFfmpeg": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "transcodeFormat": "输出格式",
+  "transcodeQualityPreset": "质量预设",
+  "transcodeQualityLow": "低",
+  "transcodeQualityMedium": "中",
+  "transcodeQualityHigh": "高",
+  "transcodeQualityExtreme": "最高",
+  "transcodeLosslessPresetHint": "当前无损格式不使用质量档位和码率控制模式。",
+  "transcodeAdvancedOptions": "高级选项",
+  "transcodeAdvancedCustomized": "高级参数已被手动修改",
+  "transcodeAdvancedFollowingPreset": "高级参数跟随当前预设",
+  "transcodeLosslessAdvancedHint": "当前无损格式仅保留与源文件相关的高级选项。",
+  "transcodeBitRateInvalid": "请输入有效的比特率",
+  "transcodeBitRate": "比特率",
+  "transcodeBitRateMode": "码率控制模式",
+  "transcodeSampleRate": "采样率",
+  "transcodeChannels": "声道",
+  "transcodeResetToPreset": "重置为当前预设",
+  "transcodeResetLosslessOptions": "重置无损选项",
+  "transcodeOutputDirectory": "输出目录",
+  "transcodeOutputPreview": "预览",
+  "transcodeChooseDirectory": "选择目录",
+  "transcodeUseSourceDirectory": "使用源文件目录",
+  "transcodeKeepSource": "保持源文件",
+  "transcodeMono": "单声道",
+  "transcodeStereo": "双声道",
   "openFolderLocation": "打开文件夹所在位置",
   "songTagsSavedToSourceFileAndApp": "歌曲标签已保存到源文件和 App",
   "songTagsSavedToApp": "歌曲标签已保存到 App",

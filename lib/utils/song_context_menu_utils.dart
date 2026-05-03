@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../dialogs/transcode_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../player/playlist_service.dart';
@@ -138,6 +139,12 @@ Future<void> showSongContextMenu(
           enabled: hasArtist,
           child: Text(l10n.copyArtistName),
         ),
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'transcode',
+          enabled: song != null,
+          child: Text(l10n.transcodeAction),
+        ),
       ]);
       break;
     case SongContextMenuMode.title:
@@ -175,7 +182,7 @@ Future<void> showSongContextMenu(
     if (items.isNotEmpty) {
       items.add(const PopupMenuDivider());
     }
-      items.add(
+    items.add(
       PopupMenuItem<String>(
         value: 'add_to_playlist',
         child: Text(l10n.addToPlaylist),
@@ -218,6 +225,11 @@ Future<void> showSongContextMenu(
     case 'add_to_playlist':
       if (onAddToPlaylist != null) {
         await onAddToPlaylist();
+      }
+      break;
+    case 'transcode':
+      if (song != null) {
+        await showTranscodeDialog(context, songs: [song]);
       }
       break;
   }
@@ -353,7 +365,7 @@ Future<void> showFolderContextMenu(
       Rect.fromPoints(globalPosition, globalPosition),
       Offset.zero & overlay.size,
     ),
-      items: [
+    items: [
       PopupMenuItem<String>(
         value: 'open_folder_location',
         enabled: canOpenLocation,

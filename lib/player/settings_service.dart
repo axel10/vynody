@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:audio_converter/audio_converter.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'shortcut_bindings.dart';
+import '../transcode/transcode_models.dart';
 
 enum LyricsAiProvider { googleAiStudio, openRouter }
 
@@ -111,6 +113,13 @@ class SettingsService extends ChangeNotifier {
   static const int defaultSkipShortAudioScanMinimumDurationSeconds = 30;
   static const String _keyRandomRange = 'random_range';
   static const String _keyRandomMethod = 'random_method';
+  static const String _keyTranscodeDefaultFormat =
+      'transcode_default_output_format';
+  static const String _keyTranscodeDefaultQualityTier =
+      'transcode_default_quality_tier';
+  static const String _keyTranscodeFfmpegPath = 'transcode_ffmpeg_path';
+  static const String _keyTranscodeAutoScanOutputEnabled =
+      'transcode_auto_scan_output_enabled';
 
   final SharedPreferences _prefs;
   ThemeMode _themeMode;
@@ -150,6 +159,10 @@ class SettingsService extends ChangeNotifier {
   late int _skipShortAudioScanMinimumDurationSeconds;
   late int _randomRange; // 0: current, 1: global
   late int _randomMethod; // 0: complete, 1: shuffle
+  late AudioFormat _transcodeDefaultFormat;
+  late TranscodeQualityTier _transcodeDefaultQualityTier;
+  late String _transcodeFfmpegPath;
+  late bool _transcodeAutoScanOutputEnabled;
 
   static String _initialModelId(String? value, String defaultValue) {
     final normalized = value?.trim();
@@ -220,6 +233,15 @@ class SettingsService extends ChangeNotifier {
         defaultSkipShortAudioScanMinimumDurationSeconds;
     _randomRange = _prefs.getInt(_keyRandomRange) ?? 0;
     _randomMethod = _prefs.getInt(_keyRandomMethod) ?? 1; // Default to shuffle
+    _transcodeDefaultFormat = _audioFormatFromStorageValue(
+      _prefs.getString(_keyTranscodeDefaultFormat),
+    );
+    _transcodeDefaultQualityTier = TranscodeQualityTierX.fromStorageValue(
+      _prefs.getString(_keyTranscodeDefaultQualityTier),
+    );
+    _transcodeFfmpegPath = _prefs.getString(_keyTranscodeFfmpegPath) ?? '';
+    _transcodeAutoScanOutputEnabled =
+        _prefs.getBool(_keyTranscodeAutoScanOutputEnabled) ?? true;
   }
 
   ThemeMode get themeMode => _themeMode;
@@ -331,6 +353,23 @@ class SettingsService extends ChangeNotifier {
       _skipShortAudioScanMinimumDurationSeconds;
   int get randomRange => _randomRange;
   int get randomMethod => _randomMethod;
+  AudioFormat get transcodeDefaultFormat => _transcodeDefaultFormat;
+  TranscodeQualityTier get transcodeDefaultQualityTier =>
+      _transcodeDefaultQualityTier;
+  String get transcodeFfmpegPath => _transcodeFfmpegPath;
+  bool get transcodeAutoScanOutputEnabled => _transcodeAutoScanOutputEnabled;
+
+  static AudioFormat _audioFormatFromStorageValue(String? value) {
+    final normalized = value?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty) {
+      return AudioFormat.m4a;
+    }
+    try {
+      return audioFormatFromValue(normalized);
+    } catch (_) {
+      return AudioFormat.m4a;
+    }
+  }
 
   static Map<String, ShortcutBinding> _loadShortcutBindings(
     SharedPreferences prefs,
@@ -737,6 +776,47 @@ class SettingsService extends ChangeNotifier {
   set randomMethod(int value) {
     _randomMethod = value;
     _prefs.setInt(_keyRandomMethod, value);
+    notifyListeners();
+  }
+
+  set transcodeDefaultFormat(AudioFormat value) {
+    if (_transcodeDefaultFormat == value) {
+      return;
+    }
+    _transcodeDefaultFormat = value;
+    _prefs.setString(_keyTranscodeDefaultFormat, value.value);
+    notifyListeners();
+  }
+
+  set transcodeDefaultQualityTier(TranscodeQualityTier value) {
+    if (_transcodeDefaultQualityTier == value) {
+      return;
+    }
+    _transcodeDefaultQualityTier = value;
+    _prefs.setString(_keyTranscodeDefaultQualityTier, value.storageValue);
+    notifyListeners();
+  }
+
+  set transcodeFfmpegPath(String value) {
+    final normalized = value.trim();
+    if (_transcodeFfmpegPath == normalized) {
+      return;
+    }
+    _transcodeFfmpegPath = normalized;
+    if (normalized.isEmpty) {
+      _prefs.remove(_keyTranscodeFfmpegPath);
+    } else {
+      _prefs.setString(_keyTranscodeFfmpegPath, normalized);
+    }
+    notifyListeners();
+  }
+
+  set transcodeAutoScanOutputEnabled(bool value) {
+    if (_transcodeAutoScanOutputEnabled == value) {
+      return;
+    }
+    _transcodeAutoScanOutputEnabled = value;
+    _prefs.setBool(_keyTranscodeAutoScanOutputEnabled, value);
     notifyListeners();
   }
 

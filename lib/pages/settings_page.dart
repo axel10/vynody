@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:audio_converter/audio_converter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,6 +12,7 @@ import '../l10n/app_localizations.dart';
 import '../player/ai_api_key_service.dart';
 import '../player/audio_riverpod.dart';
 import '../player/settings_service.dart';
+import '../transcode/transcode_models.dart';
 import '../widgets/desktop_window_title_bar.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -124,6 +126,59 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
     );
+  }
+
+  String _transcodeQualityLabel(
+    BuildContext context,
+    TranscodeQualityTier tier,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (tier) {
+      TranscodeQualityTier.low => l10n.transcodeQualityLow,
+      TranscodeQualityTier.medium => l10n.transcodeQualityMedium,
+      TranscodeQualityTier.high => l10n.transcodeQualityHigh,
+      TranscodeQualityTier.extreme => l10n.transcodeQualityExtreme,
+    };
+  }
+
+  Future<void> _editTranscodeFfmpegPath(
+    BuildContext context,
+    SettingsService settings,
+  ) async {
+    final controller = TextEditingController(
+      text: settings.transcodeFfmpegPath,
+    );
+    final l10n = AppLocalizations.of(context)!;
+    final value = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.transcodeFfmpegPath),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'ffmpeg',
+            labelText: l10n.transcodeFfmpegPathHint,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(''),
+            child: Text(l10n.restoreDefault),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+            child: Text(l10n.confirm),
+          ),
+        ],
+      ),
+    );
+    if (value == null) return;
+    settings.transcodeFfmpegPath = value;
   }
 
   Widget _buildThemeModeSection(
@@ -309,6 +364,87 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildTranscodeSection(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: DropdownButtonFormField<AudioFormat>(
+            initialValue: settings.transcodeDefaultFormat,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.transcodeDefaultFormat,
+              border: const OutlineInputBorder(),
+            ),
+            items: AudioFormat.values
+                .map(
+                  (format) => DropdownMenuItem<AudioFormat>(
+                    value: format,
+                    child: Text(format.displayName),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value == null) return;
+              settings.transcodeDefaultFormat = value;
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: DropdownButtonFormField<TranscodeQualityTier>(
+            initialValue: settings.transcodeDefaultQualityTier,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.transcodeDefaultQuality,
+              border: const OutlineInputBorder(),
+            ),
+            items: TranscodeQualityTier.values
+                .map(
+                  (tier) => DropdownMenuItem<TranscodeQualityTier>(
+                    value: tier,
+                    child: Text(_transcodeQualityLabel(context, tier)),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value == null) return;
+              settings.transcodeDefaultQualityTier = value;
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          title: Text(l10n.transcodeAutoScanOutput),
+          subtitle: Text(l10n.transcodeAutoScanOutputDescription),
+          value: settings.transcodeAutoScanOutputEnabled,
+          onChanged: (value) {
+            settings.transcodeAutoScanOutputEnabled = value;
+          },
+        ),
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+          ListTile(
+            leading: const Icon(Icons.terminal_rounded),
+            title: Text(l10n.transcodeFfmpegPath),
+            subtitle: Text(
+              settings.transcodeFfmpegPath.trim().isEmpty
+                  ? l10n.transcodeFfmpegPathDefault
+                  : settings.transcodeFfmpegPath,
+            ),
+            trailing: FilledButton.tonal(
+              onPressed: () => _editTranscodeFfmpegPath(context, settings),
+              child: Text(l10n.edit),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildBody(BuildContext context, SettingsService settings) {
     final l10n = AppLocalizations.of(context)!;
 
@@ -364,6 +500,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const Divider(height: 1),
         _buildSectionHeader(l10n.scanSectionTitle, l10n.scanSectionDescription),
         _buildScanSection(context, settings),
+        const Divider(height: 1),
+        _buildSectionHeader(
+          l10n.transcodeSectionTitle,
+          l10n.transcodeSectionDescription,
+        ),
+        _buildTranscodeSection(context, settings),
+        const Divider(height: 1),
         ListTile(
           leading: const Icon(Icons.keyboard),
           title: Text(l10n.shortcutSettingsTitle),

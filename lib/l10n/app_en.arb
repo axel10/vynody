@@ -223,6 +223,100 @@
   "noModifiedTagsToSave": "No modified tags to save",
   "clearPlaylist": "Clear List",
   "copyTitle": "Copy Title",
+  "transcodeAction": "Transcode...",
+  "transcodeSectionTitle": "Audio Transcoding",
+  "transcodeSectionDescription": "Set default output format, quality preset, and ffmpeg path for audio conversion.",
+  "transcodeDefaultFormat": "Default Output Format",
+  "transcodeDefaultQuality": "Default Quality Preset",
+  "transcodeAutoScanOutput": "Auto-scan converted files",
+  "transcodeAutoScanOutputDescription": "Refresh the music library after a successful transcode.",
+  "transcodeFfmpegPath": "ffmpeg Path",
+  "transcodeFfmpegPathHint": "Leave empty to use ffmpeg from PATH",
+  "transcodeFfmpegPathDefault": "Use ffmpeg from PATH",
+  "transcodeTitle": "Audio Transcode",
+  "transcodeSongCount": "{count} songs",
+  "@transcodeSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeCompletedCount": "Transcoded {count} files",
+  "@transcodeCompletedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeCompletedWithFailures": "Transcoded {success} / {total} files, {failed} failed",
+  "@transcodeCompletedWithFailures": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeFailedGeneric": "Transcode failed",
+  "transcodePreparing": "Preparing transcode...",
+  "transcodeProgress": "Transcoding {current} / {total}",
+  "@transcodeProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "transcoding": "Transcoding...",
+  "startTranscode": "Start Transcode",
+  "transcodeEngine": "Engine: {engine}",
+  "@transcodeEngine": {
+    "placeholders": {
+      "engine": {}
+    }
+  },
+  "transcodeUsingSystemFfmpeg": "Using ffmpeg from your system PATH.",
+  "transcodeUsingCustomFfmpeg": "Using custom ffmpeg: {path}",
+  "@transcodeUsingCustomFfmpeg": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "transcodeFormat": "Output Format",
+  "transcodeQualityPreset": "Quality Preset",
+  "transcodeQualityLow": "Low",
+  "transcodeQualityMedium": "Medium",
+  "transcodeQualityHigh": "High",
+  "transcodeQualityExtreme": "Highest",
+  "transcodeLosslessPresetHint": "This lossless format does not use quality tiers or bitrate mode.",
+  "transcodeAdvancedOptions": "Advanced Options",
+  "transcodeAdvancedCustomized": "Advanced parameters were customized",
+  "transcodeAdvancedFollowingPreset": "Advanced parameters follow the current preset",
+  "transcodeLosslessAdvancedHint": "Only source-preserving options are available for this lossless format.",
+  "transcodeBitRateInvalid": "Please enter a valid bitrate",
+  "transcodeBitRate": "Bitrate",
+  "transcodeBitRateMode": "Bitrate Mode",
+  "transcodeSampleRate": "Sample Rate",
+  "transcodeChannels": "Channels",
+  "transcodeResetToPreset": "Reset to Current Preset",
+  "transcodeResetLosslessOptions": "Reset Lossless Options",
+  "transcodeOutputDirectory": "Output Directory",
+  "transcodeOutputPreview": "Preview",
+  "transcodeChooseDirectory": "Choose Directory",
+  "transcodeUseSourceDirectory": "Use Source Directory",
+  "transcodeKeepSource": "Keep source",
+  "transcodeMono": "Mono",
+  "transcodeStereo": "Stereo",
   "openFolderLocation": "Open Folder Location",
   "songTagsSavedToSourceFileAndApp": "Song tags saved to the source file and the app",
   "songTagsSavedToApp": "Song tags saved to the app",

@@ -1286,6 +1286,288 @@ abstract class AppLocalizations {
   /// **'复制标题'**
   String get copyTitle;
 
+  /// No description provided for @transcodeAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'转码...'**
+  String get transcodeAction;
+
+  /// No description provided for @transcodeSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'音频转码'**
+  String get transcodeSectionTitle;
+
+  /// No description provided for @transcodeSectionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置默认输出格式、质量预设以及 ffmpeg 路径。'**
+  String get transcodeSectionDescription;
+
+  /// No description provided for @transcodeDefaultFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认输出格式'**
+  String get transcodeDefaultFormat;
+
+  /// No description provided for @transcodeDefaultQuality.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认质量预设'**
+  String get transcodeDefaultQuality;
+
+  /// No description provided for @transcodeAutoScanOutput.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动扫描转码结果'**
+  String get transcodeAutoScanOutput;
+
+  /// No description provided for @transcodeAutoScanOutputDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'转码成功后自动刷新媒体库。'**
+  String get transcodeAutoScanOutputDescription;
+
+  /// No description provided for @transcodeFfmpegPath.
+  ///
+  /// In zh, this message translates to:
+  /// **'ffmpeg 路径'**
+  String get transcodeFfmpegPath;
+
+  /// No description provided for @transcodeFfmpegPathHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空则使用 PATH 中的 ffmpeg'**
+  String get transcodeFfmpegPathHint;
+
+  /// No description provided for @transcodeFfmpegPathDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用 PATH 中的 ffmpeg'**
+  String get transcodeFfmpegPathDefault;
+
+  /// No description provided for @transcodeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'音频转码'**
+  String get transcodeTitle;
+
+  /// No description provided for @transcodeSongCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 首歌曲'**
+  String transcodeSongCount(int count);
+
+  /// No description provided for @transcodeCompletedCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已完成 {count} 个转码任务'**
+  String transcodeCompletedCount(int count);
+
+  /// No description provided for @transcodeCompletedWithFailures.
+  ///
+  /// In zh, this message translates to:
+  /// **'已完成 {success}/{total} 个转码任务，失败 {failed} 个'**
+  String transcodeCompletedWithFailures(int success, int total, int failed);
+
+  /// No description provided for @transcodeFailedGeneric.
+  ///
+  /// In zh, this message translates to:
+  /// **'转码失败'**
+  String get transcodeFailedGeneric;
+
+  /// No description provided for @transcodePreparing.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在准备转码...'**
+  String get transcodePreparing;
+
+  /// No description provided for @transcodeProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在转码 {current}/{total}'**
+  String transcodeProgress(int current, int total);
+
+  /// No description provided for @transcoding.
+  ///
+  /// In zh, this message translates to:
+  /// **'转码中...'**
+  String get transcoding;
+
+  /// No description provided for @startTranscode.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始转码'**
+  String get startTranscode;
+
+  /// No description provided for @transcodeEngine.
+  ///
+  /// In zh, this message translates to:
+  /// **'引擎：{engine}'**
+  String transcodeEngine(Object engine);
+
+  /// No description provided for @transcodeUsingSystemFfmpeg.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用系统 PATH 中的 ffmpeg。'**
+  String get transcodeUsingSystemFfmpeg;
+
+  /// No description provided for @transcodeUsingCustomFfmpeg.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用自定义 ffmpeg：{path}'**
+  String transcodeUsingCustomFfmpeg(Object path);
+
+  /// No description provided for @transcodeFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'输出格式'**
+  String get transcodeFormat;
+
+  /// No description provided for @transcodeQualityPreset.
+  ///
+  /// In zh, this message translates to:
+  /// **'质量预设'**
+  String get transcodeQualityPreset;
+
+  /// No description provided for @transcodeQualityLow.
+  ///
+  /// In zh, this message translates to:
+  /// **'低'**
+  String get transcodeQualityLow;
+
+  /// No description provided for @transcodeQualityMedium.
+  ///
+  /// In zh, this message translates to:
+  /// **'中'**
+  String get transcodeQualityMedium;
+
+  /// No description provided for @transcodeQualityHigh.
+  ///
+  /// In zh, this message translates to:
+  /// **'高'**
+  String get transcodeQualityHigh;
+
+  /// No description provided for @transcodeQualityExtreme.
+  ///
+  /// In zh, this message translates to:
+  /// **'最高'**
+  String get transcodeQualityExtreme;
+
+  /// No description provided for @transcodeLosslessPresetHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前无损格式不使用质量档位和码率控制模式。'**
+  String get transcodeLosslessPresetHint;
+
+  /// No description provided for @transcodeAdvancedOptions.
+  ///
+  /// In zh, this message translates to:
+  /// **'高级选项'**
+  String get transcodeAdvancedOptions;
+
+  /// No description provided for @transcodeAdvancedCustomized.
+  ///
+  /// In zh, this message translates to:
+  /// **'高级参数已被手动修改'**
+  String get transcodeAdvancedCustomized;
+
+  /// No description provided for @transcodeAdvancedFollowingPreset.
+  ///
+  /// In zh, this message translates to:
+  /// **'高级参数跟随当前预设'**
+  String get transcodeAdvancedFollowingPreset;
+
+  /// No description provided for @transcodeLosslessAdvancedHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前无损格式仅保留与源文件相关的高级选项。'**
+  String get transcodeLosslessAdvancedHint;
+
+  /// No description provided for @transcodeBitRateInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入有效的比特率'**
+  String get transcodeBitRateInvalid;
+
+  /// No description provided for @transcodeBitRate.
+  ///
+  /// In zh, this message translates to:
+  /// **'比特率'**
+  String get transcodeBitRate;
+
+  /// No description provided for @transcodeBitRateMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'码率控制模式'**
+  String get transcodeBitRateMode;
+
+  /// No description provided for @transcodeSampleRate.
+  ///
+  /// In zh, this message translates to:
+  /// **'采样率'**
+  String get transcodeSampleRate;
+
+  /// No description provided for @transcodeChannels.
+  ///
+  /// In zh, this message translates to:
+  /// **'声道'**
+  String get transcodeChannels;
+
+  /// No description provided for @transcodeResetToPreset.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置为当前预设'**
+  String get transcodeResetToPreset;
+
+  /// No description provided for @transcodeResetLosslessOptions.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置无损选项'**
+  String get transcodeResetLosslessOptions;
+
+  /// No description provided for @transcodeOutputDirectory.
+  ///
+  /// In zh, this message translates to:
+  /// **'输出目录'**
+  String get transcodeOutputDirectory;
+
+  /// No description provided for @transcodeOutputPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'预览'**
+  String get transcodeOutputPreview;
+
+  /// No description provided for @transcodeChooseDirectory.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择目录'**
+  String get transcodeChooseDirectory;
+
+  /// No description provided for @transcodeUseSourceDirectory.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用源文件目录'**
+  String get transcodeUseSourceDirectory;
+
+  /// No description provided for @transcodeKeepSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'保持源文件'**
+  String get transcodeKeepSource;
+
+  /// No description provided for @transcodeMono.
+  ///
+  /// In zh, this message translates to:
+  /// **'单声道'**
+  String get transcodeMono;
+
+  /// No description provided for @transcodeStereo.
+  ///
+  /// In zh, this message translates to:
+  /// **'双声道'**
+  String get transcodeStereo;
+
   /// No description provided for @openFolderLocation.
   ///
   /// In zh, this message translates to:
