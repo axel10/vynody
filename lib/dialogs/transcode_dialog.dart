@@ -332,9 +332,13 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         metadataSourcePath: TranscodeService.resolveMetadataSourcePath(song),
         onProgress: (progress) {
           if (!mounted) return;
+          final fileProgress = progress.currentFileProgress?.clamp(0.0, 1.0);
+          final batchProgress = fileProgress == null
+              ? index / widget.songs.length
+              : (index + fileProgress) / widget.songs.length;
           setState(() {
             _currentFileProgress = progress.currentFileProgress;
-            _overallProgress = progress.overallProgress;
+            _overallProgress = batchProgress.clamp(0.0, 1.0).toDouble();
             _submitLabel =
                 progress.message ??
                 l10n.transcodeProgress(index + 1, widget.songs.length);
