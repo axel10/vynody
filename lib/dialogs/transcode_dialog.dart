@@ -121,6 +121,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   String? _submitLabel;
   String? _currentFileLabel;
   String? _errorText;
+  AndroidOutputDirectory? _androidOutputDirectory;
 
   bool get _supportsBitRateControls =>
       _draft.outputFormat.supportsBitRateControls;
@@ -237,6 +238,18 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   }
 
   Future<void> _pickOutputDirectory() async {
+    if (Platform.isAndroid) {
+      final selected = await ref
+          .read(transcodeServiceProvider)
+          .pickAndroidOutputDirectory();
+      if (selected == null || !mounted) return;
+      setState(() {
+        _androidOutputDirectory = selected;
+        _draft = _draft.copyWith(outputDirectory: selected.displayPath);
+      });
+      return;
+    }
+
     final selected = await ref
         .read(transcodeServiceProvider)
         .pickOutputDirectory();
@@ -247,6 +260,18 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   }
 
   String _previewOutputPath() {
+    if (Platform.isAndroid) {
+      final selected = _androidOutputDirectory;
+      if (selected == null) {
+        return '';
+      }
+      final baseName = p.basenameWithoutExtension(widget.songs.first.path);
+      return p.join(
+        selected.displayPath,
+        '$baseName.${_draft.outputFormat.value}',
+      );
+    }
+
     return ref
         .read(transcodeServiceProvider)
         .buildPreviewOutputPath(
@@ -259,6 +284,12 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   Future<void> _submit() async {
     if (_isSubmitting) return;
     final l10n = AppLocalizations.of(context)!;
+    if (Platform.isAndroid && _androidOutputDirectory == null) {
+      setState(() {
+        _errorText = 'Please choose an Android output directory first.';
+      });
+      return;
+    }
     final bitRate = int.tryParse(_bitRateController.text.trim());
     if (_draft.outputFormat.supportsBitRateControls &&
         (bitRate == null || bitRate <= 0)) {
@@ -293,9 +324,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       final song = widget.songs[index];
       if (!mounted) return;
 
-      final result = await service.convert(
+      final result = await service.convertToOutputDirectory(
         inputPath: song.path,
         draft: draft,
+        androidOutputDirectory: _androidOutputDirectory,
         ffmpegPath: settings.transcodeFfmpegPath,
         metadataSourcePath: TranscodeService.resolveMetadataSourcePath(song),
         onProgress: (progress) {
@@ -777,8 +809,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   }
 
   Widget _buildOutputSection(AppLocalizations l10n) {
+    final outputDirectory = Platform.isAndroid
+        ? _androidOutputDirectory?.displayPath
+        : (_draft.outputDirectory ?? _initialOutputDirectory());
     final preview = _previewOutputPath();
-    final outputDirectory = _draft.outputDirectory ?? _initialOutputDirectory();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -788,12 +822,14 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         ),
         const SizedBox(height: 10),
         SelectableText(
-          outputDirectory,
+          outputDirectory ?? 'Not selected',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 6),
         Text(
-          '${l10n.transcodeOutputPreview}: $preview',
+          outputDirectory == null
+              ? 'Please choose an output directory.'
+              : '${l10n.transcodeOutputPreview}: $preview',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 12),
@@ -811,9 +847,14 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                   ? null
                   : () {
                       setState(() {
-                        _draft = _draft.copyWith(
-                          outputDirectory: _initialOutputDirectory(),
-                        );
+                        if (Platform.isAndroid) {
+                          _androidOutputDirectory = null;
+                          _draft = _draft.copyWith(outputDirectory: null);
+                        } else {
+                          _draft = _draft.copyWith(
+                            outputDirectory: _initialOutputDirectory(),
+                          );
+                        }
                       });
                     },
               icon: const Icon(Icons.undo_rounded),

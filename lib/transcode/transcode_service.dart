@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:audio_core/audio_core.dart';
 import 'package:audio_converter/audio_converter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
 
 import '../models/music_file.dart';
 import 'transcode_models.dart';
@@ -36,22 +35,41 @@ class TranscodeService {
     return _converter.pickOutputDirectory();
   }
 
-  Future<TranscodeExecutionResult> convert({
+  Future<AndroidOutputDirectory?> pickAndroidOutputDirectory() {
+    return _converter.pickAndroidOutputDirectory();
+  }
+
+  String buildPreviewOutputPath({
+    required String inputPath,
+    required AudioFormat outputFormat,
+    String? outputDirectory,
+  }) {
+    return _converter.buildPreviewOutputPath(
+      inputPath: inputPath,
+      outputDirectory: outputDirectory ?? File(inputPath).parent.path,
+      outputFormat: outputFormat,
+    );
+  }
+
+  Future<TranscodeExecutionResult> convertToOutputDirectory({
     required String inputPath,
     required TranscodeDraft draft,
+    AndroidOutputDirectory? androidOutputDirectory,
     String? ffmpegPath,
     String? metadataSourcePath,
     AudioConverterProgressCallback? onProgress,
   }) async {
-    final plannedOutputPath = _buildOutputPath(
+    final outputDirectory =
+        draft.outputDirectory ?? File(inputPath).parent.path;
+    final plannedOutputPath = _converter.buildPreviewOutputPath(
       inputPath: inputPath,
-      outputDirectory: draft.outputDirectory,
+      outputDirectory: outputDirectory,
       outputFormat: draft.outputFormat,
     );
 
-    final request = ConvertRequest(
+    final result = await _converter.convertToOutputDirectory(
       inputPath: inputPath,
-      outputPath: plannedOutputPath,
+      outputDirectory: outputDirectory,
       outputFormat: draft.outputFormat,
       sampleRate: draft.sampleRate,
       channels: draft.channels,
@@ -62,22 +80,23 @@ class TranscodeService {
           ? draft.bitRateMode
           : null,
       ffmpegPath: _normalizeOptional(ffmpegPath),
-    );
-
-    final result = await _converter.convertFile(
-      request,
+      androidOutputDirectory: androidOutputDirectory,
       onProgress: onProgress,
     );
     if (result.success) {
-      final outputPath = result.outputPath ?? plannedOutputPath;
       await _copyMetadataFromSourceToOutput(
         sourcePath: _normalizeOptional(metadataSourcePath) ?? inputPath,
-        outputPath: outputPath,
+        outputPath: result.outputPath ?? plannedOutputPath,
       );
     }
+
     return TranscodeExecutionResult(
       plannedOutputPath: plannedOutputPath,
-      result: result,
+      result: result.conversionResult.copyWith(
+        success: result.success,
+        outputPath: result.outputPath ?? result.conversionResult.outputPath,
+        errorMessage: result.errorMessage,
+      ),
     );
   }
 
@@ -116,45 +135,6 @@ class TranscodeService {
         '$outputPath: $e',
       );
     }
-  }
-
-  String buildPreviewOutputPath({
-    required String inputPath,
-    required AudioFormat outputFormat,
-    String? outputDirectory,
-  }) {
-    return _buildOutputPath(
-      inputPath: inputPath,
-      outputDirectory: outputDirectory,
-      outputFormat: outputFormat,
-      ensureUnique: false,
-    );
-  }
-
-  String _buildOutputPath({
-    required String inputPath,
-    required AudioFormat outputFormat,
-    String? outputDirectory,
-    bool ensureUnique = true,
-  }) {
-    final inputFile = File(inputPath);
-    final parent = _normalizeOptional(outputDirectory) ?? inputFile.parent.path;
-    final baseName = p.basenameWithoutExtension(inputPath);
-    final ext = outputFormat.value;
-    final preferredPath = p.join(parent, '$baseName.$ext');
-
-    if (!ensureUnique || !File(preferredPath).existsSync()) {
-      return preferredPath;
-    }
-
-    for (var index = 1; index < 1000; index++) {
-      final candidate = p.join(parent, '$baseName ($index).$ext');
-      if (!File(candidate).existsSync()) {
-        return candidate;
-      }
-    }
-
-    return preferredPath;
   }
 
   String? _normalizeOptional(String? value) {
