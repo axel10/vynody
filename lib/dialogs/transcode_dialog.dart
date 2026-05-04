@@ -310,6 +310,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         failureCount += 1;
         lastErrorMessage =
             result.result.errorMessage ?? l10n.transcodeFailedGeneric;
+        debugPrint(lastErrorMessage);
       }
     }
 

@@ -152,7 +152,7 @@ class MetadataHelper {
     required SongMetadata metadata,
     Uint8List? artworkBytes,
     String? lyrics,
-    List<AndroidTrackPicture>? pictures,
+    List<TrackMetadataPicture>? pictures,
   }) async {
     if (!isMetadataWritable(filePath)) {
       return false;
@@ -167,7 +167,7 @@ class MetadataHelper {
       }
     }
 
-    final update = AndroidTrackMetadataUpdate(
+    final update = TrackMetadataUpdate(
       title: metadata.title,
       artist: metadata.artist,
       album: metadata.album,
@@ -177,9 +177,9 @@ class MetadataHelper {
       pictures:
           pictures ??
           (artworkBytes == null || artworkBytes.isEmpty
-              ? const <AndroidTrackPicture>[]
-              : <AndroidTrackPicture>[
-                  AndroidTrackPicture(
+              ? const <TrackMetadataPicture>[]
+              : <TrackMetadataPicture>[
+                  TrackMetadataPicture(
                     bytes: artworkBytes,
                     mimeType: 'image/jpeg',
                     pictureType: 'Front Cover',
@@ -189,7 +189,7 @@ class MetadataHelper {
 
     try {
       final results = await controller.updateMetadataBatch([
-        AndroidTrackMetadataUpdateRequest(path: filePath, metadata: update),
+        TrackMetadataUpdateRequest(path: filePath, metadata: update),
       ]);
       return results.isNotEmpty && results.first;
     } catch (e) {
@@ -748,7 +748,7 @@ class MetadataHelper {
         lyrics: o3ics,
         pictures: pictures
             ?.map(
-              (picture) => AndroidTrackPicture(
+              (picture) => TrackMetadataPicture(
                 bytes: picture.bytes,
                 mimeType: picture.mimetype,
                 pictureType: _pictureTypeToAndroidLabel(picture.pictureType),
