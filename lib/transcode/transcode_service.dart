@@ -41,6 +41,7 @@ class TranscodeService {
     required TranscodeDraft draft,
     String? ffmpegPath,
     String? metadataSourcePath,
+    AudioConverterProgressCallback? onProgress,
   }) async {
     final plannedOutputPath = _buildOutputPath(
       inputPath: inputPath,
@@ -63,7 +64,10 @@ class TranscodeService {
       ffmpegPath: _normalizeOptional(ffmpegPath),
     );
 
-    final result = await _converter.convertFile(request);
+    final result = await _converter.convertFile(
+      request,
+      onProgress: onProgress,
+    );
     if (result.success) {
       final outputPath = result.outputPath ?? plannedOutputPath;
       await _copyMetadataFromSourceToOutput(

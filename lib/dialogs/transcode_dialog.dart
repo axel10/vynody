@@ -116,8 +116,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   late TranscodeDraft _draft;
   bool _isLoadingCapabilities = true;
   bool _isSubmitting = false;
-  double? _submitProgress;
+  double? _currentFileProgress;
+  double? _overallProgress;
   String? _submitLabel;
+  String? _currentFileLabel;
   String? _errorText;
 
   bool get _supportsBitRateControls =>
@@ -275,8 +277,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
 
     setState(() {
       _isSubmitting = true;
-      _submitProgress = 0;
+      _currentFileProgress = 0;
+      _overallProgress = 0;
       _submitLabel = l10n.transcodePreparing;
+      _currentFileLabel = null;
       _errorText = null;
     });
 
@@ -288,16 +292,23 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
     for (var index = 0; index < widget.songs.length; index++) {
       final song = widget.songs[index];
       if (!mounted) return;
-      setState(() {
-        _submitProgress = index / widget.songs.length;
-        _submitLabel = l10n.transcodeProgress(index + 1, widget.songs.length);
-      });
 
       final result = await service.convert(
         inputPath: song.path,
         draft: draft,
         ffmpegPath: settings.transcodeFfmpegPath,
         metadataSourcePath: TranscodeService.resolveMetadataSourcePath(song),
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _currentFileProgress = progress.currentFileProgress;
+            _overallProgress = progress.overallProgress;
+            _submitLabel =
+                progress.message ??
+                l10n.transcodeProgress(index + 1, widget.songs.length);
+            _currentFileLabel = p.basename(progress.currentFilePath);
+          });
+        },
       );
 
       if (result.result.success) {
@@ -310,6 +321,14 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
             result.result.errorMessage ?? l10n.transcodeFailedGeneric;
         debugPrint(lastErrorMessage);
       }
+
+      if (!mounted) return;
+      setState(() {
+        _currentFileProgress = 1;
+        _overallProgress = (index + 1) / widget.songs.length;
+        _submitLabel = l10n.transcodeProgress(index + 1, widget.songs.length);
+        _currentFileLabel = p.basename(song.path);
+      });
     }
 
     if (!mounted) return;
@@ -427,15 +446,39 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                     ],
                   ),
                 ),
-                if (_isSubmitting && _submitProgress != null)
+                if (_isSubmitting)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        LinearProgressIndicator(value: _submitProgress),
+                        Text(
+                          _currentFileLabel == null
+                              ? (_submitLabel ?? l10n.transcodePreparing)
+                              : '${_submitLabel ?? l10n.transcodePreparing} · $_currentFileLabel',
+                        ),
                         const SizedBox(height: 8),
-                        Text(_submitLabel ?? l10n.transcodePreparing),
+                        LinearProgressIndicator(
+                          value: _currentFileProgress,
+                          minHeight: 8,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _currentFileProgress == null
+                              ? l10n.transcodePreparing
+                              : 'Current song ${((_currentFileProgress! * 100).clamp(0, 100)).toStringAsFixed(1)}%',
+                        ),
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(
+                          value: _overallProgress,
+                          minHeight: 8,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _overallProgress == null
+                              ? l10n.transcodePreparing
+                              : 'Overall ${((_overallProgress! * 100).clamp(0, 100)).toStringAsFixed(1)}%',
+                        ),
                       ],
                     ),
                   ),
