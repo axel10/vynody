@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_converter/audio_converter.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -13,6 +12,7 @@ import '../player/audio_riverpod.dart';
 import '../transcode/transcode_models.dart';
 import '../transcode/transcode_preset.dart';
 import '../transcode/transcode_riverpod.dart';
+import '../transcode/transcode_service.dart';
 import '../utils/song_context_menu_utils.dart';
 
 class TranscodeSubmitSummary {
@@ -119,9 +119,6 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   double? _submitProgress;
   String? _submitLabel;
   String? _errorText;
-
-  bool get _isDesktop =>
-      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
   bool get _supportsBitRateControls =>
       _draft.outputFormat.supportsBitRateControls;
@@ -238,9 +235,9 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   }
 
   Future<void> _pickOutputDirectory() async {
-    final selected = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: AppLocalizations.of(context)!.transcodeOutputDirectory,
-    );
+    final selected = await ref
+        .read(transcodeServiceProvider)
+        .pickOutputDirectory();
     if (selected == null || !mounted) return;
     setState(() {
       _draft = _draft.copyWith(outputDirectory: selected);
@@ -300,6 +297,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         inputPath: song.path,
         draft: draft,
         ffmpegPath: settings.transcodeFfmpegPath,
+        metadataSourcePath: TranscodeService.resolveMetadataSourcePath(song),
       );
 
       if (result.result.success) {
@@ -737,6 +735,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
 
   Widget _buildOutputSection(AppLocalizations l10n) {
     final preview = _previewOutputPath();
+    final outputDirectory = _draft.outputDirectory ?? _initialOutputDirectory();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -746,7 +745,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         ),
         const SizedBox(height: 10),
         SelectableText(
-          _draft.outputDirectory ?? _initialOutputDirectory(),
+          outputDirectory,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 6),
@@ -754,32 +753,31 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
           '${l10n.transcodeOutputPreview}: $preview',
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        if (_isDesktop) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            children: [
-              OutlinedButton.icon(
-                onPressed: _isSubmitting ? null : _pickOutputDirectory,
-                icon: const Icon(Icons.folder_open_rounded),
-                label: Text(l10n.transcodeChooseDirectory),
-              ),
-              OutlinedButton.icon(
-                onPressed: _isSubmitting
-                    ? null
-                    : () {
-                        setState(() {
-                          _draft = _draft.copyWith(
-                            outputDirectory: _initialOutputDirectory(),
-                          );
-                        });
-                      },
-                icon: const Icon(Icons.undo_rounded),
-                label: Text(l10n.transcodeUseSourceDirectory),
-              ),
-            ],
-          ),
-        ],
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _isSubmitting ? null : _pickOutputDirectory,
+              icon: const Icon(Icons.folder_open_rounded),
+              label: Text(l10n.transcodeChooseDirectory),
+            ),
+            OutlinedButton.icon(
+              onPressed: _isSubmitting
+                  ? null
+                  : () {
+                      setState(() {
+                        _draft = _draft.copyWith(
+                          outputDirectory: _initialOutputDirectory(),
+                        );
+                      });
+                    },
+              icon: const Icon(Icons.undo_rounded),
+              label: Text(l10n.transcodeUseSourceDirectory),
+            ),
+          ],
+        ),
       ],
     );
   }

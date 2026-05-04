@@ -189,7 +189,7 @@ class MetadataHelper {
 
     try {
       final results = await controller.updateMetadataBatch([
-        TrackMetadataUpdateRequest(path: filePath, metadata: update),
+        TrackMetadataWriteRequest(path: filePath, metadata: update),
       ]);
       return results.isNotEmpty && results.first;
     } catch (e) {

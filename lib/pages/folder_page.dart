@@ -14,6 +14,7 @@ import '../player/audio_riverpod.dart';
 import '../player/scanner_sorting.dart';
 import '../player/scanner_service.dart';
 import '../utils/song_context_menu_utils.dart';
+import '../dialogs/transcode_dialog.dart';
 import '../widgets/song_thumbnail.dart';
 
 // 目录页
@@ -304,7 +305,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     }
 
     debugPrint('[FoldersPage] picking directory with file_picker');
-    return FilePicker.platform.getDirectoryPath(lockParentWindow: true);
+    return FilePicker.getDirectoryPath(lockParentWindow: true);
   }
 
   Future<void> _pickFolder(ScannerService scanner) async {
@@ -798,6 +799,30 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        trailing: _isSelectionMode
+                            ? null
+                            : IconButton(
+                                icon: const Icon(Icons.more_vert),
+                                onPressed: () {
+                                  final RenderBox renderBox =
+                                      context.findRenderObject() as RenderBox;
+                                  final Offset offset = renderBox.localToGlobal(
+                                    Offset.zero,
+                                  );
+                                  showSongContextMenu(
+                                    context,
+                                    offset,
+                                    song: file,
+                                    mode: SongContextMenuMode.full,
+                                    onAddToPlaylist: () =>
+                                        showAddSongsToPlaylistDialog(
+                                          context,
+                                          ref.read(playlistServiceProvider),
+                                          [file],
+                                        ),
+                                  );
+                                },
+                              ),
                         onLongPress: () {
                           if (!_isSelectionMode) {
                             _toggleSelectionMode();
@@ -845,6 +870,24 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                             icon: const Icon(Icons.playlist_add),
                             label: Text(
                               AppLocalizations.of(context)!.addToPlaylist,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _selectedSongPaths.isEmpty
+                                ? null
+                                : () {
+                                    final selectedSongs =
+                                        _selectedSongsFromFolder(
+                                          currentFolder.files,
+                                        );
+                                    showTranscodeDialog(
+                                      context,
+                                      songs: selectedSongs,
+                                    );
+                                  },
+                            icon: const Icon(Icons.sync_alt_rounded),
+                            label: Text(
+                              AppLocalizations.of(context)!.transcodeAction,
                             ),
                           ),
                           const Spacer(),

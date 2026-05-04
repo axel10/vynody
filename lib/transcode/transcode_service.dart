@@ -1,8 +1,11 @@
 import 'dart:io';
 
+import 'package:audio_core/audio_core.dart';
 import 'package:audio_converter/audio_converter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import '../models/music_file.dart';
 import 'transcode_models.dart';
 
 class TranscodeExecutionResult {
@@ -16,19 +19,28 @@ class TranscodeExecutionResult {
 }
 
 class TranscodeService {
-  TranscodeService({AudioConverter? converter})
-    : _converter = converter ?? AudioConverter();
+  TranscodeService({
+    AudioConverter? converter,
+    AudioCoreController? audioCoreController,
+  }) : _converter = converter ?? AudioConverter(),
+       _audioCoreController = audioCoreController ?? AudioCoreController();
 
   final AudioConverter _converter;
+  final AudioCoreController _audioCoreController;
 
   Future<ConverterCapabilities> getCapabilities() {
     return _converter.getCapabilities();
+  }
+
+  Future<String?> pickOutputDirectory() {
+    return _converter.pickOutputDirectory();
   }
 
   Future<TranscodeExecutionResult> convert({
     required String inputPath,
     required TranscodeDraft draft,
     String? ffmpegPath,
+    String? metadataSourcePath,
   }) async {
     final plannedOutputPath = _buildOutputPath(
       inputPath: inputPath,
@@ -52,10 +64,54 @@ class TranscodeService {
     );
 
     final result = await _converter.convertFile(request);
+    if (result.success) {
+      final outputPath = result.outputPath ?? plannedOutputPath;
+      await _copyMetadataFromSourceToOutput(
+        sourcePath: _normalizeOptional(metadataSourcePath) ?? inputPath,
+        outputPath: outputPath,
+      );
+    }
     return TranscodeExecutionResult(
       plannedOutputPath: plannedOutputPath,
       result: result,
     );
+  }
+
+  Future<void> _copyMetadataFromSourceToOutput({
+    required String sourcePath,
+    required String outputPath,
+  }) async {
+    if (sourcePath.trim().isEmpty || outputPath.trim().isEmpty) {
+      return;
+    }
+    if (!File(outputPath).existsSync()) {
+      debugPrint(
+        '[Transcode] Skipping metadata copy because output file is missing: '
+        '$outputPath',
+      );
+      return;
+    }
+
+    try {
+      if (!_audioCoreController.isInitialized) {
+        await _audioCoreController.initialize();
+      }
+
+      final copied = await _audioCoreController.copyMetadataPairs(
+        [AudioTrack(id: sourcePath, uri: sourcePath)],
+        [AudioTrack(id: outputPath, uri: outputPath)],
+      );
+      if (copied.isEmpty || !copied.first) {
+        debugPrint(
+          '[Transcode] Metadata copy failed: $sourcePath -> $outputPath',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        '[Transcode] Failed to copy metadata from $sourcePath to '
+        '$outputPath: $e',
+      );
+    }
   }
 
   String buildPreviewOutputPath({
@@ -103,5 +159,15 @@ class TranscodeService {
       return null;
     }
     return normalized;
+  }
+
+  static String resolveMetadataSourcePath(MusicFile song) {
+    if (Platform.isAndroid || Platform.isIOS) {
+      final mediaUri = song.mediaUri?.trim();
+      if (mediaUri != null && mediaUri.isNotEmpty) {
+        return mediaUri;
+      }
+    }
+    return song.path;
   }
 }
