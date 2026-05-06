@@ -1,0 +1,15 @@
+[submodule "crates/rust-ffmpeg"]
+	path = crates/rust-ffmpeg
+	url = https://github.com/axel10/rust-ffmpeg.git
+[submodule "audio_ffmpeg_lib"]
+	path = audio_ffmpeg_lib
+	url = https://github.com/axel10/audio_ffmpeg_lib.git
+[submodule "crates/ffmpeg_core"]
+	path = crates/ffmpeg_core
+	url = https://github.com/axel10/ffmpeg_core.git
+[submodule "audio_converter"]
+	path = audio_converter
+	url = https://github.com/axel10/audio_converter.git
+[submodule "audio_core"]
+	path = audio_core
+	url = https://github.com/axel10/audio_core.git

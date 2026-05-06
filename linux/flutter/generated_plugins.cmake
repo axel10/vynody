@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audio_ffmpeg_lib
   dart_chromaprint
   desktop_drop
   file_selector_linux
