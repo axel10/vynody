@@ -23,4 +23,8 @@ class MusicFileUtils {
   static bool isMusicFilePath(String path) {
     return supportedAudioExtensions.contains(p.extension(path).toLowerCase());
   }
+
+  static bool isAppleDoubleFilePath(String path) {
+    return p.basename(path).startsWith('._');
+  }
 }

@@ -1055,11 +1055,16 @@ class ScannerService extends ChangeNotifier {
         );
         final keptSongs = songs
             .where((song) {
-              return !_shouldSkipShortAudioDuration(song.duration);
+              return !_shouldSkipShortAudioDuration(song.duration) &&
+                  !MusicFileUtils.isAppleDoubleFilePath(song.data);
             })
             .toList(growable: false);
         final skippedSongPaths = songs
-            .where((song) => _shouldSkipShortAudioDuration(song.duration))
+            .where(
+              (song) =>
+                  _shouldSkipShortAudioDuration(song.duration) ||
+                  MusicFileUtils.isAppleDoubleFilePath(song.data),
+            )
             .map((song) => _normalizePath(song.data))
             .where((path) => path.isNotEmpty)
             .toList(growable: false);
