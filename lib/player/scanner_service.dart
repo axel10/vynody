@@ -154,7 +154,8 @@ class ScannerService extends ChangeNotifier {
       metadataStore: _metadataStore,
     );
     _repository = ScannerRepository();
-    _scanCoordinator = ScannerScanCoordinator()..addListener(_handleScanStateChanged);
+    _scanCoordinator = ScannerScanCoordinator()
+      ..addListener(_handleScanStateChanged);
     _incrementalSync = ScannerIncrementalSync(
       normalizePath: _normalizePath,
       isMusicFilePath: MusicFileUtils.isMusicFilePath,
@@ -1153,6 +1154,14 @@ class ScannerService extends ChangeNotifier {
     super.notifyListeners();
   }
 
+  void _syncScannedRootUiFromCache(String rootPath) {
+    if (_isDisposed) return;
+    _rebuildScannedRootFolderFromCache(rootPath);
+    _rebuildDisplayedRootFolders();
+    _syncNavigationStateToLatestTree();
+    _notifyListenersImmediately();
+  }
+
   void pauseBackgroundTasks() {
     if (!_scanCoordinator.isBackgroundPaused) {
       _scanCoordinator.setBackgroundPaused(true);
@@ -1390,21 +1399,19 @@ class ScannerService extends ChangeNotifier {
       scanState,
       existingMetadataByPath: existingMetadataByPath,
     );
-    final artworkPendingImageOnlyPaths = await _filterImageOnlyPathsNeedingArtwork(
-      classification.pathsFor(ScanFileStage.imageOnly),
-      scanState,
-      existingMetadataByPath: existingMetadataByPath,
-    );
+    final artworkPendingImageOnlyPaths =
+        await _filterImageOnlyPathsNeedingArtwork(
+          classification.pathsFor(ScanFileStage.imageOnly),
+          scanState,
+          existingMetadataByPath: existingMetadataByPath,
+        );
 
     final artworkPendingPaths = [
       ...preprocessResult.artworkPendingPaths,
       ...artworkPendingImageOnlyPaths,
     ];
     if (artworkPendingPaths.isNotEmpty) {
-      await _applyArtworkAndThemeToChangedFiles(
-        artworkPendingPaths,
-        scanState,
-      );
+      await _applyArtworkAndThemeToChangedFiles(artworkPendingPaths, scanState);
     }
 
     if (classification.pathsFor(ScanFileStage.unchanged).isNotEmpty &&
@@ -1845,7 +1852,11 @@ class ScannerService extends ChangeNotifier {
   void _rebuildScannedRootFolderFromCache(String rootPath) {
     final songs = _metadataStore.metadataMap.values.where(
       (song) =>
-          _songMatchesSource(song, SongSourceFlags.rootScan, includeLegacy: true) &&
+          _songMatchesSource(
+            song,
+            SongSourceFlags.rootScan,
+            includeLegacy: true,
+          ) &&
           _shouldKeepSongMetadata(song) &&
           _pathContains(rootPath, song.path),
     );
@@ -1963,70 +1974,86 @@ class ScannerService extends ChangeNotifier {
       }
     }
 
-    final preprocessResult = await _timeScanStep(
-      'stage 3 preprocess text tags batch',
-      () => _preprocessChangedFiles(
-        fullPaths,
-        scanState,
-        existingMetadataByPath: existingMetadataByPath,
-        shouldCancel: () =>
-            !_isScanTokenCurrent(scanToken) ||
-            !_isScanRootStillActive(rootPath),
-      ),
-    );
-    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return null;
+    Timer? stage3UiSyncTimer;
+    try {
+      stage3UiSyncTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!_isScanTokenCurrent(scanToken) ||
+            !_isScanRootStillActive(rootPath)) {
+          return;
+        }
+        _syncScannedRootUiFromCache(rootPath);
+      });
+
+      final preprocessResult = await _timeScanStep(
+        'stage 3 preprocess text tags batch',
+        () => _preprocessChangedFiles(
+          fullPaths,
+          scanState,
+          existingMetadataByPath: existingMetadataByPath,
+          shouldCancel: () =>
+              !_isScanTokenCurrent(scanToken) ||
+              !_isScanRootStillActive(rootPath),
+        ),
+      );
+      if (!_isScanTokenCurrent(scanToken) ||
+          !_isScanRootStillActive(rootPath)) {
+        return null;
+      }
+      final keptFullPaths = preprocessResult.keptPaths;
+      final artworkPendingImageOnlyPaths = await _timeScanStep(
+        'stage 3.1 preprocess image-only artwork batch',
+        () => _filterImageOnlyPathsNeedingArtwork(
+          imageOnlyPaths,
+          scanState,
+          existingMetadataByPath: existingMetadataByPath,
+          shouldCancel: () =>
+              !_isScanTokenCurrent(scanToken) ||
+              !_isScanRootStillActive(rootPath),
+        ),
+      );
+      if (!_isScanTokenCurrent(scanToken) ||
+          !_isScanRootStillActive(rootPath)) {
+        return null;
+      }
+
+      final visiblePaths = <String>[
+        ...unchangedPaths,
+        ...keptFullPaths,
+        ...imageOnlyPaths,
+      ];
+
+      await _timeScanStep(
+        'stage 3.1 mark root scan token batch',
+        () => MetadataDatabase().markRootScanSeenWithToken(
+          visiblePaths,
+          scanToken: scanToken,
+          sourceMask: SongSourceFlags.rootScan,
+        ),
+      );
+      if (!_isScanTokenCurrent(scanToken) ||
+          !_isScanRootStillActive(rootPath)) {
+        return null;
+      }
+
+      _timeScanStepSync('stage 3.2 rebuild visible root tree', () {
+        _rebuildScannedRootFolderFromMetadata(rootPath, visiblePaths);
+        _rebuildDisplayedRootFolders();
+        _syncNavigationStateToLatestTree();
+      });
+      scanState.pendingMetadataPaths.addAll(visiblePaths);
+      _notifyListenersImmediately();
+
+      return _RootArtworkScanJob(
+        rootPath: rootPath,
+        visiblePaths: visiblePaths,
+        artworkPendingPaths: [
+          ...preprocessResult.artworkPendingPaths,
+          ...artworkPendingImageOnlyPaths,
+        ],
+      );
+    } finally {
+      stage3UiSyncTimer?.cancel();
     }
-    final keptFullPaths = preprocessResult.keptPaths;
-    final artworkPendingImageOnlyPaths = await _timeScanStep(
-      'stage 3.1 preprocess image-only artwork batch',
-      () => _filterImageOnlyPathsNeedingArtwork(
-        imageOnlyPaths,
-        scanState,
-        existingMetadataByPath: existingMetadataByPath,
-        shouldCancel: () =>
-            !_isScanTokenCurrent(scanToken) ||
-            !_isScanRootStillActive(rootPath),
-      ),
-    );
-    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return null;
-    }
-
-    final visiblePaths = <String>[
-      ...unchangedPaths,
-      ...keptFullPaths,
-      ...imageOnlyPaths,
-    ];
-
-    await _timeScanStep(
-      'stage 3.1 mark root scan token batch',
-      () => MetadataDatabase().markRootScanSeenWithToken(
-        visiblePaths,
-        scanToken: scanToken,
-        sourceMask: SongSourceFlags.rootScan,
-      ),
-    );
-    if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return null;
-    }
-
-    _timeScanStepSync('stage 3.2 rebuild visible root tree', () {
-      _rebuildScannedRootFolderFromMetadata(rootPath, visiblePaths);
-      _rebuildDisplayedRootFolders();
-      _syncNavigationStateToLatestTree();
-    });
-    scanState.pendingMetadataPaths.addAll(visiblePaths);
-    _notifyListenersImmediately();
-
-    return _RootArtworkScanJob(
-      rootPath: rootPath,
-      visiblePaths: visiblePaths,
-      artworkPendingPaths: [
-        ...preprocessResult.artworkPendingPaths,
-        ...artworkPendingImageOnlyPaths,
-      ],
-    );
   }
 
   Future<void> _applyArtworkAndThemeToChangedFiles(
@@ -2312,12 +2339,15 @@ class ScannerService extends ChangeNotifier {
       }
 
       if (_isScanTokenCurrent(scanToken)) {
-        final presentPaths = _timeScanStepSync('stage 5 collect present paths', () {
-          return scanState.pendingMetadataPaths
-              .map(_normalizePath)
-              .where((path) => path.isNotEmpty)
-              .toSet();
-        });
+        final presentPaths = _timeScanStepSync(
+          'stage 5 collect present paths',
+          () {
+            return scanState.pendingMetadataPaths
+                .map(_normalizePath)
+                .where((path) => path.isNotEmpty)
+                .toSet();
+          },
+        );
         final sweepResult = await _timeScanStep(
           'stage 5.1 sweep root scan state',
           () => _repository.sweepRootScanState(
