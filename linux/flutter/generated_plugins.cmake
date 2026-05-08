@@ -3,7 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  audio_ffmpeg_lib
   dart_chromaprint
   desktop_drop
   file_selector_linux
@@ -14,7 +13,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
-  audio_converter
   audio_core
   jni
   proxy_getter

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:audio_converter/audio_converter.dart';
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';

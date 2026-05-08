@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:audio_converter/audio_converter.dart';
+import 'package:audio_core/audio_core.dart';
 
 import 'transcode_models.dart';
 

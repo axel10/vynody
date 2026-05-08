@@ -1,4 +1,4 @@
-import 'package:audio_converter/audio_converter.dart';
+import 'package:audio_core/audio_core.dart';
 
 enum TranscodeQualityTier { low, medium, high, extreme }
 

@@ -41,24 +41,10 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.13.1"
-  audio_converter:
-    dependency: "direct main"
-    description:
-      path: audio_converter
-      relative: true
-    source: path
-    version: "0.0.1"
   audio_core:
     dependency: "direct main"
     description:
       path: audio_core
-      relative: true
-    source: path
-    version: "0.0.1"
-  audio_ffmpeg_lib:
-    dependency: "direct main"
-    description:
-      path: audio_ffmpeg_lib
       relative: true
     source: path
     version: "0.0.1"
@@ -1108,7 +1094,7 @@ packages:
       path: proxy_getter
       relative: true
     source: path
-    version: "1.1.1"
+    version: "1.2.0"
   pub_semver:
     dependency: transitive
     description:
@@ -1716,5 +1702,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.11.5 <4.0.0"
+  dart: ">=3.11.4 <4.0.0"
   flutter: ">=3.38.4"

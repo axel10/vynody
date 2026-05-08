@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:audio_core/audio_core.dart';
-import 'package:audio_converter/audio_converter.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/music_file.dart';
@@ -44,7 +43,7 @@ class TranscodeService {
     required AudioFormat outputFormat,
     String? outputDirectory,
   }) {
-    return _converter.buildPreviewOutputPath(
+    return _converter.buildOutputPath(
       inputPath: inputPath,
       outputDirectory: outputDirectory ?? File(inputPath).parent.path,
       outputFormat: outputFormat,
@@ -61,28 +60,49 @@ class TranscodeService {
   }) async {
     final outputDirectory =
         draft.outputDirectory ?? File(inputPath).parent.path;
-    final plannedOutputPath = _converter.buildPreviewOutputPath(
+    final plannedOutputPath = _converter.buildOutputPath(
       inputPath: inputPath,
       outputDirectory: outputDirectory,
       outputFormat: draft.outputFormat,
     );
 
-    final result = await _converter.convertToOutputDirectory(
-      inputPath: inputPath,
-      outputDirectory: outputDirectory,
-      outputFormat: draft.outputFormat,
-      sampleRate: draft.sampleRate,
-      channels: draft.channels,
-      bitRate: draft.outputFormat.supportsBitRateControls
-          ? draft.bitRate
-          : null,
-      bitRateMode: draft.outputFormat.supportsBitRateControls
-          ? draft.bitRateMode
-          : null,
-      ffmpegPath: _normalizeOptional(ffmpegPath),
-      androidOutputDirectory: androidOutputDirectory,
-      onProgress: onProgress,
-    );
+    final result = androidOutputDirectory != null
+        ? await _converter.convertAndSaveToAndroidDirectory(
+            ConvertRequest.forOutputDirectory(
+              inputPath: inputPath,
+              outputDirectory: outputDirectory,
+              outputFormat: draft.outputFormat,
+              sampleRate: draft.sampleRate,
+              channels: draft.channels,
+              bitRate: draft.outputFormat.supportsBitRateControls
+                  ? draft.bitRate
+                  : null,
+              bitRateMode: draft.outputFormat.supportsBitRateControls
+                  ? draft.bitRateMode
+                  : null,
+              ffmpegPath: _normalizeOptional(ffmpegPath),
+            ),
+            androidOutputDirectory,
+            onProgress: onProgress,
+          )
+        : ConvertAndSaveResult(
+            conversionResult: await _converter.convertToOutputDirectory(
+              inputPath: inputPath,
+              outputDirectory: outputDirectory,
+              outputFormat: draft.outputFormat,
+              sampleRate: draft.sampleRate,
+              channels: draft.channels,
+              bitRate: draft.outputFormat.supportsBitRateControls
+                  ? draft.bitRate
+                  : null,
+              bitRateMode: draft.outputFormat.supportsBitRateControls
+                  ? draft.bitRateMode
+                  : null,
+              ffmpegPath: _normalizeOptional(ffmpegPath),
+              onProgress: onProgress,
+            ),
+          );
+
     if (result.success) {
       await _copyMetadataFromSourceToOutput(
         sourcePath: _normalizeOptional(metadataSourcePath) ?? inputPath,

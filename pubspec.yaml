@@ -93,10 +93,7 @@ dependencies:
 
   audio_core:
     path: audio_core
-  audio_converter:
-    path: ./audio_converter
-  audio_ffmpeg_lib:
-    path: ./audio_ffmpeg_lib
+
 
 dev_dependencies:
   flutter_test:

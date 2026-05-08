@@ -150,7 +150,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     _audioService = ref.read(audioServiceProvider);
     _syncDeletedSongNoticeHandler();
 
-    if (Platform.isWindows) {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _handleArgs();
@@ -198,7 +198,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         if (MusicFileUtils.isMusicFilePath(path)) {
           // 调用播放服务读取音频并播放
           // append: true 确保该文件插入到底部立刻切歌
-          audio.playFile(path, p.basename(path), append: true);
+          await audio.playFile(path, p.basename(path), append: true);
 
           if (!mounted) return;
 

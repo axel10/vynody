@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:audio_converter/audio_converter.dart';
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
