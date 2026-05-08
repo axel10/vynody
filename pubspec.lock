@@ -846,6 +846,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.0"
+  mobile_storage_listener:
+    dependency: "direct main"
+    description:
+      path: mobile_storage_listener
+      relative: true
+    source: path
+    version: "0.0.1"
   msix:
     dependency: "direct dev"
     description:
@@ -1702,5 +1709,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.11.4 <4.0.0"
+  dart: ">=3.11.5 <4.0.0"
   flutter: ">=3.38.4"

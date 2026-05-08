@@ -485,6 +485,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   itemBuilder: (context, index) {
                     final folder = rootFolders[index];
                     final isSelected = _selectedRootPaths.contains(folder.path);
+                    final isRootAvailable = scanner.isRootPathAvailable(
+                      folder.path,
+                    );
                     return GestureDetector(
                       key: ValueKey(folder.path),
                       behavior: HitTestBehavior.opaque,
@@ -507,32 +510,40 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           _toggleRootSelection(folder.path);
                         }
                       },
-                      child: ListTile(
-                        selected: _isRootSelectionMode && isSelected,
-                        selectedTileColor: Theme.of(
-                          context,
-                        ).colorScheme.primaryContainer.withValues(alpha: 0.45),
-                        leading: _isRootSelectionMode
-                            ? Checkbox(
-                                value: isSelected,
-                                onChanged: (_) =>
-                                    _toggleRootSelection(folder.path),
-                              )
-                            : const Icon(
-                                Icons.folder_shared,
-                                color: Colors.amber,
-                              ),
-                        title: Text(folder.name),
-                        subtitle: Text(folder.path),
-                        onTap: _isRootSelectionMode
-                            ? () => _toggleRootSelection(folder.path)
-                            : () => _navigateTo(folder, scanner),
-                        trailing: _isRootSelectionMode
-                            ? ReorderableDragStartListener(
-                                index: index,
-                                child: const Icon(Icons.drag_handle),
-                              )
-                            : null,
+                      child: AnimatedOpacity(
+                        opacity: isRootAvailable ? 1.0 : 0.45,
+                        duration: const Duration(milliseconds: 180),
+                        child: ListTile(
+                          enabled: isRootAvailable || _isRootSelectionMode,
+                          selected: _isRootSelectionMode && isSelected,
+                          selectedTileColor: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer
+                              .withValues(alpha: 0.45),
+                          leading: _isRootSelectionMode
+                              ? Checkbox(
+                                  value: isSelected,
+                                  onChanged: (_) =>
+                                      _toggleRootSelection(folder.path),
+                                )
+                              : const Icon(
+                                  Icons.folder_shared,
+                                  color: Colors.amber,
+                                ),
+                          title: Text(folder.name),
+                          subtitle: Text(folder.path),
+                          onTap: _isRootSelectionMode
+                              ? () => _toggleRootSelection(folder.path)
+                              : (isRootAvailable
+                                    ? () => _navigateTo(folder, scanner)
+                                    : null),
+                          trailing: _isRootSelectionMode
+                              ? ReorderableDragStartListener(
+                                  index: index,
+                                  child: const Icon(Icons.drag_handle),
+                                )
+                              : null,
+                        ),
                       ),
                     );
                   },

@@ -84,6 +84,8 @@ dependencies:
   oktoast: ^3.4.0
   proxy_getter:
     path: ./proxy_getter
+  mobile_storage_listener:
+    path: ./mobile_storage_listener
 
   worker_manager: ^7.2.9
   palette_generator_master: ^1.0.1

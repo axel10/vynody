@@ -13,6 +13,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:collection/collection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile_storage_listener/mobile_storage_event.dart';
+import 'package:mobile_storage_listener/mobile_storage_listener.dart';
 import '../models/music_folder.dart';
 import 'scanner_navigation_state.dart';
 import 'scanner_path_utils.dart';
@@ -43,15 +45,20 @@ class ScannerService extends ChangeNotifier {
   AudioCoreController? _playerController;
   void Function(String path, bool isMissing)? _songMissingStateHandler;
   StreamSubscription? _mediaObserverSubscription;
+  final MobileStorageListener _mobileStorageListener = MobileStorageListener();
+  StreamSubscription<MobileStorageEvent>? _mobileStorageSubscription;
   final StreamController<ScanProgress> _scanProgressController =
       StreamController<ScanProgress>.broadcast();
   final ScannerNavigationState _navigationState = ScannerNavigationState();
   final List<MusicFolder> _scannedRootFolders = [];
   final List<MusicFolder> _rootFolders = [];
+  final Map<String, bool> _rootAvailability = {};
   Timer? _metadataNotifyTimer;
   Timer? _scanNotifyTimer;
+  Timer? _rootAvailabilityRefreshTimer;
   bool _scanNotifyPending = false;
   bool _lastNotifiedScanningState = false;
+  bool _pendingRootAvailabilityRescan = false;
   bool _isDisposed = false;
   final Set<String> _activeScopedRootPaths = <String>{};
 
@@ -125,6 +132,12 @@ class ScannerService extends ChangeNotifier {
   Map<String, SongMetadata> get metadataMap => _metadataStore.metadataMap;
   int get metadataRevision => _metadataRevision;
   int get albumLibraryRevision => _albumLibraryRevision;
+  bool isRootPathAvailable(String path) {
+    final normalizedPath = _normalizePath(path);
+    if (normalizedPath.isEmpty) return true;
+    return _rootAvailability[_pathLookupKey(normalizedPath)] ?? true;
+  }
+
   @visibleForTesting
   Future<void> get ready => _readyCompleter.future;
 
@@ -178,6 +191,7 @@ class ScannerService extends ChangeNotifier {
       _readyCompleter.complete();
     }
     _setupMediaObserver();
+    _setupMobileStorageObserver();
   }
 
   Future<void> _runInit() async {
@@ -414,6 +428,10 @@ class ScannerService extends ChangeNotifier {
           _syncActiveScopedRootAccess,
         );
       }
+      await _timeInitStep(
+        'sync root availability',
+        () => _refreshRootAvailability(shouldNotifyListeners: false),
+      );
       await _timeInitStep('load sort settings', _loadSortSettings);
       await _timeInitStep('load scan settings', _loadScanSettings);
       final cachedSongs = await _timeInitStep(
@@ -532,6 +550,9 @@ class ScannerService extends ChangeNotifier {
 
     final updatedRoots = [..._roots.rootPaths, normalizedPath];
     await _roots.setRootPaths(updatedRoots);
+    _rootAvailability[_pathLookupKey(normalizedPath)] = _isRootPathAvailable(
+      normalizedPath,
+    );
     if (_supportsPersistentAccess) {
       await _syncActiveScopedRootAccess();
     }
@@ -575,6 +596,9 @@ class ScannerService extends ChangeNotifier {
           normalizedTargets.any((target) => _pathsEqual(existing, target)),
     );
     await _roots.setRootPaths(updatedRoots);
+    for (final path in normalizedTargets) {
+      _rootAvailability.remove(_pathLookupKey(path));
+    }
     if (_supportsPersistentAccess) {
       await _syncActiveScopedRootAccess();
     }
@@ -628,6 +652,150 @@ class ScannerService extends ChangeNotifier {
         '[ScannerService] forgetPersistentAccess failed for $path: $e',
       );
     }
+  }
+
+  void _setupMobileStorageObserver() {
+    if (!(Platform.isAndroid ||
+        Platform.isLinux ||
+        Platform.isMacOS ||
+        Platform.isWindows)) {
+      return;
+    }
+
+    try {
+      _mobileStorageSubscription = _mobileStorageListener.storageEvents.listen(
+        (event) {
+          if (_isDisposed) return;
+          if (event.type == MobileStorageEventType.unknown) return;
+          final affectedRoots = _rootsAffectedByStoragePath(event.path);
+          if (affectedRoots.isNotEmpty) {
+            debugPrint(
+              '[ScannerService] mobile storage event=${event.typeName} '
+              'path=${event.path ?? "unknown"} affectedRoots=$affectedRoots',
+            );
+          }
+          _pendingRootAvailabilityRescan = true;
+          _scheduleRootAvailabilityRefresh();
+        },
+        onError: (err) {
+          debugPrint('Mobile storage observer error: $err');
+        },
+      );
+    } catch (e) {
+      debugPrint('Failed to setup mobile storage observer: $e');
+    }
+  }
+
+  void _scheduleRootAvailabilityRefresh() {
+    if (_isDisposed) return;
+    if (_rootAvailabilityRefreshTimer?.isActive ?? false) {
+      return;
+    }
+
+    _rootAvailabilityRefreshTimer = Timer(
+      const Duration(milliseconds: 350),
+      () {
+        _rootAvailabilityRefreshTimer = null;
+        if (_isDisposed) return;
+        final shouldRescan = _pendingRootAvailabilityRescan;
+        _pendingRootAvailabilityRescan = false;
+        unawaited(
+          _refreshRootAvailability(
+            shouldNotifyListeners: true,
+            rescanRestoredRoots: shouldRescan,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _refreshRootAvailability({
+    required bool shouldNotifyListeners,
+    bool rescanRestoredRoots = false,
+  }) async {
+    final declaredRoots = _roots.rootPaths.toList(growable: false);
+    final declaredKeys = declaredRoots.map(_pathLookupKey).toSet();
+    final previousAvailability = Map<String, bool>.from(_rootAvailability);
+    final nextAvailability = <String, bool>{};
+    final missingRoots = <String>[];
+    final restoredRoots = <String>[];
+
+    for (final rootPath in declaredRoots) {
+      final normalizedRoot = _normalizePath(rootPath);
+      if (normalizedRoot.isEmpty) {
+        continue;
+      }
+
+      final key = _pathLookupKey(normalizedRoot);
+      final available = _isRootPathAvailable(normalizedRoot);
+      nextAvailability[key] = available;
+
+      final previous = previousAvailability[key];
+      if (previous == null) {
+        if (!available) {
+          missingRoots.add(normalizedRoot);
+        }
+        continue;
+      }
+
+      if (previous == available) {
+        continue;
+      }
+
+      if (available) {
+        restoredRoots.add(normalizedRoot);
+      } else {
+        missingRoots.add(normalizedRoot);
+      }
+    }
+
+    _rootAvailability
+      ..clear()
+      ..addAll(nextAvailability);
+    _rootAvailability.removeWhere((key, _) => !declaredKeys.contains(key));
+
+    if (missingRoots.isNotEmpty) {
+      _removeRootsFromScannedTree(missingRoots);
+    }
+
+    if (missingRoots.isNotEmpty || restoredRoots.isNotEmpty) {
+      _rebuildDisplayedRootFolders();
+      _syncNavigationStateToLatestTree();
+      if (shouldNotifyListeners) {
+        notifyListeners();
+      }
+    }
+
+    if (rescanRestoredRoots && restoredRoots.isNotEmpty) {
+      _restartFullRootScan();
+    }
+  }
+
+  bool _isRootPathAvailable(String path) {
+    final normalizedPath = _normalizePath(path);
+    if (normalizedPath.isEmpty) return false;
+
+    try {
+      return Directory(normalizedPath).existsSync();
+    } catch (e, st) {
+      debugPrint(
+        '[ScannerService] root availability check failed path=$normalizedPath: $e\n$st',
+      );
+      return false;
+    }
+  }
+
+  List<String> _rootsAffectedByStoragePath(String? storagePath) {
+    final normalizedStoragePath = _normalizePath(storagePath ?? '');
+    final declaredRoots = _roots.rootPaths.toList(growable: false);
+    if (normalizedStoragePath.isEmpty) {
+      return declaredRoots;
+    }
+
+    final matchingRoots = declaredRoots
+        .where((rootPath) => _pathContains(normalizedStoragePath, rootPath))
+        .toList(growable: false);
+    return matchingRoots.isEmpty ? declaredRoots : matchingRoots;
   }
 
   Future<bool> _hasPersistentAccess(String path) async {
@@ -968,7 +1136,11 @@ class ScannerService extends ChangeNotifier {
           .where((path) => path.isNotEmpty)
           .toList(growable: false);
       if (declaredRoots.isEmpty) return;
-      declaredRoots.sort((a, b) {
+      final availableRoots = declaredRoots
+          .where(_isRootPathAvailable)
+          .toList(growable: false);
+      if (availableRoots.isEmpty) return;
+      availableRoots.sort((a, b) {
         final lengthCompare = b.length.compareTo(a.length);
         if (lengthCompare != 0) return lengthCompare;
         return _compareNaturally(a, b);
@@ -976,7 +1148,7 @@ class ScannerService extends ChangeNotifier {
 
       final songs = cachedSongs ?? await _loadCachedSongsFromDatabase();
       final cachedSongGroups = <String, List<SongMetadata>>{
-        for (final root in declaredRoots) root: <SongMetadata>[],
+        for (final root in availableRoots) root: <SongMetadata>[],
       };
 
       for (final song in songs) {
@@ -993,7 +1165,7 @@ class ScannerService extends ChangeNotifier {
         final normalizedPath = _normalizePath(song.path);
         if (normalizedPath.isEmpty) continue;
 
-        for (final root in declaredRoots) {
+        for (final root in availableRoots) {
           if (_pathContains(root, normalizedPath)) {
             cachedSongGroups[root]!.add(song);
             break;
@@ -1002,7 +1174,7 @@ class ScannerService extends ChangeNotifier {
       }
 
       var loadedCount = 0;
-      for (final root in declaredRoots) {
+      for (final root in availableRoots) {
         final songs = cachedSongGroups[root]!;
         if (songs.isEmpty) continue;
 
@@ -1024,7 +1196,7 @@ class ScannerService extends ChangeNotifier {
       if (loadedCount > 0) {
         debugPrint(
           '[ScannerService] Loaded cached root folders from songs table '
-          'entries=$loadedCount roots=${declaredRoots.length}',
+          'entries=$loadedCount roots=${availableRoots.length}',
         );
       }
     } catch (e) {
@@ -2789,9 +2961,11 @@ class ScannerService extends ChangeNotifier {
     _navigationState.dispose();
     _roots.dispose();
     _mediaObserverSubscription?.cancel();
+    _mobileStorageSubscription?.cancel();
     _metadataNotifyTimer?.cancel();
     _incrementalSync.dispose();
     _scanNotifyTimer?.cancel();
+    _rootAvailabilityRefreshTimer?.cancel();
     _scanProgressController.close();
     _scanCoordinator.removeListener(_handleScanStateChanged);
     _scanCoordinator.dispose();
