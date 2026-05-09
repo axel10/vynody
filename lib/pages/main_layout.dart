@@ -603,7 +603,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                                   duration: const Duration(milliseconds: 120),
                                   curve: Curves.easeOut,
                                   tween: Tween<double>(
-                                    begin: 1.0,
+                                    begin: navBgOpacityTarget,
                                     end: navBgOpacityTarget,
                                   ),
                                   builder: (context, animatedOpacity, child) {
@@ -742,7 +742,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         child: TweenAnimationBuilder<double>(
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
-          tween: Tween<double>(begin: 1.0, end: navBgOpacityTarget),
+          tween: Tween<double>(begin: navBgOpacityTarget, end: navBgOpacityTarget),
           builder: (context, animatedOpacity, child) {
             return NavigationBar(
               height: 60 + bottomPadding,
