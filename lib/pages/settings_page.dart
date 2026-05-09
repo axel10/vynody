@@ -4,6 +4,7 @@ import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../dialogs/acoustid_api_key_dialog.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
@@ -681,6 +682,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsServiceProvider);
     final theme = Theme.of(context);
+    final isMacOS = Platform.isMacOS;
     final showCustomTitleBar = Platform.isWindows || Platform.isLinux;
 
     Widget content = Scaffold(
@@ -688,12 +690,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       body: _buildBody(context, settings),
     );
 
-    if (showCustomTitleBar) {
+    if (showCustomTitleBar || isMacOS) {
       content = Material(
         color: theme.colorScheme.surface,
         child: Column(
           children: [
-            DesktopWindowTitleBar(brightness: theme.brightness),
+            if (showCustomTitleBar)
+              DesktopWindowTitleBar(brightness: theme.brightness)
+            else
+              const DragToMoveArea(child: SizedBox(height: 32)),
             Expanded(child: content),
           ],
         ),

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/artist_summary.dart';
@@ -26,6 +27,7 @@ class ArtistDetailPage extends ConsumerWidget {
       alpha: 0.65,
     );
 
+    final isMacOS = Platform.isMacOS;
     final bool showCustomTitleBar = Platform.isWindows || Platform.isLinux;
 
     Widget content = Scaffold(
@@ -150,12 +152,15 @@ class ArtistDetailPage extends ConsumerWidget {
       ),
     );
 
-    if (showCustomTitleBar) {
+    if (showCustomTitleBar || isMacOS) {
       content = Material(
         color: theme.colorScheme.surface,
         child: Column(
           children: [
-            DesktopWindowTitleBar(brightness: theme.brightness),
+            if (showCustomTitleBar)
+              DesktopWindowTitleBar(brightness: theme.brightness)
+            else
+              const DragToMoveArea(child: SizedBox(height: 32)),
             Expanded(child: content),
           ],
         ),
