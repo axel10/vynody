@@ -681,15 +681,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             });
           }
 
-          final settings = ref.watch(settingsServiceProvider);
+          // final settings = ref.watch(settingsServiceProvider);
           final bottomPadding = MediaQuery.of(context).padding.bottom;
-          final isImmersiveActive =
-              settings.isImmersiveTabBarEnabled && settings.isUserInactive;
+          // final isImmersiveActive =
+          //     settings.isImmersiveTabBarEnabled && settings.isUserInactive;
           final shouldReserveBottomNavSpace = !isLyricsMode && !isLandscape;
-          final lyricsBottomSpacerHeight = isLandscape
-              ? 0.0
-              : (isImmersiveActive ? 0.0 : 60.0 + bottomPadding);
-          final lyricsBottomTabBarHeight = isLandscape ? 0.0 : 60.0 + bottomPadding;
+          final lyricsBottomSpacerHeight = 0.0;
+          final lyricsBottomTabBarHeight = 0.0;
 
           final content = SafeArea(
             bottom: false,
