@@ -15,7 +15,7 @@ class MiniArtwork extends ConsumerWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(6),
         image: currentMusic?.artworkBytes != null
             ? DecorationImage(
                 image: MemoryImage(currentMusic!.artworkBytes!),

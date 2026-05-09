@@ -184,7 +184,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const MiniArtwork(),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 14),
                           Flexible(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 160),
@@ -229,6 +229,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 14),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
