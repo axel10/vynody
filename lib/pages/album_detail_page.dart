@@ -26,8 +26,7 @@ class AlbumDetailPage extends ConsumerWidget {
       alpha: 0.65,
     );
 
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final bool showCustomTitleBar = Platform.isWindows || Platform.isLinux;
 
     Widget content = Scaffold(
       appBar: AppBar(title: Text(album.title)),
@@ -152,7 +151,7 @@ class AlbumDetailPage extends ConsumerWidget {
       ),
     );
 
-    if (isDesktop) {
+    if (showCustomTitleBar) {
       content = Material(
         color: theme.colorScheme.surface,
         child: Column(

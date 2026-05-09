@@ -681,15 +681,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsServiceProvider);
     final theme = Theme.of(context);
-    final isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final showCustomTitleBar = Platform.isWindows || Platform.isLinux;
 
     Widget content = Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
       body: _buildBody(context, settings),
     );
 
-    if (isDesktop) {
+    if (showCustomTitleBar) {
       content = Material(
         color: theme.colorScheme.surface,
         child: Column(
