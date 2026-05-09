@@ -843,10 +843,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(file.path)
                             : () async {
-                                await audio.playPlaylist(
-                                  currentFolder.files,
-                                  initialIndex: fileIndex,
-                                );
+                                await audio.playFile(file.path, file.name);
                                 if (mounted) {
                                   await widget.onOpenPlayback?.call();
                                 }
