@@ -1488,6 +1488,24 @@ class AudioService extends Notifier<AudioSnapshot> {
     notifyListeners();
   }
 
+  /// Append songs to the end of the playback queue without changing the
+  /// currently playing song.
+  Future<void> appendToQueue(List<MusicFile> songs) async {
+    if (songs.isEmpty) return;
+
+    _queue.addAll(songs);
+
+    final tracks = songs.map(_audioTrackForSong).toList(growable: false);
+    await _player.playlist.addTracksToPlaylist(
+      _player.playlist.queuePlaylistId,
+      tracks,
+      reconcile: false,
+    );
+
+    _startQueueBackgroundProcessing();
+    notifyListeners();
+  }
+
   Future<void> enqueueNext(List<MusicFile> songs) async {
     if (songs.isEmpty) return;
 

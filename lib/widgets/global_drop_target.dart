@@ -17,6 +17,26 @@ class GlobalDropTarget extends ConsumerStatefulWidget {
 }
 
 class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
+  String _buildDropSnackMessage(
+    BuildContext context, {
+    required int addedCount,
+    required int existingCount,
+  }) {
+    final isChinese = Localizations.localeOf(context).languageCode == 'zh';
+
+    if (isChinese) {
+      if (existingCount > 0) {
+        return '已添加 $addedCount 首歌曲，$existingCount 首已存在';
+      }
+      return '已添加 $addedCount 首歌曲';
+    }
+
+    if (existingCount > 0) {
+      return 'Added $addedCount songs, $existingCount already existed';
+    }
+    return 'Added $addedCount songs';
+  }
+
   Future<List<MusicFile>> _getFilesFromPath(String path) async {
     final List<MusicFile> results = [];
     final entityType = FileSystemEntity.typeSync(path);
@@ -62,23 +82,64 @@ class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
           allFiles.addAll(files);
         }
 
-        // 2. 如果找到了音频文件，执行播放逻辑
-        if (allFiles.isNotEmpty && mounted) {
-          // 逻辑设计：拖入多个时，播放其中的第一个，剩下的添加到队列
-          // audio.playFile(append: true) 的特性是移动到队列末尾并切换
-          await audio.playFile(
-            allFiles[0].path,
-            allFiles[0].name,
-            append: true,
+        if (!mounted || allFiles.isEmpty) {
+          return;
+        }
+
+        final uniqueFiles = <MusicFile>[];
+        final seenPaths = <String>{};
+        for (final song in allFiles) {
+          if (seenPaths.add(song.path)) {
+            uniqueFiles.add(song);
+          }
+        }
+
+        if (uniqueFiles.length == 1) {
+          final song = uniqueFiles.first;
+          final queueIndex = audio.playbackQueue.indexWhere(
+            (queuedSong) => queuedSong.path == song.path,
           );
 
-          // 3. 将后续文件全部补充到播放队列中（不切歌，静默添加）
-          if (allFiles.length > 1) {
-            await audio.addToPlaylist(allFiles.sublist(1));
+          if (queueIndex >= 0) {
+            await audio.playAtIndex(queueIndex);
+          } else {
+            await audio.playFile(song.path, song.name, append: true);
           }
-
-          // 注意：此处并未像双击那样切换 Tab，是为了尽量不打扰用户的当前浏览操作
+          return;
         }
+
+        final existingQueuePaths = audio.playbackQueue
+            .map((song) => song.path)
+            .toSet();
+        final newSongs = <MusicFile>[];
+        var existingCount = 0;
+
+        for (final song in uniqueFiles) {
+          if (existingQueuePaths.contains(song.path)) {
+            existingCount++;
+            continue;
+          }
+          newSongs.add(song);
+        }
+
+        if (newSongs.isNotEmpty) {
+          await audio.appendToQueue(newSongs);
+        }
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _buildDropSnackMessage(
+                context,
+                addedCount: newSongs.length,
+                existingCount: existingCount,
+              ),
+            ),
+          ),
+        );
+
+        // 多文件拖入只做静默入队，不改变当前播放歌曲。
       },
       child: widget.child,
     );
