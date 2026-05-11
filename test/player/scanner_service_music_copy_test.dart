@@ -362,6 +362,51 @@ void main() {
         }
       },
     );
+
+    test(
+      'should discover a new nested directory after recursive rescan',
+      () async {
+        final tempRoot = await Directory.systemTemp.createTemp(
+          'scanner_service_directory_recursive_add_test_',
+        );
+        final rootSong = File(p.join(tempRoot.path, 'root-song.mp3'));
+        final nestedDirectory = Directory(p.join(tempRoot.path, 'nested'));
+        final nestedSong = File(p.join(nestedDirectory.path, 'song.mp3'));
+
+        try {
+          await rootSong.writeAsBytes(List<int>.filled(8, 1));
+
+          final scanner = ScannerService(
+            autoInitialize: false,
+            directoryRescanBatchWindow: const Duration(milliseconds: 80),
+          );
+
+          try {
+            final addResult = await scanner.addRootPath(tempRoot.path);
+            expect(addResult.status, RootPathAddStatus.added);
+
+            await _waitUntil(
+              () => _folderContainsPath(scanner.rootFolders, rootSong.path),
+              reason: 'waiting for root song to be indexed',
+            );
+
+            await nestedDirectory.create(recursive: true);
+            await nestedSong.writeAsBytes(List<int>.filled(8, 2));
+
+            await _waitUntil(
+              () => _folderContainsPath(scanner.rootFolders, nestedSong.path),
+              reason: 'waiting for nested directory song to be discovered',
+            );
+          } finally {
+            scanner.dispose();
+          }
+        } finally {
+          if (await tempRoot.exists()) {
+            await tempRoot.delete(recursive: true);
+          }
+        }
+      },
+    );
   });
 }
 

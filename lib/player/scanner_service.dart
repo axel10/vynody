@@ -37,6 +37,8 @@ import '../utils/localized_text.dart';
 
 export 'scanner_scan_support.dart';
 
+enum _DirectoryRescanMode { nonRecursive, recursive }
+
 class ScannerService extends ChangeNotifier {
   final ScannerFolderSorter _folderSorter = const ScannerFolderSorter();
   final Duration _directoryRescanBatchWindow;
@@ -62,7 +64,7 @@ class ScannerService extends ChangeNotifier {
   bool _directoryRescanInProgress = false;
   bool _isDisposed = false;
   final Set<String> _activeScopedRootPaths = <String>{};
-  final Set<String> _pendingDirectoryRescanPaths = <String>{};
+  final Map<String, _DirectoryRescanMode> _pendingDirectoryRescanPaths = {};
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -1517,13 +1519,7 @@ class ScannerService extends ChangeNotifier {
       final directory = Directory(normalizedDirectory);
       if (!await directory.exists()) {
         await _removeDirectoryFromLibrary(normalizedDirectory);
-        for (final rootPath in affectedRoots) {
-          _rebuildScannedRootFolderFromCache(rootPath);
-        }
-        if (affectedRoots.isNotEmpty) {
-          _rebuildDisplayedRootFolders();
-          _syncNavigationStateToLatestTree();
-        }
+        _refreshAffectedRootsFromCache(affectedRoots);
         notifyListeners();
         return;
       }
@@ -1553,13 +1549,153 @@ class ScannerService extends ChangeNotifier {
         await _upsertIncrementalSongPath(filePath, scanState: scanState);
       }
 
-      for (final rootPath in affectedRoots) {
-        _rebuildScannedRootFolderFromCache(rootPath);
+      _refreshAffectedRootsFromCache(affectedRoots);
+      notifyListeners();
+    } finally {
+      _scanCoordinator.completeIncrementalPhase();
+    }
+  }
+
+  Future<void> _rescanDirectoryRecursively(String directoryPath) async {
+    final normalizedDirectory = _normalizePath(directoryPath);
+    if (normalizedDirectory.isEmpty) {
+      return;
+    }
+
+    if (_scanCoordinator.isScanning) {
+      _scanCoordinator.requestRescan();
+      return;
+    }
+
+    _scanCoordinator.beginIncrementalPhase();
+    final scanState = ScanProgressState(
+      metadataConcurrency: 2,
+      comparePaths: _compareNaturally,
+    );
+    final affectedRoots = _rootPathsForDirectoryPath(normalizedDirectory);
+
+    try {
+      final directory = Directory(normalizedDirectory);
+      if (!await directory.exists()) {
+        await _removeDirectoryFromLibrary(normalizedDirectory);
+        _refreshAffectedRootsFromCache(affectedRoots);
+        notifyListeners();
+        return;
       }
-      if (affectedRoots.isNotEmpty) {
-        _rebuildDisplayedRootFolders();
-        _syncNavigationStateToLatestTree();
+
+      final discoveredPaths = await _directoryScanner.discoverMusicFiles(
+        normalizedDirectory,
+        scanState,
+      );
+      final normalizedDiscoveredPaths = discoveredPaths
+          .map(_normalizePath)
+          .where((path) => path.isNotEmpty)
+          .toSet();
+
+      final existingPathsInDirectory = _metadataStore.metadataMap.keys
+          .where(
+            (path) =>
+                _pathContains(normalizedDirectory, path) &&
+                MusicFileUtils.isMusicFilePath(path),
+          )
+          .toList(growable: false);
+
+      final classification = await _classifyDiscoveredFiles(discoveredPaths);
+      final existingMetadataByPath = Map<String, SongMetadata>.from(
+        classification.existingMetadataByPath,
+      );
+      _seedMetadataFromDatabase(existingMetadataByPath);
+
+      final skippedKnownPaths = <String>[];
+      final fullPaths = <String>[];
+      for (final path in classification.pathsFor(ScanFileStage.full)) {
+        final existing =
+            classification.existingMetadataByPath[_pathLookupKey(path)];
+        if (_shouldSkipShortAudioDuration(existing?.duration)) {
+          skippedKnownPaths.add(path);
+          continue;
+        }
+        fullPaths.add(path);
       }
+      final imageOnlyPaths = <String>[];
+      for (final path in classification.pathsFor(ScanFileStage.imageOnly)) {
+        final existing =
+            classification.existingMetadataByPath[_pathLookupKey(path)];
+        if (_shouldSkipShortAudioDuration(existing?.duration)) {
+          skippedKnownPaths.add(path);
+          continue;
+        }
+        imageOnlyPaths.add(path);
+      }
+      final unchangedPaths = <String>[];
+      for (final path in classification.pathsFor(ScanFileStage.unchanged)) {
+        final existing =
+            classification.existingMetadataByPath[_pathLookupKey(path)];
+        if (_shouldSkipShortAudioDuration(existing?.duration)) {
+          skippedKnownPaths.add(path);
+          continue;
+        }
+        unchangedPaths.add(path);
+      }
+      if (skippedKnownPaths.isNotEmpty) {
+        for (final path in skippedKnownPaths) {
+          _metadataStore.removeMetadataForPath(path);
+        }
+      }
+
+      Timer? stage3UiSyncTimer;
+      try {
+        stage3UiSyncTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+          if (_isDisposed) {
+            return;
+          }
+          _refreshAffectedRootsFromCache(affectedRoots);
+        });
+
+        final preprocessResult = await _preprocessChangedFiles(
+          fullPaths,
+          scanState,
+          existingMetadataByPath: existingMetadataByPath,
+        );
+        final artworkPendingImageOnlyPaths =
+            await _filterImageOnlyPathsNeedingArtwork(
+              imageOnlyPaths,
+              scanState,
+              existingMetadataByPath: existingMetadataByPath,
+            );
+
+        final artworkPendingPaths = [
+          ...preprocessResult.artworkPendingPaths,
+          ...artworkPendingImageOnlyPaths,
+        ];
+        if (artworkPendingPaths.isNotEmpty) {
+          await _applyArtworkAndThemeToChangedFiles(
+            artworkPendingPaths,
+            scanState,
+          );
+        }
+
+        if (unchangedPaths.isNotEmpty) {
+          for (final path in unchangedPaths) {
+            if (!_metadataStore.containsPath(path)) {
+              final dbSong = await _repository.getSongMetadata(path);
+              if (dbSong != null) {
+                _metadataStore.cacheMetadata(dbSong);
+              }
+            }
+          }
+        }
+
+        for (final existingPath in existingPathsInDirectory) {
+          if (!normalizedDiscoveredPaths.contains(existingPath)) {
+            await _metadataStore.purgeMissingSongPath(existingPath);
+          }
+        }
+      } finally {
+        stage3UiSyncTimer?.cancel();
+      }
+
+      _refreshAffectedRootsFromCache(affectedRoots);
       notifyListeners();
     } finally {
       _scanCoordinator.completeIncrementalPhase();
@@ -1645,33 +1781,44 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
-    _queueDirectoryRescan(_normalizePath(p.dirname(normalizedPath)));
-    if (_shouldRescanChangedDirectory(normalizedPath)) {
-      _queueDirectoryRescan(normalizedPath);
+    final rescanMode = _determineRescanMode(normalizedPath);
+    if (rescanMode == _DirectoryRescanMode.recursive) {
+      _queueDirectoryRescan(normalizedPath, _DirectoryRescanMode.recursive);
+      return;
     }
+
+    _queueDirectoryRescan(
+      _normalizePath(p.dirname(normalizedPath)),
+      _DirectoryRescanMode.nonRecursive,
+    );
   }
 
-  bool _shouldRescanChangedDirectory(String path) {
+  _DirectoryRescanMode _determineRescanMode(String path) {
     try {
-      if (Directory(path).existsSync()) {
-        return true;
+      final entityType = FileSystemEntity.typeSync(path, followLinks: false);
+      if (entityType == FileSystemEntityType.directory) {
+        return _DirectoryRescanMode.recursive;
+      }
+      if (entityType == FileSystemEntityType.notFound &&
+          _treeBuilder.resolveFolderForPath(
+                path,
+                _scannedRootFolders,
+                _systemMediaFolder,
+              ) !=
+              null) {
+        return _DirectoryRescanMode.recursive;
       }
     } catch (e, st) {
       debugPrint(
-        '[ScannerService] directory existence check failed path=$path: '
+        '[ScannerService] directory type check failed path=$path: '
         '$e\n$st',
       );
     }
 
-    return _treeBuilder.resolveFolderForPath(
-          path,
-          _scannedRootFolders,
-          _systemMediaFolder,
-        ) !=
-        null;
+    return _DirectoryRescanMode.nonRecursive;
   }
 
-  void _queueDirectoryRescan(String directoryPath) {
+  void _queueDirectoryRescan(String directoryPath, _DirectoryRescanMode mode) {
     if (_isDisposed) return;
 
     final normalizedPath = _normalizePath(directoryPath);
@@ -1679,7 +1826,13 @@ class ScannerService extends ChangeNotifier {
       return;
     }
 
-    _pendingDirectoryRescanPaths.add(normalizedPath);
+    final existingMode = _pendingDirectoryRescanPaths[normalizedPath];
+    if (existingMode == _DirectoryRescanMode.recursive ||
+        mode == _DirectoryRescanMode.nonRecursive) {
+      _pendingDirectoryRescanPaths.putIfAbsent(normalizedPath, () => mode);
+    } else {
+      _pendingDirectoryRescanPaths[normalizedPath] = mode;
+    }
     _directoryRescanTimer?.cancel();
     _directoryRescanTimer = Timer(
       _directoryRescanBatchWindow,
@@ -1700,15 +1853,21 @@ class ScannerService extends ChangeNotifier {
     }
 
     _directoryRescanInProgress = true;
-    final directoryPaths = _pendingDirectoryRescanPaths.toList(growable: false);
+    final directoryPaths = _pendingDirectoryRescanPaths.entries.toList(
+      growable: false,
+    );
     _pendingDirectoryRescanPaths.clear();
 
     try {
-      for (final directoryPath in directoryPaths) {
+      for (final entry in directoryPaths) {
         if (_isDisposed) {
           return;
         }
-        await _rescanDirectory(directoryPath);
+        if (entry.value == _DirectoryRescanMode.recursive) {
+          await _rescanDirectoryRecursively(entry.key);
+        } else {
+          await _rescanDirectory(entry.key);
+        }
       }
     } finally {
       _directoryRescanInProgress = false;
@@ -2150,6 +2309,16 @@ class ScannerService extends ChangeNotifier {
       resolveSettings: _resolveSortSettingsForFolder,
     );
     _upsertScannedRootFolder(rootFolder);
+  }
+
+  void _refreshAffectedRootsFromCache(Iterable<String> affectedRoots) {
+    for (final rootPath in affectedRoots) {
+      _rebuildScannedRootFolderFromCache(rootPath);
+    }
+    if (affectedRoots.isNotEmpty) {
+      _rebuildDisplayedRootFolders();
+      _syncNavigationStateToLatestTree();
+    }
   }
 
   Set<String> _rootPathsForSongPath(String path) {
