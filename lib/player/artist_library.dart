@@ -41,9 +41,9 @@ class ArtistLibraryRepository {
     final songs = await _database.getAllSongMetadata();
     final groups = _groupSongsByArtist(songs);
 
-    final cacheKeys = groups.map((group) => group.queryKey).toList(
-      growable: false,
-    );
+    final cacheKeys = groups
+        .map((group) => group.queryKey)
+        .toList(growable: false);
     final caches = await _database.getArtistCachesByKeys(cacheKeys);
     final orderedGroups = _sortGroupsForDisplay(groups, caches);
     _artistLibraryLog(
@@ -58,7 +58,9 @@ class ArtistLibraryRepository {
     final pendingGroups = orderedGroups
         .where((group) => _needsArtistRefresh(group, caches[group.queryKey]))
         .toList(growable: false);
-    _artistLibraryLog('session#$sessionId pendingGroups=${pendingGroups.length}');
+    _artistLibraryLog(
+      'session#$sessionId pendingGroups=${pendingGroups.length}',
+    );
     if (pendingGroups.isEmpty) {
       _artistLibraryLog('session#$sessionId complete: nothing to refresh');
       return;
@@ -180,9 +182,7 @@ class ArtistLibraryRepository {
     List<_ArtistGroup> groups,
   ) async {
     final query = groups
-        .map(
-          (group) => 'artist:"${_escapeLucene(group.displayName)}"',
-        )
+        .map((group) => 'artist:"${_escapeLucene(group.displayName)}"')
         .join(' OR ');
 
     final data = await _runMusicBrainzRequest(() async {
@@ -267,27 +267,33 @@ class ArtistLibraryRepository {
     final order = <String>[];
 
     for (final song in songs) {
-      final rawName = song.artist.trim();
-      if (rawName.isEmpty) continue;
-      final queryKey = normalizeArtistKey(rawName);
-      if (queryKey.isEmpty) continue;
+      final artistNames = splitArtistNames(song.artist);
+      if (artistNames.isEmpty) continue;
 
-      final group = groups.putIfAbsent(queryKey, () {
-        order.add(queryKey);
-        return _ArtistGroup(
-          queryKey: queryKey,
-          displayName: rawName,
-          songs: <MusicFile>[],
-        );
-      });
+      final seenKeys = <String>{};
+      for (final artistName in artistNames) {
+        final queryKey = normalizeArtistKey(artistName);
+        if (queryKey.isEmpty || !seenKeys.add(queryKey)) {
+          continue;
+        }
 
-      group.addSong(song);
-      if (group.displayName == 'Unknown Artist' &&
-          rawName.toLowerCase() != 'unknown artist') {
-        group.displayName = rawName;
-      }
-      if (group.displayName.trim().isEmpty) {
-        group.displayName = rawName;
+        final group = groups.putIfAbsent(queryKey, () {
+          order.add(queryKey);
+          return _ArtistGroup(
+            queryKey: queryKey,
+            displayName: artistName,
+            songs: <MusicFile>[],
+          );
+        });
+
+        group.addSong(song);
+        if (group.displayName == 'Unknown Artist' &&
+            artistName.toLowerCase() != 'unknown artist') {
+          group.displayName = artistName;
+        }
+        if (group.displayName.trim().isEmpty) {
+          group.displayName = artistName;
+        }
       }
     }
 
@@ -360,8 +366,10 @@ class ArtistLibraryRepository {
       final rightLabel = _groupSortLabel(right, rightCache);
       final compare = leftLabel.compareTo(rightLabel);
       if (compare != 0) return compare;
-      return _artistDisplayName(left, leftCache)
-          .compareTo(_artistDisplayName(right, rightCache));
+      return _artistDisplayName(
+        left,
+        leftCache,
+      ).compareTo(_artistDisplayName(right, rightCache));
     });
     return sorted;
   }
@@ -373,7 +381,9 @@ class ArtistLibraryRepository {
     return ArtistCacheRecord(
       queryKey: group.queryKey,
       artistId: searchHit.id,
-      artistName: searchHit.name.isNotEmpty ? searchHit.name : group.displayName,
+      artistName: searchHit.name.isNotEmpty
+          ? searchHit.name
+          : group.displayName,
       sortName: searchHit.sortName,
       disambiguation: searchHit.disambiguation,
       country: searchHit.country,
@@ -491,6 +501,17 @@ String _artistDisplayName(_ArtistGroup group, ArtistCacheRecord? cache) {
 bool _hasArtwork(MusicFile song) {
   return (song.thumbnailPath?.trim().isNotEmpty ?? false) ||
       (song.artworkPath?.trim().isNotEmpty ?? false);
+}
+
+List<String> splitArtistNames(String value) {
+  final raw = value.trim();
+  if (raw.isEmpty) return const <String>[];
+
+  return raw
+      .split(RegExp(r'\s*[,/&;]\s*'))
+      .map((artist) => artist.trim())
+      .where((artist) => artist.isNotEmpty)
+      .toList(growable: false);
 }
 
 String _escapeLucene(String value) {
