@@ -19,133 +19,14 @@ class ArtistDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final unknownAlbumLabel = l10n.unknownAlbum;
     final theme = Theme.of(context);
-    final audio = ref.read(audioServiceProvider);
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final headerColor = theme.colorScheme.tertiaryContainer.withValues(
-      alpha: 0.65,
+    Widget content = Scaffold(
+      appBar: AppBar(title: Text(artist.name)),
+      body: ArtistDetailContent(artist: artist),
     );
 
     final isMacOS = Platform.isMacOS;
     final bool showCustomTitleBar = Platform.isWindows || Platform.isLinux;
-
-    Widget content = Scaffold(
-      appBar: AppBar(title: Text(artist.name)),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [headerColor, theme.colorScheme.surface],
-                ),
-              ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 700;
-                  final cover = Hero(
-                    tag: 'artist-cover-${artist.queryKey}',
-                    child: _ArtistCover(
-                      size: isWide ? 220 : math.min(220, constraints.maxWidth),
-                    ),
-                  );
-                  final info = _ArtistInfo(
-                    artist: artist,
-                    onPlayAll: () => audio.playPlaylist(artist.songs),
-                    onShufflePlay: () =>
-                        audio.playPlaylist(List.of(artist.songs)..shuffle()),
-                  );
-
-                  if (isWide) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        cover,
-                        const SizedBox(width: 24),
-                        Expanded(child: info),
-                      ],
-                    );
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(child: cover),
-                      const SizedBox(height: 20),
-                      info,
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-          SliverList.builder(
-            itemCount: artist.songs.length,
-            itemBuilder: (context, index) {
-              final song = artist.songs[index];
-              final isCurrent = currentMusic?.path == song.path;
-              final durationLabel = _formatDuration(song.durationMillis);
-              final trackLabel = '${index + 1}'.padLeft(2, '0');
-
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onSecondaryTapDown: (details) {
-                  showSongContextMenu(
-                    context,
-                    details.globalPosition,
-                    song: song,
-                    onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-                      context,
-                      ref.read(playlistServiceProvider),
-                      [song],
-                    ),
-                  );
-                },
-                child: ListTile(
-                  selected: isCurrent,
-                  selectedTileColor: theme.colorScheme.primaryContainer
-                      .withValues(alpha: 0.35),
-                  leading: SizedBox(
-                    width: 32,
-                    child: Text(
-                      trackLabel,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isCurrent ? theme.colorScheme.primary : null,
-                        fontWeight: isCurrent ? FontWeight.w700 : null,
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    song.displayName,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: isCurrent ? theme.colorScheme.primary : null,
-                      fontWeight: isCurrent ? FontWeight.w700 : null,
-                    ),
-                  ),
-                  subtitle: Text(song.album ?? unknownAlbumLabel),
-                  trailing: durationLabel == null ? null : Text(durationLabel),
-                  onTap: () =>
-                      audio.playPlaylist(artist.songs, initialIndex: index),
-                  onLongPress: () {
-                    showAddSongsToPlaylistDialog(
-                      context,
-                      ref.read(playlistServiceProvider),
-                      [song],
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
 
     if (showCustomTitleBar || isMacOS) {
       content = Material(
@@ -163,6 +44,137 @@ class ArtistDetailPage extends ConsumerWidget {
     }
 
     return content;
+  }
+}
+
+class ArtistDetailContent extends ConsumerWidget {
+  const ArtistDetailContent({super.key, required this.artist});
+
+  final ArtistSummary artist;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final unknownAlbumLabel = l10n.unknownAlbum;
+    final theme = Theme.of(context);
+    final audio = ref.read(audioServiceProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final headerColor = theme.colorScheme.tertiaryContainer.withValues(
+      alpha: 0.65,
+    );
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [headerColor, theme.colorScheme.surface],
+              ),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 700;
+                final cover = Hero(
+                  tag: 'artist-cover-${artist.queryKey}',
+                  child: _ArtistCover(
+                    size: isWide ? 220 : math.min(220, constraints.maxWidth),
+                  ),
+                );
+                final info = _ArtistInfo(
+                  artist: artist,
+                  onPlayAll: () => audio.playPlaylist(artist.songs),
+                  onShufflePlay: () =>
+                      audio.playPlaylist(List.of(artist.songs)..shuffle()),
+                );
+
+                if (isWide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      cover,
+                      const SizedBox(width: 24),
+                      Expanded(child: info),
+                    ],
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(child: cover),
+                    const SizedBox(height: 20),
+                    info,
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+        SliverList.builder(
+          itemCount: artist.songs.length,
+          itemBuilder: (context, index) {
+            final song = artist.songs[index];
+            final isCurrent = currentMusic?.path == song.path;
+            final durationLabel = _formatDuration(song.durationMillis);
+            final trackLabel = '${index + 1}'.padLeft(2, '0');
+
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onSecondaryTapDown: (details) {
+                showSongContextMenu(
+                  context,
+                  details.globalPosition,
+                  song: song,
+                  onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                    context,
+                    ref.read(playlistServiceProvider),
+                    [song],
+                  ),
+                );
+              },
+              child: ListTile(
+                selected: isCurrent,
+                selectedTileColor: theme.colorScheme.primaryContainer
+                    .withValues(alpha: 0.35),
+                leading: SizedBox(
+                  width: 32,
+                  child: Text(
+                    trackLabel,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isCurrent ? theme.colorScheme.primary : null,
+                      fontWeight: isCurrent ? FontWeight.w700 : null,
+                    ),
+                  ),
+                ),
+                title: Text(
+                  song.displayName,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: isCurrent ? theme.colorScheme.primary : null,
+                    fontWeight: isCurrent ? FontWeight.w700 : null,
+                  ),
+                ),
+                subtitle: Text(song.album ?? unknownAlbumLabel),
+                trailing: durationLabel == null ? null : Text(durationLabel),
+                onTap: () =>
+                    audio.playPlaylist(artist.songs, initialIndex: index),
+                onLongPress: () {
+                  showAddSongsToPlaylistDialog(
+                    context,
+                    ref.read(playlistServiceProvider),
+                    [song],
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }
 

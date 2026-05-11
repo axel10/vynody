@@ -23,6 +23,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
   String _searchQuery = '';
   _ArtistSortField _sortField = _ArtistSortField.artist;
   bool _sortAscending = true;
+  String? _selectedArtistKey;
 
   @override
   void dispose() {
@@ -64,13 +65,144 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 780;
-            final crossAxisCount = switch (constraints.maxWidth) {
-              >= 1200 => 5,
-              >= 900 => 4,
-              >= 700 => 3,
-              _ => 2,
-            };
+            final isWide = constraints.maxWidth >= 980;
+            final isPortrait =
+                MediaQuery.orientationOf(context) == Orientation.portrait;
+            final selectedArtist = _resolveSelectedArtist(visibleArtists);
+
+            if (isWide) {
+              _syncSelectedArtist(visibleArtists);
+              return Column(
+                children: [
+                  _ArtistsToolbar(
+                    searchController: _searchController,
+                    searchQuery: _searchQuery,
+                    sortField: _sortField,
+                    sortAscending: _sortAscending,
+                    artistCount: visibleArtists.length,
+                    artistsLabel: artistsLabel,
+                    isWide: true,
+                    onSearchChanged: (value) {
+                      setState(() {
+                        _searchQuery = value.trim();
+                      });
+                    },
+                    onSearchCleared: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                    onSortFieldSelected: (field) {
+                      setState(() {
+                        _sortField = field;
+                      });
+                    },
+                    onSortOrderToggled: () {
+                      setState(() {
+                        _sortAscending = !_sortAscending;
+                      });
+                    },
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 360,
+                            child: _ArtistListPane(
+                              artists: visibleArtists,
+                              selectedArtistKey: selectedArtist?.queryKey,
+                              noArtistsLabel: noArtistsLabel,
+                              onArtistSelected: (artist) {
+                                setState(() {
+                                  _selectedArtistKey = artist.queryKey;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _ArtistDetailPane(
+                              artist: selectedArtist,
+                              emptyLabel: noArtistsLabel,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            if (isPortrait) {
+              return Column(
+                children: [
+                  _ArtistsToolbar(
+                    searchController: _searchController,
+                    searchQuery: _searchQuery,
+                    sortField: _sortField,
+                    sortAscending: _sortAscending,
+                    artistCount: visibleArtists.length,
+                    artistsLabel: artistsLabel,
+                    isWide: false,
+                    onSearchChanged: (value) {
+                      setState(() {
+                        _searchQuery = value.trim();
+                      });
+                    },
+                    onSearchCleared: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                    onSortFieldSelected: (field) {
+                      setState(() {
+                        _sortField = field;
+                      });
+                    },
+                    onSortOrderToggled: () {
+                      setState(() {
+                        _sortAscending = !_sortAscending;
+                      });
+                    },
+                  ),
+                  Expanded(
+                    child: visibleArtists.isEmpty
+                        ? Center(
+                            child: Text(
+                              noArtistsLabel,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            itemCount: visibleArtists.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final artist = visibleArtists[index];
+                              return _ArtistListItem(
+                                artist: artist,
+                                selected: false,
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          ArtistDetailPage(artist: artist),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            }
 
             return CustomScrollView(
               cacheExtent: 1000,
@@ -83,7 +215,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                     sortAscending: _sortAscending,
                     artistCount: visibleArtists.length,
                     artistsLabel: artistsLabel,
-                    isWide: isWide,
+                    isWide: false,
                     onSearchChanged: (value) {
                       setState(() {
                         _searchQuery = value.trim();
@@ -122,7 +254,12 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverGrid(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
+                        crossAxisCount: switch (constraints.maxWidth) {
+                          >= 1200 => 5,
+                          >= 900 => 4,
+                          >= 700 => 3,
+                          _ => 2,
+                        },
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                         childAspectRatio: 0.72,
@@ -175,6 +312,304 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
     });
 
     return filtered;
+  }
+
+  ArtistSummary? _resolveSelectedArtist(List<ArtistSummary> visibleArtists) {
+    if (visibleArtists.isEmpty) return null;
+
+    final selectedKey = _selectedArtistKey;
+    if (selectedKey != null) {
+      for (final artist in visibleArtists) {
+        if (artist.queryKey == selectedKey) {
+          return artist;
+        }
+      }
+    }
+
+    return visibleArtists.first;
+  }
+
+  void _syncSelectedArtist(List<ArtistSummary> visibleArtists) {
+    if (visibleArtists.isEmpty) return;
+
+    final selectedKey = _selectedArtistKey;
+    if (selectedKey != null &&
+        visibleArtists.any((artist) => artist.queryKey == selectedKey)) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || visibleArtists.isEmpty) return;
+      final fallbackKey = visibleArtists.first.queryKey;
+      if (_selectedArtistKey == fallbackKey) return;
+      setState(() {
+        _selectedArtistKey = fallbackKey;
+      });
+    });
+  }
+}
+
+class _ArtistListPane extends StatelessWidget {
+  const _ArtistListPane({
+    required this.artists,
+    required this.selectedArtistKey,
+    required this.noArtistsLabel,
+    required this.onArtistSelected,
+  });
+
+  final List<ArtistSummary> artists;
+  final String? selectedArtistKey;
+  final String noArtistsLabel;
+  final ValueChanged<ArtistSummary> onArtistSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+        ),
+      ),
+      child: artists.isEmpty
+          ? Center(
+              child: Text(noArtistsLabel, style: theme.textTheme.titleMedium),
+            )
+          : Scrollbar(
+              thumbVisibility: true,
+              child: ListView.separated(
+                padding: const EdgeInsets.all(12),
+                itemCount: artists.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final artist = artists[index];
+                  final selected = artist.queryKey == selectedArtistKey;
+                  return _ArtistListItem(
+                    artist: artist,
+                    selected: selected,
+                    onTap: () => onArtistSelected(artist),
+                  );
+                },
+              ),
+            ),
+    );
+  }
+}
+
+class _ArtistListItem extends ConsumerWidget {
+  const _ArtistListItem({
+    required this.artist,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ArtistSummary artist;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final audio = ref.read(audioServiceProvider);
+    final playAllLabel = l10n.playAll;
+    final songCountLabel = l10n.songCount(artist.songCount);
+    final subtitleParts = <String>[
+      songCountLabel,
+      if ((artist.country?.trim().isNotEmpty ?? false)) artist.country!.trim(),
+    ];
+    if (artist.disambiguation?.trim().isNotEmpty ?? false) {
+      subtitleParts.add(artist.disambiguation!.trim());
+    }
+
+    return Material(
+      color: selected
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
+          : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      borderRadius: BorderRadius.circular(18),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: (details) {
+          _showArtistContextMenuForArtist(
+            context,
+            ref,
+            details.globalPosition,
+            artist,
+          );
+        },
+        onLongPressStart: (details) {
+          _showArtistContextMenuForArtist(
+            context,
+            ref,
+            details.globalPosition,
+            artist,
+          );
+        },
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: const SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Center(child: ArtistAvatar(diameter: 48)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        artist.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitleParts.join(' · '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: playAllLabel,
+                  onPressed: () => audio.playPlaylist(artist.songs),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArtistDetailPane extends StatelessWidget {
+  const _ArtistDetailPane({required this.artist, required this.emptyLabel});
+
+  final ArtistSummary? artist;
+  final String emptyLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final currentArtist = artist;
+    if (currentArtist == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.person_outline_rounded,
+                size: 56,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                emptyLabel,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: ArtistDetailContent(artist: currentArtist),
+      ),
+    );
+  }
+}
+
+Future<void> _showArtistContextMenuForArtist(
+  BuildContext context,
+  WidgetRef ref,
+  Offset globalPosition,
+  ArtistSummary artist,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final playAllLabel = l10n.playAll;
+  final shufflePlayLabel = l10n.shufflePlay;
+  final viewArtistDetailsLabel = l10n.viewArtistDetails;
+  final copyArtistNameLabel = l10n.copyArtistName;
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+  if (overlay == null) return;
+
+  final selected = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromRect(
+      Rect.fromPoints(globalPosition, globalPosition),
+      Offset.zero & overlay.size,
+    ),
+    items: [
+      PopupMenuItem(value: 'play_all', child: Text(playAllLabel)),
+      PopupMenuItem(value: 'shuffle', child: Text(shufflePlayLabel)),
+      const PopupMenuDivider(),
+      PopupMenuItem(value: 'view_details', child: Text(viewArtistDetailsLabel)),
+      PopupMenuItem(value: 'copy_artist', child: Text(copyArtistNameLabel)),
+    ],
+  );
+
+  if (!context.mounted || selected == null) return;
+
+  switch (selected) {
+    case 'play_all':
+      await ref.read(audioServiceProvider).playPlaylist(artist.songs);
+      break;
+    case 'shuffle':
+      await ref
+          .read(audioServiceProvider)
+          .playPlaylist(List.of(artist.songs)..shuffle());
+      break;
+    case 'view_details':
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ArtistDetailPage(artist: artist),
+        ),
+      );
+      break;
+    case 'copy_artist':
+      await Clipboard.setData(ClipboardData(text: artist.name));
+      break;
   }
 }
 
@@ -230,7 +665,7 @@ class _ArtistCard extends ConsumerWidget {
                     child: Center(
                       child: Hero(
                         tag: 'artist-cover-${artist.queryKey}',
-                      child: ClipRRect(
+                        child: ClipRRect(
                           borderRadius: BorderRadius.circular(18),
                           child: AspectRatio(
                             aspectRatio: 1,
@@ -288,51 +723,7 @@ class _ArtistCard extends ConsumerWidget {
     WidgetRef ref,
     Offset globalPosition,
   ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final playAllLabel = l10n.playAll;
-    final shufflePlayLabel = l10n.shufflePlay;
-    final viewArtistDetailsLabel = l10n.viewArtistDetails;
-    final copyArtistNameLabel = l10n.copyArtistName;
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromPoints(globalPosition, globalPosition),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        PopupMenuItem(value: 'play_all', child: Text(playAllLabel)),
-        PopupMenuItem(value: 'shuffle', child: Text(shufflePlayLabel)),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'view_details',
-          child: Text(viewArtistDetailsLabel),
-        ),
-        PopupMenuItem(value: 'copy_artist', child: Text(copyArtistNameLabel)),
-      ],
-    );
-
-    if (!context.mounted || selected == null) return;
-
-    switch (selected) {
-      case 'play_all':
-        await ref.read(audioServiceProvider).playPlaylist(artist.songs);
-        break;
-      case 'shuffle':
-        await ref
-            .read(audioServiceProvider)
-            .playPlaylist(List.of(artist.songs)..shuffle());
-        break;
-      case 'view_details':
-        _openArtistDetail(context);
-        break;
-      case 'copy_artist':
-        await Clipboard.setData(ClipboardData(text: artist.name));
-        break;
-    }
+    await _showArtistContextMenuForArtist(context, ref, globalPosition, artist);
   }
 }
 
@@ -341,9 +732,7 @@ class _ArtistCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: ArtistAvatar(diameter: 100),
-    );
+    return const Center(child: ArtistAvatar(diameter: 100));
   }
 }
 
