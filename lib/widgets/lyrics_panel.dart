@@ -12,8 +12,10 @@ import '../models/music_lyric.dart';
 import '../l10n/app_localizations.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
 import '../dialogs/manual_lyrics_dialog.dart';
+import '../dialogs/online_lyrics_search_dialog.dart';
 import '../dialogs/timeline_adjustment_dialog.dart';
 import '../player/audio_riverpod.dart';
+import '../player/lyrics_cache_models.dart';
 import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
 import '../player/lyrics_riverpod.dart';
@@ -252,6 +254,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           enabled: hasCurrentSong && !taskState.isTranslationBusy,
           child: Text(l10n.translateLyrics),
         ),
+      PopupMenuItem<String>(
+        value: 'search_online_lyrics',
+        enabled: hasCurrentSong,
+        child: Text('选择在线歌词'),
+      ),
       if (!requeryOnly)
         PopupMenuItem<String>(
           value: 'clear_lyrics_cache',
@@ -322,6 +329,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _showGenerationErrorSnack(errorMessage);
         }
       }
+    } else if (selected == 'search_online_lyrics') {
+      await _searchOnlineLyrics();
     } else if (selected == 'clear_lyrics_cache') {
       await _lyricsControllerActions.clearLyricsCacheForCurrentSong();
     } else if (selected == 'clear_translation_cache') {
@@ -344,6 +353,52 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (!mounted || submittedLyrics == null) return;
 
     await _lyricsControllerActions.fillLyricsForCurrentSong(submittedLyrics);
+  }
+
+  Future<void> _searchOnlineLyrics() async {
+    final currentSong = ref.read(audioCurrentMusicProvider);
+    final songTitle = currentSong?.displayName.trim() ?? '';
+    if (currentSong == null || songTitle.isEmpty) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(content: Text('正在查询在线歌词'), duration: Duration(days: 1)),
+    );
+
+    final service = ref.read(lyricsServiceProvider);
+    final tracks = await service.searchTracksByTitle(title: songTitle);
+
+    if (!mounted) return;
+    messenger.hideCurrentSnackBar();
+
+    if (tracks.isEmpty) {
+      messenger.showSnackBar(const SnackBar(content: Text('无结果')));
+      return;
+    }
+
+    final selectedTrack = await showOnlineLyricsSearchDialog(
+      context: context,
+      queryTitle: songTitle,
+      tracks: tracks,
+    );
+
+    if (!mounted || selectedTrack == null) return;
+
+    final lyricsText = selectedTrack.syncedLyrics?.trim().isNotEmpty == true
+        ? selectedTrack.syncedLyrics!.trim()
+        : selectedTrack.plainLyrics?.trim() ?? '';
+    if (lyricsText.isEmpty) {
+      messenger.showSnackBar(const SnackBar(content: Text('无结果')));
+      return;
+    }
+
+    await _lyricsControllerActions.fillLyricsForCurrentSong(
+      lyricsText,
+      source: LyricsCacheSource.lrclib,
+    );
   }
 
   String _buildGenerateButtonLabel(

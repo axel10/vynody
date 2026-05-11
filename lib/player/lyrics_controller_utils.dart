@@ -214,7 +214,10 @@ class LyricsControllerSupport {
     await saveLyricsCacheForSong(updatedSong);
   }
 
-  Future<void> fillLyricsForCurrentSong(String lyricsText) async {
+  Future<void> fillLyricsForCurrentSong(
+    String lyricsText, {
+    LyricsCacheSource source = LyricsCacheSource.manualAdjust,
+  }) async {
     final song = _context.currentMusic();
     if (song == null) return;
 
@@ -234,11 +237,14 @@ class LyricsControllerSupport {
 
     if (_context.currentMusic()?.path != song.path) return;
 
+    final parsedTimedLines = LrcUtils.parseTimedLyrics(normalizedText);
     final filledLyrics = MusicLyric(
       id: LyricsIdUtils.fromLyricsText(normalizedText),
-      syncedLines: buildLyricsLines(const [], normalizedText),
+      syncedLines: parsedTimedLines.isNotEmpty
+          ? parsedTimedLines
+          : buildLyricsLines(const [], normalizedText),
       plainText: normalizedText,
-      source: LyricsCacheSource.manualAdjust.musicLyricSource,
+      source: source.musicLyricSource,
       timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
     );
 
@@ -278,7 +284,7 @@ class LyricsControllerSupport {
       await _context.lyricsCacheRepository.saveLyricsCache(
         LyricsCacheRecord(
           cacheKey: cacheKey,
-          source: LyricsCacheSource.manualAdjust,
+          source: source,
           isSynced: filledLyrics.isSynced,
           syncedLyrics: filledLyrics.plainText,
           syncedLines: filledLyrics.syncedLines,
@@ -322,6 +328,11 @@ class LyricsControllerSupport {
 
     if (fallbackPlainLyrics.trim().isEmpty) {
       return const [];
+    }
+
+    final timedLines = LrcUtils.parseTimedLyrics(fallbackPlainLyrics);
+    if (timedLines.isNotEmpty) {
+      return timedLines;
     }
 
     final lines = fallbackPlainLyrics.split(RegExp(r'\r?\n'));

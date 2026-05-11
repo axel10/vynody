@@ -11,6 +11,7 @@ import 'lyrics_controller_state.dart';
 import 'lyrics_song_task_state.dart';
 import 'lyrics_task_queue_summary.dart';
 import 'lyrics_ai_service.dart';
+import 'lyrics_service.dart';
 
 final lyricsControllerDependenciesProvider =
     Provider<LyricsControllerDependencies>((ref) {
@@ -20,6 +21,10 @@ final lyricsControllerDependenciesProvider =
 
 final lyricsAiServiceProvider = Provider<LyricsAiService>((ref) {
   return LyricsAiService(settingsService: ref.read(settingsServiceProvider));
+});
+
+final lyricsServiceProvider = Provider<LyricsService>((ref) {
+  return LyricsService();
 });
 
 final lyricsControllerProvider =

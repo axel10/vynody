@@ -354,8 +354,11 @@ class LyricsController extends Notifier<LyricsControllerState> {
     return _support.updateLyricsTimelineOffsetForCurrentSong(timelineOffset);
   }
 
-  Future<void> fillLyricsForCurrentSong(String lyricsText) {
-    return _support.fillLyricsForCurrentSong(lyricsText);
+  Future<void> fillLyricsForCurrentSong(
+    String lyricsText, {
+    LyricsCacheSource source = LyricsCacheSource.manualAdjust,
+  }) {
+    return _support.fillLyricsForCurrentSong(lyricsText, source: source);
   }
 
   LyricsSongTaskState taskStateForSong(String path) {

@@ -147,6 +147,19 @@ class LyricsService {
 
   static const double _acceptThreshold = 65.0;
 
+  /// 仅基于歌曲标题发起 lrclib 在线搜索。
+  Future<List<LyricTrack>> searchTracksByTitle({
+    required String title,
+    CancelToken? cancelToken,
+  }) {
+    final normalizedTitle = _cleanField(title);
+    if (normalizedTitle == null) {
+      return Future.value(const []);
+    }
+
+    return _searchByTitleOnly(normalizedTitle, cancelToken: cancelToken);
+  }
+
   /// 核心歌词获取入口。
   /// 实现了一个分层的查找策略：内存 -> SQLite 数据库 -> 在线 API。
   Future<LyricSelectionResult?> fetchBestLyrics({
@@ -573,6 +586,43 @@ class LyricsService {
       debugPrint('[Lyrics] SEARCH failed for "${query.title}": ${e.message}');
     } catch (e) {
       debugPrint('[Lyrics] SEARCH error for "${query.title}": $e');
+    }
+    return const [];
+  }
+
+  Future<List<LyricTrack>> _searchByTitleOnly(
+    String title, {
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final params = <String, dynamic>{'track_name': title, 'q': title};
+
+      final response = await _client.get(
+        'https://lrclib.net/api/search',
+        queryParameters: params,
+        cancelToken: cancelToken,
+      );
+      _logDebug(
+        'http search title-only done -> track="$title" '
+        'resultType=${response.data.runtimeType}',
+      );
+
+      final data = response.data;
+      if (data is List) {
+        return data
+            .whereType<Map>()
+            .map((item) => LyricTrack.fromJson(Map<String, dynamic>.from(item)))
+            .where((track) => track.hasLyrics)
+            .toList(growable: false);
+      }
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        _logDebug('http search title-only canceled -> track="$title"');
+        return const [];
+      }
+      debugPrint('[Lyrics] SEARCH failed for "$title": ${e.message}');
+    } catch (e) {
+      debugPrint('[Lyrics] SEARCH error for "$title": $e');
     }
     return const [];
   }
