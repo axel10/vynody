@@ -96,7 +96,7 @@ class ArtistDetailContent extends ConsumerWidget {
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             sliver: SliverList.builder(
               itemCount: albumSections.length,
               itemBuilder: (context, index) {
@@ -404,7 +404,6 @@ class _AlbumSectionCard extends StatelessWidget {
                       ),
                     _AlbumSongTile(
                       song: section.songs[i],
-                      indexLabel: section.songLabelFor(i),
                       isCurrent: currentMusic?.path == section.songs[i].path,
                       theme: theme,
                       onTap: () => onSongTap(i),
@@ -426,7 +425,6 @@ class _AlbumSectionCard extends StatelessWidget {
 class _AlbumSongTile extends StatelessWidget {
   const _AlbumSongTile({
     required this.song,
-    required this.indexLabel,
     required this.isCurrent,
     required this.theme,
     required this.onTap,
@@ -435,7 +433,6 @@ class _AlbumSongTile extends StatelessWidget {
   });
 
   final MusicFile song;
-  final String indexLabel;
   final bool isCurrent;
   final ThemeData theme;
   final VoidCallback onTap;
@@ -455,17 +452,7 @@ class _AlbumSongTile extends StatelessWidget {
         selectedTileColor: theme.colorScheme.primaryContainer.withValues(
           alpha: 0.35,
         ),
-        leading: SizedBox(
-          width: 32,
-          child: Text(
-            indexLabel,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isCurrent ? theme.colorScheme.primary : null,
-              fontWeight: isCurrent ? FontWeight.w700 : null,
-            ),
-          ),
-        ),
+
         title: Text(
           song.displayName,
           style: theme.textTheme.bodyLarge?.copyWith(
@@ -508,11 +495,6 @@ class _AlbumSection {
   final int totalDurationMillis;
   final int startIndex;
 
-  String songLabelFor(int index) {
-    final song = songs[index];
-    final trackNumber = song.trackNumber ?? index + 1;
-    return trackNumber.toString().padLeft(2, '0');
-  }
 }
 
 List<_AlbumSection> _buildAlbumSections(
