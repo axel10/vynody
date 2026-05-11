@@ -7,10 +7,12 @@ import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/artist_summary.dart';
+import '../models/music_file.dart';
 import '../player/audio_riverpod.dart';
 import '../utils/song_context_menu_utils.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/artist_avatar.dart';
+import '../widgets/song_thumbnail.dart';
 
 class ArtistDetailPage extends ConsumerWidget {
   const ArtistDetailPage({super.key, required this.artist});
@@ -62,6 +64,10 @@ class ArtistDetailContent extends ConsumerWidget {
     final headerColor = theme.colorScheme.tertiaryContainer.withValues(
       alpha: 0.65,
     );
+    final albumSections = _buildAlbumSections(artist.songs, unknownAlbumLabel);
+    final displaySongs = albumSections
+        .expand((section) => section.songs)
+        .toList(growable: false);
 
     return CustomScrollView(
       slivers: [
@@ -86,9 +92,9 @@ class ArtistDetailContent extends ConsumerWidget {
                 );
                 final info = _ArtistInfo(
                   artist: artist,
-                  onPlayAll: () => audio.playPlaylist(artist.songs),
+                  onPlayAll: () => audio.playPlaylist(displaySongs),
                   onShufflePlay: () =>
-                      audio.playPlaylist(List.of(artist.songs)..shuffle()),
+                      audio.playPlaylist(List.of(displaySongs)..shuffle()),
                 );
 
                 if (isWide) {
@@ -114,65 +120,59 @@ class ArtistDetailContent extends ConsumerWidget {
             ),
           ),
         ),
-        SliverList.builder(
-          itemCount: artist.songs.length,
-          itemBuilder: (context, index) {
-            final song = artist.songs[index];
-            final isCurrent = currentMusic?.path == song.path;
-            final durationLabel = _formatDuration(song.durationMillis);
-            final trackLabel = '${index + 1}'.padLeft(2, '0');
-
-            return GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) {
-                showSongContextMenu(
-                  context,
-                  details.globalPosition,
-                  song: song,
-                  onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-                    context,
-                    ref.read(playlistServiceProvider),
-                    [song],
+        if (albumSections.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Text(l10n.emptyList, style: theme.textTheme.titleMedium),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            sliver: SliverList.builder(
+              itemCount: albumSections.length,
+              itemBuilder: (context, index) {
+                final section = albumSections[index];
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index == albumSections.length - 1 ? 0 : 12,
+                  ),
+                  child: _AlbumSectionCard(
+                    section: section,
+                    currentMusic: currentMusic,
+                    theme: theme,
+                    onPlayAlbum: () => audio.playPlaylist(section.songs),
+                    onShufflePlayAlbum: () =>
+                        audio.playPlaylist(List.of(section.songs)..shuffle()),
+                    onSongTap: (songIndex) => audio.playPlaylist(
+                      displaySongs,
+                      initialIndex: section.startIndex + songIndex,
+                    ),
+                    onSongSecondaryTapDown: (details, song) {
+                      showSongContextMenu(
+                        context,
+                        details.globalPosition,
+                        song: song,
+                        onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                          context,
+                          ref.read(playlistServiceProvider),
+                          [song],
+                        ),
+                      );
+                    },
+                    onSongLongPress: (song) {
+                      showAddSongsToPlaylistDialog(
+                        context,
+                        ref.read(playlistServiceProvider),
+                        [song],
+                      );
+                    },
                   ),
                 );
               },
-              child: ListTile(
-                selected: isCurrent,
-                selectedTileColor: theme.colorScheme.primaryContainer
-                    .withValues(alpha: 0.35),
-                leading: SizedBox(
-                  width: 32,
-                  child: Text(
-                    trackLabel,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: isCurrent ? theme.colorScheme.primary : null,
-                      fontWeight: isCurrent ? FontWeight.w700 : null,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  song.displayName,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: isCurrent ? theme.colorScheme.primary : null,
-                    fontWeight: isCurrent ? FontWeight.w700 : null,
-                  ),
-                ),
-                subtitle: Text(song.album ?? unknownAlbumLabel),
-                trailing: durationLabel == null ? null : Text(durationLabel),
-                onTap: () =>
-                    audio.playPlaylist(artist.songs, initialIndex: index),
-                onLongPress: () {
-                  showAddSongsToPlaylistDialog(
-                    context,
-                    ref.read(playlistServiceProvider),
-                    [song],
-                  );
-                },
-              ),
-            );
-          },
-        ),
+            ),
+          ),
       ],
     );
   }
@@ -298,6 +298,222 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
+class _AlbumSectionCard extends StatelessWidget {
+  const _AlbumSectionCard({
+    required this.section,
+    required this.currentMusic,
+    required this.theme,
+    required this.onPlayAlbum,
+    required this.onShufflePlayAlbum,
+    required this.onSongTap,
+    required this.onSongSecondaryTapDown,
+    required this.onSongLongPress,
+  });
+
+  final _AlbumSection section;
+  final MusicFile? currentMusic;
+  final ThemeData theme;
+  final VoidCallback onPlayAlbum;
+  final VoidCallback onShufflePlayAlbum;
+  final ValueChanged<int> onSongTap;
+  final void Function(TapDownDetails details, MusicFile song)
+  onSongSecondaryTapDown;
+  final ValueChanged<MusicFile> onSongLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final durationLabel =
+        _formatDuration(section.totalDurationMillis) ?? l10n.durationZero;
+    final countLabel = l10n.songCount(section.songs.length);
+    final subtitle = '$countLabel · $durationLabel';
+
+    return Card(
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainerLow,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 500;
+                final cover = ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: SongThumbnail(
+                    path: section.representativeSong.path,
+                    id: section.representativeSong.id,
+                    size: 78,
+                  ),
+                );
+                final info = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      section.title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: onPlayAlbum,
+                          icon: const Icon(Icons.play_arrow),
+                          label: Text(l10n.playAll),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: onShufflePlayAlbum,
+                          icon: const Icon(Icons.shuffle),
+                          label: Text(l10n.shufflePlay),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+
+                if (isWide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      cover,
+                      const SizedBox(width: 16),
+                      Expanded(child: info),
+                    ],
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(child: cover),
+                    const SizedBox(height: 16),
+                    info,
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.35,
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  for (int i = 0; i < section.songs.length; i++) ...[
+                    if (i > 0)
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        indent: 16,
+                        endIndent: 16,
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.35,
+                        ),
+                      ),
+                    _AlbumSongTile(
+                      song: section.songs[i],
+                      indexLabel: section.songLabelFor(i),
+                      isCurrent: currentMusic?.path == section.songs[i].path,
+                      theme: theme,
+                      onTap: () => onSongTap(i),
+                      onSecondaryTapDown: (details) =>
+                          onSongSecondaryTapDown(details, section.songs[i]),
+                      onLongPress: () => onSongLongPress(section.songs[i]),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AlbumSongTile extends StatelessWidget {
+  const _AlbumSongTile({
+    required this.song,
+    required this.indexLabel,
+    required this.isCurrent,
+    required this.theme,
+    required this.onTap,
+    required this.onSecondaryTapDown,
+    required this.onLongPress,
+  });
+
+  final MusicFile song;
+  final String indexLabel;
+  final bool isCurrent;
+  final ThemeData theme;
+  final VoidCallback onTap;
+  final void Function(TapDownDetails details) onSecondaryTapDown;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final durationLabel = _formatDuration(song.durationMillis);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onSecondaryTapDown: onSecondaryTapDown,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        selected: isCurrent,
+        selectedTileColor: theme.colorScheme.primaryContainer.withValues(
+          alpha: 0.35,
+        ),
+        leading: SizedBox(
+          width: 32,
+          child: Text(
+            indexLabel,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isCurrent ? theme.colorScheme.primary : null,
+              fontWeight: isCurrent ? FontWeight.w700 : null,
+            ),
+          ),
+        ),
+        title: Text(
+          song.displayName,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: isCurrent ? theme.colorScheme.primary : null,
+            fontWeight: isCurrent ? FontWeight.w700 : null,
+          ),
+        ),
+        trailing: durationLabel == null ? null : Text(durationLabel),
+        onTap: onTap,
+        onLongPress: onLongPress,
+      ),
+    );
+  }
+}
+
 class _ArtistCover extends StatelessWidget {
   const _ArtistCover({required this.size});
 
@@ -319,4 +535,108 @@ String? _formatDuration(int? durationMs) {
     return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
   return '${duration.inMinutes}:${seconds.toString().padLeft(2, '0')}';
+}
+
+class _AlbumSection {
+  const _AlbumSection({
+    required this.title,
+    required this.songs,
+    required this.representativeSong,
+    required this.totalDurationMillis,
+    required this.startIndex,
+  });
+
+  final String title;
+  final List<MusicFile> songs;
+  final MusicFile representativeSong;
+  final int totalDurationMillis;
+  final int startIndex;
+
+  String songLabelFor(int index) {
+    final song = songs[index];
+    final trackNumber = song.trackNumber ?? index + 1;
+    return trackNumber.toString().padLeft(2, '0');
+  }
+}
+
+List<_AlbumSection> _buildAlbumSections(
+  List<MusicFile> songs,
+  String unknownAlbumLabel,
+) {
+  final grouped = <String, List<MusicFile>>{};
+  final titles = <String, String>{};
+  final unknownKey = unknownAlbumLabel.toLowerCase();
+
+  for (final song in songs) {
+    final rawAlbum = song.album?.trim();
+    final isUnknown = rawAlbum == null || rawAlbum.isEmpty;
+    final normalizedTitle = isUnknown ? unknownAlbumLabel : rawAlbum;
+    final key = normalizedTitle.toLowerCase();
+
+    grouped.putIfAbsent(key, () => <MusicFile>[]).add(song);
+    titles[key] = normalizedTitle;
+  }
+
+  final orderedKeys = grouped.keys.toList()
+    ..sort((a, b) {
+      final leftUnknown = a == unknownKey;
+      final rightUnknown = b == unknownKey;
+      if (leftUnknown != rightUnknown) {
+        return leftUnknown ? 1 : -1;
+      }
+      return titles[a]!.toLowerCase().compareTo(titles[b]!.toLowerCase());
+    });
+
+  final sections = <_AlbumSection>[];
+  var startIndex = 0;
+
+  for (final key in orderedKeys) {
+    final albumSongs = List<MusicFile>.from(grouped[key]!)
+      ..sort(_compareAlbumSongs);
+    final representativeSong = albumSongs.firstWhere(
+      (song) => _hasArtwork(song),
+      orElse: () => albumSongs.first,
+    );
+    final totalDurationMillis = albumSongs.fold<int>(
+      0,
+      (sum, song) => sum + (song.durationMillis ?? 0),
+    );
+    final title = titles[key]!;
+
+    sections.add(
+      _AlbumSection(
+        title: title,
+        songs: albumSongs,
+        representativeSong: representativeSong,
+        totalDurationMillis: totalDurationMillis,
+        startIndex: startIndex,
+      ),
+    );
+    startIndex += albumSongs.length;
+  }
+
+  return sections;
+}
+
+bool _hasArtwork(MusicFile song) {
+  final hasBytes = song.artworkBytes?.isNotEmpty ?? false;
+  final hasArtworkPath = song.artworkPath?.isNotEmpty ?? false;
+  final hasThumbnailPath = song.thumbnailPath?.isNotEmpty ?? false;
+  return hasBytes || hasArtworkPath || hasThumbnailPath;
+}
+
+int _compareAlbumSongs(MusicFile a, MusicFile b) {
+  final leftTrack = a.trackNumber;
+  final rightTrack = b.trackNumber;
+  if (leftTrack != null && rightTrack != null && leftTrack != rightTrack) {
+    return leftTrack.compareTo(rightTrack);
+  }
+  if (leftTrack != null && rightTrack == null) return -1;
+  if (leftTrack == null && rightTrack != null) return 1;
+
+  final titleCompare = a.displayName.toLowerCase().compareTo(
+    b.displayName.toLowerCase(),
+  );
+  if (titleCompare != 0) return titleCompare;
+  return a.path.toLowerCase().compareTo(b.path.toLowerCase());
 }

@@ -20,6 +20,7 @@ class ArtistsTab extends ConsumerStatefulWidget {
 
 class _ArtistsTabState extends ConsumerState<ArtistsTab> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   _ArtistSortField _sortField = _ArtistSortField.artist;
   bool _sortAscending = true;
@@ -27,6 +28,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -114,6 +116,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                               artists: visibleArtists,
                               selectedArtistKey: selectedArtist?.queryKey,
                               noArtistsLabel: noArtistsLabel,
+                              scrollController: _scrollController,
                               onArtistSelected: (artist) {
                                 setState(() {
                                   _selectedArtistKey = artist.queryKey;
@@ -177,6 +180,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                           ),
                         )
                       : ListView.separated(
+                          controller: _scrollController,
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                           itemCount: visibleArtists.length,
                           separatorBuilder: (context, index) =>
@@ -277,12 +281,14 @@ class _ArtistListPane extends StatelessWidget {
     required this.artists,
     required this.selectedArtistKey,
     required this.noArtistsLabel,
+    required this.scrollController,
     required this.onArtistSelected,
   });
 
   final List<ArtistSummary> artists;
   final String? selectedArtistKey;
   final String noArtistsLabel;
+  final ScrollController scrollController;
   final ValueChanged<ArtistSummary> onArtistSelected;
 
   @override
@@ -301,8 +307,10 @@ class _ArtistListPane extends StatelessWidget {
               child: Text(noArtistsLabel, style: theme.textTheme.titleMedium),
             )
           : Scrollbar(
+              controller: scrollController,
               thumbVisibility: true,
               child: ListView.separated(
+                controller: scrollController,
                 padding: const EdgeInsets.all(12),
                 itemCount: artists.length,
                 separatorBuilder: (context, index) => const SizedBox(height: 8),
