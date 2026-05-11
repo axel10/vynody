@@ -75,6 +75,58 @@ class ScannerDirectoryScanner {
     }
   }
 
+  Future<List<String>> discoverMusicFilesInDirectory(
+    String path,
+    ScanProgressState scanState, {
+    bool Function()? shouldCancel,
+  }) async {
+    debugPrint(
+      '[ScannerDirectoryScanner] discoverMusicFilesInDirectory start '
+      'path=$path',
+    );
+    final directory = Directory(path);
+    if (!await directory.exists()) {
+      debugPrint(
+        '[ScannerDirectoryScanner] non-recursive discovery skipped missing '
+        'path=$path',
+      );
+      return const <String>[];
+    }
+
+    final discoveredPaths = <String>[];
+    try {
+      await for (final entity in directory.list(followLinks: false)) {
+        if (shouldCancel?.call() ?? false) {
+          debugPrint(
+            '[ScannerDirectoryScanner] non-recursive discovery cancelled '
+            'path=$path discovered=${discoveredPaths.length}',
+          );
+          return discoveredPaths;
+        }
+
+        if (entity is File &&
+            !_shouldSkipAppleDoubleFile(entity.path) &&
+            MusicFileUtils.isMusicFilePath(entity.path)) {
+          final filePath = entity.path;
+          discoveredPaths.add(filePath);
+          scanState.discoveredCount++;
+          _emitScanProgress(scanState, filePath);
+        }
+      }
+    } catch (e, st) {
+      debugPrint(
+        '[ScannerDirectoryScanner] non-recursive discovery list error '
+        'path=$path: $e\n$st',
+      );
+    }
+
+    debugPrint(
+      '[ScannerDirectoryScanner] discoverMusicFilesInDirectory finished '
+      'path=$path count=${discoveredPaths.length}',
+    );
+    return discoveredPaths;
+  }
+
   Future<List<String>> _discoverMusicFilesWithIsolate(
     String path,
     ScanProgressState scanState, {

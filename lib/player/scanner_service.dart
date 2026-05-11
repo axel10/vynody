@@ -56,11 +56,14 @@ class ScannerService extends ChangeNotifier {
   Timer? _metadataNotifyTimer;
   Timer? _scanNotifyTimer;
   Timer? _rootAvailabilityRefreshTimer;
+  Timer? _directoryRescanTimer;
   bool _scanNotifyPending = false;
   bool _lastNotifiedScanningState = false;
   bool _pendingRootAvailabilityRescan = false;
+  bool _directoryRescanInProgress = false;
   bool _isDisposed = false;
   final Set<String> _activeScopedRootPaths = <String>{};
+  final Set<String> _pendingDirectoryRescanPaths = <String>{};
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -215,6 +218,15 @@ class ScannerService extends ChangeNotifier {
   void _handleScanStateChanged() {
     if (_isDisposed) return;
     notifyListeners();
+    if (!isScanning &&
+        _pendingDirectoryRescanPaths.isNotEmpty &&
+        _directoryRescanTimer == null &&
+        !_directoryRescanInProgress) {
+      _directoryRescanTimer = Timer(
+        Duration.zero,
+        () => unawaited(_flushPendingDirectoryRescans()),
+      );
+    }
   }
 
   void _logInitTiming(String label, Stopwatch stopwatch) {
@@ -1546,6 +1558,77 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
+  Future<void> _rescanDirectory(String directoryPath) async {
+    final normalizedDirectory = _normalizePath(directoryPath);
+    if (normalizedDirectory.isEmpty) {
+      return;
+    }
+
+    if (_scanCoordinator.isScanning) {
+      _scanCoordinator.requestRescan();
+      return;
+    }
+
+    _scanCoordinator.beginIncrementalPhase();
+    final scanState = ScanProgressState(
+      metadataConcurrency: 2,
+      comparePaths: _compareNaturally,
+    );
+    final affectedRoots = _rootPathsForDirectoryPath(normalizedDirectory);
+
+    try {
+      final directory = Directory(normalizedDirectory);
+      if (!await directory.exists()) {
+        await _removeDirectoryFromLibrary(normalizedDirectory);
+        for (final rootPath in affectedRoots) {
+          _rebuildScannedRootFolderFromCache(rootPath);
+        }
+        if (affectedRoots.isNotEmpty) {
+          _rebuildDisplayedRootFolders();
+          _syncNavigationStateToLatestTree();
+        }
+        notifyListeners();
+        return;
+      }
+
+      final discoveredPaths = await _directoryScanner
+          .discoverMusicFilesInDirectory(normalizedDirectory, scanState);
+      final normalizedDiscoveredPaths = discoveredPaths
+          .map(_normalizePath)
+          .where((path) => path.isNotEmpty)
+          .toSet();
+
+      final existingPathsInDirectory = _metadataStore.metadataMap.keys
+          .where(
+            (path) =>
+                _isImmediateChildOfDirectory(normalizedDirectory, path) &&
+                MusicFileUtils.isMusicFilePath(path),
+          )
+          .toList(growable: false);
+
+      for (final existingPath in existingPathsInDirectory) {
+        if (!normalizedDiscoveredPaths.contains(existingPath)) {
+          await _metadataStore.purgeMissingSongPath(existingPath);
+        }
+      }
+
+      for (final filePath in normalizedDiscoveredPaths) {
+        await _upsertIncrementalSongPath(filePath, scanState: scanState);
+      }
+
+      for (final rootPath in affectedRoots) {
+        _rebuildScannedRootFolderFromCache(rootPath);
+      }
+      if (affectedRoots.isNotEmpty) {
+        _rebuildDisplayedRootFolders();
+        _syncNavigationStateToLatestTree();
+      }
+      notifyListeners();
+    } finally {
+      _scanCoordinator.completeIncrementalPhase();
+    }
+  }
+
   Future<SongMetadata?> _upsertIncrementalSongPath(
     String filePath, {
     required ScanProgressState scanState,
@@ -1619,11 +1702,97 @@ class ScannerService extends ChangeNotifier {
 
   void _enqueueIncrementalFileEvent(FileSystemEvent event) {
     if (_isDisposed) return;
-    if (_scanCoordinator.isScanning) {
-      _scanCoordinator.requestRescan();
+
+    if (event.isDirectory) {
+      if ((event.type & FileSystemEvent.delete) != 0 ||
+          (event.type & FileSystemEvent.move) != 0) {
+        if (_scanCoordinator.isScanning) {
+          _scanCoordinator.requestRescan();
+          return;
+        }
+        _incrementalSync.enqueue(event);
+      }
       return;
     }
-    _incrementalSync.enqueue(event);
+
+    _scheduleDirectoryRescanForEvent(event);
+  }
+
+  void _scheduleDirectoryRescanForEvent(FileSystemEvent event) {
+    final scheduledDirectories = <String>{};
+
+    void addDirectoryPath(String path) {
+      final normalizedPath = _normalizePath(path);
+      if (normalizedPath.isEmpty) {
+        return;
+      }
+      final directoryPath = _normalizePath(p.dirname(normalizedPath));
+      if (directoryPath.isEmpty) {
+        return;
+      }
+      scheduledDirectories.add(directoryPath);
+    }
+
+    addDirectoryPath(event.path);
+    if (event is FileSystemMoveEvent) {
+      addDirectoryPath(event.destination ?? '');
+    }
+
+    for (final directoryPath in scheduledDirectories) {
+      _queueDirectoryRescan(directoryPath);
+    }
+  }
+
+  void _queueDirectoryRescan(String directoryPath) {
+    if (_isDisposed) return;
+
+    final normalizedPath = _normalizePath(directoryPath);
+    if (normalizedPath.isEmpty) {
+      return;
+    }
+
+    _pendingDirectoryRescanPaths.add(normalizedPath);
+    _directoryRescanTimer?.cancel();
+    _directoryRescanTimer = Timer(
+      const Duration(seconds: 1),
+      () => unawaited(_flushPendingDirectoryRescans()),
+    );
+  }
+
+  Future<void> _flushPendingDirectoryRescans() async {
+    _directoryRescanTimer = null;
+    if (_isDisposed || _directoryRescanInProgress) {
+      return;
+    }
+    if (_scanCoordinator.isScanning) {
+      return;
+    }
+    if (_pendingDirectoryRescanPaths.isEmpty) {
+      return;
+    }
+
+    _directoryRescanInProgress = true;
+    final directoryPaths = _pendingDirectoryRescanPaths.toList(growable: false);
+    _pendingDirectoryRescanPaths.clear();
+
+    try {
+      for (final directoryPath in directoryPaths) {
+        if (_isDisposed) {
+          return;
+        }
+        await _rescanDirectory(directoryPath);
+      }
+    } finally {
+      _directoryRescanInProgress = false;
+      if (!_isDisposed &&
+          _pendingDirectoryRescanPaths.isNotEmpty &&
+          _directoryRescanTimer == null) {
+        _directoryRescanTimer = Timer(
+          Duration.zero,
+          () => unawaited(_flushPendingDirectoryRescans()),
+        );
+      }
+    }
   }
 
   void cancelScan() {
@@ -2895,6 +3064,15 @@ class ScannerService extends ChangeNotifier {
     return ScannerPathUtils.pathContains(parent, child);
   }
 
+  bool _isImmediateChildOfDirectory(String parent, String child) {
+    final normalizedParent = _normalizePath(parent);
+    final normalizedChild = _normalizePath(child);
+    if (normalizedParent.isEmpty || normalizedChild.isEmpty) {
+      return false;
+    }
+    return _pathsEqual(p.dirname(normalizedChild), normalizedParent);
+  }
+
   String _displayNameForPath(String path) {
     return ScannerPathUtils.displayNameForPath(path);
   }
@@ -2969,6 +3147,9 @@ class ScannerService extends ChangeNotifier {
     _mobileStorageSubscription?.cancel();
     _metadataNotifyTimer?.cancel();
     _incrementalSync.dispose();
+    _directoryRescanTimer?.cancel();
+    _directoryRescanTimer = null;
+    _pendingDirectoryRescanPaths.clear();
     _scanNotifyTimer?.cancel();
     _rootAvailabilityRefreshTimer?.cancel();
     _scanProgressController.close();
