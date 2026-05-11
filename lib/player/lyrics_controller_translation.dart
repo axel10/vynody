@@ -186,6 +186,7 @@ class LyricsTranslationCoordinator {
       final errorMessage = await _context.lyricsAiService.translateLyricsStream(
         lyrics: request.sourceLyrics,
         targetLanguageCode: request.languageCode,
+        onModelLabelChanged: _updateTranslationModelLabel,
         onProgress: (translatedLines, translatedText) {
           _syncTranslatedLyricsToSong(
             request.songPath,
@@ -217,6 +218,13 @@ class LyricsTranslationCoordinator {
         ),
       );
     }
+  }
+
+  void _updateTranslationModelLabel(String? modelLabel) {
+    final current = _context.lyricsGenerationDisplayState;
+    _context.updateLyricsGenerationDisplayState(
+      current.copyWith(modelLabel: modelLabel ?? ''),
+    );
   }
 
   String _t(String zh, String en) {

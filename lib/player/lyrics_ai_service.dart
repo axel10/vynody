@@ -32,6 +32,8 @@ class _LyricsGenerationOutcome {
 }
 
 class LyricsAiService {
+  static const String defaultTranslationModelId = 'gemma-4-31b-it';
+
   LyricsAiService({
     NetworkClient? client,
     required SettingsService settingsService,
@@ -105,6 +107,11 @@ class LyricsAiService {
     'Google is having a rough moment. Please try again and it may succeed.',
   );
 
+  static String get _translationServerFlakyMessage => localizedText(
+    '谷歌服务器开小差了，请等一会儿后重试',
+    'Google is having a rough moment. Please try again later.',
+  );
+
   bool _shouldUseGoogleServerFlakyMessage(Object error) {
     if (_settingsService.lyricsAiProvider != LyricsAiProvider.googleAiStudio) {
       return false;
@@ -123,7 +130,8 @@ class LyricsAiService {
     String targetLanguageCode = 'zh',
     void Function(List<String> translatedLines, String translatedText)?
     onProgress,
-    String modelId = 'gemma-4-31b-it',
+    void Function(String? modelLabel)? onModelLabelChanged,
+    String modelId = defaultTranslationModelId,
   }) async {
     final apiKey = _settingsService.geminiApiKey.trim();
     if (apiKey.isEmpty) {
@@ -153,6 +161,7 @@ class LyricsAiService {
     }
     final targetLanguageName = _targetLanguageName(targetLanguageCode);
     final sourceLyricsForModel = _normalizeSourceLyrics(lyrics);
+    onModelLabelChanged?.call(_googleModelLabel(modelId));
     final prompt =
         '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
         '请保留完整时间轴和原有分行顺序，不要删减、合并、重排任何一行，也不要自行补充空行、编号或解释。'
@@ -280,6 +289,9 @@ class LyricsAiService {
       return null;
     } on DioException catch (e) {
       debugPrint('[LyricsAi] request failed: ${e.message}');
+      if (_isServerError(e.response?.statusCode)) {
+        return _translationServerFlakyMessage;
+      }
       if (_shouldUseGoogleServerFlakyMessage(e)) {
         return _googleServerFlakyMessage;
       }
