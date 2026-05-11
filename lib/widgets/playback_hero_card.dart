@@ -157,11 +157,16 @@ class PlaybackHeroCard extends ConsumerWidget {
       onExit: (_) => onMiniMouseExit?.call(),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.82),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.black.withValues(alpha: 0.82)
+              : Colors.white.withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.grey[400]!)
+                  .withValues(alpha: 0.3),
               blurRadius: 10,
               spreadRadius: 2,
             ),
@@ -1250,7 +1255,9 @@ class _MiniPlayerProgressInfoState
                       currentMusic?.displayName ??
                           AppLocalizations.of(context)!.notSelected,
                       style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                        color: Colors.white,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black87,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1265,7 +1272,10 @@ class _MiniPlayerProgressInfoState
                           '${formatDuration(displayPosition)} / ${formatDuration(duration)}',
                           style: Theme.of(context).textTheme.bodySmall!
                               .copyWith(
-                                color: Colors.white,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black87,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5,
@@ -1285,8 +1295,15 @@ class _MiniPlayerProgressInfoState
                 child: LinearProgressIndicator(
                   minHeight: _isActive ? 6 : 3,
                   value: displayProgress.clamp(0.0, 1.0),
-                  backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                  backgroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white24
+                          : Colors.black12,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black87,
+                  ),
                 ),
               ),
             ),

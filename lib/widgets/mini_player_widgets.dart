@@ -30,12 +30,20 @@ class MiniArtwork extends ConsumerWidget {
                 filterQuality: FilterQuality.medium,
               )
             : null,
-        color: Colors.grey[900],
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey[900]
+            : Colors.grey[200],
       ),
       child:
           (currentMusic?.artworkBytes == null &&
               currentMusic?.artworkPath == null)
-          ? const Icon(Icons.music_note, color: Colors.white, size: 20)
+          ? Icon(
+              Icons.music_note,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black54,
+              size: 20,
+            )
           : null,
     );
   }
@@ -55,8 +63,13 @@ class MiniControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return IconButton(
-      icon: Icon(icon, color: Colors.white, size: 24),
+      icon: Icon(
+        icon,
+        color: isDark ? Colors.white : Colors.black87,
+        size: 24,
+      ),
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),
       onPressed: onPressed,
@@ -115,10 +128,22 @@ class MiniInlineVolumeControl extends StatelessWidget {
                       overlayShape: const RoundSliderOverlayShape(
                         overlayRadius: 12,
                       ),
-                      activeTrackColor: Colors.white,
-                      inactiveTrackColor: Colors.white24,
-                      thumbColor: Colors.white,
-                      overlayColor: Colors.white.withValues(alpha: 0.15),
+                      activeTrackColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                      inactiveTrackColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white24
+                              : Colors.black12,
+                      thumbColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black,
+                      overlayColor: (Theme.of(context).brightness ==
+                                  Brightness.dark
+                              ? Colors.white
+                              : Colors.black)
+                          .withValues(alpha: 0.15),
                     ),
                     child: Slider(
                       value: volume.clamp(0.0, 100.0),
@@ -158,7 +183,10 @@ class MiniSpectrumBackground extends ConsumerWidget {
           child: CustomPaint(
             painter: _MiniSpectrumPainter(
               values: frame.values,
-              color: Colors.white.withValues(alpha: 0.25),
+              color: (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black)
+                  .withValues(alpha: 0.25),
             ),
           ),
         );
