@@ -28,6 +28,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.isLandscape = false,
     this.isNext = true,
     this.showVisualizerToggle = true,
+    this.showMiniVolumeSlider = false,
     this.onShowMoreMenu,
     this.onMiniTap,
     this.onCyclePlaylistMode,
@@ -44,6 +45,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.onPlayPause,
     this.onNext,
     this.onVolumeTap,
+    this.onVolumeChanged,
     this.onVolumeDrag,
     this.onVolumeScroll,
     this.onCoverTap,
@@ -59,6 +61,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   final bool isLyricsMode;
   final bool isLandscape;
   final bool isNext;
+  final bool showMiniVolumeSlider;
   final List<double>? overrideWaveform;
   final double? overrideProgress;
   final Duration? overridePosition;
@@ -79,6 +82,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   final VoidCallback? onPlayPause;
   final VoidCallback? onNext;
   final VoidCallback? onVolumeTap;
+  final ValueChanged<double>? onVolumeChanged;
   final ValueChanged<double>? onVolumeDrag;
   final ValueChanged<double>? onVolumeScroll;
   final VoidCallback? onCoverTap;
@@ -254,6 +258,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                         onPressed: onNext,
                         tooltip: AppLocalizations.of(context)!.next,
                       ),
+                      if (isLandscape) const SizedBox(width: 10),
+                      if (isLandscape)
+                        MiniInlineVolumeControl(
+                          volume: ref.watch(audioVolumeProvider),
+                          showSlider: showMiniVolumeSlider,
+                          onTap: onVolumeTap,
+                          onChanged: onVolumeChanged,
+                          tooltip: AppLocalizations.of(context)!.volume,
+                        ),
                     ],
                   ),
                 ],
@@ -278,16 +291,12 @@ class PlaybackHeroCard extends ConsumerWidget {
     return TweenAnimationBuilder<double>(
       duration: animDuration,
       curve: animCurve,
-      tween: Tween<double>(
-        end: isLandscape ? 1.0 : 0.0,
-      ),
+      tween: Tween<double>(end: isLandscape ? 1.0 : 0.0),
       builder: (context, tLand, _) {
         return TweenAnimationBuilder<double>(
           duration: animDuration,
           curve: animCurve,
-          tween: Tween<double>(
-            end: isLyricsMode ? 1.0 : 0.0,
-          ),
+          tween: Tween<double>(end: isLyricsMode ? 1.0 : 0.0),
           builder: (context, tLyrics, _) {
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -762,10 +771,10 @@ class PlaybackHeroCard extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
@@ -809,7 +818,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                     child: Text(
                       hasArtist && hasAlbum
                           ? '$rawArtist — $rawAlbum'
-                          : (hasArtist ? rawArtist : (hasAlbum ? rawAlbum : l10n.unknown)),
+                          : (hasArtist
+                                ? rawArtist
+                                : (hasAlbum ? rawAlbum : l10n.unknown)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 import '../player/audio_riverpod.dart';
 import '../player/audio_service.dart';
+import '../utils/playback_utils.dart';
 
 class MiniArtwork extends ConsumerWidget {
   const MiniArtwork({super.key});
@@ -60,6 +61,78 @@ class MiniControlButton extends StatelessWidget {
       constraints: const BoxConstraints(),
       onPressed: onPressed,
       tooltip: tooltip,
+    );
+  }
+}
+
+class MiniInlineVolumeControl extends StatelessWidget {
+  const MiniInlineVolumeControl({
+    super.key,
+    required this.volume,
+    required this.showSlider,
+    required this.onTap,
+    required this.onChanged,
+    this.tooltip,
+  });
+
+  final double volume;
+  final bool showSlider;
+  final VoidCallback? onTap;
+  final ValueChanged<double>? onChanged;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MiniControlButton(
+          icon: getVolumeIcon(volume),
+          onPressed: onTap,
+          tooltip: tooltip,
+        ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            return SizeTransition(
+              sizeFactor: animation,
+              axis: Axis.horizontal,
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          child: showSlider
+              ? SizedBox(
+                  key: const ValueKey('mini-inline-volume-slider'),
+                  width: 118,
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 2.5,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 12,
+                      ),
+                      activeTrackColor: Colors.white,
+                      inactiveTrackColor: Colors.white24,
+                      thumbColor: Colors.white,
+                      overlayColor: Colors.white.withValues(alpha: 0.15),
+                    ),
+                    child: Slider(
+                      value: volume.clamp(0.0, 100.0),
+                      min: 0,
+                      max: 100,
+                      onChanged: onChanged,
+                    ),
+                  ),
+                )
+              : const SizedBox(
+                  key: ValueKey('mini-inline-volume-slider-collapsed'),
+                ),
+        ),
+      ],
     );
   }
 }

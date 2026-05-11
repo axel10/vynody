@@ -99,6 +99,7 @@ class MainLayout extends ConsumerStatefulWidget {
 class _MainLayoutState extends ConsumerState<MainLayout> {
   late int _currentIndex;
   double? _lastVolume;
+  bool _showMiniVolumeSlider = false;
   late final AudioService _audioService;
 
   MainLayoutUiController get _ui =>
@@ -383,6 +384,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         child: Center(child: child),
       );
     }
+
     const verticalPadding = 10.0;
     return [
       NavigationRailDestination(
@@ -657,6 +659,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                             ? Builder(
                                 builder: (context) {
                                   final audio = ref.read(audioServiceProvider);
+                                  final isLandscape =
+                                      MediaQuery.of(context).orientation ==
+                                      Orientation.landscape;
+
                                   return Container(
                                     key: const ValueKey('dynamic-island'),
                                     constraints: BoxConstraints(
@@ -666,11 +672,29 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                                     ),
                                     child: PlaybackHeroCard(
                                       isMini: true,
+                                      isLandscape: isLandscape,
+                                      showMiniVolumeSlider:
+                                          _showMiniVolumeSlider,
                                       onMiniTap: () =>
                                           _onDestinationSelected(1),
                                       onPrevious: audio.previous,
                                       onPlayPause: audio.togglePlay,
                                       onNext: audio.next,
+                                      onVolumeTap: () {
+                                        ref
+                                            .read(settingsServiceProvider)
+                                            .resetInactivity();
+                                        setState(() {
+                                          _showMiniVolumeSlider =
+                                              !_showMiniVolumeSlider;
+                                        });
+                                      },
+                                      onVolumeChanged: (value) {
+                                        ref
+                                            .read(settingsServiceProvider)
+                                            .resetInactivity();
+                                        audio.setVolume(value.roundToDouble());
+                                      },
                                     ),
                                   );
                                 },
@@ -732,8 +756,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     required bool isHidden,
     required bool includeBottomPadding,
   }) {
-    final bottomPadding =
-        includeBottomPadding ? MediaQuery.of(context).padding.bottom : 0.0;
+    final bottomPadding = includeBottomPadding
+        ? MediaQuery.of(context).padding.bottom
+        : 0.0;
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 500),
       opacity: isHidden ? 0.0 : 1.0,
@@ -742,7 +767,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         child: TweenAnimationBuilder<double>(
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
-          tween: Tween<double>(begin: navBgOpacityTarget, end: navBgOpacityTarget),
+          tween: Tween<double>(
+            begin: navBgOpacityTarget,
+            end: navBgOpacityTarget,
+          ),
           builder: (context, animatedOpacity, child) {
             return NavigationBar(
               height: 60 + bottomPadding,
