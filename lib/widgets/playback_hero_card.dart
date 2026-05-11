@@ -46,6 +46,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.onNext,
     this.onVolumeTap,
     this.onVolumeChanged,
+    this.onMiniMouseExit,
     this.onVolumeDrag,
     this.onVolumeScroll,
     this.onCoverTap,
@@ -83,6 +84,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   final VoidCallback? onNext;
   final VoidCallback? onVolumeTap;
   final ValueChanged<double>? onVolumeChanged;
+  final VoidCallback? onMiniMouseExit;
   final ValueChanged<double>? onVolumeDrag;
   final ValueChanged<double>? onVolumeScroll;
   final VoidCallback? onCoverTap;
@@ -151,99 +153,107 @@ class PlaybackHeroCard extends ConsumerWidget {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
     final progress = ref.watch(audioProgressProvider);
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.6,
-                child: MiniSpectrumBackground(
-                  audio: ref.read(audioServiceProvider),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onMiniTap,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const MiniArtwork(),
-                          const SizedBox(width: 14),
-                          Flexible(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 160),
-                              child: _MiniPlayerProgressInfo(
-                                currentMusic: currentMusic,
-                                progress: progress,
-                                onScrubbing: onScrubbing,
-                                onSeek: onSeek,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      MiniControlButton(
-                        icon: Icons.skip_previous_rounded,
-                        onPressed: onPrevious,
-                        tooltip: AppLocalizations.of(context)!.previous,
-                      ),
-                      const SizedBox(width: 8),
-                      MiniControlButton(
-                        icon: isPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                        onPressed: onPlayPause,
-                        tooltip: isPlaying
-                            ? AppLocalizations.of(context)!.pause
-                            : AppLocalizations.of(context)!.play,
-                      ),
-                      const SizedBox(width: 8),
-                      MiniControlButton(
-                        icon: Icons.skip_next_rounded,
-                        onPressed: onNext,
-                        tooltip: AppLocalizations.of(context)!.next,
-                      ),
-                      if (isLandscape) const SizedBox(width: 10),
-                      if (isLandscape)
-                        MiniInlineVolumeControl(
-                          volume: ref.watch(audioVolumeProvider),
-                          showSlider: showMiniVolumeSlider,
-                          onTap: onVolumeTap,
-                          onChanged: onVolumeChanged,
-                          tooltip: AppLocalizations.of(context)!.volume,
-                        ),
-                    ],
-                  ),
-                ],
-              ),
+    return MouseRegion(
+      onExit: (_) => onMiniMouseExit?.call(),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.82),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 10,
+              spreadRadius: 2,
             ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.6,
+                  child: MiniSpectrumBackground(
+                    audio: ref.read(audioServiceProvider),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onMiniTap,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const MiniArtwork(),
+                            const SizedBox(width: 14),
+                            Flexible(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 160,
+                                ),
+                                child: _MiniPlayerProgressInfo(
+                                  currentMusic: currentMusic,
+                                  progress: progress,
+                                  onScrubbing: onScrubbing,
+                                  onSeek: onSeek,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        MiniControlButton(
+                          icon: Icons.skip_previous_rounded,
+                          onPressed: onPrevious,
+                          tooltip: AppLocalizations.of(context)!.previous,
+                        ),
+                        const SizedBox(width: 8),
+                        MiniControlButton(
+                          icon: isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          onPressed: onPlayPause,
+                          tooltip: isPlaying
+                              ? AppLocalizations.of(context)!.pause
+                              : AppLocalizations.of(context)!.play,
+                        ),
+                        const SizedBox(width: 8),
+                        MiniControlButton(
+                          icon: Icons.skip_next_rounded,
+                          onPressed: onNext,
+                          tooltip: AppLocalizations.of(context)!.next,
+                        ),
+                        if (isLandscape) const SizedBox(width: 10),
+                        if (isLandscape)
+                          MiniInlineVolumeControl(
+                            volume: ref.watch(audioVolumeProvider),
+                            showSlider: showMiniVolumeSlider,
+                            onTap: onVolumeTap,
+                            onChanged: onVolumeChanged,
+                            tooltip: AppLocalizations.of(context)!.volume,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1162,16 +1172,16 @@ class _MiniPlayerProgressInfoState
     final duration = ref.watch(audioDurationProvider);
     final currentMusic = widget.currentMusic;
 
-    final displayProgress =
-        _isDragging ? (_dragValue ?? widget.progress) : widget.progress;
-    final displayPosition =
-        _isDragging
-            ? Duration(
-              milliseconds:
-                  (duration.inMilliseconds * (_dragValue ?? widget.progress))
-                      .toInt(),
-            )
-            : position;
+    final displayProgress = _isDragging
+        ? (_dragValue ?? widget.progress)
+        : widget.progress;
+    final displayPosition = _isDragging
+        ? Duration(
+            milliseconds:
+                (duration.inMilliseconds * (_dragValue ?? widget.progress))
+                    .toInt(),
+          )
+        : position;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
@@ -1222,10 +1232,7 @@ class _MiniPlayerProgressInfoState
                 children: [
                   TweenAnimationBuilder<double>(
                     duration: const Duration(milliseconds: 200),
-                    tween: Tween<double>(
-                      begin: 0,
-                      end: _isActive ? 5.0 : 0.0,
-                    ),
+                    tween: Tween<double>(begin: 0, end: _isActive ? 5.0 : 0.0),
                     builder: (context, blur, child) {
                       return ImageFiltered(
                         imageFilter: ImageFilter.blur(
@@ -1256,9 +1263,7 @@ class _MiniPlayerProgressInfoState
                       child: Center(
                         child: Text(
                           '${formatDuration(displayPosition)} / ${formatDuration(duration)}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall!
+                          style: Theme.of(context).textTheme.bodySmall!
                               .copyWith(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -1281,9 +1286,7 @@ class _MiniPlayerProgressInfoState
                   minHeight: _isActive ? 6 : 3,
                   value: displayProgress.clamp(0.0, 1.0),
                   backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Colors.white,
-                  ),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               ),
             ),

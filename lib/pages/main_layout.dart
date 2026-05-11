@@ -702,6 +702,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                                               !_showMiniVolumeSlider;
                                         });
                                       },
+                                      onMiniMouseExit: () {
+                                        if (!_showMiniVolumeSlider) return;
+                                        setState(() {
+                                          _showMiniVolumeSlider = false;
+                                        });
+                                      },
                                       onVolumeChanged: (value) {
                                         ref
                                             .read(settingsServiceProvider)
