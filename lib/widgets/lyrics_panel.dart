@@ -361,6 +361,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (currentSong == null || songTitle.isEmpty) {
       return;
     }
+    final songArtist = currentSong.artist?.trim();
+    final songAlbum = currentSong.album?.trim();
 
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
@@ -383,6 +385,15 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       context: context,
       queryTitle: songTitle,
       tracks: tracks,
+      queryArtist: songArtist?.isNotEmpty == true ? songArtist : null,
+      queryAlbum: songAlbum?.isNotEmpty == true ? songAlbum : null,
+      searchTracks: ({required String title, String? artist, String? album}) {
+        return service.searchTracksByQuery(
+          title: title,
+          artist: artist,
+          album: album,
+        );
+      },
     );
 
     if (!mounted || selectedTrack == null) return;

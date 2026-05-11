@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../player/acoustid_service.dart';
 import '../player/musicbrainz_tag_completion_service.dart';
 import '../utils/network_client.dart';
+import '../widgets/query_condition_chip.dart';
 
 class SongTagScoreBadge extends StatelessWidget {
   const SongTagScoreBadge({super.key, required this.score});
@@ -58,83 +59,21 @@ class SongTagSummaryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final accentColor = enabled
-        ? const Color(0xFF46D27A)
-        : Colors.white.withValues(alpha: 0.35);
-
-    return InkWell(
+    return QueryConditionChip(
+      label: label,
+      value: value,
+      enabled: enabled,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        constraints: const BoxConstraints(maxWidth: 260),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: enabled
-              ? const Color(0xFF46D27A).withValues(alpha: 0.12)
-              : Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: enabled
-                ? const Color(0xFF46D27A).withValues(alpha: 0.28)
-                : Colors.white.withValues(alpha: 0.06),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              enabled
-                  ? Icons.check_circle_outline_rounded
-                  : Icons.block_rounded,
-              size: 13,
-              color: accentColor,
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                '$label: $value',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: enabled
-                      ? Colors.white.withValues(alpha: 0.88)
-                      : Colors.white.withValues(alpha: 0.58),
-                  fontSize: 12,
-                  decoration: enabled
-                      ? TextDecoration.none
-                      : TextDecoration.lineThrough,
-                ),
-              ),
-            ),
-            if (onEdit != null) ...[
-              const SizedBox(width: 4),
-              IconButton(
-                onPressed: onEdit,
-                style: IconButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                constraints: const BoxConstraints.tightFor(
-                  width: 24,
-                  height: 24,
-                ),
-                icon: Icon(
-                  Icons.edit_rounded,
-                  size: 13,
-                  color: enabled
-                      ? Colors.white.withValues(alpha: 0.8)
-                      : Colors.white.withValues(alpha: 0.42),
-                ),
-                tooltip: l10n.editQueryCondition,
-              ),
-            ],
-          ],
-        ),
-      ),
+      onEdit: onEdit,
+      activeBackgroundColor: const Color(0xFF46D27A).withValues(alpha: 0.12),
+      inactiveBackgroundColor: Colors.white.withValues(alpha: 0.04),
+      activeBorderColor: const Color(0xFF46D27A).withValues(alpha: 0.28),
+      inactiveBorderColor: Colors.white.withValues(alpha: 0.06),
+      activeTextColor: Colors.white.withValues(alpha: 0.88),
+      inactiveTextColor: Colors.white.withValues(alpha: 0.58),
+      activeIconColor: const Color(0xFF46D27A),
+      inactiveIconColor: Colors.white.withValues(alpha: 0.35),
+      editTooltip: AppLocalizations.of(context)!.editQueryCondition,
     );
   }
 }

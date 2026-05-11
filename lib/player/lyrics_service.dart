@@ -152,12 +152,27 @@ class LyricsService {
     required String title,
     CancelToken? cancelToken,
   }) {
+    return searchTracksByQuery(title: title, cancelToken: cancelToken);
+  }
+
+  /// 基于标题、艺术家和专辑发起 lrclib 在线搜索。
+  Future<List<LyricTrack>> searchTracksByQuery({
+    required String title,
+    String? artist,
+    String? album,
+    CancelToken? cancelToken,
+  }) {
     final normalizedTitle = _cleanField(title);
     if (normalizedTitle == null) {
       return Future.value(const []);
     }
 
-    return _searchByTitleOnly(normalizedTitle, cancelToken: cancelToken);
+    return _searchByQuery(
+      normalizedTitle,
+      artist: _cleanField(artist),
+      album: _cleanField(album),
+      cancelToken: cancelToken,
+    );
   }
 
   /// 核心歌词获取入口。
@@ -590,12 +605,22 @@ class LyricsService {
     return const [];
   }
 
-  Future<List<LyricTrack>> _searchByTitleOnly(
+  Future<List<LyricTrack>> _searchByQuery(
     String title, {
+    String? artist,
+    String? album,
     CancelToken? cancelToken,
   }) async {
     try {
-      final params = <String, dynamic>{'track_name': title, 'q': title};
+      final params = <String, dynamic>{
+        'track_name': title,
+        if (artist != null && artist.trim().isNotEmpty) 'artist_name': artist,
+        'q': _buildSearchTextFromParts(
+          title: title,
+          artist: artist,
+          album: album,
+        ),
+      };
 
       final response = await _client.get(
         'https://lrclib.net/api/search',
@@ -603,7 +628,7 @@ class LyricsService {
         cancelToken: cancelToken,
       );
       _logDebug(
-        'http search title-only done -> track="$title" '
+        'http search done -> track="$title" '
         'resultType=${response.data.runtimeType}',
       );
 
@@ -617,7 +642,7 @@ class LyricsService {
       }
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) {
-        _logDebug('http search title-only canceled -> track="$title"');
+        _logDebug('http search canceled -> track="$title"');
         return const [];
       }
       debugPrint('[Lyrics] SEARCH failed for "$title": ${e.message}');
@@ -690,11 +715,25 @@ class LyricsService {
   }
 
   String _buildSearchText(LyricsQuery query) {
-    final parts = <String>[
-      query.title,
-      if (query.artist != null && query.artist!.trim().isNotEmpty)
-        query.artist!,
-    ];
+    return _buildSearchTextFromParts(
+      title: query.title,
+      artist: query.artist,
+      album: query.album,
+    );
+  }
+
+  String _buildSearchTextFromParts({
+    required String title,
+    String? artist,
+    String? album,
+  }) {
+    final parts = <String>[title];
+    if (artist != null && artist.trim().isNotEmpty) {
+      parts.add(artist);
+    }
+    if (album != null && album.trim().isNotEmpty) {
+      parts.add(album);
+    }
     return parts.join(' ').trim();
   }
 

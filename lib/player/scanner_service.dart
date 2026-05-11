@@ -2321,16 +2321,6 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  Set<String> _rootPathsForSongPath(String path) {
-    final normalizedPath = _normalizePath(path);
-    if (normalizedPath.isEmpty) {
-      return <String>{};
-    }
-    return _roots.rootPaths
-        .where((rootPath) => _pathContains(rootPath, normalizedPath))
-        .toSet();
-  }
-
   Set<String> _rootPathsForDirectoryPath(String path) {
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) {

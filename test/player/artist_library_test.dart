@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/player/artist_library.dart';
 import 'package:vibe_flow/player/metadata_database.dart';
 
