@@ -68,8 +68,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   LyricsController get _lyricsControllerActions =>
       ref.read(lyricsControllerProvider.notifier);
 
+  MusicLyric? _lyricsForDisplay() {
+    return _lyricsControllerActions.currentLyricsForCurrentSong() ??
+        widget.lyrics;
+  }
+
   List<LyricLine> _displayLinesForCurrentLyrics() {
-    return ref.read(lyricsDisplayLinesProvider(widget.lyrics));
+    return ref.read(lyricsDisplayLinesProvider(_lyricsForDisplay()));
   }
 
   List<LyricLine> _plainLyricsLines(String plainLyrics) {
@@ -613,13 +618,18 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final l10n = AppLocalizations.of(context)!;
     final lyricsState = ref.watch(lyricsControllerProvider);
     final currentSongTaskState = ref.watch(lyricsCurrentSongTaskStateProvider);
-    final displayLines = ref.watch(lyricsDisplayLinesProvider(widget.lyrics));
-    final displayPlainLyrics = ref.watch(
-      lyricsDisplayPlainTextProvider(widget.lyrics),
+    final lyricsForDisplay = _lyricsForDisplay();
+    final displayLines = ref.watch(
+      lyricsDisplayLinesProvider(lyricsForDisplay),
     );
-    final displayLyrics = ref.watch(lyricsDisplayLyricsProvider(widget.lyrics));
+    final displayPlainLyrics = ref.watch(
+      lyricsDisplayPlainTextProvider(lyricsForDisplay),
+    );
+    final displayLyrics = ref.watch(
+      lyricsDisplayLyricsProvider(lyricsForDisplay),
+    );
     final hasRenderableLyrics = ref.watch(
-      lyricsHasRenderableContentProvider(widget.lyrics),
+      lyricsHasRenderableContentProvider(lyricsForDisplay),
     );
     final hasCurrentSong = ref.watch(audioCurrentMusicProvider) != null;
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;

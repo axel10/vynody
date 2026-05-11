@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/lyric_line.dart';
 import '../models/music_file.dart';
+import '../models/music_lyric.dart';
 import '../utils/language_code_utils.dart';
 import 'audio_riverpod.dart';
 import 'lyrics_ai_service.dart';
@@ -320,6 +321,13 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   Future<void> restoreCachedTranslations(MusicFile song) {
     return _fetchCoordinator.restoreCachedTranslations(song);
+  }
+
+  MusicLyric? currentLyricsForCurrentSong() {
+    final currentSong = _currentMusic();
+    if (currentSong == null) return null;
+
+    return _support.songForPath(currentSong.path)?.lyrics;
   }
 
   Future<String?> generateLyricsForCurrentSong() {
