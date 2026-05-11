@@ -1314,22 +1314,26 @@ class _MiniPlayerProgressInfoState
               ),
             ),
             const SizedBox(height: 4),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              height: _isActive ? 6 : 3,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  minHeight: _isActive ? 6 : 3,
-                  value: displayProgress.clamp(0.0, 1.0),
-                  backgroundColor:
+            Container(
+              height: 6,
+              alignment: Alignment.center,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: _isActive ? 6 : 3,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: _isActive ? 6 : 3,
+                    value: displayProgress.clamp(0.0, 1.0),
+                    backgroundColor:
+                        Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white24
+                            : Colors.black12,
+                    valueColor: AlwaysStoppedAnimation<Color>(
                       Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white24
-                          : Colors.black12,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black87,
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
                   ),
                 ),
               ),
