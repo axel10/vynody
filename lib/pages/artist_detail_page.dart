@@ -10,6 +10,7 @@ import '../models/artist_summary.dart';
 import '../player/audio_riverpod.dart';
 import '../utils/song_context_menu_utils.dart';
 import '../widgets/desktop_window_title_bar.dart';
+import '../widgets/artist_avatar.dart';
 
 class ArtistDetailPage extends ConsumerWidget {
   const ArtistDetailPage({super.key, required this.artist});
@@ -49,14 +50,8 @@ class ArtistDetailPage extends ConsumerWidget {
                   final isWide = constraints.maxWidth >= 700;
                   final cover = Hero(
                     tag: 'artist-cover-${artist.queryKey}',
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: _ArtistCover(
-                        artist: artist,
-                        size: isWide
-                            ? 220
-                            : math.min(220, constraints.maxWidth),
-                      ),
+                    child: _ArtistCover(
+                      size: isWide ? 220 : math.min(220, constraints.maxWidth),
                     ),
                   );
                   final info = _ArtistInfo(
@@ -292,80 +287,13 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _ArtistCover extends StatelessWidget {
-  const _ArtistCover({required this.artist, required this.size});
+  const _ArtistCover({required this.size});
 
-  final ArtistSummary artist;
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cachedImagePath = artist.cachedImagePath?.trim();
-    if (cachedImagePath != null && cachedImagePath.isNotEmpty) {
-      final file = File(cachedImagePath);
-      if (file.existsSync()) {
-        return Image.file(file, width: size, height: size, fit: BoxFit.cover);
-      }
-    }
-
-    if (artist.isImageLoading) {
-      return _loadingPlaceholder(theme);
-    }
-
-    if (cachedImagePath == null || cachedImagePath.isEmpty) {
-      return _fallback(theme);
-    }
-
-    return _fallback(theme);
-  }
-
-  Widget _loadingPlaceholder(ThemeData theme) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.95),
-            theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
-          ],
-        ),
-      ),
-      child: Center(
-        child: SizedBox(
-          width: 42,
-          height: 42,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            color: theme.colorScheme.primary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _fallback(ThemeData theme) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
-            theme.colorScheme.secondaryContainer.withValues(alpha: 0.8),
-          ],
-        ),
-      ),
-      child: Icon(
-        Icons.person_rounded,
-        size: 54,
-        color: theme.colorScheme.onPrimaryContainer,
-      ),
-    );
+    return ArtistAvatar(diameter: size);
   }
 }
 

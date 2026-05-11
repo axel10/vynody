@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +7,7 @@ import '../models/artist_summary.dart';
 import '../player/artist_library.dart';
 import '../player/audio_riverpod.dart';
 import 'artist_detail_page.dart';
+import '../widgets/artist_avatar.dart';
 
 enum _ArtistSortField { artist, songCount }
 
@@ -231,11 +230,11 @@ class _ArtistCard extends ConsumerWidget {
                     child: Center(
                       child: Hero(
                         tag: 'artist-cover-${artist.queryKey}',
-                        child: ClipRRect(
+                      child: ClipRRect(
                           borderRadius: BorderRadius.circular(18),
                           child: AspectRatio(
                             aspectRatio: 1,
-                            child: _ArtistCover(artist: artist),
+                            child: const _ArtistCover(),
                           ),
                         ),
                       ),
@@ -338,118 +337,12 @@ class _ArtistCard extends ConsumerWidget {
 }
 
 class _ArtistCover extends StatelessWidget {
-  const _ArtistCover({required this.artist});
-
-  final ArtistSummary artist;
+  const _ArtistCover();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cachedImagePath = artist.cachedImagePath?.trim();
-    if (cachedImagePath != null && cachedImagePath.isNotEmpty) {
-      final file = File(cachedImagePath);
-      if (file.existsSync()) {
-        debugPrint(
-          '[ArtistCover] file hit key=${artist.queryKey} path=$cachedImagePath',
-        );
-        return Image.file(file, fit: BoxFit.cover);
-      }
-    }
-
-    if (artist.isImageLoading) {
-      debugPrint(
-        '[ArtistCover] loading key=${artist.queryKey} '
-        'hasUrl=${artist.imageUrl?.trim().isNotEmpty == true} '
-        'hasCachePath=${cachedImagePath?.isNotEmpty == true}',
-      );
-      return _loadingPlaceholder(theme);
-    }
-
-    if ((artist.imageUrl?.trim().isNotEmpty ?? false)) {
-      debugPrint(
-        '[ArtistCover] imageUrl present but no cache key=${artist.queryKey} '
-        'url=${artist.imageUrl}',
-      );
-      return _fallback(theme);
-    }
-
-    if (cachedImagePath == null || cachedImagePath.isEmpty) {
-      debugPrint(
-        '[ArtistCover] no image key=${artist.queryKey} fallback to placeholder',
-      );
-      return _fallback(theme);
-    }
-
-    debugPrint(
-      '[ArtistCover] unexpected fallback key=${artist.queryKey} '
-      'path=$cachedImagePath',
-    );
-    return _fallback(theme);
-  }
-
-  Widget _loadingPlaceholder(ThemeData theme) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.95),
-            theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
-          ],
-        ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    theme.colorScheme.primaryContainer.withValues(alpha: 0.16),
-                    theme.colorScheme.secondaryContainer.withValues(
-                      alpha: 0.08,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Center(
-            child: SizedBox(
-              width: 42,
-              height: 42,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _fallback(ThemeData theme) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
-            theme.colorScheme.secondaryContainer.withValues(alpha: 0.8),
-          ],
-        ),
-      ),
-      child: Icon(
-        Icons.person_rounded,
-        size: 54,
-        color: theme.colorScheme.onPrimaryContainer,
-      ),
+    return const Center(
+      child: ArtistAvatar(diameter: 100),
     );
   }
 }
