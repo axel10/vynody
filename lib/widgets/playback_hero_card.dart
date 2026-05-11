@@ -1188,6 +1188,13 @@ class _MiniPlayerProgressInfoState
           )
         : position;
 
+    final subtitle = [
+      if (currentMusic?.artist != null && currentMusic!.artist!.isNotEmpty)
+        currentMusic.artist,
+      if (currentMusic?.album != null && currentMusic!.album!.isNotEmpty)
+        currentMusic.album,
+    ].join(' - ');
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
@@ -1232,7 +1239,7 @@ class _MiniPlayerProgressInfoState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 20,
+              height: 32,
               child: Stack(
                 children: [
                   TweenAnimationBuilder<double>(
@@ -1251,18 +1258,38 @@ class _MiniPlayerProgressInfoState
                         ),
                       );
                     },
-                    child: Text(
-                      currentMusic?.displayName ??
-                          AppLocalizations.of(context)!.notSelected,
-                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black87,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          currentMusic?.displayName ??
+                              AppLocalizations.of(context)!.notSelected,
+                          style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (subtitle.isNotEmpty)
+                          Text(
+                            subtitle,
+                            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                              color: (Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87)
+                                  .withValues(alpha: 0.6),
+                              fontSize: 10,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
                     ),
                   ),
                   if (_isActive)
