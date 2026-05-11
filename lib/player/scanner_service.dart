@@ -1556,152 +1556,6 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  Future<void> _rescanDirectoryRecursively(String directoryPath) async {
-    final normalizedDirectory = _normalizePath(directoryPath);
-    if (normalizedDirectory.isEmpty) {
-      return;
-    }
-
-    if (_scanCoordinator.isScanning) {
-      _scanCoordinator.requestRescan();
-      return;
-    }
-
-    _scanCoordinator.beginIncrementalPhase();
-    final scanState = ScanProgressState(
-      metadataConcurrency: 2,
-      comparePaths: _compareNaturally,
-    );
-    final affectedRoots = _rootPathsForDirectoryPath(normalizedDirectory);
-
-    try {
-      final directory = Directory(normalizedDirectory);
-      if (!await directory.exists()) {
-        await _removeDirectoryFromLibrary(normalizedDirectory);
-        _refreshAffectedRootsFromCache(affectedRoots);
-        notifyListeners();
-        return;
-      }
-
-      final discoveredPaths = await _directoryScanner.discoverMusicFiles(
-        normalizedDirectory,
-        scanState,
-      );
-      final normalizedDiscoveredPaths = discoveredPaths
-          .map(_normalizePath)
-          .where((path) => path.isNotEmpty)
-          .toSet();
-
-      final existingPathsInDirectory = _metadataStore.metadataMap.keys
-          .where(
-            (path) =>
-                _pathContains(normalizedDirectory, path) &&
-                MusicFileUtils.isMusicFilePath(path),
-          )
-          .toList(growable: false);
-
-      final classification = await _classifyDiscoveredFiles(discoveredPaths);
-      final existingMetadataByPath = Map<String, SongMetadata>.from(
-        classification.existingMetadataByPath,
-      );
-      _seedMetadataFromDatabase(existingMetadataByPath);
-
-      final skippedKnownPaths = <String>[];
-      final fullPaths = <String>[];
-      for (final path in classification.pathsFor(ScanFileStage.full)) {
-        final existing =
-            classification.existingMetadataByPath[_pathLookupKey(path)];
-        if (_shouldSkipShortAudioDuration(existing?.duration)) {
-          skippedKnownPaths.add(path);
-          continue;
-        }
-        fullPaths.add(path);
-      }
-      final imageOnlyPaths = <String>[];
-      for (final path in classification.pathsFor(ScanFileStage.imageOnly)) {
-        final existing =
-            classification.existingMetadataByPath[_pathLookupKey(path)];
-        if (_shouldSkipShortAudioDuration(existing?.duration)) {
-          skippedKnownPaths.add(path);
-          continue;
-        }
-        imageOnlyPaths.add(path);
-      }
-      final unchangedPaths = <String>[];
-      for (final path in classification.pathsFor(ScanFileStage.unchanged)) {
-        final existing =
-            classification.existingMetadataByPath[_pathLookupKey(path)];
-        if (_shouldSkipShortAudioDuration(existing?.duration)) {
-          skippedKnownPaths.add(path);
-          continue;
-        }
-        unchangedPaths.add(path);
-      }
-      if (skippedKnownPaths.isNotEmpty) {
-        for (final path in skippedKnownPaths) {
-          _metadataStore.removeMetadataForPath(path);
-        }
-      }
-
-      Timer? stage3UiSyncTimer;
-      try {
-        stage3UiSyncTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-          if (_isDisposed) {
-            return;
-          }
-          _refreshAffectedRootsFromCache(affectedRoots);
-        });
-
-        final preprocessResult = await _preprocessChangedFiles(
-          fullPaths,
-          scanState,
-          existingMetadataByPath: existingMetadataByPath,
-        );
-        final artworkPendingImageOnlyPaths =
-            await _filterImageOnlyPathsNeedingArtwork(
-              imageOnlyPaths,
-              scanState,
-              existingMetadataByPath: existingMetadataByPath,
-            );
-
-        final artworkPendingPaths = [
-          ...preprocessResult.artworkPendingPaths,
-          ...artworkPendingImageOnlyPaths,
-        ];
-        if (artworkPendingPaths.isNotEmpty) {
-          await _applyArtworkAndThemeToChangedFiles(
-            artworkPendingPaths,
-            scanState,
-          );
-        }
-
-        if (unchangedPaths.isNotEmpty) {
-          for (final path in unchangedPaths) {
-            if (!_metadataStore.containsPath(path)) {
-              final dbSong = await _repository.getSongMetadata(path);
-              if (dbSong != null) {
-                _metadataStore.cacheMetadata(dbSong);
-              }
-            }
-          }
-        }
-
-        for (final existingPath in existingPathsInDirectory) {
-          if (!normalizedDiscoveredPaths.contains(existingPath)) {
-            await _metadataStore.purgeMissingSongPath(existingPath);
-          }
-        }
-      } finally {
-        stage3UiSyncTimer?.cancel();
-      }
-
-      _refreshAffectedRootsFromCache(affectedRoots);
-      notifyListeners();
-    } finally {
-      _scanCoordinator.completeIncrementalPhase();
-    }
-  }
-
   Future<SongMetadata?> _upsertIncrementalSongPath(
     String filePath, {
     required ScanProgressState scanState,
@@ -1859,13 +1713,31 @@ class ScannerService extends ChangeNotifier {
     _pendingDirectoryRescanPaths.clear();
 
     try {
+      final recursiveRoots = <String>{};
       for (final entry in directoryPaths) {
         if (_isDisposed) {
           return;
         }
         if (entry.value == _DirectoryRescanMode.recursive) {
-          await _rescanDirectoryRecursively(entry.key);
-        } else {
+          recursiveRoots.addAll(_rootPathsForDirectoryPath(entry.key));
+        }
+      }
+
+      if (recursiveRoots.isNotEmpty) {
+        await _scanRootsWithFullFlow(
+          recursiveRoots,
+          clearScannedRoots: false,
+        );
+      }
+
+      for (final entry in directoryPaths) {
+        if (_isDisposed) {
+          return;
+        }
+        if (entry.value == _DirectoryRescanMode.nonRecursive) {
+          if (recursiveRoots.any((root) => _pathContains(root, entry.key))) {
+            continue;
+          }
           await _rescanDirectory(entry.key);
         }
       }
@@ -2644,12 +2516,42 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> scan() async {
-    await _loadScanSettings();
-    await _scanCoordinator.runFullScan(_runFullScanSession);
+    await _scanRootsWithFullFlow(
+      _roots.rootPaths,
+      clearScannedRoots: true,
+    );
   }
 
-  Future<void> _runFullScanSession(int scanToken) async {
-    final requestedRoots = _roots.rootPaths.toList(growable: false);
+  Future<void> _scanRootsWithFullFlow(
+    Iterable<String> rootsToScan, {
+    required bool clearScannedRoots,
+  }) async {
+    await _loadScanSettings();
+    final requestedRoots = _computeScanRoots(rootsToScan);
+    if (requestedRoots.isEmpty) {
+      if (clearScannedRoots) {
+        _scannedRootFolders.clear();
+        _rebuildDisplayedRootFolders();
+        _syncNavigationStateToLatestTree();
+        notifyListeners();
+      }
+      return;
+    }
+
+    await _scanCoordinator.runFullScan(
+      (scanToken) => _runFullScanSession(
+        scanToken,
+        requestedRoots: requestedRoots,
+        clearScannedRoots: clearScannedRoots,
+      ),
+    );
+  }
+
+  Future<void> _runFullScanSession(
+    int scanToken, {
+    required List<String> requestedRoots,
+    required bool clearScannedRoots,
+  }) async {
     final artworkJobs = <_RootArtworkScanJob>[];
     notifyListeners();
 
@@ -2670,7 +2572,7 @@ class ScannerService extends ChangeNotifier {
         comparePaths: _compareNaturally,
       );
       final scanRoots = _timeScanStepSync('stage 1 root discovery', () {
-        final roots = _computeScanRoots(requestedRoots);
+        final roots = requestedRoots.toList(growable: false);
         roots.sort(_compareNaturally);
         debugPrint(
           '[ScannerService] scan root discovery requested=$requestedRoots '
@@ -2679,7 +2581,11 @@ class ScannerService extends ChangeNotifier {
         return roots;
       });
 
-      _scannedRootFolders.clear();
+      if (clearScannedRoots) {
+        _scannedRootFolders.clear();
+      } else {
+        _removeRootsFromScannedTree(scanRoots);
+      }
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree();
       notifyListeners();
