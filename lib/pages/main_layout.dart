@@ -680,6 +680,19 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                                       onPrevious: audio.previous,
                                       onPlayPause: audio.togglePlay,
                                       onNext: audio.next,
+                                      onScrubbing: (val) {
+                                        // 迷你播放器内部会处理局部 UI 状态
+                                      },
+                                      onSeek: (val) {
+                                        audio.seek(
+                                          Duration(
+                                            milliseconds:
+                                                (audio.duration.inMilliseconds *
+                                                        val)
+                                                    .toInt(),
+                                          ),
+                                        );
+                                      },
                                       onVolumeTap: () {
                                         ref
                                             .read(settingsServiceProvider)

@@ -1,4 +1,4 @@
-import 'dart:ui' show lerpDouble;
+import 'dart:ui' show lerpDouble, ImageFilter;
 
 import 'dart:math' as math;
 
@@ -192,40 +192,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                           Flexible(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 160),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    currentMusic?.displayName ??
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.notSelected,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall!
-                                        .copyWith(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(999),
-                                    child: LinearProgressIndicator(
-                                      minHeight: 3,
-                                      value: progress.clamp(0.0, 1.0),
-                                      backgroundColor: Colors.white24,
-                                      valueColor:
-                                          const AlwaysStoppedAnimation<Color>(
-                                            Colors.white,
-                                          ),
-                                    ),
-                                  ),
-                                ],
+                              child: _MiniPlayerProgressInfo(
+                                currentMusic: currentMusic,
+                                progress: progress,
+                                onScrubbing: onScrubbing,
+                                onSeek: onSeek,
                               ),
                             ),
                           ),
@@ -1153,6 +1124,170 @@ class PlaybackHeroCard extends ConsumerWidget {
           onChangeEnd: (value) {
             onSeek?.call(value);
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniPlayerProgressInfo extends ConsumerStatefulWidget {
+  final MusicFile? currentMusic;
+  final double progress;
+  final ValueChanged<double>? onScrubbing;
+  final ValueChanged<double>? onSeek;
+
+  const _MiniPlayerProgressInfo({
+    required this.currentMusic,
+    required this.progress,
+    this.onScrubbing,
+    this.onSeek,
+  });
+
+  @override
+  ConsumerState<_MiniPlayerProgressInfo> createState() =>
+      _MiniPlayerProgressInfoState();
+}
+
+class _MiniPlayerProgressInfoState
+    extends ConsumerState<_MiniPlayerProgressInfo> {
+  bool _isHovering = false;
+  bool _isDragging = false;
+  double? _dragValue;
+
+  bool get _isActive => _isHovering || _isDragging;
+
+  @override
+  Widget build(BuildContext context) {
+    final position = ref.watch(audioPositionProvider);
+    final duration = ref.watch(audioDurationProvider);
+    final currentMusic = widget.currentMusic;
+
+    final displayProgress =
+        _isDragging ? (_dragValue ?? widget.progress) : widget.progress;
+    final displayPosition =
+        _isDragging
+            ? Duration(
+              milliseconds:
+                  (duration.inMilliseconds * (_dragValue ?? widget.progress))
+                      .toInt(),
+            )
+            : position;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragStart: (details) {
+          if (!_isHovering) return;
+          setState(() {
+            _isDragging = true;
+            _dragValue = widget.progress;
+          });
+        },
+        onHorizontalDragUpdate: (details) {
+          if (!_isDragging) return;
+          final RenderBox box = context.findRenderObject() as RenderBox;
+          final double localX = details.localPosition.dx;
+          final double newProgress = (localX / box.size.width).clamp(0.0, 1.0);
+          setState(() {
+            _dragValue = newProgress;
+          });
+          widget.onScrubbing?.call(newProgress);
+        },
+        onHorizontalDragEnd: (details) {
+          if (!_isDragging) return;
+          final finalProgress = _dragValue ?? widget.progress;
+          setState(() {
+            _isDragging = false;
+            _dragValue = null;
+          });
+          widget.onSeek?.call(finalProgress);
+        },
+        onTapDown: (details) {
+          if (!_isHovering) return;
+          final RenderBox box = context.findRenderObject() as RenderBox;
+          final double localX = details.localPosition.dx;
+          final double newProgress = (localX / box.size.width).clamp(0.0, 1.0);
+          widget.onScrubbing?.call(newProgress);
+          widget.onSeek?.call(newProgress);
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 20,
+              child: Stack(
+                children: [
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 200),
+                    tween: Tween<double>(
+                      begin: 0,
+                      end: _isActive ? 5.0 : 0.0,
+                    ),
+                    builder: (context, blur, child) {
+                      return ImageFiltered(
+                        imageFilter: ImageFilter.blur(
+                          sigmaX: blur,
+                          sigmaY: blur,
+                        ),
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 200),
+                          opacity: _isActive ? 0.3 : 1.0,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Text(
+                      currentMusic?.displayName ??
+                          AppLocalizations.of(context)!.notSelected,
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (_isActive)
+                    Positioned.fill(
+                      child: Center(
+                        child: Text(
+                          '${formatDuration(displayPosition)} / ${formatDuration(duration)}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall!
+                              .copyWith(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: _isActive ? 6 : 3,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  minHeight: _isActive ? 6 : 3,
+                  value: displayProgress.clamp(0.0, 1.0),
+                  backgroundColor: Colors.white24,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
