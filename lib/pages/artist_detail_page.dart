@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -11,7 +10,6 @@ import '../models/music_file.dart';
 import '../player/audio_riverpod.dart';
 import '../utils/song_context_menu_utils.dart';
 import '../widgets/desktop_window_title_bar.dart';
-import '../widgets/artist_avatar.dart';
 import '../widgets/song_thumbnail.dart';
 
 class ArtistDetailPage extends ConsumerWidget {
@@ -81,42 +79,11 @@ class ArtistDetailContent extends ConsumerWidget {
                 colors: [headerColor, theme.colorScheme.surface],
               ),
             ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 700;
-                final cover = Hero(
-                  tag: 'artist-cover-${artist.queryKey}',
-                  child: _ArtistCover(
-                    size: isWide ? 220 : math.min(220, constraints.maxWidth),
-                  ),
-                );
-                final info = _ArtistInfo(
-                  artist: artist,
-                  onPlayAll: () => audio.playPlaylist(displaySongs),
-                  onShufflePlay: () =>
-                      audio.playPlaylist(List.of(displaySongs)..shuffle()),
-                );
-
-                if (isWide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      cover,
-                      const SizedBox(width: 24),
-                      Expanded(child: info),
-                    ],
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(child: cover),
-                    const SizedBox(height: 20),
-                    info,
-                  ],
-                );
-              },
+            child: _ArtistInfo(
+              artist: artist,
+              onPlayAll: () => audio.playPlaylist(displaySongs),
+              onShufflePlay: () =>
+                  audio.playPlaylist(List.of(displaySongs)..shuffle()),
             ),
           ),
         ),
@@ -351,7 +318,7 @@ class _AlbumSectionCard extends StatelessWidget {
                   child: SongThumbnail(
                     path: section.representativeSong.path,
                     id: section.representativeSong.id,
-                    size: 78,
+                    size: 104,
                   ),
                 );
                 final info = Column(
@@ -404,7 +371,7 @@ class _AlbumSectionCard extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(child: cover),
+                    Align(alignment: Alignment.centerLeft, child: cover),
                     const SizedBox(height: 16),
                     info,
                   ],
@@ -511,17 +478,6 @@ class _AlbumSongTile extends StatelessWidget {
         onLongPress: onLongPress,
       ),
     );
-  }
-}
-
-class _ArtistCover extends StatelessWidget {
-  const _ArtistCover({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return ArtistAvatar(diameter: size);
   }
 }
 
