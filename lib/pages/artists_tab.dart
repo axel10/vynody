@@ -65,12 +65,11 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 980;
-            final isPortrait =
-                MediaQuery.orientationOf(context) == Orientation.portrait;
+            final isLandscape =
+                MediaQuery.orientationOf(context) == Orientation.landscape;
             final selectedArtist = _resolveSelectedArtist(visibleArtists);
 
-            if (isWide) {
+            if (isLandscape) {
               _syncSelectedArtist(visibleArtists);
               return Column(
                 children: [
@@ -110,7 +109,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                       child: Row(
                         children: [
                           SizedBox(
-                            width: 360,
+                            width: constraints.maxWidth >= 1100 ? 380 : 320,
                             child: _ArtistListPane(
                               artists: visibleArtists,
                               selectedArtistKey: selectedArtist?.queryKey,
@@ -137,144 +136,68 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
               );
             }
 
-            if (isPortrait) {
-              return Column(
-                children: [
-                  _ArtistsToolbar(
-                    searchController: _searchController,
-                    searchQuery: _searchQuery,
-                    sortField: _sortField,
-                    sortAscending: _sortAscending,
-                    artistCount: visibleArtists.length,
-                    artistsLabel: artistsLabel,
-                    isWide: false,
-                    onSearchChanged: (value) {
-                      setState(() {
-                        _searchQuery = value.trim();
-                      });
-                    },
-                    onSearchCleared: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
-                    onSortFieldSelected: (field) {
-                      setState(() {
-                        _sortField = field;
-                      });
-                    },
-                    onSortOrderToggled: () {
-                      setState(() {
-                        _sortAscending = !_sortAscending;
-                      });
-                    },
-                  ),
-                  Expanded(
-                    child: visibleArtists.isEmpty
-                        ? Center(
-                            child: Text(
-                              noArtistsLabel,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            itemCount: visibleArtists.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final artist = visibleArtists[index];
-                              return _ArtistListItem(
-                                artist: artist,
-                                selected: false,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) =>
-                                          ArtistDetailPage(artist: artist),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              );
-            }
-
-            return CustomScrollView(
-              cacheExtent: 1000,
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _ArtistsToolbar(
-                    searchController: _searchController,
-                    searchQuery: _searchQuery,
-                    sortField: _sortField,
-                    sortAscending: _sortAscending,
-                    artistCount: visibleArtists.length,
-                    artistsLabel: artistsLabel,
-                    isWide: false,
-                    onSearchChanged: (value) {
-                      setState(() {
-                        _searchQuery = value.trim();
-                      });
-                    },
-                    onSearchCleared: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
-                    onSortFieldSelected: (field) {
-                      setState(() {
-                        _sortField = field;
-                      });
-                    },
-                    onSortOrderToggled: () {
-                      setState(() {
-                        _sortAscending = !_sortAscending;
-                      });
-                    },
-                  ),
+            return Column(
+              children: [
+                _ArtistsToolbar(
+                  searchController: _searchController,
+                  searchQuery: _searchQuery,
+                  sortField: _sortField,
+                  sortAscending: _sortAscending,
+                  artistCount: visibleArtists.length,
+                  artistsLabel: artistsLabel,
+                  isWide: false,
+                  onSearchChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.trim();
+                    });
+                  },
+                  onSearchCleared: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                  onSortFieldSelected: (field) {
+                    setState(() {
+                      _sortField = field;
+                    });
+                  },
+                  onSortOrderToggled: () {
+                    setState(() {
+                      _sortAscending = !_sortAscending;
+                    });
+                  },
                 ),
-                if (visibleArtists.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Text(
-                        noArtistsLabel,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                  )
-                else ...[
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverGrid(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: switch (constraints.maxWidth) {
-                          >= 1200 => 5,
-                          >= 900 => 4,
-                          >= 700 => 3,
-                          _ => 2,
-                        },
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.72,
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => KeyedSubtree(
-                          key: ValueKey(visibleArtists[index].queryKey),
-                          child: _ArtistCard(artist: visibleArtists[index]),
+                Expanded(
+                  child: visibleArtists.isEmpty
+                      ? Center(
+                          child: Text(
+                            noArtistsLabel,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          itemCount: visibleArtists.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            final artist = visibleArtists[index];
+                            return _ArtistListItem(
+                              artist: artist,
+                              selected: false,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        ArtistDetailPage(artist: artist),
+                                  ),
+                                );
+                              },
+                            );
+                          },
                         ),
-                        childCount: visibleArtists.length,
-                      ),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                ],
+                ),
               ],
             );
           },
@@ -610,129 +533,6 @@ Future<void> _showArtistContextMenuForArtist(
     case 'copy_artist':
       await Clipboard.setData(ClipboardData(text: artist.name));
       break;
-  }
-}
-
-class _ArtistCard extends ConsumerWidget {
-  const _ArtistCard({required this.artist});
-
-  final ArtistSummary artist;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final playAllLabel = l10n.playAll;
-    final songCountLabel = l10n.songCount(artist.songCount);
-    final audio = ref.read(audioServiceProvider);
-
-    return Material(
-      color: Colors.transparent,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onSecondaryTapDown: (details) {
-          _showArtistContextMenu(context, ref, details.globalPosition);
-        },
-        onLongPressStart: (details) {
-          _showArtistContextMenu(context, ref, details.globalPosition);
-        },
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: () => _openArtistDetail(context),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.tertiaryContainer.withValues(alpha: 0.6),
-                  theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.55,
-                  ),
-                ],
-              ),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: Hero(
-                        tag: 'artist-cover-${artist.queryKey}',
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: AspectRatio(
-                            aspectRatio: 1,
-                            child: const _ArtistCover(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    artist.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          songCountLabel,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: playAllLabel,
-                        onPressed: () => audio.playPlaylist(artist.songs),
-                        icon: const Icon(Icons.play_arrow),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _openArtistDetail(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => ArtistDetailPage(artist: artist)),
-    );
-  }
-
-  Future<void> _showArtistContextMenu(
-    BuildContext context,
-    WidgetRef ref,
-    Offset globalPosition,
-  ) async {
-    await _showArtistContextMenuForArtist(context, ref, globalPosition, artist);
-  }
-}
-
-class _ArtistCover extends StatelessWidget {
-  const _ArtistCover();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: ArtistAvatar(diameter: 100));
   }
 }
 
