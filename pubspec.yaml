@@ -95,6 +95,7 @@ dependencies:
 
   audio_core:
     path: audio_core
+  watcher: ^1.2.1
 
 
 dev_dependencies:

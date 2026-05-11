@@ -21,7 +21,6 @@ import 'scanner_path_utils.dart';
 import 'scanner_sorting.dart';
 import 'scanner_scan_pipeline.dart';
 import 'scanner_scan_coordinator.dart';
-import 'scanner_incremental_sync.dart';
 import 'scanner_directory_scanner.dart';
 import 'scanner_metadata_store.dart';
 import 'scanner_repository.dart';
@@ -40,7 +39,7 @@ export 'scanner_scan_support.dart';
 
 class ScannerService extends ChangeNotifier {
   final ScannerFolderSorter _folderSorter = const ScannerFolderSorter();
-  final Duration _incrementalSyncBatchWindow;
+  final Duration _directoryRescanBatchWindow;
   final Completer<void> _readyCompleter = Completer<void>();
   AudioCoreController? _playerController;
   void Function(String path, bool isMissing)? _songMissingStateHandler;
@@ -72,7 +71,6 @@ class ScannerService extends ChangeNotifier {
   late final ScannerScanPipeline _scanPipeline;
   late final ScannerRepository _repository;
   late final ScannerScanCoordinator _scanCoordinator;
-  late final ScannerIncrementalSync _incrementalSync;
   late final ScannerTreeBuilder _treeBuilder;
   late final ScannerDirectoryScanner _directoryScanner;
   int _metadataRevision = 0;
@@ -85,7 +83,9 @@ class ScannerService extends ChangeNotifier {
   static const String _keyFolderSortOverrides = 'folder_sort_overrides';
   static const int _defaultShortAudioThresholdSeconds = 30;
   static const bool _scanTimingEnabled = kDebugMode;
-  static const Duration _incrementalBatchWindow = Duration(milliseconds: 900);
+  static const Duration _defaultDirectoryRescanBatchWindow = Duration(
+    milliseconds: 900,
+  );
 
   SortCriteria _globalSortCriteria = SortCriteria.filename;
   SortOrder _globalSortOrder = SortOrder.ascending;
@@ -146,12 +146,11 @@ class ScannerService extends ChangeNotifier {
 
   ScannerService({
     bool autoInitialize = true,
-    Duration incrementalBatchWindow = _incrementalBatchWindow,
-  }) : _incrementalSyncBatchWindow = incrementalBatchWindow {
+    Duration directoryRescanBatchWindow = _defaultDirectoryRescanBatchWindow,
+  }) : _directoryRescanBatchWindow = directoryRescanBatchWindow {
     _roots = ScannerServiceRoots(
       isDisposed: () => _isDisposed,
-      onFileEvent: _enqueueIncrementalFileEvent,
-      notifySongMissingState: _notifySongMissingState,
+      onPathChanged: _enqueueWatchedPath,
     );
     _metadataStore = ScannerMetadataStore(
       rootFolders: () => _scannedRootFolders,
@@ -172,12 +171,6 @@ class ScannerService extends ChangeNotifier {
     _repository = ScannerRepository();
     _scanCoordinator = ScannerScanCoordinator()
       ..addListener(_handleScanStateChanged);
-    _incrementalSync = ScannerIncrementalSync(
-      normalizePath: _normalizePath,
-      isMusicFilePath: MusicFileUtils.isMusicFilePath,
-      onBatchReady: _processIncrementalBatch,
-      batchWindow: _incrementalSyncBatchWindow,
-    );
     _treeBuilder = ScannerTreeBuilder(
       normalizePath: _normalizePath,
       pathsEqual: _pathsEqual,
@@ -1502,62 +1495,6 @@ class ScannerService extends ChangeNotifier {
     await Future.wait(scanState.pendingMetadataTasks);
   }
 
-  Future<void> _processIncrementalBatch(IncrementalScanBatch batch) async {
-    if (_isDisposed || batch.isEmpty) {
-      return;
-    }
-    if (batch.shouldFallbackToFullRescan()) {
-      _restartFullRootScan();
-      return;
-    }
-    if (_scanCoordinator.isScanning) {
-      _scanCoordinator.requestRescan();
-      return;
-    }
-
-    _scanCoordinator.beginIncrementalPhase();
-    final scanState = ScanProgressState(
-      metadataConcurrency: 2,
-      comparePaths: _compareNaturally,
-    );
-    final affectedRoots = <String>{};
-
-    try {
-      for (final directoryPath in batch.deletedDirectoryPaths) {
-        final impactedRoots = _rootPathsForDirectoryPath(directoryPath);
-        affectedRoots.addAll(impactedRoots);
-        await _removeDirectoryFromLibrary(directoryPath);
-      }
-
-      for (final filePath in batch.deletedFilePaths) {
-        affectedRoots.addAll(_rootPathsForSongPath(filePath));
-        await _metadataStore.purgeMissingSongPath(filePath);
-      }
-
-      for (final filePath in batch.upsertPaths) {
-        final updated = await _upsertIncrementalSongPath(
-          filePath,
-          scanState: scanState,
-        );
-        if (updated != null) {
-          affectedRoots.addAll(_rootPathsForSongPath(updated.path));
-          _notifySongMissingState(updated.path, false);
-        }
-      }
-
-      for (final rootPath in affectedRoots) {
-        _rebuildScannedRootFolderFromCache(rootPath);
-      }
-      if (affectedRoots.isNotEmpty) {
-        _rebuildDisplayedRootFolders();
-        _syncNavigationStateToLatestTree();
-      }
-      notifyListeners();
-    } finally {
-      _scanCoordinator.completeIncrementalPhase();
-    }
-  }
-
   Future<void> _rescanDirectory(String directoryPath) async {
     final normalizedDirectory = _normalizePath(directoryPath);
     if (normalizedDirectory.isEmpty) {
@@ -1700,47 +1637,38 @@ class ScannerService extends ChangeNotifier {
     }
   }
 
-  void _enqueueIncrementalFileEvent(FileSystemEvent event) {
+  void _enqueueWatchedPath(String path) {
     if (_isDisposed) return;
 
-    if (event.isDirectory) {
-      if ((event.type & FileSystemEvent.delete) != 0 ||
-          (event.type & FileSystemEvent.move) != 0) {
-        if (_scanCoordinator.isScanning) {
-          _scanCoordinator.requestRescan();
-          return;
-        }
-        _incrementalSync.enqueue(event);
-      }
+    final normalizedPath = _normalizePath(path);
+    if (normalizedPath.isEmpty) {
       return;
     }
 
-    _scheduleDirectoryRescanForEvent(event);
+    _queueDirectoryRescan(_normalizePath(p.dirname(normalizedPath)));
+    if (_shouldRescanChangedDirectory(normalizedPath)) {
+      _queueDirectoryRescan(normalizedPath);
+    }
   }
 
-  void _scheduleDirectoryRescanForEvent(FileSystemEvent event) {
-    final scheduledDirectories = <String>{};
-
-    void addDirectoryPath(String path) {
-      final normalizedPath = _normalizePath(path);
-      if (normalizedPath.isEmpty) {
-        return;
+  bool _shouldRescanChangedDirectory(String path) {
+    try {
+      if (Directory(path).existsSync()) {
+        return true;
       }
-      final directoryPath = _normalizePath(p.dirname(normalizedPath));
-      if (directoryPath.isEmpty) {
-        return;
-      }
-      scheduledDirectories.add(directoryPath);
+    } catch (e, st) {
+      debugPrint(
+        '[ScannerService] directory existence check failed path=$path: '
+        '$e\n$st',
+      );
     }
 
-    addDirectoryPath(event.path);
-    if (event is FileSystemMoveEvent) {
-      addDirectoryPath(event.destination ?? '');
-    }
-
-    for (final directoryPath in scheduledDirectories) {
-      _queueDirectoryRescan(directoryPath);
-    }
+    return _treeBuilder.resolveFolderForPath(
+          path,
+          _scannedRootFolders,
+          _systemMediaFolder,
+        ) !=
+        null;
   }
 
   void _queueDirectoryRescan(String directoryPath) {
@@ -1754,7 +1682,7 @@ class ScannerService extends ChangeNotifier {
     _pendingDirectoryRescanPaths.add(normalizedPath);
     _directoryRescanTimer?.cancel();
     _directoryRescanTimer = Timer(
-      const Duration(seconds: 1),
+      _directoryRescanBatchWindow,
       () => unawaited(_flushPendingDirectoryRescans()),
     );
   }
@@ -3146,7 +3074,6 @@ class ScannerService extends ChangeNotifier {
     _mediaObserverSubscription?.cancel();
     _mobileStorageSubscription?.cancel();
     _metadataNotifyTimer?.cancel();
-    _incrementalSync.dispose();
     _directoryRescanTimer?.cancel();
     _directoryRescanTimer = null;
     _pendingDirectoryRescanPaths.clear();

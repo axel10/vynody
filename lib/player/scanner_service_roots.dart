@@ -3,28 +3,23 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:watcher/watcher.dart';
 
-import 'music_file_utils.dart';
 import 'scanner_path_utils.dart';
 
 class ScannerServiceRoots {
   ScannerServiceRoots({
     required bool Function() isDisposed,
-    required void Function(FileSystemEvent event) onFileEvent,
-    required void Function(String path, bool isMissing) notifySongMissingState,
+    required void Function(String path) onPathChanged,
   }) : _isDisposed = isDisposed,
-       _onFileEvent = onFileEvent,
-       _notifySongMissingState = notifySongMissingState;
+       _onPathChanged = onPathChanged;
 
   final bool Function() _isDisposed;
-  final void Function(FileSystemEvent event) _onFileEvent;
-  final void Function(String path, bool isMissing) _notifySongMissingState;
-  final bool _disableRecursiveWatchersOnWindowsPackage =
-      ScannerPathUtils.isLikelyPackagedWindowsApp();
+  final void Function(String path) _onPathChanged;
 
   final List<String> _rootPaths = [];
-  final Map<String, StreamSubscription<FileSystemEvent>>
-  _rootWatchSubscriptions = {};
+  final Map<String, StreamSubscription<WatchEvent>> _rootWatchSubscriptions =
+      {};
 
   List<String> get rootPaths => List.unmodifiable(_rootPaths);
 
@@ -93,9 +88,7 @@ class ScannerServiceRoots {
 
     final desiredRoots = ScannerPathUtils.computeScanRoots(_rootPaths);
     debugPrint(
-      '[ScannerServiceRoots] refreshRootWatchers desiredRoots=$desiredRoots '
-      'disableRecursiveWatchersOnWindowsPackage='
-      '$_disableRecursiveWatchersOnWindowsPackage',
+      '[ScannerServiceRoots] refreshRootWatchers desiredRoots=$desiredRoots',
     );
     final desiredKeys = desiredRoots
         .map(ScannerPathUtils.pathLookupKey)
@@ -114,14 +107,6 @@ class ScannerServiceRoots {
     }
     _rootWatchSubscriptions.clear();
 
-    if (_disableRecursiveWatchersOnWindowsPackage) {
-      debugPrint(
-        '[ScannerServiceRoots] skip attaching recursive watchers for '
-        'packaged Windows app',
-      );
-      return;
-    }
-
     for (final root in desiredRoots) {
       final directory = Directory(root);
       try {
@@ -133,46 +118,19 @@ class ScannerServiceRoots {
         }
 
         final key = ScannerPathUtils.pathLookupKey(root);
-        _rootWatchSubscriptions[key] = directory
-            .watch(recursive: true)
-            .listen(
-              (event) {
-                if ((event.type & FileSystemEvent.delete) != 0 ||
-                    (event.type & FileSystemEvent.move) != 0) {
-                  if (MusicFileUtils.isMusicFilePath(event.path)) {
-                    _notifySongMissingState(event.path, true);
-                  }
-                } else if ((event.type & FileSystemEvent.create) != 0 &&
-                    MusicFileUtils.isMusicFilePath(event.path)) {
-                  _notifySongMissingState(event.path, false);
-                }
-
-                if (event is FileSystemMoveEvent) {
-                  final destination = event.destination?.trim() ?? '';
-                  if (destination.isNotEmpty &&
-                      MusicFileUtils.isMusicFilePath(destination)) {
-                    _notifySongMissingState(destination, false);
-                    _onFileEvent(FileSystemCreateEvent(destination, false));
-                  }
-                }
-
-                if (event.isDirectory) {
-                  if ((event.type & FileSystemEvent.delete) != 0 ||
-                      (event.type & FileSystemEvent.move) != 0) {
-                    _onFileEvent(event);
-                  }
-                  return;
-                }
-
-                if (event.path.trim().isNotEmpty &&
-                    MusicFileUtils.isMusicFilePath(event.path)) {
-                  _onFileEvent(event);
-                }
-              },
-              onError: (err) {
-                debugPrint('Root watcher error for $root: $err');
-              },
-            );
+        final watcher = DirectoryWatcher(root);
+        _rootWatchSubscriptions[key] = watcher.events.listen(
+          (event) {
+            final eventPath = event.path.trim();
+            if (eventPath.isEmpty) {
+              return;
+            }
+            _onPathChanged(eventPath);
+          },
+          onError: (err) {
+            debugPrint('Root watcher error for $root: $err');
+          },
+        );
         debugPrint('[ScannerServiceRoots] watcher attached root=$root');
       } catch (e, st) {
         debugPrint(

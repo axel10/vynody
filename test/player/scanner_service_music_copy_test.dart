@@ -55,7 +55,7 @@ void main() {
 
         final scanner = ScannerService(
           autoInitialize: false,
-          incrementalBatchWindow: const Duration(milliseconds: 80),
+          directoryRescanBatchWindow: const Duration(milliseconds: 80),
         );
         final notifications = <DateTime>[];
         scanner.addListener(() {
@@ -88,18 +88,15 @@ void main() {
 
           copiedFile = await _copySongWithinSameDirectory(sourceSong.path);
 
-          await _waitUntil(
-            () {
-              final refreshed = scanner.navigationCurrentFolder;
-              if (refreshed == null) {
-                return false;
-              }
-              return refreshed.path == currentFolder.path &&
-                  refreshed.files.any((file) => file.path == copiedFile!.path) &&
-                  refreshed.files.length == initialFileCount + 1;
-            },
-            reason: 'waiting for copied song to appear in current folder',
-          );
+          await _waitUntil(() {
+            final refreshed = scanner.navigationCurrentFolder;
+            if (refreshed == null) {
+              return false;
+            }
+            return refreshed.path == currentFolder.path &&
+                refreshed.files.any((file) => file.path == copiedFile!.path) &&
+                refreshed.files.length == initialFileCount + 1;
+          }, reason: 'waiting for copied song to appear in current folder');
 
           expect(scanner.navigationCurrentFolder, isNotNull);
           expect(scanner.navigationCurrentFolder!.path, currentFolder.path);
@@ -136,7 +133,7 @@ void main() {
 
         final scanner = ScannerService(
           autoInitialize: false,
-          incrementalBatchWindow: const Duration(milliseconds: 80),
+          directoryRescanBatchWindow: const Duration(milliseconds: 80),
         );
 
         File? copiedFile;
@@ -187,7 +184,9 @@ void main() {
             final currentFolder = scanner.navigationCurrentFolder;
             final copiedInService =
                 currentFolder != null &&
-                currentFolder.files.any((file) => file.path == copiedFile!.path);
+                currentFolder.files.any(
+                  (file) => file.path == copiedFile!.path,
+                );
             final duplicateTitleCount = find
                 .text(sourceSong.displayName)
                 .evaluate()
@@ -236,7 +235,7 @@ void main() {
 
         final scanner = ScannerService(
           autoInitialize: false,
-          incrementalBatchWindow: const Duration(milliseconds: 80),
+          directoryRescanBatchWindow: const Duration(milliseconds: 80),
         );
 
         File? copiedFile;
@@ -271,43 +270,35 @@ void main() {
 
           copiedFile = await _copySongWithinSameDirectory(sourceSong.path);
 
-          await _pumpUntil(
-            tester,
-            () {
-              final currentFolder = scanner.navigationCurrentFolder;
-              final copiedInService =
-                  currentFolder != null &&
-                  currentFolder.files.any(
-                    (file) => file.path == copiedFile!.path,
-                  );
-              final duplicateTitleCount = find
-                  .text(sourceSong.displayName)
-                  .evaluate()
-                  .length;
-              return copiedInService && duplicateTitleCount >= 2;
-            },
-            reason: 'waiting for copied song to appear before delete',
-          );
+          await _pumpUntil(tester, () {
+            final currentFolder = scanner.navigationCurrentFolder;
+            final copiedInService =
+                currentFolder != null &&
+                currentFolder.files.any(
+                  (file) => file.path == copiedFile!.path,
+                );
+            final duplicateTitleCount = find
+                .text(sourceSong.displayName)
+                .evaluate()
+                .length;
+            return copiedInService && duplicateTitleCount >= 2;
+          }, reason: 'waiting for copied song to appear before delete');
 
           await copiedFile.delete();
 
-          await _pumpUntil(
-            tester,
-            () {
-              final currentFolder = scanner.navigationCurrentFolder;
-              final copiedStillInService =
-                  currentFolder != null &&
-                  currentFolder.files.any(
-                    (file) => file.path == copiedFile!.path,
-                  );
-              final remainingTitleCount = find
-                  .text(sourceSong.displayName)
-                  .evaluate()
-                  .length;
-              return !copiedStillInService && remainingTitleCount == 1;
-            },
-            reason: 'waiting for deleted copied song to disappear from UI',
-          );
+          await _pumpUntil(tester, () {
+            final currentFolder = scanner.navigationCurrentFolder;
+            final copiedStillInService =
+                currentFolder != null &&
+                currentFolder.files.any(
+                  (file) => file.path == copiedFile!.path,
+                );
+            final remainingTitleCount = find
+                .text(sourceSong.displayName)
+                .evaluate()
+                .length;
+            return !copiedStillInService && remainingTitleCount == 1;
+          }, reason: 'waiting for deleted copied song to disappear from UI');
 
           expect(
             scanner.navigationCurrentFolder?.files.any(
@@ -327,6 +318,50 @@ void main() {
         'RUN_SCANNER_SERVICE_MUSIC_COPY_TEST',
       ),
     );
+
+    test(
+      'should remove a deleted directory subtree after delayed rescan',
+      () async {
+        final tempRoot = await Directory.systemTemp.createTemp(
+          'scanner_service_directory_rescan_test_',
+        );
+        final nestedDirectory = Directory(p.join(tempRoot.path, 'nested'));
+        final nestedSong = File(p.join(nestedDirectory.path, 'song.mp3'));
+
+        try {
+          await nestedDirectory.create(recursive: true);
+          await nestedSong.writeAsBytes(List<int>.filled(8, 3));
+
+          final scanner = ScannerService(
+            autoInitialize: false,
+            directoryRescanBatchWindow: const Duration(milliseconds: 80),
+          );
+
+          try {
+            final addResult = await scanner.addRootPath(tempRoot.path);
+            expect(addResult.status, RootPathAddStatus.added);
+
+            await _waitUntil(
+              () => _folderContainsPath(scanner.rootFolders, nestedSong.path),
+              reason: 'waiting for nested song to be indexed',
+            );
+
+            await nestedDirectory.delete(recursive: true);
+
+            await _waitUntil(
+              () => !_folderContainsPath(scanner.rootFolders, nestedSong.path),
+              reason: 'waiting for deleted directory subtree to disappear',
+            );
+          } finally {
+            scanner.dispose();
+          }
+        } finally {
+          if (await tempRoot.exists()) {
+            await tempRoot.delete(recursive: true);
+          }
+        }
+      },
+    );
   });
 }
 
@@ -341,6 +376,21 @@ MusicFolder? _firstFolderWithFiles(Iterable<MusicFolder> folders) {
     }
   }
   return null;
+}
+
+bool _folderContainsPath(Iterable<MusicFolder> folders, String path) {
+  for (final folder in folders) {
+    if (folder.path == path) {
+      return true;
+    }
+    if (folder.files.any((file) => file.path == path)) {
+      return true;
+    }
+    if (_folderContainsPath(folder.subFolders, path)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 Future<File> _copySongWithinSameDirectory(String sourcePath) async {
@@ -400,7 +450,11 @@ Future<void> _pumpUntil(
     if (folder.subFolders.isEmpty && folder.files.isNotEmpty) {
       final counts = <String, int>{};
       for (final file in folder.files) {
-        counts.update(file.displayName, (value) => value + 1, ifAbsent: () => 1);
+        counts.update(
+          file.displayName,
+          (value) => value + 1,
+          ifAbsent: () => 1,
+        );
       }
       if (folder.files.length <= 20) {
         for (final file in folder.files) {
