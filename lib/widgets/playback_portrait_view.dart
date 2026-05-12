@@ -105,7 +105,7 @@ class PlaybackPortraitView extends ConsumerWidget {
             final pNormalControlsOpacity = 1.0;
 
             final pNormalCoverAreaH = pNormalInfoTop;
-            final pNormalCoverSide = math.min(width * 0.98, pNormalCoverAreaH * 0.96);
+            final pNormalCoverSide = math.min(width * 1, pNormalCoverAreaH * 1);
             final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
             final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
 
