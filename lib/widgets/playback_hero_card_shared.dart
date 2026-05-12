@@ -438,26 +438,26 @@ class PlaybackControls extends ConsumerWidget {
         IconButton(
           icon: Icon(
             showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-            size: 28 * uiScale,
+            size: (isLandscape ? 32 : 28) * uiScale,
             color: showVisualizerToggle ? Colors.white : Colors.white70,
           ),
           onPressed: onToggleVisualizer,
           tooltip: AppLocalizations.of(context)!.visualizer,
         ),
-        const SizedBox(width: 4),
+        SizedBox(width: isLandscape ? 12 : 4),
         IconButton(
           icon: Icon(
             Icons.skip_previous_rounded,
-            size: 48 * uiScale,
+            size: (isLandscape ? 56 : 48) * uiScale,
             color: Colors.white,
           ),
           onPressed: onPrevious,
           tooltip: l10n.previous,
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: isLandscape ? 24 : 16),
         Container(
-          width: 72 * uiScale,
-          height: 72 * uiScale,
+          width: (isLandscape ? 84 : 72) * uiScale,
+          height: (isLandscape ? 84 : 72) * uiScale,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
@@ -474,22 +474,22 @@ class PlaybackControls extends ConsumerWidget {
             tooltip: isPlaying ? l10n.pause : l10n.play,
             icon: Icon(
               isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: 40 * uiScale,
+              size: (isLandscape ? 48 : 40) * uiScale,
               color: currentThemeColorsMap['darkVibrant'] ?? currentThemeColorsMap['darkMuted'] ?? Colors.black,
             ),
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: isLandscape ? 24 : 16),
         IconButton(
           icon: Icon(
             Icons.skip_next_rounded,
-            size: 48 * uiScale,
+            size: (isLandscape ? 56 : 48) * uiScale,
             color: Colors.white,
           ),
           onPressed: onNext,
           tooltip: l10n.next,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: isLandscape ? 12 : 8),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onVerticalDragUpdate: (details) {
@@ -504,7 +504,7 @@ class PlaybackControls extends ConsumerWidget {
             child: IconButton(
               icon: Icon(
                 getVolumeIcon(ref.watch(audioVolumeProvider)),
-                size: 28 * uiScale,
+                size: (isLandscape ? 32 : 28) * uiScale,
                 color: Colors.white70,
               ),
               onPressed: onVolumeTap,

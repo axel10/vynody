@@ -97,7 +97,7 @@ class PlaybackLandscapeView extends ConsumerWidget {
             final lNormalCoverLeft = width * 0.05 + (width * 0.45 - lNormalCoverSide) / 2;
 
             final lNormalInfoHeight = (height > 1000 ? 110.0 : 90.0) * uiScale;
-            final lNormalControlsHeight = (height > 1000 ? 240.0 : 200.0) * uiScale;
+            final lNormalControlsHeight = (height > 1000 ? 260.0 : 220.0) * uiScale;
 
             final lNormalInfoTop = height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2 - landscapeNormalLift;
             final lNormalInfoLeft = width * 0.5;
@@ -200,7 +200,7 @@ class PlaybackLandscapeView extends ConsumerWidget {
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.topCenter,
                           child: SizedBox(
-                            width: (width > 2000 ? 580.0 : (width > 1200 ? 500.0 : 450.0)) * uiScale,
+                            width: (width > 2000 ? 720.0 : (width > 1200 ? 620.0 : 540.0)) * uiScale,
                             child: PlaybackControls(
                               isLandscape: true,
                               isLyricsMode: isLyricsMode,
