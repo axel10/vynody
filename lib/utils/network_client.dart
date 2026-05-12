@@ -14,9 +14,10 @@ class NetworkClient {
   NetworkClient._internal()
     : _dio = Dio(
         BaseOptions(
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-          sendTimeout: const Duration(seconds: 15),
+          // 不设置默认超时，让具体业务按需决定，避免长耗时的 AI 请求被全局 15 秒限制误杀。
+          connectTimeout: null,
+          receiveTimeout: null,
+          sendTimeout: null,
           headers: const {
             'Accept': 'application/json',
             'User-Agent': 'VibeFlow/1.0 (zgmf300@outlook.com)',
