@@ -523,7 +523,7 @@ class PlaybackControls extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           topButtonsRow,
-          const SizedBox(height: 8),
+          const SizedBox(height: 0),
           Stack(
             key: const ValueKey('overlay_controls_stack'),
             alignment: Alignment.center,
@@ -535,11 +535,9 @@ class PlaybackControls extends ConsumerWidget {
                 onScrubbing: onScrubbing ?? (_) {},
                 onSeek: onSeek ?? (_) {},
                 height: 240,
+                showTooltip: false,
               ),
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: mainControlsRow,
-              ),
+              mainControlsRow,
               Positioned(
                 left: 20,
                 bottom: 10,
@@ -595,6 +593,7 @@ class PlaybackControls extends ConsumerWidget {
                   onScrubbing: onScrubbing ?? (_) {},
                   onSeek: onSeek ?? (_) {},
                   height: 100,
+                  showTooltip: isLandscape,
                 ),
               );
             }

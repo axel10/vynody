@@ -85,7 +85,7 @@ class PlaybackPortraitView extends ConsumerWidget {
 
             // ---------------- Portrait Normal ----------------
             const pMinInfoH = 80.0;
-            const pMinControlsH = 320.0;
+            const pMinControlsH = 280.0;
             const pBottomGap = 0.0;
             const pMidGap = 4.0;
             final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;

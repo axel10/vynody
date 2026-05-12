@@ -24,9 +24,11 @@ class WaveformProgressBar extends StatefulWidget {
     this.inactiveColor = Colors.white24,
     this.isScrolling = true, // Default to scrolling as requested
     this.height = 80,
+    this.showTooltip = true,
   });
 
   final double height;
+  final bool showTooltip;
 
   @override
   State<WaveformProgressBar> createState() => _WaveformProgressBarState();
@@ -108,34 +110,34 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 时间显示预览
-                if (_hoverProgress != null || _isDragging)
-                  SizedBox(
-                    height: 24,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white24, width: 0.5),
-                        ),
-                        child: Text(
-                          formatDuration(Duration(
-                            milliseconds: (widget.duration.inMilliseconds * (widget.progress)).toInt(),
-                          )),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
+                if (widget.showTooltip)
+                  if (_hoverProgress != null || _isDragging)
+                    SizedBox(
+                      height: 24,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white24, width: 0.5),
+                          ),
+                          child: Text(
+                            formatDuration(Duration(
+                              milliseconds: (widget.duration.inMilliseconds * (widget.progress)).toInt(),
+                            )),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  )
-                else
-                  const SizedBox(height: 24),
+                    )
+                  else
+                    const SizedBox(height: 24),
                 
                 ClipRect(
                   child: SizedBox(
