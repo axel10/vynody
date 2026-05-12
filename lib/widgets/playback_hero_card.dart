@@ -290,23 +290,33 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final height = constraints.maxHeight.roundToDouble();
 
                 // ---------------- Portrait Normal ----------------
-                final pNormalCoverSide = math.min(width * 0.98, height * 0.55);
-                final pNormalCoverTop =
-                    (height * 0.03 + (height * 0.46 - pNormalCoverSide) / 2);
-                final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
+                // 确保控件区和信息区在高度缩小时优先保留空间
+                const pMinInfoH = 80.0;
+                const pMinControlsH = 230.0; // 控件区触发缩减的临界高度，调小此值可让封面更晚开始缩小
+                const pBottomGap = 0;     // 控件到底部的间距
+                const pMidGap = 4.0;
+                final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
 
-                final pNormalInfoTop = height * 0.54;
+                // 如果总高度不足，则向上推 infoTop 坐标，不再使用固定比例 0.54
+                final pNormalInfoTop = (height - pBottomAreaNeeded) < height * 0.54
+                    ? math.max(height * 0.20, height - pBottomAreaNeeded)
+                    : height * 0.54;
+
                 final pNormalInfoLeft = 16.0;
                 final pNormalInfoWidth = width - 32.0;
-                final pNormalInfoHeight = 80.0;
+                final pNormalInfoHeight = pMinInfoH;
 
-                final pNormalControlsTop =
-                    pNormalInfoTop + pNormalInfoHeight + 4.0;
+                final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight + pMidGap;
                 final pNormalControlsLeft = 16.0;
                 final pNormalControlsWidth = width - 32.0;
-                final pNormalControlsHeight =
-                    height - pNormalControlsTop - 16.0;
+                final pNormalControlsHeight = math.max(pMinControlsH, height - pNormalControlsTop - pBottomGap);
                 final pNormalControlsOpacity = 1.0;
+
+                // 封面图自适应剩余的上方区域
+                final pNormalCoverAreaH = pNormalInfoTop;
+                final pNormalCoverSide = math.min(width * 0.98, pNormalCoverAreaH * 0.9);
+                final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
+                final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
 
                 final pNormalLyricsTop = height;
                 final pNormalLyricsLeft = 16.0;
@@ -606,7 +616,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                 child: _buildPlaybackControlsWidget(
                                   context,
                                   ref,
-                                  isLarge: height > 1000 || width > 2000,
+                                  isLarge: isLandscape && (height > 1000 || width > 2000),
                                 ),
                               ),
                             ),
