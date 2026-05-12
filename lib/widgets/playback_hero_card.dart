@@ -160,7 +160,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           color: Theme.of(context).brightness == Brightness.dark
               ? Colors.black.withValues(alpha: 0.82)
               : Colors.white.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(100),
           boxShadow: [
             BoxShadow(
               color: (Theme.of(context).brightness == Brightness.dark
@@ -173,7 +173,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(100),
           child: Stack(
             children: [
               Positioned.fill(
