@@ -86,6 +86,7 @@ class PlaybackAlbumArt extends ConsumerWidget {
 class PlaybackTrackInfo extends ConsumerWidget {
   final MusicFile? currentMusic;
   final TextAlign align;
+  final double uiScale;
   final double lyricsModeT;
   final double height;
   final bool isLandscape;
@@ -94,6 +95,7 @@ class PlaybackTrackInfo extends ConsumerWidget {
     super.key,
     required this.currentMusic,
     required this.align,
+    required this.uiScale,
     required this.lyricsModeT,
     required this.height,
     required this.isLandscape,
@@ -157,8 +159,8 @@ class PlaybackTrackInfo extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleLarge!.copyWith(
                       color: Colors.white,
                       fontSize: lyricsModeT > 0.5 && !isLandscape
-                          ? 18
-                          : (isLandscape && height > 1000 ? 30 : 22),
+                          ? uiScale * 18
+                          : uiScale * (isLandscape ? 26 : 22),
                       fontWeight: FontWeight.bold,
                       height: 1.2,
                     ),
@@ -204,8 +206,8 @@ class PlaybackTrackInfo extends ConsumerWidget {
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                           color: Colors.white70,
                           fontSize: lyricsModeT > 0.5 && !isLandscape
-                              ? 13
-                              : (isLandscape && height > 1000 ? 18 : 15),
+                              ? uiScale * 13
+                              : uiScale * (isLandscape ? 16 : 15),
                           height: 1.3,
                         ),
                     child: Text(
@@ -230,7 +232,7 @@ class PlaybackTrackInfo extends ConsumerWidget {
 class PlaybackControls extends ConsumerWidget {
   final bool isLandscape;
   final bool isLyricsMode;
-  final bool isLarge;
+  final double uiScale;
   final VoidCallback? onShowMoreMenu;
   final VoidCallback? onCyclePlaylistMode;
   final VoidCallback? onShowPlaylistModeSelector;
@@ -257,7 +259,7 @@ class PlaybackControls extends ConsumerWidget {
     super.key,
     required this.isLandscape,
     required this.isLyricsMode,
-    this.isLarge = false,
+    this.uiScale = 1.0,
     this.onShowMoreMenu,
     this.onCyclePlaylistMode,
     this.onShowPlaylistModeSelector,
@@ -324,7 +326,7 @@ class PlaybackControls extends ConsumerWidget {
         IconButton(
           icon: Icon(
             isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            size: isLarge ? 36 : 28,
+            size: 28 * uiScale,
             color: isFavorite ? Colors.redAccent : Colors.white70,
           ),
           onPressed: currentMusic == null
@@ -340,7 +342,7 @@ class PlaybackControls extends ConsumerWidget {
           child: IconButton(
             icon: Icon(
               getPlaylistModeIcon(playbackMode),
-              size: isLarge ? 36 : 28,
+              size: 28 * uiScale,
               color: Colors.white70,
             ),
             onPressed: onCyclePlaylistMode,
@@ -352,7 +354,7 @@ class PlaybackControls extends ConsumerWidget {
           child: IconButton(
             icon: Icon(
               Icons.shuffle_rounded,
-              size: isLarge ? 36 : 28,
+              size: 28 * uiScale,
               color: isRandomMode ? Theme.of(context).colorScheme.primary : Colors.white70,
             ),
             onPressed: () {
@@ -377,7 +379,7 @@ class PlaybackControls extends ConsumerWidget {
         IconButton(
           icon: Icon(
             Icons.auto_fix_high_rounded,
-            size: isLarge ? 36 : 28,
+            size: 28 * uiScale,
             color: Colors.white70,
           ),
           onPressed: onTagCompletionTap,
@@ -396,7 +398,7 @@ class PlaybackControls extends ConsumerWidget {
                 children: [
                   Icon(
                     Icons.bedtime_rounded,
-                    size: isLarge ? 36 : 28,
+                    size: 28 * uiScale,
                     color: sleepTimerRemaining != null ? Theme.of(context).colorScheme.primary : Colors.white70,
                   ),
                   if (sleepTimerRemaining != null) ...[
@@ -421,7 +423,7 @@ class PlaybackControls extends ConsumerWidget {
         IconButton(
           icon: Icon(
             Icons.tune_rounded,
-            size: isLarge ? 36 : 28,
+            size: 28 * uiScale,
             color: Colors.white70,
           ),
           onPressed: onEqualizerTap,
@@ -436,7 +438,7 @@ class PlaybackControls extends ConsumerWidget {
         IconButton(
           icon: Icon(
             showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-            size: isLarge ? 36 : 28,
+            size: 28 * uiScale,
             color: showVisualizerToggle ? Colors.white : Colors.white70,
           ),
           onPressed: onToggleVisualizer,
@@ -446,7 +448,7 @@ class PlaybackControls extends ConsumerWidget {
         IconButton(
           icon: Icon(
             Icons.skip_previous_rounded,
-            size: isLarge ? 64 : 48,
+            size: 48 * uiScale,
             color: Colors.white,
           ),
           onPressed: onPrevious,
@@ -454,8 +456,8 @@ class PlaybackControls extends ConsumerWidget {
         ),
         const SizedBox(width: 16),
         Container(
-          width: isLarge ? 96 : 72,
-          height: isLarge ? 96 : 72,
+          width: 72 * uiScale,
+          height: 72 * uiScale,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
@@ -472,7 +474,7 @@ class PlaybackControls extends ConsumerWidget {
             tooltip: isPlaying ? l10n.pause : l10n.play,
             icon: Icon(
               isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: isLarge ? 56 : 40,
+              size: 40 * uiScale,
               color: currentThemeColorsMap['darkVibrant'] ?? currentThemeColorsMap['darkMuted'] ?? Colors.black,
             ),
           ),
@@ -481,7 +483,7 @@ class PlaybackControls extends ConsumerWidget {
         IconButton(
           icon: Icon(
             Icons.skip_next_rounded,
-            size: isLarge ? 64 : 48,
+            size: 48 * uiScale,
             color: Colors.white,
           ),
           onPressed: onNext,
@@ -502,7 +504,7 @@ class PlaybackControls extends ConsumerWidget {
             child: IconButton(
               icon: Icon(
                 getVolumeIcon(ref.watch(audioVolumeProvider)),
-                size: isLarge ? 36 : 28,
+                size: 28 * uiScale,
                 color: Colors.white70,
               ),
               onPressed: onVolumeTap,
@@ -585,7 +587,7 @@ class PlaybackControls extends ConsumerWidget {
 
             if (isWaveformEnabled) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: isLandscape ? 16 : 0),
                 child: WaveformProgressBar(
                   waveform: waveform,
                   progress: displayProgress,

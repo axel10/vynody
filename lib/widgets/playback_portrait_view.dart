@@ -83,57 +83,62 @@ class PlaybackPortraitView extends ConsumerWidget {
             final width = constraints.maxWidth.roundToDouble();
             final height = constraints.maxHeight.roundToDouble();
 
+            // ---------------- UI Scaling ----------------
+            // Base height for scaling. (Increase this to make UI smaller on large screens)
+            final uiScale = (height / 1150.0).clamp(1.0, 2.5);
+
             // ---------------- Portrait Normal ----------------
-            const pMinInfoH = 80.0;
-            const pMinControlsH = 280.0;
+            final pMinInfoH = 80.0 * uiScale;
+            final pMinControlsH = 280.0 * uiScale;
             const pBottomGap = 0.0;
-            const pMidGap = 4.0;
+            final pMidGap = 4.0 * uiScale;
             final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
 
             final pNormalInfoTop = (height - pBottomAreaNeeded) < height * 0.62
                 ? math.max(height * 0.20, height - pBottomAreaNeeded)
                 : height * 0.62;
 
-            final pNormalInfoLeft = 16.0;
-            final pNormalInfoWidth = width - 32.0;
+            final pNormalInfoLeft = 16.0 * uiScale;
+            final pNormalInfoWidth = width - 32.0 * uiScale;
             final pNormalInfoHeight = pMinInfoH;
 
-            final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight + pMidGap;
-            final pNormalControlsLeft = 16.0;
-            final pNormalControlsWidth = width - 32.0;
-            final pNormalControlsHeight = math.max(pMinControlsH, height - pNormalControlsTop - pBottomGap);
-            final pNormalControlsOpacity = 1.0;
-
-            final pNormalCoverAreaH = pNormalInfoTop;
+            final pNormalCoverGap = 24.0 * uiScale;
+            final pNormalCoverAreaH = pNormalInfoTop - pNormalCoverGap;
             final pNormalCoverSide = math.min(width * 1, pNormalCoverAreaH * 1);
             final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
             final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
 
+            final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight + pMidGap;
+            final pNormalControlsLeft = 0.0;
+            final pNormalControlsWidth = width;
+            final pNormalControlsHeight = math.max(pMinControlsH, height - pNormalControlsTop - pBottomGap);
+            final pNormalControlsOpacity = 1.0;
+
             final pNormalLyricsTop = height;
-            final pNormalLyricsLeft = 16.0;
-            final pNormalLyricsWidth = width - 32.0;
+            final pNormalLyricsLeft = 16.0 * uiScale;
+            final pNormalLyricsWidth = width - 32.0 * uiScale;
             final pNormalLyricsHeight = height - pNormalInfoTop;
             final pNormalLyricsOpacity = 0.0;
 
             // ---------------- Portrait Lyrics ----------------
-            final pLyricsCoverSide = math.min(120.0, width * 0.32);
-            const pLyricsCoverTop = 12.0;
-            const pLyricsCoverLeft = 12.0;
+            final pLyricsCoverSide = math.min(120.0 * uiScale, width * 0.32);
+            final pLyricsCoverTop = 12.0 * uiScale;
+            final pLyricsCoverLeft = 12.0 * uiScale;
 
-            const pLyricsInfoTop = 12.0;
-            final pLyricsInfoLeft = pLyricsCoverLeft + pLyricsCoverSide + 14.0;
-            final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0;
+            final pLyricsInfoTop = 12.0 * uiScale;
+            final pLyricsInfoLeft = pLyricsCoverLeft + pLyricsCoverSide + 14.0 * uiScale;
+            final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0 * uiScale;
             final pLyricsInfoHeight = pLyricsCoverSide;
 
             final pLyricsControlsTop = height;
-            final pLyricsControlsLeft = 16.0;
-            final pLyricsControlsWidth = width - 32.0;
+            final pLyricsControlsLeft = 16.0 * uiScale;
+            final pLyricsControlsWidth = width - 32.0 * uiScale;
             final pLyricsControlsHeight = pNormalControlsHeight;
             final pLyricsControlsOpacity = 0.0;
 
-            final pLyricsLyricsTop = pLyricsCoverTop + pLyricsCoverSide + 16.0;
-            final pLyricsLyricsLeft = 16.0;
-            final pLyricsLyricsWidth = width - 32.0;
+            final pLyricsLyricsTop = pLyricsCoverTop + pLyricsCoverSide + 16.0 * uiScale;
+            final pLyricsLyricsLeft = 16.0 * uiScale;
+            final pLyricsLyricsWidth = width - 32.0 * uiScale;
             final pLyricsLyricsHeight = height - pLyricsLyricsTop;
             final pLyricsLyricsOpacity = 1.0;
 
@@ -199,10 +204,11 @@ class PlaybackPortraitView extends ConsumerWidget {
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.topCenter,
                           child: SizedBox(
-                            width: math.max(controlsWidth, 380.0),
+                            width: 420 * uiScale,
                             child: PlaybackControls(
                               isLandscape: false,
                               isLyricsMode: isLyricsMode,
+                              uiScale: uiScale,
                               onShowMoreMenu: onShowMoreMenu,
                               onCyclePlaylistMode: onCyclePlaylistMode,
                               onShowPlaylistModeSelector: onShowPlaylistModeSelector,
@@ -250,6 +256,7 @@ class PlaybackPortraitView extends ConsumerWidget {
                     child: PlaybackTrackInfo(
                       currentMusic: currentMusic,
                       align: targetInfoAlign,
+                      uiScale: uiScale,
                       lyricsModeT: tLyrics,
                       height: height,
                       isLandscape: false,

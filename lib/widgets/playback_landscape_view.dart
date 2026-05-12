@@ -83,16 +83,21 @@ class PlaybackLandscapeView extends ConsumerWidget {
             final width = constraints.maxWidth.roundToDouble();
             final height = constraints.maxHeight.roundToDouble();
 
+            // ---------------- UI Scaling ----------------
+            // Base height for scaling. (Increase this to make UI smaller on large screens)
+            // On 4K (2160p): 2160 / 1150 = ~1.87x scale
+            final uiScale = (height / 1300.0).clamp(1.0, 2.5);
+
             // ---------------- Landscape Normal ----------------
             final landscapeNormalLift = height > 1000 ? 0.0 : 30.0;
             const landscapeLyricsLift = 0.0;
 
-            final lNormalCoverSide = math.min(width * 0.42, height * 0.85).clamp(0.0, 900.0);
+            final lNormalCoverSide = math.min(width * 0.42, height * 0.85).clamp(0.0, 900.0 * uiScale);
             final lNormalCoverTop = (height - lNormalCoverSide) / 2 - landscapeNormalLift;
             final lNormalCoverLeft = width * 0.05 + (width * 0.45 - lNormalCoverSide) / 2;
 
-            final lNormalInfoHeight = height > 1000 ? 120.0 : 90.0;
-            final lNormalControlsHeight = height > 1000 ? 280.0 : 200.0;
+            final lNormalInfoHeight = (height > 1000 ? 110.0 : 90.0) * uiScale;
+            final lNormalControlsHeight = (height > 1000 ? 240.0 : 200.0) * uiScale;
 
             final lNormalInfoTop = height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2 - landscapeNormalLift;
             final lNormalInfoLeft = width * 0.5;
@@ -110,27 +115,27 @@ class PlaybackLandscapeView extends ConsumerWidget {
             final lNormalLyricsOpacity = 0.0;
 
             // ---------------- Landscape Lyrics ----------------
-            final lColWidth = (width * 0.35).clamp(320.0, 600.0);
+            final lColWidth = (width * 0.35).clamp(320.0 * uiScale, 600.0 * uiScale);
 
-            final lLyricsCoverSide = math.min(lColWidth * 0.85, height * 0.45).clamp(0.0, 480.0);
+            final lLyricsCoverSide = math.min(lColWidth * 0.85, height * 0.45).clamp(0.0, 480.0 * uiScale);
             final lLyricsCoverTop = 12.0 - landscapeLyricsLift;
             final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
 
-            final lLyricsInfoTop = lLyricsCoverTop + lLyricsCoverSide + 24.0;
-            final lLyricsInfoLeft = 16.0;
-            final lLyricsInfoWidth = lColWidth - 32.0;
-            final lLyricsInfoHeight = height > 1000 ? 100.0 : 80.0;
+            final lLyricsInfoTop = lLyricsCoverTop + lLyricsCoverSide + 24.0 * uiScale;
+            final lLyricsInfoLeft = 16.0 * uiScale;
+            final lLyricsInfoWidth = lColWidth - 32.0 * uiScale;
+            final lLyricsInfoHeight = (height > 1000 ? 100.0 : 80.0) * uiScale;
 
-            final lLyricsControlsTop = lLyricsInfoTop + lLyricsInfoHeight + 16.0;
-            final lLyricsControlsLeft = 16.0;
-            final lLyricsControlsWidth = lColWidth - 32.0;
-            final lLyricsControlsHeight = height - lLyricsControlsTop - 32.0;
+            final lLyricsControlsTop = lLyricsInfoTop + lLyricsInfoHeight + 16.0 * uiScale;
+            final lLyricsControlsLeft = 16.0 * uiScale;
+            final lLyricsControlsWidth = lColWidth - 32.0 * uiScale;
+            final lLyricsControlsHeight = height - lLyricsControlsTop - 32.0 * uiScale;
             final lLyricsControlsOpacity = 1.0;
 
-            final lLyricsLyricsTop = 16.0;
-            final lLyricsLyricsLeft = lColWidth + 16.0;
-            final lLyricsLyricsWidth = width - lLyricsLyricsLeft - 32.0;
-            final lLyricsLyricsHeight = height - 32.0;
+            final lLyricsLyricsTop = 16.0 * uiScale;
+            final lLyricsLyricsLeft = lColWidth + 16.0 * uiScale;
+            final lLyricsLyricsWidth = width - lLyricsLyricsLeft - 32.0 * uiScale;
+            final lLyricsLyricsHeight = height - 32.0 * uiScale;
             final lLyricsLyricsOpacity = 1.0;
 
             // ---------------- 插值计算 ----------------
@@ -195,11 +200,11 @@ class PlaybackLandscapeView extends ConsumerWidget {
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.topCenter,
                           child: SizedBox(
-                            width: (width > 2000 ? 580.0 : (width > 1200 ? 500.0 : 450.0)),
+                            width: (width > 2000 ? 580.0 : (width > 1200 ? 500.0 : 450.0)) * uiScale,
                             child: PlaybackControls(
                               isLandscape: true,
                               isLyricsMode: isLyricsMode,
-                              isLarge: height > 1000 || width > 2000,
+                              uiScale: uiScale,
                               onShowMoreMenu: onShowMoreMenu,
                               onCyclePlaylistMode: onCyclePlaylistMode,
                               onShowPlaylistModeSelector: onShowPlaylistModeSelector,
@@ -247,6 +252,7 @@ class PlaybackLandscapeView extends ConsumerWidget {
                     child: PlaybackTrackInfo(
                       currentMusic: currentMusic,
                       align: targetInfoAlign,
+                      uiScale: uiScale,
                       lyricsModeT: tLyrics,
                       height: height,
                       isLandscape: true,
