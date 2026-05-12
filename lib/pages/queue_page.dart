@@ -9,6 +9,7 @@ import '../player/scanner_service.dart';
 import '../widgets/song_thumbnail.dart';
 import '../utils/song_context_menu_utils.dart';
 import '../utils/deleted_song_snack.dart';
+import '../utils/app_snack_bar.dart';
 
 // 队列页面
 class QueuePage extends ConsumerStatefulWidget {
@@ -118,11 +119,15 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               audio.clearPlaylist();
               Navigator.pop(context);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+              if (context.mounted) {
+                AppSnackBar.show(
+                  context,
+                  ref,
                   SnackBar(
                     content: Text(AppLocalizations.of(context)!.queueCleared),
                   ),
                 );
+              }
               }
             },
             child: Text(AppLocalizations.of(context)!.clearQueue),
@@ -424,14 +429,22 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         onTap: _isSelectionMode
                             ? () {
                                 if (isMissing) {
-                                  showDeletedSongSnack(context, skipped: false);
+                                  showDeletedSongSnack(
+                                    context,
+                                    ref,
+                                    skipped: false,
+                                  );
                                   return;
                                 }
                                 _toggleSelection(index);
                               }
                             : () {
                                 if (isMissing) {
-                                  showDeletedSongSnack(context, skipped: false);
+                                  showDeletedSongSnack(
+                                    context,
+                                    ref,
+                                    skipped: false,
+                                  );
                                   return;
                                 }
                                 if (isHistoryView || isRandomQueueView) {
@@ -493,9 +506,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                     _selectedIndices.clear();
                                     _toggleSelectionMode();
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(
+                                      AppSnackBar.show(
                                         context,
-                                      ).showSnackBar(
+                                        ref,
                                         SnackBar(
                                           content: Text(
                                             AppLocalizations.of(

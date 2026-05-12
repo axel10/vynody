@@ -27,6 +27,7 @@ import '../dialogs/sleep_timer_sheet.dart';
 import '../widgets/equalizer_panel.dart';
 import '../widgets/lyrics_task_status_banner.dart';
 import 'main_layout_riverpod.dart';
+import '../utils/app_snack_bar.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
 
@@ -260,7 +261,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     }
 
     if (mounted) {
-      messenger.showSnackBar(SnackBar(content: Text(successMessage)));
+      AppSnackBar.show(context, ref, SnackBar(content: Text(successMessage)));
     }
   }
 
@@ -345,18 +346,18 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     // Check if format is supported
     if (!isMetadataWritable(song.path)) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
+        AppSnackBar.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.unsupportedFormatSingle)));
+          ref,
+          SnackBar(content: Text(l10n.unsupportedFormatSingle)),
+        );
       }
       return;
     }
 
     // Show loading
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.savingTags)));
+      AppSnackBar.show(context, ref, SnackBar(content: Text(l10n.savingTags)));
     }
 
     try {
@@ -378,7 +379,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       );
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        AppSnackBar.show(
+          context,
+          ref,
           SnackBar(
             content: Text(success ? l10n.tagsSaved : l10n.tagsSaveFailed),
           ),
@@ -386,9 +389,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
+        AppSnackBar.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.tagsSaveFailed)));
+          ref,
+          SnackBar(content: Text(l10n.tagsSaveFailed)),
+        );
       }
     }
   }
@@ -400,7 +405,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     if (queue.isEmpty) return;
 
     // Show initial loading message
-    messenger.showSnackBar(
+    AppSnackBar.show(
+      context,
+      ref,
       SnackBar(
         content: Text(l10n.savingTags),
         duration: const Duration(seconds: 5),
@@ -436,13 +443,19 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     if (modifiedSongs.isEmpty) {
       if (!mounted) return;
       messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.noModifiedTagsToSave)));
+      AppSnackBar.show(
+        context,
+        ref,
+        SnackBar(content: Text(l10n.noModifiedTagsToSave)),
+      );
       return;
     }
 
     // Show initial snackbar with progress
     messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
+    AppSnackBar.show(
+      context,
+      ref,
       SnackBar(
         content: Text('${l10n.savingTags} 0/${modifiedSongs.length}'),
         duration: Duration(seconds: modifiedSongs.length + 2),
@@ -497,7 +510,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       // Update progress snackbar
       if (!mounted) return;
       messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
+      AppSnackBar.show(
+        context,
+        ref,
         SnackBar(
           content: Text('${l10n.savingTags} ${i + 1}/${songs.length}'),
           duration: const Duration(seconds: 2),
@@ -519,7 +534,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       messages.add(l10n.unsupportedFormat(unsupportedCount));
     }
 
-    messenger.showSnackBar(SnackBar(content: Text(messages.join(' '))));
+    AppSnackBar.show(
+      context,
+      ref,
+      SnackBar(content: Text(messages.join(' '))),
+    );
   }
 
   void _showRandomModeSelector(BuildContext context, AudioService audio) {

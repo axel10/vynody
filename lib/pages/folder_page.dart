@@ -16,6 +16,7 @@ import '../player/scanner_service.dart';
 import '../utils/song_context_menu_utils.dart';
 import '../dialogs/transcode_dialog.dart';
 import '../widgets/song_thumbnail.dart';
+import '../utils/app_snack_bar.dart';
 
 // 目录页
 class FoldersPage extends ConsumerStatefulWidget {
@@ -258,9 +259,11 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       _isRootSelectionMode = false;
     });
 
-    ScaffoldMessenger.of(
+    AppSnackBar.show(
       context,
-    ).showSnackBar(SnackBar(content: Text(l10n.foldersDeleted(selectedCount))));
+      ref,
+      SnackBar(content: Text(l10n.foldersDeleted(selectedCount))),
+    );
   }
 
   List<MusicFile> _selectedSongsFromFolder(List<MusicFile> files) {
@@ -360,9 +363,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
           message = AppLocalizations.of(context)!.folderAddFailed;
           break;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      AppSnackBar.show(context, ref, SnackBar(content: Text(message)));
     }
   }
 

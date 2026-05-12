@@ -6,15 +6,22 @@ class MainLayoutUiState {
   const MainLayoutUiState({
     this.showVolumeHud = false,
     this.showImmersiveTabBar = true,
+    this.snackBarOffset = 0.0,
   });
 
   final bool showVolumeHud;
   final bool showImmersiveTabBar;
+  final double snackBarOffset;
 
-  MainLayoutUiState copyWith({bool? showVolumeHud, bool? showImmersiveTabBar}) {
+  MainLayoutUiState copyWith({
+    bool? showVolumeHud,
+    bool? showImmersiveTabBar,
+    double? snackBarOffset,
+  }) {
     return MainLayoutUiState(
       showVolumeHud: showVolumeHud ?? this.showVolumeHud,
       showImmersiveTabBar: showImmersiveTabBar ?? this.showImmersiveTabBar,
+      snackBarOffset: snackBarOffset ?? this.snackBarOffset,
     );
   }
 }
@@ -54,6 +61,10 @@ class MainLayoutUiController extends Notifier<MainLayoutUiState> {
       if (_disposed) return;
       state = state.copyWith(showImmersiveTabBar: false);
     });
+  }
+
+  void setSnackBarOffset(double offset) {
+    state = state.copyWith(snackBarOffset: offset);
   }
 }
 

@@ -139,7 +139,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   void _syncDeletedSongNoticeHandler() {
     _audioService.setMissingSongNoticeHandler(({required bool skipped}) {
       if (!mounted) return;
-      showDeletedSongSnack(context, skipped: skipped);
+      showDeletedSongSnack(context, ref, skipped: skipped);
     });
   }
 
@@ -650,8 +650,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                               : theme.brightness,
                         ),
                       ),
-                    Positioned(
-                      bottom: useSidebar ? 20 : 80,
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      bottom: (useSidebar ? 20 : 80) + uiState.snackBarOffset,
                       left: (useSidebar && !isPlayback) ? 80 : 0,
                       right: 0,
                       child: Center(

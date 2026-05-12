@@ -9,6 +9,7 @@ import '../player/audio_riverpod.dart';
 import '../player/playlist_service.dart';
 import '../utils/deleted_song_snack.dart';
 import '../widgets/song_thumbnail.dart';
+import '../utils/app_snack_bar.dart';
 
 class PlaylistTab extends ConsumerStatefulWidget {
   const PlaylistTab({super.key});
@@ -100,7 +101,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                     selectedSongs,
                   );
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  AppSnackBar.show(
+                    context,
+                    ref,
                     SnackBar(
                       content: Text(
                         AppLocalizations.of(
@@ -166,7 +169,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                       .read(playlistServiceProvider)
                       .addSongsToPlaylist(playlist.id, selectedSongs);
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  AppSnackBar.show(
+                    context,
+                    ref,
                     SnackBar(
                       content: Text(
                         AppLocalizations.of(
@@ -732,14 +737,14 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                       onTap: _isSelectionMode
                           ? () {
                               if (isMissing) {
-                                showDeletedSongSnack(context, skipped: false);
+                                showDeletedSongSnack(context, ref, skipped: false);
                                 return;
                               }
                               _toggleSelection(index);
                             }
                           : () {
                               if (isMissing) {
-                                showDeletedSongSnack(context, skipped: false);
+                                showDeletedSongSnack(context, ref, skipped: false);
                                 return;
                               }
                               audio.playPlaylist(
