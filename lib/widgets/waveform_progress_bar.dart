@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:ui';
 import '../utils/playback_utils.dart';
 
 class WaveformProgressBar extends StatefulWidget {
@@ -10,6 +11,7 @@ class WaveformProgressBar extends StatefulWidget {
   final Function(double) onScrubbing;
   final Color activeColor;
   final Color inactiveColor;
+  final bool isScrolling;
 
   const WaveformProgressBar({
     super.key,
@@ -20,6 +22,7 @@ class WaveformProgressBar extends StatefulWidget {
     required this.onScrubbing,
     this.activeColor = Colors.white,
     this.inactiveColor = Colors.white24,
+    this.isScrolling = true, // Default to scrolling as requested
   });
 
   @override
@@ -29,16 +32,28 @@ class WaveformProgressBar extends StatefulWidget {
 class _WaveformProgressBarState extends State<WaveformProgressBar> {
   double? _hoverProgress;
   bool _isDragging = false;
+  double _dragStartX = 0;
+  double _dragStartProgress = 0;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        // 缩放因子：决定波形的“宽度”。这里我们让每个波形点占据一定的像素宽度
+        // 如果是滚动模式，我们让波形更宽一些，超出屏幕
+        final double barWidth = widget.isScrolling ? 4.0 : (width / math.max(1, widget.waveform.length));
+        final double barGap = widget.isScrolling ? 2.0 : 0.0;
+        final double totalBarWidth = barWidth + barGap;
+        final double totalWaveformWidth = widget.waveform.length * totalBarWidth;
+
         return MouseRegion(
           onHover: (event) {
-            setState(() {
-              _hoverProgress = (event.localPosition.dx / constraints.maxWidth).clamp(0.0, 1.0);
-            });
+            if (!widget.isScrolling) {
+              setState(() {
+                _hoverProgress = (event.localPosition.dx / width).clamp(0.0, 1.0);
+              });
+            }
           },
           onExit: (event) {
             setState(() {
@@ -46,17 +61,32 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
             });
           },
           child: GestureDetector(
-            onHorizontalDragStart: (_) => setState(() => _isDragging = true),
-            onHorizontalDragUpdate: (details) {
-              final double localX = details.localPosition.dx;
-              final double newProgress = (localX / constraints.maxWidth).clamp(
-                0.0,
-                1.0,
-              );
-              widget.onScrubbing(newProgress);
+            onHorizontalDragStart: (details) {
               setState(() {
-                _hoverProgress = newProgress;
+                _isDragging = true;
+                _dragStartX = details.localPosition.dx;
+                _dragStartProgress = widget.progress;
               });
+            },
+            onHorizontalDragUpdate: (details) {
+              final double deltaX = details.localPosition.dx - _dragStartX;
+              double newProgress;
+              
+              if (widget.isScrolling) {
+                // 滚动模式下，拖动是“移动波形”
+                // 移动的距离 deltaX 对应的进度变化是 deltaX / totalWaveformWidth
+                // 向右拖动（deltaX > 0）意味着波形向右移，即播放进度减少
+                newProgress = (_dragStartProgress - (deltaX / totalWaveformWidth)).clamp(0.0, 1.0);
+              } else {
+                newProgress = (details.localPosition.dx / width).clamp(0.0, 1.0);
+              }
+              
+              widget.onScrubbing(newProgress);
+              if (!widget.isScrolling) {
+                setState(() {
+                  _hoverProgress = newProgress;
+                });
+              }
             },
             onHorizontalDragEnd: (details) {
               widget.onSeek(widget.progress);
@@ -66,13 +96,11 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
               });
             },
             onTapDown: (details) {
-              final double localX = details.localPosition.dx;
-              final double newProgress = (localX / constraints.maxWidth).clamp(
-                0.0,
-                1.0,
-              );
-              widget.onScrubbing(newProgress);
-              widget.onSeek(newProgress);
+              if (!widget.isScrolling) {
+                final double newProgress = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                widget.onScrubbing(newProgress);
+                widget.onSeek(newProgress);
+              }
             },
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -80,50 +108,73 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                 // 时间显示预览
                 if (_hoverProgress != null || _isDragging)
                   SizedBox(
-                    height: 20,
+                    height: 24,
                     child: Center(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(4),
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white24, width: 0.5),
                         ),
                         child: Text(
                           formatDuration(Duration(
-                            milliseconds: (widget.duration.inMilliseconds * (_hoverProgress ?? widget.progress)).toInt(),
+                            milliseconds: (widget.duration.inMilliseconds * (widget.progress)).toInt(),
                           )),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
                     ),
                   )
                 else
-                  const SizedBox(height: 20), // Keep space to prevent jumping
+                  const SizedBox(height: 24),
+                
                 SizedBox(
-                  height: 60, // 调整进度条高度
+                  height: 80,
                   width: double.infinity,
                   child: Stack(
+                    alignment: Alignment.center,
                     children: [
                       // 波形显示
                       CustomPaint(
-                        size: Size(constraints.maxWidth, 60),
+                        size: Size(width, 80),
                         painter: WaveformPainter(
                           waveform: widget.waveform,
                           progress: widget.progress,
                           activeColor: widget.activeColor,
                           inactiveColor: widget.inactiveColor,
+                          isScrolling: widget.isScrolling,
+                          barWidth: barWidth,
+                          barGap: barGap,
                         ),
                       ),
-                      // 悬浮指示线
-                      if (_hoverProgress != null)
+                      
+                      // 播放头指示线 (仅在滚动模式下居中显示，或者在静态模式下跟随进度)
+                      if (widget.isScrolling)
+                        Container(
+                          width: 2,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: widget.activeColor,
+                            boxShadow: [
+                              BoxShadow(
+                                color: widget.activeColor.withValues(alpha: 0.5),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (_hoverProgress != null)
                         Positioned(
-                          left: _hoverProgress! * constraints.maxWidth,
-                          top: 0,
-                          bottom: 0,
+                          left: _hoverProgress! * width,
+                          top: 10,
+                          bottom: 10,
                           child: Container(
                             width: 2,
                             color: widget.activeColor.withValues(alpha: 0.3),
@@ -146,12 +197,18 @@ class WaveformPainter extends CustomPainter {
   final double progress;
   final Color activeColor;
   final Color inactiveColor;
+  final bool isScrolling;
+  final double barWidth;
+  final double barGap;
 
   WaveformPainter({
     required this.waveform,
     required this.progress,
     required this.activeColor,
     required this.inactiveColor,
+    required this.isScrolling,
+    required this.barWidth,
+    required this.barGap,
   });
 
   @override
@@ -159,7 +216,8 @@ class WaveformPainter extends CustomPainter {
     if (waveform.isEmpty) {
       final paint = Paint()
         ..color = inactiveColor
-        ..strokeWidth = 2;
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round;
       canvas.drawLine(
         Offset(0, size.height / 2),
         Offset(size.width, size.height / 2),
@@ -168,57 +226,59 @@ class WaveformPainter extends CustomPainter {
       return;
     }
 
-    final double barWidth = size.width / waveform.length;
-    final double maxBarHeight = size.height;
-    // 限制波形数量，避免过度绘制导致花屏
-    final int step = (1 / barWidth).ceil().clamp(1, 100);
-
-    // 1. 绘制底色 (未播放部分)
-    final inactivePaint = Paint()..color = inactiveColor;
-    _drawBars(canvas, size, barWidth, maxBarHeight, step, inactivePaint);
-
-    // 2. 绘制激活色 (已播放部分)
-    // 使用 clipRect 实现精确到像素的裁剪，从而实现“柱子内部”的颜色渐变效果
-    canvas.save();
-    final double activeWidth = size.width * progress;
-    canvas.clipRect(Rect.fromLTWH(0, 0, activeWidth, size.height));
+    final double centerY = size.height / 2;
+    final double maxBarHeight = size.height * 0.8;
+    final double totalBarWidth = barWidth + barGap;
     
-    final activePaint = Paint()..color = activeColor;
-    // 性能优化：在绘制激活部分时，只绘制在裁剪区域内的柱子
-    final int activeEndIndex = (activeWidth / barWidth).ceil().clamp(0, waveform.length);
-    _drawBars(canvas, size, barWidth, maxBarHeight, step, activePaint, maxIndex: activeEndIndex);
+    // 计算当前进度对应的索引（浮点数，用于精确偏移）
+    final double currentIdx = progress * (waveform.length - 1);
     
-    canvas.restore();
-  }
+    // 绘制区域的中心 X
+    final double centerX = size.width / 2;
 
-  void _drawBars(
-    Canvas canvas,
-    Size size,
-    double barWidth,
-    double maxBarHeight,
-    int step,
-    Paint paint, {
-    int? maxIndex,
-  }) {
-    final int end = maxIndex ?? waveform.length;
-    for (int i = 0; i < end; i += step) {
-      final double barHeight = waveform[i] * maxBarHeight;
-      final double x = i * barWidth;
-      final double y = (size.height - barHeight) / 2;
-
-      // 如果宽度太窄，直接绘制直线而不是圆角矩形，提高性能并减少渲染错误
-      if (barWidth < 3) {
-        canvas.drawLine(
-          Offset(x + barWidth / 2, y),
-          Offset(x + barWidth / 2, y + barHeight),
-          paint..strokeWidth = math.max(1, barWidth),
-        );
+    for (int i = 0; i < waveform.length; i++) {
+      double x;
+      if (isScrolling) {
+        x = centerX + (i - currentIdx) * totalBarWidth;
       } else {
-        final RRect rrect = RRect.fromRectAndRadius(
-          Rect.fromLTWH(x + 1, y, barWidth - 2, barHeight),
-          const Radius.circular(2),
-        );
-        canvas.drawRRect(rrect, paint);
+        x = i * totalBarWidth;
+      }
+
+      if (x + barWidth < 0 || x > size.width) continue;
+
+      final double barHeight = math.max(2.0, waveform[i] * maxBarHeight);
+      final double y = centerY - barHeight / 2;
+
+      final bool isProcessed = isScrolling ? (x < centerX) : (i / waveform.length < progress);
+      final Color baseColor = isProcessed ? activeColor : inactiveColor;
+
+      final paint = Paint()
+        ..color = baseColor
+        ..style = PaintingStyle.fill;
+
+      // 1. 绘制波形 (带渐变)
+      paint.shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          baseColor.withValues(alpha: 0.7),
+          baseColor,
+          baseColor.withValues(alpha: 0.7),
+        ],
+      ).createShader(Rect.fromLTWH(x, y, barWidth, barHeight));
+
+      final RRect rrect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y, barWidth, barHeight),
+        Radius.circular(barWidth / 2),
+      );
+      canvas.drawRRect(rrect, paint);
+      
+      // 2. 激活部分发光
+      if (isProcessed && barWidth > 2) {
+        final glowPaint = Paint()
+          ..color = activeColor.withValues(alpha: 0.1)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+        canvas.drawRRect(rrect.inflate(1), glowPaint);
       }
     }
   }
@@ -228,6 +288,7 @@ class WaveformPainter extends CustomPainter {
     return oldDelegate.waveform != waveform ||
         oldDelegate.progress != progress ||
         oldDelegate.activeColor != activeColor ||
-        oldDelegate.inactiveColor != inactiveColor;
+        oldDelegate.inactiveColor != inactiveColor ||
+        oldDelegate.isScrolling != isScrolling;
   }
 }

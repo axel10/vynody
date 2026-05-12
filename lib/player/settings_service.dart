@@ -175,7 +175,7 @@ class SettingsService extends ChangeNotifier {
   SettingsService(this._prefs)
     : _themeMode = ThemeModeX.fromStorageValue(_prefs.getString(_keyThemeMode)),
       _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
-      _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 80,
+      _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 120,
       _lyricsAiProvider = LyricsAiProviderX.fromStorageValue(
         _prefs.getString(_keyLyricsAiProvider),
       ),
