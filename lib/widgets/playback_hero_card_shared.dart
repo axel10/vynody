@@ -175,7 +175,7 @@ class PlaybackTrackInfo extends ConsumerWidget {
         ),
         if (showArtistAlbum)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: EdgeInsets.only(top: 10 * uiScale),
             child: SizedBox(
               width: double.infinity,
               child: Align(
