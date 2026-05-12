@@ -4,6 +4,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/music_file.dart';
+import '../player/audio_riverpod.dart';
 import 'playback_hero_card_shared.dart';
 
 class PlaybackPortraitView extends ConsumerWidget {
@@ -82,6 +83,11 @@ class PlaybackPortraitView extends ConsumerWidget {
           builder: (context, constraints) {
             final width = constraints.maxWidth.roundToDouble();
             final height = constraints.maxHeight.roundToDouble();
+            final isWaveformEnabled = ref.watch(
+              settingsServiceProvider.select(
+                (s) => s.isWaveformProgressBarEnabled,
+              ),
+            );
 
             // ---------------- UI Scaling ----------------
             // Base height for scaling. (Increase this to make UI smaller on large screens)
@@ -92,7 +98,8 @@ class PlaybackPortraitView extends ConsumerWidget {
             final pMinControlsH = 280.0 * uiScale;
             const pBottomGap = 0.0;
             final pMidGap = 4.0 * uiScale;
-            final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
+            final pBottomAreaNeeded =
+                pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
 
             final pNormalInfoTop = (height - pBottomAreaNeeded) < height * 0.62
                 ? math.max(height * 0.20, height - pBottomAreaNeeded)
@@ -108,10 +115,14 @@ class PlaybackPortraitView extends ConsumerWidget {
             final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
             final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
 
-            final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight + pMidGap;
+            final pNormalControlsTop =
+                pNormalInfoTop + pNormalInfoHeight + pMidGap;
             final pNormalControlsLeft = 0.0;
             final pNormalControlsWidth = width;
-            final pNormalControlsHeight = math.max(pMinControlsH, height - pNormalControlsTop - pBottomGap);
+            final pNormalControlsHeight = math.max(
+              pMinControlsH,
+              height - pNormalControlsTop - pBottomGap,
+            );
             final pNormalControlsOpacity = 1.0;
 
             final pNormalLyricsTop = height;
@@ -126,7 +137,8 @@ class PlaybackPortraitView extends ConsumerWidget {
             final pLyricsCoverLeft = 12.0 * uiScale;
 
             final pLyricsInfoTop = 12.0 * uiScale;
-            final pLyricsInfoLeft = pLyricsCoverLeft + pLyricsCoverSide + 14.0 * uiScale;
+            final pLyricsInfoLeft =
+                pLyricsCoverLeft + pLyricsCoverSide + 14.0 * uiScale;
             final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0 * uiScale;
             final pLyricsInfoHeight = pLyricsCoverSide;
 
@@ -136,7 +148,8 @@ class PlaybackPortraitView extends ConsumerWidget {
             final pLyricsControlsHeight = pNormalControlsHeight;
             final pLyricsControlsOpacity = 0.0;
 
-            final pLyricsLyricsTop = pLyricsCoverTop + pLyricsCoverSide + 16.0 * uiScale;
+            final pLyricsLyricsTop =
+                pLyricsCoverTop + pLyricsCoverSide + 16.0 * uiScale;
             final pLyricsLyricsLeft = 16.0 * uiScale;
             final pLyricsLyricsWidth = width - 32.0 * uiScale;
             final pLyricsLyricsHeight = height - pLyricsLyricsTop;
@@ -156,17 +169,31 @@ class PlaybackPortraitView extends ConsumerWidget {
 
             final controlsTop = lerp(pNormalControlsTop, pLyricsControlsTop);
             final controlsLeft = lerp(pNormalControlsLeft, pLyricsControlsLeft);
-            final controlsWidth = lerp(pNormalControlsWidth, pLyricsControlsWidth);
-            final controlsHeight = lerp(pNormalControlsHeight, pLyricsControlsHeight);
-            final controlsOpacity = lerp(pNormalControlsOpacity, pLyricsControlsOpacity);
+            final controlsWidth = lerp(
+              pNormalControlsWidth,
+              pLyricsControlsWidth,
+            );
+            final controlsHeight = lerp(
+              pNormalControlsHeight,
+              pLyricsControlsHeight,
+            );
+            final controlsOpacity = lerp(
+              pNormalControlsOpacity,
+              pLyricsControlsOpacity,
+            );
 
             final lyricsTop = lerp(pNormalLyricsTop, pLyricsLyricsTop);
             final lyricsLeft = lerp(pNormalLyricsLeft, pLyricsLyricsLeft);
             final lyricsWidth = lerp(pNormalLyricsWidth, pLyricsLyricsWidth);
             final lyricsHeight = lerp(pNormalLyricsHeight, pLyricsLyricsHeight);
-            final lyricsOpacity = lerp(pNormalLyricsOpacity, pLyricsLyricsOpacity);
+            final lyricsOpacity = lerp(
+              pNormalLyricsOpacity,
+              pLyricsLyricsOpacity,
+            );
 
-            final targetInfoAlign = isLyricsMode ? TextAlign.left : TextAlign.center;
+            final targetInfoAlign = isLyricsMode
+                ? TextAlign.left
+                : TextAlign.center;
 
             return SizedBox(
               width: width,
@@ -204,17 +231,20 @@ class PlaybackPortraitView extends ConsumerWidget {
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.topCenter,
                           child: SizedBox(
-                            width: 420 * uiScale,
+                            width: isWaveformEnabled ? width : 420 * uiScale,
                             child: PlaybackControls(
                               isLandscape: false,
                               isLyricsMode: isLyricsMode,
                               uiScale: uiScale,
                               onShowMoreMenu: onShowMoreMenu,
                               onCyclePlaylistMode: onCyclePlaylistMode,
-                              onShowPlaylistModeSelector: onShowPlaylistModeSelector,
-                              onShowRandomModeSelector: onShowRandomModeSelector,
+                              onShowPlaylistModeSelector:
+                                  onShowPlaylistModeSelector,
+                              onShowRandomModeSelector:
+                                  onShowRandomModeSelector,
                               onTagCompletionTap: onTagCompletionTap,
-                              onTagCompletionLongPress: onTagCompletionLongPress,
+                              onTagCompletionLongPress:
+                                  onTagCompletionLongPress,
                               onSleepTimerTap: onSleepTimerTap,
                               onEqualizerTap: onEqualizerTap,
                               onToggleVisualizer: onToggleVisualizer,
