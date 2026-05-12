@@ -4,6 +4,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/music_file.dart';
+import '../player/audio_riverpod.dart';
 import 'playback_hero_card_shared.dart';
 
 class PlaybackPortraitView extends ConsumerWidget {
@@ -77,132 +78,64 @@ class PlaybackPortraitView extends ConsumerWidget {
       duration: animDuration,
       curve: animCurve,
       tween: Tween<double>(end: isLyricsMode ? 1.0 : 0.0),
-      builder: (context, tLyrics, _) {
+      builder: (context, t, _) {
         return LayoutBuilder(
           builder: (context, constraints) {
-            final width = constraints.maxWidth.roundToDouble();
-            final height = constraints.maxHeight.roundToDouble();
+            final w = constraints.maxWidth;
+            final h = constraints.maxHeight;
+            final isWaveformEnabled = ref.watch(
+              settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
+            );
+
             // ---------------- UI Scaling ----------------
-            // Base height for scaling. (Increase this to make UI smaller on large screens)
-            final uiScale = (height / 1150.0).clamp(1.0, 2.5);
+            final uiScale = (h / 1150.0).clamp(1.0, 2.5);
 
-            // ---------------- Portrait Normal ----------------
-            final pMinInfoH = 80.0 * uiScale;
-            final pMinControlsH = 280.0 * uiScale;
-            const pBottomGap = 0.0;
-            final pMidGap = 4.0 * uiScale;
-            final pBottomAreaNeeded =
-                pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
+            // ---------------- Layout Constants ----------------
+            final headerHeight = 110.0 * uiScale; // Height for album+info in lyrics mode
+            final controlsHeight = (isWaveformEnabled ? 320.0 : 280.0) * uiScale;
 
-            final pNormalInfoTop = (height - pBottomAreaNeeded) < height * 0.62
-                ? math.max(height * 0.20, height - pBottomAreaNeeded)
-                : height * 0.62;
+            // ---------------- Album Art ----------------
+            // Normal: Large, centered top. Lyrics: Small, top-left.
+            final nCoverSize = math.min(w * 0.9, h - controlsHeight - 150 * uiScale);
+            final lCoverSize = math.min(100.0 * uiScale, w * 0.3);
+            
+            final coverSize = lerpDouble(nCoverSize, lCoverSize, t)!;
+            final coverTop = lerpDouble(h * 0.08, 12.0 * uiScale, t)!;
+            final coverLeft = lerpDouble((w - nCoverSize) / 2, 12.0 * uiScale, t)!;
 
-            final pNormalInfoLeft = 16.0 * uiScale;
-            final pNormalInfoWidth = width - 32.0 * uiScale;
-            final pNormalInfoHeight = pMinInfoH;
+            // ---------------- Track Info ----------------
+            // Normal: Below cover. Lyrics: Right of cover.
+            final nInfoTop = coverTop + nCoverSize + 20 * uiScale;
+            final lInfoTop = 12.0 * uiScale;
+            final lInfoLeft = 12.0 * uiScale + lCoverSize + 16.0 * uiScale;
+            
+            final infoTop = lerpDouble(nInfoTop, lInfoTop, t)!;
+            final infoLeft = lerpDouble(16.0 * uiScale, lInfoLeft, t)!;
+            final infoWidth = lerpDouble(w - 32.0 * uiScale, w - lInfoLeft - 16.0 * uiScale, t)!;
+            final infoHeight = lerpDouble(80.0 * uiScale, lCoverSize, t)!;
 
-            final pNormalCoverGap = 24.0 * uiScale;
-            final pNormalCoverAreaH = math.max(0.0, pNormalInfoTop - pNormalCoverGap);
-            final pNormalCoverSide = math.max(0.0, math.min(width * 1, pNormalCoverAreaH * 1));
-            final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
-            final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
-
-            final pNormalControlsTop =
-                pNormalInfoTop + pNormalInfoHeight + pMidGap;
-            final pNormalControlsLeft = 0.0;
-            final pNormalControlsWidth = width;
-            final pNormalControlsHeight = math.max(
-              pMinControlsH,
-              height - pNormalControlsTop - pBottomGap,
-            );
-            final pNormalControlsOpacity = 1.0;
-
-            final pNormalLyricsTop = height;
-            final pNormalLyricsLeft = 16.0 * uiScale;
-            final pNormalLyricsWidth = width - 32.0 * uiScale;
-            final pNormalLyricsHeight = height - pNormalInfoTop;
-            final pNormalLyricsOpacity = 0.0;
-
-            // ---------------- Portrait Lyrics ----------------
-            final pLyricsCoverSide = math.min(120.0 * uiScale, width * 0.32);
-            final pLyricsCoverTop = 12.0 * uiScale;
-            final pLyricsCoverLeft = 12.0 * uiScale;
-
-            final pLyricsInfoTop = 12.0 * uiScale;
-            final pLyricsInfoLeft =
-                pLyricsCoverLeft + pLyricsCoverSide + 14.0 * uiScale;
-            final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0 * uiScale;
-            final pLyricsInfoHeight = pLyricsCoverSide;
-
-            final pLyricsControlsTop = height;
-            final pLyricsControlsLeft = 16.0 * uiScale;
-            final pLyricsControlsWidth = width - 32.0 * uiScale;
-            final pLyricsControlsHeight = pNormalControlsHeight;
-            final pLyricsControlsOpacity = 0.0;
-
-            final pLyricsLyricsTop =
-                pLyricsCoverTop + pLyricsCoverSide + 16.0 * uiScale;
-            final pLyricsLyricsLeft = 16.0 * uiScale;
-            final pLyricsLyricsWidth = width - 32.0 * uiScale;
-            final pLyricsLyricsHeight = height - pLyricsLyricsTop;
-            final pLyricsLyricsOpacity = 1.0;
-
-            // ---------------- 插值计算 ----------------
-            double lerp(double a, double b) => lerpDouble(a, b, tLyrics) ?? a;
-
-            final coverSide = lerp(pNormalCoverSide, pLyricsCoverSide);
-            final coverTop = lerp(pNormalCoverTop, pLyricsCoverTop);
-            final coverLeft = lerp(pNormalCoverLeft, pLyricsCoverLeft);
-
-            final infoTop = lerp(pNormalInfoTop, pLyricsInfoTop);
-            final infoLeft = lerp(pNormalInfoLeft, pLyricsInfoLeft);
-            final infoWidth = lerp(pNormalInfoWidth, pLyricsInfoWidth);
-            final infoHeight = lerp(pNormalInfoHeight, pLyricsInfoHeight);
-
-            final controlsTop = lerp(pNormalControlsTop, pLyricsControlsTop);
-            final controlsLeft = lerp(pNormalControlsLeft, pLyricsControlsLeft);
-            final controlsWidth = lerp(
-              pNormalControlsWidth,
-              pLyricsControlsWidth,
-            );
-            final controlsHeight = lerp(
-              pNormalControlsHeight,
-              pLyricsControlsHeight,
-            );
-            final controlsOpacity = lerp(
-              pNormalControlsOpacity,
-              pLyricsControlsOpacity,
-            );
-
-            final lyricsTop = lerp(pNormalLyricsTop, pLyricsLyricsTop);
-            final lyricsLeft = lerp(pNormalLyricsLeft, pLyricsLyricsLeft);
-            final lyricsWidth = lerp(pNormalLyricsWidth, pLyricsLyricsWidth);
-            final lyricsHeight = lerp(pNormalLyricsHeight, pLyricsLyricsHeight);
-            final lyricsOpacity = lerp(
-              pNormalLyricsOpacity,
-              pLyricsLyricsOpacity,
-            );
-
-            final targetInfoAlign = isLyricsMode
-                ? TextAlign.left
-                : TextAlign.center;
+            // ---------------- Controls & Lyrics ----------------
+            // Controls: Fade out and move down in lyrics mode.
+            // Lyrics: Fade in and move up in lyrics mode.
+            final controlsOpacity = (1.0 - t * 2).clamp(0.0, 1.0);
+            final lyricsOpacity = (t * 2 - 1.0).clamp(0.0, 1.0);
 
             return SizedBox(
-              width: width,
-              height: height,
+              width: w,
+              height: h,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
+                  // Lyrics Panel
                   Positioned(
-                    top: lyricsTop,
-                    left: lyricsLeft,
-                    width: lyricsWidth,
-                    height: lyricsHeight,
+                    top: lerpDouble(h, headerHeight + 20 * uiScale, t)!,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
                     child: Opacity(
-                      opacity: lyricsOpacity.clamp(0.0, 1.0),
+                      opacity: lyricsOpacity,
                       child: IgnorePointer(
-                        ignoring: lyricsOpacity < 0.5,
+                        ignoring: t < 0.5,
                         child: PlaybackLyricsPanel(
                           currentMusic: currentMusic,
                           bottomSpacerHeight: lyricsBottomSpacerHeight,
@@ -211,33 +144,32 @@ class PlaybackPortraitView extends ConsumerWidget {
                       ),
                     ),
                   ),
+
+                  // Controls
                   Positioned(
-                    top: controlsTop,
-                    left: controlsLeft,
-                    width: controlsWidth,
+                    bottom: lerpDouble(0, -100, t)!,
+                    left: 0,
+                    right: 0,
                     height: controlsHeight,
                     child: Opacity(
-                      opacity: controlsOpacity.clamp(0.0, 1.0),
+                      opacity: controlsOpacity,
                       child: IgnorePointer(
-                        ignoring: controlsOpacity < 0.5,
+                        ignoring: t > 0.5,
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
-                          alignment: Alignment.topCenter,
+                          alignment: Alignment.bottomCenter,
                           child: SizedBox(
-                            width: math.max(width, 420 * uiScale),
+                            width: isWaveformEnabled ? w : 420 * uiScale,
                             child: PlaybackControls(
                               isLandscape: false,
                               isLyricsMode: isLyricsMode,
                               uiScale: uiScale,
                               onShowMoreMenu: onShowMoreMenu,
                               onCyclePlaylistMode: onCyclePlaylistMode,
-                              onShowPlaylistModeSelector:
-                                  onShowPlaylistModeSelector,
-                              onShowRandomModeSelector:
-                                  onShowRandomModeSelector,
+                              onShowPlaylistModeSelector: onShowPlaylistModeSelector,
+                              onShowRandomModeSelector: onShowRandomModeSelector,
                               onTagCompletionTap: onTagCompletionTap,
-                              onTagCompletionLongPress:
-                                  onTagCompletionLongPress,
+                              onTagCompletionLongPress: onTagCompletionLongPress,
                               onSleepTimerTap: onSleepTimerTap,
                               onEqualizerTap: onEqualizerTap,
                               onToggleVisualizer: onToggleVisualizer,
@@ -259,18 +191,22 @@ class PlaybackPortraitView extends ConsumerWidget {
                       ),
                     ),
                   ),
+
+                  // Album Art
                   Positioned(
                     top: coverTop,
                     left: coverLeft,
-                    width: coverSide,
-                    height: coverSide,
+                    width: coverSize,
+                    height: coverSize,
                     child: PlaybackAlbumArt(
                       isNext: isNext,
-                      displaySize: coverSide,
+                      displaySize: coverSize,
                       onCoverTap: onCoverTap,
                       onCarouselAnimationComplete: onCarouselAnimationComplete,
                     ),
                   ),
+
+                  // Track Info
                   Positioned(
                     top: infoTop,
                     left: infoLeft,
@@ -278,10 +214,10 @@ class PlaybackPortraitView extends ConsumerWidget {
                     height: infoHeight,
                     child: PlaybackTrackInfo(
                       currentMusic: currentMusic,
-                      align: targetInfoAlign,
+                      align: isLyricsMode ? TextAlign.left : TextAlign.center,
                       uiScale: uiScale,
-                      lyricsModeT: tLyrics,
-                      height: height,
+                      lyricsModeT: t,
+                      height: h,
                       isLandscape: false,
                     ),
                   ),

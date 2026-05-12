@@ -77,108 +77,71 @@ class PlaybackLandscapeView extends ConsumerWidget {
       duration: animDuration,
       curve: animCurve,
       tween: Tween<double>(end: isLyricsMode ? 1.0 : 0.0),
-      builder: (context, tLyrics, _) {
+      builder: (context, t, _) {
         return LayoutBuilder(
           builder: (context, constraints) {
-            final width = constraints.maxWidth.roundToDouble();
-            final height = constraints.maxHeight.roundToDouble();
+            final w = constraints.maxWidth;
+            final h = constraints.maxHeight;
+            final uiScale = (h / 1300.0).clamp(1.0, 2.5);
 
-            // ---------------- UI Scaling ----------------
-            // Base height for scaling. (Increase this to make UI smaller on large screens)
-            // On 4K (2160p): 2160 / 1150 = ~1.87x scale
-            final uiScale = (height / 1300.0).clamp(1.0, 2.5);
+            // ---------------- Layout Configuration ----------------
+            // Column width in lyrics mode
+            final colWidth = (w * 0.35).clamp(320.0 * uiScale, 600.0 * uiScale);
 
-            // ---------------- Landscape Normal ----------------
-            final landscapeNormalLift = height > 1000 ? 0.0 : 30.0;
-            const landscapeLyricsLift = 0.0;
+            // ---------------- Album Art ----------------
+            // Normal: Left half, large. Lyrics: Left column, smaller.
+            final nCoverSize = math.min(w * 0.42, h * 0.8).clamp(0.0, 900.0 * uiScale);
+            final lCoverSize = math.min(colWidth * 0.85, h * 0.4).clamp(0.0, 480.0 * uiScale);
+            
+            final coverSize = lerpDouble(nCoverSize, lCoverSize, t)!;
+            final coverTop = lerpDouble((h - nCoverSize) / 2 - (h > 1000 ? 0 : 30), 12.0 * uiScale, t)!;
+            final coverLeft = lerpDouble(w * 0.05 + (w * 0.45 - nCoverSize) / 2, (colWidth - lCoverSize) / 2, t)!;
 
-            final lNormalCoverSide = math.min(width * 0.42, height * 0.85).clamp(0.0, 900.0 * uiScale);
-            final lNormalCoverTop = (height - lNormalCoverSide) / 2 - landscapeNormalLift;
-            final lNormalCoverLeft = width * 0.05 + (width * 0.45 - lNormalCoverSide) / 2;
+            // ---------------- Track Info ----------------
+            // Normal: Right half, top. Lyrics: Left column, below cover.
+            final nInfoHeight = (h > 1000 ? 110.0 : 90.0) * uiScale;
+            final lInfoHeight = (h > 1000 ? 100.0 : 80.0) * uiScale;
+            
+            final nInfoTop = h * 0.5 - (nInfoHeight + 240 * uiScale) / 2 - (h > 1000 ? 0 : 30);
+            final lInfoTop = coverTop + lCoverSize + 24.0 * uiScale;
+            
+            final infoTop = lerpDouble(nInfoTop, lInfoTop, t)!;
+            final infoLeft = lerpDouble(w * 0.5, 16.0 * uiScale, t)!;
+            final infoWidth = lerpDouble(w * 0.45, colWidth - 32.0 * uiScale, t)!;
+            final infoHeight = lerpDouble(nInfoHeight, lInfoHeight, t)!;
 
-            final lNormalInfoHeight = (height > 1000 ? 110.0 : 90.0) * uiScale;
-            final lNormalControlsHeight = (height > 1000 ? 260.0 : 220.0) * uiScale;
+            // ---------------- Controls ----------------
+            // Normal: Right half, below info. Lyrics: Left column, bottom.
+            final nControlsTop = nInfoTop + nInfoHeight;
+            final lControlsTop = lInfoTop + lInfoHeight + 16.0 * uiScale;
+            
+            final controlsTop = lerpDouble(nControlsTop, lControlsTop, t)!;
+            final controlsLeft = lerpDouble(w * 0.5, 16.0 * uiScale, t)!;
+            final controlsWidth = lerpDouble(w * 0.45, colWidth - 32.0 * uiScale, t)!;
+            final controlsHeight = lerpDouble(240 * uiScale, h - lControlsTop - 32.0 * uiScale, t)!;
 
-            final lNormalInfoTop = height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2 - landscapeNormalLift;
-            final lNormalInfoLeft = width * 0.5;
-            final lNormalInfoWidth = width * 0.45;
-
-            final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
-            final lNormalControlsLeft = width * 0.5;
-            final lNormalControlsWidth = width * 0.45;
-            final lNormalControlsOpacity = 1.0;
-
-            final lNormalLyricsTop = 16.0;
-            final lNormalLyricsLeft = width;
-            final lNormalLyricsWidth = width * 0.45;
-            final lNormalLyricsHeight = height - 32.0;
-            final lNormalLyricsOpacity = 0.0;
-
-            // ---------------- Landscape Lyrics ----------------
-            final lColWidth = (width * 0.35).clamp(320.0 * uiScale, 600.0 * uiScale);
-
-            final lLyricsCoverSide = math.min(lColWidth * 0.85, height * 0.45).clamp(0.0, 480.0 * uiScale);
-            final lLyricsCoverTop = 12.0 - landscapeLyricsLift;
-            final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
-
-            final lLyricsInfoTop = lLyricsCoverTop + lLyricsCoverSide + 24.0 * uiScale;
-            final lLyricsInfoLeft = 16.0 * uiScale;
-            final lLyricsInfoWidth = lColWidth - 32.0 * uiScale;
-            final lLyricsInfoHeight = (height > 1000 ? 100.0 : 80.0) * uiScale;
-
-            final lLyricsControlsTop = lLyricsInfoTop + lLyricsInfoHeight + 16.0 * uiScale;
-            final lLyricsControlsLeft = 16.0 * uiScale;
-            final lLyricsControlsWidth = lColWidth - 32.0 * uiScale;
-            final lLyricsControlsHeight = height - lLyricsControlsTop - 32.0 * uiScale;
-            final lLyricsControlsOpacity = 1.0;
-
-            final lLyricsLyricsTop = 16.0 * uiScale;
-            final lLyricsLyricsLeft = lColWidth + 16.0 * uiScale;
-            final lLyricsLyricsWidth = width - lLyricsLyricsLeft - 32.0 * uiScale;
-            final lLyricsLyricsHeight = height - 32.0 * uiScale;
-            final lLyricsLyricsOpacity = 1.0;
-
-            // ---------------- 插值计算 ----------------
-            double lerp(double a, double b) => lerpDouble(a, b, tLyrics) ?? a;
-
-            final coverSide = lerp(lNormalCoverSide, lLyricsCoverSide);
-            final coverTop = lerp(lNormalCoverTop, lLyricsCoverTop);
-            final coverLeft = lerp(lNormalCoverLeft, lLyricsCoverLeft);
-
-            final infoTop = lerp(lNormalInfoTop, lLyricsInfoTop);
-            final infoLeft = lerp(lNormalInfoLeft, lLyricsInfoLeft);
-            final infoWidth = lerp(lNormalInfoWidth, lLyricsInfoWidth);
-            final infoHeight = lerp(lNormalInfoHeight, lLyricsInfoHeight);
-
-            final controlsTop = lerp(lNormalControlsTop, lLyricsControlsTop);
-            final controlsLeft = lerp(lNormalControlsLeft, lLyricsControlsLeft);
-            final controlsWidth = lerp(lNormalControlsWidth, lLyricsControlsWidth);
-            final controlsHeight = lerp(lNormalControlsHeight, lLyricsControlsHeight);
-            final controlsOpacity = lerp(lNormalControlsOpacity, lLyricsControlsOpacity);
-
-            final lyricsTop = lerp(lNormalLyricsTop, lLyricsLyricsTop);
-            final lyricsLeft = lerp(lNormalLyricsLeft, lLyricsLyricsLeft);
-            final lyricsWidth = lerp(lNormalLyricsWidth, lLyricsLyricsWidth);
-            final lyricsHeight = lerp(lNormalLyricsHeight, lLyricsLyricsHeight);
-            final lyricsOpacity = lerp(lNormalLyricsOpacity, lLyricsLyricsOpacity);
-
-            const targetInfoAlign = TextAlign.center;
+            // ---------------- Lyrics Panel ----------------
+            // Normal: Off-screen right. Lyrics: Right column.
+            final lyricsLeft = lerpDouble(w, colWidth + 16.0 * uiScale, t)!;
+            final lyricsWidth = w - lyricsLeft - 32.0 * uiScale;
+            final lyricsOpacity = t.clamp(0.0, 1.0);
 
             return SizedBox(
-              width: width,
-              height: height,
+              width: w,
+              height: h,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
+                  // Lyrics Panel
                   Positioned(
-                    top: lyricsTop,
+                    top: 16.0 * uiScale,
                     left: lyricsLeft,
                     width: lyricsWidth,
-                    height: lyricsHeight,
+                    height: h - 32.0 * uiScale,
                     child: Opacity(
-                      opacity: lyricsOpacity.clamp(0.0, 1.0),
+                      opacity: lyricsOpacity,
                       child: IgnorePointer(
-                        ignoring: lyricsOpacity < 0.5,
+                        ignoring: t < 0.5,
                         child: PlaybackLyricsPanel(
                           currentMusic: currentMusic,
                           bottomSpacerHeight: lyricsBottomSpacerHeight,
@@ -187,63 +150,63 @@ class PlaybackLandscapeView extends ConsumerWidget {
                       ),
                     ),
                   ),
+
+                  // Controls
                   Positioned(
                     top: controlsTop,
                     left: controlsLeft,
                     width: controlsWidth,
                     height: controlsHeight,
-                    child: Opacity(
-                      opacity: controlsOpacity.clamp(0.0, 1.0),
-                      child: IgnorePointer(
-                        ignoring: controlsOpacity < 0.5,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.topCenter,
-                          child: SizedBox(
-                            width: (width > 2000 ? 720.0 : (width > 1200 ? 620.0 : 540.0)) * uiScale,
-                            child: PlaybackControls(
-                              isLandscape: true,
-                              isLyricsMode: isLyricsMode,
-                              uiScale: uiScale,
-                              onShowMoreMenu: onShowMoreMenu,
-                              onCyclePlaylistMode: onCyclePlaylistMode,
-                              onShowPlaylistModeSelector: onShowPlaylistModeSelector,
-                              onShowRandomModeSelector: onShowRandomModeSelector,
-                              onTagCompletionTap: onTagCompletionTap,
-                              onTagCompletionLongPress: onTagCompletionLongPress,
-                              onSleepTimerTap: onSleepTimerTap,
-                              onEqualizerTap: onEqualizerTap,
-                              onToggleVisualizer: onToggleVisualizer,
-                              showVisualizerToggle: showVisualizerToggle,
-                              onPrevious: onPrevious,
-                              onPlayPause: onPlayPause,
-                              onNext: onNext,
-                              onVolumeTap: onVolumeTap,
-                              onVolumeDrag: onVolumeDrag,
-                              onVolumeScroll: onVolumeScroll,
-                              overrideProgress: overrideProgress,
-                              overridePosition: overridePosition,
-                              overrideWaveform: overrideWaveform,
-                              onScrubbing: onScrubbing,
-                              onSeek: onSeek,
-                            ),
-                          ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(
+                        width: (w > 2000 ? 720.0 : (w > 1200 ? 620.0 : 540.0)) * uiScale,
+                        child: PlaybackControls(
+                          isLandscape: true,
+                          isLyricsMode: isLyricsMode,
+                          uiScale: uiScale,
+                          onShowMoreMenu: onShowMoreMenu,
+                          onCyclePlaylistMode: onCyclePlaylistMode,
+                          onShowPlaylistModeSelector: onShowPlaylistModeSelector,
+                          onShowRandomModeSelector: onShowRandomModeSelector,
+                          onTagCompletionTap: onTagCompletionTap,
+                          onTagCompletionLongPress: onTagCompletionLongPress,
+                          onSleepTimerTap: onSleepTimerTap,
+                          onEqualizerTap: onEqualizerTap,
+                          onToggleVisualizer: onToggleVisualizer,
+                          showVisualizerToggle: showVisualizerToggle,
+                          onPrevious: onPrevious,
+                          onPlayPause: onPlayPause,
+                          onNext: onNext,
+                          onVolumeTap: onVolumeTap,
+                          onVolumeDrag: onVolumeDrag,
+                          onVolumeScroll: onVolumeScroll,
+                          overrideProgress: overrideProgress,
+                          overridePosition: overridePosition,
+                          overrideWaveform: overrideWaveform,
+                          onScrubbing: onScrubbing,
+                          onSeek: onSeek,
                         ),
                       ),
                     ),
                   ),
+
+                  // Album Art
                   Positioned(
                     top: coverTop,
                     left: coverLeft,
-                    width: coverSide,
-                    height: coverSide,
+                    width: coverSize,
+                    height: coverSize,
                     child: PlaybackAlbumArt(
                       isNext: isNext,
-                      displaySize: coverSide,
+                      displaySize: coverSize,
                       onCoverTap: onCoverTap,
                       onCarouselAnimationComplete: onCarouselAnimationComplete,
                     ),
                   ),
+
+                  // Track Info
                   Positioned(
                     top: infoTop,
                     left: infoLeft,
@@ -251,10 +214,10 @@ class PlaybackLandscapeView extends ConsumerWidget {
                     height: infoHeight,
                     child: PlaybackTrackInfo(
                       currentMusic: currentMusic,
-                      align: targetInfoAlign,
+                      align: TextAlign.center,
                       uiScale: uiScale,
-                      lyricsModeT: tLyrics,
-                      height: height,
+                      lyricsModeT: t,
+                      height: h,
                       isLandscape: true,
                     ),
                   ),

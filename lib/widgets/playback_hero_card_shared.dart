@@ -1,10 +1,12 @@
-import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
+import '../player/settings_service.dart';
+import '../player/playlist_service.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
 import '../utils/song_context_menu_utils.dart';
@@ -36,8 +38,8 @@ class PlaybackAlbumArt extends ConsumerWidget {
     if (playlist.isEmpty) {
       return Center(
         child: Container(
-          width: math.max(0.0, displaySize * 0.8),
-          height: math.max(0.0, displaySize * 0.8),
+          width: displaySize * 0.8,
+          height: displaySize * 0.8,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             color: Colors.black87,
@@ -155,13 +157,13 @@ class PlaybackTrackInfo extends ConsumerWidget {
                 curve: Curves.fastOutSlowIn,
                 textAlign: TextAlign.start,
                 style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                      color: Colors.white,
-                      fontSize: lyricsModeT > 0.5 && !isLandscape
-                          ? uiScale * 18
-                          : uiScale * (isLandscape ? 26 : 22),
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
+                  color: Colors.white,
+                  fontSize: lyricsModeT > 0.5 && !isLandscape
+                      ? uiScale * 18
+                      : uiScale * (isLandscape ? 26 : 22),
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                ),
                 child: Text(
                   title,
                   maxLines: 1,
@@ -202,18 +204,18 @@ class PlaybackTrackInfo extends ConsumerWidget {
                     curve: Curves.fastOutSlowIn,
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                          color: Colors.white70,
-                          fontSize: lyricsModeT > 0.5 && !isLandscape
-                              ? uiScale * 13
-                              : uiScale * (isLandscape ? 16 : 15),
-                          height: 1.3,
-                        ),
+                      color: Colors.white70,
+                      fontSize: lyricsModeT > 0.5 && !isLandscape
+                          ? uiScale * 13
+                          : uiScale * (isLandscape ? 16 : 15),
+                      height: 1.3,
+                    ),
                     child: Text(
                       hasArtist && hasAlbum
                           ? '$rawArtist — $rawAlbum'
                           : (hasArtist
-                              ? rawArtist
-                              : (hasAlbum ? rawAlbum : l10n.unknown)),
+                                ? rawArtist
+                                : (hasAlbum ? rawAlbum : l10n.unknown)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -299,7 +301,8 @@ class PlaybackControls extends ConsumerWidget {
     final isRandomMode = ref.watch(audioIsRandomModeProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final playlistService = ref.watch(playlistServiceProvider);
-    final isFavorite = currentMusic != null && playlistService.isFavoriteSong(currentMusic);
+    final isFavorite =
+        currentMusic != null && playlistService.isFavoriteSong(currentMusic);
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
     final duration = ref.watch(audioDurationProvider);
     final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
@@ -353,7 +356,9 @@ class PlaybackControls extends ConsumerWidget {
             icon: Icon(
               Icons.shuffle_rounded,
               size: 28 * uiScale,
-              color: isRandomMode ? Theme.of(context).colorScheme.primary : Colors.white70,
+              color: isRandomMode
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.white70,
             ),
             onPressed: () {
               final audio = ref.read(audioServiceProvider);
@@ -385,7 +390,9 @@ class PlaybackControls extends ConsumerWidget {
           tooltip: l10n.tagCompletion,
         ),
         Tooltip(
-          message: sleepTimerRemaining != null ? l10n.sleepTimerRemaining(_formatSleepTimer(sleepTimerRemaining)) : l10n.sleepTimer,
+          message: sleepTimerRemaining != null
+              ? l10n.sleepTimerRemaining(_formatSleepTimer(sleepTimerRemaining))
+              : l10n.sleepTimer,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onSleepTimerTap,
@@ -397,7 +404,9 @@ class PlaybackControls extends ConsumerWidget {
                   Icon(
                     Icons.bedtime_rounded,
                     size: 28 * uiScale,
-                    color: sleepTimerRemaining != null ? Theme.of(context).colorScheme.primary : Colors.white70,
+                    color: sleepTimerRemaining != null
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.white70,
                   ),
                   if (sleepTimerRemaining != null) ...[
                     const SizedBox(height: 2),
@@ -407,7 +416,7 @@ class PlaybackControls extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
-                        fontSize: 10 * uiScale,
+                        fontSize: 10,
                         height: 1.0,
                         fontWeight: FontWeight.w600,
                       ),
@@ -473,7 +482,10 @@ class PlaybackControls extends ConsumerWidget {
             icon: Icon(
               isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
               size: (isLandscape ? 48 : 40) * uiScale,
-              color: currentThemeColorsMap['darkVibrant'] ?? currentThemeColorsMap['darkMuted'] ?? Colors.black,
+              color:
+                  currentThemeColorsMap['darkVibrant'] ??
+                  currentThemeColorsMap['darkMuted'] ??
+                  Colors.black,
             ),
           ),
         ),
@@ -536,32 +548,33 @@ class PlaybackControls extends ConsumerWidget {
                 onSeek: onSeek ?? (_) {},
                 height: 240,
                 showTooltip: false,
-                uiScale: uiScale,
               ),
               mainControlsRow,
               Positioned(
-                left: 20 * uiScale,
-                bottom: 10 * uiScale,
+                left: 20,
+                bottom: 10,
                 child: Text(
-                  formatDuration(overridePosition ?? ref.watch(audioPositionProvider)),
-                  style: TextStyle(
+                  formatDuration(
+                    overridePosition ?? ref.watch(audioPositionProvider),
+                  ),
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12 * uiScale,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    shadows: const [Shadow(color: Colors.black45, blurRadius: 4)],
+                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
                   ),
                 ),
               ),
               Positioned(
-                right: 20 * uiScale,
-                bottom: 10 * uiScale,
+                right: 20,
+                bottom: 10,
                 child: Text(
                   formatDuration(duration),
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12 * uiScale,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    shadows: const [Shadow(color: Colors.black45, blurRadius: 4)],
+                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
                   ),
                 ),
               ),
@@ -581,8 +594,10 @@ class PlaybackControls extends ConsumerWidget {
         SizedBox(height: isLandscape ? 16 : 12),
         Builder(
           builder: (context) {
-            final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
-            final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
+            final waveform =
+                overrideWaveform ?? currentMusic?.waveform ?? const [];
+            final displayProgress =
+                overrideProgress ?? progress.clamp(0.0, 1.0);
 
             if (isWaveformEnabled) {
               return Padding(
@@ -595,7 +610,6 @@ class PlaybackControls extends ConsumerWidget {
                   onSeek: onSeek ?? (_) {},
                   height: 100,
                   showTooltip: isLandscape,
-                  uiScale: uiScale,
                 ),
               );
             }
@@ -604,17 +618,19 @@ class PlaybackControls extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20 * uiScale),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                formatDuration(overridePosition ?? ref.watch(audioPositionProvider)),
-                style: TextStyle(color: Colors.white70, fontSize: 12 * uiScale),
+                formatDuration(
+                  overridePosition ?? ref.watch(audioPositionProvider),
+                ),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Text(
                 formatDuration(duration),
-                style: TextStyle(color: Colors.white70, fontSize: 12 * uiScale),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
           ),
@@ -667,7 +683,10 @@ class PlaybackLyricsPanel extends ConsumerWidget {
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     final position = ref.watch(audioPositionProvider);
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
-    final accent = currentThemeColorsMap['darkVibrant'] ?? currentThemeColorsMap['darkMuted'] ?? Colors.white;
+    final accent =
+        currentThemeColorsMap['darkVibrant'] ??
+        currentThemeColorsMap['darkMuted'] ??
+        Colors.white;
 
     return LyricsPanel(
       key: ValueKey('$currentIndex:${currentMusic?.path ?? 'no-track'}'),

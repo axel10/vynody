@@ -25,12 +25,10 @@ class WaveformProgressBar extends StatefulWidget {
     this.isScrolling = true, // Default to scrolling as requested
     this.height = 80,
     this.showTooltip = true,
-    this.uiScale = 1.0,
   });
 
   final double height;
   final bool showTooltip;
-  final double uiScale;
 
   @override
   State<WaveformProgressBar> createState() => _WaveformProgressBarState();
@@ -49,16 +47,22 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
         final double width = constraints.maxWidth;
         // 缩放因子：决定波形的“宽度”。这里我们让每个波形点占据一定的像素宽度
         // 如果是滚动模式，我们让波形更宽一些，超出屏幕
-        final double barWidth = widget.isScrolling ? 4.0 : (width / math.max(1, widget.waveform.length));
+        final double barWidth = widget.isScrolling
+            ? 4.0
+            : (width / math.max(1, widget.waveform.length));
         final double barGap = widget.isScrolling ? 2.0 : 0.0;
         final double totalBarWidth = barWidth + barGap;
-        final double totalWaveformWidth = widget.waveform.length * totalBarWidth;
+        final double totalWaveformWidth =
+            widget.waveform.length * totalBarWidth;
 
         return MouseRegion(
           onHover: (event) {
             if (!widget.isScrolling) {
               setState(() {
-                _hoverProgress = (event.localPosition.dx / width).clamp(0.0, 1.0);
+                _hoverProgress = (event.localPosition.dx / width).clamp(
+                  0.0,
+                  1.0,
+                );
               });
             }
           },
@@ -78,16 +82,23 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
             onHorizontalDragUpdate: (details) {
               final double deltaX = details.localPosition.dx - _dragStartX;
               double newProgress;
-              
+
               if (widget.isScrolling) {
                 // 滚动模式下，拖动是“移动波形”
                 // 移动的距离 deltaX 对应的进度变化是 deltaX / totalWaveformWidth
                 // 向右拖动（deltaX > 0）意味着波形向右移，即播放进度减少
-                newProgress = (_dragStartProgress - (deltaX / totalWaveformWidth)).clamp(0.0, 1.0);
+                newProgress =
+                    (_dragStartProgress - (deltaX / totalWaveformWidth)).clamp(
+                      0.0,
+                      1.0,
+                    );
               } else {
-                newProgress = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                newProgress = (details.localPosition.dx / width).clamp(
+                  0.0,
+                  1.0,
+                );
               }
-              
+
               widget.onScrubbing(newProgress);
               if (!widget.isScrolling) {
                 setState(() {
@@ -104,7 +115,8 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
             },
             onTapDown: (details) {
               if (!widget.isScrolling) {
-                final double newProgress = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                final double newProgress = (details.localPosition.dx / width)
+                    .clamp(0.0, 1.0);
                 widget.onScrubbing(newProgress);
                 widget.onSeek(newProgress);
               }
@@ -115,32 +127,43 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                 if (widget.showTooltip)
                   if (_hoverProgress != null || _isDragging)
                     SizedBox(
-                      height: 24 * widget.uiScale,
+                      height: 24,
                       child: Center(
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10 * widget.uiScale, vertical: 4 * widget.uiScale),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20 * widget.uiScale),
-                            border: Border.all(color: Colors.white24, width: 0.5 * widget.uiScale),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white24,
+                              width: 0.5,
+                            ),
                           ),
                           child: Text(
-                            formatDuration(Duration(
-                              milliseconds: (widget.duration.inMilliseconds * (widget.progress)).toInt(),
-                            )),
-                            style: TextStyle(
+                            formatDuration(
+                              Duration(
+                                milliseconds:
+                                    (widget.duration.inMilliseconds *
+                                            (widget.progress))
+                                        .toInt(),
+                              ),
+                            ),
+                            style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 12 * widget.uiScale,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5 * widget.uiScale,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
                       ),
                     )
                   else
-                    SizedBox(height: 24 * widget.uiScale),
-                
+                    const SizedBox(height: 24),
+
                 ClipRect(
                   child: SizedBox(
                     height: widget.height,
@@ -161,7 +184,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                             barGap: barGap,
                           ),
                         ),
-                        
+
                         // 播放头指示线 (仅在滚动模式下居中显示，或者在静态模式下跟随进度)
                         if (widget.isScrolling)
                           Container(
@@ -171,7 +194,9 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                               color: widget.activeColor,
                               boxShadow: [
                                 BoxShadow(
-                                  color: widget.activeColor.withValues(alpha: 0.5),
+                                  color: widget.activeColor.withValues(
+                                    alpha: 0.5,
+                                  ),
                                   blurRadius: 8,
                                   spreadRadius: 1,
                                 ),
@@ -238,21 +263,38 @@ class WaveformPainter extends CustomPainter {
     final double centerY = size.height / 2;
     final double maxBarHeight = size.height * 0.8;
     final double totalBarWidth = barWidth + barGap;
-    
+
     // 计算当前进度对应的索引（浮点数，用于精确偏移）
     final double currentIdx = progress * (waveform.length - 1);
-    
+
     // 绘制区域的中心 X (播放头位置)
     final double centerX = isScrolling ? size.width / 2 : size.width * progress;
 
     // 1. 绘制底色层 (全量绘制未激活颜色)
-    _drawWaveformLayer(canvas, size, centerY, maxBarHeight, totalBarWidth, currentIdx, inactiveColor);
+    _drawWaveformLayer(
+      canvas,
+      size,
+      centerY,
+      maxBarHeight,
+      totalBarWidth,
+      currentIdx,
+      inactiveColor,
+    );
 
     // 2. 绘制激活层 (使用裁剪实现像素级颜色平滑过渡)
     canvas.save();
     // 裁剪出播放头左侧的区域
     canvas.clipRect(Rect.fromLTWH(0, 0, centerX, size.height));
-    _drawWaveformLayer(canvas, size, centerY, maxBarHeight, totalBarWidth, currentIdx, activeColor, withGlow: true);
+    _drawWaveformLayer(
+      canvas,
+      size,
+      centerY,
+      maxBarHeight,
+      totalBarWidth,
+      currentIdx,
+      activeColor,
+      withGlow: true,
+    );
     canvas.restore();
   }
 
@@ -299,9 +341,9 @@ class WaveformPainter extends CustomPainter {
         Rect.fromLTWH(x, y, barWidth, barHeight),
         Radius.circular(barWidth / 2),
       );
-      
+
       canvas.drawRRect(rrect, paint);
-      
+
       // 添加发光效果 (只针对激活层)
       if (withGlow && barWidth > 2) {
         final glowPaint = Paint()
