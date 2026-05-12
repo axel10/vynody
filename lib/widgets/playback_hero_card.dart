@@ -1,24 +1,18 @@
-import 'dart:ui' show lerpDouble, ImageFilter;
+import 'dart:typed_data';
+import 'dart:ui' show ImageFilter;
 
-import 'dart:math' as math;
-
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
-import '../utils/song_context_menu_utils.dart';
-import '../widgets/cover_carousel.dart';
-import '../widgets/lyrics_panel.dart';
 import '../widgets/mini_player_widgets.dart';
-import '../widgets/waveform_progress_bar.dart';
+import 'playback_portrait_view.dart';
+import 'playback_landscape_view.dart';
+import 'playback_hero_card_shared.dart';
 
 const String playbackHeroTag = 'player_capsule';
-
-enum _TrackInfoMenuTarget { title, artistAlbum }
 
 class PlaybackHeroCard extends ConsumerWidget {
   const PlaybackHeroCard({
@@ -91,50 +85,6 @@ class PlaybackHeroCard extends ConsumerWidget {
   final ValueChanged<Uint8List?>? onCarouselAnimationComplete;
   final double lyricsBottomSpacerHeight;
   final double lyricsBottomTabBarHeight;
-
-  double _lerp2D(
-    BuildContext context,
-    double pN,
-    double pL,
-    double lN,
-    double lL,
-    double tLyrics,
-    double tLand,
-  ) {
-    final p = lerpDouble(pN, pL, tLyrics) ?? pN;
-    final l = lerpDouble(lN, lL, tLyrics) ?? lN;
-    final dpr = MediaQuery.of(context).devicePixelRatio;
-    final raw = lerpDouble(p, l, tLand) ?? p;
-    return (raw * dpr).round() / dpr;
-  }
-
-  Future<void> _showTrackInfoContextMenu(
-    BuildContext context,
-    Offset globalPosition, {
-    required _TrackInfoMenuTarget target,
-    required MusicFile? currentMusic,
-  }) async {
-    await showSongContextMenu(
-      context,
-      globalPosition,
-      song: currentMusic,
-      mode: target == _TrackInfoMenuTarget.title
-          ? SongContextMenuMode.title
-          : SongContextMenuMode.artistAlbum,
-    );
-  }
-
-  String _formatSleepTimer(Duration duration) {
-    final safe = duration < Duration.zero ? Duration.zero : duration;
-    final hours = safe.inHours;
-    final minutes = safe.inMinutes.remainder(60);
-    final seconds = safe.inSeconds.remainder(60);
-    return [
-      hours.toString().padLeft(2, '0'),
-      minutes.toString().padLeft(2, '0'),
-      seconds.toString().padLeft(2, '0'),
-    ].join(':');
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -265,981 +215,76 @@ class PlaybackHeroCard extends ConsumerWidget {
   }
 
   Widget _buildFullCard(BuildContext context, WidgetRef ref) {
-    const animDuration = Duration(milliseconds: 400);
-    const animCurve = Curves.fastOutSlowIn;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
-    // 核心动画容器：使用 TweenAnimationBuilder 对 2D 平面上的多个布局变量（尺寸、位置、不透明度）进行线性插值处理。
-    // 这使得点击封面切换 `isLyricsMode` 后，UI 元素能平滑移动/缩放，例如：
-    // - 封面从大变小并挪到角落
-    // - 歌词面板从下而上“浮现”
-    // - 播放控制按键在手机竖屏时向下滑出屏幕
-    return TweenAnimationBuilder<double>(
-      duration: animDuration,
-      curve: animCurve,
-      tween: Tween<double>(end: isLandscape ? 1.0 : 0.0),
-      builder: (context, tLand, _) {
-        return TweenAnimationBuilder<double>(
-          duration: animDuration,
-          curve: animCurve,
-          tween: Tween<double>(end: isLyricsMode ? 1.0 : 0.0),
-          builder: (context, tLyrics, _) {
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth.roundToDouble();
-                final height = constraints.maxHeight.roundToDouble();
-
-                // ---------------- Portrait Normal ----------------
-                // 确保控件区和信息区在高度缩小时优先保留空间
-                const pMinInfoH = 80.0;
-                const pMinControlsH = 320.0; // 调大以适应波形叠层布局 (Increase to accommodate overlay layout)
-                const pBottomGap = 0;     // 控件到底部的间距
-                const pMidGap = 4.0;
-                final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
-
-                // 提高封面区域占比，延迟缩小 (Increase cover area ratio to delay shrinking)
-                // 从 0.54 提高到 0.62，给予上方封面更多空间
-                final pNormalInfoTop = (height - pBottomAreaNeeded) < height * 0.62
-                    ? math.max(height * 0.20, height - pBottomAreaNeeded)
-                    : height * 0.62;
-
-                final pNormalInfoLeft = 16.0;
-                final pNormalInfoWidth = width - 32.0;
-                final pNormalInfoHeight = pMinInfoH;
-
-                final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight + pMidGap;
-                final pNormalControlsLeft = 16.0;
-                final pNormalControlsWidth = width - 32.0;
-                final pNormalControlsHeight = math.max(pMinControlsH, height - pNormalControlsTop - pBottomGap);
-                final pNormalControlsOpacity = 1.0;
-
-                // 封面图自适应剩余的上方区域，提高填充率从 0.9 到 0.96
-                final pNormalCoverAreaH = pNormalInfoTop;
-                final pNormalCoverSide = math.min(width * 0.98, pNormalCoverAreaH * 0.96);
-                final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
-                final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
-
-                final pNormalLyricsTop = height;
-                final pNormalLyricsLeft = 16.0;
-                final pNormalLyricsWidth = width - 32.0;
-                final pNormalLyricsHeight = height - pNormalInfoTop;
-                final pNormalLyricsOpacity = 0.0;
-
-                // ---------------- Portrait Lyrics ----------------
-                final pLyricsCoverSide = math.min(120.0, width * 0.32);
-                const pLyricsCoverTop = 12.0;
-                const pLyricsCoverLeft = 12.0;
-
-                const pLyricsInfoTop = 12.0;
-                final pLyricsInfoLeft =
-                    pLyricsCoverLeft + pLyricsCoverSide + 14.0;
-                final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0;
-                final pLyricsInfoHeight = pLyricsCoverSide;
-
-                final pLyricsControlsTop = height;
-                final pLyricsControlsLeft = 16.0;
-                final pLyricsControlsWidth = width - 32.0;
-                final pLyricsControlsHeight = pNormalControlsHeight;
-                final pLyricsControlsOpacity = 0.0;
-
-                final pLyricsLyricsTop =
-                    pLyricsCoverTop + pLyricsCoverSide + 16.0;
-                final pLyricsLyricsLeft = 16.0;
-                final pLyricsLyricsWidth = width - 32.0;
-                final pLyricsLyricsHeight = height - pLyricsLyricsTop;
-                final pLyricsLyricsOpacity = 1.0;
-
-                // ---------------- Landscape Normal ----------------
-                final landscapeNormalLift = height > 1000 ? 0.0 : 30.0;
-                const landscapeLyricsLift = 0.0;
-                // Cap cover size for ultra-high resolutions to prevent it from being overwhelming
-                final lNormalCoverSide = math.min(width * 0.42, height * 0.85).clamp(0.0, 900.0);
-                final lNormalCoverTop =
-                    (height - lNormalCoverSide) / 2 - landscapeNormalLift;
-                final lNormalCoverLeft =
-                    width * 0.05 + (width * 0.45 - lNormalCoverSide) / 2;
-
-                // Adjust info and controls to be more centered and have more vertical breathing room
-                final lNormalInfoHeight = height > 1000 ? 120.0 : 90.0;
-                final lNormalControlsHeight = height > 1000 ? 280.0 : 200.0;
-
-                final lNormalInfoTop =
-                    height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2 - landscapeNormalLift;
-                final lNormalInfoLeft = width * 0.5;
-                final lNormalInfoWidth = width * 0.45;
-
-                final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
-                final lNormalControlsLeft = width * 0.5;
-                final lNormalControlsWidth = width * 0.45;
-                final lNormalControlsOpacity = 1.0;
-
-                final lNormalLyricsTop = 16.0;
-                final lNormalLyricsLeft = width;
-                final lNormalLyricsWidth = width * 0.45;
-                final lNormalLyricsHeight = height - 32.0;
-                final lNormalLyricsOpacity = 0.0;
-
-                // ---------------- Landscape Lyrics ----------------
-                // Increase max column width for large screens
-                final lColWidth = (width * 0.35).clamp(320.0, 600.0);
-
-                final lLyricsCoverSide = math.min(
-                  lColWidth * 0.85,
-                  height * 0.45,
-                ).clamp(0.0, 480.0);
-                final lLyricsCoverTop = 12.0 - landscapeLyricsLift;
-                final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
-
-                final lLyricsInfoTop =
-                    lLyricsCoverTop + lLyricsCoverSide + 24.0;
-                final lLyricsInfoLeft = 16.0;
-                final lLyricsInfoWidth = lColWidth - 32.0;
-                final lLyricsInfoHeight = height > 1000 ? 100.0 : 80.0;
-
-                final lLyricsControlsTop =
-                    lLyricsInfoTop + lLyricsInfoHeight + 16.0;
-                final lLyricsControlsLeft = 16.0;
-                final lLyricsControlsWidth = lColWidth - 32.0;
-                final lLyricsControlsHeight =
-                    height - lLyricsControlsTop - 32.0; // 播放控件歌词模式下底部预留 32 的空白
-                final lLyricsControlsOpacity = 1.0;
-
-                final lLyricsLyricsTop = 16.0;
-                final lLyricsLyricsLeft = lColWidth + 16.0;
-                final lLyricsLyricsWidth = width - lLyricsLyricsLeft - 32.0;
-                final lLyricsLyricsHeight = height - 32.0;
-                final lLyricsLyricsOpacity = 1.0;
-
-                // ---------------- 执行 2D 线性插值 (Execute 2D Interpolation) ----------------
-                // 核心思路：通过 _lerp2D(A, B, C, D, tLyrics, tLand) 计算
-                // UI 元素在 [竖屏普通, 竖屏歌词, 横屏普通, 横屏歌词] 四种具体布局配置下的合成坐标。
-                // 这实现了点击封面后跨越多种状态的极其平等的变幻。
-
-                final coverSide = _lerp2D(
-                  context,
-                  pNormalCoverSide,
-                  pLyricsCoverSide,
-                  lNormalCoverSide,
-                  lLyricsCoverSide,
-                  tLyrics,
-                  tLand,
-                );
-                final coverTop = _lerp2D(
-                  context,
-                  pNormalCoverTop,
-                  pLyricsCoverTop,
-                  lNormalCoverTop,
-                  lLyricsCoverTop,
-                  tLyrics,
-                  tLand,
-                );
-                final coverLeft = _lerp2D(
-                  context,
-                  pNormalCoverLeft,
-                  pLyricsCoverLeft,
-                  lNormalCoverLeft,
-                  lLyricsCoverLeft,
-                  tLyrics,
-                  tLand,
-                );
-
-                final infoTop = _lerp2D(
-                  context,
-                  pNormalInfoTop,
-                  pLyricsInfoTop,
-                  lNormalInfoTop,
-                  lLyricsInfoTop,
-                  tLyrics,
-                  tLand,
-                );
-                final infoLeft = _lerp2D(
-                  context,
-                  pNormalInfoLeft,
-                  pLyricsInfoLeft,
-                  lNormalInfoLeft,
-                  lLyricsInfoLeft,
-                  tLyrics,
-                  tLand,
-                );
-                final infoWidth = _lerp2D(
-                  context,
-                  pNormalInfoWidth,
-                  pLyricsInfoWidth,
-                  lNormalInfoWidth,
-                  lLyricsInfoWidth,
-                  tLyrics,
-                  tLand,
-                );
-                final infoHeight = _lerp2D(
-                  context,
-                  pNormalInfoHeight,
-                  pLyricsInfoHeight,
-                  lNormalInfoHeight,
-                  lLyricsInfoHeight,
-                  tLyrics,
-                  tLand,
-                );
-
-                final controlsTop = _lerp2D(
-                  context,
-                  pNormalControlsTop,
-                  pLyricsControlsTop,
-                  lNormalControlsTop,
-                  lLyricsControlsTop,
-                  tLyrics,
-                  tLand,
-                );
-                final controlsLeft = _lerp2D(
-                  context,
-                  pNormalControlsLeft,
-                  pLyricsControlsLeft,
-                  lNormalControlsLeft,
-                  lLyricsControlsLeft,
-                  tLyrics,
-                  tLand,
-                );
-                final controlsWidth = _lerp2D(
-                  context,
-                  pNormalControlsWidth,
-                  pLyricsControlsWidth,
-                  lNormalControlsWidth,
-                  lLyricsControlsWidth,
-                  tLyrics,
-                  tLand,
-                );
-                final controlsHeight = _lerp2D(
-                  context,
-                  pNormalControlsHeight,
-                  pLyricsControlsHeight,
-                  lNormalControlsHeight,
-                  lLyricsControlsHeight,
-                  tLyrics,
-                  tLand,
-                );
-                final controlsOpacity = _lerp2D(
-                  context,
-                  pNormalControlsOpacity,
-                  pLyricsControlsOpacity,
-                  lNormalControlsOpacity,
-                  lLyricsControlsOpacity,
-                  tLyrics,
-                  tLand,
-                );
-
-                final lyricsTop = _lerp2D(
-                  context,
-                  pNormalLyricsTop,
-                  pLyricsLyricsTop,
-                  lNormalLyricsTop,
-                  lLyricsLyricsTop,
-                  tLyrics,
-                  tLand,
-                );
-                final lyricsLeft = _lerp2D(
-                  context,
-                  pNormalLyricsLeft,
-                  pLyricsLyricsLeft,
-                  lNormalLyricsLeft,
-                  lLyricsLyricsLeft,
-                  tLyrics,
-                  tLand,
-                );
-                final lyricsWidth = _lerp2D(
-                  context,
-                  pNormalLyricsWidth,
-                  pLyricsLyricsWidth,
-                  lNormalLyricsWidth,
-                  lLyricsLyricsWidth,
-                  tLyrics,
-                  tLand,
-                );
-                final lyricsHeight = _lerp2D(
-                  context,
-                  pNormalLyricsHeight,
-                  pLyricsLyricsHeight,
-                  lNormalLyricsHeight,
-                  lLyricsLyricsHeight,
-                  tLyrics,
-                  tLand,
-                );
-                final lyricsOpacity = _lerp2D(
-                  context,
-                  pNormalLyricsOpacity,
-                  pLyricsLyricsOpacity,
-                  lNormalLyricsOpacity,
-                  lLyricsLyricsOpacity,
-                  tLyrics,
-                  tLand,
-                );
-
-                // 界面渲染层 (Rendering Layer)：
-                // 使用 Stack + Positioned 承载各个 UI 组件。Positioned 的物理属性（top/left/width/height）
-                // 均为上述插值计算所得，从而实现了流畅的一键切换体验。
-                final targetInfoAlign = isLandscape
-                    ? TextAlign.center
-                    : (isLyricsMode ? TextAlign.left : TextAlign.center);
-
-                return SizedBox(
-                  width: width,
-                  height: height,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Positioned(
-                        top: lyricsTop,
-                        left: lyricsLeft,
-                        width: lyricsWidth,
-                        height: lyricsHeight,
-                        child: Opacity(
-                          opacity: lyricsOpacity.clamp(0.0, 1.0),
-                          child: IgnorePointer(
-                            ignoring: lyricsOpacity < 0.5,
-                            child: _buildLyricsPanelWidget(context, ref),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: controlsTop,
-                        left: controlsLeft,
-                        width: controlsWidth,
-                        height: controlsHeight,
-                        child: Opacity(
-                          opacity: controlsOpacity.clamp(0.0, 1.0),
-                          child: IgnorePointer(
-                            ignoring: controlsOpacity < 0.5,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.topCenter,
-                              child: SizedBox(
-                                width: isLandscape
-                                    ? (width > 2000 ? 580.0 : (width > 1200 ? 500.0 : 450.0))
-                                    : math.max(controlsWidth, 380.0),
-                                child: _buildPlaybackControlsWidget(
-                                  context,
-                                  ref,
-                                  isLarge: isLandscape && (height > 1000 || width > 2000),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: coverTop,
-                        left: coverLeft,
-                        width: coverSide,
-                        height: coverSide,
-                        child: _buildAlbumArtCore(context, ref, coverSide),
-                      ),
-                      Positioned(
-                        top: infoTop,
-                        left: infoLeft,
-                        width: infoWidth,
-                        height: infoHeight,
-                        child: _buildTrackInfo(
-                          context,
-                          currentMusic,
-                          targetInfoAlign,
-                          tLyrics,
-                          height,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        );
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        return FadeTransition(opacity: animation, child: child);
       },
-    );
-  }
-
-  Widget _buildAlbumArtCore(
-    BuildContext context,
-    WidgetRef ref,
-    double currentSize,
-  ) {
-    final playlist = ref.watch(audioPlaybackQueueProvider);
-    final currentIndex = ref.watch(audioCurrentIndexProvider);
-    if (playlist.isEmpty) {
-      return Center(
-        child: Container(
-          width: currentSize * 0.8,
-          height: currentSize * 0.8,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: Colors.black87,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 50,
-                spreadRadius: 15,
-              ),
-            ],
-          ),
-          child: const Icon(Icons.music_note, size: 80, color: Colors.white54),
-        ),
-      );
-    }
-
-    final cover = ExcludeSemantics(
-      child: CoverCarousel(
-        playlist: playlist,
-        currentIndex: currentIndex,
-        audioService: ref.read(audioServiceProvider),
-        isNext: isNext,
-        displaySize: currentSize,
-        onPageChanged: (page) {
-          final audio = ref.read(audioServiceProvider);
-          if (page >= 0 && page < playlist.length && page != currentIndex) {
-            audio.playAtIndex(page);
-          }
-        },
-        onAnimationComplete: onCarouselAnimationComplete,
-      ),
-    );
-
-    if (onCoverTap == null) return cover;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onCoverTap,
-      child: cover,
-    );
-  }
-
-  Widget _buildTrackInfo(
-    BuildContext context,
-    MusicFile? currentMusic,
-    TextAlign align,
-    double lyricsModeT,
-    double height,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    final title = currentMusic?.displayName ?? l10n.notSelected;
-    final showArtistAlbum = currentMusic != null;
-
-    final rawAlbum = currentMusic?.album?.trim() ?? '';
-    final rawArtist = currentMusic?.artist?.trim() ?? '';
-
-    bool isUnknown(String val) {
-      if (val.isEmpty) return true;
-      final lower = val.toLowerCase();
-      return lower == 'unknown' ||
-          lower == 'unknown artist' ||
-          lower == 'unknown album';
-    }
-
-    final bool hasArtist = !isUnknown(rawArtist);
-    final bool hasAlbum = !isUnknown(rawAlbum);
-    final transition = lyricsModeT.clamp(0.0, 1.0);
-    final titleAlignment = align == TextAlign.left
-        ? Alignment.lerp(Alignment.center, Alignment.centerLeft, transition)!
-        : Alignment.center;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: Align(
-            alignment: titleAlignment,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) {
-                _showTrackInfoContextMenu(
-                  context,
-                  details.globalPosition,
-                  target: _TrackInfoMenuTarget.title,
-                  currentMusic: currentMusic,
-                );
-              },
-              onLongPressStart: (details) {
-                HapticFeedback.mediumImpact();
-                _showTrackInfoContextMenu(
-                  context,
-                  details.globalPosition,
-                  target: _TrackInfoMenuTarget.title,
-                  currentMusic: currentMusic,
-                );
-              },
-              child: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.fastOutSlowIn,
-                textAlign: TextAlign.start,
-                style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                  color: Colors.white,
-                  fontSize: lyricsModeT > 0.5 && !isLandscape
-                      ? 18
-                      : (isLandscape && height > 1000 ? 30 : 22),
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
-                ),
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+      child: isLandscape
+          ? PlaybackLandscapeView(
+              key: const ValueKey('landscape_view'),
+              isLyricsMode: isLyricsMode,
+              currentMusic: currentMusic,
+              isNext: isNext,
+              onCoverTap: onCoverTap,
+              onCarouselAnimationComplete: onCarouselAnimationComplete,
+              onScrubbing: onScrubbing,
+              onSeek: onSeek,
+              onToggleVisualizer: onToggleVisualizer,
+              showVisualizerToggle: showVisualizerToggle,
+              onShowMoreMenu: onShowMoreMenu,
+              onCyclePlaylistMode: onCyclePlaylistMode,
+              onShowPlaylistModeSelector: onShowPlaylistModeSelector,
+              onShowRandomModeSelector: onShowRandomModeSelector,
+              onTagCompletionTap: onTagCompletionTap,
+              onTagCompletionLongPress: onTagCompletionLongPress,
+              onSleepTimerTap: onSleepTimerTap,
+              onEqualizerTap: onEqualizerTap,
+              onPrevious: onPrevious,
+              onPlayPause: onPlayPause,
+              onNext: onNext,
+              onVolumeTap: onVolumeTap,
+              onVolumeDrag: onVolumeDrag,
+              onVolumeScroll: onVolumeScroll,
+              overrideProgress: overrideProgress,
+              overridePosition: overridePosition,
+              overrideWaveform: overrideWaveform,
+              lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
+              lyricsBottomTabBarHeight: lyricsBottomTabBarHeight,
+            )
+          : PlaybackPortraitView(
+              key: const ValueKey('portrait_view'),
+              isLyricsMode: isLyricsMode,
+              currentMusic: currentMusic,
+              isNext: isNext,
+              onCoverTap: onCoverTap,
+              onCarouselAnimationComplete: onCarouselAnimationComplete,
+              onScrubbing: onScrubbing,
+              onSeek: onSeek,
+              onToggleVisualizer: onToggleVisualizer,
+              showVisualizerToggle: showVisualizerToggle,
+              onShowMoreMenu: onShowMoreMenu,
+              onCyclePlaylistMode: onCyclePlaylistMode,
+              onShowPlaylistModeSelector: onShowPlaylistModeSelector,
+              onShowRandomModeSelector: onShowRandomModeSelector,
+              onTagCompletionTap: onTagCompletionTap,
+              onTagCompletionLongPress: onTagCompletionLongPress,
+              onSleepTimerTap: onSleepTimerTap,
+              onEqualizerTap: onEqualizerTap,
+              onPrevious: onPrevious,
+              onPlayPause: onPlayPause,
+              onNext: onNext,
+              onVolumeTap: onVolumeTap,
+              onVolumeDrag: onVolumeDrag,
+              onVolumeScroll: onVolumeScroll,
+              overrideProgress: overrideProgress,
+              overridePosition: overridePosition,
+              overrideWaveform: overrideWaveform,
+              lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
+              lyricsBottomTabBarHeight: lyricsBottomTabBarHeight,
             ),
-          ),
-        ),
-        if (showArtistAlbum)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: SizedBox(
-              width: double.infinity,
-              child: Align(
-                alignment: titleAlignment,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onSecondaryTapDown: (details) {
-                    _showTrackInfoContextMenu(
-                      context,
-                      details.globalPosition,
-                      target: _TrackInfoMenuTarget.artistAlbum,
-                      currentMusic: currentMusic,
-                    );
-                  },
-                  onLongPressStart: (details) {
-                    HapticFeedback.mediumImpact();
-                    _showTrackInfoContextMenu(
-                      context,
-                      details.globalPosition,
-                      target: _TrackInfoMenuTarget.artistAlbum,
-                      currentMusic: currentMusic,
-                    );
-                  },
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.fastOutSlowIn,
-                    textAlign: TextAlign.start,
-                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                      color: Colors.white70,
-                      fontSize: lyricsModeT > 0.5 && !isLandscape
-                          ? 13
-                          : (isLandscape && height > 1000 ? 18 : 15),
-                      height: 1.3,
-                    ),
-                    child: Text(
-                      hasArtist && hasAlbum
-                          ? '$rawArtist — $rawAlbum'
-                          : (hasArtist
-                                ? rawArtist
-                                : (hasAlbum ? rawAlbum : l10n.unknown)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildPlaybackControlsWidget(
-    BuildContext context,
-    WidgetRef ref, {
-    bool isLarge = false,
-  }) {
-    final playbackMode = ref.watch(audioPlaybackModeProvider);
-    final isRandomMode = ref.watch(audioIsRandomModeProvider);
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final playlistService = ref.watch(playlistServiceProvider);
-    final isFavorite =
-        currentMusic != null && playlistService.isFavoriteSong(currentMusic);
-    final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
-    final duration = ref.watch(audioDurationProvider);
-    final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
-    final isPlaying = ref.watch(audioIsPlayingProvider);
-    final progress = ref.watch(audioProgressProvider);
-    final l10n = AppLocalizations.of(context)!;
-
-    final isWaveformEnabled = ref.watch(
-      settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
-    );
-
-    // 竖屏模式下如果启用波形进度条，则使用叠层布局 (Overlay layout in portrait if waveform is enabled)
-    final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
-
-    // 提取公共组件 (Extract common components)
-    final topButtonsRow = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.more_horiz, color: Colors.white70),
-          onPressed: onShowMoreMenu,
-          tooltip: l10n.more,
-        ),
-        IconButton(
-          icon: Icon(
-            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            size: isLarge ? 36 : 28,
-            color: isFavorite ? Colors.redAccent : Colors.white70,
-          ),
-          onPressed: currentMusic == null
-              ? null
-              : () async {
-                  final playlistService = ref.read(playlistServiceProvider);
-                  await playlistService.toggleFavoriteSong(currentMusic);
-                },
-          tooltip: isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
-        ),
-        GestureDetector(
-          onLongPress: onShowPlaylistModeSelector,
-          child: IconButton(
-            icon: Icon(
-              getPlaylistModeIcon(playbackMode),
-              size: isLarge ? 36 : 28,
-              color: Colors.white70,
-            ),
-            onPressed: onCyclePlaylistMode,
-            tooltip: getPlaylistModeName(playbackMode, l10n),
-          ),
-        ),
-        GestureDetector(
-          onLongPress: onShowRandomModeSelector,
-          child: IconButton(
-            icon: Icon(
-              Icons.shuffle_rounded,
-              size: isLarge ? 36 : 28,
-              color: isRandomMode
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.white70,
-            ),
-            onPressed: () {
-              final audio = ref.read(audioServiceProvider);
-              if (audio.settingsService.randomRange == 1 && !isRandomMode) {
-                final playlistService = ref.read(playlistServiceProvider);
-                final List<MusicFile> allSongs = [];
-                final pathSet = <String>{};
-                for (final p in playlistService.playlists) {
-                  for (final s in p.songs) {
-                    if (pathSet.add(s.path)) allSongs.add(s);
-                  }
-                }
-                audio.toggleRandomMode(globalSongs: allSongs);
-              } else {
-                audio.toggleRandomMode();
-              }
-            },
-            tooltip: l10n.randomMode,
-          ),
-        ),
-        IconButton(
-          icon: Icon(
-            Icons.auto_fix_high_rounded,
-            size: isLarge ? 36 : 28,
-            color: Colors.white70,
-          ),
-          onPressed: onTagCompletionTap,
-          onLongPress: onTagCompletionLongPress,
-          tooltip: l10n.tagCompletion,
-        ),
-        Tooltip(
-          message: sleepTimerRemaining != null
-              ? l10n.sleepTimerRemaining(
-                  _formatSleepTimer(sleepTimerRemaining),
-                )
-              : l10n.sleepTimer,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onSleepTimerTap,
-            child: SizedBox(
-              width: 74,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.bedtime_rounded,
-                    size: isLarge ? 36 : 28,
-                    color: sleepTimerRemaining != null
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.white70,
-                  ),
-                  if (sleepTimerRemaining != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatSleepTimer(sleepTimerRemaining),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 10,
-                        height: 1.0,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-        IconButton(
-          icon: Icon(
-            Icons.tune_rounded,
-            size: isLarge ? 36 : 28,
-            color: Colors.white70,
-          ),
-          onPressed: onEqualizerTap,
-          tooltip: l10n.equalizer,
-        ),
-      ],
-    );
-
-    final mainControlsRow = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: Icon(
-            showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-            size: isLarge ? 36 : 28,
-            color: showVisualizerToggle ? Colors.white : Colors.white70,
-          ),
-          onPressed: onToggleVisualizer,
-          tooltip: AppLocalizations.of(context)!.visualizer,
-        ),
-        const SizedBox(width: 4),
-        IconButton(
-          icon: Icon(
-            Icons.skip_previous_rounded,
-            size: isLarge ? 64 : 48,
-            color: Colors.white,
-          ),
-          onPressed: onPrevious,
-          tooltip: l10n.previous,
-        ),
-        const SizedBox(width: 16),
-        Container(
-          width: isLarge ? 96 : 72,
-          height: isLarge ? 96 : 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 12,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: IconButton(
-            onPressed: onPlayPause,
-            tooltip: isPlaying ? l10n.pause : l10n.play,
-            icon: Icon(
-              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: isLarge ? 56 : 40,
-              color:
-                  currentThemeColorsMap['darkVibrant'] ??
-                  currentThemeColorsMap['darkMuted'] ??
-                  Colors.black,
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        IconButton(
-          icon: Icon(
-            Icons.skip_next_rounded,
-            size: isLarge ? 64 : 48,
-            color: Colors.white,
-          ),
-          onPressed: onNext,
-          tooltip: l10n.next,
-        ),
-        const SizedBox(width: 8),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onVerticalDragUpdate: (details) {
-            onVolumeDrag?.call(details.primaryDelta ?? 0);
-          },
-          child: Listener(
-            onPointerSignal: (pointerSignal) {
-              if (pointerSignal is PointerScrollEvent) {
-                onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-              }
-            },
-            child: IconButton(
-              icon: Icon(
-                getVolumeIcon(ref.watch(audioVolumeProvider)),
-                size: isLarge ? 36 : 28,
-                color: Colors.white70,
-              ),
-              onPressed: onVolumeTap,
-              tooltip: l10n.volume,
-            ),
-          ),
-        ),
-      ],
-    );
-
-    if (useOverlayStyle) {
-      final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
-      final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
-
-      return Column(
-        key: const ValueKey('overlay_controls_column'),
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          topButtonsRow,
-          const SizedBox(height: 8),
-          Stack(
-            key: const ValueKey('overlay_controls_stack'),
-            alignment: Alignment.center,
-            children: [
-              // 波形进度条作为背景 (Waveform as background)
-                // 让 WaveformProgressBar 成为非定位子组件以撑开 Stack 的高度
-                WaveformProgressBar(
-                  waveform: waveform,
-                  progress: displayProgress,
-                  duration: duration,
-                  onScrubbing: onScrubbing ?? (_) {},
-                  onSeek: onSeek ?? (_) {},
-                  height: 240, // 增加高度以实现叠层感 (Increase height for overlay feel)
-                ),
-                // 播放控制按钮叠在上面 (Playback controls on top)
-                Padding(
-                  padding: const EdgeInsets.only(top: 20), // 稍微向下偏移以避开波形顶部时间预览
-                  child: mainControlsRow,
-                ),
-                // 时间显示在底部左右两侧 (Time display at bottom corners)
-                Positioned(
-                  left: 20,
-                  bottom: 10,
-                  child: Text(
-                    formatDuration(
-                      overridePosition ?? ref.watch(audioPositionProvider),
-                    ),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: 20,
-                  bottom: 10,
-                  child: Text(
-                    formatDuration(duration),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      }
-
-    // 默认布局 (Default layout)
-    return Column(
-      key: const ValueKey('default_controls_column'),
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        topButtonsRow,
-        SizedBox(height: isLandscape ? 16 : 12),
-        Builder(
-          builder: (context) {
-            final waveform =
-                overrideWaveform ?? currentMusic?.waveform ?? const [];
-            final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
-
-            if (isWaveformEnabled) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: WaveformProgressBar(
-                  waveform: waveform,
-                  progress: displayProgress,
-                  duration: duration,
-                  onScrubbing: onScrubbing ?? (_) {},
-                  onSeek: onSeek ?? (_) {},
-                  height: 100,
-                ),
-              );
-            }
-            return _buildStandardSlider(context, displayProgress);
-          },
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                formatDuration(
-                  overridePosition ?? ref.watch(audioPositionProvider),
-                ),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-              Text(
-                formatDuration(duration),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: isLandscape ? 16 : 12),
-        mainControlsRow,
-      ],
-    );
-  }
-
-  Widget _buildLyricsPanelWidget(BuildContext context, WidgetRef ref) {
-    final currentIndex = ref.watch(audioCurrentIndexProvider);
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final position = ref.watch(audioPositionProvider);
-    final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
-    final accent =
-        currentThemeColorsMap['darkVibrant'] ??
-        currentThemeColorsMap['darkMuted'] ??
-        Colors.white;
-
-    return LyricsPanel(
-      key: ValueKey('$currentIndex:${currentMusic?.path ?? 'no-track'}'),
-      lyrics: currentMusic?.lyrics,
-      position: position,
-      accentColor: accent,
-      bottomSpacerHeight: lyricsBottomSpacerHeight,
-      bottomTabBarHeight: lyricsBottomTabBarHeight,
-    );
-  }
-
-  Widget _buildStandardSlider(BuildContext context, double displayProgress) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SliderTheme(
-        data: SliderTheme.of(context).copyWith(
-          trackHeight: 4,
-          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-          overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-          activeTrackColor: Colors.white,
-          inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
-          thumbColor: Colors.white,
-          overlayColor: Colors.white.withValues(alpha: 0.1),
-        ),
-        child: Slider(
-          value: displayProgress.clamp(0.0, 1.0),
-          onChanged: onScrubbing,
-          onChangeEnd: (value) {
-            onSeek?.call(value);
-          },
-        ),
-      ),
     );
   }
 }
@@ -1276,9 +321,8 @@ class _MiniPlayerProgressInfoState
     final duration = ref.watch(audioDurationProvider);
     final currentMusic = widget.currentMusic;
 
-    final displayProgress = _isDragging
-        ? (_dragValue ?? widget.progress)
-        : widget.progress;
+    final displayProgress =
+        _isDragging ? (_dragValue ?? widget.progress) : widget.progress;
     final displayPosition = _isDragging
         ? Duration(
             milliseconds:
@@ -1302,146 +346,147 @@ class _MiniPlayerProgressInfoState
           height: 32,
           child: Stack(
             children: [
-                  TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 200),
-                    tween: Tween<double>(begin: 0, end: _isActive ? 5.0 : 0.0),
-                    builder: (context, blur, child) {
-                      return ImageFiltered(
-                        imageFilter: ImageFilter.blur(
-                          sigmaX: blur,
-                          sigmaY: blur,
-                        ),
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: _isActive ? 0.3 : 1.0,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          currentMusic?.displayName ??
-                              AppLocalizations.of(context)!.notSelected,
-                          style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black87,
+              TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 200),
+                tween: Tween<double>(begin: 0, end: _isActive ? 5.0 : 0.0),
+                builder: (context, blur, child) {
+                  return ImageFiltered(
+                    imageFilter: ImageFilter.blur(
+                      sigmaX: blur,
+                      sigmaY: blur,
+                    ),
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: _isActive ? 0.3 : 1.0,
+                      child: child,
+                    ),
+                  );
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      currentMusic?.displayName ??
+                          AppLocalizations.of(context)!.notSelected,
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black87,
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (subtitle.isNotEmpty)
-                          Text(
-                            subtitle,
-                            style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                              color: (Theme.of(context).brightness == Brightness.dark
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (subtitle.isNotEmpty)
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                              color: (Theme.of(context).brightness ==
+                                          Brightness.dark
                                       ? Colors.white
                                       : Colors.black87)
                                   .withValues(alpha: 0.6),
                               fontSize: 10,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (_isActive)
-                    Positioned.fill(
-                      child: Center(
-                        child: Text(
-                          '${formatDuration(displayPosition)} / ${formatDuration(duration)}',
-                          style: Theme.of(context).textTheme.bodySmall!
-                              .copyWith(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+              if (_isActive)
+                Positioned.fill(
+                  child: Center(
+                    child: Text(
+                      '${formatDuration(displayPosition)} / ${formatDuration(duration)}',
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
                                     ? Colors.white
                                     : Colors.black87,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                        ),
-                      ),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
                     ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 2),
-            MouseRegion(
-              onEnter: (_) => setState(() => _isHovering = true),
-              onExit: (_) => setState(() => _isHovering = false),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onHorizontalDragStart: (details) {
-                  setState(() {
-                    _isDragging = true;
-                    _dragValue = widget.progress;
-                  });
-                },
-                onHorizontalDragUpdate: (details) {
-                  if (!_isDragging) return;
-                  final RenderBox box = context.findRenderObject() as RenderBox;
-                  final double localX = details.localPosition.dx;
-                  final double newProgress =
-                      (localX / box.size.width).clamp(0.0, 1.0);
-                  setState(() {
-                    _dragValue = newProgress;
-                  });
-                  widget.onScrubbing?.call(newProgress);
-                },
-                onHorizontalDragEnd: (details) {
-                  if (!_isDragging) return;
-                  final finalProgress = _dragValue ?? widget.progress;
-                  setState(() {
-                    _isDragging = false;
-                    _dragValue = null;
-                  });
-                  widget.onSeek?.call(finalProgress);
-                },
-                onTapDown: (details) {
-                  final RenderBox box = context.findRenderObject() as RenderBox;
-                  final double localX = details.localPosition.dx;
-                  final double newProgress =
-                      (localX / box.size.width).clamp(0.0, 1.0);
-                  widget.onScrubbing?.call(newProgress);
-                  widget.onSeek?.call(newProgress);
-                },
-                onTap: () {}, // Consume tap to prevent bubbling to parent mini player tap
-                child: Container(
-                  height: 10,
-                  color: Colors.transparent,
-                  alignment: Alignment.center,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    height: _isActive ? 6 : 3,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        minHeight: _isActive ? 6 : 3,
-                        value: displayProgress.clamp(0.0, 1.0),
-                        backgroundColor:
-                            Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white24
-                                : Colors.black12,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87,
-                        ),
-                      ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        MouseRegion(
+          onEnter: (_) => setState(() => _isHovering = true),
+          onExit: (_) => setState(() => _isHovering = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (details) {
+              setState(() {
+                _isDragging = true;
+                _dragValue = widget.progress;
+              });
+            },
+            onHorizontalDragUpdate: (details) {
+              if (!_isDragging) return;
+              final RenderBox box = context.findRenderObject() as RenderBox;
+              final double localX = details.localPosition.dx;
+              final double newProgress =
+                  (localX / box.size.width).clamp(0.0, 1.0);
+              setState(() {
+                _dragValue = newProgress;
+              });
+              widget.onScrubbing?.call(newProgress);
+            },
+            onHorizontalDragEnd: (details) {
+              if (!_isDragging) return;
+              final finalProgress = _dragValue ?? widget.progress;
+              setState(() {
+                _isDragging = false;
+                _dragValue = null;
+              });
+              widget.onSeek?.call(finalProgress);
+            },
+            onTapDown: (details) {
+              final RenderBox box = context.findRenderObject() as RenderBox;
+              final double localX = details.localPosition.dx;
+              final double newProgress =
+                  (localX / box.size.width).clamp(0.0, 1.0);
+              widget.onScrubbing?.call(newProgress);
+              widget.onSeek?.call(newProgress);
+            },
+            onTap: () {}, // Consume tap to prevent bubbling
+            child: Container(
+              height: 10,
+              color: Colors.transparent,
+              alignment: Alignment.center,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: _isActive ? 6 : 3,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: _isActive ? 6 : 3,
+                    value: displayProgress.clamp(0.0, 1.0),
+                    backgroundColor:
+                        Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white24
+                            : Colors.black12,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87,
                     ),
                   ),
                 ),
               ),
             ),
-          ],
-        );
+          ),
+        ),
+      ],
+    );
   }
 }
