@@ -26,7 +26,8 @@ class ArtistDetailPage extends ConsumerWidget {
     );
 
     final isMacOS = Platform.isMacOS;
-    final bool showCustomTitleBar = Platform.isWindows || Platform.isLinux;
+    final bool showCustomTitleBar =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     if (showCustomTitleBar || isMacOS) {
       content = Material(

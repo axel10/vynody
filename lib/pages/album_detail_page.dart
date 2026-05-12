@@ -28,7 +28,8 @@ class AlbumDetailPage extends ConsumerWidget {
     );
 
     final isMacOS = Platform.isMacOS;
-    final bool showCustomTitleBar = Platform.isWindows || Platform.isLinux;
+    final bool showCustomTitleBar =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     Widget content = Scaffold(
       appBar: AppBar(title: Text(album.title)),

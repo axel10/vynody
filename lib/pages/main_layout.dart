@@ -495,7 +495,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     final theme = Theme.of(context);
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-    final bool showCustomTitleBar = Platform.isWindows || Platform.isLinux;
+    final bool showCustomTitleBar =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final bool isPlayback = _currentIndex == 1;
     final navBgBaseColor =
         theme.navigationBarTheme.backgroundColor ?? theme.colorScheme.surface;

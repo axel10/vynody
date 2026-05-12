@@ -683,7 +683,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final settings = ref.watch(settingsServiceProvider);
     final theme = Theme.of(context);
     final isMacOS = Platform.isMacOS;
-    final showCustomTitleBar = Platform.isWindows || Platform.isLinux;
+    final showCustomTitleBar =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     Widget content = Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -93,52 +94,67 @@ class _DesktopWindowTitleBarState extends State<DesktopWindowTitleBar>
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
 
+    final isMacOS = Platform.isMacOS;
+
     return DragToMoveArea(
-      child: SizedBox(
-        height: widget.height,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            _WindowButton(
-              icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-              brightness: widget.brightness,
-              hoverColor: hoverColor,
-              onPressed: () => _setFullScreen(!_isFullScreen),
-            ),
-            _WindowButton(
-              icon: Icons.remove,
-              brightness: widget.brightness,
-              hoverColor: hoverColor,
-              onPressed: () async {
-                if (_isFullScreen) {
-                  await _setFullScreen(false);
-                }
-                await windowManager.minimize();
-              },
-            ),
-            _WindowButton(
-              icon: _isMaximized ? Icons.filter_none : Icons.crop_square,
-              iconSize: 14,
-              brightness: widget.brightness,
-              hoverColor: hoverColor,
-              onPressed: () async {
-                if (_isFullScreen) {
-                  await _setFullScreen(false);
-                } else if (_isMaximized) {
-                  await windowManager.unmaximize();
-                } else {
-                  await windowManager.maximize();
-                }
-              },
-            ),
-            _WindowButton(
-              icon: Icons.close,
-              isClose: true,
-              brightness: widget.brightness,
-              hoverColor: hoverColor,
-              onPressed: windowManager.close,
-            ),
-          ],
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onDoubleTap: () async {
+          if (_isFullScreen) return;
+          if (_isMaximized) {
+            await windowManager.unmaximize();
+          } else {
+            await windowManager.maximize();
+          }
+        },
+        child: SizedBox(
+          height: widget.height,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (!isMacOS) ...[
+                _WindowButton(
+                  icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  brightness: widget.brightness,
+                  hoverColor: hoverColor,
+                  onPressed: () => _setFullScreen(!_isFullScreen),
+                ),
+                _WindowButton(
+                  icon: Icons.remove,
+                  brightness: widget.brightness,
+                  hoverColor: hoverColor,
+                  onPressed: () async {
+                    if (_isFullScreen) {
+                      await _setFullScreen(false);
+                    }
+                    await windowManager.minimize();
+                  },
+                ),
+                _WindowButton(
+                  icon: _isMaximized ? Icons.filter_none : Icons.crop_square,
+                  iconSize: 14,
+                  brightness: widget.brightness,
+                  hoverColor: hoverColor,
+                  onPressed: () async {
+                    if (_isFullScreen) {
+                      await _setFullScreen(false);
+                    } else if (_isMaximized) {
+                      await windowManager.unmaximize();
+                    } else {
+                      await windowManager.maximize();
+                    }
+                  },
+                ),
+                _WindowButton(
+                  icon: Icons.close,
+                  isClose: true,
+                  brightness: widget.brightness,
+                  hoverColor: hoverColor,
+                  onPressed: windowManager.close,
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
