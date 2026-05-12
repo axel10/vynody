@@ -1,18 +1,14 @@
-import 'dart:typed_data';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
-import '../player/settings_service.dart';
-import '../player/playlist_service.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
 import '../utils/song_context_menu_utils.dart';
 import 'cover_carousel.dart';
 import 'lyrics_panel.dart';
-import 'waveform_progress_bar.dart';
 
 // Shared components for Playback UI to avoid duplication between Portrait and Landscape views
 
@@ -229,9 +225,22 @@ class PlaybackTrackInfo extends ConsumerWidget {
   }
 }
 
-class PlaybackControls extends ConsumerWidget {
-  final bool isLandscape;
-  final bool isLyricsMode;
+// Specific control widgets for Portrait and Landscape are defined in their respective view files
+// but they use these atomic row components from here.
+
+String _formatSleepTimer(Duration duration) {
+  final safe = duration < Duration.zero ? Duration.zero : duration;
+  final hours = safe.inHours;
+  final minutes = safe.inMinutes.remainder(60);
+  final seconds = safe.inSeconds.remainder(60);
+  return [
+    hours.toString().padLeft(2, '0'),
+    minutes.toString().padLeft(2, '0'),
+    seconds.toString().padLeft(2, '0'),
+  ].join(':');
+}
+
+class PlaybackTopButtonsRow extends ConsumerWidget {
   final double uiScale;
   final VoidCallback? onShowMoreMenu;
   final VoidCallback? onCyclePlaylistMode;
@@ -241,25 +250,10 @@ class PlaybackControls extends ConsumerWidget {
   final VoidCallback? onTagCompletionLongPress;
   final VoidCallback? onSleepTimerTap;
   final VoidCallback? onEqualizerTap;
-  final VoidCallback? onToggleVisualizer;
-  final bool showVisualizerToggle;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onPlayPause;
-  final VoidCallback? onNext;
-  final VoidCallback? onVolumeTap;
-  final ValueChanged<double>? onVolumeDrag;
-  final ValueChanged<double>? onVolumeScroll;
-  final double? overrideProgress;
-  final Duration? overridePosition;
-  final List<double>? overrideWaveform;
-  final ValueChanged<double>? onScrubbing;
-  final ValueChanged<double>? onSeek;
 
-  const PlaybackControls({
+  const PlaybackTopButtonsRow({
     super.key,
-    required this.isLandscape,
-    required this.isLyricsMode,
-    this.uiScale = 1.0,
+    required this.uiScale,
     this.onShowMoreMenu,
     this.onCyclePlaylistMode,
     this.onShowPlaylistModeSelector,
@@ -268,32 +262,7 @@ class PlaybackControls extends ConsumerWidget {
     this.onTagCompletionLongPress,
     this.onSleepTimerTap,
     this.onEqualizerTap,
-    this.onToggleVisualizer,
-    required this.showVisualizerToggle,
-    this.onPrevious,
-    this.onPlayPause,
-    this.onNext,
-    this.onVolumeTap,
-    this.onVolumeDrag,
-    this.onVolumeScroll,
-    this.overrideProgress,
-    this.overridePosition,
-    this.overrideWaveform,
-    this.onScrubbing,
-    this.onSeek,
   });
-
-  String _formatSleepTimer(Duration duration) {
-    final safe = duration < Duration.zero ? Duration.zero : duration;
-    final hours = safe.inHours;
-    final minutes = safe.inMinutes.remainder(60);
-    final seconds = safe.inSeconds.remainder(60);
-    return [
-      hours.toString().padLeft(2, '0'),
-      minutes.toString().padLeft(2, '0'),
-      seconds.toString().padLeft(2, '0'),
-    ].join(':');
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -301,22 +270,11 @@ class PlaybackControls extends ConsumerWidget {
     final isRandomMode = ref.watch(audioIsRandomModeProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final playlistService = ref.watch(playlistServiceProvider);
-    final isFavorite =
-        currentMusic != null && playlistService.isFavoriteSong(currentMusic);
-    final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
-    final duration = ref.watch(audioDurationProvider);
+    final isFavorite = currentMusic != null && playlistService.isFavoriteSong(currentMusic);
     final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
-    final isPlaying = ref.watch(audioIsPlayingProvider);
-    final progress = ref.watch(audioProgressProvider);
     final l10n = AppLocalizations.of(context)!;
 
-    final isWaveformEnabled = ref.watch(
-      settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
-    );
-
-    final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
-
-    final topButtonsRow = Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         IconButton(
@@ -356,9 +314,7 @@ class PlaybackControls extends ConsumerWidget {
             icon: Icon(
               Icons.shuffle_rounded,
               size: 28 * uiScale,
-              color: isRandomMode
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.white70,
+              color: isRandomMode ? Theme.of(context).colorScheme.primary : Colors.white70,
             ),
             onPressed: () {
               final audio = ref.read(audioServiceProvider);
@@ -438,8 +394,42 @@ class PlaybackControls extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
 
-    final mainControlsRow = Row(
+class PlaybackMainButtonsRow extends ConsumerWidget {
+  final double uiScale;
+  final bool isLandscape;
+  final VoidCallback? onToggleVisualizer;
+  final bool showVisualizerToggle;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onPlayPause;
+  final VoidCallback? onNext;
+  final VoidCallback? onVolumeTap;
+  final ValueChanged<double>? onVolumeDrag;
+  final ValueChanged<double>? onVolumeScroll;
+
+  const PlaybackMainButtonsRow({
+    super.key,
+    required this.uiScale,
+    required this.isLandscape,
+    this.onToggleVisualizer,
+    required this.showVisualizerToggle,
+    this.onPrevious,
+    this.onPlayPause,
+    this.onNext,
+    this.onVolumeTap,
+    this.onVolumeDrag,
+    this.onVolumeScroll,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPlaying = ref.watch(audioIsPlayingProvider);
+    final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
@@ -449,7 +439,7 @@ class PlaybackControls extends ConsumerWidget {
             color: showVisualizerToggle ? Colors.white : Colors.white70,
           ),
           onPressed: onToggleVisualizer,
-          tooltip: AppLocalizations.of(context)!.visualizer,
+          tooltip: l10n.visualizer,
         ),
         SizedBox(width: isLandscape ? 12 : 4),
         IconButton(
@@ -482,10 +472,7 @@ class PlaybackControls extends ConsumerWidget {
             icon: Icon(
               isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
               size: (isLandscape ? 48 : 40) * uiScale,
-              color:
-                  currentThemeColorsMap['darkVibrant'] ??
-                  currentThemeColorsMap['darkMuted'] ??
-                  Colors.black,
+              color: currentThemeColorsMap['darkVibrant'] ?? currentThemeColorsMap['darkMuted'] ?? Colors.black,
             ),
           ),
         ),
@@ -524,146 +511,36 @@ class PlaybackControls extends ConsumerWidget {
         ),
       ],
     );
-
-    if (useOverlayStyle) {
-      final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
-      final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
-
-      return Column(
-        key: const ValueKey('overlay_controls_column'),
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          topButtonsRow,
-          const SizedBox(height: 0),
-          Stack(
-            key: const ValueKey('overlay_controls_stack'),
-            alignment: Alignment.center,
-            children: [
-              WaveformProgressBar(
-                waveform: waveform,
-                progress: displayProgress,
-                duration: duration,
-                onScrubbing: onScrubbing ?? (_) {},
-                onSeek: onSeek ?? (_) {},
-                height: 240,
-                showTooltip: false,
-              ),
-              mainControlsRow,
-              Positioned(
-                left: 20,
-                bottom: 10,
-                child: Text(
-                  formatDuration(
-                    overridePosition ?? ref.watch(audioPositionProvider),
-                  ),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 20,
-                bottom: 10,
-                child: Text(
-                  formatDuration(duration),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      key: const ValueKey('default_controls_column'),
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        topButtonsRow,
-        SizedBox(height: isLandscape ? 16 : 12),
-        Builder(
-          builder: (context) {
-            final waveform =
-                overrideWaveform ?? currentMusic?.waveform ?? const [];
-            final displayProgress =
-                overrideProgress ?? progress.clamp(0.0, 1.0);
-
-            if (isWaveformEnabled) {
-              return Padding(
-                padding: EdgeInsets.symmetric(horizontal: isLandscape ? 16 : 0),
-                child: WaveformProgressBar(
-                  waveform: waveform,
-                  progress: displayProgress,
-                  duration: duration,
-                  onScrubbing: onScrubbing ?? (_) {},
-                  onSeek: onSeek ?? (_) {},
-                  height: 100,
-                  showTooltip: isLandscape,
-                ),
-              );
-            }
-            return _buildStandardSlider(context, displayProgress);
-          },
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                formatDuration(
-                  overridePosition ?? ref.watch(audioPositionProvider),
-                ),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-              Text(
-                formatDuration(duration),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: isLandscape ? 16 : 12),
-        mainControlsRow,
-      ],
-    );
   }
+}
 
-  Widget _buildStandardSlider(BuildContext context, double displayProgress) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SliderTheme(
-        data: SliderTheme.of(context).copyWith(
-          trackHeight: 4,
-          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-          overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-          activeTrackColor: Colors.white,
-          inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
-          thumbColor: Colors.white,
-          overlayColor: Colors.white.withValues(alpha: 0.1),
-        ),
-        child: Slider(
-          value: displayProgress.clamp(0.0, 1.0),
-          onChanged: onScrubbing,
-          onChangeEnd: (value) {
-            onSeek?.call(value);
-          },
-        ),
+Widget buildStandardSlider({
+  required BuildContext context,
+  required double displayProgress,
+  required ValueChanged<double>? onScrubbing,
+  required ValueChanged<double>? onSeek,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: SliderTheme(
+      data: SliderTheme.of(context).copyWith(
+        trackHeight: 4,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+        activeTrackColor: Colors.white,
+        inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+        thumbColor: Colors.white,
+        overlayColor: Colors.white.withValues(alpha: 0.1),
       ),
-    );
-  }
+      child: Slider(
+        value: displayProgress.clamp(0.0, 1.0),
+        onChanged: onScrubbing,
+        onChangeEnd: (value) {
+          onSeek?.call(value);
+        },
+      ),
+    ),
+  );
 }
 
 class PlaybackLyricsPanel extends ConsumerWidget {

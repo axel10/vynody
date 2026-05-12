@@ -4,6 +4,9 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/music_file.dart';
+import '../player/audio_riverpod.dart';
+import '../utils/playback_utils.dart';
+import 'waveform_progress_bar.dart';
 import 'playback_hero_card_shared.dart';
 
 class PlaybackLandscapeView extends ConsumerWidget {
@@ -162,9 +165,7 @@ class PlaybackLandscapeView extends ConsumerWidget {
                       alignment: Alignment.topCenter,
                       child: SizedBox(
                         width: (w > 2000 ? 720.0 : (w > 1200 ? 620.0 : 540.0)) * uiScale,
-                        child: PlaybackControls(
-                          isLandscape: true,
-                          isLyricsMode: isLyricsMode,
+                        child: PlaybackLandscapeControls(
                           uiScale: uiScale,
                           onShowMoreMenu: onShowMoreMenu,
                           onCyclePlaylistMode: onCyclePlaylistMode,
@@ -227,6 +228,136 @@ class PlaybackLandscapeView extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+}
+
+class PlaybackLandscapeControls extends ConsumerWidget {
+  final double uiScale;
+  final VoidCallback? onShowMoreMenu;
+  final VoidCallback? onCyclePlaylistMode;
+  final VoidCallback? onShowPlaylistModeSelector;
+  final VoidCallback? onShowRandomModeSelector;
+  final VoidCallback? onTagCompletionTap;
+  final VoidCallback? onTagCompletionLongPress;
+  final VoidCallback? onSleepTimerTap;
+  final VoidCallback? onEqualizerTap;
+  final VoidCallback? onToggleVisualizer;
+  final bool showVisualizerToggle;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onPlayPause;
+  final VoidCallback? onNext;
+  final VoidCallback? onVolumeTap;
+  final ValueChanged<double>? onVolumeDrag;
+  final ValueChanged<double>? onVolumeScroll;
+  final double? overrideProgress;
+  final Duration? overridePosition;
+  final List<double>? overrideWaveform;
+  final ValueChanged<double>? onScrubbing;
+  final ValueChanged<double>? onSeek;
+
+  const PlaybackLandscapeControls({
+    super.key,
+    required this.uiScale,
+    this.onShowMoreMenu,
+    this.onCyclePlaylistMode,
+    this.onShowPlaylistModeSelector,
+    this.onShowRandomModeSelector,
+    this.onTagCompletionTap,
+    this.onTagCompletionLongPress,
+    this.onSleepTimerTap,
+    this.onEqualizerTap,
+    this.onToggleVisualizer,
+    required this.showVisualizerToggle,
+    this.onPrevious,
+    this.onPlayPause,
+    this.onNext,
+    this.onVolumeTap,
+    this.onVolumeDrag,
+    this.onVolumeScroll,
+    this.overrideProgress,
+    this.overridePosition,
+    this.overrideWaveform,
+    this.onScrubbing,
+    this.onSeek,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final duration = ref.watch(audioDurationProvider);
+    final progress = ref.watch(audioProgressProvider);
+    final isWaveformEnabled = ref.watch(
+      settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
+    );
+
+    final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
+    final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        PlaybackTopButtonsRow(
+          uiScale: uiScale,
+          onShowMoreMenu: onShowMoreMenu,
+          onCyclePlaylistMode: onCyclePlaylistMode,
+          onShowPlaylistModeSelector: onShowPlaylistModeSelector,
+          onShowRandomModeSelector: onShowRandomModeSelector,
+          onTagCompletionTap: onTagCompletionTap,
+          onTagCompletionLongPress: onTagCompletionLongPress,
+          onSleepTimerTap: onSleepTimerTap,
+          onEqualizerTap: onEqualizerTap,
+        ),
+        const SizedBox(height: 16),
+        if (isWaveformEnabled)
+          WaveformProgressBar(
+            waveform: waveform,
+            progress: displayProgress,
+            duration: duration,
+            onScrubbing: onScrubbing ?? (_) {},
+            onSeek: onSeek ?? (_) {},
+            height: 100,
+            showTooltip: true,
+          )
+        else
+          buildStandardSlider(
+            context: context,
+            displayProgress: displayProgress,
+            onScrubbing: onScrubbing,
+            onSeek: onSeek,
+          ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                formatDuration(overridePosition ?? ref.watch(audioPositionProvider)),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              Text(
+                formatDuration(duration),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        PlaybackMainButtonsRow(
+          uiScale: uiScale,
+          isLandscape: true,
+          onToggleVisualizer: onToggleVisualizer,
+          showVisualizerToggle: showVisualizerToggle,
+          onPrevious: onPrevious,
+          onPlayPause: onPlayPause,
+          onNext: onNext,
+          onVolumeTap: onVolumeTap,
+          onVolumeDrag: onVolumeDrag,
+          onVolumeScroll: onVolumeScroll,
+        ),
+      ],
     );
   }
 }

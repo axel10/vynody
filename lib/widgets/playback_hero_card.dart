@@ -10,7 +10,6 @@ import '../utils/playback_utils.dart';
 import '../widgets/mini_player_widgets.dart';
 import 'playback_portrait_view.dart';
 import 'playback_landscape_view.dart';
-import 'playback_hero_card_shared.dart';
 
 const String playbackHeroTag = 'player_capsule';
 
