@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dio/dio.dart' show DioException, Headers, Options, ResponseType;
+import 'package:dio/dio.dart'
+    show DioException, DioExceptionType, Headers, Options, ResponseType;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
@@ -445,6 +446,10 @@ class LyricsAiOpenRouterClient {
 
   String _formatGenerationErrorMessage(Object error, {String? fallback}) {
     if (error is DioException) {
+      if (_isNetworkUnavailableError(error)) {
+        return _networkUnavailableMessage;
+      }
+
       final response = error.response;
       final statusCode = response?.statusCode;
       final responseData = response?.data;
@@ -478,6 +483,36 @@ class LyricsAiOpenRouterClient {
 
     return fallback ?? _t('未知错误', 'Unknown error');
   }
+
+  bool _isNetworkUnavailableError(DioException error) {
+    if (error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout) {
+      return true;
+    }
+
+    if (error.error is SocketException) {
+      return true;
+    }
+
+    final text = [
+      error.message,
+      error.error?.toString(),
+    ].whereType<String>().join(' ').toLowerCase();
+
+    return text.contains('connection failed') ||
+        text.contains('network is unreachable') ||
+        text.contains('failed host lookup') ||
+        text.contains('no address associated with hostname') ||
+        text.contains('software caused connection abort') ||
+        text.contains('connection refused') ||
+        text.contains('os error: 101') ||
+        text.contains('os error: 113');
+  }
+
+  String get _networkUnavailableMessage => _t(
+    '网络请求失败，请检查网络以及代理状态。',
+    'Network request failed. Please check your network and proxy settings.',
+  );
 
   String _t(String zh, String en) {
     return localizedText(zh, en);
