@@ -25,10 +25,12 @@ class WaveformProgressBar extends StatefulWidget {
     this.isScrolling = true, // Default to scrolling as requested
     this.height = 80,
     this.showTooltip = true,
+    this.uiScale = 1.0,
   });
 
   final double height;
   final bool showTooltip;
+  final double uiScale;
 
   @override
   State<WaveformProgressBar> createState() => _WaveformProgressBarState();
@@ -113,31 +115,31 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                 if (widget.showTooltip)
                   if (_hoverProgress != null || _isDragging)
                     SizedBox(
-                      height: 24,
+                      height: 24 * widget.uiScale,
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: EdgeInsets.symmetric(horizontal: 10 * widget.uiScale, vertical: 4 * widget.uiScale),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white24, width: 0.5),
+                            borderRadius: BorderRadius.circular(20 * widget.uiScale),
+                            border: Border.all(color: Colors.white24, width: 0.5 * widget.uiScale),
                           ),
                           child: Text(
                             formatDuration(Duration(
                               milliseconds: (widget.duration.inMilliseconds * (widget.progress)).toInt(),
                             )),
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 12,
+                              fontSize: 12 * widget.uiScale,
                               fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
+                              letterSpacing: 0.5 * widget.uiScale,
                             ),
                           ),
                         ),
                       ),
                     )
                   else
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24 * widget.uiScale),
                 
                 ClipRect(
                   child: SizedBox(

@@ -409,7 +409,7 @@ class PlaybackControls extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
-                        fontSize: 10,
+                        fontSize: 10 * uiScale,
                         height: 1.0,
                         fontWeight: FontWeight.w600,
                       ),
@@ -538,31 +538,32 @@ class PlaybackControls extends ConsumerWidget {
                 onSeek: onSeek ?? (_) {},
                 height: 240,
                 showTooltip: false,
+                uiScale: uiScale,
               ),
               mainControlsRow,
               Positioned(
-                left: 20,
-                bottom: 10,
+                left: 20 * uiScale,
+                bottom: 10 * uiScale,
                 child: Text(
                   formatDuration(overridePosition ?? ref.watch(audioPositionProvider)),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 12 * uiScale,
                     fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+                    shadows: const [Shadow(color: Colors.black45, blurRadius: 4)],
                   ),
                 ),
               ),
               Positioned(
-                right: 20,
-                bottom: 10,
+                right: 20 * uiScale,
+                bottom: 10 * uiScale,
                 child: Text(
                   formatDuration(duration),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 12 * uiScale,
                     fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+                    shadows: const [Shadow(color: Colors.black45, blurRadius: 4)],
                   ),
                 ),
               ),
@@ -596,6 +597,7 @@ class PlaybackControls extends ConsumerWidget {
                   onSeek: onSeek ?? (_) {},
                   height: 100,
                   showTooltip: isLandscape,
+                  uiScale: uiScale,
                 ),
               );
             }
@@ -604,17 +606,17 @@ class PlaybackControls extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: 20 * uiScale),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 formatDuration(overridePosition ?? ref.watch(audioPositionProvider)),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(color: Colors.white70, fontSize: 12 * uiScale),
               ),
               Text(
                 formatDuration(duration),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(color: Colors.white70, fontSize: 12 * uiScale),
               ),
             ],
           ),
