@@ -339,24 +339,27 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final pLyricsLyricsOpacity = 1.0;
 
                 // ---------------- Landscape Normal ----------------
-                const landscapeNormalLift = 30.0;
+                final landscapeNormalLift = height > 1000 ? 0.0 : 30.0;
                 const landscapeLyricsLift = 0.0;
-                final lNormalCoverSide = math.min(width * 0.42, height * 0.85);
+                // Cap cover size for ultra-high resolutions to prevent it from being overwhelming
+                final lNormalCoverSide = math.min(width * 0.42, height * 0.85).clamp(0.0, 900.0);
                 final lNormalCoverTop =
                     (height - lNormalCoverSide) / 2 - landscapeNormalLift;
                 final lNormalCoverLeft =
                     width * 0.05 + (width * 0.45 - lNormalCoverSide) / 2;
 
+                // Adjust info and controls to be more centered and have more vertical breathing room
+                final lNormalInfoHeight = height > 1000 ? 120.0 : 90.0;
+                final lNormalControlsHeight = height > 1000 ? 280.0 : 200.0;
+
                 final lNormalInfoTop =
-                    height * 0.5 - 100 - 45 - landscapeNormalLift;
+                    height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2 - landscapeNormalLift;
                 final lNormalInfoLeft = width * 0.5;
                 final lNormalInfoWidth = width * 0.45;
-                final lNormalInfoHeight = 90.0;
 
                 final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
                 final lNormalControlsLeft = width * 0.5;
                 final lNormalControlsWidth = width * 0.45;
-                final lNormalControlsHeight = 200.0;
                 final lNormalControlsOpacity = 1.0;
 
                 final lNormalLyricsTop = 16.0;
@@ -366,12 +369,13 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final lNormalLyricsOpacity = 0.0;
 
                 // ---------------- Landscape Lyrics ----------------
-                final lColWidth = (width * 0.35).clamp(280.0, 420.0);
+                // Increase max column width for large screens
+                final lColWidth = (width * 0.35).clamp(320.0, 600.0);
 
                 final lLyricsCoverSide = math.min(
-                  lColWidth * 0.8,
+                  lColWidth * 0.85,
                   height * 0.45,
-                );
+                ).clamp(0.0, 480.0);
                 final lLyricsCoverTop = 12.0 - landscapeLyricsLift;
                 final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
 
@@ -379,7 +383,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     lLyricsCoverTop + lLyricsCoverSide + 24.0;
                 final lLyricsInfoLeft = 16.0;
                 final lLyricsInfoWidth = lColWidth - 32.0;
-                final lLyricsInfoHeight = 80.0;
+                final lLyricsInfoHeight = height > 1000 ? 100.0 : 80.0;
 
                 final lLyricsControlsTop =
                     lLyricsInfoTop + lLyricsInfoHeight + 16.0;
@@ -597,11 +601,12 @@ class PlaybackHeroCard extends ConsumerWidget {
                               alignment: Alignment.topCenter,
                               child: SizedBox(
                                 width: isLandscape
-                                    ? 450
+                                    ? (width > 2000 ? 580.0 : (width > 1200 ? 500.0 : 450.0))
                                     : math.max(controlsWidth, 380.0),
                                 child: _buildPlaybackControlsWidget(
                                   context,
                                   ref,
+                                  isLarge: height > 1000 || width > 2000,
                                 ),
                               ),
                             ),
@@ -625,6 +630,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                           currentMusic,
                           targetInfoAlign,
                           tLyrics,
+                          height,
                         ),
                       ),
                     ],
@@ -697,6 +703,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     MusicFile? currentMusic,
     TextAlign align,
     double lyricsModeT,
+    double height,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final title = currentMusic?.displayName ?? l10n.notSelected;
@@ -753,7 +760,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                 textAlign: TextAlign.start,
                 style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   color: Colors.white,
-                  fontSize: lyricsModeT > 0.5 && !isLandscape ? 18 : 22,
+                  fontSize: lyricsModeT > 0.5 && !isLandscape
+                      ? 18
+                      : (isLandscape && height > 1000 ? 30 : 22),
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
@@ -798,7 +807,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       color: Colors.white70,
-                      fontSize: lyricsModeT > 0.5 && !isLandscape ? 13 : 15,
+                      fontSize: lyricsModeT > 0.5 && !isLandscape
+                          ? 13
+                          : (isLandscape && height > 1000 ? 18 : 15),
                       height: 1.3,
                     ),
                     child: Text(
@@ -819,7 +830,11 @@ class PlaybackHeroCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildPlaybackControlsWidget(BuildContext context, WidgetRef ref) {
+  Widget _buildPlaybackControlsWidget(
+    BuildContext context,
+    WidgetRef ref, {
+    bool isLarge = false,
+  }) {
     final playbackMode = ref.watch(audioPlaybackModeProvider);
     final isRandomMode = ref.watch(audioIsRandomModeProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
@@ -848,7 +863,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 isFavorite
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
-                size: 28,
+                size: isLarge ? 36 : 28,
                 color: isFavorite ? Colors.redAccent : Colors.white70,
               ),
               onPressed: currentMusic == null
@@ -866,7 +881,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               child: IconButton(
                 icon: Icon(
                   getPlaylistModeIcon(playbackMode),
-                  size: 28,
+                  size: isLarge ? 36 : 28,
                   color: Colors.white70,
                 ),
                 onPressed: onCyclePlaylistMode,
@@ -878,7 +893,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               child: IconButton(
                 icon: Icon(
                   Icons.shuffle_rounded,
-                  size: 28,
+                  size: isLarge ? 36 : 28,
                   color: isRandomMode
                       ? Theme.of(context).colorScheme.primary
                       : Colors.white70,
@@ -903,9 +918,9 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.auto_fix_high_rounded,
-                size: 28,
+                size: isLarge ? 36 : 28,
                 color: Colors.white70,
               ),
               onPressed: onTagCompletionTap,
@@ -928,7 +943,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.bedtime_rounded,
-                        size: 28,
+                        size: isLarge ? 36 : 28,
                         color: sleepTimerRemaining != null
                             ? Theme.of(context).colorScheme.primary
                             : Colors.white70,
@@ -953,9 +968,9 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.tune_rounded,
-                size: 28,
+                size: isLarge ? 36 : 28,
                 color: Colors.white70,
               ),
               onPressed: onEqualizerTap,
@@ -1020,7 +1035,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 showVisualizerToggle
                     ? Icons.analytics
                     : Icons.analytics_outlined,
-                size: 28,
+                size: isLarge ? 36 : 28,
                 color: showVisualizerToggle ? Colors.white : Colors.white70,
               ),
               onPressed: onToggleVisualizer,
@@ -1028,9 +1043,9 @@ class PlaybackHeroCard extends ConsumerWidget {
             ),
             const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.skip_previous_rounded,
-                size: 48,
+                size: isLarge ? 64 : 48,
                 color: Colors.white,
               ),
               onPressed: onPrevious,
@@ -1038,8 +1053,8 @@ class PlaybackHeroCard extends ConsumerWidget {
             ),
             const SizedBox(width: 16),
             Container(
-              width: 72,
-              height: 72,
+              width: isLarge ? 96 : 72,
+              height: isLarge ? 96 : 72,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white,
@@ -1053,7 +1068,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   ref.watch(audioIsPlayingProvider)
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
-                  size: 40,
+                  size: isLarge ? 56 : 40,
                   color:
                       currentThemeColorsMap['darkVibrant'] ??
                       currentThemeColorsMap['darkMuted'] ??
@@ -1063,9 +1078,9 @@ class PlaybackHeroCard extends ConsumerWidget {
             ),
             const SizedBox(width: 16),
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.skip_next_rounded,
-                size: 48,
+                size: isLarge ? 64 : 48,
                 color: Colors.white,
               ),
               onPressed: onNext,
@@ -1086,7 +1101,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 child: IconButton(
                   icon: Icon(
                     getVolumeIcon(ref.watch(audioVolumeProvider)),
-                    size: 28,
+                    size: isLarge ? 36 : 28,
                     color: Colors.white70,
                   ),
                   onPressed: onVolumeTap,
