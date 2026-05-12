@@ -1195,53 +1195,14 @@ class _MiniPlayerProgressInfoState
         currentMusic.album,
     ].join(' - ');
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (details) {
-          if (!_isHovering) return;
-          setState(() {
-            _isDragging = true;
-            _dragValue = widget.progress;
-          });
-        },
-        onHorizontalDragUpdate: (details) {
-          if (!_isDragging) return;
-          final RenderBox box = context.findRenderObject() as RenderBox;
-          final double localX = details.localPosition.dx;
-          final double newProgress = (localX / box.size.width).clamp(0.0, 1.0);
-          setState(() {
-            _dragValue = newProgress;
-          });
-          widget.onScrubbing?.call(newProgress);
-        },
-        onHorizontalDragEnd: (details) {
-          if (!_isDragging) return;
-          final finalProgress = _dragValue ?? widget.progress;
-          setState(() {
-            _isDragging = false;
-            _dragValue = null;
-          });
-          widget.onSeek?.call(finalProgress);
-        },
-        onTapDown: (details) {
-          if (!_isHovering) return;
-          final RenderBox box = context.findRenderObject() as RenderBox;
-          final double localX = details.localPosition.dx;
-          final double newProgress = (localX / box.size.width).clamp(0.0, 1.0);
-          widget.onScrubbing?.call(newProgress);
-          widget.onSeek?.call(newProgress);
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 32,
-              child: Stack(
-                children: [
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 32,
+          child: Stack(
+            children: [
                   TweenAnimationBuilder<double>(
                     duration: const Duration(milliseconds: 200),
                     tween: Tween<double>(begin: 0, end: _isActive ? 5.0 : 0.0),
@@ -1313,34 +1274,75 @@ class _MiniPlayerProgressInfoState
                 ],
               ),
             ),
-            const SizedBox(height: 4),
-            Container(
-              height: 6,
-              alignment: Alignment.center,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                height: _isActive ? 6 : 3,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    minHeight: _isActive ? 6 : 3,
-                    value: displayProgress.clamp(0.0, 1.0),
-                    backgroundColor:
-                        Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white24
-                            : Colors.black12,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black87,
+            const SizedBox(height: 2),
+            MouseRegion(
+              onEnter: (_) => setState(() => _isHovering = true),
+              onExit: (_) => setState(() => _isHovering = false),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragStart: (details) {
+                  setState(() {
+                    _isDragging = true;
+                    _dragValue = widget.progress;
+                  });
+                },
+                onHorizontalDragUpdate: (details) {
+                  if (!_isDragging) return;
+                  final RenderBox box = context.findRenderObject() as RenderBox;
+                  final double localX = details.localPosition.dx;
+                  final double newProgress =
+                      (localX / box.size.width).clamp(0.0, 1.0);
+                  setState(() {
+                    _dragValue = newProgress;
+                  });
+                  widget.onScrubbing?.call(newProgress);
+                },
+                onHorizontalDragEnd: (details) {
+                  if (!_isDragging) return;
+                  final finalProgress = _dragValue ?? widget.progress;
+                  setState(() {
+                    _isDragging = false;
+                    _dragValue = null;
+                  });
+                  widget.onSeek?.call(finalProgress);
+                },
+                onTapDown: (details) {
+                  final RenderBox box = context.findRenderObject() as RenderBox;
+                  final double localX = details.localPosition.dx;
+                  final double newProgress =
+                      (localX / box.size.width).clamp(0.0, 1.0);
+                  widget.onScrubbing?.call(newProgress);
+                  widget.onSeek?.call(newProgress);
+                },
+                onTap: () {}, // Consume tap to prevent bubbling to parent mini player tap
+                child: Container(
+                  height: 10,
+                  color: Colors.transparent,
+                  alignment: Alignment.center,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: _isActive ? 6 : 3,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        minHeight: _isActive ? 6 : 3,
+                        value: displayProgress.clamp(0.0, 1.0),
+                        backgroundColor:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white24
+                                : Colors.black12,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ],
-        ),
-      ),
-    );
+        );
   }
 }
