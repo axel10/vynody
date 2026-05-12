@@ -186,7 +186,7 @@ class MiniSpectrumBackground extends ConsumerWidget {
               color: (Theme.of(context).brightness == Brightness.dark
                       ? Colors.white
                       : Colors.black)
-                  .withValues(alpha: 0.25),
+                  .withValues(alpha: 0.15),
             ),
           ),
         );
