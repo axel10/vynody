@@ -86,41 +86,74 @@ class PlaybackPortraitView extends ConsumerWidget {
             final w = constraints.maxWidth;
             final h = constraints.maxHeight;
             final isWaveformEnabled = ref.watch(
-              settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
+              settingsServiceProvider.select(
+                (s) => s.isWaveformProgressBarEnabled,
+              ),
             );
 
             // ---------------- UI Scaling ----------------
             final uiScale = (h / 1150.0).clamp(1.0, 2.5);
 
             // ---------------- Layout Constants ----------------
-            final headerHeight = 110.0 * uiScale; // Height for album+info in lyrics mode
-            final controlsHeight = (isWaveformEnabled ? 320.0 : 280.0) * uiScale;
+            final headerHeight =
+                110.0 * uiScale; // Height for album+info in lyrics mode
+            final controlsHeight =
+                (isWaveformEnabled ? 320.0 : 210.0) * uiScale;
 
             // ---------------- Album Art ----------------
             // Normal: Large, centered top. Lyrics: Small, top-left.
-            final nCoverSize = math.min(w * 0.9, h - controlsHeight - 150 * uiScale);
+            final nCoverSize = math.min(
+              w * 0.9,
+              h - controlsHeight - 150 * uiScale,
+            );
             final lCoverSize = math.min(100.0 * uiScale, w * 0.3);
-            
+
             final coverSize = lerpDouble(nCoverSize, lCoverSize, t)!;
             final coverTop = lerpDouble(h * 0.08, 12.0 * uiScale, t)!;
-            final coverLeft = lerpDouble((w - nCoverSize) / 2, 12.0 * uiScale, t)!;
+            final coverLeft = lerpDouble(
+              (w - nCoverSize) / 2,
+              12.0 * uiScale,
+              t,
+            )!;
 
             // ---------------- Track Info ----------------
             // Normal: Below cover. Lyrics: Right of cover.
             final nInfoTop = coverTop + nCoverSize + 20 * uiScale;
             final lInfoTop = 12.0 * uiScale;
             final lInfoLeft = 12.0 * uiScale + lCoverSize + 16.0 * uiScale;
-            
-            final infoTop = lerpDouble(nInfoTop, lInfoTop, t)!;
+
             final infoLeft = lerpDouble(16.0 * uiScale, lInfoLeft, t)!;
-            final infoWidth = lerpDouble(w - 32.0 * uiScale, w - lInfoLeft - 16.0 * uiScale, t)!;
-            final infoHeight = lerpDouble(80.0 * uiScale, lCoverSize, t)!;
+            final infoWidth = lerpDouble(
+              w - 32.0 * uiScale,
+              w - lInfoLeft - 16.0 * uiScale,
+              t,
+            )!;
+            // Normal mode only needs enough height for title + artist lines.
+            final infoHeight = 55.0 * uiScale;
 
             // ---------------- Controls & Lyrics ----------------
             // Controls: Fade out and move down in lyrics mode.
             // Lyrics: Fade in and move up in lyrics mode.
             final controlsOpacity = (1.0 - t * 2).clamp(0.0, 1.0);
             final lyricsOpacity = (t * 2 - 1.0).clamp(0.0, 1.0);
+            final bottomReservedHeight =
+                lyricsBottomSpacerHeight + lyricsBottomTabBarHeight;
+            final contentBandTop = nInfoTop;
+            final contentBandBottom = h - bottomReservedHeight;
+            final contentBandHeight = math.max(
+              0.0,
+              contentBandBottom - contentBandTop,
+            );
+            final controlGap = 0.0 * uiScale;
+            final stackedContentHeight =
+                infoHeight + controlGap + controlsHeight;
+            final centeredContentTop =
+                contentBandTop +
+                math.max(0.0, (contentBandHeight - stackedContentHeight) / 2);
+            final normalInfoTop = centeredContentTop;
+            final normalControlsTop =
+                centeredContentTop + infoHeight + controlGap;
+            final infoTop = lerpDouble(normalInfoTop, lInfoTop, t)!;
 
             return SizedBox(
               width: w,
@@ -149,7 +182,7 @@ class PlaybackPortraitView extends ConsumerWidget {
 
                   // Controls
                   Positioned(
-                    bottom: lerpDouble(0, -100, t)!,
+                    top: lerpDouble(normalControlsTop, h + 24 * uiScale, t)!,
                     left: 0,
                     right: 0,
                     height: controlsHeight,
@@ -167,10 +200,13 @@ class PlaybackPortraitView extends ConsumerWidget {
                               uiScale: uiScale,
                               onShowMoreMenu: onShowMoreMenu,
                               onCyclePlaylistMode: onCyclePlaylistMode,
-                              onShowPlaylistModeSelector: onShowPlaylistModeSelector,
-                              onShowRandomModeSelector: onShowRandomModeSelector,
+                              onShowPlaylistModeSelector:
+                                  onShowPlaylistModeSelector,
+                              onShowRandomModeSelector:
+                                  onShowRandomModeSelector,
                               onTagCompletionTap: onTagCompletionTap,
-                              onTagCompletionLongPress: onTagCompletionLongPress,
+                              onTagCompletionLongPress:
+                                  onTagCompletionLongPress,
                               onSleepTimerTap: onSleepTimerTap,
                               onEqualizerTap: onEqualizerTap,
                               onToggleVisualizer: onToggleVisualizer,
@@ -346,7 +382,9 @@ class PlaybackPortraitControls extends ConsumerWidget {
                 left: 20,
                 bottom: 10,
                 child: Text(
-                  formatDuration(overridePosition ?? ref.watch(audioPositionProvider)),
+                  formatDuration(
+                    overridePosition ?? ref.watch(audioPositionProvider),
+                  ),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -408,7 +446,9 @@ class PlaybackPortraitControls extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                formatDuration(overridePosition ?? ref.watch(audioPositionProvider)),
+                formatDuration(
+                  overridePosition ?? ref.watch(audioPositionProvider),
+                ),
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Text(
