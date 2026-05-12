@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dio/dio.dart' show DioException, Headers, ResponseType;
+import 'package:dio/dio.dart'
+    show DioException, DioExceptionType, Headers, ResponseType;
 import 'package:flutter/foundation.dart';
 
 import '../utils/lrc_utils.dart';
@@ -288,7 +289,14 @@ class LyricsAiService {
       }
       return null;
     } on DioException catch (e) {
-      debugPrint('[LyricsAi] request failed: ${e.message}');
+      debugPrint(
+        '[LyricsAi] request failed: type=${e.type} '
+        'status=${e.response?.statusCode} '
+        'uri=${e.requestOptions.uri} '
+        'message=${e.message} '
+        'error=${e.error} '
+        'response=${e.response?.data}',
+      );
       if (_isServerError(e.response?.statusCode)) {
         return _translationServerFlakyMessage;
       }
@@ -347,6 +355,12 @@ class LyricsAiService {
     }
 
     final apiKey = credentials.apiKey;
+    debugPrint(
+      '[LyricsAi] generateLyricsFromFile start '
+      'platform=${Platform.operatingSystem} '
+      'provider=${credentials.provider.name} '
+      'filePath=$filePath',
+    );
 
     final file = File(filePath);
     if (!await file.exists()) {
@@ -462,6 +476,12 @@ class LyricsAiService {
     }
 
     final apiKey = credentials.apiKey;
+    debugPrint(
+      '[LyricsAi] generateTimelineFromLyrics start '
+      'platform=${Platform.operatingSystem} '
+      'provider=${credentials.provider.name} '
+      'filePath=$filePath',
+    );
 
     final file = File(filePath);
     if (!await file.exists()) {
@@ -851,8 +871,13 @@ class LyricsAiService {
           lastFailureEligibleForFallback = _shouldUseFallbackModel(
             e.response?.statusCode,
           );
-          debugPrint('[LyricsAi] generation failed: ${e.message}');
-          debugPrint('[LyricsAi] generation status: ${e.response?.statusCode}');
+          debugPrint(
+            '[LyricsAi] generation failed: type=${e.type} '
+            'status=${e.response?.statusCode} '
+            'uri=${e.requestOptions.uri} '
+            'message=${e.message} '
+            'error=${e.error}',
+          );
           debugPrint('[LyricsAi] generation response: ${e.response?.data}');
           debugPrint(
             '[LyricsAi] generation request path: ${e.requestOptions.path}',
@@ -897,7 +922,9 @@ class LyricsAiService {
           }
         } catch (e) {
           lastErrorMessage = _formatGenerationErrorMessage(e);
-          debugPrint('[LyricsAi] generation error: $e');
+          debugPrint(
+            '[LyricsAi] generation error: ${e.runtimeType} $e',
+          );
           onStageChanged?.call('retrying');
         }
 
@@ -958,6 +985,10 @@ class LyricsAiService {
 
   String _formatGenerationErrorMessage(Object error, {String? fallback}) {
     if (error is DioException) {
+      if (_isNetworkUnavailableError(error)) {
+        return _networkUnavailableMessage;
+      }
+
       final response = error.response;
       final statusCode = response?.statusCode;
       final responseData = response?.data;
@@ -991,6 +1022,36 @@ class LyricsAiService {
 
     return fallback ?? _t('未知错误', 'Unknown error');
   }
+
+  bool _isNetworkUnavailableError(DioException error) {
+    if (error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout) {
+      return true;
+    }
+
+    if (error.error is SocketException) {
+      return true;
+    }
+
+    final text = [
+      error.message,
+      error.error?.toString(),
+    ].whereType<String>().join(' ').toLowerCase();
+
+    return text.contains('connection failed') ||
+        text.contains('network is unreachable') ||
+        text.contains('failed host lookup') ||
+        text.contains('no address associated with hostname') ||
+        text.contains('software caused connection abort') ||
+        text.contains('connection refused') ||
+        text.contains('os error: 101') ||
+        text.contains('os error: 113');
+  }
+
+  String get _networkUnavailableMessage => _t(
+    '网络请求失败，请检查网络以及代理状态。',
+    'Network request failed. Please check your network and proxy settings.',
+  );
 
   bool _shouldUseFallbackModel(int? statusCode) {
     return statusCode == 429 || _isServerError(statusCode);

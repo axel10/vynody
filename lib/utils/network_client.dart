@@ -296,6 +296,15 @@ class _SystemProxyHttpClientAdapter implements HttpClientAdapter {
       return responseBody;
     } on SocketException catch (e) {
       httpClient.close(force: true);
+      debugPrint(
+        '[NetworkClient] SocketException for ${options.method} ${options.uri} '
+        'proxy=${proxyRule.isEmpty ? 'unknown' : proxyRule} '
+        'timeout=${connectionTimeout ?? 'none'} '
+        'address=${e.address?.address ?? 'unknown'} '
+        'port=${e.port ?? 'unknown'} '
+        'osError=${e.osError?.errorCode ?? 'unknown'} '
+        'message=${e.message}',
+      );
       if (e.message.contains('timed out')) {
         final Duration effectiveTimeout;
         if (connectionTimeout != null && connectionTimeout > Duration.zero) {
@@ -319,6 +328,10 @@ class _SystemProxyHttpClientAdapter implements HttpClientAdapter {
       );
     } catch (_) {
       httpClient.close(force: true);
+      debugPrint(
+        '[NetworkClient] unexpected transport failure for '
+        '${options.method} ${options.uri}',
+      );
       rethrow;
     }
   }
