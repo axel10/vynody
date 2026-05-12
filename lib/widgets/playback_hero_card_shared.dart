@@ -1,12 +1,10 @@
-import 'dart:typed_data';
+import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
-import '../player/settings_service.dart';
-import '../player/playlist_service.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
 import '../utils/song_context_menu_utils.dart';
@@ -38,8 +36,8 @@ class PlaybackAlbumArt extends ConsumerWidget {
     if (playlist.isEmpty) {
       return Center(
         child: Container(
-          width: displaySize * 0.8,
-          height: displaySize * 0.8,
+          width: math.max(0.0, displaySize * 0.8),
+          height: math.max(0.0, displaySize * 0.8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             color: Colors.black87,

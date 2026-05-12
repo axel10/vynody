@@ -4,7 +4,6 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/music_file.dart';
-import '../player/audio_riverpod.dart';
 import 'playback_hero_card_shared.dart';
 
 class PlaybackPortraitView extends ConsumerWidget {
@@ -83,12 +82,6 @@ class PlaybackPortraitView extends ConsumerWidget {
           builder: (context, constraints) {
             final width = constraints.maxWidth.roundToDouble();
             final height = constraints.maxHeight.roundToDouble();
-            final isWaveformEnabled = ref.watch(
-              settingsServiceProvider.select(
-                (s) => s.isWaveformProgressBarEnabled,
-              ),
-            );
-
             // ---------------- UI Scaling ----------------
             // Base height for scaling. (Increase this to make UI smaller on large screens)
             final uiScale = (height / 1150.0).clamp(1.0, 2.5);
@@ -110,8 +103,8 @@ class PlaybackPortraitView extends ConsumerWidget {
             final pNormalInfoHeight = pMinInfoH;
 
             final pNormalCoverGap = 24.0 * uiScale;
-            final pNormalCoverAreaH = pNormalInfoTop - pNormalCoverGap;
-            final pNormalCoverSide = math.min(width * 1, pNormalCoverAreaH * 1);
+            final pNormalCoverAreaH = math.max(0.0, pNormalInfoTop - pNormalCoverGap);
+            final pNormalCoverSide = math.max(0.0, math.min(width * 1, pNormalCoverAreaH * 1));
             final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
             final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
 
@@ -231,7 +224,7 @@ class PlaybackPortraitView extends ConsumerWidget {
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.topCenter,
                           child: SizedBox(
-                            width: isWaveformEnabled ? width : 420 * uiScale,
+                            width: math.max(width, 420 * uiScale),
                             child: PlaybackControls(
                               isLandscape: false,
                               isLyricsMode: isLyricsMode,
