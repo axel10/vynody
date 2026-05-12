@@ -292,7 +292,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 // ---------------- Portrait Normal ----------------
                 // 确保控件区和信息区在高度缩小时优先保留空间
                 const pMinInfoH = 80.0;
-                const pMinControlsH = 230.0; // 控件区触发缩减的临界高度，调小此值可让封面更晚开始缩小
+                const pMinControlsH = 260.0; // 调大以适应波形叠层布局 (Increase to accommodate overlay layout)
                 const pBottomGap = 0;     // 控件到底部的间距
                 const pMidGap = 4.0;
                 final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
@@ -854,155 +854,310 @@ class PlaybackHeroCard extends ConsumerWidget {
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
     final duration = ref.watch(audioDurationProvider);
     final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
+    final isPlaying = ref.watch(audioIsPlayingProvider);
+    final progress = ref.watch(audioProgressProvider);
     final l10n = AppLocalizations.of(context)!;
 
+    final isWaveformEnabled = ref.watch(
+      settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
+    );
+
+    // 竖屏模式下如果启用波形进度条，则使用叠层布局 (Overlay layout in portrait if waveform is enabled)
+    final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
+
+    // 提取公共组件 (Extract common components)
+    final topButtonsRow = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.more_horiz, color: Colors.white70),
+          onPressed: onShowMoreMenu,
+          tooltip: l10n.more,
+        ),
+        IconButton(
+          icon: Icon(
+            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            size: isLarge ? 36 : 28,
+            color: isFavorite ? Colors.redAccent : Colors.white70,
+          ),
+          onPressed: currentMusic == null
+              ? null
+              : () async {
+                  final playlistService = ref.read(playlistServiceProvider);
+                  await playlistService.toggleFavoriteSong(currentMusic);
+                },
+          tooltip: isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
+        ),
+        GestureDetector(
+          onLongPress: onShowPlaylistModeSelector,
+          child: IconButton(
+            icon: Icon(
+              getPlaylistModeIcon(playbackMode),
+              size: isLarge ? 36 : 28,
+              color: Colors.white70,
+            ),
+            onPressed: onCyclePlaylistMode,
+            tooltip: getPlaylistModeName(playbackMode, l10n),
+          ),
+        ),
+        GestureDetector(
+          onLongPress: onShowRandomModeSelector,
+          child: IconButton(
+            icon: Icon(
+              Icons.shuffle_rounded,
+              size: isLarge ? 36 : 28,
+              color: isRandomMode
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.white70,
+            ),
+            onPressed: () {
+              final audio = ref.read(audioServiceProvider);
+              if (audio.settingsService.randomRange == 1 && !isRandomMode) {
+                final playlistService = ref.read(playlistServiceProvider);
+                final List<MusicFile> allSongs = [];
+                final pathSet = <String>{};
+                for (final p in playlistService.playlists) {
+                  for (final s in p.songs) {
+                    if (pathSet.add(s.path)) allSongs.add(s);
+                  }
+                }
+                audio.toggleRandomMode(globalSongs: allSongs);
+              } else {
+                audio.toggleRandomMode();
+              }
+            },
+            tooltip: l10n.randomMode,
+          ),
+        ),
+        IconButton(
+          icon: Icon(
+            Icons.auto_fix_high_rounded,
+            size: isLarge ? 36 : 28,
+            color: Colors.white70,
+          ),
+          onPressed: onTagCompletionTap,
+          onLongPress: onTagCompletionLongPress,
+          tooltip: l10n.tagCompletion,
+        ),
+        Tooltip(
+          message: sleepTimerRemaining != null
+              ? l10n.sleepTimerRemaining(
+                  _formatSleepTimer(sleepTimerRemaining),
+                )
+              : l10n.sleepTimer,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onSleepTimerTap,
+            child: SizedBox(
+              width: 74,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.bedtime_rounded,
+                    size: isLarge ? 36 : 28,
+                    color: sleepTimerRemaining != null
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.white70,
+                  ),
+                  if (sleepTimerRemaining != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatSleepTimer(sleepTimerRemaining),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 10,
+                        height: 1.0,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          icon: Icon(
+            Icons.tune_rounded,
+            size: isLarge ? 36 : 28,
+            color: Colors.white70,
+          ),
+          onPressed: onEqualizerTap,
+          tooltip: l10n.equalizer,
+        ),
+      ],
+    );
+
+    final mainControlsRow = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: Icon(
+            showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
+            size: isLarge ? 36 : 28,
+            color: showVisualizerToggle ? Colors.white : Colors.white70,
+          ),
+          onPressed: onToggleVisualizer,
+          tooltip: AppLocalizations.of(context)!.visualizer,
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          icon: Icon(
+            Icons.skip_previous_rounded,
+            size: isLarge ? 64 : 48,
+            color: Colors.white,
+          ),
+          onPressed: onPrevious,
+          tooltip: l10n.previous,
+        ),
+        const SizedBox(width: 16),
+        Container(
+          width: isLarge ? 96 : 72,
+          height: isLarge ? 96 : 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 12,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: IconButton(
+            onPressed: onPlayPause,
+            tooltip: isPlaying ? l10n.pause : l10n.play,
+            icon: Icon(
+              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              size: isLarge ? 56 : 40,
+              color:
+                  currentThemeColorsMap['darkVibrant'] ??
+                  currentThemeColorsMap['darkMuted'] ??
+                  Colors.black,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        IconButton(
+          icon: Icon(
+            Icons.skip_next_rounded,
+            size: isLarge ? 64 : 48,
+            color: Colors.white,
+          ),
+          onPressed: onNext,
+          tooltip: l10n.next,
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragUpdate: (details) {
+            onVolumeDrag?.call(details.primaryDelta ?? 0);
+          },
+          child: Listener(
+            onPointerSignal: (pointerSignal) {
+              if (pointerSignal is PointerScrollEvent) {
+                onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+              }
+            },
+            child: IconButton(
+              icon: Icon(
+                getVolumeIcon(ref.watch(audioVolumeProvider)),
+                size: isLarge ? 36 : 28,
+                color: Colors.white70,
+              ),
+              onPressed: onVolumeTap,
+              tooltip: l10n.volume,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (useOverlayStyle) {
+      final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
+      final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
+
+      return Column(
+        key: const ValueKey('overlay_controls_column'),
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          topButtonsRow,
+          const SizedBox(height: 8),
+          Stack(
+            key: const ValueKey('overlay_controls_stack'),
+            alignment: Alignment.center,
+            children: [
+              // 波形进度条作为背景 (Waveform as background)
+                // 让 WaveformProgressBar 成为非定位子组件以撑开 Stack 的高度
+                WaveformProgressBar(
+                  waveform: waveform,
+                  progress: displayProgress,
+                  duration: duration,
+                  onScrubbing: onScrubbing ?? (_) {},
+                  onSeek: onSeek ?? (_) {},
+                  height: 180, // 增加高度以实现叠层感 (Increase height for overlay feel)
+                ),
+                // 播放控制按钮叠在上面 (Playback controls on top)
+                Padding(
+                  padding: const EdgeInsets.only(top: 20), // 稍微向下偏移以避开波形顶部时间预览
+                  child: mainControlsRow,
+                ),
+                // 时间显示在底部左右两侧 (Time display at bottom corners)
+                Positioned(
+                  left: 20,
+                  bottom: 10,
+                  child: Text(
+                    formatDuration(
+                      overridePosition ?? ref.watch(audioPositionProvider),
+                    ),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 20,
+                  bottom: 10,
+                  child: Text(
+                    formatDuration(duration),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      }
+
+    // 默认布局 (Default layout)
     return Column(
+      key: const ValueKey('default_controls_column'),
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.more_horiz, color: Colors.white70),
-              onPressed: onShowMoreMenu,
-              tooltip: l10n.more,
-            ),
-            IconButton(
-              icon: Icon(
-                isFavorite
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                size: isLarge ? 36 : 28,
-                color: isFavorite ? Colors.redAccent : Colors.white70,
-              ),
-              onPressed: currentMusic == null
-                  ? null
-                  : () async {
-                      final playlistService = ref.read(playlistServiceProvider);
-                      await playlistService.toggleFavoriteSong(currentMusic);
-                    },
-              tooltip: isFavorite
-                  ? l10n.removeFromFavorites
-                  : l10n.addToFavorites,
-            ),
-            GestureDetector(
-              onLongPress: onShowPlaylistModeSelector,
-              child: IconButton(
-                icon: Icon(
-                  getPlaylistModeIcon(playbackMode),
-                  size: isLarge ? 36 : 28,
-                  color: Colors.white70,
-                ),
-                onPressed: onCyclePlaylistMode,
-                tooltip: getPlaylistModeName(playbackMode, l10n),
-              ),
-            ),
-            GestureDetector(
-              onLongPress: onShowRandomModeSelector,
-              child: IconButton(
-                icon: Icon(
-                  Icons.shuffle_rounded,
-                  size: isLarge ? 36 : 28,
-                  color: isRandomMode
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.white70,
-                ),
-                onPressed: () {
-                  final audio = ref.read(audioServiceProvider);
-                  if (audio.settingsService.randomRange == 1 && !isRandomMode) {
-                    final playlistService = ref.read(playlistServiceProvider);
-                    final List<MusicFile> allSongs = [];
-                    final pathSet = <String>{};
-                    for (final p in playlistService.playlists) {
-                      for (final s in p.songs) {
-                        if (pathSet.add(s.path)) allSongs.add(s);
-                      }
-                    }
-                    audio.toggleRandomMode(globalSongs: allSongs);
-                  } else {
-                    audio.toggleRandomMode();
-                  }
-                },
-                tooltip: l10n.randomMode,
-              ),
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.auto_fix_high_rounded,
-                size: isLarge ? 36 : 28,
-                color: Colors.white70,
-              ),
-              onPressed: onTagCompletionTap,
-              onLongPress: onTagCompletionLongPress,
-              tooltip: l10n.tagCompletion,
-            ),
-            Tooltip(
-              message: sleepTimerRemaining != null
-                  ? l10n.sleepTimerRemaining(
-                      _formatSleepTimer(sleepTimerRemaining),
-                    )
-                  : l10n.sleepTimer,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onSleepTimerTap,
-                child: SizedBox(
-                  width: 74,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.bedtime_rounded,
-                        size: isLarge ? 36 : 28,
-                        color: sleepTimerRemaining != null
-                            ? Theme.of(context).colorScheme.primary
-                            : Colors.white70,
-                      ),
-                      if (sleepTimerRemaining != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          _formatSleepTimer(sleepTimerRemaining),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontSize: 10,
-                            height: 1.0,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.tune_rounded,
-                size: isLarge ? 36 : 28,
-                color: Colors.white70,
-              ),
-              onPressed: onEqualizerTap,
-              tooltip: l10n.equalizer,
-            ),
-          ],
-        ),
+        topButtonsRow,
         SizedBox(height: isLandscape ? 16 : 12),
         Builder(
           builder: (context) {
-            final enabled = ref.watch(
-              settingsServiceProvider.select(
-                (s) => s.isWaveformProgressBarEnabled,
-              ),
-            );
             final waveform =
                 overrideWaveform ?? currentMusic?.waveform ?? const [];
-            final displayProgress =
-                overrideProgress ??
-                ref.watch(audioProgressProvider).clamp(0.0, 1.0);
+            final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
 
-            if (enabled) {
+            if (isWaveformEnabled) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: WaveformProgressBar(
@@ -1037,90 +1192,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           ),
         ),
         SizedBox(height: isLandscape ? 16 : 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: Icon(
-                showVisualizerToggle
-                    ? Icons.analytics
-                    : Icons.analytics_outlined,
-                size: isLarge ? 36 : 28,
-                color: showVisualizerToggle ? Colors.white : Colors.white70,
-              ),
-              onPressed: onToggleVisualizer,
-              tooltip: AppLocalizations.of(context)!.visualizer,
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: Icon(
-                Icons.skip_previous_rounded,
-                size: isLarge ? 64 : 48,
-                color: Colors.white,
-              ),
-              onPressed: onPrevious,
-              tooltip: l10n.previous,
-            ),
-            const SizedBox(width: 16),
-            Container(
-              width: isLarge ? 96 : 72,
-              height: isLarge ? 96 : 72,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
-              child: IconButton(
-                onPressed: onPlayPause,
-                tooltip: ref.watch(audioIsPlayingProvider)
-                    ? l10n.pause
-                    : l10n.play,
-                icon: Icon(
-                  ref.watch(audioIsPlayingProvider)
-                      ? Icons.pause_rounded
-                      : Icons.play_arrow_rounded,
-                  size: isLarge ? 56 : 40,
-                  color:
-                      currentThemeColorsMap['darkVibrant'] ??
-                      currentThemeColorsMap['darkMuted'] ??
-                      Colors.black,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            IconButton(
-              icon: Icon(
-                Icons.skip_next_rounded,
-                size: isLarge ? 64 : 48,
-                color: Colors.white,
-              ),
-              onPressed: onNext,
-              tooltip: l10n.next,
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onVerticalDragUpdate: (details) {
-                onVolumeDrag?.call(details.primaryDelta ?? 0);
-              },
-              child: Listener(
-                onPointerSignal: (pointerSignal) {
-                  if (pointerSignal is PointerScrollEvent) {
-                    onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-                  }
-                },
-                child: IconButton(
-                  icon: Icon(
-                    getVolumeIcon(ref.watch(audioVolumeProvider)),
-                    size: isLarge ? 36 : 28,
-                    color: Colors.white70,
-                  ),
-                  onPressed: onVolumeTap,
-                  tooltip: l10n.volume,
-                ),
-              ),
-            ),
-          ],
-        ),
+        mainControlsRow,
       ],
     );
   }

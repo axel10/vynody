@@ -23,7 +23,10 @@ class WaveformProgressBar extends StatefulWidget {
     this.activeColor = Colors.white,
     this.inactiveColor = Colors.white24,
     this.isScrolling = true, // Default to scrolling as requested
+    this.height = 80,
   });
+
+  final double height;
 
   @override
   State<WaveformProgressBar> createState() => _WaveformProgressBarState();
@@ -136,14 +139,14 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                 
                 ClipRect(
                   child: SizedBox(
-                    height: 80,
+                    height: widget.height,
                     width: double.infinity,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
                         // 波形显示
                         CustomPaint(
-                          size: Size(width, 80),
+                          size: Size(width, widget.height),
                           painter: WaveformPainter(
                             waveform: widget.waveform,
                             progress: widget.progress,
@@ -159,7 +162,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                         if (widget.isScrolling)
                           Container(
                             width: 2,
-                            height: 60,
+                            height: widget.height * 0.75,
                             decoration: BoxDecoration(
                               color: widget.activeColor,
                               boxShadow: [
