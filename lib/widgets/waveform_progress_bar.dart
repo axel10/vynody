@@ -134,53 +134,55 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                 else
                   const SizedBox(height: 24),
                 
-                SizedBox(
-                  height: 80,
-                  width: double.infinity,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // 波形显示
-                      CustomPaint(
-                        size: Size(width, 80),
-                        painter: WaveformPainter(
-                          waveform: widget.waveform,
-                          progress: widget.progress,
-                          activeColor: widget.activeColor,
-                          inactiveColor: widget.inactiveColor,
-                          isScrolling: widget.isScrolling,
-                          barWidth: barWidth,
-                          barGap: barGap,
-                        ),
-                      ),
-                      
-                      // 播放头指示线 (仅在滚动模式下居中显示，或者在静态模式下跟随进度)
-                      if (widget.isScrolling)
-                        Container(
-                          width: 2,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: widget.activeColor,
-                            boxShadow: [
-                              BoxShadow(
-                                color: widget.activeColor.withValues(alpha: 0.5),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                            ],
+                ClipRect(
+                  child: SizedBox(
+                    height: 80,
+                    width: double.infinity,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // 波形显示
+                        CustomPaint(
+                          size: Size(width, 80),
+                          painter: WaveformPainter(
+                            waveform: widget.waveform,
+                            progress: widget.progress,
+                            activeColor: widget.activeColor,
+                            inactiveColor: widget.inactiveColor,
+                            isScrolling: widget.isScrolling,
+                            barWidth: barWidth,
+                            barGap: barGap,
                           ),
-                        )
-                      else if (_hoverProgress != null)
-                        Positioned(
-                          left: _hoverProgress! * width,
-                          top: 10,
-                          bottom: 10,
-                          child: Container(
+                        ),
+                        
+                        // 播放头指示线 (仅在滚动模式下居中显示，或者在静态模式下跟随进度)
+                        if (widget.isScrolling)
+                          Container(
                             width: 2,
-                            color: widget.activeColor.withValues(alpha: 0.3),
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: widget.activeColor,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: widget.activeColor.withValues(alpha: 0.5),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (_hoverProgress != null)
+                          Positioned(
+                            left: _hoverProgress! * width,
+                            top: 10,
+                            bottom: 10,
+                            child: Container(
+                              width: 2,
+                              color: widget.activeColor.withValues(alpha: 0.3),
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -233,37 +235,56 @@ class WaveformPainter extends CustomPainter {
     // 计算当前进度对应的索引（浮点数，用于精确偏移）
     final double currentIdx = progress * (waveform.length - 1);
     
-    // 绘制区域的中心 X
-    final double centerX = size.width / 2;
+    // 绘制区域的中心 X (播放头位置)
+    final double centerX = isScrolling ? size.width / 2 : size.width * progress;
+
+    // 1. 绘制底色层 (全量绘制未激活颜色)
+    _drawWaveformLayer(canvas, size, centerY, maxBarHeight, totalBarWidth, currentIdx, inactiveColor);
+
+    // 2. 绘制激活层 (使用裁剪实现像素级颜色平滑过渡)
+    canvas.save();
+    // 裁剪出播放头左侧的区域
+    canvas.clipRect(Rect.fromLTWH(0, 0, centerX, size.height));
+    _drawWaveformLayer(canvas, size, centerY, maxBarHeight, totalBarWidth, currentIdx, activeColor, withGlow: true);
+    canvas.restore();
+  }
+
+  void _drawWaveformLayer(
+    Canvas canvas,
+    Size size,
+    double centerY,
+    double maxBarHeight,
+    double totalBarWidth,
+    double currentIdx,
+    Color color, {
+    bool withGlow = false,
+  }) {
+    final double viewCenterX = size.width / 2;
+    final paint = Paint()..style = PaintingStyle.fill;
 
     for (int i = 0; i < waveform.length; i++) {
       double x;
       if (isScrolling) {
-        x = centerX + (i - currentIdx) * totalBarWidth;
+        x = viewCenterX + (i - currentIdx) * totalBarWidth;
       } else {
-        x = i * totalBarWidth;
+        x = i * (size.width / math.max(1, waveform.length));
       }
 
+      // 只绘制可见区域内的波形
       if (x + barWidth < 0 || x > size.width) continue;
 
       final double barHeight = math.max(2.0, waveform[i] * maxBarHeight);
       final double y = centerY - barHeight / 2;
 
-      final bool isProcessed = isScrolling ? (x < centerX) : (i / waveform.length < progress);
-      final Color baseColor = isProcessed ? activeColor : inactiveColor;
-
-      final paint = Paint()
-        ..color = baseColor
-        ..style = PaintingStyle.fill;
-
-      // 1. 绘制波形 (带渐变)
+      // 设置颜色和渐变
+      paint.color = color;
       paint.shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          baseColor.withValues(alpha: 0.7),
-          baseColor,
-          baseColor.withValues(alpha: 0.7),
+          color.withValues(alpha: 0.7),
+          color,
+          color.withValues(alpha: 0.7),
         ],
       ).createShader(Rect.fromLTWH(x, y, barWidth, barHeight));
 
@@ -271,12 +292,13 @@ class WaveformPainter extends CustomPainter {
         Rect.fromLTWH(x, y, barWidth, barHeight),
         Radius.circular(barWidth / 2),
       );
+      
       canvas.drawRRect(rrect, paint);
       
-      // 2. 激活部分发光
-      if (isProcessed && barWidth > 2) {
+      // 添加发光效果 (只针对激活层)
+      if (withGlow && barWidth > 2) {
         final glowPaint = Paint()
-          ..color = activeColor.withValues(alpha: 0.1)
+          ..color = color.withValues(alpha: 0.1)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
         canvas.drawRRect(rrect.inflate(1), glowPaint);
       }
