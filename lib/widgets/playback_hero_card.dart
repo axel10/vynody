@@ -297,10 +297,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                 const pMidGap = 4.0;
                 final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
 
-                // 如果总高度不足，则向上推 infoTop 坐标，不再使用固定比例 0.54
-                final pNormalInfoTop = (height - pBottomAreaNeeded) < height * 0.54
+                // 提高封面区域占比，延迟缩小 (Increase cover area ratio to delay shrinking)
+                // 从 0.54 提高到 0.62，给予上方封面更多空间
+                final pNormalInfoTop = (height - pBottomAreaNeeded) < height * 0.62
                     ? math.max(height * 0.20, height - pBottomAreaNeeded)
-                    : height * 0.54;
+                    : height * 0.62;
 
                 final pNormalInfoLeft = 16.0;
                 final pNormalInfoWidth = width - 32.0;
@@ -312,9 +313,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final pNormalControlsHeight = math.max(pMinControlsH, height - pNormalControlsTop - pBottomGap);
                 final pNormalControlsOpacity = 1.0;
 
-                // 封面图自适应剩余的上方区域
+                // 封面图自适应剩余的上方区域，提高填充率从 0.9 到 0.96
                 final pNormalCoverAreaH = pNormalInfoTop;
-                final pNormalCoverSide = math.min(width * 0.98, pNormalCoverAreaH * 0.9);
+                final pNormalCoverSide = math.min(width * 0.98, pNormalCoverAreaH * 0.96);
                 final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
                 final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
 
