@@ -381,7 +381,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                     ? _clampDouble(
                                         width * 0.38 * layout.controlsScale,
                                         420.0,
-                                        760.0,
+                                        500.0,
                                       )
                                     : math.max(layout.controls.width, 380.0),
                                 child: _buildPlaybackControlsWidget(
