@@ -20,6 +20,40 @@ const String playbackHeroTag = 'player_capsule';
 
 enum _TrackInfoMenuTarget { title, artistAlbum }
 
+class _PlaybackPaneLayout {
+  const _PlaybackPaneLayout({
+    required this.top,
+    required this.left,
+    required this.width,
+    required this.height,
+    required this.opacity,
+  });
+
+  final double top;
+  final double left;
+  final double width;
+  final double height;
+  final double opacity;
+}
+
+class _PlaybackCardLayout {
+  const _PlaybackCardLayout({
+    required this.cover,
+    required this.info,
+    required this.controls,
+    required this.lyrics,
+    required this.trackInfoAlign,
+    required this.controlsScale,
+  });
+
+  final _PlaybackPaneLayout cover;
+  final _PlaybackPaneLayout info;
+  final _PlaybackPaneLayout controls;
+  final _PlaybackPaneLayout lyrics;
+  final TextAlign trackInfoAlign;
+  final double controlsScale;
+}
+
 class PlaybackHeroCard extends ConsumerWidget {
   const PlaybackHeroCard({
     super.key,
@@ -301,341 +335,13 @@ class PlaybackHeroCard extends ConsumerWidget {
               builder: (context, constraints) {
                 final width = constraints.maxWidth.roundToDouble();
                 final height = constraints.maxHeight.roundToDouble();
-                final landscapeScale = isLandscape
-                    ? _responsiveLandscapeScale(width, height)
-                    : 1.0;
-
-                // ---------------- Portrait Normal ----------------
-                // 确保控件区和信息区在高度缩小时优先保留空间
-                const pMinInfoH = 80.0;
-                const pMinControlsH =
-                    220.0; // 调大以适应波形叠层布局 (Increase to accommodate overlay layout)
-                const pBottomGap = 0;
-                const pMidGap = 4.0;
-                final pBottomAreaNeeded =
-                    pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
-
-                // 提高封面区域占比，延迟缩小 (Increase cover area ratio to delay shrinking)
-                // 从 0.54 提高到 0.62，给予上方封面更多空间
-                final pNormalInfoTop =
-                    (height - pBottomAreaNeeded) < height * 0.62
-                    ? math.max(height * 0.20, height - pBottomAreaNeeded)
-                    : height * 0.62;
-
-                final pNormalInfoLeft = 16.0;
-                final pNormalInfoWidth = width - 32.0;
-                final pNormalInfoHeight = pMinInfoH;
-
-                final pNormalControlsTop =
-                    pNormalInfoTop + pNormalInfoHeight + pMidGap;
-                final pNormalControlsLeft = 16.0;
-                final pNormalControlsWidth = width - 32.0;
-                final pNormalControlsHeight = math.max(
-                  pMinControlsH,
-                  height - pNormalControlsTop - pBottomGap,
-                );
-                final pNormalControlsOpacity = 1.0;
-
-                // 封面图自适应剩余的上方区域，提高填充率从 0.9 到 0.96
-                final pNormalCoverAreaH = pNormalInfoTop;
-                final pNormalCoverSide = math.min(
-                  width * 0.98,
-                  pNormalCoverAreaH * 0.96,
-                );
-                final pNormalCoverTop =
-                    (pNormalCoverAreaH - pNormalCoverSide) / 2;
-                final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
-
-                final pNormalLyricsTop = height;
-                final pNormalLyricsLeft = 16.0;
-                final pNormalLyricsWidth = width - 32.0;
-                final pNormalLyricsHeight = height - pNormalInfoTop;
-                final pNormalLyricsOpacity = 0.0;
-
-                // ---------------- Portrait Lyrics ----------------
-                final pLyricsCoverSide = math.min(120.0, width * 0.32);
-                const pLyricsCoverTop = 12.0;
-                const pLyricsCoverLeft = 12.0;
-
-                const pLyricsInfoTop = 12.0;
-                final pLyricsInfoLeft =
-                    pLyricsCoverLeft + pLyricsCoverSide + 14.0;
-                final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0;
-                final pLyricsInfoHeight = pLyricsCoverSide;
-
-                final pLyricsControlsTop = height;
-                final pLyricsControlsLeft = 16.0;
-                final pLyricsControlsWidth = width - 32.0;
-                final pLyricsControlsHeight = pNormalControlsHeight;
-                final pLyricsControlsOpacity = 0.0;
-
-                final pLyricsLyricsTop =
-                    pLyricsCoverTop + pLyricsCoverSide + 16.0;
-                final pLyricsLyricsLeft = 16.0;
-                final pLyricsLyricsWidth = width - 32.0;
-                final pLyricsLyricsHeight = height - pLyricsLyricsTop;
-                final pLyricsLyricsOpacity = 1.0;
-
-                // ---------------- Landscape Normal ----------------
-                final landscapeNormalLift = height > 1000 ? 0.0 : 30.0;
-                const landscapeLyricsLift = 0.0;
-                // Keep the landscape card closer to a consistent on-screen size.
-                final lNormalCoverSideBase = math.min(
-                  width * 0.34,
-                  height * 0.78,
-                );
-                final lNormalCoverSide = _clampDouble(
-                  lNormalCoverSideBase * landscapeScale,
-                  360.0,
-                  math.min(math.min(width * 0.42, height * 0.86), 980.0),
-                );
-                final lNormalCoverTop =
-                    (height - lNormalCoverSide) / 2 - landscapeNormalLift;
-                final lNormalCoverLeft =
-                    width * 0.05 + (width * 0.40 - lNormalCoverSide) / 2;
-
-                // Keep the text/control column readable without letting it dominate.
-                final lNormalInfoHeight = _clampDouble(
-                  (height > 1000 ? 120.0 : 90.0) * landscapeScale,
-                  80.0,
-                  130.0,
-                );
-                final lNormalControlsHeight = _clampDouble(
-                  (height > 1000 ? 280.0 : 200.0) * landscapeScale,
-                  180.0,
-                  260.0,
-                );
-
-                final lNormalInfoTop =
-                    height * 0.5 -
-                    (lNormalInfoHeight + lNormalControlsHeight) / 2 -
-                    landscapeNormalLift;
-                final lNormalInfoLeft = width * 0.5;
-                final lNormalInfoWidth = width * 0.40;
-
-                final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
-                final lNormalControlsLeft = width * 0.5;
-                final lNormalControlsWidth = width * 0.40;
-                final lNormalControlsOpacity = 1.0;
-
-                final lNormalLyricsTop = 16.0;
-                final lNormalLyricsLeft = width;
-                final lNormalLyricsWidth = width * 0.40;
-                final lNormalLyricsHeight = height - 32.0;
-                final lNormalLyricsOpacity = 0.0;
-
-                // ---------------- Landscape Lyrics ----------------
-                // Increase column width on larger screens, but keep it bounded.
-                final lColWidth = _clampDouble(
-                  width * 0.30 * landscapeScale,
-                  300.0,
-                  620.0,
-                );
-
-                final lLyricsCoverSideBase = math.min(
-                  lColWidth * 0.80,
-                  height * 0.40,
-                );
-                final lLyricsCoverSide = _clampDouble(
-                  lLyricsCoverSideBase * landscapeScale,
-                  0.0,
-                  math.min(math.min(lColWidth - 32.0, height * 0.45), 520.0),
-                );
-                final lLyricsCoverTop = 12.0 - landscapeLyricsLift;
-                final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
-
-                final lLyricsInfoTop =
-                    lLyricsCoverTop + lLyricsCoverSide + 24.0;
-                final lLyricsInfoLeft = 16.0;
-                final lLyricsInfoWidth = lColWidth - 32.0;
-                final lLyricsInfoHeight = _clampDouble(
-                  (height > 1000 ? 100.0 : 80.0) * landscapeScale,
-                  76.0,
-                  110.0,
-                );
-
-                final lLyricsControlsTop =
-                    lLyricsInfoTop + lLyricsInfoHeight + 16.0;
-                final lLyricsControlsLeft = 16.0;
-                final lLyricsControlsWidth = lColWidth - 32.0;
-                final lLyricsControlsHeight =
-                    height - lLyricsControlsTop - 32.0; // 播放控件歌词模式下底部预留 32 的空白
-                final lLyricsControlsOpacity = 1.0;
-
-                final lLyricsLyricsTop = 16.0;
-                final lLyricsLyricsLeft = lColWidth + 16.0;
-                final lLyricsLyricsWidth = width - lLyricsLyricsLeft - 32.0;
-                final lLyricsLyricsHeight = height - 32.0;
-                final lLyricsLyricsOpacity = 1.0;
-
-                // ---------------- 执行 2D 线性插值 (Execute 2D Interpolation) ----------------
-                // 核心思路：通过 _lerp2D(A, B, C, D, tLyrics, tLand) 计算
-                // UI 元素在 [竖屏普通, 竖屏歌词, 横屏普通, 横屏歌词] 四种具体布局配置下的合成坐标。
-                // 这实现了点击封面后跨越多种状态的极其平等的变幻。
-
-                final coverSide = _lerp2D(
+                final layout = _buildPlaybackCardLayout(
                   context,
-                  pNormalCoverSide,
-                  pLyricsCoverSide,
-                  lNormalCoverSide,
-                  lLyricsCoverSide,
-                  tLyrics,
-                  tLand,
+                  width: width,
+                  height: height,
+                  tLyrics: tLyrics,
+                  tLand: tLand,
                 );
-                final coverTop = _lerp2D(
-                  context,
-                  pNormalCoverTop,
-                  pLyricsCoverTop,
-                  lNormalCoverTop,
-                  lLyricsCoverTop,
-                  tLyrics,
-                  tLand,
-                );
-                final coverLeft = _lerp2D(
-                  context,
-                  pNormalCoverLeft,
-                  pLyricsCoverLeft,
-                  lNormalCoverLeft,
-                  lLyricsCoverLeft,
-                  tLyrics,
-                  tLand,
-                );
-
-                final infoTop = _lerp2D(
-                  context,
-                  pNormalInfoTop,
-                  pLyricsInfoTop,
-                  lNormalInfoTop,
-                  lLyricsInfoTop,
-                  tLyrics,
-                  tLand,
-                );
-                final infoLeft = _lerp2D(
-                  context,
-                  pNormalInfoLeft,
-                  pLyricsInfoLeft,
-                  lNormalInfoLeft,
-                  lLyricsInfoLeft,
-                  tLyrics,
-                  tLand,
-                );
-                final infoWidth = _lerp2D(
-                  context,
-                  pNormalInfoWidth,
-                  pLyricsInfoWidth,
-                  lNormalInfoWidth,
-                  lLyricsInfoWidth,
-                  tLyrics,
-                  tLand,
-                );
-                final infoHeight = _lerp2D(
-                  context,
-                  pNormalInfoHeight,
-                  pLyricsInfoHeight,
-                  lNormalInfoHeight,
-                  lLyricsInfoHeight,
-                  tLyrics,
-                  tLand,
-                );
-
-                final controlsTop = _lerp2D(
-                  context,
-                  pNormalControlsTop,
-                  pLyricsControlsTop,
-                  lNormalControlsTop,
-                  lLyricsControlsTop,
-                  tLyrics,
-                  tLand,
-                );
-                final controlsLeft = _lerp2D(
-                  context,
-                  pNormalControlsLeft,
-                  pLyricsControlsLeft,
-                  lNormalControlsLeft,
-                  lLyricsControlsLeft,
-                  tLyrics,
-                  tLand,
-                );
-                final controlsWidth = _lerp2D(
-                  context,
-                  pNormalControlsWidth,
-                  pLyricsControlsWidth,
-                  lNormalControlsWidth,
-                  lLyricsControlsWidth,
-                  tLyrics,
-                  tLand,
-                );
-                final controlsHeight = _lerp2D(
-                  context,
-                  pNormalControlsHeight,
-                  pLyricsControlsHeight,
-                  lNormalControlsHeight,
-                  lLyricsControlsHeight,
-                  tLyrics,
-                  tLand,
-                );
-                final controlsOpacity = _lerp2D(
-                  context,
-                  pNormalControlsOpacity,
-                  pLyricsControlsOpacity,
-                  lNormalControlsOpacity,
-                  lLyricsControlsOpacity,
-                  tLyrics,
-                  tLand,
-                );
-
-                final lyricsTop = _lerp2D(
-                  context,
-                  pNormalLyricsTop,
-                  pLyricsLyricsTop,
-                  lNormalLyricsTop,
-                  lLyricsLyricsTop,
-                  tLyrics,
-                  tLand,
-                );
-                final lyricsLeft = _lerp2D(
-                  context,
-                  pNormalLyricsLeft,
-                  pLyricsLyricsLeft,
-                  lNormalLyricsLeft,
-                  lLyricsLyricsLeft,
-                  tLyrics,
-                  tLand,
-                );
-                final lyricsWidth = _lerp2D(
-                  context,
-                  pNormalLyricsWidth,
-                  pLyricsLyricsWidth,
-                  lNormalLyricsWidth,
-                  lLyricsLyricsWidth,
-                  tLyrics,
-                  tLand,
-                );
-                final lyricsHeight = _lerp2D(
-                  context,
-                  pNormalLyricsHeight,
-                  pLyricsLyricsHeight,
-                  lNormalLyricsHeight,
-                  lLyricsLyricsHeight,
-                  tLyrics,
-                  tLand,
-                );
-                final lyricsOpacity = _lerp2D(
-                  context,
-                  pNormalLyricsOpacity,
-                  pLyricsLyricsOpacity,
-                  lNormalLyricsOpacity,
-                  lLyricsLyricsOpacity,
-                  tLyrics,
-                  tLand,
-                );
-
-                // 界面渲染层 (Rendering Layer)：
-                // 使用 Stack + Positioned 承载各个 UI 组件。Positioned 的物理属性（top/left/width/height）
-                // 均为上述插值计算所得，从而实现了流畅的一键切换体验。
-                final targetInfoAlign = isLandscape
-                    ? TextAlign.center
-                    : (isLyricsMode ? TextAlign.left : TextAlign.center);
 
                 return SizedBox(
                   width: width,
@@ -644,28 +350,28 @@ class PlaybackHeroCard extends ConsumerWidget {
                     clipBehavior: Clip.none,
                     children: [
                       Positioned(
-                        top: lyricsTop,
-                        left: lyricsLeft,
-                        width: lyricsWidth,
-                        height: lyricsHeight,
+                        top: layout.lyrics.top,
+                        left: layout.lyrics.left,
+                        width: layout.lyrics.width,
+                        height: layout.lyrics.height,
                         child: Opacity(
-                          opacity: lyricsOpacity.clamp(0.0, 1.0),
+                          opacity: layout.lyrics.opacity.clamp(0.0, 1.0),
                           child: IgnorePointer(
-                            ignoring: lyricsOpacity < 0.5,
+                            ignoring: layout.lyrics.opacity < 0.5,
                             child: _buildLyricsPanelWidget(context, ref),
                           ),
                         ),
                       ),
                       Positioned(
                         // 控件区
-                        top: controlsTop,
-                        left: controlsLeft,
-                        width: controlsWidth,
-                        height: controlsHeight,
+                        top: layout.controls.top,
+                        left: layout.controls.left,
+                        width: layout.controls.width,
+                        height: layout.controls.height,
                         child: Opacity(
-                          opacity: controlsOpacity.clamp(0.0, 1.0),
+                          opacity: layout.controls.opacity.clamp(0.0, 1.0),
                           child: IgnorePointer(
-                            ignoring: controlsOpacity < 0.5,
+                            ignoring: layout.controls.opacity < 0.5,
                             child: FittedBox(
                               // 控件区
                               fit: BoxFit.scaleDown,
@@ -673,11 +379,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                               child: SizedBox(
                                 width: isLandscape
                                     ? _clampDouble(
-                                        width * 0.38 * landscapeScale,
+                                        width * 0.38 * layout.controlsScale,
                                         420.0,
                                         760.0,
                                       )
-                                    : math.max(controlsWidth, 380.0),
+                                    : math.max(layout.controls.width, 380.0),
                                 child: _buildPlaybackControlsWidget(
                                   context,
                                   ref,
@@ -685,9 +391,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                                       isLandscape &&
                                       (height > 1000 ||
                                           width > 2400 ||
-                                          landscapeScale > 0.95),
+                                          layout.controlsScale > 0.95),
                                   controlsScale: isLandscape
-                                      ? landscapeScale
+                                      ? layout.controlsScale
                                       : 1.0,
                                 ),
                               ),
@@ -696,21 +402,25 @@ class PlaybackHeroCard extends ConsumerWidget {
                         ),
                       ),
                       Positioned(
-                        top: coverTop,
-                        left: coverLeft,
-                        width: coverSide,
-                        height: coverSide,
-                        child: _buildAlbumArtCore(context, ref, coverSide),
+                        top: layout.cover.top,
+                        left: layout.cover.left,
+                        width: layout.cover.width,
+                        height: layout.cover.height,
+                        child: _buildAlbumArtCore(
+                          context,
+                          ref,
+                          layout.cover.width,
+                        ),
                       ),
                       Positioned(
-                        top: infoTop,
-                        left: infoLeft,
-                        width: infoWidth,
-                        height: infoHeight,
+                        top: layout.info.top,
+                        left: layout.info.left,
+                        width: layout.info.width,
+                        height: layout.info.height,
                         child: _buildTrackInfo(
                           context,
                           currentMusic,
-                          targetInfoAlign,
+                          layout.trackInfoAlign,
                           tLyrics,
                           height,
                         ),
@@ -723,6 +433,358 @@ class PlaybackHeroCard extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+
+  _PlaybackCardLayout _buildPlaybackCardLayout(
+    BuildContext context, {
+    required double width,
+    required double height,
+    required double tLyrics,
+    required double tLand,
+  }) {
+    final landscapeScale = isLandscape
+        ? _responsiveLandscapeScale(width, height)
+        : 1.0;
+
+    // ---------------- Portrait Normal ----------------
+    const pMinInfoH = 80.0;
+    const pMinControlsH = 220.0;
+    const pBottomGap = 0.0;
+    const pMidGap = 4.0;
+    final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
+
+    final pNormalInfoTop = (height - pBottomAreaNeeded) < height * 0.62
+        ? math.max(height * 0.20, height - pBottomAreaNeeded)
+        : height * 0.62;
+
+    final pNormalInfoLeft = 16.0;
+    final pNormalInfoWidth = width - 32.0;
+    final pNormalInfoHeight = pMinInfoH;
+
+    final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight + pMidGap;
+    final pNormalControlsLeft = 16.0;
+    final pNormalControlsWidth = width - 32.0;
+    final pNormalControlsHeight = math.max(
+      pMinControlsH,
+      height - pNormalControlsTop - pBottomGap,
+    );
+    final pNormalControlsOpacity = 1.0;
+
+    final pNormalCoverAreaH = pNormalInfoTop;
+    final pNormalCoverSide = math.min(width * 0.98, pNormalCoverAreaH * 0.96);
+    final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
+    final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
+
+    final pNormalLyricsTop = height;
+    final pNormalLyricsLeft = 16.0;
+    final pNormalLyricsWidth = width - 32.0;
+    final pNormalLyricsHeight = height - pNormalInfoTop;
+    final pNormalLyricsOpacity = 0.0;
+
+    // ---------------- Portrait Lyrics ----------------
+    final pLyricsCoverSide = math.min(120.0, width * 0.32);
+    const pLyricsCoverTop = 12.0;
+    const pLyricsCoverLeft = 12.0;
+
+    const pLyricsInfoTop = 12.0;
+    final pLyricsInfoLeft = pLyricsCoverLeft + pLyricsCoverSide + 14.0;
+    final pLyricsInfoWidth = width - pLyricsInfoLeft - 16.0;
+    final pLyricsInfoHeight = pLyricsCoverSide;
+
+    final pLyricsControlsTop = height;
+    final pLyricsControlsLeft = 16.0;
+    final pLyricsControlsWidth = width - 32.0;
+    final pLyricsControlsHeight = pNormalControlsHeight;
+    final pLyricsControlsOpacity = 0.0;
+
+    final pLyricsLyricsTop = pLyricsCoverTop + pLyricsCoverSide + 16.0;
+    final pLyricsLyricsLeft = 16.0;
+    final pLyricsLyricsWidth = width - 32.0;
+    final pLyricsLyricsHeight = height - pLyricsLyricsTop;
+    final pLyricsLyricsOpacity = 1.0;
+
+    // ---------------- Landscape Normal ----------------
+    final landscapeNormalLift = height > 1000 ? 0.0 : 30.0;
+    const landscapeLyricsLift = 0.0;
+    final lNormalCoverSideBase = math.min(width * 0.34, height * 0.78);
+    final lNormalCoverSide = _clampDouble(
+      lNormalCoverSideBase * landscapeScale,
+      360.0,
+      math.min(math.min(width * 0.42, height * 0.86), 980.0),
+    );
+    final lNormalCoverTop =
+        (height - lNormalCoverSide) / 2 - landscapeNormalLift;
+    final lNormalCoverLeft =
+        width * 0.05 + (width * 0.40 - lNormalCoverSide) / 2;
+
+    final lNormalInfoHeight = _clampDouble(
+      (height > 1000 ? 120.0 : 90.0) * landscapeScale,
+      80.0,
+      130.0,
+    );
+    final lNormalControlsHeight = _clampDouble(
+      (height > 1000 ? 280.0 : 200.0) * landscapeScale,
+      180.0,
+      260.0,
+    );
+
+    final lNormalInfoTop =
+        height * 0.5 -
+        (lNormalInfoHeight + lNormalControlsHeight) / 2 -
+        landscapeNormalLift;
+    final lNormalInfoLeft = width * 0.5;
+    final lNormalInfoWidth = width * 0.40;
+
+    final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
+    final lNormalControlsLeft = width * 0.5;
+    final lNormalControlsWidth = width * 0.40;
+    final lNormalControlsOpacity = 1.0;
+
+    final lNormalLyricsTop = 16.0;
+    final lNormalLyricsLeft = width;
+    final lNormalLyricsWidth = width * 0.40;
+    final lNormalLyricsHeight = height - 32.0;
+    final lNormalLyricsOpacity = 0.0;
+
+    // ---------------- Landscape Lyrics ----------------
+    final lColWidth = _clampDouble(width * 0.30 * landscapeScale, 300.0, 620.0);
+
+    final lLyricsCoverSideBase = math.min(lColWidth * 0.80, height * 0.40);
+    final lLyricsCoverSide = _clampDouble(
+      lLyricsCoverSideBase * landscapeScale,
+      0.0,
+      math.min(math.min(lColWidth - 32.0, height * 0.45), 520.0),
+    );
+    final lLyricsCoverTop = 12.0 - landscapeLyricsLift;
+    final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
+
+    final lLyricsInfoTop = lLyricsCoverTop + lLyricsCoverSide + 24.0;
+    final lLyricsInfoLeft = 16.0;
+    final lLyricsInfoWidth = lColWidth - 32.0;
+    final lLyricsInfoHeight = _clampDouble(
+      (height > 1000 ? 100.0 : 80.0) * landscapeScale,
+      76.0,
+      110.0,
+    );
+
+    final lLyricsControlsTop = lLyricsInfoTop + lLyricsInfoHeight + 16.0;
+    final lLyricsControlsLeft = 16.0;
+    final lLyricsControlsWidth = lColWidth - 32.0;
+    final lLyricsControlsHeight = height - lLyricsControlsTop - 32.0;
+    final lLyricsControlsOpacity = 1.0;
+
+    final lLyricsLyricsTop = 16.0;
+    final lLyricsLyricsLeft = lColWidth + 16.0;
+    final lLyricsLyricsWidth = width - lLyricsLyricsLeft - 32.0;
+    final lLyricsLyricsHeight = height - 32.0;
+    final lLyricsLyricsOpacity = 1.0;
+
+    final cover = _lerpPane(
+      context,
+      pNormal: _PlaybackPaneLayout(
+        top: pNormalCoverTop,
+        left: pNormalCoverLeft,
+        width: pNormalCoverSide,
+        height: pNormalCoverSide,
+        opacity: 1.0,
+      ),
+      pLyrics: _PlaybackPaneLayout(
+        top: pLyricsCoverTop,
+        left: pLyricsCoverLeft,
+        width: pLyricsCoverSide,
+        height: pLyricsCoverSide,
+        opacity: 1.0,
+      ),
+      lNormal: _PlaybackPaneLayout(
+        top: lNormalCoverTop,
+        left: lNormalCoverLeft,
+        width: lNormalCoverSide,
+        height: lNormalCoverSide,
+        opacity: 1.0,
+      ),
+      lLyrics: _PlaybackPaneLayout(
+        top: lLyricsCoverTop,
+        left: lLyricsCoverLeft,
+        width: lLyricsCoverSide,
+        height: lLyricsCoverSide,
+        opacity: 1.0,
+      ),
+      tLyrics: tLyrics,
+      tLand: tLand,
+    );
+
+    final info = _lerpPane(
+      context,
+      pNormal: _PlaybackPaneLayout(
+        top: pNormalInfoTop,
+        left: pNormalInfoLeft,
+        width: pNormalInfoWidth,
+        height: pNormalInfoHeight,
+        opacity: 1.0,
+      ),
+      pLyrics: _PlaybackPaneLayout(
+        top: pLyricsInfoTop,
+        left: pLyricsInfoLeft,
+        width: pLyricsInfoWidth,
+        height: pLyricsInfoHeight,
+        opacity: 1.0,
+      ),
+      lNormal: _PlaybackPaneLayout(
+        top: lNormalInfoTop,
+        left: lNormalInfoLeft,
+        width: lNormalInfoWidth,
+        height: lNormalInfoHeight,
+        opacity: 1.0,
+      ),
+      lLyrics: _PlaybackPaneLayout(
+        top: lLyricsInfoTop,
+        left: lLyricsInfoLeft,
+        width: lLyricsInfoWidth,
+        height: lLyricsInfoHeight,
+        opacity: 1.0,
+      ),
+      tLyrics: tLyrics,
+      tLand: tLand,
+    );
+
+    final controls = _lerpPane(
+      context,
+      pNormal: _PlaybackPaneLayout(
+        top: pNormalControlsTop,
+        left: pNormalControlsLeft,
+        width: pNormalControlsWidth,
+        height: pNormalControlsHeight,
+        opacity: pNormalControlsOpacity,
+      ),
+      pLyrics: _PlaybackPaneLayout(
+        top: pLyricsControlsTop,
+        left: pLyricsControlsLeft,
+        width: pLyricsControlsWidth,
+        height: pLyricsControlsHeight,
+        opacity: pLyricsControlsOpacity,
+      ),
+      lNormal: _PlaybackPaneLayout(
+        top: lNormalControlsTop,
+        left: lNormalControlsLeft,
+        width: lNormalControlsWidth,
+        height: lNormalControlsHeight,
+        opacity: lNormalControlsOpacity,
+      ),
+      lLyrics: _PlaybackPaneLayout(
+        top: lLyricsControlsTop,
+        left: lLyricsControlsLeft,
+        width: lLyricsControlsWidth,
+        height: lLyricsControlsHeight,
+        opacity: lLyricsControlsOpacity,
+      ),
+      tLyrics: tLyrics,
+      tLand: tLand,
+    );
+
+    final lyrics = _lerpPane(
+      context,
+      pNormal: _PlaybackPaneLayout(
+        top: pNormalLyricsTop,
+        left: pNormalLyricsLeft,
+        width: pNormalLyricsWidth,
+        height: pNormalLyricsHeight,
+        opacity: pNormalLyricsOpacity,
+      ),
+      pLyrics: _PlaybackPaneLayout(
+        top: pLyricsLyricsTop,
+        left: pLyricsLyricsLeft,
+        width: pLyricsLyricsWidth,
+        height: pLyricsLyricsHeight,
+        opacity: pLyricsLyricsOpacity,
+      ),
+      lNormal: _PlaybackPaneLayout(
+        top: lNormalLyricsTop,
+        left: lNormalLyricsLeft,
+        width: lNormalLyricsWidth,
+        height: lNormalLyricsHeight,
+        opacity: lNormalLyricsOpacity,
+      ),
+      lLyrics: _PlaybackPaneLayout(
+        top: lLyricsLyricsTop,
+        left: lLyricsLyricsLeft,
+        width: lLyricsLyricsWidth,
+        height: lLyricsLyricsHeight,
+        opacity: lLyricsLyricsOpacity,
+      ),
+      tLyrics: tLyrics,
+      tLand: tLand,
+    );
+
+    final trackInfoAlign = isLandscape
+        ? TextAlign.center
+        : (isLyricsMode ? TextAlign.left : TextAlign.center);
+
+    return _PlaybackCardLayout(
+      cover: cover,
+      info: info,
+      controls: controls,
+      lyrics: lyrics,
+      trackInfoAlign: trackInfoAlign,
+      controlsScale: landscapeScale,
+    );
+  }
+
+  _PlaybackPaneLayout _lerpPane(
+    BuildContext context, {
+    required _PlaybackPaneLayout pNormal,
+    required _PlaybackPaneLayout pLyrics,
+    required _PlaybackPaneLayout lNormal,
+    required _PlaybackPaneLayout lLyrics,
+    required double tLyrics,
+    required double tLand,
+  }) {
+    return _PlaybackPaneLayout(
+      top: _lerp2D(
+        context,
+        pNormal.top,
+        pLyrics.top,
+        lNormal.top,
+        lLyrics.top,
+        tLyrics,
+        tLand,
+      ),
+      left: _lerp2D(
+        context,
+        pNormal.left,
+        pLyrics.left,
+        lNormal.left,
+        lLyrics.left,
+        tLyrics,
+        tLand,
+      ),
+      width: _lerp2D(
+        context,
+        pNormal.width,
+        pLyrics.width,
+        lNormal.width,
+        lLyrics.width,
+        tLyrics,
+        tLand,
+      ),
+      height: _lerp2D(
+        context,
+        pNormal.height,
+        pLyrics.height,
+        lNormal.height,
+        lLyrics.height,
+        tLyrics,
+        tLand,
+      ),
+      opacity: _lerp2D(
+        context,
+        pNormal.opacity,
+        pLyrics.opacity,
+        lNormal.opacity,
+        lLyrics.opacity,
+        tLyrics,
+        tLand,
+      ),
     );
   }
 
