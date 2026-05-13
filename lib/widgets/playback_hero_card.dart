@@ -111,7 +111,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   double _responsiveLandscapeScale(double width, double height) {
     final shortestSide = math.min(width, height);
     final t = ((shortestSide - 720.0) / (2160.0 - 720.0)).clamp(0.0, 1.0);
-    return lerpDouble(0.82, 1.02, t) ?? 1.0;
+    return lerpDouble(0.82, 1.62, t) ?? 1.0;
   }
 
   double _clampDouble(double value, double min, double max) {
