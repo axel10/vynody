@@ -516,7 +516,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lNormalCoverTop =
         (height - lNormalCoverSide) / 2 - landscapeNormalLift;
     final lNormalCoverLeft =
-        width * 0.05 + (width * 0.40 - lNormalCoverSide) / 2;
+        width * 0.07 + (width * 0.40 - lNormalCoverSide) / 2;
 
     final lNormalInfoHeight = _clampDouble(
       (height > 1000 ? 120.0 : 90.0) * landscapeScale,
