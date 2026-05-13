@@ -108,6 +108,18 @@ class PlaybackHeroCard extends ConsumerWidget {
     return (raw * dpr).round() / dpr;
   }
 
+  double _responsiveLandscapeScale(double width, double height) {
+    final shortestSide = math.min(width, height);
+    final t = ((shortestSide - 720.0) / (2160.0 - 720.0)).clamp(0.0, 1.0);
+    return lerpDouble(0.82, 1.02, t) ?? 1.0;
+  }
+
+  double _clampDouble(double value, double min, double max) {
+    final lower = math.min(min, max);
+    final upper = math.max(min, max);
+    return value.clamp(lower, upper).toDouble();
+  }
+
   Future<void> _showTrackInfoContextMenu(
     BuildContext context,
     Offset globalPosition, {
@@ -163,10 +175,11 @@ class PlaybackHeroCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(100),
           boxShadow: [
             BoxShadow(
-              color: (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.black
-                      : Colors.grey[400]!)
-                  .withValues(alpha: 0.3),
+              color:
+                  (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.black
+                          : Colors.grey[400]!)
+                      .withValues(alpha: 0.3),
               blurRadius: 10,
               spreadRadius: 2,
             ),
@@ -288,18 +301,24 @@ class PlaybackHeroCard extends ConsumerWidget {
               builder: (context, constraints) {
                 final width = constraints.maxWidth.roundToDouble();
                 final height = constraints.maxHeight.roundToDouble();
+                final landscapeScale = isLandscape
+                    ? _responsiveLandscapeScale(width, height)
+                    : 1.0;
 
                 // ---------------- Portrait Normal ----------------
                 // 确保控件区和信息区在高度缩小时优先保留空间
                 const pMinInfoH = 80.0;
-                const pMinControlsH = 220.0; // 调大以适应波形叠层布局 (Increase to accommodate overlay layout)
-                const pBottomGap = 0;    
+                const pMinControlsH =
+                    220.0; // 调大以适应波形叠层布局 (Increase to accommodate overlay layout)
+                const pBottomGap = 0;
                 const pMidGap = 4.0;
-                final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
+                final pBottomAreaNeeded =
+                    pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
 
                 // 提高封面区域占比，延迟缩小 (Increase cover area ratio to delay shrinking)
                 // 从 0.54 提高到 0.62，给予上方封面更多空间
-                final pNormalInfoTop = (height - pBottomAreaNeeded) < height * 0.62
+                final pNormalInfoTop =
+                    (height - pBottomAreaNeeded) < height * 0.62
                     ? math.max(height * 0.20, height - pBottomAreaNeeded)
                     : height * 0.62;
 
@@ -307,16 +326,24 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final pNormalInfoWidth = width - 32.0;
                 final pNormalInfoHeight = pMinInfoH;
 
-                final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight + pMidGap;
+                final pNormalControlsTop =
+                    pNormalInfoTop + pNormalInfoHeight + pMidGap;
                 final pNormalControlsLeft = 16.0;
                 final pNormalControlsWidth = width - 32.0;
-                final pNormalControlsHeight = math.max(pMinControlsH, height - pNormalControlsTop - pBottomGap);
+                final pNormalControlsHeight = math.max(
+                  pMinControlsH,
+                  height - pNormalControlsTop - pBottomGap,
+                );
                 final pNormalControlsOpacity = 1.0;
 
                 // 封面图自适应剩余的上方区域，提高填充率从 0.9 到 0.96
                 final pNormalCoverAreaH = pNormalInfoTop;
-                final pNormalCoverSide = math.min(width * 0.98, pNormalCoverAreaH * 0.96);
-                final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
+                final pNormalCoverSide = math.min(
+                  width * 0.98,
+                  pNormalCoverAreaH * 0.96,
+                );
+                final pNormalCoverTop =
+                    (pNormalCoverAreaH - pNormalCoverSide) / 2;
                 final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
 
                 final pNormalLyricsTop = height;
@@ -352,41 +379,68 @@ class PlaybackHeroCard extends ConsumerWidget {
                 // ---------------- Landscape Normal ----------------
                 final landscapeNormalLift = height > 1000 ? 0.0 : 30.0;
                 const landscapeLyricsLift = 0.0;
-                // Cap cover size for ultra-high resolutions to prevent it from being overwhelming
-                final lNormalCoverSide = math.min(width * 0.42, height * 0.85).clamp(0.0, 900.0);
+                // Keep the landscape card closer to a consistent on-screen size.
+                final lNormalCoverSideBase = math.min(
+                  width * 0.34,
+                  height * 0.78,
+                );
+                final lNormalCoverSide = _clampDouble(
+                  lNormalCoverSideBase * landscapeScale,
+                  360.0,
+                  math.min(math.min(width * 0.42, height * 0.86), 980.0),
+                );
                 final lNormalCoverTop =
                     (height - lNormalCoverSide) / 2 - landscapeNormalLift;
                 final lNormalCoverLeft =
-                    width * 0.05 + (width * 0.45 - lNormalCoverSide) / 2;
+                    width * 0.05 + (width * 0.40 - lNormalCoverSide) / 2;
 
-                // Adjust info and controls to be more centered and have more vertical breathing room
-                final lNormalInfoHeight = height > 1000 ? 120.0 : 90.0;
-                final lNormalControlsHeight = height > 1000 ? 280.0 : 200.0;
+                // Keep the text/control column readable without letting it dominate.
+                final lNormalInfoHeight = _clampDouble(
+                  (height > 1000 ? 120.0 : 90.0) * landscapeScale,
+                  80.0,
+                  130.0,
+                );
+                final lNormalControlsHeight = _clampDouble(
+                  (height > 1000 ? 280.0 : 200.0) * landscapeScale,
+                  180.0,
+                  260.0,
+                );
 
                 final lNormalInfoTop =
-                    height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2 - landscapeNormalLift;
+                    height * 0.5 -
+                    (lNormalInfoHeight + lNormalControlsHeight) / 2 -
+                    landscapeNormalLift;
                 final lNormalInfoLeft = width * 0.5;
-                final lNormalInfoWidth = width * 0.45;
+                final lNormalInfoWidth = width * 0.40;
 
                 final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
                 final lNormalControlsLeft = width * 0.5;
-                final lNormalControlsWidth = width * 0.45;
+                final lNormalControlsWidth = width * 0.40;
                 final lNormalControlsOpacity = 1.0;
 
                 final lNormalLyricsTop = 16.0;
                 final lNormalLyricsLeft = width;
-                final lNormalLyricsWidth = width * 0.45;
+                final lNormalLyricsWidth = width * 0.40;
                 final lNormalLyricsHeight = height - 32.0;
                 final lNormalLyricsOpacity = 0.0;
 
                 // ---------------- Landscape Lyrics ----------------
-                // Increase max column width for large screens
-                final lColWidth = (width * 0.35).clamp(320.0, 600.0);
+                // Increase column width on larger screens, but keep it bounded.
+                final lColWidth = _clampDouble(
+                  width * 0.30 * landscapeScale,
+                  300.0,
+                  620.0,
+                );
 
-                final lLyricsCoverSide = math.min(
-                  lColWidth * 0.85,
-                  height * 0.45,
-                ).clamp(0.0, 480.0);
+                final lLyricsCoverSideBase = math.min(
+                  lColWidth * 0.80,
+                  height * 0.40,
+                );
+                final lLyricsCoverSide = _clampDouble(
+                  lLyricsCoverSideBase * landscapeScale,
+                  0.0,
+                  math.min(math.min(lColWidth - 32.0, height * 0.45), 520.0),
+                );
                 final lLyricsCoverTop = 12.0 - landscapeLyricsLift;
                 final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
 
@@ -394,7 +448,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                     lLyricsCoverTop + lLyricsCoverSide + 24.0;
                 final lLyricsInfoLeft = 16.0;
                 final lLyricsInfoWidth = lColWidth - 32.0;
-                final lLyricsInfoHeight = height > 1000 ? 100.0 : 80.0;
+                final lLyricsInfoHeight = _clampDouble(
+                  (height > 1000 ? 100.0 : 80.0) * landscapeScale,
+                  76.0,
+                  110.0,
+                );
 
                 final lLyricsControlsTop =
                     lLyricsInfoTop + lLyricsInfoHeight + 16.0;
@@ -598,7 +656,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      Positioned( // 控件区
+                      Positioned(
+                        // 控件区
                         top: controlsTop,
                         left: controlsLeft,
                         width: controlsWidth,
@@ -607,17 +666,26 @@ class PlaybackHeroCard extends ConsumerWidget {
                           opacity: controlsOpacity.clamp(0.0, 1.0),
                           child: IgnorePointer(
                             ignoring: controlsOpacity < 0.5,
-                            child: FittedBox( // 控件区
+                            child: FittedBox(
+                              // 控件区
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.topCenter,
                               child: SizedBox(
                                 width: isLandscape
-                                    ? (width > 2000 ? 580.0 : (width > 1200 ? 500.0 : 450.0))
+                                    ? _clampDouble(
+                                        width * 0.22 * landscapeScale,
+                                        420.0,
+                                        760.0,
+                                      )
                                     : math.max(controlsWidth, 380.0),
                                 child: _buildPlaybackControlsWidget(
                                   context,
                                   ref,
-                                  isLarge: isLandscape && (height > 1000 || width > 2000),
+                                  isLarge:
+                                      isLandscape &&
+                                      (height > 1000 ||
+                                          width > 2400 ||
+                                          landscapeScale > 0.95),
                                 ),
                               ),
                             ),
@@ -942,9 +1010,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         ),
         Tooltip(
           message: sleepTimerRemaining != null
-              ? l10n.sleepTimerRemaining(
-                  _formatSleepTimer(sleepTimerRemaining),
-                )
+              ? l10n.sleepTimerRemaining(_formatSleepTimer(sleepTimerRemaining))
               : l10n.sleepTimer,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -1094,54 +1160,54 @@ class PlaybackHeroCard extends ConsumerWidget {
             alignment: Alignment.center,
             children: [
               // 波形进度条作为背景 (Waveform as background)
-                // 让 WaveformProgressBar 成为非定位子组件以撑开 Stack 的高度
-                WaveformProgressBar(
-                  waveform: waveform,
-                  progress: displayProgress,
-                  duration: duration,
-                  onScrubbing: onScrubbing ?? (_) {},
-                  onSeek: onSeek ?? (_) {},
-                  height: 240, // 增加高度以实现叠层感 (Increase height for overlay feel)
-                ),
-                // 播放控制按钮叠在上面 (Playback controls on top)
-                Padding(
-                  padding: const EdgeInsets.only(top: 20), // 稍微向下偏移以避开波形顶部时间预览
-                  child: mainControlsRow,
-                ),
-                // 时间显示在底部左右两侧 (Time display at bottom corners)
-                Positioned(
-                  left: 20,
-                  bottom: 10,
-                  child: Text(
-                    formatDuration(
-                      overridePosition ?? ref.watch(audioPositionProvider),
-                    ),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
-                    ),
+              // 让 WaveformProgressBar 成为非定位子组件以撑开 Stack 的高度
+              WaveformProgressBar(
+                waveform: waveform,
+                progress: displayProgress,
+                duration: duration,
+                onScrubbing: onScrubbing ?? (_) {},
+                onSeek: onSeek ?? (_) {},
+                height: 240, // 增加高度以实现叠层感 (Increase height for overlay feel)
+              ),
+              // 播放控制按钮叠在上面 (Playback controls on top)
+              Padding(
+                padding: const EdgeInsets.only(top: 20), // 稍微向下偏移以避开波形顶部时间预览
+                child: mainControlsRow,
+              ),
+              // 时间显示在底部左右两侧 (Time display at bottom corners)
+              Positioned(
+                left: 20,
+                bottom: 10,
+                child: Text(
+                  formatDuration(
+                    overridePosition ?? ref.watch(audioPositionProvider),
+                  ),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
                   ),
                 ),
-                Positioned(
-                  right: 20,
-                  bottom: 10,
-                  child: Text(
-                    formatDuration(duration),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
-                    ),
+              ),
+              Positioned(
+                right: 20,
+                bottom: 10,
+                child: Text(
+                  formatDuration(duration),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
                   ),
                 ),
-              ],
-            ),
-          ],
-        );
-      }
+              ),
+            ],
+          ),
+        ],
+      );
+    }
 
     // 默认布局 (Default layout)
     return Column(
@@ -1156,7 +1222,8 @@ class PlaybackHeroCard extends ConsumerWidget {
           builder: (context) {
             final waveform =
                 overrideWaveform ?? currentMusic?.waveform ?? const [];
-            final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
+            final displayProgress =
+                overrideProgress ?? progress.clamp(0.0, 1.0);
 
             if (isWaveformEnabled) {
               return Padding(
@@ -1302,146 +1369,147 @@ class _MiniPlayerProgressInfoState
           height: 32,
           child: Stack(
             children: [
-                  TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 200),
-                    tween: Tween<double>(begin: 0, end: _isActive ? 5.0 : 0.0),
-                    builder: (context, blur, child) {
-                      return ImageFiltered(
-                        imageFilter: ImageFilter.blur(
-                          sigmaX: blur,
-                          sigmaY: blur,
-                        ),
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: _isActive ? 0.3 : 1.0,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          currentMusic?.displayName ??
-                              AppLocalizations.of(context)!.notSelected,
-                          style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black87,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (subtitle.isNotEmpty)
-                          Text(
-                            subtitle,
-                            style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                              color: (Theme.of(context).brightness == Brightness.dark
+              TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 200),
+                tween: Tween<double>(begin: 0, end: _isActive ? 5.0 : 0.0),
+                builder: (context, blur, child) {
+                  return ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: _isActive ? 0.3 : 1.0,
+                      child: child,
+                    ),
+                  );
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      currentMusic?.displayName ??
+                          AppLocalizations.of(context)!.notSelected,
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black87,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (subtitle.isNotEmpty)
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          color:
+                              (Theme.of(context).brightness == Brightness.dark
                                       ? Colors.white
                                       : Colors.black87)
                                   .withValues(alpha: 0.6),
-                              fontSize: 10,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
+                          fontSize: 10,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+              if (_isActive)
+                Positioned.fill(
+                  child: Center(
+                    child: Text(
+                      '${formatDuration(displayPosition)} / ${formatDuration(duration)}',
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black87,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-                  if (_isActive)
-                    Positioned.fill(
-                      child: Center(
-                        child: Text(
-                          '${formatDuration(displayPosition)} / ${formatDuration(duration)}',
-                          style: Theme.of(context).textTheme.bodySmall!
-                              .copyWith(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black87,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 2),
-            MouseRegion(
-              onEnter: (_) => setState(() => _isHovering = true),
-              onExit: (_) => setState(() => _isHovering = false),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onHorizontalDragStart: (details) {
-                  setState(() {
-                    _isDragging = true;
-                    _dragValue = widget.progress;
-                  });
-                },
-                onHorizontalDragUpdate: (details) {
-                  if (!_isDragging) return;
-                  final RenderBox box = context.findRenderObject() as RenderBox;
-                  final double localX = details.localPosition.dx;
-                  final double newProgress =
-                      (localX / box.size.width).clamp(0.0, 1.0);
-                  setState(() {
-                    _dragValue = newProgress;
-                  });
-                  widget.onScrubbing?.call(newProgress);
-                },
-                onHorizontalDragEnd: (details) {
-                  if (!_isDragging) return;
-                  final finalProgress = _dragValue ?? widget.progress;
-                  setState(() {
-                    _isDragging = false;
-                    _dragValue = null;
-                  });
-                  widget.onSeek?.call(finalProgress);
-                },
-                onTapDown: (details) {
-                  final RenderBox box = context.findRenderObject() as RenderBox;
-                  final double localX = details.localPosition.dx;
-                  final double newProgress =
-                      (localX / box.size.width).clamp(0.0, 1.0);
-                  widget.onScrubbing?.call(newProgress);
-                  widget.onSeek?.call(newProgress);
-                },
-                onTap: () {}, // Consume tap to prevent bubbling to parent mini player tap
-                child: Container(
-                  height: 10,
-                  color: Colors.transparent,
-                  alignment: Alignment.center,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    height: _isActive ? 6 : 3,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        minHeight: _isActive ? 6 : 3,
-                        value: displayProgress.clamp(0.0, 1.0),
-                        backgroundColor:
-                            Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white24
-                                : Colors.black12,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87,
-                        ),
-                      ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        MouseRegion(
+          onEnter: (_) => setState(() => _isHovering = true),
+          onExit: (_) => setState(() => _isHovering = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (details) {
+              setState(() {
+                _isDragging = true;
+                _dragValue = widget.progress;
+              });
+            },
+            onHorizontalDragUpdate: (details) {
+              if (!_isDragging) return;
+              final RenderBox box = context.findRenderObject() as RenderBox;
+              final double localX = details.localPosition.dx;
+              final double newProgress = (localX / box.size.width).clamp(
+                0.0,
+                1.0,
+              );
+              setState(() {
+                _dragValue = newProgress;
+              });
+              widget.onScrubbing?.call(newProgress);
+            },
+            onHorizontalDragEnd: (details) {
+              if (!_isDragging) return;
+              final finalProgress = _dragValue ?? widget.progress;
+              setState(() {
+                _isDragging = false;
+                _dragValue = null;
+              });
+              widget.onSeek?.call(finalProgress);
+            },
+            onTapDown: (details) {
+              final RenderBox box = context.findRenderObject() as RenderBox;
+              final double localX = details.localPosition.dx;
+              final double newProgress = (localX / box.size.width).clamp(
+                0.0,
+                1.0,
+              );
+              widget.onScrubbing?.call(newProgress);
+              widget.onSeek?.call(newProgress);
+            },
+            onTap:
+                () {}, // Consume tap to prevent bubbling to parent mini player tap
+            child: Container(
+              height: 10,
+              color: Colors.transparent,
+              alignment: Alignment.center,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: _isActive ? 6 : 3,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: _isActive ? 6 : 3,
+                    value: displayProgress.clamp(0.0, 1.0),
+                    backgroundColor:
+                        Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white24
+                        : Colors.black12,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87,
                     ),
                   ),
                 ),
               ),
             ),
-          ],
-        );
+          ),
+        ),
+      ],
+    );
   }
 }
