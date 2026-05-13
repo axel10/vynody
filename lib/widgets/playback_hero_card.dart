@@ -143,17 +143,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     return (raw * dpr).round() / dpr;
   }
 
-  PlaybackViewportProfile _viewportProfile(
-    double width,
-    double height,
-    bool landscape,
-  ) {
-    return PlaybackHeroCardUiTuning.viewportProfile(
-      width: width,
-      height: height,
-      isLandscape: landscape,
-    );
-  }
+  // Removed viewportProfile
 
   double _clampDouble(double value, double min, double max) {
     final lower = math.min(min, max);
@@ -342,12 +332,10 @@ class PlaybackHeroCard extends ConsumerWidget {
               builder: (context, constraints) {
                 final width = constraints.maxWidth.roundToDouble();
                 final height = constraints.maxHeight.roundToDouble();
-                final viewport = _viewportProfile(width, height, isLandscape);
                 final layout = _buildPlaybackCardLayout(
                   context,
                   width: width,
                   height: height,
-                  viewport: viewport,
                   tLyrics: tLyrics,
                   tLand: tLand,
                 );
@@ -386,34 +374,12 @@ class PlaybackHeroCard extends ConsumerWidget {
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.topCenter,
                               child: SizedBox(
-                                width: isLandscape
-                                    ? _clampDouble(
-                                        width *
-                                            PlaybackHeroCardUiTuning
-                                                .controlsLandscapeWidthFactor *
-                                            layout.controlsScale,
-                                        PlaybackHeroCardUiTuning
-                                            .controlsLandscapeWidthMin,
-                                        viewport.isUltraLargeOrAbove
-                                            ? PlaybackHeroCardUiTuning
-                                                  .controlsLandscapeWidthMaxUltraLarge
-                                            : PlaybackHeroCardUiTuning
-                                                  .controlsLandscapeWidthMax,
-                                      )
-                                    : math.max(
-                                        layout.controls.width,
-                                        PlaybackHeroCardUiTuning
-                                            .controlsPortraitWidthMin,
-                                      ),
+                                width: layout.controls.width,
                                 child: _buildPlaybackControlsWidget(
                                   context,
                                   ref,
-                                  isLarge:
-                                      viewport.isLandscape &&
-                                      viewport.isLargeOrAbove,
-                                  controlsScale: isLandscape
-                                      ? layout.controlsScale
-                                      : 1.0,
+                                  isLarge: width > 800,
+                                  controlsScale: 1.0,
                                 ),
                               ),
                             ),
@@ -441,7 +407,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                           currentMusic,
                           layout.trackInfoAlign,
                           tLyrics,
-                          viewport,
+                          width > 800,
                         ),
                       ),
                     ],
@@ -459,358 +425,116 @@ class PlaybackHeroCard extends ConsumerWidget {
     BuildContext context, {
     required double width,
     required double height,
-    required PlaybackViewportProfile viewport,
     required double tLyrics,
     required double tLand,
   }) {
-    final landscapeScale = viewport.landscapeScale;
-    final controlsLandscapeScale = isLandscape
-        ? landscapeScale *
-              PlaybackHeroCardUiTuning.controlsLandscapeScaleMultiplier
-        : 1.0;
-
     // ---------------- Portrait Normal ----------------
-    const pMinInfoH = PlaybackHeroCardUiTuning.portraitInfoMinHeight;
-    const pMinControlsH = PlaybackHeroCardUiTuning.portraitControlsMinHeight;
-    const pBottomGap = PlaybackHeroCardUiTuning.portraitBottomGap;
-    const pMidGap = PlaybackHeroCardUiTuning.portraitMidGap;
-    final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
-
-    final pNormalInfoTop =
-        (height - pBottomAreaNeeded) <
-            height * PlaybackHeroCardUiTuning.portraitInfoTopFraction
-        ? math.max(
-            height * PlaybackHeroCardUiTuning.portraitInfoTopMinFraction,
-            height - pBottomAreaNeeded,
-          )
-        : height * PlaybackHeroCardUiTuning.portraitInfoTopFraction;
-
-    final pNormalInfoLeft = PlaybackHeroCardUiTuning.portraitInfoLeft;
-    final pNormalInfoWidth =
-        width - PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final pNormalInfoHeight = pMinInfoH;
-
-    final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight + pMidGap;
-    final pNormalControlsLeft = PlaybackHeroCardUiTuning.portraitInfoLeft;
-    final pNormalControlsWidth =
-        width - PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final pNormalControlsHeight = math.max(
-      pMinControlsH,
-      height - pNormalControlsTop - pBottomGap,
+    final pNormalControlsHeight = (height * 0.3).clamp(
+      PlaybackHeroCardUiTuning.pControlsMinHeight,
+      PlaybackHeroCardUiTuning.pControlsMaxHeight,
     );
-    final pNormalControlsOpacity = 1.0;
-
-    final pNormalCoverAreaH = pNormalInfoTop;
-    final pNormalCoverSide = math.min(
-      width * PlaybackHeroCardUiTuning.portraitCoverWidthFactor,
-      pNormalCoverAreaH * PlaybackHeroCardUiTuning.portraitCoverHeightFactor,
-    );
-    final pNormalCoverTop = (pNormalCoverAreaH - pNormalCoverSide) / 2;
-    final pNormalCoverLeft = (width - pNormalCoverSide) / 2;
-
-    final pNormalLyricsTop = height;
-    final pNormalLyricsLeft = PlaybackHeroCardUiTuning.portraitLyricsRightInset;
-    final pNormalLyricsWidth =
-        width - PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final pNormalLyricsHeight = height - pNormalInfoTop;
-    final pNormalLyricsOpacity = 0.0;
+    final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
+    final pNormalCoverSide = math.min(width * 0.85, height * 0.5).clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide);
+    
+    final pNormalControlsTop = height - pNormalControlsHeight;
+    final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight;
+    final pNormalCoverTop = (pNormalInfoTop - pNormalCoverSide) / 2;
 
     // ---------------- Portrait Lyrics ----------------
-    final pLyricsCoverSide = math.min(
-      PlaybackHeroCardUiTuning.portraitLyricsCoverMaxSide,
-      width * PlaybackHeroCardUiTuning.portraitLyricsCoverWidthFactor,
-    );
-    const pLyricsCoverTop = PlaybackHeroCardUiTuning.portraitLyricsCoverTop;
-    const pLyricsCoverLeft = PlaybackHeroCardUiTuning.portraitLyricsCoverLeft;
+    final pLyricsCoverSide = 120.0;
+    const pLyricsCoverTop = 16.0;
+    const pLyricsCoverLeft = 16.0;
 
-    const pLyricsInfoTop = PlaybackHeroCardUiTuning.portraitLyricsInfoTop;
-    final pLyricsInfoLeft =
-        pLyricsCoverLeft +
-        pLyricsCoverSide +
-        PlaybackHeroCardUiTuning.portraitLyricsInfoGap;
-    final pLyricsInfoWidth =
-        width -
-        pLyricsInfoLeft -
-        PlaybackHeroCardUiTuning.portraitLyricsRightInset;
     final pLyricsInfoHeight = pLyricsCoverSide;
-
-    final pLyricsControlsTop = height;
-    final pLyricsControlsLeft =
-        PlaybackHeroCardUiTuning.portraitLyricsRightInset;
-    final pLyricsControlsWidth =
-        width - PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final pLyricsControlsHeight = pNormalControlsHeight;
-    final pLyricsControlsOpacity = 0.0;
-
-    final pLyricsLyricsTop =
-        pLyricsCoverTop +
-        pLyricsCoverSide +
-        PlaybackHeroCardUiTuning.portraitLyricsSpacing;
-    final pLyricsLyricsLeft = PlaybackHeroCardUiTuning.portraitLyricsRightInset;
-    final pLyricsLyricsWidth =
-        width - PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final pLyricsLyricsHeight = height - pLyricsLyricsTop;
-    final pLyricsLyricsOpacity = 1.0;
+    const pLyricsInfoTop = pLyricsCoverTop;
+    final pLyricsInfoLeft = pLyricsCoverLeft + pLyricsCoverSide + 16.0;
 
     // ---------------- Landscape Normal ----------------
-    final landscapeNormalLift =
-        height > PlaybackHeroCardUiTuning.landscapeCompactLiftThreshold
-        ? 0.0
-        : PlaybackHeroCardUiTuning.landscapeCompactLift;
-    const landscapeLyricsLift = 0.0;
-    final lNormalCoverSideBase = math.min(
-      width * PlaybackHeroCardUiTuning.landscapeNormalCoverWidthFactor,
-      height * PlaybackHeroCardUiTuning.landscapeNormalCoverHeightFactor,
-    );
-    final lNormalCoverSide = _clampDouble(
-      lNormalCoverSideBase * landscapeScale,
-      PlaybackHeroCardUiTuning.landscapeNormalCoverMinSide,
-      math.min(
-        math.min(
-          width * PlaybackHeroCardUiTuning.landscapeNormalCoverMaxWidthFactor,
-          height * PlaybackHeroCardUiTuning.landscapeNormalCoverMaxHeightFactor,
-        ),
-        PlaybackHeroCardUiTuning.landscapeNormalCoverMaxSide,
-      ),
-    );
-    final lNormalCoverTop =
-        (height - lNormalCoverSide) / 2 - landscapeNormalLift;
-    final lNormalCoverLeft =
-        width * PlaybackHeroCardUiTuning.landscapeNormalCoverLeftMarginFactor +
-        (width * PlaybackHeroCardUiTuning.landscapeNormalCoverColumnFactor -
-                lNormalCoverSide) /
-            2;
+    final lNormalContentWidth = width.clamp(0.0, math.max(1600.0, height * 2.5).toDouble()).toDouble();
+    final lNormalOffsetX = (width - lNormalContentWidth) / 2;
 
-    final lNormalInfoHeight = _clampDouble(
-      (height > PlaybackHeroCardUiTuning.landscapeCompactLiftThreshold
-              ? PlaybackHeroCardUiTuning.landscapeNormalInfoHeightLarge
-              : PlaybackHeroCardUiTuning.landscapeNormalInfoHeightCompact) *
-          controlsLandscapeScale,
-      PlaybackHeroCardUiTuning.landscapeNormalInfoHeightMin,
-      PlaybackHeroCardUiTuning.landscapeNormalInfoHeightMax,
+    final lColumnWidth = lNormalContentWidth * 0.5;
+
+    final lNormalControlsWidth = lColumnWidth.clamp(
+      PlaybackHeroCardUiTuning.lControlsMinWidth,
+      PlaybackHeroCardUiTuning.lControlsMaxWidth,
     );
-    final lNormalControlsHeight = _clampDouble(
-      (height > PlaybackHeroCardUiTuning.landscapeCompactLiftThreshold
-              ? PlaybackHeroCardUiTuning.landscapeNormalControlsHeightLarge
-              : PlaybackHeroCardUiTuning.landscapeNormalControlsHeightCompact) *
-          controlsLandscapeScale,
-      PlaybackHeroCardUiTuning.landscapeNormalControlsHeightMin,
-      PlaybackHeroCardUiTuning.landscapeNormalControlsHeightMax,
+    final lNormalCoverSide = math.min(lColumnWidth * 0.8, height * 0.8).clamp(
+      PlaybackHeroCardUiTuning.lCoverMinSide,
+      PlaybackHeroCardUiTuning.lCoverMaxSide,
     );
 
-    final lNormalInfoTop =
-        height * 0.5 -
-        (lNormalInfoHeight + lNormalControlsHeight) / 2 -
-        landscapeNormalLift;
-    final lNormalInfoLeft = width * 0.5;
-    final lNormalInfoWidth =
-        width * PlaybackHeroCardUiTuning.landscapeNormalCoverColumnFactor;
+    final lNormalLeftCenter = lNormalOffsetX + (lNormalContentWidth * 0.25);
+    final lNormalRightCenter = lNormalOffsetX + (lNormalContentWidth * 0.75);
 
+    final lNormalCoverTop = (height - lNormalCoverSide) / 2;
+    final lNormalCoverLeft = lNormalLeftCenter - (lNormalCoverSide / 2);
+
+    const lNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
+    final lNormalControlsHeight = (height * 0.4).clamp(
+      PlaybackHeroCardUiTuning.pControlsMinHeight,
+      PlaybackHeroCardUiTuning.pControlsMaxHeight,
+    );
+    final lNormalInfoTop = height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2;
     final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
-    final lNormalControlsLeft = width * 0.5;
-    final lNormalControlsWidth =
-        width * PlaybackHeroCardUiTuning.landscapeNormalCoverColumnFactor;
-    final lNormalControlsOpacity = 1.0;
-
-    final lNormalLyricsTop = PlaybackHeroCardUiTuning.portraitLyricsRightInset;
-    final lNormalLyricsLeft = width;
-    final lNormalLyricsWidth =
-        width * PlaybackHeroCardUiTuning.landscapeNormalCoverColumnFactor;
-    final lNormalLyricsHeight =
-        height - PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final lNormalLyricsOpacity = 0.0;
+    
+    final lNormalInfoLeft = lNormalRightCenter - (lNormalControlsWidth / 2);
+    final lNormalControlsLeft = lNormalRightCenter - (lNormalControlsWidth / 2);
 
     // ---------------- Landscape Lyrics ----------------
-    final lColWidth = _clampDouble(
-      width *
-          PlaybackHeroCardUiTuning.landscapeLyricsColumnWidthFactor *
-          landscapeScale,
-      PlaybackHeroCardUiTuning.landscapeLyricsColumnMinWidth,
-      PlaybackHeroCardUiTuning.landscapeLyricsColumnMaxWidth,
+    final lLyricsLeftColumnWidth = (width * 0.35).clamp(300.0, math.max(800.0, height * 0.6).toDouble()).toDouble();
+    final lLyricsCoverSide = lLyricsLeftColumnWidth * 0.7;
+    const lLyricsCoverTop = 16.0;
+    
+    const lLyricsLeftMargin = 32.0;
+    final lLyricsCoverLeft = lLyricsLeftMargin + (lLyricsLeftColumnWidth - lLyricsCoverSide) / 2;
+
+    const lLyricsInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
+    final lLyricsInfoTop = lLyricsCoverTop + lLyricsCoverSide + 24.0;
+    const lLyricsInfoLeft = lLyricsLeftMargin + 16.0;
+    
+    final lLyricsControlsTop = lLyricsInfoTop + lLyricsInfoHeight + 16.0;
+    final lLyricsControlsHeight = height - lLyricsControlsTop;
+    const lLyricsControlsLeft = lLyricsLeftMargin + 16.0;
+
+    final lLyricsLyricsLeft = lLyricsLeftMargin + lLyricsLeftColumnWidth + 16.0;
+    final lLyricsLyricsWidth = width - lLyricsLyricsLeft - 32.0;
+
+    // Build the Panes
+    // Cover
+    final cover = _lerpPane(context,
+      pNormal: _PlaybackPaneLayout(top: pNormalCoverTop, left: (width - pNormalCoverSide) / 2, width: pNormalCoverSide, height: pNormalCoverSide, opacity: 1.0),
+      pLyrics: _PlaybackPaneLayout(top: pLyricsCoverTop, left: pLyricsCoverLeft, width: pLyricsCoverSide, height: pLyricsCoverSide, opacity: 1.0),
+      lNormal: _PlaybackPaneLayout(top: lNormalCoverTop, left: lNormalCoverLeft, width: lNormalCoverSide, height: lNormalCoverSide, opacity: 1.0),
+      lLyrics: _PlaybackPaneLayout(top: lLyricsCoverTop, left: lLyricsCoverLeft, width: lLyricsCoverSide, height: lLyricsCoverSide, opacity: 1.0),
+      tLyrics: tLyrics, tLand: tLand,
     );
 
-    final lLyricsCoverSideBase =
-        lColWidth * PlaybackHeroCardUiTuning.landscapeLyricsCoverRatio;
-    final lLyricsCoverSide = lLyricsCoverSideBase;
-    final lLyricsCoverTop =
-        PlaybackHeroCardUiTuning.landscapeLyricsCoverTop - landscapeLyricsLift;
-    final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
-
-    final lLyricsInfoTop =
-        lLyricsCoverTop +
-        lLyricsCoverSide +
-        PlaybackHeroCardUiTuning.landscapeLyricsInfoTopGap;
-    final lLyricsInfoLeft = PlaybackHeroCardUiTuning.portraitLyricsRightInset;
-    final lLyricsInfoWidth =
-        lColWidth - PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final lLyricsInfoHeight = _clampDouble(
-      (height > PlaybackHeroCardUiTuning.landscapeCompactLiftThreshold
-              ? PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightLarge
-              : PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightCompact) *
-          controlsLandscapeScale,
-      PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightMin,
-      PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightMax,
+    // Info
+    final info = _lerpPane(context,
+      pNormal: _PlaybackPaneLayout(top: pNormalInfoTop, left: 24.0, width: width - 48.0, height: pNormalInfoHeight, opacity: 1.0),
+      pLyrics: _PlaybackPaneLayout(top: pLyricsInfoTop, left: pLyricsInfoLeft, width: width - pLyricsInfoLeft - 16.0, height: pLyricsInfoHeight, opacity: 1.0),
+      lNormal: _PlaybackPaneLayout(top: lNormalInfoTop, left: lNormalInfoLeft, width: lNormalControlsWidth, height: lNormalInfoHeight, opacity: 1.0),
+      lLyrics: _PlaybackPaneLayout(top: lLyricsInfoTop, left: lLyricsInfoLeft, width: lLyricsLeftColumnWidth - 32.0, height: lLyricsInfoHeight, opacity: 1.0),
+      tLyrics: tLyrics, tLand: tLand,
     );
 
-    final lLyricsControlsTop =
-        lLyricsInfoTop +
-        lLyricsInfoHeight +
-        PlaybackHeroCardUiTuning.landscapeLyricsControlsTopGap;
-    final lLyricsControlsLeft =
-        PlaybackHeroCardUiTuning.portraitLyricsRightInset;
-    final lLyricsControlsWidth =
-        lColWidth - PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final lLyricsControlsHeight =
-        height -
-        lLyricsControlsTop -
-        PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final lLyricsControlsOpacity = 1.0;
-
-    final lLyricsLyricsTop = PlaybackHeroCardUiTuning.portraitLyricsRightInset;
-    final lLyricsLyricsLeft =
-        lColWidth + PlaybackHeroCardUiTuning.portraitLyricsRightInset;
-    final lLyricsLyricsWidth =
-        width -
-        lLyricsLyricsLeft -
-        PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final lLyricsLyricsHeight =
-        height - PlaybackHeroCardUiTuning.portraitInfoHorizontalInset;
-    final lLyricsLyricsOpacity = 1.0;
-
-    final cover = _lerpPane(
-      context,
-      pNormal: _PlaybackPaneLayout(
-        top: pNormalCoverTop,
-        left: pNormalCoverLeft,
-        width: pNormalCoverSide,
-        height: pNormalCoverSide,
-        opacity: 1.0,
-      ),
-      pLyrics: _PlaybackPaneLayout(
-        top: pLyricsCoverTop,
-        left: pLyricsCoverLeft,
-        width: pLyricsCoverSide,
-        height: pLyricsCoverSide,
-        opacity: 1.0,
-      ),
-      lNormal: _PlaybackPaneLayout(
-        top: lNormalCoverTop,
-        left: lNormalCoverLeft,
-        width: lNormalCoverSide,
-        height: lNormalCoverSide,
-        opacity: 1.0,
-      ),
-      lLyrics: _PlaybackPaneLayout(
-        top: lLyricsCoverTop,
-        left: lLyricsCoverLeft,
-        width: lLyricsCoverSide,
-        height: lLyricsCoverSide,
-        opacity: 1.0,
-      ),
-      tLyrics: tLyrics,
-      tLand: tLand,
+    // Controls
+    final controls = _lerpPane(context,
+      pNormal: _PlaybackPaneLayout(top: pNormalControlsTop, left: 16.0, width: width - 32.0, height: pNormalControlsHeight, opacity: 1.0),
+      pLyrics: _PlaybackPaneLayout(top: height, left: 16.0, width: width - 32.0, height: pNormalControlsHeight, opacity: 0.0),
+      lNormal: _PlaybackPaneLayout(top: lNormalControlsTop, left: lNormalControlsLeft, width: lNormalControlsWidth, height: lNormalControlsHeight, opacity: 1.0),
+      lLyrics: _PlaybackPaneLayout(top: lLyricsControlsTop, left: lLyricsControlsLeft, width: lLyricsLeftColumnWidth - 32.0, height: lLyricsControlsHeight, opacity: 1.0),
+      tLyrics: tLyrics, tLand: tLand,
     );
 
-    final info = _lerpPane(
-      context,
-      pNormal: _PlaybackPaneLayout(
-        top: pNormalInfoTop,
-        left: pNormalInfoLeft,
-        width: pNormalInfoWidth,
-        height: pNormalInfoHeight,
-        opacity: 1.0,
-      ),
-      pLyrics: _PlaybackPaneLayout(
-        top: pLyricsInfoTop,
-        left: pLyricsInfoLeft,
-        width: pLyricsInfoWidth,
-        height: pLyricsInfoHeight,
-        opacity: 1.0,
-      ),
-      lNormal: _PlaybackPaneLayout(
-        top: lNormalInfoTop,
-        left: lNormalInfoLeft,
-        width: lNormalInfoWidth,
-        height: lNormalInfoHeight,
-        opacity: 1.0,
-      ),
-      lLyrics: _PlaybackPaneLayout(
-        top: lLyricsInfoTop,
-        left: lLyricsInfoLeft,
-        width: lLyricsInfoWidth,
-        height: lLyricsInfoHeight,
-        opacity: 1.0,
-      ),
-      tLyrics: tLyrics,
-      tLand: tLand,
-    );
-
-    final controls = _lerpPane(
-      context,
-      pNormal: _PlaybackPaneLayout(
-        top: pNormalControlsTop,
-        left: pNormalControlsLeft,
-        width: pNormalControlsWidth,
-        height: pNormalControlsHeight,
-        opacity: pNormalControlsOpacity,
-      ),
-      pLyrics: _PlaybackPaneLayout(
-        top: pLyricsControlsTop,
-        left: pLyricsControlsLeft,
-        width: pLyricsControlsWidth,
-        height: pLyricsControlsHeight,
-        opacity: pLyricsControlsOpacity,
-      ),
-      lNormal: _PlaybackPaneLayout(
-        top: lNormalControlsTop,
-        left: lNormalControlsLeft,
-        width: lNormalControlsWidth,
-        height: lNormalControlsHeight,
-        opacity: lNormalControlsOpacity,
-      ),
-      lLyrics: _PlaybackPaneLayout(
-        top: lLyricsControlsTop,
-        left: lLyricsControlsLeft,
-        width: lLyricsControlsWidth,
-        height: lLyricsControlsHeight,
-        opacity: lLyricsControlsOpacity,
-      ),
-      tLyrics: tLyrics,
-      tLand: tLand,
-    );
-
-    final lyrics = _lerpPane(
-      context,
-      pNormal: _PlaybackPaneLayout(
-        top: pNormalLyricsTop,
-        left: pNormalLyricsLeft,
-        width: pNormalLyricsWidth,
-        height: pNormalLyricsHeight,
-        opacity: pNormalLyricsOpacity,
-      ),
-      pLyrics: _PlaybackPaneLayout(
-        top: pLyricsLyricsTop,
-        left: pLyricsLyricsLeft,
-        width: pLyricsLyricsWidth,
-        height: pLyricsLyricsHeight,
-        opacity: pLyricsLyricsOpacity,
-      ),
-      lNormal: _PlaybackPaneLayout(
-        top: lNormalLyricsTop,
-        left: lNormalLyricsLeft,
-        width: lNormalLyricsWidth,
-        height: lNormalLyricsHeight,
-        opacity: lNormalLyricsOpacity,
-      ),
-      lLyrics: _PlaybackPaneLayout(
-        top: lLyricsLyricsTop,
-        left: lLyricsLyricsLeft,
-        width: lLyricsLyricsWidth,
-        height: lLyricsLyricsHeight,
-        opacity: lLyricsLyricsOpacity,
-      ),
-      tLyrics: tLyrics,
-      tLand: tLand,
+    // Lyrics
+    final lyrics = _lerpPane(context,
+      pNormal: _PlaybackPaneLayout(top: height, left: 16.0, width: width - 32.0, height: height - pNormalInfoTop, opacity: 0.0),
+      pLyrics: _PlaybackPaneLayout(top: pLyricsCoverTop + pLyricsCoverSide + 16.0, left: 16.0, width: width - 32.0, height: height - (pLyricsCoverTop + pLyricsCoverSide + 16.0), opacity: 1.0),
+      lNormal: _PlaybackPaneLayout(top: 16.0, left: width, width: lLyricsLeftColumnWidth, height: height - 32.0, opacity: 0.0),
+      lLyrics: _PlaybackPaneLayout(top: 16.0, left: lLyricsLyricsLeft, width: lLyricsLyricsWidth, height: height - 32.0, opacity: 1.0),
+      tLyrics: tLyrics, tLand: tLand,
     );
 
     final trackInfoAlign = isLandscape
@@ -823,7 +547,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       controls: controls,
       lyrics: lyrics,
       trackInfoAlign: trackInfoAlign,
-      controlsScale: controlsLandscapeScale,
+      controlsScale: 1.0,
     );
   }
 
@@ -944,7 +668,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     MusicFile? currentMusic,
     TextAlign align,
     double lyricsModeT,
-    PlaybackViewportProfile viewport,
+    bool isLarge,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final title = currentMusic?.displayName ?? l10n.notSelected;
@@ -1003,7 +727,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   color: Colors.white,
                   fontSize: lyricsModeT > 0.5 && !isLandscape
                       ? PlaybackHeroCardUiTuning.trackTitlePortraitLyricsFont
-                      : (viewport.isLargeOrAbove
+                      : (isLarge
                             ? PlaybackHeroCardUiTuning.trackTitleLargeFont
                             : PlaybackHeroCardUiTuning.trackTitleStandardFont),
                   fontWeight: FontWeight.bold,
@@ -1053,7 +777,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                       fontSize: lyricsModeT > 0.5 && !isLandscape
                           ? PlaybackHeroCardUiTuning
                                 .trackArtistPortraitLyricsFont
-                          : (viewport.isLargeOrAbove
+                          : (isLarge
                                 ? PlaybackHeroCardUiTuning.trackArtistLargeFont
                                 : PlaybackHeroCardUiTuning
                                       .trackArtistStandardFont),
