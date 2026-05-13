@@ -145,12 +145,6 @@ class PlaybackHeroCard extends ConsumerWidget {
 
   // Removed viewportProfile
 
-  double _clampDouble(double value, double min, double max) {
-    final lower = math.min(min, max);
-    final upper = math.max(min, max);
-    return value.clamp(lower, upper).toDouble();
-  }
-
   Future<void> _showTrackInfoContextMenu(
     BuildContext context,
     Offset globalPosition, {
@@ -493,27 +487,52 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
 
     // ---------------- Landscape Lyrics ----------------
-    final lLyricsItemWidth = math
-        .min(width * 0.3, height * 0.55)
-        .clamp(280.0, 700.0);
-    final lLyricsLeftColumnWidth = lLyricsItemWidth + 32.0;
+    // 左侧列的目标宽度只跟高度相关，避免随着窗口横向拉伸产生跳变。
+    const lLyricsTopPadding = 16.0;
+    const lLyricsOuterLeftPadding = 32.0;
+    const lLyricsInnerLeftPadding = 16.0;
+    const lLyricsCoverInfoSpacing = 24.0;
+    const lLyricsInfoControlsSpacing = 16.0;
+    const lLyricsPreferredCoverSide = 360.0;
+    const lLyricsPreferredControlsHeight = 180.0;
 
-    final lLyricsCoverSide = lLyricsItemWidth;
-    const lLyricsCoverTop = 16.0;
+    final lLyricsAvailableHeight = math.max(
+      0.0,
+      height - (lLyricsTopPadding * 2),
+    );
+    final lLyricsPreferredTotalHeight =
+        lLyricsPreferredCoverSide +
+        lLyricsCoverInfoSpacing +
+        PlaybackHeroCardUiTuning.pInfoHeight +
+        lLyricsInfoControlsSpacing +
+        lLyricsPreferredControlsHeight;
+    final lLyricsScale = lLyricsPreferredTotalHeight <= 0.0
+        ? 1.0
+        : math.min(1.0, lLyricsAvailableHeight / lLyricsPreferredTotalHeight);
 
-    const lLyricsLeftMargin = 32.0;
-    final lLyricsCoverLeft = lLyricsLeftMargin + 16.0;
+    final lLyricsCoverSide = lLyricsPreferredCoverSide * lLyricsScale;
+    final lLyricsInfoHeight =
+        PlaybackHeroCardUiTuning.pInfoHeight * lLyricsScale;
+    final lLyricsControlsHeight = lLyricsPreferredControlsHeight * lLyricsScale;
+    final lLyricsCoverTop = lLyricsTopPadding;
+    final lLyricsCoverLeft = lLyricsOuterLeftPadding + lLyricsInnerLeftPadding;
 
-    const lLyricsInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
-    final lLyricsInfoTop = lLyricsCoverTop + lLyricsCoverSide + 24.0;
+    final lLyricsItemWidth = lLyricsCoverSide;
+    final lLyricsLeftColumnWidth = lLyricsItemWidth + lLyricsOuterLeftPadding;
+
+    final lLyricsInfoTop =
+        lLyricsCoverTop + lLyricsCoverSide + lLyricsCoverInfoSpacing;
     final lLyricsInfoLeft = lLyricsCoverLeft;
 
-    final lLyricsControlsTop = lLyricsInfoTop + lLyricsInfoHeight + 16.0;
-    final lLyricsControlsHeight = height - lLyricsControlsTop;
+    final lLyricsControlsTop =
+        lLyricsInfoTop + lLyricsInfoHeight + lLyricsInfoControlsSpacing;
     final lLyricsControlsLeft = lLyricsCoverLeft;
 
-    final lLyricsLyricsLeft = lLyricsLeftMargin + lLyricsLeftColumnWidth + 16.0;
-    final lLyricsLyricsWidth = width - lLyricsLyricsLeft - 32.0;
+    final lLyricsLyricsLeft =
+        lLyricsOuterLeftPadding +
+        lLyricsLeftColumnWidth +
+        lLyricsInnerLeftPadding;
+    final lLyricsLyricsWidth = math.max(0.0, width - lLyricsLyricsLeft - 32.0);
 
     // Build the Panes
     // Cover
@@ -665,7 +684,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       1.0,
       1.0,
       math.max(1.0, lNormalControlsWidth / 700.0),
-      math.max(1.0, lLyricsItemWidth / 500.0),
+      (lLyricsItemWidth / 450.0).clamp(0.5, 1.5),
       tLyrics,
       tLand,
     );
@@ -965,213 +984,225 @@ class PlaybackHeroCard extends ConsumerWidget {
     final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
 
     // 提取公共组件 (Extract common components)
-    final topButtonsRow = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.more_horiz, color: Colors.white70),
-          onPressed: onShowMoreMenu,
-          tooltip: l10n.more,
-        ),
-        IconButton(
-          icon: Icon(
-            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            size: (isLarge ? 36 : 28) * controlsScale,
-            color: isFavorite ? Colors.redAccent : Colors.white70,
+    final topButtonsRow = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.more_horiz, color: Colors.white70),
+            onPressed: onShowMoreMenu,
+            tooltip: l10n.more,
           ),
-          onPressed: currentMusic == null
-              ? null
-              : () async {
-                  final playlistService = ref.read(playlistServiceProvider);
-                  await playlistService.toggleFavoriteSong(currentMusic);
-                },
-          tooltip: isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
-        ),
-        GestureDetector(
-          onLongPress: onShowPlaylistModeSelector,
-          child: IconButton(
+          IconButton(
             icon: Icon(
-              getPlaylistModeIcon(playbackMode),
+              isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
               size: (isLarge ? 36 : 28) * controlsScale,
-              color: Colors.white70,
+              color: isFavorite ? Colors.redAccent : Colors.white70,
             ),
-            onPressed: onCyclePlaylistMode,
-            tooltip: getPlaylistModeName(playbackMode, l10n),
+            onPressed: currentMusic == null
+                ? null
+                : () async {
+                    final playlistService = ref.read(playlistServiceProvider);
+                    await playlistService.toggleFavoriteSong(currentMusic);
+                  },
+            tooltip: isFavorite
+                ? l10n.removeFromFavorites
+                : l10n.addToFavorites,
           ),
-        ),
-        GestureDetector(
-          onLongPress: onShowRandomModeSelector,
-          child: IconButton(
-            icon: Icon(
-              Icons.shuffle_rounded,
-              size: (isLarge ? 36 : 28) * controlsScale,
-              color: isRandomMode
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.white70,
-            ),
-            onPressed: () {
-              final audio = ref.read(audioServiceProvider);
-              if (audio.settingsService.randomRange == 1 && !isRandomMode) {
-                final playlistService = ref.read(playlistServiceProvider);
-                final List<MusicFile> allSongs = [];
-                final pathSet = <String>{};
-                for (final p in playlistService.playlists) {
-                  for (final s in p.songs) {
-                    if (pathSet.add(s.path)) allSongs.add(s);
-                  }
-                }
-                audio.toggleRandomMode(globalSongs: allSongs);
-              } else {
-                audio.toggleRandomMode();
-              }
-            },
-            tooltip: l10n.randomMode,
-          ),
-        ),
-        IconButton(
-          icon: Icon(
-            Icons.auto_fix_high_rounded,
-            size: (isLarge ? 36 : 28) * controlsScale,
-            color: Colors.white70,
-          ),
-          onPressed: onTagCompletionTap,
-          onLongPress: onTagCompletionLongPress,
-          tooltip: l10n.tagCompletion,
-        ),
-        Tooltip(
-          message: sleepTimerRemaining != null
-              ? l10n.sleepTimerRemaining(_formatSleepTimer(sleepTimerRemaining))
-              : l10n.sleepTimer,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onSleepTimerTap,
-            child: SizedBox(
-              width: 74 * controlsScale,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.bedtime_rounded,
-                    size: (isLarge ? 36 : 28) * controlsScale,
-                    color: sleepTimerRemaining != null
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.white70,
-                  ),
-                  if (sleepTimerRemaining != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatSleepTimer(sleepTimerRemaining),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 10 * controlsScale,
-                        height: 1.0,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-        IconButton(
-          icon: Icon(
-            Icons.tune_rounded,
-            size: (isLarge ? 36 : 28) * controlsScale,
-            color: Colors.white70,
-          ),
-          onPressed: onEqualizerTap,
-          tooltip: l10n.equalizer,
-        ),
-      ],
-    );
-
-    final mainControlsRow = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: Icon(
-            showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-            size: (isLarge ? 36 : 28) * controlsScale,
-            color: showVisualizerToggle ? Colors.white : Colors.white70,
-          ),
-          onPressed: onToggleVisualizer,
-          tooltip: AppLocalizations.of(context)!.visualizer,
-        ),
-        SizedBox(width: 4 * controlsScale),
-        IconButton(
-          icon: Icon(
-            Icons.skip_previous_rounded,
-            size: (isLarge ? 64 : 48) * controlsScale,
-            color: Colors.white,
-          ),
-          onPressed: onPrevious,
-          tooltip: l10n.previous,
-        ),
-        SizedBox(width: 16 * controlsScale),
-        Container(
-          width: (isLarge ? 96 : 72) * controlsScale,
-          height: (isLarge ? 96 : 72) * controlsScale,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 12 * controlsScale,
-                spreadRadius: 2 * controlsScale,
-              ),
-            ],
-          ),
-          child: IconButton(
-            onPressed: onPlayPause,
-            tooltip: isPlaying ? l10n.pause : l10n.play,
-            icon: Icon(
-              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: (isLarge ? 56 : 40) * controlsScale,
-              color:
-                  currentThemeColorsMap['darkVibrant'] ??
-                  currentThemeColorsMap['darkMuted'] ??
-                  Colors.black,
-            ),
-          ),
-        ),
-        SizedBox(width: 16 * controlsScale),
-        IconButton(
-          icon: Icon(
-            Icons.skip_next_rounded,
-            size: (isLarge ? 64 : 48) * controlsScale,
-            color: Colors.white,
-          ),
-          onPressed: onNext,
-          tooltip: l10n.next,
-        ),
-        SizedBox(width: 8 * controlsScale),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onVerticalDragUpdate: (details) {
-            onVolumeDrag?.call(details.primaryDelta ?? 0);
-          },
-          child: Listener(
-            onPointerSignal: (pointerSignal) {
-              if (pointerSignal is PointerScrollEvent) {
-                onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-              }
-            },
+          GestureDetector(
+            onLongPress: onShowPlaylistModeSelector,
             child: IconButton(
               icon: Icon(
-                getVolumeIcon(ref.watch(audioVolumeProvider)),
+                getPlaylistModeIcon(playbackMode),
                 size: (isLarge ? 36 : 28) * controlsScale,
                 color: Colors.white70,
               ),
-              onPressed: onVolumeTap,
-              tooltip: l10n.volume,
+              onPressed: onCyclePlaylistMode,
+              tooltip: getPlaylistModeName(playbackMode, l10n),
             ),
           ),
-        ),
-      ],
+          GestureDetector(
+            onLongPress: onShowRandomModeSelector,
+            child: IconButton(
+              icon: Icon(
+                Icons.shuffle_rounded,
+                size: (isLarge ? 36 : 28) * controlsScale,
+                color: isRandomMode
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.white70,
+              ),
+              onPressed: () {
+                final audio = ref.read(audioServiceProvider);
+                if (audio.settingsService.randomRange == 1 && !isRandomMode) {
+                  final playlistService = ref.read(playlistServiceProvider);
+                  final List<MusicFile> allSongs = [];
+                  final pathSet = <String>{};
+                  for (final p in playlistService.playlists) {
+                    for (final s in p.songs) {
+                      if (pathSet.add(s.path)) allSongs.add(s);
+                    }
+                  }
+                  audio.toggleRandomMode(globalSongs: allSongs);
+                } else {
+                  audio.toggleRandomMode();
+                }
+              },
+              tooltip: l10n.randomMode,
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.auto_fix_high_rounded,
+              size: (isLarge ? 36 : 28) * controlsScale,
+              color: Colors.white70,
+            ),
+            onPressed: onTagCompletionTap,
+            onLongPress: onTagCompletionLongPress,
+            tooltip: l10n.tagCompletion,
+          ),
+          Tooltip(
+            message: sleepTimerRemaining != null
+                ? l10n.sleepTimerRemaining(
+                    _formatSleepTimer(sleepTimerRemaining),
+                  )
+                : l10n.sleepTimer,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onSleepTimerTap,
+              child: SizedBox(
+                width: 74 * controlsScale,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.bedtime_rounded,
+                      size: (isLarge ? 36 : 28) * controlsScale,
+                      color: sleepTimerRemaining != null
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.white70,
+                    ),
+                    if (sleepTimerRemaining != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatSleepTimer(sleepTimerRemaining),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 10 * controlsScale,
+                          height: 1.0,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.tune_rounded,
+              size: (isLarge ? 36 : 28) * controlsScale,
+              color: Colors.white70,
+            ),
+            onPressed: onEqualizerTap,
+            tooltip: l10n.equalizer,
+          ),
+        ],
+      ),
+    );
+
+    final mainControlsRow = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(
+              showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
+              size: (isLarge ? 36 : 28) * controlsScale,
+              color: showVisualizerToggle ? Colors.white : Colors.white70,
+            ),
+            onPressed: onToggleVisualizer,
+            tooltip: AppLocalizations.of(context)!.visualizer,
+          ),
+          SizedBox(width: 4 * controlsScale),
+          IconButton(
+            icon: Icon(
+              Icons.skip_previous_rounded,
+              size: (isLarge ? 64 : 48) * controlsScale,
+              color: Colors.white,
+            ),
+            onPressed: onPrevious,
+            tooltip: l10n.previous,
+          ),
+          SizedBox(width: 16 * controlsScale),
+          Container(
+            width: (isLarge ? 96 : 72) * controlsScale,
+            height: (isLarge ? 96 : 72) * controlsScale,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 12 * controlsScale,
+                  spreadRadius: 2 * controlsScale,
+                ),
+              ],
+            ),
+            child: IconButton(
+              onPressed: onPlayPause,
+              tooltip: isPlaying ? l10n.pause : l10n.play,
+              icon: Icon(
+                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                size: (isLarge ? 56 : 40) * controlsScale,
+                color:
+                    currentThemeColorsMap['darkVibrant'] ??
+                    currentThemeColorsMap['darkMuted'] ??
+                    Colors.black,
+              ),
+            ),
+          ),
+          SizedBox(width: 16 * controlsScale),
+          IconButton(
+            icon: Icon(
+              Icons.skip_next_rounded,
+              size: (isLarge ? 64 : 48) * controlsScale,
+              color: Colors.white,
+            ),
+            onPressed: onNext,
+            tooltip: l10n.next,
+          ),
+          SizedBox(width: 8 * controlsScale),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragUpdate: (details) {
+              onVolumeDrag?.call(details.primaryDelta ?? 0);
+            },
+            child: Listener(
+              onPointerSignal: (pointerSignal) {
+                if (pointerSignal is PointerScrollEvent) {
+                  onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+                }
+              },
+              child: IconButton(
+                icon: Icon(
+                  getVolumeIcon(ref.watch(audioVolumeProvider)),
+                  size: (isLarge ? 36 : 28) * controlsScale,
+                  color: Colors.white70,
+                ),
+                onPressed: onVolumeTap,
+                tooltip: l10n.volume,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
 
     if (useOverlayStyle) {
