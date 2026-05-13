@@ -146,11 +146,11 @@ class PlaybackHeroCardUiTuning {
       0.85; // 新增：单独控制控件区的缩放倍率
 
   static const double trackTitlePortraitLyricsFont = 18.0;
-  static const double trackTitleLandscapeFont = 22.0;
-  static const double trackTitleLandscapeLargeFont = 30.0;
+  static const double trackTitleStandardFont = 22.0;
+  static const double trackTitleLargeFont = 22.0;
   static const double trackArtistPortraitLyricsFont = 13.0;
-  static const double trackArtistLandscapeFont = 15.0;
-  static const double trackArtistLandscapeLargeFont = 18.0;
+  static const double trackArtistStandardFont = 15.0;
+  static const double trackArtistLargeFont = 16.0;
 
   static const double controlsRowLandscapeGap = 16.0;
   static const double controlsRowPortraitGap = 12.0;

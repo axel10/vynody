@@ -1004,9 +1004,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                   fontSize: lyricsModeT > 0.5 && !isLandscape
                       ? PlaybackHeroCardUiTuning.trackTitlePortraitLyricsFont
                       : (viewport.isLargeOrAbove
-                            ? PlaybackHeroCardUiTuning
-                                  .trackTitleLandscapeLargeFont
-                            : PlaybackHeroCardUiTuning.trackTitleLandscapeFont),
+                            ? PlaybackHeroCardUiTuning.trackTitleLargeFont
+                            : PlaybackHeroCardUiTuning.trackTitleStandardFont),
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
@@ -1055,10 +1054,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                           ? PlaybackHeroCardUiTuning
                                 .trackArtistPortraitLyricsFont
                           : (viewport.isLargeOrAbove
-                                ? PlaybackHeroCardUiTuning
-                                      .trackArtistLandscapeLargeFont
+                                ? PlaybackHeroCardUiTuning.trackArtistLargeFont
                                 : PlaybackHeroCardUiTuning
-                                      .trackArtistLandscapeFont),
+                                      .trackArtistStandardFont),
                       height: 1.3,
                     ),
                     child: Text(
