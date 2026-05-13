@@ -673,7 +673,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                               child: SizedBox(
                                 width: isLandscape
                                     ? _clampDouble(
-                                        width * 0.22 * landscapeScale,
+                                        width * 0.38 * landscapeScale,
                                         420.0,
                                         760.0,
                                       )
@@ -686,6 +686,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                                       (height > 1000 ||
                                           width > 2400 ||
                                           landscapeScale > 0.95),
+                                  controlsScale: isLandscape
+                                      ? landscapeScale
+                                      : 1.0,
                                 ),
                               ),
                             ),
@@ -913,6 +916,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     bool isLarge = false,
+    double controlsScale = 1.0,
   }) {
     final playbackMode = ref.watch(audioPlaybackModeProvider);
     final isRandomMode = ref.watch(audioIsRandomModeProvider);
@@ -946,7 +950,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         IconButton(
           icon: Icon(
             isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            size: isLarge ? 36 : 28,
+            size: (isLarge ? 36 : 28) * controlsScale,
             color: isFavorite ? Colors.redAccent : Colors.white70,
           ),
           onPressed: currentMusic == null
@@ -962,7 +966,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           child: IconButton(
             icon: Icon(
               getPlaylistModeIcon(playbackMode),
-              size: isLarge ? 36 : 28,
+              size: (isLarge ? 36 : 28) * controlsScale,
               color: Colors.white70,
             ),
             onPressed: onCyclePlaylistMode,
@@ -974,7 +978,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           child: IconButton(
             icon: Icon(
               Icons.shuffle_rounded,
-              size: isLarge ? 36 : 28,
+              size: (isLarge ? 36 : 28) * controlsScale,
               color: isRandomMode
                   ? Theme.of(context).colorScheme.primary
                   : Colors.white70,
@@ -1001,7 +1005,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         IconButton(
           icon: Icon(
             Icons.auto_fix_high_rounded,
-            size: isLarge ? 36 : 28,
+            size: (isLarge ? 36 : 28) * controlsScale,
             color: Colors.white70,
           ),
           onPressed: onTagCompletionTap,
@@ -1016,13 +1020,13 @@ class PlaybackHeroCard extends ConsumerWidget {
             behavior: HitTestBehavior.opaque,
             onTap: onSleepTimerTap,
             child: SizedBox(
-              width: 74,
+              width: 74 * controlsScale,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.bedtime_rounded,
-                    size: isLarge ? 36 : 28,
+                    size: (isLarge ? 36 : 28) * controlsScale,
                     color: sleepTimerRemaining != null
                         ? Theme.of(context).colorScheme.primary
                         : Colors.white70,
@@ -1035,7 +1039,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
-                        fontSize: 10,
+                        fontSize: 10 * controlsScale,
                         height: 1.0,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1049,7 +1053,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         IconButton(
           icon: Icon(
             Icons.tune_rounded,
-            size: isLarge ? 36 : 28,
+            size: (isLarge ? 36 : 28) * controlsScale,
             color: Colors.white70,
           ),
           onPressed: onEqualizerTap,
@@ -1064,34 +1068,34 @@ class PlaybackHeroCard extends ConsumerWidget {
         IconButton(
           icon: Icon(
             showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-            size: isLarge ? 36 : 28,
+            size: (isLarge ? 36 : 28) * controlsScale,
             color: showVisualizerToggle ? Colors.white : Colors.white70,
           ),
           onPressed: onToggleVisualizer,
           tooltip: AppLocalizations.of(context)!.visualizer,
         ),
-        const SizedBox(width: 4),
+        SizedBox(width: 4 * controlsScale),
         IconButton(
           icon: Icon(
             Icons.skip_previous_rounded,
-            size: isLarge ? 64 : 48,
+            size: (isLarge ? 64 : 48) * controlsScale,
             color: Colors.white,
           ),
           onPressed: onPrevious,
           tooltip: l10n.previous,
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16 * controlsScale),
         Container(
-          width: isLarge ? 96 : 72,
-          height: isLarge ? 96 : 72,
+          width: (isLarge ? 96 : 72) * controlsScale,
+          height: (isLarge ? 96 : 72) * controlsScale,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 12,
-                spreadRadius: 2,
+                blurRadius: 12 * controlsScale,
+                spreadRadius: 2 * controlsScale,
               ),
             ],
           ),
@@ -1100,7 +1104,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             tooltip: isPlaying ? l10n.pause : l10n.play,
             icon: Icon(
               isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: isLarge ? 56 : 40,
+              size: (isLarge ? 56 : 40) * controlsScale,
               color:
                   currentThemeColorsMap['darkVibrant'] ??
                   currentThemeColorsMap['darkMuted'] ??
@@ -1108,17 +1112,17 @@ class PlaybackHeroCard extends ConsumerWidget {
             ),
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16 * controlsScale),
         IconButton(
           icon: Icon(
             Icons.skip_next_rounded,
-            size: isLarge ? 64 : 48,
+            size: (isLarge ? 64 : 48) * controlsScale,
             color: Colors.white,
           ),
           onPressed: onNext,
           tooltip: l10n.next,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8 * controlsScale),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onVerticalDragUpdate: (details) {
@@ -1133,7 +1137,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             child: IconButton(
               icon: Icon(
                 getVolumeIcon(ref.watch(audioVolumeProvider)),
-                size: isLarge ? 36 : 28,
+                size: (isLarge ? 36 : 28) * controlsScale,
                 color: Colors.white70,
               ),
               onPressed: onVolumeTap,
