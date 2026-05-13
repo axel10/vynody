@@ -379,7 +379,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                   context,
                                   ref,
                                   isLarge: width > 800,
-                                  controlsScale: 1.0,
+                                  controlsScale: layout.controlsScale,
                                 ),
                               ),
                             ),
@@ -408,6 +408,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                           layout.trackInfoAlign,
                           tLyrics,
                           width > 800,
+                          layout.controlsScale,
                         ),
                       ),
                     ],
@@ -434,8 +435,10 @@ class PlaybackHeroCard extends ConsumerWidget {
       PlaybackHeroCardUiTuning.pControlsMaxHeight,
     );
     final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
-    final pNormalCoverSide = math.min(width * 0.85, height * 0.5).clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide);
-    
+    final pNormalCoverSide = math
+        .min(width * 0.85, height * 0.5)
+        .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide);
+
     final pNormalControlsTop = height - pNormalControlsHeight;
     final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight;
     final pNormalCoverTop = (pNormalInfoTop - pNormalCoverSide) / 2;
@@ -450,7 +453,9 @@ class PlaybackHeroCard extends ConsumerWidget {
     final pLyricsInfoLeft = pLyricsCoverLeft + pLyricsCoverSide + 16.0;
 
     // ---------------- Landscape Normal ----------------
-    final lNormalContentWidth = width.clamp(0.0, math.max(1600.0, height * 2.5).toDouble()).toDouble();
+    final lNormalContentWidth = width
+        .clamp(0.0, math.max(1600.0, height * 2.5).toDouble())
+        .toDouble();
     final lNormalOffsetX = (width - lNormalContentWidth) / 2;
 
     final lColumnWidth = lNormalContentWidth * 0.5;
@@ -459,87 +464,211 @@ class PlaybackHeroCard extends ConsumerWidget {
       PlaybackHeroCardUiTuning.lControlsMinWidth,
       PlaybackHeroCardUiTuning.lControlsMaxWidth,
     );
-    final lNormalCoverSide = math.min(lColumnWidth * 0.8, height * 0.8).clamp(
-      PlaybackHeroCardUiTuning.lCoverMinSide,
-      PlaybackHeroCardUiTuning.lCoverMaxSide,
-    );
+    final lNormalCoverSide = math
+        .min(lColumnWidth * 0.8, height * 0.8)
+        .clamp(
+          PlaybackHeroCardUiTuning.lCoverMinSide,
+          PlaybackHeroCardUiTuning.lCoverMaxSide,
+        );
 
     final lNormalLeftCenter = lNormalOffsetX + (lNormalContentWidth * 0.25);
-    final lNormalRightCenter = lNormalOffsetX + (lNormalContentWidth * 0.75);
-
     final lNormalCoverTop = (height - lNormalCoverSide) / 2;
     final lNormalCoverLeft = lNormalLeftCenter - (lNormalCoverSide / 2);
+
+    final lNormalCoverRightEdge = lNormalCoverLeft + lNormalCoverSide;
+    final lContentRightEdge = lNormalOffsetX + lNormalContentWidth;
+    final lRemainingSpace = lContentRightEdge - lNormalCoverRightEdge;
+
+    final lNormalControlsLeft =
+        lNormalCoverRightEdge + (lRemainingSpace - lNormalControlsWidth) / 2;
+    final lNormalInfoLeft = lNormalControlsLeft;
 
     const lNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
     final lNormalControlsHeight = (height * 0.4).clamp(
       PlaybackHeroCardUiTuning.pControlsMinHeight,
       PlaybackHeroCardUiTuning.pControlsMaxHeight,
     );
-    final lNormalInfoTop = height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2;
+    final lNormalInfoTop =
+        height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2;
     final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
-    
-    final lNormalInfoLeft = lNormalRightCenter - (lNormalControlsWidth / 2);
-    final lNormalControlsLeft = lNormalRightCenter - (lNormalControlsWidth / 2);
 
     // ---------------- Landscape Lyrics ----------------
-    final lLyricsLeftColumnWidth = (width * 0.35).clamp(300.0, math.max(800.0, height * 0.6).toDouble()).toDouble();
-    final lLyricsCoverSide = lLyricsLeftColumnWidth * 0.7;
+    final lLyricsItemWidth = math
+        .min(width * 0.3, height * 0.55)
+        .clamp(280.0, 700.0);
+    final lLyricsLeftColumnWidth = lLyricsItemWidth + 32.0;
+
+    final lLyricsCoverSide = lLyricsItemWidth;
     const lLyricsCoverTop = 16.0;
-    
+
     const lLyricsLeftMargin = 32.0;
-    final lLyricsCoverLeft = lLyricsLeftMargin + (lLyricsLeftColumnWidth - lLyricsCoverSide) / 2;
+    final lLyricsCoverLeft = lLyricsLeftMargin + 16.0;
 
     const lLyricsInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
     final lLyricsInfoTop = lLyricsCoverTop + lLyricsCoverSide + 24.0;
-    const lLyricsInfoLeft = lLyricsLeftMargin + 16.0;
-    
+    final lLyricsInfoLeft = lLyricsCoverLeft;
+
     final lLyricsControlsTop = lLyricsInfoTop + lLyricsInfoHeight + 16.0;
     final lLyricsControlsHeight = height - lLyricsControlsTop;
-    const lLyricsControlsLeft = lLyricsLeftMargin + 16.0;
+    final lLyricsControlsLeft = lLyricsCoverLeft;
 
     final lLyricsLyricsLeft = lLyricsLeftMargin + lLyricsLeftColumnWidth + 16.0;
     final lLyricsLyricsWidth = width - lLyricsLyricsLeft - 32.0;
 
     // Build the Panes
     // Cover
-    final cover = _lerpPane(context,
-      pNormal: _PlaybackPaneLayout(top: pNormalCoverTop, left: (width - pNormalCoverSide) / 2, width: pNormalCoverSide, height: pNormalCoverSide, opacity: 1.0),
-      pLyrics: _PlaybackPaneLayout(top: pLyricsCoverTop, left: pLyricsCoverLeft, width: pLyricsCoverSide, height: pLyricsCoverSide, opacity: 1.0),
-      lNormal: _PlaybackPaneLayout(top: lNormalCoverTop, left: lNormalCoverLeft, width: lNormalCoverSide, height: lNormalCoverSide, opacity: 1.0),
-      lLyrics: _PlaybackPaneLayout(top: lLyricsCoverTop, left: lLyricsCoverLeft, width: lLyricsCoverSide, height: lLyricsCoverSide, opacity: 1.0),
-      tLyrics: tLyrics, tLand: tLand,
+    final cover = _lerpPane(
+      context,
+      pNormal: _PlaybackPaneLayout(
+        top: pNormalCoverTop,
+        left: (width - pNormalCoverSide) / 2,
+        width: pNormalCoverSide,
+        height: pNormalCoverSide,
+        opacity: 1.0,
+      ),
+      pLyrics: _PlaybackPaneLayout(
+        top: pLyricsCoverTop,
+        left: pLyricsCoverLeft,
+        width: pLyricsCoverSide,
+        height: pLyricsCoverSide,
+        opacity: 1.0,
+      ),
+      lNormal: _PlaybackPaneLayout(
+        top: lNormalCoverTop,
+        left: lNormalCoverLeft,
+        width: lNormalCoverSide,
+        height: lNormalCoverSide,
+        opacity: 1.0,
+      ),
+      lLyrics: _PlaybackPaneLayout(
+        top: lLyricsCoverTop,
+        left: lLyricsCoverLeft,
+        width: lLyricsCoverSide,
+        height: lLyricsCoverSide,
+        opacity: 1.0,
+      ),
+      tLyrics: tLyrics,
+      tLand: tLand,
     );
 
     // Info
-    final info = _lerpPane(context,
-      pNormal: _PlaybackPaneLayout(top: pNormalInfoTop, left: 24.0, width: width - 48.0, height: pNormalInfoHeight, opacity: 1.0),
-      pLyrics: _PlaybackPaneLayout(top: pLyricsInfoTop, left: pLyricsInfoLeft, width: width - pLyricsInfoLeft - 16.0, height: pLyricsInfoHeight, opacity: 1.0),
-      lNormal: _PlaybackPaneLayout(top: lNormalInfoTop, left: lNormalInfoLeft, width: lNormalControlsWidth, height: lNormalInfoHeight, opacity: 1.0),
-      lLyrics: _PlaybackPaneLayout(top: lLyricsInfoTop, left: lLyricsInfoLeft, width: lLyricsLeftColumnWidth - 32.0, height: lLyricsInfoHeight, opacity: 1.0),
-      tLyrics: tLyrics, tLand: tLand,
+    final info = _lerpPane(
+      context,
+      pNormal: _PlaybackPaneLayout(
+        top: pNormalInfoTop,
+        left: 24.0,
+        width: width - 48.0,
+        height: pNormalInfoHeight,
+        opacity: 1.0,
+      ),
+      pLyrics: _PlaybackPaneLayout(
+        top: pLyricsInfoTop,
+        left: pLyricsInfoLeft,
+        width: width - pLyricsInfoLeft - 16.0,
+        height: pLyricsInfoHeight,
+        opacity: 1.0,
+      ),
+      lNormal: _PlaybackPaneLayout(
+        top: lNormalInfoTop,
+        left: lNormalInfoLeft,
+        width: lNormalControlsWidth,
+        height: lNormalInfoHeight,
+        opacity: 1.0,
+      ),
+      lLyrics: _PlaybackPaneLayout(
+        top: lLyricsInfoTop,
+        left: lLyricsInfoLeft,
+        width: lLyricsItemWidth,
+        height: lLyricsInfoHeight,
+        opacity: 1.0,
+      ),
+      tLyrics: tLyrics,
+      tLand: tLand,
     );
 
     // Controls
-    final controls = _lerpPane(context,
-      pNormal: _PlaybackPaneLayout(top: pNormalControlsTop, left: 16.0, width: width - 32.0, height: pNormalControlsHeight, opacity: 1.0),
-      pLyrics: _PlaybackPaneLayout(top: height, left: 16.0, width: width - 32.0, height: pNormalControlsHeight, opacity: 0.0),
-      lNormal: _PlaybackPaneLayout(top: lNormalControlsTop, left: lNormalControlsLeft, width: lNormalControlsWidth, height: lNormalControlsHeight, opacity: 1.0),
-      lLyrics: _PlaybackPaneLayout(top: lLyricsControlsTop, left: lLyricsControlsLeft, width: lLyricsLeftColumnWidth - 32.0, height: lLyricsControlsHeight, opacity: 1.0),
-      tLyrics: tLyrics, tLand: tLand,
+    final controls = _lerpPane(
+      context,
+      pNormal: _PlaybackPaneLayout(
+        top: pNormalControlsTop,
+        left: 16.0,
+        width: width - 32.0,
+        height: pNormalControlsHeight,
+        opacity: 1.0,
+      ),
+      pLyrics: _PlaybackPaneLayout(
+        top: height,
+        left: 16.0,
+        width: width - 32.0,
+        height: pNormalControlsHeight,
+        opacity: 0.0,
+      ),
+      lNormal: _PlaybackPaneLayout(
+        top: lNormalControlsTop,
+        left: lNormalControlsLeft,
+        width: lNormalControlsWidth,
+        height: lNormalControlsHeight,
+        opacity: 1.0,
+      ),
+      lLyrics: _PlaybackPaneLayout(
+        top: lLyricsControlsTop,
+        left: lLyricsControlsLeft,
+        width: lLyricsItemWidth,
+        height: lLyricsControlsHeight,
+        opacity: 1.0,
+      ),
+      tLyrics: tLyrics,
+      tLand: tLand,
     );
 
     // Lyrics
-    final lyrics = _lerpPane(context,
-      pNormal: _PlaybackPaneLayout(top: height, left: 16.0, width: width - 32.0, height: height - pNormalInfoTop, opacity: 0.0),
-      pLyrics: _PlaybackPaneLayout(top: pLyricsCoverTop + pLyricsCoverSide + 16.0, left: 16.0, width: width - 32.0, height: height - (pLyricsCoverTop + pLyricsCoverSide + 16.0), opacity: 1.0),
-      lNormal: _PlaybackPaneLayout(top: 16.0, left: width, width: lLyricsLeftColumnWidth, height: height - 32.0, opacity: 0.0),
-      lLyrics: _PlaybackPaneLayout(top: 16.0, left: lLyricsLyricsLeft, width: lLyricsLyricsWidth, height: height - 32.0, opacity: 1.0),
-      tLyrics: tLyrics, tLand: tLand,
+    final lyrics = _lerpPane(
+      context,
+      pNormal: _PlaybackPaneLayout(
+        top: height,
+        left: 16.0,
+        width: width - 32.0,
+        height: height - pNormalInfoTop,
+        opacity: 0.0,
+      ),
+      pLyrics: _PlaybackPaneLayout(
+        top: pLyricsCoverTop + pLyricsCoverSide + 16.0,
+        left: 16.0,
+        width: width - 32.0,
+        height: height - (pLyricsCoverTop + pLyricsCoverSide + 16.0),
+        opacity: 1.0,
+      ),
+      lNormal: _PlaybackPaneLayout(
+        top: 16.0,
+        left: width,
+        width: lLyricsLeftColumnWidth,
+        height: height - 32.0,
+        opacity: 0.0,
+      ),
+      lLyrics: _PlaybackPaneLayout(
+        top: 16.0,
+        left: lLyricsLyricsLeft,
+        width: lLyricsLyricsWidth,
+        height: height - 32.0,
+        opacity: 1.0,
+      ),
+      tLyrics: tLyrics,
+      tLand: tLand,
     );
 
     final trackInfoAlign = isLandscape
         ? TextAlign.center
         : (isLyricsMode ? TextAlign.left : TextAlign.center);
+
+    final currentControlsScale = _lerp2D(
+      context,
+      1.0,
+      1.0,
+      math.max(1.0, lNormalControlsWidth / 700.0),
+      math.max(1.0, lLyricsItemWidth / 500.0),
+      tLyrics,
+      tLand,
+    );
 
     return _PlaybackCardLayout(
       cover: cover,
@@ -547,7 +676,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       controls: controls,
       lyrics: lyrics,
       trackInfoAlign: trackInfoAlign,
-      controlsScale: 1.0,
+      controlsScale: currentControlsScale,
     );
   }
 
@@ -669,6 +798,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     TextAlign align,
     double lyricsModeT,
     bool isLarge,
+    double controlsScale,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final title = currentMusic?.displayName ?? l10n.notSelected;
@@ -725,11 +855,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                 textAlign: TextAlign.start,
                 style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   color: Colors.white,
-                  fontSize: lyricsModeT > 0.5 && !isLandscape
-                      ? PlaybackHeroCardUiTuning.trackTitlePortraitLyricsFont
-                      : (isLarge
-                            ? PlaybackHeroCardUiTuning.trackTitleLargeFont
-                            : PlaybackHeroCardUiTuning.trackTitleStandardFont),
+                  fontSize:
+                      (lyricsModeT > 0.5 && !isLandscape
+                          ? PlaybackHeroCardUiTuning
+                                .trackTitlePortraitLyricsFont
+                          : (isLarge
+                                ? PlaybackHeroCardUiTuning.trackTitleLargeFont
+                                : PlaybackHeroCardUiTuning
+                                      .trackTitleStandardFont)) *
+                      controlsScale,
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
@@ -774,13 +908,16 @@ class PlaybackHeroCard extends ConsumerWidget {
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       color: Colors.white70,
-                      fontSize: lyricsModeT > 0.5 && !isLandscape
-                          ? PlaybackHeroCardUiTuning
-                                .trackArtistPortraitLyricsFont
-                          : (isLarge
-                                ? PlaybackHeroCardUiTuning.trackArtistLargeFont
-                                : PlaybackHeroCardUiTuning
-                                      .trackArtistStandardFont),
+                      fontSize:
+                          (lyricsModeT > 0.5 && !isLandscape
+                              ? PlaybackHeroCardUiTuning
+                                    .trackArtistPortraitLyricsFont
+                              : (isLarge
+                                    ? PlaybackHeroCardUiTuning
+                                          .trackArtistLargeFont
+                                    : PlaybackHeroCardUiTuning
+                                          .trackArtistStandardFont)) *
+                          controlsScale,
                       height: 1.3,
                     ),
                     child: Text(
@@ -1062,7 +1199,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                 duration: duration,
                 onScrubbing: onScrubbing ?? (_) {},
                 onSeek: onSeek ?? (_) {},
-                height: PlaybackHeroCardUiTuning.waveformOverlayHeight,
+                height:
+                    PlaybackHeroCardUiTuning.waveformOverlayHeight *
+                    controlsScale,
               ),
               // 播放控制按钮叠在上面 (Playback controls on top)
               Padding(
@@ -1079,11 +1218,13 @@ class PlaybackHeroCard extends ConsumerWidget {
                   formatDuration(
                     overridePosition ?? ref.watch(audioPositionProvider),
                   ),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 12 * controlsScale,
                     fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+                    shadows: const [
+                      Shadow(color: Colors.black45, blurRadius: 4),
+                    ],
                   ),
                 ),
               ),
@@ -1092,11 +1233,13 @@ class PlaybackHeroCard extends ConsumerWidget {
                 bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
                 child: Text(
                   formatDuration(duration),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 12 * controlsScale,
                     fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+                    shadows: const [
+                      Shadow(color: Colors.black45, blurRadius: 4),
+                    ],
                   ),
                 ),
               ),
@@ -1115,9 +1258,11 @@ class PlaybackHeroCard extends ConsumerWidget {
       children: [
         topButtonsRow,
         SizedBox(
-          height: isLandscape
-              ? PlaybackHeroCardUiTuning.controlsRowLandscapeGap
-              : PlaybackHeroCardUiTuning.controlsRowPortraitGap,
+          height:
+              (isLandscape
+                  ? PlaybackHeroCardUiTuning.controlsRowLandscapeGap
+                  : PlaybackHeroCardUiTuning.controlsRowPortraitGap) *
+              controlsScale,
         ),
         Builder(
           builder: (context) {
@@ -1138,11 +1283,17 @@ class PlaybackHeroCard extends ConsumerWidget {
                   duration: duration,
                   onScrubbing: onScrubbing ?? (_) {},
                   onSeek: onSeek ?? (_) {},
-                  height: PlaybackHeroCardUiTuning.waveformStandardHeight,
+                  height:
+                      PlaybackHeroCardUiTuning.waveformStandardHeight *
+                      controlsScale,
                 ),
               );
             }
-            return _buildStandardSlider(context, displayProgress);
+            return _buildStandardSlider(
+              context,
+              displayProgress,
+              controlsScale,
+            );
           },
         ),
         const SizedBox(height: 8),
@@ -1155,19 +1306,27 @@ class PlaybackHeroCard extends ConsumerWidget {
                 formatDuration(
                   overridePosition ?? ref.watch(audioPositionProvider),
                 ),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12 * controlsScale,
+                ),
               ),
               Text(
                 formatDuration(duration),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12 * controlsScale,
+                ),
               ),
             ],
           ),
         ),
         SizedBox(
-          height: isLandscape
-              ? PlaybackHeroCardUiTuning.controlsRowLandscapeGap
-              : PlaybackHeroCardUiTuning.controlsRowPortraitGap,
+          height:
+              (isLandscape
+                  ? PlaybackHeroCardUiTuning.controlsRowLandscapeGap
+                  : PlaybackHeroCardUiTuning.controlsRowPortraitGap) *
+              controlsScale,
         ),
         mainControlsRow,
       ],
@@ -1194,16 +1353,24 @@ class PlaybackHeroCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildStandardSlider(BuildContext context, double displayProgress) {
+  Widget _buildStandardSlider(
+    BuildContext context,
+    double displayProgress,
+    double controlsScale,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: PlaybackHeroCardUiTuning.waveformStandardHorizontalPadding,
       ),
       child: SliderTheme(
         data: SliderTheme.of(context).copyWith(
-          trackHeight: 4,
-          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-          overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+          trackHeight: 4 * controlsScale,
+          thumbShape: RoundSliderThumbShape(
+            enabledThumbRadius: 7 * controlsScale,
+          ),
+          overlayShape: RoundSliderOverlayShape(
+            overlayRadius: 16 * controlsScale,
+          ),
           activeTrackColor: Colors.white,
           inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
           thumbColor: Colors.white,

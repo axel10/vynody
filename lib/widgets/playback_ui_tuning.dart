@@ -56,7 +56,7 @@ class PlaybackHeroCardUiTuning {
 
   // 横屏参数 (Landscape parameters)
   static const double lControlsMinWidth = 360.0;
-  static const double lControlsMaxWidth = 700.0;
+  static const double lControlsMaxWidth = 850.0;
   static const double lCoverMinSide = 240.0;
   static const double lCoverMaxSide = 1600.0;
 
