@@ -550,12 +550,8 @@ class PlaybackHeroCard extends ConsumerWidget {
     // ---------------- Landscape Lyrics ----------------
     final lColWidth = _clampDouble(width * 0.30 * landscapeScale, 300.0, 620.0);
 
-    final lLyricsCoverSideBase = math.min(lColWidth * 0.80, height * 0.40);
-    final lLyricsCoverSide = _clampDouble(
-      lLyricsCoverSideBase * landscapeScale,
-      0.0,
-      math.min(math.min(lColWidth - 32.0, height * 0.45), 520.0),
-    );
+    final lLyricsCoverSideBase = lColWidth*0.85;
+    final lLyricsCoverSide = lLyricsCoverSideBase;
     final lLyricsCoverTop = 12.0 - landscapeLyricsLift;
     final lLyricsCoverLeft = (lColWidth - lLyricsCoverSide) / 2;
 
