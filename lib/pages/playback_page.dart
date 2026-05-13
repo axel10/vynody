@@ -717,11 +717,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 isLyricsMode
                     ? (isLandscape ? 50.0 : 16.0) // 歌词模式下播放页左侧区域距离屏幕左侧的距离
                     : (isLandscape ? 32.0 : 24.0),
-                isLyricsMode ? 8.0 : (isLandscape ? 32.0 : 24.0),
+                isLyricsMode ? 8.0 : (isLandscape ? 32.0 : 12.0),
                 isLyricsMode
                     ? (isLandscape ? 24.0 : 16.0)
                     : (isLandscape ? 32.0 : 24.0),
-                shouldReserveBottomNavSpace ? 20.0 + bottomPadding : 0.0,
+                shouldReserveBottomNavSpace ? 0.0 + bottomPadding : 0.0,
               ),
               child: Column(
                 children: [

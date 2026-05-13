@@ -292,8 +292,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                 // ---------------- Portrait Normal ----------------
                 // 确保控件区和信息区在高度缩小时优先保留空间
                 const pMinInfoH = 80.0;
-                const pMinControlsH = 320.0; // 调大以适应波形叠层布局 (Increase to accommodate overlay layout)
-                const pBottomGap = 0;     // 控件到底部的间距
+                const pMinControlsH = 220.0; // 调大以适应波形叠层布局 (Increase to accommodate overlay layout)
+                const pBottomGap = 0;    
                 const pMidGap = 4.0;
                 final pBottomAreaNeeded = pMinInfoH + pMinControlsH + pMidGap + pBottomGap;
 
@@ -598,7 +598,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      Positioned(
+                      Positioned( // 控件区
                         top: controlsTop,
                         left: controlsLeft,
                         width: controlsWidth,
@@ -607,7 +607,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                           opacity: controlsOpacity.clamp(0.0, 1.0),
                           child: IgnorePointer(
                             ignoring: controlsOpacity < 0.5,
-                            child: FittedBox(
+                            child: FittedBox( // 控件区
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.topCenter,
                               child: SizedBox(

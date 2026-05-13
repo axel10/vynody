@@ -105,38 +105,10 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                 widget.onSeek(newProgress);
               }
             },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                // 时间显示预览
-                if (_hoverProgress != null || _isDragging)
-                  SizedBox(
-                    height: 24,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white24, width: 0.5),
-                        ),
-                        child: Text(
-                          formatDuration(Duration(
-                            milliseconds: (widget.duration.inMilliseconds * (widget.progress)).toInt(),
-                          )),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  const SizedBox(height: 24),
-                
+                // 波形显示区
                 ClipRect(
                   child: SizedBox(
                     height: widget.height,
@@ -188,6 +160,35 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                     ),
                   ),
                 ),
+
+                // 时间显示预览 (作为叠层，不占位)
+                if (_hoverProgress != null || _isDragging)
+                  Positioned(
+                    top: -28,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white24, width: 0.5),
+                        ),
+                        child: Text(
+                          formatDuration(Duration(
+                            milliseconds: (widget.duration.inMilliseconds * (widget.progress)).toInt(),
+                          )),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
