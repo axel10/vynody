@@ -3,6 +3,32 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 
+enum PlaybackViewportTier { compact, large, ultraLarge }
+
+class PlaybackViewportProfile {
+  const PlaybackViewportProfile({
+    required this.width,
+    required this.height,
+    required this.isLandscape,
+    required this.landscapeScale,
+    required this.tier,
+  });
+
+  final double width;
+  final double height;
+  final bool isLandscape;
+  final double landscapeScale;
+  final PlaybackViewportTier tier;
+
+  double get shortestSide => math.min(width, height);
+  double get longestSide => math.max(width, height);
+
+  bool get isLargeOrAbove => tier.index >= PlaybackViewportTier.large.index;
+
+  bool get isUltraLargeOrAbove =>
+      tier.index >= PlaybackViewportTier.ultraLarge.index;
+}
+
 class PlaybackPageUiTuning {
   PlaybackPageUiTuning._();
 
@@ -111,11 +137,13 @@ class PlaybackHeroCardUiTuning {
   static const double controlsLandscapeWidthFactor = 0.38;
   static const double controlsLandscapeWidthMin = 420.0;
   static const double controlsLandscapeWidthMax = 500.0;
+  static const double controlsLandscapeWidthMaxUltraLarge = 700.0;
   static const double controlsPortraitWidthMin = 380.0;
   static const double controlsLandscapeLargeHeightThreshold = 1000.0;
   static const double controlsLandscapeLargeWidthThreshold = 2400.0;
   static const double controlsLandscapeLargeScaleThreshold = 0.95;
-  static const double controlsLandscapeScaleMultiplier = 0.85; // 新增：单独控制控件区的缩放倍率
+  static const double controlsLandscapeScaleMultiplier =
+      0.85; // 新增：单独控制控件区的缩放倍率
 
   static const double trackTitlePortraitLyricsFont = 18.0;
   static const double trackTitleLandscapeFont = 22.0;
@@ -139,6 +167,29 @@ class PlaybackHeroCardUiTuning {
   static const double waveformStandardTimeRowHorizontalPadding = 20.0;
   static const double waveformStandardTimeRowSpacing = 8.0;
 
+  static PlaybackViewportProfile viewportProfile({
+    required double width,
+    required double height,
+    required bool isLandscape,
+  }) {
+    final landscapeScale = isLandscape
+        ? landscapeScaleForSize(width, height)
+        : 1.0;
+    final tier = _classifyViewport(
+      width: width,
+      height: height,
+      landscapeScale: landscapeScale,
+    );
+
+    return PlaybackViewportProfile(
+      width: width,
+      height: height,
+      isLandscape: isLandscape,
+      landscapeScale: landscapeScale,
+      tier: tier,
+    );
+  }
+
   static double landscapeScaleForSize(double width, double height) {
     final shortestSide = math.min(width, height);
     final t =
@@ -146,5 +197,22 @@ class PlaybackHeroCardUiTuning {
                 (landscapeScaleShortestMax - landscapeScaleShortestMin))
             .clamp(0.0, 1.0);
     return lerpDouble(landscapeScaleMin, landscapeScaleMax, t) ?? 1.0;
+  }
+
+  static PlaybackViewportTier _classifyViewport({
+    required double width,
+    required double height,
+    required double landscapeScale,
+  }) {
+    // 这些阈值集中在一个地方，后面要加“超大屏 / 超超大屏”时，只需要改这里。
+    if (width >= 3840 || height >= 2160 || landscapeScale >= 1.50) {
+      return PlaybackViewportTier.ultraLarge;
+    }
+    if (width >= controlsLandscapeLargeWidthThreshold ||
+        height >= controlsLandscapeLargeHeightThreshold ||
+        landscapeScale >= controlsLandscapeLargeScaleThreshold) {
+      return PlaybackViewportTier.large;
+    }
+    return PlaybackViewportTier.compact;
   }
 }

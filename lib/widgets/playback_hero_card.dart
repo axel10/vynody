@@ -143,8 +143,16 @@ class PlaybackHeroCard extends ConsumerWidget {
     return (raw * dpr).round() / dpr;
   }
 
-  double _responsiveLandscapeScale(double width, double height) {
-    return PlaybackHeroCardUiTuning.landscapeScaleForSize(width, height);
+  PlaybackViewportProfile _viewportProfile(
+    double width,
+    double height,
+    bool landscape,
+  ) {
+    return PlaybackHeroCardUiTuning.viewportProfile(
+      width: width,
+      height: height,
+      isLandscape: landscape,
+    );
   }
 
   double _clampDouble(double value, double min, double max) {
@@ -334,10 +342,12 @@ class PlaybackHeroCard extends ConsumerWidget {
               builder: (context, constraints) {
                 final width = constraints.maxWidth.roundToDouble();
                 final height = constraints.maxHeight.roundToDouble();
+                final viewport = _viewportProfile(width, height, isLandscape);
                 final layout = _buildPlaybackCardLayout(
                   context,
                   width: width,
                   height: height,
+                  viewport: viewport,
                   tLyrics: tLyrics,
                   tLand: tLand,
                 );
@@ -384,8 +394,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                                             layout.controlsScale,
                                         PlaybackHeroCardUiTuning
                                             .controlsLandscapeWidthMin,
-                                        PlaybackHeroCardUiTuning
-                                            .controlsLandscapeWidthMax,
+                                        viewport.isUltraLargeOrAbove
+                                            ? PlaybackHeroCardUiTuning
+                                                  .controlsLandscapeWidthMaxUltraLarge
+                                            : PlaybackHeroCardUiTuning
+                                                  .controlsLandscapeWidthMax,
                                       )
                                     : math.max(
                                         layout.controls.width,
@@ -396,16 +409,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                                   context,
                                   ref,
                                   isLarge:
-                                      isLandscape &&
-                                      (height >
-                                              PlaybackHeroCardUiTuning
-                                                  .controlsLandscapeLargeHeightThreshold ||
-                                          width >
-                                              PlaybackHeroCardUiTuning
-                                                  .controlsLandscapeLargeWidthThreshold ||
-                                          layout.controlsScale >
-                                              PlaybackHeroCardUiTuning
-                                                  .controlsLandscapeLargeScaleThreshold),
+                                      viewport.isLandscape &&
+                                      viewport.isLargeOrAbove,
                                   controlsScale: isLandscape
                                       ? layout.controlsScale
                                       : 1.0,
@@ -436,7 +441,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                           currentMusic,
                           layout.trackInfoAlign,
                           tLyrics,
-                          height,
+                          viewport,
                         ),
                       ),
                     ],
@@ -454,14 +459,14 @@ class PlaybackHeroCard extends ConsumerWidget {
     BuildContext context, {
     required double width,
     required double height,
+    required PlaybackViewportProfile viewport,
     required double tLyrics,
     required double tLand,
   }) {
-    final landscapeScale = isLandscape
-        ? _responsiveLandscapeScale(width, height)
-        : 1.0;
+    final landscapeScale = viewport.landscapeScale;
     final controlsLandscapeScale = isLandscape
-        ? landscapeScale * PlaybackHeroCardUiTuning.controlsLandscapeScaleMultiplier
+        ? landscapeScale *
+              PlaybackHeroCardUiTuning.controlsLandscapeScaleMultiplier
         : 1.0;
 
     // ---------------- Portrait Normal ----------------
@@ -939,7 +944,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     MusicFile? currentMusic,
     TextAlign align,
     double lyricsModeT,
-    double height,
+    PlaybackViewportProfile viewport,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final title = currentMusic?.displayName ?? l10n.notSelected;
@@ -998,10 +1003,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   color: Colors.white,
                   fontSize: lyricsModeT > 0.5 && !isLandscape
                       ? PlaybackHeroCardUiTuning.trackTitlePortraitLyricsFont
-                      : (isLandscape &&
-                                height >
-                                    PlaybackHeroCardUiTuning
-                                        .controlsLandscapeLargeHeightThreshold
+                      : (viewport.isLargeOrAbove
                             ? PlaybackHeroCardUiTuning
                                   .trackTitleLandscapeLargeFont
                             : PlaybackHeroCardUiTuning.trackTitleLandscapeFont),
@@ -1052,10 +1054,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                       fontSize: lyricsModeT > 0.5 && !isLandscape
                           ? PlaybackHeroCardUiTuning
                                 .trackArtistPortraitLyricsFont
-                          : (isLandscape &&
-                                    height >
-                                        PlaybackHeroCardUiTuning
-                                            .controlsLandscapeLargeHeightThreshold
+                          : (viewport.isLargeOrAbove
                                 ? PlaybackHeroCardUiTuning
                                       .trackArtistLandscapeLargeFont
                                 : PlaybackHeroCardUiTuning
