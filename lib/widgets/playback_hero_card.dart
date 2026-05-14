@@ -397,7 +397,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                                                 .lLyricsPreferredCoverSide,
                                             tLyrics,
                                           )!
-                                        : width - 50.0) *
+                                        : width *
+                                            PlaybackHeroCardUiTuning
+                                                .portraitControlsWidthFactor) *
                                     layout.controlsScale,
                                 child: _buildPlaybackControlsWidget(
                                   context,
@@ -473,17 +475,27 @@ class PlaybackHeroCard extends ConsumerWidget {
         PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
         PlaybackHeroCardUiTuning.controlsRowPortraitGap +
         (isWaveformEnabled
-            ? PlaybackHeroCardUiTuning.waveformStandardHeight
-            : 48.0) +
-        8.0 + // Time gap in portrait is hardcoded to 8.0 in buildProgressSection
-        PlaybackHeroCardUiTuning.controlsTimeRowHeight +
-        PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-        PlaybackHeroCardUiTuning.controlsMainButtonsHeight;
+            ? PlaybackHeroCardUiTuning.waveformOverlayHeight
+            : 48.0) + // Normal slider height is roughly 48
+        (isWaveformEnabled
+            ? 0.0
+            : (8.0 + // Time gap
+                PlaybackHeroCardUiTuning.controlsTimeRowHeight +
+                PlaybackHeroCardUiTuning.controlsRowPortraitGap +
+                PlaybackHeroCardUiTuning.controlsMainButtonsHeight));
 
-    final pNormalControlsHeight = pNormalControlsBaseIdealHeight.clamp(
-      math.min(PlaybackHeroCardUiTuning.pControlsMinHeight, height * 0.45),
-      math.max(0.0, height * 0.45),
-    ).toDouble();
+    final pNormalControlsWidth =
+        width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
+    final pNormalControlsRawScale =
+        pNormalControlsWidth / PlaybackHeroCardUiTuning.controlsScaleBase;
+
+    final pNormalControlsHeight =
+        (pNormalControlsBaseIdealHeight * pNormalControlsRawScale)
+            .clamp(
+              0.0,
+              height * 0.45,
+            )
+            .ceilToDouble();
     final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
     final pNormalControlsTop = height - pNormalControlsHeight;
     final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight;
@@ -734,8 +746,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       context,
       pNormal: _PlaybackPaneLayout(
         top: pNormalControlsTop,
-        left: 16.0,
-        width: width - 32.0,
+        left: (width - pNormalControlsWidth) / 2,
+        width: pNormalControlsWidth,
         height: pNormalControlsHeight,
         opacity: 1.0,
       ),
@@ -1321,7 +1333,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               1.0,
               tLyrics,
             )!)
-          : PlaybackHeroCardUiTuning.progressBarWidthFactor;
+          : 0.9; // 竖屏下让进度条更宽 (Make progress bar wider in portrait)
       final baseWidth = isLandscape
           ? (lerpDouble(
               PlaybackHeroCardUiTuning.controlsScaleBase,
@@ -1408,7 +1420,10 @@ class PlaybackHeroCard extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          topButtonsRow,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: topButtonsRow,
+          ),
           const SizedBox(
             height: PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing,
           ),
@@ -1432,7 +1447,9 @@ class PlaybackHeroCard extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(
                   top: PlaybackHeroCardUiTuning.waveformOverlayTopPadding,
-                ), // 稍微向下偏移以避开波形顶部时间预览
+                  left: 16,
+                  right: 16,
+                ), // 稍微向下偏移以避开波形顶部时间预览，并增加左右间距 (Slightly offset down to avoid time preview and add horizontal gap)
                 child: mainControlsRow,
               ),
               // 时间显示在底部左右两侧 (Time display at bottom corners)

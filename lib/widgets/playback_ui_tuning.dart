@@ -54,6 +54,7 @@ class PlaybackHeroCardUiTuning {
   static const double pInfoHeight = 80.0;
   static const double pCoverMaxSide = 1000.0;
   static const double pNormalCoverInfoMinGap = 12.0;
+  static const double portraitControlsWidthFactor = 1.2; // 竖屏控件区宽度比例 (0.0 - 1.0)
 
   // 横屏参数 (Landscape parameters)
   static const double lControlsMinWidth = 360.0;
@@ -90,7 +91,7 @@ class PlaybackHeroCardUiTuning {
   static const double controlsMainButtonsHeight = 72.0;
   static const double controlsTimeRowHeight = 24.0;
   static const double controlsTimeGap = 8.0;
-  static const double progressBarWidthFactor = 0.75; // 百分比调节进度条宽度（参照上方按钮区）
+  static const double progressBarWidthFactor = 0.65; // 百分比调节进度条宽度（参照上方按钮区）
   static const double landscapeInfoControlsGap = 0.0;
   static const double landscapeInfoHeightBase = 48.0;
   static const double controlsRowLandscapeGap = 0;
