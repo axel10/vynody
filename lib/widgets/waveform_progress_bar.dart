@@ -34,7 +34,6 @@ class WaveformProgressBar extends StatefulWidget {
 
 class _WaveformProgressBarState extends State<WaveformProgressBar> {
   double? _hoverProgress;
-  bool _isDragging = false;
   double _dragStartX = 0;
   double _dragStartProgress = 0;
 
@@ -66,7 +65,6 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
           child: GestureDetector(
             onHorizontalDragStart: (details) {
               setState(() {
-                _isDragging = true;
                 _dragStartX = details.localPosition.dx;
                 _dragStartProgress = widget.progress;
               });
@@ -94,7 +92,6 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
             onHorizontalDragEnd: (details) {
               widget.onSeek(widget.progress);
               setState(() {
-                _isDragging = false;
                 _hoverProgress = null;
               });
             },
@@ -160,35 +157,6 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                     ),
                   ),
                 ),
-
-                // 时间显示预览 (作为叠层，不占位)
-                if (_hoverProgress != null || _isDragging)
-                  Positioned(
-                    top: -28,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white24, width: 0.5),
-                        ),
-                        child: Text(
-                          formatDuration(Duration(
-                            milliseconds: (widget.duration.inMilliseconds * (widget.progress)).toInt(),
-                          )),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
