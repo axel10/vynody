@@ -81,4 +81,11 @@ class PlaybackHeroCardUiTuning {
   static const double waveformStandardHorizontalPadding = 16.0;
   static const double waveformStandardTimeRowHorizontalPadding = 20.0;
   static const double waveformStandardTimeRowSpacing = 8.0;
+
+  // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
+  static const double controlsScaleBase = 540.0;
+  static const double controlsTopButtonsHeight = 48.0;
+  static const double controlsMainButtonsHeight = 72.0;
+  static const double controlsTimeRowHeight = 24.0;
+  static const double controlsTimeGap = 8.0;
 }

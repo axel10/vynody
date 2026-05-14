@@ -368,7 +368,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.topCenter,
                               child: SizedBox(
-                                width: layout.controls.width,
+                                width: 480.0 * layout.controlsScale,
                                 child: _buildPlaybackControlsWidget(
                                   context,
                                   ref,
@@ -403,7 +403,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                             tLand,
                           )!,
                           child: SizedBox(
-                            width: layout.info.width,
+                            width: PlaybackHeroCardUiTuning.controlsScaleBase *
+                                layout.controlsScale,
                             child: _buildTrackInfo(
                               context,
                               currentMusic,
@@ -463,7 +464,7 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final lColumnWidth = lNormalContentWidth * 0.5;
 
-    final lNormalControlsWidth = lColumnWidth.clamp(
+    final lNormalControlsWidth = (lNormalContentWidth * 0.38).clamp(
       PlaybackHeroCardUiTuning.lControlsMinWidth,
       PlaybackHeroCardUiTuning.lControlsMaxWidth,
     );
@@ -491,12 +492,30 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lNormalInfoHeight = (height * 0.12)
         .clamp(110.0, 250.0)
         .ceilToDouble();
-    final lNormalControlsHeight = (height * 0.4)
-        .clamp(PlaybackHeroCardUiTuning.pControlsMinHeight, 600.0)
+
+    // 控件区动态高度计算 (Dynamic controls height)
+    final lNormalScale = (lNormalControlsWidth /
+            PlaybackHeroCardUiTuning.controlsScaleBase)
+        .clamp(1.0, 1.8);
+
+    final lNormalControlsIdealHeight =
+        (PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
+            PlaybackHeroCardUiTuning.controlsRowLandscapeGap +
+            PlaybackHeroCardUiTuning.waveformStandardHeight +
+            PlaybackHeroCardUiTuning.controlsTimeGap +
+            PlaybackHeroCardUiTuning.controlsTimeRowHeight +
+            PlaybackHeroCardUiTuning.controlsRowLandscapeGap +
+            PlaybackHeroCardUiTuning.controlsMainButtonsHeight) *
+        lNormalScale;
+
+    final lNormalControlsHeight = lNormalControlsIdealHeight
+        .clamp(PlaybackHeroCardUiTuning.pControlsMinHeight, height * 0.5)
         .ceilToDouble();
+
     const lNormalGap = 32.0;
     final lNormalInfoTop =
-        (height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight + lNormalGap) / 2)
+        (height * 0.5 -
+                (lNormalInfoHeight + lNormalControlsHeight + lNormalGap) / 2)
             .roundToDouble();
     final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight + lNormalGap;
 
@@ -573,7 +592,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       1.0,
       1.0,
       // 横屏普通模式：基于列宽进行缩放
-      (lNormalControlsWidth / 480.0).clamp(1.0, 1.8),
+      (lNormalControlsWidth / PlaybackHeroCardUiTuning.controlsScaleBase)
+          .clamp(1.0, 1.8),
       // 横屏歌词模式：结合宽度基准和高度缩放系数
       (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
       tLyrics,
@@ -1310,18 +1330,96 @@ class PlaybackHeroCard extends ConsumerWidget {
     }
 
     // 默认布局 (Default layout)
+    if (isLandscape) {
+      return Column(
+        key: const ValueKey('default_controls_column'),
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          topButtonsRow,
+          SizedBox(
+            height: PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
+                controlsScale,
+          ),
+          Builder(
+            builder: (context) {
+              final waveform =
+                  overrideWaveform ?? currentMusic?.waveform ?? const [];
+              final displayProgress =
+                  overrideProgress ?? progress.clamp(0.0, 1.0);
+
+              if (isWaveformEnabled) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: PlaybackHeroCardUiTuning
+                        .waveformStandardHorizontalPadding,
+                  ),
+                  child: WaveformProgressBar(
+                    waveform: waveform,
+                    progress: displayProgress,
+                    duration: duration,
+                    onScrubbing: onScrubbing ?? (_) {},
+                    onSeek: onSeek ?? (_) {},
+                    height:
+                        PlaybackHeroCardUiTuning.waveformStandardHeight *
+                        controlsScale,
+                  ),
+                );
+              }
+              return _buildStandardSlider(
+                context,
+                displayProgress,
+                controlsScale,
+              );
+            },
+          ),
+          SizedBox(
+            height: PlaybackHeroCardUiTuning.controlsTimeGap * controlsScale,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  formatDuration(
+                    overridePosition ?? ref.watch(audioPositionProvider),
+                  ),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12 * controlsScale,
+                  ),
+                ),
+                Text(
+                  formatDuration(duration),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12 * controlsScale,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
+                controlsScale,
+          ),
+          mainControlsRow,
+        ],
+      );
+    }
+
+    // 竖屏非叠加布局 (Portrait non-overlay)
     return Column(
-      key: const ValueKey('default_controls_column'),
+      key: const ValueKey('default_controls_column_portrait'),
       mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         topButtonsRow,
         SizedBox(
-          height:
-              (isLandscape
-                  ? PlaybackHeroCardUiTuning.controlsRowLandscapeGap
-                  : PlaybackHeroCardUiTuning.controlsRowPortraitGap) *
+          height: PlaybackHeroCardUiTuning.controlsRowPortraitGap *
               controlsScale,
         ),
         Builder(
@@ -1382,10 +1480,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           ),
         ),
         SizedBox(
-          height:
-              (isLandscape
-                  ? PlaybackHeroCardUiTuning.controlsRowLandscapeGap
-                  : PlaybackHeroCardUiTuning.controlsRowPortraitGap) *
+          height: PlaybackHeroCardUiTuning.controlsRowPortraitGap *
               controlsScale,
         ),
         mainControlsRow,
