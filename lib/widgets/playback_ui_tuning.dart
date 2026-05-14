@@ -53,6 +53,7 @@ class PlaybackHeroCardUiTuning {
   static const double pControlsMaxHeight = 400.0;
   static const double pInfoHeight = 80.0;
   static const double pCoverMaxSide = 1000.0;
+  static const double pNormalCoverInfoMinGap = 12.0;
 
   // 横屏参数 (Landscape parameters)
   static const double lControlsMinWidth = 360.0;

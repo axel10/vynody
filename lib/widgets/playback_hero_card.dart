@@ -481,16 +481,19 @@ class PlaybackHeroCard extends ConsumerWidget {
         PlaybackHeroCardUiTuning.controlsMainButtonsHeight;
 
     final pNormalControlsHeight = pNormalControlsBaseIdealHeight.clamp(
-      PlaybackHeroCardUiTuning.pControlsMinHeight,
-      height * 0.45,
-    );
+      math.min(PlaybackHeroCardUiTuning.pControlsMinHeight, height * 0.45),
+      math.max(0.0, height * 0.45),
+    ).toDouble();
     final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
-    final pNormalCoverSide = math
-        .min(width * 0.85, height * 0.5)
-        .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide);
-
     final pNormalControlsTop = height - pNormalControlsHeight;
     final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight;
+    final pNormalCoverMinGap = PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap;
+
+    final pNormalCoverSide = math
+        .min(width * 0.85, pNormalInfoTop - 2 * pNormalCoverMinGap)
+        .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide)
+        .toDouble();
+
     final pNormalCoverTop = (pNormalInfoTop - pNormalCoverSide) / 2;
 
     // ---------------- Portrait Lyrics ----------------
