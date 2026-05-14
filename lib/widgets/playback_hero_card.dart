@@ -369,11 +369,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                               alignment: Alignment.topCenter,
                               child: SizedBox(
                                 width: layout.controls.width,
-                                  child: _buildPlaybackControlsWidget(
-                                    context,
-                                    ref,
-                                    controlsScale: layout.controlsScale,
-                                  ),
+                                child: _buildPlaybackControlsWidget(
+                                  context,
+                                  ref,
+                                  controlsScale: layout.controlsScale,
+                                ),
                               ),
                             ),
                           ),
@@ -395,12 +395,23 @@ class PlaybackHeroCard extends ConsumerWidget {
                         left: layout.info.left,
                         width: layout.info.width,
                         height: layout.info.height,
-                        child: _buildTrackInfo(
-                          context,
-                          currentMusic,
-                          layout.trackInfoAlign,
-                          tLyrics,
-                          layout.controlsScale,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.lerp(
+                            Alignment.center,
+                            Alignment.bottomCenter,
+                            tLand,
+                          )!,
+                          child: SizedBox(
+                            width: layout.info.width,
+                            child: _buildTrackInfo(
+                              context,
+                              currentMusic,
+                              layout.trackInfoAlign,
+                              tLyrics,
+                              layout.controlsScale,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -475,14 +486,19 @@ class PlaybackHeroCard extends ConsumerWidget {
         lNormalCoverRightEdge + (lRemainingSpace - lNormalControlsWidth) / 2;
     final lNormalInfoLeft = lNormalControlsLeft;
 
-    const lNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
-    final lNormalControlsHeight = (height * 0.4).clamp(
-      PlaybackHeroCardUiTuning.pControlsMinHeight,
-      PlaybackHeroCardUiTuning.pControlsMaxHeight,
-    );
+    // Snap the normal landscape panes to whole pixels to avoid 1px overflow
+    // when the window is resized and the layout lands on fractional values.
+    final lNormalInfoHeight = (height * 0.12)
+        .clamp(110.0, 250.0)
+        .ceilToDouble();
+    final lNormalControlsHeight = (height * 0.4)
+        .clamp(PlaybackHeroCardUiTuning.pControlsMinHeight, 600.0)
+        .ceilToDouble();
+    const lNormalGap = 32.0;
     final lNormalInfoTop =
-        height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight) / 2;
-    final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight;
+        (height * 0.5 - (lNormalInfoHeight + lNormalControlsHeight + lNormalGap) / 2)
+            .roundToDouble();
+    final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight + lNormalGap;
 
     // ---------------- Landscape Lyrics ----------------
     // 左侧列的目标宽度只跟高度相关，避免随着窗口横向拉伸产生跳变。
@@ -492,36 +508,48 @@ class PlaybackHeroCard extends ConsumerWidget {
     const lLyricsCoverInfoSpacing = 24.0;
     const lLyricsInfoControlsSpacing = 16.0;
     const lLyricsPreferredCoverSide = 360.0;
-    const lLyricsPreferredControlsHeight = 180.0;
+    const lLyricsPreferredControlsHeight = 220.0;
 
     final lLyricsAvailableHeight = math.max(
       0.0,
       height - (lLyricsTopPadding * 2),
     );
+    // Determine the total width of the left column (mainly dictated by the controls area)
+    final double lLyricsMaxColumnWidth = math.min(width * 0.45, 800.0);
+    final double lLyricsColumnWidth = (width * 0.22).clamp(
+      math.min(450.0, lLyricsMaxColumnWidth),
+      lLyricsMaxColumnWidth,
+    );
+    final double lLyricsWidthScale = (lLyricsColumnWidth / 400.0).clamp(
+      1.0,
+      1.8,
+    );
+
     final lLyricsPreferredTotalHeight =
-        lLyricsPreferredCoverSide +
+        (lLyricsPreferredCoverSide * lLyricsWidthScale) +
         lLyricsCoverInfoSpacing +
-        PlaybackHeroCardUiTuning.pInfoHeight +
+        (PlaybackHeroCardUiTuning.pInfoHeight * lLyricsWidthScale) +
         lLyricsInfoControlsSpacing +
-        lLyricsPreferredControlsHeight;
+        (lLyricsPreferredControlsHeight * lLyricsWidthScale);
     final lLyricsScale = lLyricsPreferredTotalHeight <= 0.0
         ? 1.0
         : math.min(1.0, lLyricsAvailableHeight / lLyricsPreferredTotalHeight);
+    final double lLyricsItemWidth = lLyricsColumnWidth;
 
-    // 确定左侧列的总宽度（主要由控制区宽度决定）
-    // Determine the total width of the left column (mainly dictated by the controls area)
-    final lLyricsColumnWidth = 450.0.clamp(320.0, width * 0.45);
-    final lLyricsItemWidth = lLyricsColumnWidth;
-
-    final lLyricsCoverSide = lLyricsPreferredCoverSide * lLyricsScale;
+    final lLyricsCoverSide =
+        lLyricsPreferredCoverSide * lLyricsWidthScale * lLyricsScale;
     final lLyricsInfoHeight =
-        PlaybackHeroCardUiTuning.pInfoHeight * lLyricsScale;
-    final lLyricsControlsHeight = lLyricsPreferredControlsHeight * lLyricsScale;
+        (PlaybackHeroCardUiTuning.pInfoHeight + 10.0) *
+        lLyricsWidthScale *
+        lLyricsScale;
+    final lLyricsControlsHeight =
+        lLyricsPreferredControlsHeight * lLyricsWidthScale * lLyricsScale;
     final lLyricsCoverTop = lLyricsTopPadding;
-    
+
     // 居中对齐逻辑：封面在列宽内居中，信息和控制区占满列宽
     // Centering logic: cover is centered within the column, info and controls fill the column
-    final lLyricsCoverLeft = lLyricsOuterLeftPadding + (lLyricsColumnWidth - lLyricsCoverSide) / 2;
+    final lLyricsCoverLeft =
+        lLyricsOuterLeftPadding + (lLyricsColumnWidth - lLyricsCoverSide) / 2;
     final lLyricsInfoLeft = lLyricsOuterLeftPadding;
     final lLyricsControlsLeft = lLyricsOuterLeftPadding;
 
@@ -532,10 +560,11 @@ class PlaybackHeroCard extends ConsumerWidget {
         lLyricsInfoTop + lLyricsInfoHeight + lLyricsInfoControlsSpacing;
 
     final lLyricsLyricsLeft =
-        lLyricsOuterLeftPadding +
-        lLyricsColumnWidth +
-        lLyricsInnerLeftPadding;
-    final lLyricsLyricsWidth = math.max(0.0, width - lLyricsLyricsLeft - 32.0);
+        lLyricsOuterLeftPadding + lLyricsColumnWidth + lLyricsInnerLeftPadding;
+    final double lLyricsLyricsWidth = math.max(
+      0.0,
+      width - lLyricsLyricsLeft - 32.0,
+    );
 
     // 移除离散的 isLarge 逻辑，改用连续的百分比缩放
     // Remove discrete isLarge logic, use continuous percentage scaling
@@ -544,9 +573,9 @@ class PlaybackHeroCard extends ConsumerWidget {
       1.0,
       1.0,
       // 横屏普通模式：基于列宽进行缩放
-      (lNormalControlsWidth / 420.0).clamp(1.0, 1.5),
+      (lNormalControlsWidth / 480.0).clamp(1.0, 1.8),
       // 横屏歌词模式：结合宽度基准和高度缩放系数
-      ((lLyricsColumnWidth / 380.0).clamp(1.0, 1.3) * lLyricsScale).clamp(0.4, 1.5),
+      (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
       tLyrics,
       tLand,
     );
@@ -848,6 +877,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         : Alignment.center;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -930,9 +960,12 @@ class PlaybackHeroCard extends ConsumerWidget {
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       color: Colors.white70,
-                      fontSize: (lyricsModeT > 0.5 && !isLandscape
-                              ? PlaybackHeroCardUiTuning.trackArtistPortraitLyricsFont
-                              : PlaybackHeroCardUiTuning.trackArtistStandardFont) *
+                      fontSize:
+                          (lyricsModeT > 0.5 && !isLandscape
+                              ? PlaybackHeroCardUiTuning
+                                    .trackArtistPortraitLyricsFont
+                              : PlaybackHeroCardUiTuning
+                                    .trackArtistStandardFont) *
                           controlsScale,
                       height: 1.3,
                     ),
@@ -1280,7 +1313,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     return Column(
       key: const ValueKey('default_controls_column'),
       mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         topButtonsRow,
