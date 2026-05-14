@@ -61,12 +61,12 @@ class PlaybackHeroCardUiTuning {
   static const double lCoverMaxSide = 1800.0;
   static const double lLyricsPreferredCoverSide = 360.0;
 
-  static const double trackTitlePortraitLyricsFont = 18.0;
-  static const double trackTitleStandardFont = 22.0;
-  static const double trackTitleLargeFont = 28.0;
-  static const double trackArtistPortraitLyricsFont = 13.0;
-  static const double trackArtistStandardFont = 15.0;
-  static const double trackArtistLargeFont = 18.0;
+  static const double trackTitlePortraitLyricsFont = 20.0;
+  static const double trackTitleStandardFont = 24.0;
+  static const double trackTitleLargeFont = 30.0;
+  static const double trackArtistPortraitLyricsFont = 14.0;
+  static const double trackArtistStandardFont = 16.0;
+  static const double trackArtistLargeFont = 20.0;
 
   // static const double controlsRowLandscapeGap = 16.0;
   static const double controlsRowPortraitGap = 12.0;

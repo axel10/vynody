@@ -340,7 +340,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final width = constraints.maxWidth.roundToDouble();
                 final height = constraints.maxHeight.roundToDouble();
                 final isWaveformEnabled = ref.watch(
-                  settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
+                  settingsServiceProvider.select(
+                    (s) => s.isWaveformProgressBarEnabled,
+                  ),
                 );
 
                 final layout = _buildPlaybackCardLayout(
@@ -385,21 +387,25 @@ class PlaybackHeroCard extends ConsumerWidget {
                               // 控件区
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.center,
-                            child: SizedBox(
-                              width: (isLandscape
-                                      ? lerpDouble(
-                                          PlaybackHeroCardUiTuning.controlsScaleBase,
-                                          PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide,
-                                          tLyrics)!
-                                      : PlaybackHeroCardUiTuning.controlsScaleBase) *
-                                  layout.controlsScale,
-                              child: _buildPlaybackControlsWidget(
-                                context,
-                                ref,
-                                controlsScale: layout.controlsScale,
-                                tLyrics: tLyrics,
+                              child: SizedBox(
+                                width:
+                                    (isLandscape
+                                        ? lerpDouble(
+                                            PlaybackHeroCardUiTuning
+                                                .controlsScaleBase,
+                                            PlaybackHeroCardUiTuning
+                                                .lLyricsPreferredCoverSide,
+                                            tLyrics,
+                                          )!
+                                        : width - 50.0) *
+                                    layout.controlsScale,
+                                child: _buildPlaybackControlsWidget(
+                                  context,
+                                  ref,
+                                  controlsScale: layout.controlsScale,
+                                  tLyrics: tLyrics,
+                                ),
                               ),
-                            ),
                             ),
                           ),
                         ),
@@ -432,13 +438,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                             tLand,
                           )!,
                           child: SizedBox(
-                            width: (isLandscape
-                                    ? lerpDouble(
-                                        PlaybackHeroCardUiTuning.controlsScaleBase,
-                                        PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide,
-                                        tLyrics)!
-                                    : PlaybackHeroCardUiTuning.controlsScaleBase) *
-                                layout.controlsScale,
+                            width: layout.info.width,
                             child: _buildTrackInfo(
                               context,
                               currentMusic,
@@ -469,9 +469,20 @@ class PlaybackHeroCard extends ConsumerWidget {
     required bool isWaveformEnabled,
   }) {
     // ---------------- Portrait Normal ----------------
-    final pNormalControlsHeight = (height * 0.3).clamp(
+    final pNormalControlsBaseIdealHeight =
+        PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
+        PlaybackHeroCardUiTuning.controlsRowPortraitGap +
+        (isWaveformEnabled
+            ? PlaybackHeroCardUiTuning.waveformStandardHeight
+            : 48.0) +
+        8.0 + // Time gap in portrait is hardcoded to 8.0 in buildProgressSection
+        PlaybackHeroCardUiTuning.controlsTimeRowHeight +
+        PlaybackHeroCardUiTuning.controlsRowPortraitGap +
+        PlaybackHeroCardUiTuning.controlsMainButtonsHeight;
+
+    final pNormalControlsHeight = pNormalControlsBaseIdealHeight.clamp(
       PlaybackHeroCardUiTuning.pControlsMinHeight,
-      PlaybackHeroCardUiTuning.pControlsMaxHeight,
+      height * 0.45,
     );
     final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
     final pNormalCoverSide = math
@@ -528,9 +539,10 @@ class PlaybackHeroCard extends ConsumerWidget {
         lNormalControlsWidth / PlaybackHeroCardUiTuning.controlsScaleBase;
 
     // 标题区实际高度 (Title actual height)
-    final lNormalInfoHeight = (PlaybackHeroCardUiTuning.landscapeInfoHeightBase *
-            lNormalControlsRawScale.clamp(0.0, 1.8))
-        .ceilToDouble();
+    final lNormalInfoHeight =
+        (PlaybackHeroCardUiTuning.landscapeInfoHeightBase *
+                lNormalControlsRawScale.clamp(0.0, 1.8))
+            .ceilToDouble();
 
     // 控件区动态高度计算 (Dynamic controls height)
     final lNormalControlsBaseIdealHeight =
@@ -547,7 +559,10 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lNormalControlsHeight =
         (lNormalControlsBaseIdealHeight *
                 lNormalControlsRawScale.clamp(0.0, 1.8))
-            .clamp(0.0, height * 0.5) // Remove pControlsMinHeight clamp to allow exact fit
+            .clamp(
+              0.0,
+              height * 0.5,
+            ) // Remove pControlsMinHeight clamp to allow exact fit
             .ceilToDouble();
 
     final lNormalGap = PlaybackHeroCardUiTuning.landscapeInfoControlsGap;
@@ -630,8 +645,10 @@ class PlaybackHeroCard extends ConsumerWidget {
       1.0,
       1.0,
       // 横屏普通模式：基于列宽进行缩放
-      (lNormalControlsWidth / PlaybackHeroCardUiTuning.controlsScaleBase)
-          .clamp(1.0, 1.8),
+      (lNormalControlsWidth / PlaybackHeroCardUiTuning.controlsScaleBase).clamp(
+        1.0,
+        1.8,
+      ),
       // 横屏歌词模式：结合宽度基准和高度缩放系数
       (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
       tLyrics,
@@ -1296,10 +1313,18 @@ class PlaybackHeroCard extends ConsumerWidget {
     Widget buildProgressSection() {
       // 在横屏切换到歌词模式的过程中，平滑插值宽度系数和基准宽度
       final widthFactor = isLandscape
-          ? (lerpDouble(PlaybackHeroCardUiTuning.progressBarWidthFactor, 1.0, tLyrics)!)
+          ? (lerpDouble(
+              PlaybackHeroCardUiTuning.progressBarWidthFactor,
+              1.0,
+              tLyrics,
+            )!)
           : PlaybackHeroCardUiTuning.progressBarWidthFactor;
       final baseWidth = isLandscape
-          ? (lerpDouble(PlaybackHeroCardUiTuning.controlsScaleBase, PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide, tLyrics)!)
+          ? (lerpDouble(
+              PlaybackHeroCardUiTuning.controlsScaleBase,
+              PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide,
+              tLyrics,
+            )!)
           : PlaybackHeroCardUiTuning.controlsScaleBase;
       final totalWidth = baseWidth * controlsScale;
 
@@ -1337,7 +1362,9 @@ class PlaybackHeroCard extends ConsumerWidget {
             ),
             SizedBox(
               height:
-                  (isLandscape ? PlaybackHeroCardUiTuning.controlsTimeGap : 8.0) *
+                  (isLandscape
+                      ? PlaybackHeroCardUiTuning.controlsTimeGap
+                      : 8.0) *
                   controlsScale,
             ),
             Padding(
@@ -1454,12 +1481,14 @@ class PlaybackHeroCard extends ConsumerWidget {
         children: [
           topButtonsRow,
           SizedBox(
-            height: PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
+            height:
+                PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
                 controlsScale,
           ),
           buildProgressSection(),
           SizedBox(
-            height: PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
+            height:
+                PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
                 controlsScale,
           ),
           mainControlsRow,
@@ -1476,13 +1505,13 @@ class PlaybackHeroCard extends ConsumerWidget {
       children: [
         topButtonsRow,
         SizedBox(
-          height: PlaybackHeroCardUiTuning.controlsRowPortraitGap *
-              controlsScale,
+          height:
+              PlaybackHeroCardUiTuning.controlsRowPortraitGap * controlsScale,
         ),
         buildProgressSection(),
         SizedBox(
-          height: PlaybackHeroCardUiTuning.controlsRowPortraitGap *
-              controlsScale,
+          height:
+              PlaybackHeroCardUiTuning.controlsRowPortraitGap * controlsScale,
         ),
         mainControlsRow,
       ],
