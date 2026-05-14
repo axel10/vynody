@@ -74,10 +74,10 @@ class PlaybackHeroCardUiTuning {
 
   // static const double controlsRowLandscapeGap = 16.0;
   static const double controlsRowPortraitGap = 12.0;
-  static const double topButtonsLandscapeLargeGap = 30.0;
-  static const double topButtonsLandscapeGap = 22.0;
-  static const double topButtonsLandscapeSpacer = 16.0;
-  static const double topButtonsPortraitSpacer = 12.0;
+  static const double topButtonsHorizontalPadding = 0.0; // 顶部按钮行的水平内边距
+  static const double topButtonsIconSize = 24.0; // 顶部按钮图标的基础大小
+  static const double topButtonsInnerGap = 12.0; // 按钮之间的固定间距 (Gap between buttons)
+
   static const double waveformOverlayHeight = 240.0;
   static const double waveformOverlayTopPadding = 20.0;
   static const double waveformOverlayTimeSide = 20.0;
@@ -96,7 +96,7 @@ class PlaybackHeroCardUiTuning {
   static const double controlsMainButtonsHeight = 72.0;
   static const double controlsTimeRowHeight = 24.0;
   static const double controlsTimeGap = 8.0;
-  static const double progressBarWidthFactor = 0.65; // 百分比调节进度条宽度（参照上方按钮区）
+  static const double progressBarWidthFactor = 0.76; // 百分比调节进度条宽度（参照上方按钮区）
   static const double portraitProgressBarWidthFactor =
       1.0; // 竖屏进度条宽度比例 (1.0 为全屏宽)
   static const double landscapeInfoControlsGap = 0.0;
