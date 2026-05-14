@@ -58,10 +58,11 @@ class PlaybackHeroCardUiTuning {
       1.0; // 竖屏控件区宽度比例 (0.0 - 1.0)
 
   // 横屏参数 (Landscape parameters)
-  static const double lControlsMinWidth = 360.0;
+  static const double lControlsMinWidth = 440.0;
   static const double lControlsMaxWidth = 1000.0;
   static const double lCoverMinSide = 240.0;
   static const double lCoverMaxSide = 1800.0;
+  static const double lNormalCoverSideFactor = 0.72; // 横屏普通模式封面尺寸系数
   static const double lLyricsPreferredCoverSide = 360.0;
 
   static const double trackTitlePortraitLyricsFont = 20.0;

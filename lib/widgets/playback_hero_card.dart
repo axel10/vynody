@@ -543,12 +543,19 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final lColumnWidth = lNormalContentWidth * 0.5;
 
-    final lNormalControlsWidth = (lNormalContentWidth * 0.28).clamp(
+    // 横屏普通模式控件区宽度：采用具有较高基底和较低增长率的公式，
+    // 使得在窗口化（较小宽度）时控件区比例更大，而在全屏（较大宽度）时保持原样。
+    // (Landscape normal controls width: Use a formula with a higher base and lower growth rate,
+    // making the controls area relatively larger in windowed mode while maintaining fullscreen size.)
+    final lNormalControlsWidth = (lNormalContentWidth * 0.24 + 72).clamp(
       PlaybackHeroCardUiTuning.lControlsMinWidth,
       PlaybackHeroCardUiTuning.lControlsMaxWidth,
     );
     final lNormalCoverSide = math
-        .min(lColumnWidth * 0.8, height * 0.8)
+        .min(
+          lColumnWidth * PlaybackHeroCardUiTuning.lNormalCoverSideFactor,
+          height * PlaybackHeroCardUiTuning.lNormalCoverSideFactor,
+        )
         .clamp(
           PlaybackHeroCardUiTuning.lCoverMinSide,
           PlaybackHeroCardUiTuning.lCoverMaxSide,
@@ -677,9 +684,9 @@ class PlaybackHeroCard extends ConsumerWidget {
     final currentControlsScale = _lerp2DSmooth(
       1.0,
       1.0,
-      // 横屏普通模式：基于列宽进行缩放
+      // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
       (lNormalControlsWidth / PlaybackHeroCardUiTuning.controlsScaleBase).clamp(
-        1.0,
+        0.85,
         1.8,
       ),
       // 横屏歌词模式：结合宽度基准和高度缩放系数
