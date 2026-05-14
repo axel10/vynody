@@ -1256,12 +1256,20 @@ class PlaybackHeroCard extends ConsumerWidget {
                 behavior: HitTestBehavior.opaque,
                 onTap: onSleepTimerTap,
                 child: Container(
+                  width: PlaybackHeroCardUiTuning.controlsTopButtonsHeight *
+                      controlsScale,
                   height: PlaybackHeroCardUiTuning.controlsTopButtonsHeight *
                       controlsScale,
-                  alignment: Alignment.center,
+                  alignment: Alignment.topCenter,
+                  padding: EdgeInsets.only(
+                    top: (PlaybackHeroCardUiTuning.controlsTopButtonsHeight -
+                            PlaybackHeroCardUiTuning.topButtonsIconSize) /
+                        2 *
+                        controlsScale,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Icon(
                         Icons.bedtime_rounded,
