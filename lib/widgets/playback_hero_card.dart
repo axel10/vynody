@@ -491,22 +491,40 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final pNormalControlsHeight =
         (pNormalControlsBaseIdealHeight * pNormalControlsRawScale)
-            .clamp(
-              0.0,
-              height * 0.45,
-            )
+            .clamp(0.0, height * 0.45)
             .ceilToDouble();
     final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
-    final pNormalControlsTop = height - pNormalControlsHeight;
-    final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight;
-    final pNormalCoverMinGap = PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap;
 
+    // 避让底部 Tab 栏高度 (Avoid bottom tab bar height)
+    final pNormalBottomLimit = height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
+
+    // 封面贴顶 (Cover sticks to top)
+    const pNormalCoverTop = 0.0;
+
+    // 内容总高度 (Total content height: Info + Controls)
+    final pNormalTotalContentHeight = pNormalInfoHeight + pNormalControlsHeight;
+
+    // 封面尺寸：在满足下方内容展示空间的情况下，尽量占满宽度
+    // 留出最小间距以防重叠 (Reserved min gap to prevent overlap)
     final pNormalCoverSide = math
-        .min(width * 0.85, pNormalInfoTop - 2 * pNormalCoverMinGap)
+        .min(
+          width,
+          pNormalBottomLimit -
+              pNormalTotalContentHeight -
+              PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap,
+        )
         .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide)
         .toDouble();
 
-    final pNormalCoverTop = (pNormalInfoTop - pNormalCoverSide) / 2;
+    // 在封面底部到 Tab 栏顶部之间的剩余空间内居中放置标题和控件区
+    // Center title and controls between bottom of cover and top of tab bar
+    final pNormalAvailableHeight = pNormalBottomLimit - pNormalCoverSide;
+    final pNormalContentTop =
+        pNormalCoverSide +
+        (pNormalAvailableHeight - pNormalTotalContentHeight) / 2;
+
+    final pNormalInfoTop = pNormalContentTop;
+    final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight;
 
     // ---------------- Portrait Lyrics ----------------
     final pLyricsCoverSide = 120.0;
@@ -746,8 +764,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       context,
       pNormal: _PlaybackPaneLayout(
         top: pNormalControlsTop,
-        left: (width - pNormalControlsWidth) / 2,
-        width: pNormalControlsWidth,
+        left: (width - math.min(width, pNormalControlsWidth)) / 2,
+        width: math.min(width, pNormalControlsWidth),
         height: pNormalControlsHeight,
         opacity: 1.0,
       ),
@@ -1099,6 +1117,15 @@ class PlaybackHeroCard extends ConsumerWidget {
       settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
     );
 
+    final baseWidth = isLandscape
+        ? (lerpDouble(
+              PlaybackHeroCardUiTuning.controlsScaleBase,
+              PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide,
+              tLyrics,
+            )!)
+        : PlaybackHeroCardUiTuning.controlsScaleBase;
+    final totalWidth = baseWidth * controlsScale;
+
     // 竖屏模式下如果启用波形进度条，则使用叠层布局 (Overlay layout in portrait if waveform is enabled)
     final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
 
@@ -1333,15 +1360,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               1.0,
               tLyrics,
             )!)
-          : 0.9; // 竖屏下让进度条更宽 (Make progress bar wider in portrait)
-      final baseWidth = isLandscape
-          ? (lerpDouble(
-              PlaybackHeroCardUiTuning.controlsScaleBase,
-              PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide,
-              tLyrics,
-            )!)
-          : PlaybackHeroCardUiTuning.controlsScaleBase;
-      final totalWidth = baseWidth * controlsScale;
+          : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor; // 竖屏下进度条宽度比例
 
       return SizedBox(
         width: totalWidth * widthFactor,
@@ -1356,7 +1375,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     overrideProgress ?? progress.clamp(0.0, 1.0);
 
                 if (isWaveformEnabled) {
-                  return WaveformProgressBar(
+                  final waveformWidget = WaveformProgressBar(
                     waveform: waveform,
                     progress: displayProgress,
                     duration: duration,
@@ -1366,6 +1385,14 @@ class PlaybackHeroCard extends ConsumerWidget {
                         PlaybackHeroCardUiTuning.waveformStandardHeight *
                         controlsScale,
                   );
+                  if (!isLandscape) {
+                    return Transform.scale(
+                      scaleX:
+                          PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
+                      child: waveformWidget,
+                    );
+                  }
+                  return waveformWidget;
                 }
                 return _buildStandardSlider(
                   context,
@@ -1431,59 +1458,117 @@ class PlaybackHeroCard extends ConsumerWidget {
             key: const ValueKey('overlay_controls_stack'),
             alignment: Alignment.center,
             children: [
-              // 波形进度条作为背景 (Waveform as background)
-              // 让 WaveformProgressBar 成为非定位子组件以撑开 Stack 的高度
-              WaveformProgressBar(
-                waveform: waveform,
-                progress: displayProgress,
-                duration: duration,
-                onScrubbing: onScrubbing ?? (_) {},
-                onSeek: onSeek ?? (_) {},
-                height:
-                    PlaybackHeroCardUiTuning.waveformOverlayHeight *
-                    controlsScale,
+              // 1. 只有波形进度条进行缩放 (Only waveform is scaled)
+              Transform.scale(
+                scaleX: PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
+                child: SizedBox(
+                  width: totalWidth,
+                  child: WaveformProgressBar(
+                    waveform: waveform,
+                    progress: displayProgress,
+                    duration: duration,
+                    onScrubbing: onScrubbing ?? (_) {},
+                    onSeek: onSeek ?? (_) {},
+                    height:
+                        PlaybackHeroCardUiTuning.waveformOverlayHeight *
+                        controlsScale,
+                  ),
+                ),
               ),
-              // 播放控制按钮叠在上面 (Playback controls on top)
+              // 2. 时间文字单独平移，避免拉伸 (Time text translated separately to avoid stretching)
+              // 计算平移距离：使其跟随波形向外移动，但增加阻尼，并严格限制最小屏幕边距
+              Builder(
+                builder: (context) {
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final pagePadding =
+                      PlaybackPageUiTuning.normalPortraitHorizontalPadding;
+                  const minScreenMargin = 10.0; // 强制要求的最小屏幕边距
+
+                  // 计算当前 FittedBox 的缩放比例 (理想宽度 / 实际显示宽度)
+                  // 注意：此处 cardWidth 是 PlaybackHeroCard 的实际可用宽度
+                  final cardWidth = screenWidth - (pagePadding * 2);
+                  final fittedScale = cardWidth / totalWidth;
+
+                  // 初始位移计算 (带阻尼)
+                  final rawShift =
+                      (PlaybackHeroCardUiTuning.waveformOverlayTimeSide -
+                              totalWidth / 2) *
+                          (PlaybackHeroCardUiTuning.portraitWaveformOverflowScale -
+                              1) *
+                          0.8;
+
+                  // 限制位移：确保 (pagePadding + (side + shift) * fittedScale) >= minScreenMargin
+                  // 解得：shift >= (minScreenMargin - pagePadding) / fittedScale - side
+                  final minAllowedShift =
+                      (minScreenMargin - pagePadding) / fittedScale -
+                      PlaybackHeroCardUiTuning.waveformOverlayTimeSide;
+
+                  // 因为 shift 是负数（向左移），所以是用 clamp(minAllowedShift, 0)
+                  // 对于右侧文字，它是对称的
+                  final safeShift = rawShift.clamp(minAllowedShift, 0.0);
+
+                  return SizedBox(
+                    width: totalWidth,
+                    height:
+                        PlaybackHeroCardUiTuning.waveformOverlayHeight *
+                        controlsScale,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
+                          bottom:
+                              PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
+                          child: Transform.translate(
+                            offset: Offset(safeShift, 0),
+                            child: Text(
+                              formatDuration(
+                                overridePosition ??
+                                    ref.watch(audioPositionProvider),
+                              ),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12 * controlsScale,
+                                fontWeight: FontWeight.bold,
+                                shadows: const [
+                                  Shadow(color: Colors.black45, blurRadius: 4),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right:
+                              PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
+                          bottom:
+                              PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
+                          child: Transform.translate(
+                            offset: Offset(-safeShift, 0),
+                            child: Text(
+                              formatDuration(duration),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12 * controlsScale,
+                                fontWeight: FontWeight.bold,
+                                shadows: const [
+                                  Shadow(color: Colors.black45, blurRadius: 4),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              // 3. 播放控制按钮叠在上面，不跟随缩放 (Playback controls on top, no scaling)
               Padding(
                 padding: const EdgeInsets.only(
                   top: PlaybackHeroCardUiTuning.waveformOverlayTopPadding,
                   left: 16,
                   right: 16,
-                ), // 稍微向下偏移以避开波形顶部时间预览，并增加左右间距 (Slightly offset down to avoid time preview and add horizontal gap)
+                ),
                 child: mainControlsRow,
-              ),
-              // 时间显示在底部左右两侧 (Time display at bottom corners)
-              Positioned(
-                left: PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
-                bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
-                child: Text(
-                  formatDuration(
-                    overridePosition ?? ref.watch(audioPositionProvider),
-                  ),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12 * controlsScale,
-                    fontWeight: FontWeight.bold,
-                    shadows: const [
-                      Shadow(color: Colors.black45, blurRadius: 4),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                right: PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
-                bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
-                child: Text(
-                  formatDuration(duration),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12 * controlsScale,
-                    fontWeight: FontWeight.bold,
-                    shadows: const [
-                      Shadow(color: Colors.black45, blurRadius: 4),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),

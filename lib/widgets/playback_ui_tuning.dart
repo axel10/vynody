@@ -54,7 +54,8 @@ class PlaybackHeroCardUiTuning {
   static const double pInfoHeight = 80.0;
   static const double pCoverMaxSide = 1000.0;
   static const double pNormalCoverInfoMinGap = 12.0;
-  static const double portraitControlsWidthFactor = 1.2; // 竖屏控件区宽度比例 (0.0 - 1.0)
+  static const double portraitControlsWidthFactor =
+      1.0; // 竖屏控件区宽度比例 (0.0 - 1.0)
 
   // 横屏参数 (Landscape parameters)
   static const double lControlsMinWidth = 360.0;
@@ -84,15 +85,22 @@ class PlaybackHeroCardUiTuning {
   static const double waveformStandardHorizontalPadding = 16.0;
   static const double waveformStandardTimeRowHorizontalPadding = 20.0;
   static const double waveformStandardTimeRowSpacing = 8.0;
+  static const double portraitWaveformOverflowScale =
+      1.35; // 竖屏波形进度条溢出缩放 (仅视觉，不影响布局)
 
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
-  static const double controlsScaleBase = 560.0;
+  // 减小此值会让按钮和文字在相同屏幕宽度下显得更大
+  static const double controlsScaleBase = 480.0;
   static const double controlsTopButtonsHeight = 48.0;
   static const double controlsMainButtonsHeight = 72.0;
   static const double controlsTimeRowHeight = 24.0;
   static const double controlsTimeGap = 8.0;
   static const double progressBarWidthFactor = 0.65; // 百分比调节进度条宽度（参照上方按钮区）
+  static const double portraitProgressBarWidthFactor =
+      1.0; // 竖屏进度条宽度比例 (1.0 为全屏宽)
   static const double landscapeInfoControlsGap = 0.0;
   static const double landscapeInfoHeightBase = 48.0;
   static const double controlsRowLandscapeGap = 0;
+
+  static const double portraitBottomReservedSpace = 0;
 }
