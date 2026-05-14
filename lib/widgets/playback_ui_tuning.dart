@@ -59,6 +59,7 @@ class PlaybackHeroCardUiTuning {
   static const double lControlsMaxWidth = 1000.0;
   static const double lCoverMinSide = 240.0;
   static const double lCoverMaxSide = 1800.0;
+  static const double lLyricsPreferredCoverSide = 360.0;
 
   static const double trackTitlePortraitLyricsFont = 18.0;
   static const double trackTitleStandardFont = 22.0;
@@ -67,7 +68,7 @@ class PlaybackHeroCardUiTuning {
   static const double trackArtistStandardFont = 15.0;
   static const double trackArtistLargeFont = 18.0;
 
-  static const double controlsRowLandscapeGap = 16.0;
+  // static const double controlsRowLandscapeGap = 16.0;
   static const double controlsRowPortraitGap = 12.0;
   static const double topButtonsLandscapeLargeGap = 30.0;
   static const double topButtonsLandscapeGap = 22.0;
@@ -83,9 +84,13 @@ class PlaybackHeroCardUiTuning {
   static const double waveformStandardTimeRowSpacing = 8.0;
 
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
-  static const double controlsScaleBase = 540.0;
+  static const double controlsScaleBase = 560.0;
   static const double controlsTopButtonsHeight = 48.0;
   static const double controlsMainButtonsHeight = 72.0;
   static const double controlsTimeRowHeight = 24.0;
   static const double controlsTimeGap = 8.0;
+  static const double progressBarWidthFactor = 0.75; // 百分比调节进度条宽度（参照上方按钮区）
+  static const double landscapeInfoControlsGap = 0.0;
+  static const double landscapeInfoHeightBase = 48.0;
+  static const double controlsRowLandscapeGap = 0;
 }
