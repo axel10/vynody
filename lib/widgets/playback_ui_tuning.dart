@@ -81,12 +81,12 @@ class PlaybackHeroCardUiTuning {
   static const double trackArtistLargeFont = 20.0;
 
   // static const double controlsRowLandscapeGap = 16.0;
-  static const double controlsRowPortraitGap = 12.0;
+  static const double controlsRowPortraitGap = 8.0;
   static const double topButtonsHorizontalPadding = 0.0; // 顶部按钮行的水平内边距
   static const double topButtonsIconSize = 24.0; // 顶部按钮图标的基础大小
   static const double topButtonsInnerGap = 12.0; // 按钮之间的固定间距 (Gap between buttons)
 
-  static const double waveformOverlayHeight = 240.0;
+  static const double waveformOverlayHeight = 200.0;
   static const double waveformOverlayTopPadding = 20.0;
   static const double waveformOverlayTimeSide = 20.0;
   static const double waveformOverlayTimeBottom = 10.0;
@@ -94,7 +94,7 @@ class PlaybackHeroCardUiTuning {
   static const double waveformLandscapeHeight = 74.0; // 横屏下波形进度条的高度
   static const double waveformStandardHorizontalPadding = 16.0;
   static const double waveformStandardTimeRowHorizontalPadding = 20.0;
-  static const double waveformStandardTimeRowSpacing = 8.0;
+  static const double waveformStandardTimeRowSpacing = 0.0;
   static const double portraitWaveformOverflowScale =
       1.35; // 竖屏波形进度条溢出缩放 (仅视觉，不影响布局)
 

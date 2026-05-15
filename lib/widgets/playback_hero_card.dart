@@ -473,7 +473,9 @@ class PlaybackHeroCard extends ConsumerWidget {
     // ---------------- Portrait Normal ----------------
     final pNormalControlsBaseIdealHeight =
         PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
-        PlaybackHeroCardUiTuning.controlsRowPortraitGap +
+        (isWaveformEnabled
+            ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
+            : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
         (isWaveformEnabled
             ? PlaybackHeroCardUiTuning.waveformOverlayHeight
             : 48.0) + // Normal slider height is roughly 48

@@ -254,7 +254,7 @@ class WaveformPainter extends CustomPainter {
     if (waveform.isEmpty) return;
 
     final double centerY = size.height / 2;
-    final double maxBarHeight = size.height * 0.8;
+    final double maxBarHeight = size.height * 0.9;
     final double totalBarWidth = barWidth + barGap;
     
     // 计算当前进度对应的索引（浮点数，用于精确偏移）
