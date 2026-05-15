@@ -1382,7 +1382,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             onPressed: onToggleVisualizer,
             tooltip: AppLocalizations.of(context)!.visualizer,
           ),
-          SizedBox(width: 4 * controlsScale),
+          SizedBox(width: 8 * controlsScale),
           IconButton(
             icon: Icon(
               Icons.skip_previous_rounded,
@@ -1668,10 +1668,8 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
               // 3. 播放控制按钮叠在上面，不跟随缩放 (Playback controls on top, no scaling)
               Padding(
-                padding: const EdgeInsets.only(
-                  top: PlaybackHeroCardUiTuning.waveformOverlayTopPadding,
-                  left: 16,
-                  right: 16,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
                 ),
                 child: mainControlsRow,
               ),

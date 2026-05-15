@@ -37,25 +37,22 @@ class VolumeSliderOverlay extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Padding(
-                  padding: EdgeInsets.only(
-                    bottom: isLandscape ? 100 : 160,
-                  ),
+                  padding: EdgeInsets.only(bottom: isLandscape ? 100 : 160),
                   child: GestureDetector(
                     onTap: () {}, // Prevent dismissal
                     child: Container(
                       width: 300,
+                      clipBehavior: Clip.antiAlias,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.black87,
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(999),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: 0.3,
-                            ),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 10,
                             spreadRadius: 2,
                           ),
@@ -63,10 +60,7 @@ class VolumeSliderOverlay extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            getVolumeIcon(volume),
-                            color: Colors.white,
-                          ),
+                          Icon(getVolumeIcon(volume), color: Colors.white),
                           const SizedBox(width: 8),
                           Expanded(
                             child: GestureDetector(
@@ -83,16 +77,14 @@ class VolumeSliderOverlay extends StatelessWidget {
                                   }
                                 },
                                 child: SliderTheme(
-                                  data: SliderTheme.of(context)
-                                      .copyWith(
-                                        activeTrackColor: Colors.white,
-                                        inactiveTrackColor: Colors.white24,
-                                        thumbColor: Colors.white,
-                                        overlayColor: Colors.white
-                                            .withValues(
-                                              alpha: 0.2,
-                                            ),
-                                      ),
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: Colors.white,
+                                    inactiveTrackColor: Colors.white24,
+                                    thumbColor: Colors.white,
+                                    overlayColor: Colors.white.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                  ),
                                   child: Slider(
                                     value: volume,
                                     min: 0,
@@ -130,10 +122,7 @@ class VolumeSliderOverlay extends StatelessWidget {
 }
 
 class VolumeHUD extends StatelessWidget {
-  const VolumeHUD({
-    super.key,
-    required this.volume,
-  });
+  const VolumeHUD({super.key, required this.volume});
 
   final double volume;
 
@@ -146,10 +135,8 @@ class VolumeHUD extends StatelessWidget {
       child: Center(
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 10,
-          ),
+          clipBehavior: Clip.antiAlias,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.black54,
             borderRadius: BorderRadius.circular(20),
@@ -168,10 +155,7 @@ class VolumeHUD extends StatelessWidget {
                 children: [
                   Text(
                     AppLocalizations.of(context)!.volume,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                   Text(
                     '${volume.round()}%',

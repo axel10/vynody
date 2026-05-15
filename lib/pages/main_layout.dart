@@ -483,6 +483,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final uiState = ref.watch(mainLayoutUiControllerProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
     ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
       if (_lastVolume != null && (_lastVolume! - next).abs() > 0.1) {
@@ -658,7 +659,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                       left: (useSidebar && !isPlayback) ? 80 : 0,
                       right: 0,
                       child: Center(
-                        child: !isPlayback
+                        child: !isPlayback && currentMusic != null
                             ? Builder(
                                 builder: (context) {
                                   final audio = ref.read(audioServiceProvider);
