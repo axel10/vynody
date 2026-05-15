@@ -127,23 +127,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                           ),
                         ),
                         
-                        // 播放头指示线 (仅在滚动模式下居中显示，或者在静态模式下跟随进度)
-                        if (widget.isScrolling)
-                          Container(
-                            width: 2,
-                            height: widget.height * 0.75,
-                            decoration: BoxDecoration(
-                              color: widget.activeColor,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: widget.activeColor.withValues(alpha: 0.5),
-                                  blurRadius: 8,
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
-                          )
-                        else if (_hoverProgress != null)
+                        if (_hoverProgress != null)
                           Positioned(
                             left: _hoverProgress! * width,
                             top: 10,
