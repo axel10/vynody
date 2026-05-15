@@ -675,44 +675,67 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
               ),
             ],
           ),
-          if (_isRootSelectionMode)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Material(
-                elevation: 8,
-                child: Container(
-                  color: Theme.of(context).colorScheme.surface,
-                  child: SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          Text(selectionLabel),
-                          const Spacer(),
-                          TextButton.icon(
-                            onPressed: _selectedRootPaths.isEmpty
-                                ? null
-                                : () => _deleteSelectedRootFolders(scanner),
-                            icon: const Icon(Icons.delete),
-                            label: Text(AppLocalizations.of(context)!.delete),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              reverseDuration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offsetAnimation = Tween<Offset>(
+                  begin: const Offset(0, 1.0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return SlideTransition(
+                  position: offsetAnimation,
+                  child: child,
+                );
+              },
+              child: _isRootSelectionMode
+                  ? Material(
+                      key: const ValueKey('root-selection-bar'),
+                      elevation: 8,
+                      child: Container(
+                        color: Theme.of(context).colorScheme.surface,
+                        child: SafeArea(
+                          top: false,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                Text(selectionLabel),
+                                const Spacer(),
+                                TextButton.icon(
+                                  onPressed: _selectedRootPaths.isEmpty
+                                      ? null
+                                      : () =>
+                                          _deleteSelectedRootFolders(scanner),
+                                  icon: const Icon(Icons.delete),
+                                  label: Text(
+                                    AppLocalizations.of(context)!.delete,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: _toggleRootSelectionMode,
+                                  child: Text(
+                                    AppLocalizations.of(context)!.cancel,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          TextButton(
-                            onPressed: _toggleRootSelectionMode,
-                            child: Text(AppLocalizations.of(context)!.cancel),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              ),
+                    )
+                  : const SizedBox.shrink(key: ValueKey('root-selection-none')),
             ),
+          ),
         ],
       );
     } else {
@@ -723,7 +746,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
             currentFolder,
             navigationHistory,
           );
-      final selectionPanelHeight = showSelectionPanel ? 124.0 : 0.0;
+      final selectionPanelHeight = showSelectionPanel ? 152.0 : 0.0;
       currentBody = PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
@@ -992,62 +1015,128 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         ),
       );
 
-      if (showSelectionPanel) {
-        final selectedSongs = _selectedSongsFromFolder(currentFolder.files);
-        currentBody = Stack(
-          children: [
-            currentBody,
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Material(
-                elevation: 10,
-                color: Theme.of(context).colorScheme.surface,
-                child: SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                    child: Row(
-                      children: [
-                        _buildSelectionActionButton(
-                          icon: Icons.select_all,
-                          label: AppLocalizations.of(context)!.selectAll,
-                          onPressed: currentFolder.files.isEmpty
-                              ? null
-                              : () =>
-                                    _selectAllVisibleSongs(currentFolder.files),
+      final selectedSongs = showSelectionPanel
+          ? _selectedSongsFromFolder(currentFolder.files)
+          : <MusicFile>[];
+      currentBody = Stack(
+        children: [
+          currentBody,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              reverseDuration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offsetAnimation = Tween<Offset>(
+                  begin: const Offset(0, 1.0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return SlideTransition(
+                  position: offsetAnimation,
+                  child: child,
+                );
+              },
+              child: showSelectionPanel
+                  ? Padding(
+                      key: const ValueKey('folder-selection-panel'),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: SafeArea(
+                        top: false,
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 680),
+                            child: Material(
+                              elevation: 16,
+                              color: Theme.of(context).colorScheme.surface,
+                              shadowColor: Colors.black26,
+                              borderRadius: BorderRadius.circular(24),
+                              clipBehavior: Clip.antiAlias,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  14,
+                                  12,
+                                  14,
+                                  14,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.selectedSongs(selectedSongs.length),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelLarge,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        _buildSelectionActionButton(
+                                          icon: Icons.select_all,
+                                          label: AppLocalizations.of(
+                                            context,
+                                          )!.selectAll,
+                                          onPressed: currentFolder.files.isEmpty
+                                              ? null
+                                              : () => _selectAllVisibleSongs(
+                                                  currentFolder.files,
+                                                ),
+                                        ),
+                                        _buildSelectionActionButton(
+                                          icon: Icons.queue_music_outlined,
+                                          label: AppLocalizations.of(
+                                            context,
+                                          )!.addToQueue,
+                                          onPressed: selectedSongs.isEmpty
+                                              ? null
+                                              : () => _addSelectedSongsToQueue(
+                                                    selectedSongs,
+                                                  ),
+                                        ),
+                                        _buildSelectionActionButton(
+                                          icon: Icons.playlist_add,
+                                          label: AppLocalizations.of(
+                                            context,
+                                          )!.addToPlaylist,
+                                          onPressed: selectedSongs.isEmpty
+                                              ? null
+                                              : () =>
+                                                  _addSelectedSongsToPlaylist(
+                                                    selectedSongs,
+                                                  ),
+                                        ),
+                                        _buildSelectionActionButton(
+                                          icon: Icons.close,
+                                          label: AppLocalizations.of(
+                                            context,
+                                          )!.cancel,
+                                          onPressed: _toggleSelectionMode,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                        _buildSelectionActionButton(
-                          icon: Icons.queue_music_outlined,
-                          label: AppLocalizations.of(context)!.addToQueue,
-                          onPressed: selectedSongs.isEmpty
-                              ? null
-                              : () => _addSelectedSongsToQueue(selectedSongs),
-                        ),
-                        _buildSelectionActionButton(
-                          icon: Icons.playlist_add,
-                          label: AppLocalizations.of(context)!.addToPlaylist,
-                          onPressed: selectedSongs.isEmpty
-                              ? null
-                              : () =>
-                                    _addSelectedSongsToPlaylist(selectedSongs),
-                        ),
-                        _buildSelectionActionButton(
-                          icon: Icons.close,
-                          label: AppLocalizations.of(context)!.cancel,
-                          onPressed: _toggleSelectionMode,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ],
+                      ),
+                    )
+                  : const SizedBox.shrink(
+                      key: ValueKey('folder-selection-panel-hidden'),
                     ),
-                  ),
-                ),
-              ),
             ),
-          ],
-        );
-      }
+          ),
+        ],
+      );
     }
 
     if (Platform.isWindows) {
