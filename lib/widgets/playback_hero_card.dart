@@ -589,7 +589,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
         PlaybackHeroCardUiTuning.controlsRowLandscapeGap +
         (isWaveformEnabled
-            ? PlaybackHeroCardUiTuning.waveformStandardHeight
+            ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
             : 48.0) + // Use smaller height when waveform is disabled
         PlaybackHeroCardUiTuning.controlsTimeGap +
         PlaybackHeroCardUiTuning.controlsTimeRowHeight +
@@ -1485,8 +1485,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                     duration: duration,
                     onScrubbing: onScrubbing ?? (_) {},
                     onSeek: onSeek ?? (_) {},
-                    height:
-                        PlaybackHeroCardUiTuning.waveformStandardHeight *
+                    height: (isLandscape
+                            ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
+                            : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
                         controlsScale,
                   );
                   if (!isLandscape) {
