@@ -34,6 +34,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   final Set<String> _selectedSongPaths = {};
   bool _isRootSelectionMode = false;
   final Set<String> _selectedRootPaths = {};
+  late final FolderSelectionModeController _folderSelectionModeController;
   StreamSubscription<ScanProgress>? _scanProgressSubscription;
   ToastFuture? _scanToast;
   bool _wasScanning = false;
@@ -47,7 +48,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       ValueNotifier<_ScanToastState?>(null);
 
   void _setFolderSelectionMode(bool enabled) {
-    ref.read(folderSelectionModeProvider.notifier).setEnabled(enabled);
+    _folderSelectionModeController.setEnabled(enabled);
   }
 
   bool _isUserRootSelectionContext(
@@ -404,6 +405,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   void initState() {
     super.initState();
     _scanner = ref.read(scannerServiceProvider);
+    _folderSelectionModeController = ref.read(
+      folderSelectionModeProvider.notifier,
+    );
     _wasScanning = _scanner!.isScanning;
     _scanner!.addListener(_handleScannerChanged);
     _scanProgressSubscription = _scanner!.scanProgressStream.listen(
@@ -413,7 +417,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   @override
   void dispose() {
-    _setFolderSelectionMode(false);
+    // Defer the provider write so it happens after the current widget tree
+    // finishes unmounting. Doing it synchronously here can trip Riverpod's
+    // "modifying a provider while building" assertion during tab switches.
+    Future.microtask(() {
+      _setFolderSelectionMode(false);
+    });
     _scanToastUpdateTimer?.cancel();
     _scanToastAutoDismissTimer?.cancel();
     _scanProgressSubscription?.cancel();
@@ -689,10 +698,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   begin: const Offset(0, 1.0),
                   end: Offset.zero,
                 ).animate(animation);
-                return SlideTransition(
-                  position: offsetAnimation,
-                  child: child,
-                );
+                return SlideTransition(position: offsetAnimation, child: child);
               },
               child: _isRootSelectionMode
                   ? Material(
@@ -715,7 +721,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                   onPressed: _selectedRootPaths.isEmpty
                                       ? null
                                       : () =>
-                                          _deleteSelectedRootFolders(scanner),
+                                            _deleteSelectedRootFolders(scanner),
                                   icon: const Icon(Icons.delete),
                                   label: Text(
                                     AppLocalizations.of(context)!.delete,
@@ -996,13 +1002,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         },
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(file.path)
-                            : () {
-                                // 先切到播放页，避免把元数据解析和播放准备
-                                // 的耗时阻塞在“进入页面”这一步。
+                            : () async {
+                                await audio.playFile(file.path, file.name);
                                 if (mounted) {
-                                  unawaited(widget.onOpenPlayback?.call());
+                                  _clearAllSelection();
+                                  await widget.onOpenPlayback?.call();
                                 }
-                                unawaited(audio.playFile(file.path, file.name));
                               },
                       ),
                     );

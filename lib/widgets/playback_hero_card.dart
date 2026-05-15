@@ -398,8 +398,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                                             tLyrics,
                                           )!
                                         : width *
-                                            PlaybackHeroCardUiTuning
-                                                .portraitControlsWidthFactor) *
+                                              PlaybackHeroCardUiTuning
+                                                  .portraitControlsWidthFactor) *
                                     layout.controlsScale,
                                 child: _buildPlaybackControlsWidget(
                                   context,
@@ -480,9 +480,9 @@ class PlaybackHeroCard extends ConsumerWidget {
         (isWaveformEnabled
             ? 0.0
             : (8.0 + // Time gap
-                PlaybackHeroCardUiTuning.controlsTimeRowHeight +
-                PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-                PlaybackHeroCardUiTuning.controlsMainButtonsHeight));
+                  PlaybackHeroCardUiTuning.controlsTimeRowHeight +
+                  PlaybackHeroCardUiTuning.controlsRowPortraitGap +
+                  PlaybackHeroCardUiTuning.controlsMainButtonsHeight));
 
     final pNormalControlsWidth =
         width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
@@ -496,7 +496,8 @@ class PlaybackHeroCard extends ConsumerWidget {
     final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
 
     // 避让底部 Tab 栏高度 (Avoid bottom tab bar height)
-    final pNormalBottomLimit = height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
+    final pNormalBottomLimit =
+        height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
 
     // 封面贴顶 (Cover sticks to top)
     const pNormalCoverTop = 0.0;
@@ -685,10 +686,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       1.0,
       1.0,
       // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
-      (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase).clamp(
-        0.85,
-        1.8,
-      ),
+      (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
+          .clamp(0.85, 1.8),
       // 横屏歌词模式：结合宽度基准和高度缩放系数
       (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
       tLyrics,
@@ -1138,10 +1137,10 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final baseWidth = isLandscape
         ? (lerpDouble(
-              PlaybackHeroCardUiTuning.lControlsScaleBase,
-              PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide,
-              tLyrics,
-            )!)
+            PlaybackHeroCardUiTuning.lControlsScaleBase,
+            PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide,
+            tLyrics,
+          )!)
         : PlaybackHeroCardUiTuning.pControlsScaleBase;
 
     final totalWidth = baseWidth * controlsScale;
@@ -1175,7 +1174,8 @@ class PlaybackHeroCard extends ConsumerWidget {
               tooltip: l10n.more,
             ),
             SizedBox(
-              width: PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              width:
+                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
             ),
             IconButton(
               padding: EdgeInsets.zero,
@@ -1191,22 +1191,19 @@ class PlaybackHeroCard extends ConsumerWidget {
                     PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
                 color: isFavorite ? Colors.redAccent : Colors.white70,
               ),
-              onPressed:
-                  currentMusic == null
-                       ? null
-                       : () async {
-                         final playlistService = ref.read(
-                           playlistServiceProvider,
-                         );
-                         await playlistService.toggleFavoriteSong(
-                           currentMusic,
-                         );
-                       },
-              tooltip:
-                  isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
+              onPressed: currentMusic == null
+                  ? null
+                  : () async {
+                      final playlistService = ref.read(playlistServiceProvider);
+                      await playlistService.toggleFavoriteSong(currentMusic);
+                    },
+              tooltip: isFavorite
+                  ? l10n.removeFromFavorites
+                  : l10n.addToFavorites,
             ),
             SizedBox(
-              width: PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              width:
+                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
             ),
             GestureDetector(
               onLongPress: onShowPlaylistModeSelector,
@@ -1228,7 +1225,8 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
             ),
             SizedBox(
-              width: PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              width:
+                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
             ),
             GestureDetector(
               onLongPress: onShowRandomModeSelector,
@@ -1243,15 +1241,13 @@ class PlaybackHeroCard extends ConsumerWidget {
                   size:
                       PlaybackHeroCardUiTuning.topButtonsIconSize *
                       controlsScale,
-                  color:
-                      isRandomMode
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.white70,
+                  color: isRandomMode
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.white70,
                 ),
                 onPressed: () {
                   final audio = ref.read(audioServiceProvider);
-                  if (audio.settingsService.randomRange == 1 &&
-                      !isRandomMode) {
+                  if (audio.settingsService.randomRange == 1 && !isRandomMode) {
                     final playlistService = ref.read(playlistServiceProvider);
                     final List<MusicFile> allSongs = [];
                     final pathSet = <String>{};
@@ -1269,7 +1265,8 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
             ),
             SizedBox(
-              width: PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              width:
+                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
             ),
             IconButton(
               padding: EdgeInsets.zero,
@@ -1288,26 +1285,29 @@ class PlaybackHeroCard extends ConsumerWidget {
               tooltip: l10n.tagCompletion,
             ),
             SizedBox(
-              width: PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              width:
+                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
             ),
             Tooltip(
-              message:
-                  sleepTimerRemaining != null
-                      ? l10n.sleepTimerRemaining(
-                        _formatSleepTimer(sleepTimerRemaining),
-                      )
-                      : l10n.sleepTimer,
+              message: sleepTimerRemaining != null
+                  ? l10n.sleepTimerRemaining(
+                      _formatSleepTimer(sleepTimerRemaining),
+                    )
+                  : l10n.sleepTimer,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: onSleepTimerTap,
                 child: Container(
-                  width: PlaybackHeroCardUiTuning.controlsTopButtonsHeight *
+                  width:
+                      PlaybackHeroCardUiTuning.controlsTopButtonsHeight *
                       controlsScale,
-                  height: PlaybackHeroCardUiTuning.controlsTopButtonsHeight *
+                  height:
+                      PlaybackHeroCardUiTuning.controlsTopButtonsHeight *
                       controlsScale,
                   alignment: Alignment.topCenter,
                   padding: EdgeInsets.only(
-                    top: (PlaybackHeroCardUiTuning.controlsTopButtonsHeight -
+                    top:
+                        (PlaybackHeroCardUiTuning.controlsTopButtonsHeight -
                             PlaybackHeroCardUiTuning.topButtonsIconSize) /
                         2 *
                         controlsScale,
@@ -1318,12 +1318,12 @@ class PlaybackHeroCard extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.bedtime_rounded,
-                        size: PlaybackHeroCardUiTuning.topButtonsIconSize *
+                        size:
+                            PlaybackHeroCardUiTuning.topButtonsIconSize *
                             controlsScale,
-                        color:
-                            sleepTimerRemaining != null
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.white70,
+                        color: sleepTimerRemaining != null
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.white70,
                       ),
                       if (sleepTimerRemaining != null) ...[
                         const SizedBox(height: 2),
@@ -1345,7 +1345,8 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
             ),
             SizedBox(
-              width: PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              width:
+                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
             ),
             IconButton(
               padding: EdgeInsets.zero,
@@ -1366,7 +1367,6 @@ class PlaybackHeroCard extends ConsumerWidget {
         ),
       ),
     );
-
 
     final mainControlsRow = FittedBox(
       fit: BoxFit.scaleDown,
@@ -1488,15 +1488,17 @@ class PlaybackHeroCard extends ConsumerWidget {
                     duration: duration,
                     onScrubbing: onScrubbing ?? (_) {},
                     onSeek: onSeek ?? (_) {},
-                    height: (isLandscape
+                    height:
+                        (isLandscape
                             ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
-                            : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
+                            : PlaybackHeroCardUiTuning
+                                  .waveformPortraitLyricsHeight) *
                         controlsScale,
                   );
                   if (!isLandscape) {
                     return Transform.scale(
-                      scaleX:
-                          PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
+                      scaleX: PlaybackHeroCardUiTuning
+                          .portraitWaveformOverflowScale,
                       child: waveformWidget,
                     );
                   }
@@ -1597,10 +1599,10 @@ class PlaybackHeroCard extends ConsumerWidget {
                   // 初始位移计算 (带阻尼)
                   final rawShift =
                       (PlaybackHeroCardUiTuning.waveformOverlayTimeSide -
-                              totalWidth / 2) *
-                          (PlaybackHeroCardUiTuning.portraitWaveformOverflowScale -
-                              1) *
-                          0.8;
+                          totalWidth / 2) *
+                      (PlaybackHeroCardUiTuning.portraitWaveformOverflowScale -
+                          1) *
+                      0.8;
 
                   // 限制位移：确保 (pagePadding + (side + shift) * fittedScale) >= minScreenMargin
                   // 解得：shift >= (minScreenMargin - pagePadding) / fittedScale - side
@@ -1620,9 +1622,10 @@ class PlaybackHeroCard extends ConsumerWidget {
                     child: Stack(
                       children: [
                         Positioned(
-                          left: PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
-                          bottom:
-                              PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
+                          left:
+                              PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
+                          bottom: PlaybackHeroCardUiTuning
+                              .waveformOverlayTimeBottom,
                           child: Transform.translate(
                             offset: Offset(safeShift, 0),
                             child: Text(
@@ -1644,8 +1647,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                         Positioned(
                           right:
                               PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
-                          bottom:
-                              PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
+                          bottom: PlaybackHeroCardUiTuning
+                              .waveformOverlayTimeBottom,
                           child: Transform.translate(
                             offset: Offset(-safeShift, 0),
                             child: Text(
@@ -1668,9 +1671,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
               // 3. 播放控制按钮叠在上面，不跟随缩放 (Playback controls on top, no scaling)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: mainControlsRow,
               ),
             ],

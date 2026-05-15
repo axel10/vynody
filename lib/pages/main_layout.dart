@@ -45,8 +45,16 @@ Future<void> navigateToMainTab(
   BuildContext context, {
   required int index,
   List<String> args = const [],
-}) {
-  return Navigator.of(
+}) async {
+  // 切页前先收起所有 tooltip，避免鼠标事件在路由切换期间继续驱动
+  // 旧页面或新页面上的 RawTooltip 状态。
+  Tooltip.dismissAllToolTips();
+
+  // 让当前指针事件先完全结束，再执行路由替换。
+  await Future<void>.delayed(Duration.zero);
+  if (!context.mounted) return;
+
+  await Navigator.of(
     context,
   ).pushReplacement(buildMainLayoutRoute(args: args, initialIndex: index));
 }
