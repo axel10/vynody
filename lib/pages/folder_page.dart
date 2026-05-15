@@ -1005,10 +1005,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                             : () async {
                                 unawaited(() async {
                                   try {
-                                    await audio.playFile(file.path, file.name);
+                                    await audio.playPlaylist(
+                                      currentFolder.files,
+                                      initialIndex: fileIndex,
+                                    );
                                   } catch (e, st) {
                                     debugPrint(
-                                      'FoldersPage: failed to start playback for ${file.path}: $e',
+                                      'FoldersPage: failed to start folder playback for ${file.path}: $e',
                                     );
                                     debugPrintStack(stackTrace: st);
                                   }
