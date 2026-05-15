@@ -96,9 +96,9 @@ class PlaybackHeroCardUiTuning {
   static const double controlsMainButtonsHeight = 72.0;
   static const double controlsTimeRowHeight = 24.0;
   static const double controlsTimeGap = 8.0;
-  static const double progressBarWidthFactor = 0.76; // 百分比调节进度条宽度（参照上方按钮区）
+  static const double progressBarWidthFactor = 1.0; // 进度条宽度比例（相对于按钮区）
   static const double portraitProgressBarWidthFactor =
-      1.0; // 竖屏进度条宽度比例 (1.0 为全屏宽)
+      1.0; // 竖屏进度条宽度比例 (相对于按钮区)
   static const double landscapeInfoControlsGap = 0.0;
   static const double landscapeInfoHeightBase = 48.0;
   static const double controlsRowLandscapeGap = 0;

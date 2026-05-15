@@ -1124,6 +1124,15 @@ class PlaybackHeroCard extends ConsumerWidget {
       settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
     );
 
+    final topButtonsCount = 7;
+    final topButtonsGaps = topButtonsCount - 1;
+    final singleButtonWidth =
+        PlaybackHeroCardUiTuning.controlsTopButtonsHeight * controlsScale;
+    final gapWidth =
+        PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale;
+    final buttonsRowWidth =
+        topButtonsCount * singleButtonWidth + topButtonsGaps * gapWidth;
+
     final baseWidth = isLandscape
         ? (lerpDouble(
               PlaybackHeroCardUiTuning.controlsScaleBase,
@@ -1131,6 +1140,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               tLyrics,
             )!)
         : PlaybackHeroCardUiTuning.controlsScaleBase;
+
     final totalWidth = baseWidth * controlsScale;
 
     // 竖屏模式下如果启用波形进度条，则使用叠层布局 (Overlay layout in portrait if waveform is enabled)
@@ -1147,9 +1157,15 @@ class PlaybackHeroCard extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints.tightFor(
+                width: singleButtonWidth,
+                height: singleButtonWidth,
+              ),
               icon: Icon(
                 Icons.more_horiz,
-                size: PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                size:
+                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
                 color: Colors.white70,
               ),
               onPressed: onShowMoreMenu,
@@ -1159,24 +1175,30 @@ class PlaybackHeroCard extends ConsumerWidget {
               width: PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
             ),
             IconButton(
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints.tightFor(
+                width: singleButtonWidth,
+                height: singleButtonWidth,
+              ),
               icon: Icon(
                 isFavorite
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
-                size: PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                size:
+                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
                 color: isFavorite ? Colors.redAccent : Colors.white70,
               ),
               onPressed:
                   currentMusic == null
-                      ? null
-                      : () async {
-                        final playlistService = ref.read(
-                          playlistServiceProvider,
-                        );
-                        await playlistService.toggleFavoriteSong(
-                          currentMusic,
-                        );
-                      },
+                       ? null
+                       : () async {
+                         final playlistService = ref.read(
+                           playlistServiceProvider,
+                         );
+                         await playlistService.toggleFavoriteSong(
+                           currentMusic,
+                         );
+                       },
               tooltip:
                   isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
             ),
@@ -1186,9 +1208,16 @@ class PlaybackHeroCard extends ConsumerWidget {
             GestureDetector(
               onLongPress: onShowPlaylistModeSelector,
               child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints.tightFor(
+                  width: singleButtonWidth,
+                  height: singleButtonWidth,
+                ),
                 icon: Icon(
                   getPlaylistModeIcon(playbackMode),
-                  size: PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                  size:
+                      PlaybackHeroCardUiTuning.topButtonsIconSize *
+                      controlsScale,
                   color: Colors.white70,
                 ),
                 onPressed: onCyclePlaylistMode,
@@ -1201,9 +1230,16 @@ class PlaybackHeroCard extends ConsumerWidget {
             GestureDetector(
               onLongPress: onShowRandomModeSelector,
               child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints.tightFor(
+                  width: singleButtonWidth,
+                  height: singleButtonWidth,
+                ),
                 icon: Icon(
                   Icons.shuffle_rounded,
-                  size: PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                  size:
+                      PlaybackHeroCardUiTuning.topButtonsIconSize *
+                      controlsScale,
                   color:
                       isRandomMode
                           ? Theme.of(context).colorScheme.primary
@@ -1233,9 +1269,15 @@ class PlaybackHeroCard extends ConsumerWidget {
               width: PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
             ),
             IconButton(
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints.tightFor(
+                width: singleButtonWidth,
+                height: singleButtonWidth,
+              ),
               icon: Icon(
                 Icons.auto_fix_high_rounded,
-                size: PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                size:
+                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
                 color: Colors.white70,
               ),
               onPressed: onTagCompletionTap,
@@ -1303,6 +1345,11 @@ class PlaybackHeroCard extends ConsumerWidget {
               width: PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
             ),
             IconButton(
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints.tightFor(
+                width: singleButtonWidth,
+                height: singleButtonWidth,
+              ),
               icon: Icon(
                 Icons.tune_rounded,
                 size:
@@ -1410,16 +1457,17 @@ class PlaybackHeroCard extends ConsumerWidget {
     // 进度条及时间显示容器 (Common container for progress bar and time display)
     Widget buildProgressSection() {
       // 在横屏切换到歌词模式的过程中，平滑插值宽度系数和基准宽度
+      // 在横屏切换到歌词模式的过程中，平滑插值宽度系数
       final widthFactor = isLandscape
           ? (lerpDouble(
               PlaybackHeroCardUiTuning.progressBarWidthFactor,
               1.0,
               tLyrics,
             )!)
-          : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor; // 竖屏下进度条宽度比例
+          : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor;
 
       return SizedBox(
-        width: totalWidth * widthFactor,
+        width: buttonsRowWidth * widthFactor,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
