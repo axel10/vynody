@@ -246,6 +246,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addToPlaylist => 'Add to Playlist';
 
   @override
+  String get selectAll => 'Select All';
+
+  @override
+  String get addToQueue => 'Add to Queue';
+
+  @override
+  String get addedToQueue => 'Added to Queue';
+
+  @override
   String songCount(int count) {
     return '$count songs';
   }

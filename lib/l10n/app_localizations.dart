@@ -542,6 +542,24 @@ abstract class AppLocalizations {
   /// **'添加到播放列表'**
   String get addToPlaylist;
 
+  /// Select all
+  ///
+  /// In zh, this message translates to:
+  /// **'全选'**
+  String get selectAll;
+
+  /// Add to queue
+  ///
+  /// In zh, this message translates to:
+  /// **'添加到队列'**
+  String get addToQueue;
+
+  /// Added to queue
+  ///
+  /// In zh, this message translates to:
+  /// **'已添加到队列'**
+  String get addedToQueue;
+
   /// Song count
   ///
   /// In zh, this message translates to:

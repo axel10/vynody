@@ -16,6 +16,7 @@ import '../pages/settings_page.dart';
 import '../player/music_file_utils.dart';
 import '../player/settings_service.dart';
 import '../player/shortcut_bindings.dart';
+import 'folder_page_riverpod.dart';
 import 'main_layout_riverpod.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
@@ -484,6 +485,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   Widget build(BuildContext context) {
     final uiState = ref.watch(mainLayoutUiControllerProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final hideMiniPlayerForSelection = ref.watch(folderSelectionModeProvider);
     ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
       if (_lastVolume != null && (_lastVolume! - next).abs() > 0.1) {
@@ -659,7 +661,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                       left: (useSidebar && !isPlayback) ? 80 : 0,
                       right: 0,
                       child: Center(
-                        child: !isPlayback && currentMusic != null
+                        child:
+                            !isPlayback &&
+                                currentMusic != null &&
+                                !hideMiniPlayerForSelection
                             ? Builder(
                                 builder: (context) {
                                   final audio = ref.read(audioServiceProvider);

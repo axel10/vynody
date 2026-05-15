@@ -244,6 +244,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addToPlaylist => '添加到播放列表';
 
   @override
+  String get selectAll => '全选';
+
+  @override
+  String get addToQueue => '添加到队列';
+
+  @override
+  String get addedToQueue => '已添加到队列';
+
+  @override
   String songCount(int count) {
     return '$count 首歌曲';
   }

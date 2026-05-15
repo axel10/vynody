@@ -314,6 +314,18 @@
   "@addToPlaylist": {
     "description": "Add to playlist"
   },
+  "selectAll": "全选",
+  "@selectAll": {
+    "description": "Select all"
+  },
+  "addToQueue": "添加到队列",
+  "@addToQueue": {
+    "description": "Add to queue"
+  },
+  "addedToQueue": "已添加到队列",
+  "@addedToQueue": {
+    "description": "Added to queue"
+  },
   "songCount": "{count} 首歌曲",
   "@songCount": {
     "description": "Song count",

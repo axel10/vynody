@@ -13,8 +13,8 @@ import '../models/music_folder.dart';
 import '../player/audio_riverpod.dart';
 import '../player/scanner_sorting.dart';
 import '../player/scanner_service.dart';
+import 'folder_page_riverpod.dart';
 import '../utils/song_context_menu_utils.dart';
-import '../dialogs/transcode_dialog.dart';
 import '../widgets/song_thumbnail.dart';
 import '../utils/app_snack_bar.dart';
 
@@ -46,6 +46,32 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   final ValueNotifier<_ScanToastState?> _scanToastState =
       ValueNotifier<_ScanToastState?>(null);
 
+  void _setFolderSelectionMode(bool enabled) {
+    ref.read(folderSelectionModeProvider.notifier).setEnabled(enabled);
+  }
+
+  bool _isUserRootSelectionContext(
+    ScannerService scanner,
+    MusicFolder? currentFolder,
+    List<MusicFolder> navigationHistory,
+  ) {
+    if (currentFolder == null) return false;
+
+    final rootPaths = scanner.rootFolders.map((folder) => folder.path).toSet();
+    if (rootPaths.contains(currentFolder.path)) {
+      return true;
+    }
+
+    if (navigationHistory.isNotEmpty) {
+      final rootFolder = navigationHistory.first;
+      if (rootPaths.contains(rootFolder.path)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   void _navigateTo(MusicFolder folder, ScannerService scanner) {
     final history = List<MusicFolder>.from(scanner.navigationHistory);
     if (scanner.navigationCurrentFolder != null) {
@@ -53,6 +79,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     }
     scanner.setNavigationState(folder, history);
     _clearAllSelection();
+    _setFolderSelectionMode(false);
     _scrollToTop();
   }
 
@@ -65,12 +92,14 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       scanner.setNavigationState(folder, history);
     }
     _clearAllSelection();
+    _setFolderSelectionMode(false);
     _scrollToTop();
   }
 
   void _goHome(ScannerService scanner) {
     scanner.setNavigationState(null, []);
     _clearAllSelection();
+    _setFolderSelectionMode(false);
     _scrollToTop();
   }
 
@@ -94,6 +123,18 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         _selectedSongPaths.clear();
       }
     });
+
+    final scanner = _scanner;
+    if (scanner == null) return;
+
+    _setFolderSelectionMode(
+      _isSelectionMode &&
+          _isUserRootSelectionContext(
+            scanner,
+            scanner.navigationCurrentFolder,
+            scanner.navigationHistory,
+          ),
+    );
   }
 
   void _toggleRootSelectionMode() {
@@ -118,6 +159,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       _isRootSelectionMode = false;
       _selectedRootPaths.clear();
     });
+    _setFolderSelectionMode(false);
   }
 
   void _ensureScanToastVisible() {
@@ -235,6 +277,86 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     });
   }
 
+  void _selectAllVisibleSongs(List<MusicFile> files) {
+    setState(() {
+      _selectedSongPaths
+        ..clear()
+        ..addAll(files.map((file) => file.path));
+      _isSelectionMode = true;
+    });
+
+    final scanner = _scanner;
+    if (scanner == null) return;
+
+    _setFolderSelectionMode(
+      _isUserRootSelectionContext(
+        scanner,
+        scanner.navigationCurrentFolder,
+        scanner.navigationHistory,
+      ),
+    );
+  }
+
+  Future<void> _addSelectedSongsToQueue(List<MusicFile> songs) async {
+    if (songs.isEmpty) return;
+
+    await ref.read(audioServiceProvider).appendToQueue(songs);
+    if (!mounted) return;
+
+    AppSnackBar.show(
+      context,
+      ref,
+      SnackBar(content: Text(AppLocalizations.of(context)!.addedToQueue)),
+    );
+    _clearAllSelection();
+  }
+
+  Future<void> _addSelectedSongsToPlaylist(List<MusicFile> songs) async {
+    if (songs.isEmpty) return;
+
+    await showAddSongsToPlaylistDialog(
+      context,
+      ref.read(playlistServiceProvider),
+      songs,
+    );
+    if (!mounted) return;
+
+    _clearAllSelection();
+  }
+
+  Widget _buildSelectionActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback? onPressed,
+    Color? color,
+  }) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          foregroundColor: color ?? theme.colorScheme.onSurface,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _toggleRootSelection(String path) {
     setState(() {
       if (_selectedRootPaths.contains(path)) {
@@ -291,6 +413,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   @override
   void dispose() {
+    _setFolderSelectionMode(false);
     _scanToastUpdateTimer?.cancel();
     _scanToastAutoDismissTimer?.cancel();
     _scanProgressSubscription?.cancel();
@@ -593,6 +716,14 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         ],
       );
     } else {
+      final showSelectionPanel =
+          _isSelectionMode &&
+          _isUserRootSelectionContext(
+            scanner,
+            currentFolder,
+            navigationHistory,
+          );
+      final selectionPanelHeight = showSelectionPanel ? 124.0 : 0.0;
       currentBody = PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
@@ -604,7 +735,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         child: Column(
           children: [
             _buildBreadcrumbs(currentFolder, scanner),
-            if (_isSelectionMode)
+            if (_isSelectionMode && !showSelectionPanel)
               Container(
                 color: Theme.of(context).colorScheme.primaryContainer,
                 padding: const EdgeInsets.symmetric(
@@ -630,13 +761,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
               child: ListView.builder(
                 controller: _scrollController,
                 cacheExtent: 1000,
-                padding: const EdgeInsets.only(bottom: 160),
+                padding: EdgeInsets.only(bottom: 160 + selectionPanelHeight),
                 itemCount:
                     1 +
                     (currentFolder.path == 'system' && !hasPermission ? 1 : 0) +
                     currentFolder.subFolders.length +
-                    currentFolder.files.length +
-                    (_isSelectionMode ? 1 : 0),
+                    currentFolder.files.length,
                 itemBuilder: (context, index) {
                   var cursor = 0;
 
@@ -854,61 +984,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   }
                   cursor += currentFolder.files.length;
 
-                  if (_isSelectionMode && index == cursor) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          TextButton.icon(
-                            onPressed: _selectedSongPaths.isEmpty
-                                ? null
-                                : () {
-                                    final selectedSongs =
-                                        _selectedSongsFromFolder(
-                                          currentFolder.files,
-                                        );
-                                    showAddSongsToPlaylistDialog(
-                                      context,
-                                      ref.read(playlistServiceProvider),
-                                      selectedSongs,
-                                    );
-                                  },
-                            icon: const Icon(Icons.playlist_add),
-                            label: Text(
-                              AppLocalizations.of(context)!.addToPlaylist,
-                            ),
-                          ),
-                          TextButton.icon(
-                            onPressed: _selectedSongPaths.isEmpty
-                                ? null
-                                : () {
-                                    final selectedSongs =
-                                        _selectedSongsFromFolder(
-                                          currentFolder.files,
-                                        );
-                                    showTranscodeDialog(
-                                      context,
-                                      songs: selectedSongs,
-                                    );
-                                  },
-                            icon: const Icon(Icons.sync_alt_rounded),
-                            label: Text(
-                              AppLocalizations.of(context)!.transcodeAction,
-                            ),
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: _toggleSelectionMode,
-                            child: Text(AppLocalizations.of(context)!.cancel),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
                   return const SizedBox.shrink();
                 },
               ),
@@ -916,6 +991,63 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
           ],
         ),
       );
+
+      if (showSelectionPanel) {
+        final selectedSongs = _selectedSongsFromFolder(currentFolder.files);
+        currentBody = Stack(
+          children: [
+            currentBody,
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Material(
+                elevation: 10,
+                color: Theme.of(context).colorScheme.surface,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                    child: Row(
+                      children: [
+                        _buildSelectionActionButton(
+                          icon: Icons.select_all,
+                          label: AppLocalizations.of(context)!.selectAll,
+                          onPressed: currentFolder.files.isEmpty
+                              ? null
+                              : () =>
+                                    _selectAllVisibleSongs(currentFolder.files),
+                        ),
+                        _buildSelectionActionButton(
+                          icon: Icons.queue_music_outlined,
+                          label: AppLocalizations.of(context)!.addToQueue,
+                          onPressed: selectedSongs.isEmpty
+                              ? null
+                              : () => _addSelectedSongsToQueue(selectedSongs),
+                        ),
+                        _buildSelectionActionButton(
+                          icon: Icons.playlist_add,
+                          label: AppLocalizations.of(context)!.addToPlaylist,
+                          onPressed: selectedSongs.isEmpty
+                              ? null
+                              : () =>
+                                    _addSelectedSongsToPlaylist(selectedSongs),
+                        ),
+                        _buildSelectionActionButton(
+                          icon: Icons.close,
+                          label: AppLocalizations.of(context)!.cancel,
+                          onPressed: _toggleSelectionMode,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      }
     }
 
     if (Platform.isWindows) {
