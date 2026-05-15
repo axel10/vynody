@@ -1003,7 +1003,17 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(file.path)
                             : () async {
-                                await audio.playFile(file.path, file.name);
+                                unawaited(() async {
+                                  try {
+                                    await audio.playFile(file.path, file.name);
+                                  } catch (e, st) {
+                                    debugPrint(
+                                      'FoldersPage: failed to start playback for ${file.path}: $e',
+                                    );
+                                    debugPrintStack(stackTrace: st);
+                                  }
+                                }());
+
                                 if (mounted) {
                                   _clearAllSelection();
                                   await widget.onOpenPlayback?.call();
@@ -1042,10 +1052,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   begin: const Offset(0, 1.0),
                   end: Offset.zero,
                 ).animate(animation);
-                return SlideTransition(
-                  position: offsetAnimation,
-                  child: child,
-                );
+                return SlideTransition(position: offsetAnimation, child: child);
               },
               child: showSelectionPanel
                   ? Padding(
@@ -1102,8 +1109,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                           onPressed: selectedSongs.isEmpty
                                               ? null
                                               : () => _addSelectedSongsToQueue(
-                                                    selectedSongs,
-                                                  ),
+                                                  selectedSongs,
+                                                ),
                                         ),
                                         _buildSelectionActionButton(
                                           icon: Icons.playlist_add,
@@ -1113,9 +1120,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                           onPressed: selectedSongs.isEmpty
                                               ? null
                                               : () =>
-                                                  _addSelectedSongsToPlaylist(
-                                                    selectedSongs,
-                                                  ),
+                                                    _addSelectedSongsToPlaylist(
+                                                      selectedSongs,
+                                                    ),
                                         ),
                                         _buildSelectionActionButton(
                                           icon: Icons.close,
