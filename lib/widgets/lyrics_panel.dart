@@ -20,6 +20,7 @@ import '../player/lyrics_controller.dart';
 import '../player/lyrics_controller_state.dart';
 import '../player/lyrics_riverpod.dart';
 import '../player/lyrics_song_task_state.dart';
+import '../player/settings_service.dart';
 import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
 
@@ -45,6 +46,8 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
 
 class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   static const double _itemExtent = 88.0;
+  static const double _minLyricsItemExtent = 82.0;
+  static const double _maxLyricsItemExtent = 112.0;
   static const double _lyricsDragSeekThreshold = 24.0;
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
@@ -92,6 +95,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               LyricLine(timestamp: Duration.zero, text: line, isTimed: false),
         )
         .toList(growable: false);
+  }
+
+  double _lyricsItemExtent(double lyricsFontScale) {
+    final scaled = _itemExtent * (0.9 + ((lyricsFontScale - 1.0) * 0.7));
+    return scaled.clamp(_minLyricsItemExtent, _maxLyricsItemExtent);
   }
 
   ScrollBehavior _lyricsScrollBehavior(BuildContext context) {
@@ -203,6 +211,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     required List<LyricLine> displayLines,
     required String displayPlainLyrics,
     required bool hasCurrentSong,
+    required double lyricsFontScale,
     bool requeryOnly = false,
   }) async {
     final overlay =
@@ -280,6 +289,22 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               !taskState.isGenerationBusy,
           child: Text(l10n.requery),
         ),
+      const PopupMenuDivider(),
+      PopupMenuItem<String>(
+        value: 'increase_lyrics_font',
+        enabled: lyricsFontScale < SettingsService.maxLyricsFontScale,
+        child: const Text('增大歌词文字'),
+      ),
+      PopupMenuItem<String>(
+        value: 'decrease_lyrics_font',
+        enabled: lyricsFontScale > SettingsService.minLyricsFontScale,
+        child: const Text('减小歌词文字'),
+      ),
+      PopupMenuItem<String>(
+        value: 'reset_lyrics_font',
+        enabled: lyricsFontScale != SettingsService.defaultLyricsFontScale,
+        child: const Text('恢复默认大小'),
+      ),
     ];
 
     final selected = await showMenu<String>(
@@ -341,6 +366,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       await _showTimelineAdjustmentPanel(displayLines);
     } else if (selected == 'fill_lyrics') {
       await _showManualLyricsDialog(displayPlainLyrics);
+    } else if (selected == 'increase_lyrics_font') {
+      ref.read(settingsServiceProvider).increaseLyricsFontScale();
+    } else if (selected == 'decrease_lyrics_font') {
+      ref.read(settingsServiceProvider).decreaseLyricsFontScale();
+    } else if (selected == 'reset_lyrics_font') {
+      ref.read(settingsServiceProvider).resetLyricsFontScale();
     }
   }
 
@@ -429,6 +460,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   void _scheduleScrollIfNeeded({
     bool force = false,
     List<LyricLine>? displayLines,
+    double itemExtent = _itemExtent,
   }) {
     final lines = displayLines ?? _displayLinesForCurrentLyrics();
     if (lines.isEmpty ||
@@ -444,11 +476,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
-      _scrollToLineIndex(activeIndex, animate: true);
+      _scrollToLineIndex(activeIndex, animate: true, itemExtent: itemExtent);
     });
   }
 
-  void _beginLyricsDrag(List<LyricLine> displayLines) {
+  void _beginLyricsDrag(List<LyricLine> displayLines, double itemExtent) {
     if (displayLines.isEmpty || !_hasTimedLyrics(displayLines)) return;
 
     final initialLine = _activeLineIndex(
@@ -475,6 +507,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   void _updateLyricsDrag(
     DragUpdateDetails details,
     List<LyricLine> displayLines,
+    double itemExtent,
   ) {
     if (displayLines.isEmpty || !_hasTimedLyrics(displayLines)) {
       return;
@@ -505,10 +538,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       _dismissSeekToast();
     }
 
-    final targetIndex =
-        (startLine - (_dragDistancePixels / _itemExtent).round())
-            .clamp(0, displayLines.length - 1)
-            .toInt();
+    final targetIndex = (startLine - (_dragDistancePixels / itemExtent).round())
+        .clamp(0, displayLines.length - 1)
+        .toInt();
 
     if (_dragCurrentLine != targetIndex) {
       if (mounted) {
@@ -520,11 +552,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       }
     }
 
-    _scrollToLineIndex(targetIndex, animate: false);
+    _scrollToLineIndex(targetIndex, animate: false, itemExtent: itemExtent);
     _syncSeekToast(displayLines[targetIndex].timestamp);
   }
 
-  void _endLyricsDrag(List<LyricLine> displayLines) {
+  void _endLyricsDrag(List<LyricLine> displayLines, double itemExtent) {
     final wasDraggingLyrics = _isDraggingLyrics;
     final targetLine = _dragCurrentLine;
     if (mounted) {
@@ -562,10 +594,18 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         ref.read(audioServiceProvider).seek(displayLines[targetLine].timestamp),
       );
     }
-    _scheduleScrollIfNeeded(force: true, displayLines: displayLines);
+    _scheduleScrollIfNeeded(
+      force: true,
+      displayLines: displayLines,
+      itemExtent: itemExtent,
+    );
   }
 
-  void _scrollToLineIndex(int index, {required bool animate}) {
+  void _scrollToLineIndex(
+    int index, {
+    required bool animate,
+    required double itemExtent,
+  }) {
     if (!_scrollController.hasClients) return;
 
     final viewportHeight = _scrollController.position.viewportDimension;
@@ -575,9 +615,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final target = math.max(
       0.0,
       math.min(
-        index * _itemExtent -
+        index * itemExtent -
             viewportHeight / 2 +
-            _itemExtent / 2 +
+            itemExtent / 2 +
             50, // 50 is an empirical value to make the active line slightly above the center
         maxExtent,
       ),
@@ -684,6 +724,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final l10n = AppLocalizations.of(context)!;
     final lyricsState = ref.watch(lyricsControllerProvider);
     final currentSongTaskState = ref.watch(lyricsCurrentSongTaskStateProvider);
+    final lyricsFontScale = ref.watch(
+      settingsServiceProvider.select((settings) => settings.lyricsFontScale),
+    );
     final lyricsForDisplay = _lyricsForDisplay();
     final displayLines = ref.watch(
       lyricsDisplayLinesProvider(lyricsForDisplay),
@@ -701,6 +744,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
+    final lyricsItemExtent = _lyricsItemExtent(lyricsFontScale);
 
     if (!hasRenderableLyrics) {
       final canGenerateLyrics =
@@ -737,6 +781,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             displayLines: displayLines,
             displayPlainLyrics: displayPlainLyrics,
             hasCurrentSong: hasCurrentSong,
+            lyricsFontScale: lyricsFontScale,
             requeryOnly: true,
           );
         },
@@ -748,7 +793,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         : _plainLyricsLines(displayPlainLyrics);
 
     if (hasTimedLyrics) {
-      _scheduleScrollIfNeeded(displayLines: displayLines);
+      _scheduleScrollIfNeeded(
+        displayLines: displayLines,
+        itemExtent: lyricsItemExtent,
+      );
     }
     final activeIndex = hasTimedLyrics ? _activeLineIndex(displayLines) : -1;
     final focusedIndex = _isDraggingLyrics && _dragCurrentLine != null
@@ -767,20 +815,22 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       hasTimedLyrics: hasTimedLyrics,
       activeIndex: focusedIndex,
       isAutoScrollPaused: _isAutoScrollPaused,
+      lyricsFontScale: lyricsFontScale,
       scrollController: _scrollController,
-      itemExtent: _itemExtent,
+      itemExtent: lyricsItemExtent,
       scrollBehavior: _lyricsScrollBehavior(context),
       onVerticalDragStart: hasTimedLyrics
-          ? (_) => _beginLyricsDrag(displayLines)
+          ? (_) => _beginLyricsDrag(displayLines, lyricsItemExtent)
           : null,
       onVerticalDragUpdate: hasTimedLyrics
-          ? (details) => _updateLyricsDrag(details, displayLines)
+          ? (details) =>
+                _updateLyricsDrag(details, displayLines, lyricsItemExtent)
           : null,
       onVerticalDragEnd: hasTimedLyrics
-          ? (_) => _endLyricsDrag(displayLines)
+          ? (_) => _endLyricsDrag(displayLines, lyricsItemExtent)
           : null,
       onVerticalDragCancel: hasTimedLyrics
-          ? () => _endLyricsDrag(displayLines)
+          ? () => _endLyricsDrag(displayLines, lyricsItemExtent)
           : null,
       onContextMenu: (position) {
         _showContextMenu(
@@ -791,6 +841,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           displayLines: displayLines,
           displayPlainLyrics: displayPlainLyrics,
           hasCurrentSong: hasCurrentSong,
+          lyricsFontScale: lyricsFontScale,
         );
       },
       bottomSpacerHeight: widget.bottomSpacerHeight,

@@ -115,6 +115,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.hasTimedLyrics,
     required this.activeIndex,
     required this.isAutoScrollPaused,
+    required this.lyricsFontScale,
     required this.scrollController,
     required this.itemExtent,
     required this.scrollBehavior,
@@ -133,6 +134,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final bool hasTimedLyrics;
   final int activeIndex;
   final bool isAutoScrollPaused;
+  final double lyricsFontScale;
   final ScrollController scrollController;
   final double itemExtent;
   final ScrollBehavior scrollBehavior;
@@ -196,6 +198,11 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                       final isNear =
                           hasTimedLyrics && distance <= 1 && !isActive;
                       final targetScale = isActive ? 1.12 : 1.0;
+                      final timedLyricFontSize = 16 * lyricsFontScale;
+                      final plainLyricFontSize = 18 * lyricsFontScale;
+                      final translationFontSize = 13 * lyricsFontScale;
+                      final verticalItemPadding = 6 * lyricsFontScale;
+                      final translatedSpacing = 3 * lyricsFontScale;
                       final lineStyle = hasTimedLyrics
                           ? Theme.of(context).textTheme.bodyLarge!.copyWith(
                               color: isActive
@@ -203,7 +210,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                   : Colors.white.withValues(
                                       alpha: isNear ? 0.72 : 0.46,
                                     ),
-                              fontSize: 16,
+                              fontSize: timedLyricFontSize,
                               fontWeight: isActive
                                   ? FontWeight.w700
                                   : FontWeight.w400,
@@ -212,7 +219,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                             )
                           : TextStyle(
                               color: Colors.white.withValues(alpha: 0.92),
-                              fontSize: 18,
+                              fontSize: plainLyricFontSize,
                               fontWeight: FontWeight.w400,
                               height: 1.6,
                               leadingDistribution: TextLeadingDistribution.even,
@@ -220,7 +227,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
 
                       return RepaintBoundary(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          padding: EdgeInsets.symmetric(
+                            vertical: verticalItemPadding,
+                          ),
                           child: Center(
                             child: AnimatedScale(
                               duration: const Duration(milliseconds: 220),
@@ -247,7 +256,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                   ),
                                   if (hasTimedLyrics &&
                                       translated.isNotEmpty) ...[
-                                    const SizedBox(height: 3),
+                                    SizedBox(height: translatedSpacing),
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
@@ -261,7 +270,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                           color: Colors.white.withValues(
                                             alpha: 0.62,
                                           ),
-                                          fontSize: 13,
+                                          fontSize: translationFontSize,
                                           height: 1.3,
                                           leadingDistribution:
                                               TextLeadingDistribution.even,
