@@ -694,13 +694,30 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             });
           }
 
-          // final settings = ref.watch(settingsServiceProvider);
+          final settings = ref.watch(settingsServiceProvider);
           final bottomPadding = MediaQuery.of(context).padding.bottom;
-          // final isImmersiveActive =
-          //     settings.isImmersiveTabBarEnabled && settings.isUserInactive;
+          final isImmersiveTabBarEnabled = settings.isImmersiveTabBarEnabled;
+
           final shouldReserveBottomNavSpace = !isLyricsMode && !isLandscape;
+
+          // When immersive tab bar is enabled, the NavigationBar in MainLayout
+          // is positioned in a Stack over the content with height (60 + bottomPadding).
+          double effectiveBottomPadding = bottomPadding;
           final lyricsBottomSpacerHeight = 0.0;
-          final lyricsBottomTabBarHeight = 0.0;
+          double lyricsBottomTabBarHeight = 0.0;
+
+          if (isImmersiveTabBarEnabled && !isLandscape) {
+            // For lyrics mode, we want the background to be immersive (full screen),
+            // so we don't pad the whole page. Instead, we pass the tab bar height
+            // to the lyrics panel so it can add internal scrolling space.
+            lyricsBottomTabBarHeight = 60.0;
+            
+            // For normal mode (controls visible), we pad the whole page to keep
+            // the layout stable and avoid overlap with the tab bar.
+            if (shouldReserveBottomNavSpace) {
+              effectiveBottomPadding = 60.0 + bottomPadding;
+            }
+          }
 
           final content = SafeArea(
             bottom: false,
@@ -710,7 +727,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               padding: PlaybackPageUiTuning.contentPadding(
                 isLandscape: isLandscape,
                 isLyricsMode: isLyricsMode,
-                bottomPadding: bottomPadding,
+                bottomPadding: effectiveBottomPadding,
                 reserveBottomNavSpace: shouldReserveBottomNavSpace,
               ),
               child: Column(

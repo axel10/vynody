@@ -392,7 +392,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                     (isLandscape
                                         ? lerpDouble(
                                             PlaybackHeroCardUiTuning
-                                                .controlsScaleBase,
+                                                .lControlsScaleBase,
                                             PlaybackHeroCardUiTuning
                                                 .lLyricsPreferredCoverSide,
                                             tLyrics,
@@ -487,11 +487,11 @@ class PlaybackHeroCard extends ConsumerWidget {
     final pNormalControlsWidth =
         width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
     final pNormalControlsRawScale =
-        pNormalControlsWidth / PlaybackHeroCardUiTuning.controlsScaleBase;
+        pNormalControlsWidth / PlaybackHeroCardUiTuning.pControlsScaleBase;
 
     final pNormalControlsHeight =
         (pNormalControlsBaseIdealHeight * pNormalControlsRawScale)
-            .clamp(0.0, height * 0.45)
+            .clamp(0.0, height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
             .ceilToDouble();
     final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
 
@@ -576,7 +576,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     // Snap the normal landscape panes to whole pixels to avoid 1px overflow
     // when the window is resized and the layout lands on fractional values.
     final lNormalControlsRawScale =
-        lNormalControlsWidth / PlaybackHeroCardUiTuning.controlsScaleBase;
+        lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase;
 
     // 标题区实际高度 (Title actual height)
     final lNormalInfoHeight =
@@ -685,7 +685,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       1.0,
       1.0,
       // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
-      (lNormalControlsWidth / PlaybackHeroCardUiTuning.controlsScaleBase).clamp(
+      (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase).clamp(
         0.85,
         1.8,
       ),
@@ -1135,11 +1135,11 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final baseWidth = isLandscape
         ? (lerpDouble(
-              PlaybackHeroCardUiTuning.controlsScaleBase,
+              PlaybackHeroCardUiTuning.lControlsScaleBase,
               PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide,
               tLyrics,
             )!)
-        : PlaybackHeroCardUiTuning.controlsScaleBase;
+        : PlaybackHeroCardUiTuning.pControlsScaleBase;
 
     final totalWidth = baseWidth * controlsScale;
 

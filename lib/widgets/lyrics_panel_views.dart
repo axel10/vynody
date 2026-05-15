@@ -124,6 +124,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.onVerticalDragCancel,
     required this.onContextMenu,
     required this.bottomSpacerHeight,
+    this.bottomTabBarHeight = 0.0,
   });
 
   final MusicLyric? lyrics;
@@ -141,6 +142,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final VoidCallback? onVerticalDragCancel;
   final void Function(Offset globalPosition) onContextMenu;
   final double bottomSpacerHeight;
+  final double bottomTabBarHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +161,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
         children: [
           Expanded(
             child: _LyricsFadeShaderMask(
-              bottomSpacerHeight: bottomSpacerHeight,
+              bottomSpacerHeight: bottomSpacerHeight + bottomTabBarHeight,
               child: ClipRect(
                 clipper: const _VerticalOnlyClipper(),
                 child: ScrollConfiguration(
@@ -174,7 +176,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                         : const AlwaysScrollableScrollPhysics(
                             parent: BouncingScrollPhysics(),
                           ),
-                    padding: EdgeInsets.only(bottom: bottomSpacerHeight + 180),
+                    padding: EdgeInsets.only(
+                      bottom: bottomSpacerHeight + bottomTabBarHeight + 180,
+                    ),
                     itemExtent: itemExtent,
                     itemCount: displayLines.length,
                     itemBuilder: (context, index) {

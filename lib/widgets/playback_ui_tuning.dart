@@ -56,6 +56,7 @@ class PlaybackHeroCardUiTuning {
   static const double pNormalCoverInfoMinGap = 12.0;
   static const double portraitControlsWidthFactor =
       1.0; // 竖屏控件区宽度比例 (0.0 - 1.0)
+  static const double pControlsHeightFactor = 0.45; // 竖屏控件区最大高度比例 (相对于屏幕高度)
 
   // 横屏参数 (Landscape parameters)
   static const double lControlsMinWidth = 440.0;
@@ -91,7 +92,8 @@ class PlaybackHeroCardUiTuning {
 
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
   // 减小此值会让按钮和文字在相同屏幕宽度下显得更大
-  static const double controlsScaleBase = 480.0;
+  static const double pControlsScaleBase = 420.0; // 竖屏缩放基准
+  static const double lControlsScaleBase = 480.0; // 横屏缩放基准
   static const double controlsTopButtonsHeight = 48.0;
   static const double controlsMainButtonsHeight = 72.0;
   static const double controlsTimeRowHeight = 24.0;

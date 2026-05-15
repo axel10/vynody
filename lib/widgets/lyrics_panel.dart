@@ -794,6 +794,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         );
       },
       bottomSpacerHeight: widget.bottomSpacerHeight,
+      bottomTabBarHeight: widget.bottomTabBarHeight,
     );
   }
 
