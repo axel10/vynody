@@ -761,10 +761,16 @@ class ScannerService extends ChangeNotifier {
       ..addAll(nextAvailability);
     _rootAvailability.removeWhere((key, _) => !declaredKeys.contains(key));
 
-    if (missingRoots.isNotEmpty) {
-      _removeRootsFromScannedTree(missingRoots);
+    final currentFolderPath = _navigationState.currentFolder?.path;
+    final shouldReturnToRootList =
+        currentFolderPath != null &&
+        missingRoots.any((root) => _pathContains(root, currentFolderPath));
+    if (shouldReturnToRootList) {
+      _navigationState.setState(null, const []);
     }
 
+    // Keep the last known tree for temporarily missing roots so a brief
+    // unplug/replug cycle does not collapse the visible folder structure.
     if (missingRoots.isNotEmpty || restoredRoots.isNotEmpty) {
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree();
