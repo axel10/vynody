@@ -23,6 +23,7 @@ import '../player/lyrics_song_task_state.dart';
 import '../player/settings_service.dart';
 import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
+import 'playback_ui_tuning.dart';
 
 class LyricsPanel extends rpod.ConsumerStatefulWidget {
   const LyricsPanel({
@@ -45,9 +46,6 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
 }
 
 class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
-  static const double _itemExtent = 88.0;
-  static const double _minLyricsItemExtent = 82.0;
-  static const double _maxLyricsItemExtent = 112.0;
   static const double _lyricsDragSeekThreshold = 24.0;
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
@@ -98,8 +96,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   }
 
   double _lyricsItemExtent(double lyricsFontScale) {
-    final scaled = _itemExtent * (0.9 + ((lyricsFontScale - 1.0) * 0.7));
-    return scaled.clamp(_minLyricsItemExtent, _maxLyricsItemExtent);
+    // 使用统一的缩放逻辑，不再添加额外的 0.9 系数，确保与 tuning 类中的基准值一致
+    final base = PlaybackPageUiTuning.lyricsItemExtent;
+    final scaled = base * (1.0 + ((lyricsFontScale - 1.0) * 0.7));
+    // 允许合理的缩放范围，基于基准值进行动态钳制，避免锁死在固定数值导致用户修改失效
+    return scaled.clamp(base * 0.5, base * 3.0);
   }
 
   ScrollBehavior _lyricsScrollBehavior(BuildContext context) {
@@ -173,6 +174,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       animationDuration: _seekToastAnimationDuration,
       animationCurve: Curves.easeOutCubic,
     );
+  }
+
+  Duration _audioSeekPositionForLyricTimestamp(Duration timestamp) {
+    final targetMs = timestamp.inMilliseconds + _timelineOffsetMilliseconds;
+    return Duration(milliseconds: math.max(0, targetMs));
   }
 
   Future<bool> _ensureLyricsApiKey() async {
@@ -460,7 +466,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   void _scheduleScrollIfNeeded({
     bool force = false,
     List<LyricLine>? displayLines,
-    double itemExtent = _itemExtent,
+    double? itemExtent,
   }) {
     final lines = displayLines ?? _displayLinesForCurrentLyrics();
     if (lines.isEmpty ||
@@ -470,13 +476,20 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       return;
     }
 
+    final lyricsFontScale = ref.read(settingsServiceProvider).lyricsFontScale;
+    final resolvedItemExtent = itemExtent ?? _lyricsItemExtent(lyricsFontScale);
+
     final activeIndex = _activeLineIndex(lines);
     if (!force && activeIndex == _lastActiveIndex) return;
     _lastActiveIndex = activeIndex;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
-      _scrollToLineIndex(activeIndex, animate: true, itemExtent: itemExtent);
+      _scrollToLineIndex(
+        activeIndex,
+        animate: true,
+        itemExtent: resolvedItemExtent,
+      );
     });
   }
 
@@ -553,7 +566,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     _scrollToLineIndex(targetIndex, animate: false, itemExtent: itemExtent);
-    _syncSeekToast(displayLines[targetIndex].timestamp);
+    _syncSeekToast(
+      _audioSeekPositionForLyricTimestamp(displayLines[targetIndex].timestamp),
+    );
   }
 
   void _endLyricsDrag(List<LyricLine> displayLines, double itemExtent) {
@@ -590,15 +605,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _dismissSeekToast();
 
     if (targetLine >= 0 && targetLine < displayLines.length) {
-      unawaited(
-        ref.read(audioServiceProvider).seek(displayLines[targetLine].timestamp),
+      final targetPosition = _audioSeekPositionForLyricTimestamp(
+        displayLines[targetLine].timestamp,
       );
+      unawaited(ref.read(audioServiceProvider).seek(targetPosition));
+      _syncSeekToast(targetPosition);
     }
-    _scheduleScrollIfNeeded(
-      force: true,
-      displayLines: displayLines,
-      itemExtent: itemExtent,
-    );
   }
 
   void _scrollToLineIndex(
@@ -612,13 +624,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (!viewportHeight.isFinite || viewportHeight <= 0) return;
 
     final maxExtent = _scrollController.position.maxScrollExtent;
+    final bottomSpacers = widget.bottomSpacerHeight + widget.bottomTabBarHeight;
+    // 计算可见区域的中心（避开底部遮挡/渐变区）
+    final visibleCenter = (viewportHeight - bottomSpacers) / 2;
+
     final target = math.max(
       0.0,
       math.min(
-        index * itemExtent -
-            viewportHeight / 2 +
-            itemExtent / 2 +
-            50, // 50 is an empirical value to make the active line slightly above the center
+        index * itemExtent - visibleCenter + itemExtent / 2,
         maxExtent,
       ),
     );

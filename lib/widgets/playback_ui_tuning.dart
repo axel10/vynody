@@ -16,6 +16,10 @@ class PlaybackPageUiTuning {
   static const double portraitTopPadding = 12.0;
   static const double lyricsTopPadding = 8.0;
 
+  static const double lyricsItemExtent = 100.0;
+  static const double minLyricsItemExtent = 82.0;
+  static const double maxLyricsItemExtent = 132.0;
+
   static EdgeInsets contentPadding({
     required bool isLandscape,
     required bool isLyricsMode,

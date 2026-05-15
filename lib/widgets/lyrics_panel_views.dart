@@ -179,7 +179,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                             parent: BouncingScrollPhysics(),
                           ),
                     padding: EdgeInsets.only(
-                      bottom: bottomSpacerHeight + bottomTabBarHeight + 180,
+                      bottom: bottomSpacerHeight + bottomTabBarHeight + 500,
                     ),
                     itemExtent: itemExtent,
                     itemCount: displayLines.length,
