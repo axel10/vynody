@@ -835,6 +835,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       ),
                     ),
                   ),
+                  if (isLandscape &&
+                      (Platform.isWindows ||
+                          Platform.isMacOS ||
+                          Platform.isLinux))
+                    const SizedBox(
+                      height: PlaybackPageUiTuning.desktopTopSpacer,
+                    ),
                 ],
               ),
             ),

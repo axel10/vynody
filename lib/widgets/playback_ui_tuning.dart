@@ -13,6 +13,7 @@ class PlaybackPageUiTuning {
   static const double lyricsLandscapeRightPadding = 24.0;
   static const double lyricsPortraitRightPadding = 16.0;
   static const double landscapeTopPadding = 32.0;
+  static const double landscapeBottomPadding = 32.0;
   static const double portraitTopPadding = 12.0;
   static const double lyricsTopPadding = 8.0;
 
@@ -41,7 +42,9 @@ class PlaybackPageUiTuning {
         : (isLandscape
               ? normalLandscapeHorizontalPadding
               : normalPortraitHorizontalPadding);
-    final bottom = reserveBottomNavSpace ? bottomPadding : 0.0;
+    final bottom = isLandscape
+        ? (isLyricsMode ? lyricsTopPadding : landscapeBottomPadding)
+        : (reserveBottomNavSpace ? bottomPadding : 0.0);
 
     return EdgeInsets.fromLTRB(left, top, right, bottom);
   }
@@ -106,9 +109,9 @@ class PlaybackHeroCardUiTuning {
   static const double progressBarWidthFactor = 1.0; // 进度条宽度比例（相对于按钮区）
   static const double portraitProgressBarWidthFactor =
       1.0; // 竖屏进度条宽度比例 (相对于按钮区)
-  static const double landscapeInfoControlsGap = 0.0;
+  static const double landscapeInfoControlsGap = 20.0;
   static const double landscapeInfoHeightBase = 48.0;
-  static const double controlsRowLandscapeGap = 0;
+  static const double controlsRowLandscapeGap = 12.0;
 
   static const double portraitBottomReservedSpace = 0;
 }
