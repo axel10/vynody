@@ -12,6 +12,7 @@ class WaveformProgressBar extends StatefulWidget {
   final Color activeColor;
   final Color inactiveColor;
   final bool isScrolling;
+  final double height;
 
   const WaveformProgressBar({
     super.key,
@@ -22,32 +23,110 @@ class WaveformProgressBar extends StatefulWidget {
     required this.onScrubbing,
     this.activeColor = Colors.white,
     this.inactiveColor = Colors.white24,
-    this.isScrolling = true, // Default to scrolling as requested
+    this.isScrolling = true,
     this.height = 80,
   });
-
-  final double height;
 
   @override
   State<WaveformProgressBar> createState() => _WaveformProgressBarState();
 }
 
-class _WaveformProgressBarState extends State<WaveformProgressBar> {
+class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTickerProviderStateMixin {
   double? _hoverProgress;
   double _dragStartX = 0;
   double _dragStartProgress = 0;
 
+  late AnimationController _animationController;
+  late List<double> _animatedWaveform;
+  List<double> _sourceWaveform = [];
+  List<double> _targetWaveform = [];
+
   @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _animatedWaveform = _getEffectiveWaveform(widget.waveform);
+    _targetWaveform = List.from(_animatedWaveform);
+    _sourceWaveform = List.from(_animatedWaveform);
+
+    _animationController.addListener(() {
+      setState(() {
+        _updateAnimatedWaveform();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  List<double> _getEffectiveWaveform(List<double> original) {
+    if (original.isEmpty) {
+      // 默认提供100个点的全0波形，使其显示为基础高度的平齐状态
+      return List.filled(100, 0.0);
+    }
+    return original;
+  }
+
+  void _updateAnimatedWaveform() {
+    final double t = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutQuart,
+    ).value;
+
+    if (_sourceWaveform.length == _targetWaveform.length) {
+      final List<double> newList = List.filled(_sourceWaveform.length, 0.0);
+      for (int i = 0; i < _sourceWaveform.length; i++) {
+        newList[i] = lerpDouble(_sourceWaveform[i], _targetWaveform[i], t) ?? 0.0;
+      }
+      _animatedWaveform = newList;
+    }
+  }
+
+  List<double> _resizeWaveform(List<double> source, int newLength) {
+    if (source.isEmpty) return List.filled(newLength, 0.0);
+    if (source.length == newLength) return List.from(source);
+
+    final List<double> result = List.filled(newLength, 0.0);
+    for (int i = 0; i < newLength; i++) {
+      double sourceIdx = i * (source.length - 1) / (math.max(1, newLength - 1));
+      int idx1 = sourceIdx.floor();
+      int idx2 = sourceIdx.ceil();
+      double t = sourceIdx - idx1;
+      result[i] = lerpDouble(source[idx1], source[idx2], t) ?? 0.0;
+    }
+    return result;
+  }
+
+  @override
+  void didUpdateWidget(WaveformProgressBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.waveform != oldWidget.waveform) {
+      _targetWaveform = _getEffectiveWaveform(widget.waveform);
+      
+      // 如果长度不一致，先将当前波形缩放到目标长度，以便进行逐点插值动画
+      _sourceWaveform = _resizeWaveform(_animatedWaveform, _targetWaveform.length);
+      _animatedWaveform = List.from(_sourceWaveform);
+      
+      _animationController.forward(from: 0);
+    }
+  }
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
         // 缩放因子：决定波形的“宽度”。这里我们让每个波形点占据一定的像素宽度
         // 如果是滚动模式，我们让波形更宽一些，超出屏幕
-        final double barWidth = widget.isScrolling ? 4.0 : (width / math.max(1, widget.waveform.length));
+        final double barWidth = widget.isScrolling ? 4.0 : (width / math.max(1, _animatedWaveform.length));
         final double barGap = widget.isScrolling ? 2.0 : 0.0;
         final double totalBarWidth = barWidth + barGap;
-        final double totalWaveformWidth = widget.waveform.length * totalBarWidth;
+        final double totalWaveformWidth = _animatedWaveform.length * totalBarWidth;
 
         return MouseRegion(
           onHover: (event) {
@@ -117,7 +196,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> {
                         CustomPaint(
                           size: Size(width, widget.height),
                           painter: WaveformPainter(
-                            waveform: widget.waveform,
+                            waveform: _animatedWaveform,
                             progress: widget.progress,
                             activeColor: widget.activeColor,
                             inactiveColor: widget.inactiveColor,
@@ -171,18 +250,8 @@ class WaveformPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (waveform.isEmpty) {
-      final paint = Paint()
-        ..color = inactiveColor
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round;
-      canvas.drawLine(
-        Offset(0, size.height / 2),
-        Offset(size.width, size.height / 2),
-        paint,
-      );
-      return;
-    }
+    // 即使没有数据，我们也在 State 层提供了默认数据，所以这里通常不会为空
+    if (waveform.isEmpty) return;
 
     final double centerY = size.height / 2;
     final double maxBarHeight = size.height * 0.8;
@@ -229,6 +298,7 @@ class WaveformPainter extends CustomPainter {
       // 只绘制可见区域内的波形
       if (x + barWidth < 0 || x > size.width) continue;
 
+      // 确保即使数据为0，也有一定的基础高度
       final double barHeight = math.max(2.0, waveform[i] * maxBarHeight);
       final double y = centerY - barHeight / 2;
 
