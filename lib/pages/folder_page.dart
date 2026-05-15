@@ -996,11 +996,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         },
                         onTap: _isSelectionMode
                             ? () => _toggleSelection(file.path)
-                            : () async {
-                                await audio.playFile(file.path, file.name);
+                            : () {
+                                // 先切到播放页，避免把元数据解析和播放准备
+                                // 的耗时阻塞在“进入页面”这一步。
                                 if (mounted) {
-                                  await widget.onOpenPlayback?.call();
+                                  unawaited(widget.onOpenPlayback?.call());
                                 }
+                                unawaited(audio.playFile(file.path, file.name));
                               },
                       ),
                     );
