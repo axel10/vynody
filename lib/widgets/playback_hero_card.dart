@@ -737,14 +737,14 @@ class PlaybackHeroCard extends ConsumerWidget {
       pNormal: _PlaybackPaneLayout(
         top: pNormalInfoTop,
         left: 24.0,
-        width: width - 48.0,
+        width: math.max(0.0, width - 48.0),
         height: pNormalInfoHeight,
         opacity: 1.0,
       ),
       pLyrics: _PlaybackPaneLayout(
         top: pLyricsInfoTop,
         left: pLyricsInfoLeft,
-        width: width - pLyricsInfoLeft - 16.0,
+        width: math.max(0.0, width - pLyricsInfoLeft - 16.0),
         height: pLyricsInfoHeight,
         opacity: 1.0,
       ),
@@ -779,7 +779,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       pLyrics: _PlaybackPaneLayout(
         top: height,
         left: 16.0,
-        width: width - 32.0,
+        width: math.max(0.0, width - 32.0),
         height: pNormalControlsHeight,
         opacity: 0.0,
       ),
@@ -807,15 +807,18 @@ class PlaybackHeroCard extends ConsumerWidget {
       pNormal: _PlaybackPaneLayout(
         top: height,
         left: 16.0,
-        width: width - 32.0,
-        height: height - pNormalInfoTop,
+        width: math.max(0.0, width - 32.0),
+        height: math.max(0.0, height - pNormalInfoTop),
         opacity: 0.0,
       ),
       pLyrics: _PlaybackPaneLayout(
         top: pLyricsCoverTop + pLyricsCoverSide + 16.0,
         left: 16.0,
-        width: width - 32.0,
-        height: height - (pLyricsCoverTop + pLyricsCoverSide + 16.0),
+        width: math.max(0.0, width - 32.0),
+        height: math.max(
+          0.0,
+          height - (pLyricsCoverTop + pLyricsCoverSide + 16.0),
+        ),
         opacity: 1.0,
       ),
       lNormal: _PlaybackPaneLayout(
