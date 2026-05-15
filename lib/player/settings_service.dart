@@ -368,6 +368,7 @@ class SettingsService extends ChangeNotifier {
       _transcodeDefaultQualityTier;
   String get transcodeFfmpegPath => _transcodeFfmpegPath;
   bool get transcodeAutoScanOutputEnabled => _transcodeAutoScanOutputEnabled;
+  SharedPreferences get prefs => _prefs;
 
   static AudioFormat _audioFormatFromStorageValue(String? value) {
     final normalized = value?.trim().toLowerCase();
