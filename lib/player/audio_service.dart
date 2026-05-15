@@ -38,7 +38,6 @@ class _PlaybackSessionState {
     required this.queue,
     required this.currentIndex,
     required this.positionMs,
-    required this.isPlaying,
     required this.playbackMode,
     required this.randomPlayback,
   });
@@ -47,7 +46,6 @@ class _PlaybackSessionState {
   final List<MusicFile> queue;
   final int currentIndex;
   final int positionMs;
-  final bool isPlaying;
   final PlaylistMode playbackMode;
   final _RandomPlaybackSessionState randomPlayback;
 
@@ -57,7 +55,6 @@ class _PlaybackSessionState {
       'queue': queue.map(_musicFileToSessionJson).toList(growable: false),
       'currentIndex': currentIndex,
       'positionMs': positionMs,
-      'isPlaying': isPlaying,
       'playbackMode': playbackMode.name,
       'randomPlayback': randomPlayback.toJson(),
     };
@@ -85,7 +82,6 @@ class _PlaybackSessionState {
       queue: queue,
       currentIndex: (json['currentIndex'] as num?)?.toInt() ?? -1,
       positionMs: (json['positionMs'] as num?)?.toInt() ?? 0,
-      isPlaying: json['isPlaying'] as bool? ?? false,
       playbackMode: _playbackModeFromStorage(
         json['playbackMode'] as String?,
       ),
@@ -495,11 +491,8 @@ class AudioService extends Notifier<AudioSnapshot> {
           await seek(restorePosition);
         }
 
-        if (session.isPlaying) {
-          await _player.player.play();
-        }
         _position = restorePosition;
-        _isPlaying = session.isPlaying;
+        _isPlaying = false;
       }
 
       await _restoreRandomPlaybackSession(session.randomPlayback);
@@ -604,7 +597,6 @@ class AudioService extends Notifier<AudioSnapshot> {
       queue: List<MusicFile>.unmodifiable(_queue),
       currentIndex: _currentIndex,
       positionMs: _position.inMilliseconds,
-      isPlaying: _isPlaying,
       playbackMode: playbackMode,
       randomPlayback: _captureRandomPlaybackSession(),
     );
