@@ -50,6 +50,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   static const double _timelineOffsetMinSeconds = -10.0;
   static const double _timelineOffsetMaxSeconds = 10.0;
   static const double _seekToastTopOffset = 88.0;
+  static const Duration _seekToastAutoDismissDelay = Duration(
+    milliseconds: 1200,
+  );
   static const Duration _seekToastAnimationDuration = Duration(
     milliseconds: 160,
   );
@@ -67,6 +70,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   DateTime _lastDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
   ToastFuture? _seekToast;
   String? _seekToastSignature;
+  Timer? _seekToastAutoDismissTimer;
 
   LyricsController get _lyricsControllerActions =>
       ref.read(lyricsControllerProvider.notifier);
@@ -129,11 +133,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   @override
   void dispose() {
+    _seekToastAutoDismissTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
 
   void _dismissSeekToast({bool showAnim = false}) {
+    _seekToastAutoDismissTimer?.cancel();
+    _seekToastAutoDismissTimer = null;
     _seekToast?.dismiss(showAnim: showAnim);
     _seekToast = null;
     _seekToastSignature = null;
@@ -174,6 +181,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       animationDuration: _seekToastAnimationDuration,
       animationCurve: Curves.easeOutCubic,
     );
+
+    _seekToastAutoDismissTimer?.cancel();
+    _seekToastAutoDismissTimer = Timer(_seekToastAutoDismissDelay, () {
+      if (!mounted) return;
+      if (_seekToastSignature != signature) return;
+      _dismissSeekToast(showAnim: true);
+    });
   }
 
   Duration _audioSeekPositionForLyricTimestamp(Duration timestamp) {
@@ -630,10 +644,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     final target = math.max(
       0.0,
-      math.min(
-        index * itemExtent - visibleCenter + itemExtent / 2,
-        maxExtent,
-      ),
+      math.min(index * itemExtent - visibleCenter + itemExtent / 2, maxExtent),
     );
 
     if (animate) {
