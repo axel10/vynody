@@ -321,6 +321,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   String? _trackedPlaybackSongPath;
   bool _hasLoggedCurrentPlayback = false;
   Duration _lastPlaybackObservedPosition = Duration.zero;
+  String? _lastMissingCurrentTrackPathHandled;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -492,6 +493,20 @@ class AudioService extends Notifier<AudioSnapshot> {
 
         _position = restorePosition;
         _isPlaying = false;
+      } else {
+        // No restored track still exists, so discard the stale session and
+        // leave the player empty instead of restoring a deleted file.
+        _queue.clear();
+        _currentIndex = -1;
+        _position = Duration.zero;
+        _duration = Duration.zero;
+        _isPlaying = false;
+        _isMuted = false;
+        _lastActionNext = null;
+        _isTransitioning = false;
+        _resetPlaybackTrackingForSong(null);
+        await _player.playlist.clear();
+        await prefs.remove(_playbackSessionStorageKey);
       }
 
       await _restoreRandomPlaybackSession(session.randomPlayback);
@@ -572,7 +587,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
     }
 
-    return preferredIndex;
+    return -1;
   }
 
   void _updatePlaybackSessionAutoSaveTimer() {
@@ -761,9 +776,15 @@ class AudioService extends Notifier<AudioSnapshot> {
 
         final current = _queue[_currentIndex];
         if (await _songExists(current.path)) {
+          _lastMissingCurrentTrackPathHandled = null;
           await _syncCurrentPlaybackSong(current);
           return;
         }
+
+        if (_lastMissingCurrentTrackPathHandled == current.path) {
+          return;
+        }
+        _lastMissingCurrentTrackPathHandled = current.path;
 
         setSongMissingStateByPath(current.path, true);
         _showMissingSongNotice(skipped: true);
@@ -776,6 +797,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           _currentIndex = -1;
           _duration = Duration.zero;
           _position = Duration.zero;
+          _lastMissingCurrentTrackPathHandled = null;
           notifyListeners();
           return;
         }
@@ -880,6 +902,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _trackedPlaybackSongPath = song?.path;
     _hasLoggedCurrentPlayback = false;
     _lastPlaybackObservedPosition = Duration.zero;
+    _lastMissingCurrentTrackPathHandled = null;
   }
 
   void _updatePlaybackTrackingForCurrentSong() {
@@ -1046,6 +1069,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         _lastActionNext = true; // 记录为自动切歌
       }
       _currentIndex = newIndex;
+      _lastMissingCurrentTrackPathHandled = null;
       if (_currentIndex >= 0 && _currentIndex < _queue.length) {
         final song = _queue[_currentIndex];
         _logLyricsDebug(
