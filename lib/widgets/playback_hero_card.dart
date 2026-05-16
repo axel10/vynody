@@ -399,8 +399,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                           )!
                                         : width *
                                               PlaybackHeroCardUiTuning
-                                                  .portraitControlsWidthFactor) *
-                                    layout.controlsScale,
+                                                  .portraitControlsWidthFactor),
                                 child: _buildPlaybackControlsWidget(
                                   context,
                                   ref,
@@ -665,6 +664,21 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     // 居中对齐逻辑：封面、信息区和控制区在列宽内统一居中对齐
     // Centering logic: cover, info and controls are centered within the column and aligned in width
+    // 移除离散的 isLarge 逻辑，改用连续的百分比缩放
+    // Remove discrete isLarge logic, use continuous percentage scaling
+    final currentControlsScale = _lerp2DSmooth(
+      // 竖屏：基于宽度进行缩放，稍微增加基准，让按钮在标准屏幕上保持舒适大小
+      (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15),
+      1.0,
+      // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
+      (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
+          .clamp(0.85, 1.8),
+      // 横屏歌词模式：结合宽度基准和高度缩放系数
+      (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
+      tLyrics,
+      tLand,
+    );
+
     final lLyricsCoverLeft =
         lLyricsOuterLeftPadding + (lLyricsColumnWidth - lLyricsCoverSide) / 2;
     final lLyricsInfoLeft = lLyricsCoverLeft;
@@ -683,19 +697,6 @@ class PlaybackHeroCard extends ConsumerWidget {
       width - lLyricsLyricsLeft - 32.0,
     );
 
-    // 移除离散的 isLarge 逻辑，改用连续的百分比缩放
-    // Remove discrete isLarge logic, use continuous percentage scaling
-    final currentControlsScale = _lerp2DSmooth(
-      1.0,
-      1.0,
-      // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
-      (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
-          .clamp(0.85, 1.8),
-      // 横屏歌词模式：结合宽度基准和高度缩放系数
-      (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
-      tLyrics,
-      tLand,
-    );
 
     // Build the Panes
     // Cover
@@ -1156,11 +1157,11 @@ class PlaybackHeroCard extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(
         horizontal: PlaybackHeroCardUiTuning.topButtonsHorizontalPadding,
       ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+      child: Row(
+        mainAxisAlignment: isLandscape
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.spaceBetween,
+        children: [
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -1176,10 +1177,11 @@ class PlaybackHeroCard extends ConsumerWidget {
               onPressed: onShowMoreMenu,
               tooltip: l10n.more,
             ),
-            SizedBox(
-              width:
-                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-            ),
+            if (isLandscape)
+              SizedBox(
+                width:
+                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              ),
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -1204,10 +1206,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                   ? l10n.removeFromFavorites
                   : l10n.addToFavorites,
             ),
-            SizedBox(
-              width:
-                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-            ),
+            if (isLandscape)
+              SizedBox(
+                width:
+                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              ),
             GestureDetector(
               onLongPress: onShowPlaylistModeSelector,
               child: IconButton(
@@ -1227,10 +1230,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                 tooltip: getPlaylistModeName(playbackMode, l10n),
               ),
             ),
-            SizedBox(
-              width:
-                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-            ),
+            if (isLandscape)
+              SizedBox(
+                width:
+                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              ),
             GestureDetector(
               onLongPress: onShowRandomModeSelector,
               child: IconButton(
@@ -1267,10 +1271,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                 tooltip: l10n.randomMode,
               ),
             ),
-            SizedBox(
-              width:
-                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-            ),
+            if (isLandscape)
+              SizedBox(
+                width:
+                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              ),
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -1287,10 +1292,11 @@ class PlaybackHeroCard extends ConsumerWidget {
               onLongPress: onTagCompletionLongPress,
               tooltip: l10n.tagCompletion,
             ),
-            SizedBox(
-              width:
-                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-            ),
+            if (isLandscape)
+              SizedBox(
+                width:
+                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              ),
             Tooltip(
               message: sleepTimerRemaining != null
                   ? l10n.sleepTimerRemaining(
@@ -1347,10 +1353,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                 ),
               ),
             ),
-            SizedBox(
-              width:
-                  PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-            ),
+            if (isLandscape)
+              SizedBox(
+                width:
+                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
+              ),
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -1366,8 +1373,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               onPressed: onEqualizerTap,
               tooltip: l10n.equalizer,
             ),
-          ],
-        ),
+        ],
       ),
     );
 
@@ -1419,94 +1425,93 @@ class PlaybackHeroCard extends ConsumerWidget {
       }
     }
 
-    final mainControlsRow = FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          buildSecondaryControl(
-            circleSize: (useOverlayStyle ? 42 : 40),
-            iconBuilder: (color, isWhiteBg) => Icon(
-              showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-              size: (isWhiteBg ? 22 : 24) * controlsScale,
-              color: showVisualizerToggle ? color : color.withValues(alpha: 0.6),
-            ),
-            onPressed: onToggleVisualizer,
-            tooltip: AppLocalizations.of(context)!.visualizer,
+    final mainControlsRow = Row(
+      mainAxisAlignment: isLandscape
+          ? MainAxisAlignment.center
+          : MainAxisAlignment.spaceBetween,
+      children: [
+        buildSecondaryControl(
+          circleSize: (useOverlayStyle ? 42 : 40),
+          iconBuilder: (color, isWhiteBg) => Icon(
+            showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
+            size: (isWhiteBg ? 22 : 24) * controlsScale,
+            color: showVisualizerToggle ? color : color.withValues(alpha: 0.6),
           ),
-          SizedBox(width: 12 * controlsScale),
-          buildSecondaryControl(
-            circleSize: (useOverlayStyle ? 56 : 60),
-            iconBuilder: (color, isWhiteBg) => Icon(
-              Icons.skip_previous_rounded,
-              size: (isWhiteBg ? 34 : 52) * controlsScale,
-              color: color,
-            ),
-            onPressed: onPrevious,
-            tooltip: l10n.previous,
+          onPressed: onToggleVisualizer,
+          tooltip: AppLocalizations.of(context)!.visualizer,
+        ),
+        if (isLandscape) SizedBox(width: 12 * controlsScale),
+        buildSecondaryControl(
+          circleSize: (useOverlayStyle ? 56 : 60),
+          iconBuilder: (color, isWhiteBg) => Icon(
+            Icons.skip_previous_rounded,
+            size: (isWhiteBg ? 34 : 52) * controlsScale,
+            color: color,
           ),
-          SizedBox(width: 18 * controlsScale),
-          Container(
-            width: 76 * controlsScale,
-            height: 76 * controlsScale,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 14 * controlsScale,
-                  spreadRadius: 2 * controlsScale,
-                ),
-              ],
-            ),
-            child: IconButton(
-              onPressed: onPlayPause,
-              tooltip: isPlaying ? l10n.pause : l10n.play,
-              icon: Icon(
-                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                size: 42 * controlsScale,
-                color: controlIconColor,
+          onPressed: onPrevious,
+          tooltip: l10n.previous,
+        ),
+        if (isLandscape) SizedBox(width: 18 * controlsScale),
+        Container(
+          width: 76 * controlsScale,
+          height: 76 * controlsScale,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 14 * controlsScale,
+                spreadRadius: 2 * controlsScale,
               ),
+            ],
+          ),
+          child: IconButton(
+            onPressed: onPlayPause,
+            tooltip: isPlaying ? l10n.pause : l10n.play,
+            icon: Icon(
+              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              size: 42 * controlsScale,
+              color: controlIconColor,
             ),
           ),
-          SizedBox(width: 18 * controlsScale),
-          buildSecondaryControl(
-            circleSize: (useOverlayStyle ? 56 : 60),
-            iconBuilder: (color, isWhiteBg) => Icon(
-              Icons.skip_next_rounded,
-              size: (isWhiteBg ? 34 : 48) * controlsScale,
-              color: color,
-            ),
-            onPressed: onNext,
-            tooltip: l10n.next,
+        ),
+        if (isLandscape) SizedBox(width: 18 * controlsScale),
+        buildSecondaryControl(
+          circleSize: (useOverlayStyle ? 56 : 60),
+          iconBuilder: (color, isWhiteBg) => Icon(
+            Icons.skip_next_rounded,
+            size: (isWhiteBg ? 34 : 48) * controlsScale,
+            color: color,
           ),
-          SizedBox(width: 12 * controlsScale),
-          buildSecondaryControl(
-            circleSize: (useOverlayStyle ? 42 : 40),
-            iconBuilder: (color, isWhiteBg) => GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onVerticalDragUpdate: (details) {
-                onVolumeDrag?.call(details.primaryDelta ?? 0);
+          onPressed: onNext,
+          tooltip: l10n.next,
+        ),
+        if (isLandscape) SizedBox(width: 12 * controlsScale),
+        buildSecondaryControl(
+          circleSize: (useOverlayStyle ? 42 : 40),
+          iconBuilder: (color, isWhiteBg) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragUpdate: (details) {
+              onVolumeDrag?.call(details.primaryDelta ?? 0);
+            },
+            child: Listener(
+              onPointerSignal: (pointerSignal) {
+                if (pointerSignal is PointerScrollEvent) {
+                  onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+                }
               },
-              child: Listener(
-                onPointerSignal: (pointerSignal) {
-                  if (pointerSignal is PointerScrollEvent) {
-                    onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-                  }
-                },
-                child: Icon(
-                  getVolumeIcon(ref.watch(audioVolumeProvider)),
-                  size: (isWhiteBg ? 22 : 24) * controlsScale,
-                  color: color,
-                ),
+              child: Icon(
+                getVolumeIcon(ref.watch(audioVolumeProvider)),
+                size: (isWhiteBg ? 22 : 24) * controlsScale,
+                color: color,
               ),
             ),
-            onPressed: onVolumeTap,
-            tooltip: l10n.volume,
           ),
-        ],
-      ),
+          onPressed: onVolumeTap,
+          tooltip: l10n.volume,
+        ),
+      ],
     );
 
     // 进度条及时间显示容器 (Common container for progress bar and time display)
@@ -1656,15 +1661,20 @@ class PlaybackHeroCard extends ConsumerWidget {
                           1) *
                       0.8;
 
-                  // 限制位移：确保 (pagePadding + (side + shift) * fittedScale) >= minScreenMargin
-                  // 解得：shift >= (minScreenMargin - pagePadding) / fittedScale - side
+                  final safeFittedScale =
+                      (fittedScale.isFinite && fittedScale > 0)
+                          ? fittedScale
+                          : 1.0;
                   final minAllowedShift =
-                      (minScreenMargin - pagePadding) / fittedScale -
-                      PlaybackHeroCardUiTuning.waveformOverlayTimeSide;
+                      (minScreenMargin - pagePadding) / safeFittedScale -
+                          PlaybackHeroCardUiTuning.waveformOverlayTimeSide;
 
-                  // 因为 shift 是负数（向左移），所以是用 clamp(minAllowedShift, 0)
-                  // 对于右侧文字，它是对称的
-                  final safeShift = rawShift.clamp(minAllowedShift, 0.0);
+                  final lowerBound = math.min(
+                    minAllowedShift.isFinite ? minAllowedShift : 0.0,
+                    0.0,
+                  );
+                  final safeShift =
+                      rawShift.isFinite ? rawShift.clamp(lowerBound, 0.0) : 0.0;
 
                   return SizedBox(
                     width: totalWidth,

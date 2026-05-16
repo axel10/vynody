@@ -9,7 +9,7 @@ class PlaybackPageUiTuning {
   static const double lyricsLandscapeLeftPadding = 40.0;
   static const double lyricsPortraitLeftPadding = 16.0;
   static const double normalLandscapeHorizontalPadding = 32.0;
-  static const double normalPortraitHorizontalPadding = 24.0;
+  static const double normalPortraitHorizontalPadding = 8.0;
   static const double lyricsLandscapeRightPadding = 24.0;
   static const double lyricsPortraitRightPadding = 16.0;
   static const double landscapeTopPadding = 32.0;
@@ -83,8 +83,8 @@ class PlaybackHeroCardUiTuning {
   // static const double controlsRowLandscapeGap = 16.0;
   static const double controlsRowPortraitGap = 8.0;
   static const double topButtonsHorizontalPadding = 0.0; // 顶部按钮行的水平内边距
-  static const double topButtonsIconSize = 24.0; // 顶部按钮图标的基础大小
-  static const double topButtonsInnerGap = 12.0; // 按钮之间的固定间距 (Gap between buttons)
+  static const double topButtonsIconSize = 22.0; // 顶部按钮图标的基础大小
+  static const double topButtonsInnerGap = 6.0; // 减小按钮之间的间距
 
   static const double waveformOverlayHeight = 200.0;
   static const double waveformOverlayTopPadding = 20.0;
@@ -100,15 +100,15 @@ class PlaybackHeroCardUiTuning {
 
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
   // 减小此值会让按钮和文字在相同屏幕宽度下显得更大
-  static const double pControlsScaleBase = 420.0; // 竖屏缩放基准
+  static const double pControlsScaleBase = 375.0; // 竖屏缩放基准
   static const double lControlsScaleBase = 480.0; // 横屏缩放基准
-  static const double controlsTopButtonsHeight = 48.0;
+  static const double controlsTopButtonsHeight = 44.0; // 减小顶部按钮高度
   static const double controlsMainButtonsHeight = 72.0;
   static const double controlsTimeRowHeight = 24.0;
   static const double controlsTimeGap = 8.0;
   static const double progressBarWidthFactor = 1.0; // 进度条宽度比例（相对于按钮区）
   static const double portraitProgressBarWidthFactor =
-      1.0; // 竖屏进度条宽度比例 (相对于按钮区)
+      1.1; // 竖屏进度条宽度比例 (增加一点溢出感)
   static const double landscapeInfoControlsGap = 20.0;
   static const double landscapeInfoHeightBase = 48.0;
   static const double controlsRowLandscapeGap = 12.0;
