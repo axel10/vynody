@@ -82,12 +82,11 @@ class _PlaybackSessionState {
       queue: queue,
       currentIndex: (json['currentIndex'] as num?)?.toInt() ?? -1,
       positionMs: (json['positionMs'] as num?)?.toInt() ?? 0,
-      playbackMode: _playbackModeFromStorage(
-        json['playbackMode'] as String?,
-      ),
+      playbackMode: _playbackModeFromStorage(json['playbackMode'] as String?),
       randomPlayback: _RandomPlaybackSessionState.fromJson(
-        (json['randomPlayback'] as Map? ?? const {})
-            .map((key, value) => MapEntry(key.toString(), value)),
+        (json['randomPlayback'] as Map? ?? const {}).map(
+          (key, value) => MapEntry(key.toString(), value),
+        ),
       ),
     );
   }
@@ -281,9 +280,7 @@ class _RandomPlaybackSessionState {
 
 class AudioService extends Notifier<AudioSnapshot> {
   static const String _playbackSessionStorageKey = 'playback_session_v1';
-  static const Duration _playbackSessionAutoSaveInterval = Duration(
-    seconds: 2,
-  );
+  static const Duration _playbackSessionAutoSaveInterval = Duration(seconds: 2);
 
   late final AudioCoreController _player;
   bool _isPlaying = false;
@@ -478,6 +475,8 @@ class AudioService extends Notifier<AudioSnapshot> {
           autoPlay: false,
         );
 
+        await _restoreCurrentThemeColors();
+
         final maxPositionMs = _duration.inMilliseconds > 0
             ? _duration.inMilliseconds
             : (currentMusic?.durationMillis ?? 0);
@@ -530,9 +529,27 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
   }
 
-  Future<int> _resolveRestoredQueueIndex(
-    _PlaybackSessionState session,
-  ) async {
+  Future<void> _restoreCurrentThemeColors() async {
+    final song = currentMusic;
+    if (song == null) {
+      _dynamicStartColor = null;
+      _dynamicEndColor = null;
+      _currentThemeColorsMap = const {};
+      notifyListeners();
+      return;
+    }
+
+    final themeColorsBlob = song.themeColorsBlob;
+    if (themeColorsBlob != null && themeColorsBlob.isNotEmpty) {
+      _applyThemeColors(ThemeColorHelper.blobToColors(themeColorsBlob));
+      notifyListeners();
+      return;
+    }
+
+    await _updatePalette();
+  }
+
+  Future<int> _resolveRestoredQueueIndex(_PlaybackSessionState session) async {
     if (session.queue.isEmpty) return -1;
 
     final preferredIndex = session.currentIndex.clamp(
@@ -577,9 +594,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _playbackSessionAutoSaveTimer = null;
   }
 
-  Future<void> _persistPlaybackSession({
-    bool allowWhenDisposed = false,
-  }) async {
+  Future<void> _persistPlaybackSession({bool allowWhenDisposed = false}) async {
     if ((_disposed && !allowWhenDisposed) ||
         _restoringPlaybackSession ||
         !_playbackSessionReady) {
