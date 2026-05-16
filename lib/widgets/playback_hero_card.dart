@@ -492,7 +492,8 @@ class PlaybackHeroCard extends ConsumerWidget {
         pNormalControlsWidth / PlaybackHeroCardUiTuning.pControlsScaleBase;
 
     final pNormalControlsHeight =
-        (pNormalControlsBaseIdealHeight * math.min(1.0, pNormalControlsRawScale))
+        (pNormalControlsBaseIdealHeight *
+                math.min(1.0, pNormalControlsRawScale))
             .clamp(0.0, height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
             .ceilToDouble();
     final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
@@ -1370,41 +1371,80 @@ class PlaybackHeroCard extends ConsumerWidget {
       ),
     );
 
+    final controlIconColor = currentThemeColorsMap['darkVibrant'] ??
+        currentThemeColorsMap['darkMuted'] ??
+        Colors.black;
+
+    // 内部辅助组件：构建带背景和阴影的次级控制按钮 (Internal helper: build secondary control with background and shadow)
+    Widget buildSecondaryControl({
+      required Widget icon,
+      required VoidCallback? onPressed,
+      required double circleSize,
+      String? tooltip,
+    }) {
+      return Container(
+        width: circleSize * controlsScale,
+        height: circleSize * controlsScale,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 10 * controlsScale,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: IconButton(
+          padding: EdgeInsets.zero,
+          icon: icon,
+          onPressed: onPressed,
+          tooltip: tooltip,
+        ),
+      );
+    }
+
+
     final mainControlsRow = FittedBox(
       fit: BoxFit.scaleDown,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
+          buildSecondaryControl(
+            circleSize: 42,
             icon: Icon(
               showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-              size: 28 * controlsScale,
-              color: showVisualizerToggle ? Colors.white : Colors.white70,
+              size: 22 * controlsScale,
+              color: showVisualizerToggle
+                  ? controlIconColor
+                  : controlIconColor.withValues(alpha: 0.6),
             ),
             onPressed: onToggleVisualizer,
             tooltip: AppLocalizations.of(context)!.visualizer,
           ),
-          SizedBox(width: 8 * controlsScale),
-          IconButton(
+          SizedBox(width: 12 * controlsScale),
+          buildSecondaryControl(
+            circleSize: 56,
             icon: Icon(
               Icons.skip_previous_rounded,
-              size: 48 * controlsScale,
-              color: Colors.white,
+              size: 34 * controlsScale,
+              color: controlIconColor,
             ),
             onPressed: onPrevious,
             tooltip: l10n.previous,
           ),
-          SizedBox(width: 16 * controlsScale),
+          SizedBox(width: 18 * controlsScale),
           Container(
-            width: 72 * controlsScale,
-            height: 72 * controlsScale,
+            width: 76 * controlsScale,
+            height: 76 * controlsScale,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 12 * controlsScale,
+                  blurRadius: 14 * controlsScale,
                   spreadRadius: 2 * controlsScale,
                 ),
               ],
@@ -1414,46 +1454,45 @@ class PlaybackHeroCard extends ConsumerWidget {
               tooltip: isPlaying ? l10n.pause : l10n.play,
               icon: Icon(
                 isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                size: 40 * controlsScale,
-                color:
-                    currentThemeColorsMap['darkVibrant'] ??
-                    currentThemeColorsMap['darkMuted'] ??
-                    Colors.black,
+                size: 42 * controlsScale,
+                color: controlIconColor,
               ),
             ),
           ),
-          SizedBox(width: 16 * controlsScale),
-          IconButton(
+          SizedBox(width: 18 * controlsScale),
+          buildSecondaryControl(
+            circleSize: 56,
             icon: Icon(
               Icons.skip_next_rounded,
-              size: 48 * controlsScale,
-              color: Colors.white,
+              size: 34 * controlsScale,
+              color: controlIconColor,
             ),
             onPressed: onNext,
             tooltip: l10n.next,
           ),
-          SizedBox(width: 8 * controlsScale),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onVerticalDragUpdate: (details) {
-              onVolumeDrag?.call(details.primaryDelta ?? 0);
-            },
-            child: Listener(
-              onPointerSignal: (pointerSignal) {
-                if (pointerSignal is PointerScrollEvent) {
-                  onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-                }
+          SizedBox(width: 12 * controlsScale),
+          buildSecondaryControl(
+            circleSize: 42,
+            icon: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragUpdate: (details) {
+                onVolumeDrag?.call(details.primaryDelta ?? 0);
               },
-              child: IconButton(
-                icon: Icon(
+              child: Listener(
+                onPointerSignal: (pointerSignal) {
+                  if (pointerSignal is PointerScrollEvent) {
+                    onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+                  }
+                },
+                child: Icon(
                   getVolumeIcon(ref.watch(audioVolumeProvider)),
-                  size: 28 * controlsScale,
-                  color: Colors.white70,
+                  size: 22 * controlsScale,
+                  color: controlIconColor,
                 ),
-                onPressed: onVolumeTap,
-                tooltip: l10n.volume,
               ),
             ),
+            onPressed: onVolumeTap,
+            tooltip: l10n.volume,
           ),
         ],
       ),
