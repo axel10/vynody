@@ -1153,15 +1153,26 @@ class PlaybackHeroCard extends ConsumerWidget {
     final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
 
     // 提取公共组件 (Extract common components)
+    Widget wrapWithMaybeFitted(Widget child) {
+      if (!isLandscape) return SizedBox(width: double.infinity, child: child);
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.center,
+        child: child,
+      );
+    }
+
     final topButtonsRow = Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: PlaybackHeroCardUiTuning.topButtonsHorizontalPadding,
       ),
-      child: Row(
-        mainAxisAlignment: isLandscape
-            ? MainAxisAlignment.center
-            : MainAxisAlignment.spaceBetween,
-        children: [
+      child: wrapWithMaybeFitted(
+        Row(
+          mainAxisSize: isLandscape ? MainAxisSize.min : MainAxisSize.max,
+          mainAxisAlignment: isLandscape
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.spaceBetween,
+          children: [
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -1375,7 +1386,8 @@ class PlaybackHeroCard extends ConsumerWidget {
             ),
         ],
       ),
-    );
+    ),
+  );
 
     final controlIconColor = currentThemeColorsMap['darkVibrant'] ??
         currentThemeColorsMap['darkMuted'] ??
@@ -1425,11 +1437,13 @@ class PlaybackHeroCard extends ConsumerWidget {
       }
     }
 
-    final mainControlsRow = Row(
-      mainAxisAlignment: isLandscape
-          ? MainAxisAlignment.center
-          : MainAxisAlignment.spaceBetween,
-      children: [
+    final mainControlsRow = wrapWithMaybeFitted(
+      Row(
+        mainAxisSize: isLandscape ? MainAxisSize.min : MainAxisSize.max,
+        mainAxisAlignment: isLandscape
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.spaceBetween,
+        children: [
         buildSecondaryControl(
           circleSize: (useOverlayStyle ? 42 : 40),
           iconBuilder: (color, isWhiteBg) => Icon(
@@ -1512,7 +1526,8 @@ class PlaybackHeroCard extends ConsumerWidget {
           tooltip: l10n.volume,
         ),
       ],
-    );
+    ),
+  );
 
     // 进度条及时间显示容器 (Common container for progress bar and time display)
     Widget buildProgressSection() {
