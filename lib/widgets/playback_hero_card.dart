@@ -492,7 +492,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         pNormalControlsWidth / PlaybackHeroCardUiTuning.pControlsScaleBase;
 
     final pNormalControlsHeight =
-        (pNormalControlsBaseIdealHeight * pNormalControlsRawScale)
+        (pNormalControlsBaseIdealHeight * math.min(1.0, pNormalControlsRawScale))
             .clamp(0.0, height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
             .ceilToDouble();
     final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
