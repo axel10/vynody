@@ -1375,36 +1375,49 @@ class PlaybackHeroCard extends ConsumerWidget {
         currentThemeColorsMap['darkMuted'] ??
         Colors.black;
 
-    // 内部辅助组件：构建带背景和阴影的次级控制按钮 (Internal helper: build secondary control with background and shadow)
+    // 内部辅助组件：构建带背景和阴影的次级控制按钮 (Internal helper: build secondary control)
     Widget buildSecondaryControl({
-      required Widget icon,
+      required Widget Function(Color color, bool isWhiteBg) iconBuilder,
       required VoidCallback? onPressed,
       required double circleSize,
       String? tooltip,
     }) {
-      return Container(
-        width: circleSize * controlsScale,
-        height: circleSize * controlsScale,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 10 * controlsScale,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: IconButton(
+      if (useOverlayStyle) {
+        return Container(
+          width: circleSize * controlsScale,
+          height: circleSize * controlsScale,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 10 * controlsScale,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            icon: iconBuilder(controlIconColor, true),
+            onPressed: onPressed,
+            tooltip: tooltip,
+          ),
+        );
+      } else {
+        // 其他情况一律都是原来的白色图标 (Original white icon style)
+        return IconButton(
+          constraints: BoxConstraints.tightFor(
+            width: circleSize * controlsScale,
+            height: circleSize * controlsScale,
+          ),
           padding: EdgeInsets.zero,
-          icon: icon,
+          icon: iconBuilder(Colors.white, false),
           onPressed: onPressed,
           tooltip: tooltip,
-        ),
-      );
+        );
+      }
     }
-
 
     final mainControlsRow = FittedBox(
       fit: BoxFit.scaleDown,
@@ -1412,24 +1425,22 @@ class PlaybackHeroCard extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           buildSecondaryControl(
-            circleSize: 42,
-            icon: Icon(
+            circleSize: (useOverlayStyle ? 42 : 40),
+            iconBuilder: (color, isWhiteBg) => Icon(
               showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-              size: 22 * controlsScale,
-              color: showVisualizerToggle
-                  ? controlIconColor
-                  : controlIconColor.withValues(alpha: 0.6),
+              size: (isWhiteBg ? 22 : 24) * controlsScale,
+              color: showVisualizerToggle ? color : color.withValues(alpha: 0.6),
             ),
             onPressed: onToggleVisualizer,
             tooltip: AppLocalizations.of(context)!.visualizer,
           ),
           SizedBox(width: 12 * controlsScale),
           buildSecondaryControl(
-            circleSize: 56,
-            icon: Icon(
+            circleSize: (useOverlayStyle ? 56 : 60),
+            iconBuilder: (color, isWhiteBg) => Icon(
               Icons.skip_previous_rounded,
-              size: 34 * controlsScale,
-              color: controlIconColor,
+              size: (isWhiteBg ? 34 : 52) * controlsScale,
+              color: color,
             ),
             onPressed: onPrevious,
             tooltip: l10n.previous,
@@ -1461,19 +1472,19 @@ class PlaybackHeroCard extends ConsumerWidget {
           ),
           SizedBox(width: 18 * controlsScale),
           buildSecondaryControl(
-            circleSize: 56,
-            icon: Icon(
+            circleSize: (useOverlayStyle ? 56 : 60),
+            iconBuilder: (color, isWhiteBg) => Icon(
               Icons.skip_next_rounded,
-              size: 34 * controlsScale,
-              color: controlIconColor,
+              size: (isWhiteBg ? 34 : 48) * controlsScale,
+              color: color,
             ),
             onPressed: onNext,
             tooltip: l10n.next,
           ),
           SizedBox(width: 12 * controlsScale),
           buildSecondaryControl(
-            circleSize: 42,
-            icon: GestureDetector(
+            circleSize: (useOverlayStyle ? 42 : 40),
+            iconBuilder: (color, isWhiteBg) => GestureDetector(
               behavior: HitTestBehavior.opaque,
               onVerticalDragUpdate: (details) {
                 onVolumeDrag?.call(details.primaryDelta ?? 0);
@@ -1486,8 +1497,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                 },
                 child: Icon(
                   getVolumeIcon(ref.watch(audioVolumeProvider)),
-                  size: 22 * controlsScale,
-                  color: controlIconColor,
+                  size: (isWhiteBg ? 22 : 24) * controlsScale,
+                  color: color,
                 ),
               ),
             ),
