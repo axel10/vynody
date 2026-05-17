@@ -525,8 +525,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
-    // Sync _currentFolder if it's the system root and data has been loaded
-    if (currentFolder?.path == 'system' &&
+    // Sync _currentFolder if it's the system root and data has been loaded.
+    if (Platform.isAndroid &&
+        currentFolder?.path == 'system' &&
         systemMediaFolder != null &&
         currentFolder != systemMediaFolder) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -569,7 +570,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   ],
                 ),
               ),
-              if (!Platform.isWindows)
+              if (Platform.isAndroid)
                 ListTile(
                   leading: const Icon(
                     Icons.library_music,

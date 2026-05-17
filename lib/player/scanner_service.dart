@@ -960,6 +960,10 @@ class ScannerService extends ChangeNotifier {
       'hasPermission=$_hasPermission '
       'playerController=${_playerController != null}',
     );
+    if (!Platform.isAndroid) {
+      debugPrint('[ScannerService] scanSystemMedia skipped: Android only');
+      return;
+    }
     if (!_hasPermission) {
       debugPrint('[ScannerService] scanSystemMedia aborted: no permission');
       return;
@@ -1226,7 +1230,7 @@ class ScannerService extends ChangeNotifier {
     List<SongMetadata>? cachedSongs,
     bool seedMetadataCache = true,
   }) async {
-    if (Platform.isWindows) return;
+    if (!Platform.isAndroid) return;
 
     try {
       final songs = cachedSongs ?? await _loadCachedSongsFromDatabase();
@@ -1730,10 +1734,7 @@ class ScannerService extends ChangeNotifier {
       }
 
       if (recursiveRoots.isNotEmpty) {
-        await _scanRootsWithFullFlow(
-          recursiveRoots,
-          clearScannedRoots: false,
-        );
+        await _scanRootsWithFullFlow(recursiveRoots, clearScannedRoots: false);
       }
 
       for (final entry in directoryPaths) {
@@ -2522,10 +2523,7 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> scan() async {
-    await _scanRootsWithFullFlow(
-      _roots.rootPaths,
-      clearScannedRoots: true,
-    );
+    await _scanRootsWithFullFlow(_roots.rootPaths, clearScannedRoots: true);
   }
 
   Future<void> _scanRootsWithFullFlow(
