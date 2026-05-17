@@ -1,8 +1,7 @@
 PODS:
-  - audio_converter (0.0.1):
-    - Flutter
   - audio_core (0.0.1):
     - Flutter
+    - FlutterMacOS
   - audio_service (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -119,8 +118,7 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
-  - audio_converter (from `.symlinks/plugins/audio_converter/ios`)
-  - audio_core (from `.symlinks/plugins/audio_core/ios`)
+  - audio_core (from `.symlinks/plugins/audio_core/darwin`)
   - audio_service (from `.symlinks/plugins/audio_service/darwin`)
   - audio_session (from `.symlinks/plugins/audio_session/ios`)
   - dart_chromaprint (from `.symlinks/plugins/dart_chromaprint/ios`)
@@ -150,10 +148,8 @@ SPEC REPOS:
     - SwiftyGif
 
 EXTERNAL SOURCES:
-  audio_converter:
-    :path: ".symlinks/plugins/audio_converter/ios"
   audio_core:
-    :path: ".symlinks/plugins/audio_core/ios"
+    :path: ".symlinks/plugins/audio_core/darwin"
   audio_service:
     :path: ".symlinks/plugins/audio_service/darwin"
   audio_session:
@@ -186,8 +182,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
-  audio_converter: b3e5f21ab52e8fcd3dc9bd7e6432b81ed760a0f9
-  audio_core: 88061aacdcaa48468bbef8390b36d71466304df9
+  audio_core: 2dfacc7bb8275af77cdc72ac77215f835dc583a5
   audio_service: aa99a6ba2ae7565996015322b0bb024e1d25c6fd
   audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
   dart_chromaprint: 944f8c222a8ab7676a4213d7e0dbd9555a0c482a
@@ -213,6 +208,6 @@ SPEC CHECKSUMS:
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
-PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+PODFILE CHECKSUM: 53db704be18d86cb6d99138e4cde2c91266e19f6
 
 COCOAPODS: 1.16.2
