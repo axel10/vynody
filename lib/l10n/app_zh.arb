@@ -996,5 +996,42 @@
       "duration": {}
     }
   },
-  "unknownArtistOrAlbum": "未知"
+  "unknownArtistOrAlbum": "未知",
+  "pressAgainToExit": "再按一次退出应用",
+  "tagCompletionSuccessWithCover": "标签已补全并保存，封面已下载到临时目录",
+  "tagCompletionSuccess": "标签已补全并保存",
+  "selectOnlineLyrics": "选择在线歌词",
+  "increaseLyricsFont": "增大歌词文字",
+  "decreaseLyricsFont": "减小歌词文字",
+  "restoreDefaultSize": "恢复默认大小",
+  "searchingOnlineLyrics": "正在查询在线歌词",
+  "onlineLyricsResults": "在线歌词结果",
+  "untitledLyrics": "未命名歌词",
+  "hasTimeline": "带时间轴",
+  "viewLyricsDetails": "查看歌词详情",
+  "lyricsDetails": "歌词详情",
+  "lyricsContent": "歌词内容",
+  "noLyricsContent": "无歌词内容",
+  "queryContentLabel": "内容",
+  "yes": "是",
+  "no": "否",
+  "dropAddedSongs": "已添加 {addedCount} 首歌曲",
+  "@dropAddedSongs": {
+    "placeholders": {
+      "addedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "dropAddedSongsWithExisting": "已添加 {addedCount} 首歌曲，{existingCount} 首已存在",
+  "@dropAddedSongsWithExisting": {
+    "placeholders": {
+      "addedCount": {
+        "type": "int"
+      },
+      "existingCount": {
+        "type": "int"
+      }
+    }
+  }
 }

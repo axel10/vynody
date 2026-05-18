@@ -2587,6 +2587,126 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'未知'**
   String get unknownArtistOrAlbum;
+
+  /// No description provided for @pressAgainToExit.
+  ///
+  /// In zh, this message translates to:
+  /// **'再按一次退出应用'**
+  String get pressAgainToExit;
+
+  /// No description provided for @tagCompletionSuccessWithCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签已补全并保存，封面已下载到临时目录'**
+  String get tagCompletionSuccessWithCover;
+
+  /// No description provided for @tagCompletionSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签已补全并保存'**
+  String get tagCompletionSuccess;
+
+  /// No description provided for @selectOnlineLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择在线歌词'**
+  String get selectOnlineLyrics;
+
+  /// No description provided for @increaseLyricsFont.
+  ///
+  /// In zh, this message translates to:
+  /// **'增大歌词文字'**
+  String get increaseLyricsFont;
+
+  /// No description provided for @decreaseLyricsFont.
+  ///
+  /// In zh, this message translates to:
+  /// **'减小歌词文字'**
+  String get decreaseLyricsFont;
+
+  /// No description provided for @restoreDefaultSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复默认大小'**
+  String get restoreDefaultSize;
+
+  /// No description provided for @searchingOnlineLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在查询在线歌词'**
+  String get searchingOnlineLyrics;
+
+  /// No description provided for @onlineLyricsResults.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线歌词结果'**
+  String get onlineLyricsResults;
+
+  /// No description provided for @untitledLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'未命名歌词'**
+  String get untitledLyrics;
+
+  /// No description provided for @hasTimeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'带时间轴'**
+  String get hasTimeline;
+
+  /// No description provided for @viewLyricsDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看歌词详情'**
+  String get viewLyricsDetails;
+
+  /// No description provided for @lyricsDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词详情'**
+  String get lyricsDetails;
+
+  /// No description provided for @lyricsContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词内容'**
+  String get lyricsContent;
+
+  /// No description provided for @noLyricsContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'无歌词内容'**
+  String get noLyricsContent;
+
+  /// No description provided for @queryContentLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'内容'**
+  String get queryContentLabel;
+
+  /// No description provided for @yes.
+  ///
+  /// In zh, this message translates to:
+  /// **'是'**
+  String get yes;
+
+  /// No description provided for @no.
+  ///
+  /// In zh, this message translates to:
+  /// **'否'**
+  String get no;
+
+  /// No description provided for @dropAddedSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'已添加 {addedCount} 首歌曲'**
+  String dropAddedSongs(int addedCount);
+
+  /// No description provided for @dropAddedSongsWithExisting.
+  ///
+  /// In zh, this message translates to:
+  /// **'已添加 {addedCount} 首歌曲，{existingCount} 首已存在'**
+  String dropAddedSongsWithExisting(int addedCount, int existingCount);
 }
 
 class _AppLocalizationsDelegate

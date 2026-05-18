@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
+import '../l10n/app_localizations.dart';
 import '../player/audio_riverpod.dart';
 import '../player/music_file_utils.dart';
 import '../models/music_file.dart';
@@ -17,26 +18,6 @@ class GlobalDropTarget extends ConsumerStatefulWidget {
 }
 
 class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
-  String _buildDropSnackMessage(
-    BuildContext context, {
-    required int addedCount,
-    required int existingCount,
-  }) {
-    final isChinese = Localizations.localeOf(context).languageCode == 'zh';
-
-    if (isChinese) {
-      if (existingCount > 0) {
-        return '已添加 $addedCount 首歌曲，$existingCount 首已存在';
-      }
-      return '已添加 $addedCount 首歌曲';
-    }
-
-    if (existingCount > 0) {
-      return 'Added $addedCount songs, $existingCount already existed';
-    }
-    return 'Added $addedCount songs';
-  }
-
   Future<List<MusicFile>> _getFilesFromPath(String path) async {
     final List<MusicFile> results = [];
     final entityType = FileSystemEntity.typeSync(path);
@@ -73,6 +54,8 @@ class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
       // 处理拖放完成事件
       onDragDone: (details) async {
         final audio = ref.read(audioServiceProvider);
+        final messenger = ScaffoldMessenger.of(context);
+        final l10n = AppLocalizations.of(context)!;
         final List<MusicFile> allFiles = [];
 
         // 1. 递归扫描拖入的所有路径（支持拖入单个文件或整个文件夹）
@@ -127,15 +110,14 @@ class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
         }
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+
+        final message = existingCount > 0
+            ? l10n.dropAddedSongsWithExisting(newSongs.length, existingCount)
+            : l10n.dropAddedSongs(newSongs.length);
+
+        messenger.showSnackBar(
           SnackBar(
-            content: Text(
-              _buildDropSnackMessage(
-                context,
-                addedCount: newSongs.length,
-                existingCount: existingCount,
-              ),
-            ),
+            content: Text(message),
           ),
         );
 

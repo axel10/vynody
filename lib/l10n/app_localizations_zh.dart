@@ -1330,4 +1330,68 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unknownArtistOrAlbum => '未知';
+
+  @override
+  String get pressAgainToExit => '再按一次退出应用';
+
+  @override
+  String get tagCompletionSuccessWithCover => '标签已补全并保存，封面已下载到临时目录';
+
+  @override
+  String get tagCompletionSuccess => '标签已补全并保存';
+
+  @override
+  String get selectOnlineLyrics => '选择在线歌词';
+
+  @override
+  String get increaseLyricsFont => '增大歌词文字';
+
+  @override
+  String get decreaseLyricsFont => '减小歌词文字';
+
+  @override
+  String get restoreDefaultSize => '恢复默认大小';
+
+  @override
+  String get searchingOnlineLyrics => '正在查询在线歌词';
+
+  @override
+  String get onlineLyricsResults => '在线歌词结果';
+
+  @override
+  String get untitledLyrics => '未命名歌词';
+
+  @override
+  String get hasTimeline => '带时间轴';
+
+  @override
+  String get viewLyricsDetails => '查看歌词详情';
+
+  @override
+  String get lyricsDetails => '歌词详情';
+
+  @override
+  String get lyricsContent => '歌词内容';
+
+  @override
+  String get noLyricsContent => '无歌词内容';
+
+  @override
+  String get queryContentLabel => '内容';
+
+  @override
+  String get yes => '是';
+
+  @override
+  String get no => '否';
+
+  @override
+  String dropAddedSongs(int addedCount) {
+    return '已添加 $addedCount 首歌曲';
+  }
+
+  @override
+  String dropAddedSongsWithExisting(int addedCount, int existingCount) {
+    return '已添加 $addedCount 首歌曲，$existingCount 首已存在';
+  }
 }

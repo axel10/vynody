@@ -286,7 +286,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       PopupMenuItem<String>(
         value: 'search_online_lyrics',
         enabled: hasCurrentSong,
-        child: Text('选择在线歌词'),
+        child: Text(l10n.selectOnlineLyrics),
       ),
       if (!requeryOnly)
         PopupMenuItem<String>(
@@ -313,17 +313,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       PopupMenuItem<String>(
         value: 'increase_lyrics_font',
         enabled: lyricsFontScale < SettingsService.maxLyricsFontScale,
-        child: const Text('增大歌词文字'),
+        child: Text(l10n.increaseLyricsFont),
       ),
       PopupMenuItem<String>(
         value: 'decrease_lyrics_font',
         enabled: lyricsFontScale > SettingsService.minLyricsFontScale,
-        child: const Text('减小歌词文字'),
+        child: Text(l10n.decreaseLyricsFont),
       ),
       PopupMenuItem<String>(
         value: 'reset_lyrics_font',
         enabled: lyricsFontScale != SettingsService.defaultLyricsFontScale,
-        child: const Text('恢复默认大小'),
+        child: Text(l10n.restoreDefaultSize),
       ),
     ];
 
@@ -415,10 +415,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final songArtist = currentSong.artist?.trim();
     final songAlbum = currentSong.album?.trim();
 
+    final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
-      const SnackBar(content: Text('正在查询在线歌词'), duration: Duration(days: 1)),
+      SnackBar(content: Text(l10n.searchingOnlineLyrics), duration: const Duration(days: 1)),
     );
 
     final service = ref.read(lyricsServiceProvider);
@@ -428,7 +429,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     messenger.hideCurrentSnackBar();
 
     if (tracks.isEmpty) {
-      messenger.showSnackBar(const SnackBar(content: Text('无结果')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.noMatchingResults)));
       return;
     }
 
@@ -453,7 +454,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         ? selectedTrack.syncedLyrics!.trim()
         : selectedTrack.plainLyrics?.trim() ?? '';
     if (lyricsText.isEmpty) {
-      messenger.showSnackBar(const SnackBar(content: Text('无结果')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.noMatchingResults)));
       return;
     }
 

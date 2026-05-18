@@ -189,6 +189,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     final duration = ref.read(audioDurationProvider);
     final messenger = ScaffoldMessenger.of(context);
 
+    final l10n = AppLocalizations.of(context)!;
     final result = await showModalBottomSheet<MusicBrainzTagSelectionResult>(
       context: context,
       isScrollControlled: true,
@@ -210,8 +211,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       metadata: result.metadata,
       artworkBytes: result.artworkBytes,
       successMessage: result.artworkBytes != null
-          ? '标签已补全并保存，封面已下载到临时目录'
-          : '标签已补全并保存',
+          ? l10n.tagCompletionSuccessWithCover
+          : l10n.tagCompletionSuccess,
     );
   }
 

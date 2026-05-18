@@ -165,9 +165,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).clearSnackBars();
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('再按一次退出应用')));
+    ).showSnackBar(SnackBar(content: Text(l10n.pressAgainToExit)));
   }
 
   void _syncDeletedSongNoticeHandler() {
