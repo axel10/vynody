@@ -16,6 +16,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          targets: aarch64-linux-android, armv7-linux-androideabi, i686-linux-android, x86_64-linux-android
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -41,6 +52,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -83,7 +97,10 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang cmake pkg-config libgtk-3-dev liblzma-dev tar
+          sudo apt-get install -y ninja-build clang cmake pkg-config libgtk-3-dev liblzma-dev tar libasound2-dev
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -113,6 +130,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          targets: x86_64-apple-darwin, aarch64-apple-darwin
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -157,3 +179,4 @@ jobs:
         with:
           name: macos-package
           path: vibeflow-macos.dmg
+

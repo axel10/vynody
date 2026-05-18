@@ -71,6 +71,7 @@ dependencies:
   windows_taskbar:
     git:
       url: https://github.com/alexmercerind/windows_taskbar
+      ref: master
   smtc_windows: ^1.1.0
   audio_service: ^0.18.18 
   audio_metadata_reader:  
@@ -83,9 +84,13 @@ dependencies:
   json_annotation: ^4.11.0
   oktoast: ^3.4.0
   proxy_getter:
-    path: ./proxy_getter
+    git:
+      url: https://github.com/axel10/proxy_getter
+      ref: main
   mobile_storage_listener:
-    path: ./mobile_storage_listener
+    git:
+      url: https://github.com/axel10/mobile_storage_listener
+      ref: master
 
   worker_manager: ^7.2.9
   palette_generator_master: ^1.0.1
@@ -94,7 +99,9 @@ dependencies:
   drift_dev: ^2.32.1
 
   audio_core:
-    path: audio_core
+    git:
+      url: https://github.com/axel10/audio_core
+      ref: main
   watcher: ^1.2.1
 
 
@@ -194,3 +201,4 @@ msix_config:
   output_path: build/windows/msix
   install_certificate: false
   capabilities: "broadFileSystemAccess, rescap:runFullTrust"
+

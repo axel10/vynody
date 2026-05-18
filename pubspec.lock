@@ -44,9 +44,11 @@ packages:
   audio_core:
     dependency: "direct main"
     description:
-      path: audio_core
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: "85670bc50f41cbaf6314e1b5799d98222d852977"
+      url: "https://github.com/axel10/audio_core"
+    source: git
     version: "0.0.1"
   audio_metadata_reader:
     dependency: "direct main"
@@ -849,9 +851,11 @@ packages:
   mobile_storage_listener:
     dependency: "direct main"
     description:
-      path: mobile_storage_listener
-      relative: true
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: "125e897ffdc9aa44c81d448e047f32d3350a62dc"
+      url: "https://github.com/axel10/mobile_storage_listener"
+    source: git
     version: "0.0.1"
   msix:
     dependency: "direct dev"
@@ -1098,9 +1102,11 @@ packages:
   proxy_getter:
     dependency: "direct main"
     description:
-      path: proxy_getter
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: "6926fa44fde33e820a43162042689454ec9ecf08"
+      url: "https://github.com/axel10/proxy_getter"
+    source: git
     version: "1.2.0"
   pub_semver:
     dependency: transitive
@@ -1671,7 +1677,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
+      ref: master
       resolved-ref: c1fe0c37171521af8b55bc8ce89734cfe13262c1
       url: "https://github.com/alexmercerind/windows_taskbar"
     source: git
