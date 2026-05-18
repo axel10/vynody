@@ -41,13 +41,13 @@ post_install do |installer|
   package_ref_user = user_project.root_object.package_references.find { |ref| ref.respond_to?(:repositoryURL) && ref.repositoryURL.include?('SFBAudioEngine') }
   if package_ref_user.nil?
     package_ref_user = user_project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-    package_ref_user.repositoryURL = 'https://github.com/sbooth/SFBAudioEngine'
     package_ref_user.requirement = {
       'kind' => 'branch',
       'branch' => 'main'
     }
     user_project.root_object.package_references << package_ref_user
   end
+  package_ref_user.repositoryURL = 'https://github.com/axel10/SFBAudioEngine'
   user_project.save
 
   # 2. Update Pods.xcodeproj to register the remote package
@@ -55,13 +55,13 @@ post_install do |installer|
   package_ref_pods = pods_project.root_object.package_references.find { |ref| ref.respond_to?(:repositoryURL) && ref.repositoryURL.include?('SFBAudioEngine') }
   if package_ref_pods.nil?
     package_ref_pods = pods_project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-    package_ref_pods.repositoryURL = 'https://github.com/sbooth/SFBAudioEngine'
     package_ref_pods.requirement = {
       'kind' => 'branch',
       'branch' => 'main'
     }
     pods_project.root_object.package_references << package_ref_pods
   end
+  package_ref_pods.repositoryURL = 'https://github.com/axel10/SFBAudioEngine'
 
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)

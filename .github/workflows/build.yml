@@ -145,21 +145,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Resolve SPM Dependencies
-        run: xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -resolvePackageDependencies
-
-      - name: Patch SFBAudioEngine C++20 Target Version
-        run: |
-          PACKAGE_SWIFT="build/macos/SourcePackages/checkouts/SFBAudioEngine/Package.swift"
-          if [ -f "$PACKAGE_SWIFT" ]; then
-            echo "Patching SFBAudioEngine Package.swift to target macOS 13.0..."
-            sed -i '' 's/\.macOS(\.v11)/\.macOS(\.v13)/g' "$PACKAGE_SWIFT"
-            cat "$PACKAGE_SWIFT" | grep -A 5 "platforms:"
-          else
-            echo "Error: SFBAudioEngine Package.swift not found at $PACKAGE_SWIFT"
-            exit 1
-          fi
-
       - name: Build macOS
         run: flutter build macos --release
 
