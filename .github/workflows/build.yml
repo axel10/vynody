@@ -147,8 +147,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Clean macOS package caches
+        run: |
+          rm -rf build/macos
+          rm -rf macos/Flutter/ephemeral
+
       - name: Resolve macOS Swift packages
-        run: xcodebuild -resolvePackageDependencies -workspace macos/Runner.xcworkspace -scheme Runner -configuration Release -derivedDataPath build/macos/resolve
+        run: xcodebuild -resolvePackageDependencies -workspace macos/Runner.xcworkspace -scheme Runner -configuration Release -derivedDataPath build/macos/resolve -clonedSourcePackagesDirPath build/macos/SourcePackages
 
       - name: Print SFBAudioEngine resolution
         run: |
@@ -165,13 +170,19 @@ jobs:
             echo "SFBAudioEngine checkout not found at $CHECKOUT"
           fi
 
+          echo "SwiftPM configuration:"
+          find macos/Runner.xcworkspace/xcshareddata/swiftpm -maxdepth 2 -type f | sort | while read -r file; do
+            echo "--- $file"
+            sed -n '1,120p' "$file"
+          done
+
           echo "Runner build settings:"
           xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration Release -showBuildSettings | grep -E 'CLANG_CXX_LANGUAGE_STANDARD|OTHER_CPLUSPLUSFLAGS|SWIFT_PACKAGE|PACKAGE' || true
 
       - name: Xcode diagnostic build
         run: |
           set -o pipefail
-          xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration Release -destination 'platform=macOS' -derivedDataPath build/macos/diag -verbose build | tee build/macos/xcodebuild-diag.log || true
+          xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration Release -destination 'platform=macOS' -derivedDataPath build/macos/diag -clonedSourcePackagesDirPath build/macos/SourcePackages -verbose build | tee build/macos/xcodebuild-diag.log || true
 
           echo "Relevant compile lines:"
           grep -nE 'SFBAudioEngine|AudioPlayer\.mm|AudioPlayer\.h|stop_token|jthread|-std=' build/macos/xcodebuild-diag.log || true
