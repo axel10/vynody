@@ -305,15 +305,20 @@ class SettingsService extends ChangeNotifier {
   static String geminiModelDisplayName(String modelId) {
     final isZh =
         WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
-    switch (modelId.trim()) {
+    final trimmed = modelId.trim();
+    switch (trimmed) {
       case defaultGeminiPrimaryModelId:
         return 'Gemini 3.1 Flash Lite Preview';
       case defaultGeminiFallbackModelId:
         return 'Gemini 2.5 Flash';
       default:
-        return modelId.trim().isEmpty
-            ? (isZh ? '未选择模型' : 'No model selected')
-            : modelId.trim();
+        if (trimmed.isEmpty) {
+          return isZh ? '未选择模型' : 'No model selected';
+        }
+        return trimmed.split('-').map((word) {
+          if (word.isEmpty) return '';
+          return word[0].toUpperCase() + word.substring(1);
+        }).join(' ');
     }
   }
 
