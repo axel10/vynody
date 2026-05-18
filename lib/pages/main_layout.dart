@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
@@ -16,6 +17,7 @@ import '../pages/settings_page.dart';
 import '../player/music_file_utils.dart';
 import '../player/settings_service.dart';
 import '../player/shortcut_bindings.dart';
+import 'folder_page_riverpod.dart';
 import 'main_layout_riverpod.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
@@ -44,8 +46,16 @@ Future<void> navigateToMainTab(
   BuildContext context, {
   required int index,
   List<String> args = const [],
-}) {
-  return Navigator.of(
+}) async {
+  // 切页前先收起所有 tooltip，避免鼠标事件在路由切换期间继续驱动
+  // 旧页面或新页面上的 RawTooltip 状态。
+  Tooltip.dismissAllToolTips();
+
+  // 让当前指针事件先完全结束，再执行路由替换。
+  await Future<void>.delayed(Duration.zero);
+  if (!context.mounted) return;
+
+  await Navigator.of(
     context,
   ).pushReplacement(buildMainLayoutRoute(args: args, initialIndex: index));
 }
@@ -101,6 +111,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   double? _lastVolume;
   bool _showMiniVolumeSlider = false;
   late final AudioService _audioService;
+  DateTime? _lastBackPressedAt;
 
   MainLayoutUiController get _ui =>
       ref.read(mainLayoutUiControllerProvider.notifier);
@@ -134,6 +145,30 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   void _triggerHUD() {
     if (!mounted) return;
     _ui.showVolumeHud();
+  }
+
+  Future<void> _handleBackPressed() async {
+    if (!Platform.isAndroid) return;
+
+    final now = DateTime.now();
+    final lastBackPressedAt = _lastBackPressedAt;
+    final shouldExit =
+        lastBackPressedAt != null &&
+        now.difference(lastBackPressedAt) < const Duration(seconds: 2);
+
+    if (shouldExit) {
+      await SystemNavigator.pop();
+      return;
+    }
+
+    _lastBackPressedAt = now;
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.pressAgainToExit)));
   }
 
   void _syncDeletedSongNoticeHandler() {
@@ -483,6 +518,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final uiState = ref.watch(mainLayoutUiControllerProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final hideMiniPlayerForSelection = ref.watch(folderSelectionModeProvider);
     ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
       if (_lastVolume != null && (_lastVolume! - next).abs() > 0.1) {
@@ -572,195 +609,211 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         },
         child: Focus(
           autofocus: true,
-          child: GlobalDropTarget(
-            child: Listener(
-              behavior: HitTestBehavior.translucent,
-              onPointerDown: _handleDesktopPointerActivity,
-              onPointerMove: _handleDesktopPointerActivity,
-              onPointerHover: _handleDesktopPointerActivity,
-              child: Scaffold(
-                extendBody: true,
-                body: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: _buildCurrentPage(isDesktop, useSidebar),
-                    ),
-                    if (useSidebar)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          width: hideImmersiveTabBar ? 0.0 : 80.0,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            physics: const NeverScrollableScrollPhysics(),
-                            child: SizedBox(
-                              width: 80,
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 500),
-                                opacity: hideImmersiveTabBar ? 0.0 : 1.0,
-                                child: TweenAnimationBuilder<double>(
-                                  duration: const Duration(milliseconds: 120),
-                                  curve: Curves.easeOut,
-                                  tween: Tween<double>(
-                                    begin: navBgOpacityTarget,
-                                    end: navBgOpacityTarget,
+          child: PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              _handleBackPressed();
+            },
+            child: GlobalDropTarget(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _handleDesktopPointerActivity,
+                onPointerMove: _handleDesktopPointerActivity,
+                onPointerHover: _handleDesktopPointerActivity,
+                child: Scaffold(
+                  extendBody: true,
+                  body: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: _buildCurrentPage(isDesktop, useSidebar),
+                      ),
+                      if (useSidebar)
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            width: hideImmersiveTabBar ? 0.0 : 80.0,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const NeverScrollableScrollPhysics(),
+                              child: SizedBox(
+                                width: 80,
+                                child: AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 500),
+                                  opacity: hideImmersiveTabBar ? 0.0 : 1.0,
+                                  child: TweenAnimationBuilder<double>(
+                                    duration: const Duration(milliseconds: 120),
+                                    curve: Curves.easeOut,
+                                    tween: Tween<double>(
+                                      begin: navBgOpacityTarget,
+                                      end: navBgOpacityTarget,
+                                    ),
+                                    builder: (context, animatedOpacity, child) {
+                                      return NavigationRail(
+                                        leading: isDesktop
+                                            ? const SizedBox(height: 32)
+                                            : null,
+                                        backgroundColor: Color.lerp(
+                                          Colors.transparent,
+                                          navBgBaseColor,
+                                          animatedOpacity,
+                                        ),
+                                        selectedIndex: _currentIndex,
+                                        onDestinationSelected:
+                                            _onDestinationSelected,
+                                        labelType: NavigationRailLabelType.none,
+                                        indicatorColor: Color.lerp(
+                                          Colors.transparent,
+                                          navIndicatorBaseColor,
+                                          animatedOpacity,
+                                        ),
+                                        destinations: _buildRailDestinations(
+                                          context,
+                                          isPlayback,
+                                        ),
+                                      );
+                                    },
                                   ),
-                                  builder: (context, animatedOpacity, child) {
-                                    return NavigationRail(
-                                      leading: isDesktop
-                                          ? const SizedBox(height: 32)
-                                          : null,
-                                      backgroundColor: Color.lerp(
-                                        Colors.transparent,
-                                        navBgBaseColor,
-                                        animatedOpacity,
-                                      ),
-                                      selectedIndex: _currentIndex,
-                                      onDestinationSelected:
-                                          _onDestinationSelected,
-                                      labelType: NavigationRailLabelType.none,
-                                      indicatorColor: Color.lerp(
-                                        Colors.transparent,
-                                        navIndicatorBaseColor,
-                                        animatedOpacity,
-                                      ),
-                                      destinations: _buildRailDestinations(
-                                        context,
-                                        isPlayback,
-                                      ),
-                                    );
-                                  },
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    if (showCustomTitleBar)
-                      Positioned(
-                        top: 0,
-                        left: 0,
+                      if (showCustomTitleBar)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: DesktopWindowTitleBar(
+                            brightness: isPlayback
+                                ? Brightness.dark
+                                : theme.brightness,
+                          ),
+                        ),
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        bottom: (useSidebar ? 20 : 80) + uiState.snackBarOffset,
+                        left: (useSidebar && !isPlayback) ? 80 : 0,
                         right: 0,
-                        child: DesktopWindowTitleBar(
-                          brightness: isPlayback
-                              ? Brightness.dark
-                              : theme.brightness,
+                        child: Center(
+                          child:
+                              !isPlayback &&
+                                  currentMusic != null &&
+                                  !hideMiniPlayerForSelection
+                              ? Builder(
+                                  builder: (context) {
+                                    final audio = ref.read(
+                                      audioServiceProvider,
+                                    );
+                                    final isLandscape =
+                                        MediaQuery.of(context).orientation ==
+                                        Orientation.landscape;
+
+                                    return Container(
+                                      key: const ValueKey('dynamic-island'),
+                                      constraints: BoxConstraints(
+                                        maxWidth:
+                                            MediaQuery.of(context).size.width *
+                                            0.9,
+                                      ),
+                                      child: PlaybackHeroCard(
+                                        isMini: true,
+                                        isLandscape: isLandscape,
+                                        showMiniVolumeSlider:
+                                            _showMiniVolumeSlider,
+                                        onMiniTap: () =>
+                                            _onDestinationSelected(1),
+                                        onPrevious: audio.previous,
+                                        onPlayPause: audio.togglePlay,
+                                        onNext: audio.next,
+                                        onScrubbing: (val) {
+                                          // 迷你播放器内部会处理局部 UI 状态
+                                        },
+                                        onSeek: (val) {
+                                          audio.seek(
+                                            Duration(
+                                              milliseconds:
+                                                  (audio
+                                                              .duration
+                                                              .inMilliseconds *
+                                                          val)
+                                                      .toInt(),
+                                            ),
+                                          );
+                                        },
+                                        onVolumeTap: () {
+                                          ref
+                                              .read(settingsServiceProvider)
+                                              .resetInactivity();
+                                          setState(() {
+                                            _showMiniVolumeSlider =
+                                                !_showMiniVolumeSlider;
+                                          });
+                                        },
+                                        onMiniMouseExit: () {
+                                          if (!_showMiniVolumeSlider) return;
+                                          setState(() {
+                                            _showMiniVolumeSlider = false;
+                                          });
+                                        },
+                                        onVolumeChanged: (value) {
+                                          ref
+                                              .read(settingsServiceProvider)
+                                              .resetInactivity();
+                                          audio.setVolume(
+                                            value.roundToDouble(),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                )
+                              : const SizedBox.shrink(
+                                  key: ValueKey('empty-island'),
+                                ),
                         ),
                       ),
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOutCubic,
-                      bottom: (useSidebar ? 20 : 80) + uiState.snackBarOffset,
-                      left: (useSidebar && !isPlayback) ? 80 : 0,
-                      right: 0,
-                      child: Center(
-                        child: !isPlayback
-                            ? Builder(
-                                builder: (context) {
-                                  final audio = ref.read(audioServiceProvider);
-                                  final isLandscape =
-                                      MediaQuery.of(context).orientation ==
-                                      Orientation.landscape;
-
-                                  return Container(
-                                    key: const ValueKey('dynamic-island'),
-                                    constraints: BoxConstraints(
-                                      maxWidth:
-                                          MediaQuery.of(context).size.width *
-                                          0.9,
-                                    ),
-                                    child: PlaybackHeroCard(
-                                      isMini: true,
-                                      isLandscape: isLandscape,
-                                      showMiniVolumeSlider:
-                                          _showMiniVolumeSlider,
-                                      onMiniTap: () =>
-                                          _onDestinationSelected(1),
-                                      onPrevious: audio.previous,
-                                      onPlayPause: audio.togglePlay,
-                                      onNext: audio.next,
-                                      onScrubbing: (val) {
-                                        // 迷你播放器内部会处理局部 UI 状态
-                                      },
-                                      onSeek: (val) {
-                                        audio.seek(
-                                          Duration(
-                                            milliseconds:
-                                                (audio.duration.inMilliseconds *
-                                                        val)
-                                                    .toInt(),
-                                          ),
-                                        );
-                                      },
-                                      onVolumeTap: () {
-                                        ref
-                                            .read(settingsServiceProvider)
-                                            .resetInactivity();
-                                        setState(() {
-                                          _showMiniVolumeSlider =
-                                              !_showMiniVolumeSlider;
-                                        });
-                                      },
-                                      onMiniMouseExit: () {
-                                        if (!_showMiniVolumeSlider) return;
-                                        setState(() {
-                                          _showMiniVolumeSlider = false;
-                                        });
-                                      },
-                                      onVolumeChanged: (value) {
-                                        ref
-                                            .read(settingsServiceProvider)
-                                            .resetInactivity();
-                                        audio.setVolume(value.roundToDouble());
-                                      },
-                                    ),
-                                  );
-                                },
-                              )
-                            : const SizedBox.shrink(
-                                key: ValueKey('empty-island'),
-                              ),
-                      ),
-                    ),
-                    if (uiState.showVolumeHud)
-                      VolumeHUD(volume: _audioService.volume),
-                    if (useOverlayBottomNav)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: _buildBottomNavigationBar(
+                      if (uiState.showVolumeHud)
+                        VolumeHUD(volume: _audioService.volume),
+                      if (useOverlayBottomNav)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: _buildBottomNavigationBar(
+                            context,
+                            isPlayback: isPlayback,
+                            navBgBaseColor: navBgBaseColor,
+                            navIndicatorBaseColor: navIndicatorBaseColor,
+                            navBgOpacityTarget: navBgOpacityTarget,
+                            isHidden:
+                                settings.isImmersiveTabBarEnabled &&
+                                settings.isUserInactive,
+                            includeBottomPadding: true,
+                          ),
+                        ),
+                    ],
+                  ),
+                  bottomNavigationBar: useSidebar || useOverlayBottomNav
+                      ? null
+                      : _buildBottomNavigationBar(
                           context,
                           isPlayback: isPlayback,
                           navBgBaseColor: navBgBaseColor,
                           navIndicatorBaseColor: navIndicatorBaseColor,
                           navBgOpacityTarget: navBgOpacityTarget,
                           isHidden:
+                              isPlayback &&
                               settings.isImmersiveTabBarEnabled &&
                               settings.isUserInactive,
-                          includeBottomPadding: true,
+                          includeBottomPadding: false,
                         ),
-                      ),
-                  ],
                 ),
-                bottomNavigationBar: useSidebar || useOverlayBottomNav
-                    ? null
-                    : _buildBottomNavigationBar(
-                        context,
-                        isPlayback: isPlayback,
-                        navBgBaseColor: navBgBaseColor,
-                        navIndicatorBaseColor: navIndicatorBaseColor,
-                        navBgOpacityTarget: navBgOpacityTarget,
-                        isHidden:
-                            isPlayback &&
-                            settings.isImmersiveTabBarEnabled &&
-                            settings.isUserInactive,
-                        includeBottomPadding: false,
-                      ),
               ),
             ),
           ),

@@ -189,7 +189,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
     final l10n = AppLocalizations.of(context)!;
     final chips = <Widget>[
       QueryConditionChip(
-        label: '艺术家',
+        label: l10n.artistLabel,
         value: _conditionValue(_OnlineLyricsCondition.artist),
         enabled: _isConditionEnabled(_OnlineLyricsCondition.artist),
         onTap: () => _toggleCondition(_OnlineLyricsCondition.artist),
@@ -197,7 +197,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
         editTooltip: l10n.editQueryCondition,
       ),
       QueryConditionChip(
-        label: '专辑',
+        label: l10n.albumLabel,
         value: _conditionValue(_OnlineLyricsCondition.album),
         enabled: _isConditionEnabled(_OnlineLyricsCondition.album),
         onTap: () => _toggleCondition(_OnlineLyricsCondition.album),
@@ -230,6 +230,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final dialogWidth = MediaQuery.sizeOf(
       context,
     ).width.clamp(320.0, 780.0).toDouble();
@@ -239,7 +240,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
     final conditionChips = _buildConditionChips(context);
 
     return AlertDialog(
-      title: const Text('在线歌词结果'),
+      title: Text(l10n.onlineLyricsResults),
       content: SizedBox(
         width: dialogWidth,
         child: Column(
@@ -270,7 +271,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
                           ),
                         )
                       : const Icon(Icons.refresh_rounded),
-                  tooltip: '重新查询',
+                  tooltip: l10n.requery,
                 ),
               ],
             ),
@@ -284,7 +285,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
                       child: Text(
                         _lastErrorMessage?.trim().isNotEmpty == true
                             ? _lastErrorMessage!
-                            : '无结果',
+                            : l10n.noMatchingResults,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -330,7 +331,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
                                         Text(
                                           track.displayTitle.isNotEmpty
                                               ? track.displayTitle
-                                              : '未命名歌词',
+                                              : l10n.untitledLyrics,
                                           style: theme.textTheme.titleMedium
                                               ?.copyWith(
                                                 fontWeight: FontWeight.w700,
@@ -338,25 +339,25 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
                                         ),
                                         const SizedBox(height: 6),
                                         Text(
-                                          '时长：${_formatDuration(track.duration)}',
+                                          '${l10n.durationLabel}：${_formatDuration(track.duration)}',
                                         ),
                                         Text(
-                                          '专辑：${_textOrDash(track.albumName)}',
+                                          '${l10n.albumLabel}：${_textOrDash(track.albumName)}',
                                         ),
                                         Text(
-                                          '艺术家：${_textOrDash(track.artistName)}',
+                                          '${l10n.artistLabel}：${_textOrDash(track.artistName)}',
                                         ),
                                         Text(
                                           track.hasSyncedLyrics
-                                              ? '带时间轴：是'
-                                              : '带时间轴：否',
+                                              ? '${l10n.hasTimeline}：${l10n.yes}'
+                                              : '${l10n.hasTimeline}：${l10n.no}',
                                         ),
                                       ],
                                     ),
                                   ),
                                   const SizedBox(width: 6),
                                   IconButton(
-                                    tooltip: '查看歌词详情',
+                                    tooltip: l10n.viewLyricsDetails,
                                     onPressed: () {
                                       _showLyricsDetailDialog(context, track);
                                     },
@@ -376,7 +377,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('关闭'),
+          child: Text(l10n.close),
         ),
       ],
     );
@@ -389,6 +390,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
     final lyricsText = track.syncedLyrics?.trim().isNotEmpty == true
         ? track.syncedLyrics!.trim()
         : track.plainLyrics?.trim() ?? '';
+    final l10n = AppLocalizations.of(context)!;
 
     await showDialog<void>(
       context: context,
@@ -396,7 +398,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
         final theme = Theme.of(detailContext);
         return AlertDialog(
           title: Text(
-            track.displayTitle.isNotEmpty ? track.displayTitle : '歌词详情',
+            track.displayTitle.isNotEmpty ? track.displayTitle : l10n.lyricsDetails,
           ),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720, maxHeight: 520),
@@ -406,28 +408,28 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _DetailLine(
-                    label: '时长',
+                    label: l10n.durationLabel,
                     value: _formatDuration(track.duration),
                   ),
-                  _DetailLine(label: '专辑', value: _textOrDash(track.albumName)),
+                  _DetailLine(label: l10n.albumLabel, value: _textOrDash(track.albumName)),
                   _DetailLine(
-                    label: '艺术家',
+                    label: l10n.artistLabel,
                     value: _textOrDash(track.artistName),
                   ),
                   _DetailLine(
-                    label: '带时间轴',
-                    value: track.hasSyncedLyrics ? '是' : '否',
+                    label: l10n.hasTimeline,
+                    value: track.hasSyncedLyrics ? l10n.yes : l10n.no,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '歌词内容',
+                    l10n.lyricsContent,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 10),
                   SelectableText(
-                    lyricsText.isEmpty ? '无歌词内容' : lyricsText,
+                    lyricsText.isEmpty ? l10n.noLyricsContent : lyricsText,
                     style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
                   ),
                 ],
@@ -437,7 +439,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(detailContext).pop(),
-              child: const Text('关闭'),
+              child: Text(l10n.close),
             ),
           ],
         );
@@ -476,17 +478,18 @@ class _EditLyricsQueryConditionDialogState
   Widget build(BuildContext context) {
     final currentValue = _controller.text;
     final canSave = currentValue.trim().isNotEmpty;
+    final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: const Text('编辑查询条件'),
+      title: Text(l10n.editQueryCondition),
       content: SizedBox(
         width: 520,
         child: TextField(
           controller: _controller,
           autofocus: true,
           textInputAction: TextInputAction.done,
-          decoration: const InputDecoration(
-            labelText: '内容',
+          decoration: InputDecoration(
+            labelText: l10n.queryContentLabel,
             alignLabelWithHint: true,
           ),
           onChanged: (_) {
@@ -497,13 +500,13 @@ class _EditLyricsQueryConditionDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: canSave
               ? () => Navigator.of(context).pop(currentValue.trim())
               : null,
-          child: const Text('确认'),
+          child: Text(l10n.confirm),
         ),
       ],
     );

@@ -26,6 +26,7 @@ import '../dialogs/song_tag_completion_dialog.dart';
 import '../dialogs/sleep_timer_sheet.dart';
 import '../widgets/equalizer_panel.dart';
 import '../widgets/lyrics_task_status_banner.dart';
+import '../widgets/playback_ui_tuning.dart';
 import 'main_layout_riverpod.dart';
 import '../utils/app_snack_bar.dart';
 
@@ -188,6 +189,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     final duration = ref.read(audioDurationProvider);
     final messenger = ScaffoldMessenger.of(context);
 
+    final l10n = AppLocalizations.of(context)!;
     final result = await showModalBottomSheet<MusicBrainzTagSelectionResult>(
       context: context,
       isScrollControlled: true,
@@ -209,8 +211,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       metadata: result.metadata,
       artworkBytes: result.artworkBytes,
       successMessage: result.artworkBytes != null
-          ? '标签已补全并保存，封面已下载到临时目录'
-          : '标签已补全并保存',
+          ? l10n.tagCompletionSuccessWithCover
+          : l10n.tagCompletionSuccess,
     );
   }
 
@@ -534,11 +536,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       messages.add(l10n.unsupportedFormat(unsupportedCount));
     }
 
-    AppSnackBar.show(
-      context,
-      ref,
-      SnackBar(content: Text(messages.join(' '))),
-    );
+    AppSnackBar.show(context, ref, SnackBar(content: Text(messages.join(' '))));
   }
 
   void _showRandomModeSelector(BuildContext context, AudioService audio) {
@@ -570,10 +568,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       title: Text(l10n.currentQueue),
                       value: 0,
                     ),
-                    RadioListTile<int>(
-                      title: Text(l10n.globalRange),
-                      value: 1,
-                    ),
+                    RadioListTile<int>(title: Text(l10n.globalRange), value: 1),
                   ],
                 ),
               ),
@@ -700,33 +695,50 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             });
           }
 
-          // final settings = ref.watch(settingsServiceProvider);
+          final settings = ref.watch(settingsServiceProvider);
           final bottomPadding = MediaQuery.of(context).padding.bottom;
-          // final isImmersiveActive =
-          //     settings.isImmersiveTabBarEnabled && settings.isUserInactive;
+          final isImmersiveTabBarEnabled = settings.isImmersiveTabBarEnabled;
+
           final shouldReserveBottomNavSpace = !isLyricsMode && !isLandscape;
+
+          // When immersive tab bar is enabled, the NavigationBar in MainLayout
+          // is positioned in a Stack over the content with height (60 + bottomPadding).
+          double effectiveBottomPadding = bottomPadding;
           final lyricsBottomSpacerHeight = 0.0;
-          final lyricsBottomTabBarHeight = 0.0;
+          double lyricsBottomTabBarHeight = 0.0;
+
+          if (isImmersiveTabBarEnabled && !isLandscape) {
+            // For lyrics mode, we want the background to be immersive (full screen),
+            // so we don't pad the whole page. Instead, we pass the tab bar height
+            // to the lyrics panel so it can add internal scrolling space.
+            lyricsBottomTabBarHeight = 60.0;
+            
+            // For normal mode (controls visible), we pad the whole page to keep
+            // the layout stable and avoid overlap with the tab bar.
+            if (shouldReserveBottomNavSpace) {
+              effectiveBottomPadding = 60.0 + bottomPadding;
+            }
+          }
 
           final content = SafeArea(
             bottom: false,
             child: AnimatedPadding(
               duration: const Duration(milliseconds: 400),
               curve: Curves.fastOutSlowIn,
-              padding: EdgeInsets.fromLTRB(
-                isLyricsMode
-                    ? (isLandscape ? 50.0 : 16.0) // 歌词模式下播放页左侧区域距离屏幕左侧的距离
-                    : (isLandscape ? 32.0 : 24.0),
-                isLyricsMode ? 8.0 : (isLandscape ? 32.0 : 24.0),
-                isLyricsMode
-                    ? (isLandscape ? 24.0 : 16.0)
-                    : (isLandscape ? 32.0 : 24.0),
-                shouldReserveBottomNavSpace ?  bottomPadding : 0.0,
+              padding: PlaybackPageUiTuning.contentPadding(
+                isLandscape: isLandscape,
+                isLyricsMode: isLyricsMode,
+                bottomPadding: effectiveBottomPadding,
+                reserveBottomNavSpace: shouldReserveBottomNavSpace,
               ),
               child: Column(
                 children: [
-                  if (Platform.isWindows || Platform.isMacOS || Platform.isLinux)
-                    const SizedBox(height: 32),
+                  if (Platform.isWindows ||
+                      Platform.isMacOS ||
+                      Platform.isLinux)
+                    const SizedBox(
+                      height: PlaybackPageUiTuning.desktopTopSpacer,
+                    ),
                   Expanded(
                     child: Center(
                       child: Builder(
@@ -824,6 +836,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       ),
                     ),
                   ),
+                  if (isLandscape &&
+                      (Platform.isWindows ||
+                          Platform.isMacOS ||
+                          Platform.isLinux))
+                    const SizedBox(
+                      height: PlaybackPageUiTuning.desktopTopSpacer,
+                    ),
                 ],
               ),
             ),
@@ -853,7 +872,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: 12,
+                  top: PlaybackPageUiTuning.statusBannerTop,
                   child: SafeArea(
                     bottom: false,
                     child: LyricsTaskStatusBanner(

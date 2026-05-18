@@ -36,7 +36,50 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  require 'pathname'
+  
+  # 1. Update user project (Runner.xcodeproj) to register the package at workspace level
+  user_project = installer.aggregate_targets.first.user_project
+  user_project_dir = Pathname.new(user_project.path).dirname
+  sfb_path = Pathname.new('/Users/axel10/projects/player_project/SFBAudioEngine')
+  relative_to_user = sfb_path.relative_path_from(user_project_dir).to_s
+
+  package_ref_user = user_project.root_object.package_references.find { |ref| ref.respond_to?(:relative_path) && ref.relative_path == relative_to_user }
+  if package_ref_user.nil?
+    package_ref_user = user_project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
+    package_ref_user.relative_path = relative_to_user
+    user_project.root_object.package_references << package_ref_user
+  end
+  user_project.save
+
+  # 2. Update Pods.xcodeproj to define package ref and link dependency on audio_core
+  pods_project = installer.pods_project
+  pods_project_dir = Pathname.new(pods_project.path).dirname
+  relative_to_pods = sfb_path.relative_path_from(pods_project_dir).to_s
+
+  package_ref_pods = pods_project.root_object.package_references.find { |ref| ref.respond_to?(:relative_path) && ref.relative_path == relative_to_pods }
+  if package_ref_pods.nil?
+    package_ref_pods = pods_project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
+    package_ref_pods.relative_path = relative_to_pods
+    pods_project.root_object.package_references << package_ref_pods
+  end
+
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
+    
+    target.build_configurations.each do |config|
+      config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+      config.build_settings['CLANG_ENABLE_EXPLICIT_MODULES'] = 'NO'
+    end
+    
+    if target.name == 'audio_core'
+      product_dep = target.package_product_dependencies.find { |dep| dep.product_name == 'SFBAudioEngine' }
+      if product_dep.nil?
+        product_dep = pods_project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+        product_dep.package = package_ref_pods
+        product_dep.product_name = 'SFBAudioEngine'
+        target.package_product_dependencies << product_dep
+      end
+    end
   end
 end

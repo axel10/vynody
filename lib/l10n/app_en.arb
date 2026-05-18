@@ -92,6 +92,9 @@
   "deletePlaylist": "Delete Playlist",
   "confirmDeletePlaylist": "Are you sure you want to delete the playlist \"{name}\"?",
   "addToPlaylist": "Add to Playlist",
+  "selectAll": "Select All",
+  "addToQueue": "Add to Queue",
+  "addedToQueue": "Added to Queue",
   "songCount": "{count} songs",
   "addedToPlaylist": "Added {count} songs to {playlist}",
   "createNewList": "Create New List",
@@ -571,5 +574,25 @@
       "duration": {}
     }
   },
-  "unknownArtistOrAlbum": "Unknown"
+  "unknownArtistOrAlbum": "Unknown",
+  "pressAgainToExit": "Press again to exit",
+  "tagCompletionSuccessWithCover": "Tags completed and saved, cover downloaded to temporary directory",
+  "tagCompletionSuccess": "Tags completed and saved",
+  "selectOnlineLyrics": "Select online lyrics",
+  "increaseLyricsFont": "Increase lyrics font",
+  "decreaseLyricsFont": "Decrease lyrics font",
+  "restoreDefaultSize": "Restore default size",
+  "searchingOnlineLyrics": "Searching online lyrics",
+  "onlineLyricsResults": "Online Lyrics Results",
+  "untitledLyrics": "Untitled lyrics",
+  "hasTimeline": "With timeline",
+  "viewLyricsDetails": "View lyrics details",
+  "lyricsDetails": "Lyrics details",
+  "lyricsContent": "Lyrics content",
+  "noLyricsContent": "No lyrics content",
+  "queryContentLabel": "Content",
+  "yes": "Yes",
+  "no": "No",
+  "dropAddedSongs": "Added {addedCount} songs",
+  "dropAddedSongsWithExisting": "Added {addedCount} songs, {existingCount} already existed"
 }

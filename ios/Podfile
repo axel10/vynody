@@ -1,5 +1,4 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -37,7 +36,102 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  require 'pathname'
+  
+  # 1. Update user project (Runner.xcodeproj) to register the package at workspace level
+  user_project = installer.aggregate_targets.first.user_project
+  user_project_dir = Pathname.new(user_project.path).dirname
+  sfb_path = Pathname.new('/Users/axel10/projects/player_project/SFBAudioEngine')
+  relative_to_user = sfb_path.relative_path_from(user_project_dir).to_s
+
+  package_ref_user = user_project.root_object.package_references.find { |ref| ref.respond_to?(:relative_path) && ref.relative_path == relative_to_user }
+  if package_ref_user.nil?
+    package_ref_user = user_project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
+    package_ref_user.relative_path = relative_to_user
+    user_project.root_object.package_references << package_ref_user
+  end
+  user_project.save
+
+  # 2. Update Pods.xcodeproj to define package ref and link dependency on audio_core
+  pods_project = installer.pods_project
+  pods_project_dir = Pathname.new(pods_project.path).dirname
+  relative_to_pods = sfb_path.relative_path_from(pods_project_dir).to_s
+
+  package_ref_pods = pods_project.root_object.package_references.find { |ref| ref.respond_to?(:relative_path) && ref.relative_path == relative_to_pods }
+  if package_ref_pods.nil?
+    package_ref_pods = pods_project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
+    package_ref_pods.relative_path = relative_to_pods
+    pods_project.root_object.package_references << package_ref_pods
+  end
+
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+      config.build_settings['CLANG_ENABLE_EXPLICIT_MODULES'] = 'NO'
+    end
+    
+    if target.name == 'audio_core'
+      product_dep = target.package_product_dependencies.find { |dep| dep.product_name == 'SFBAudioEngine' }
+      if product_dep.nil?
+        product_dep = pods_project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+        product_dep.package = package_ref_pods
+        product_dep.product_name = 'SFBAudioEngine'
+        target.package_product_dependencies << product_dep
+      end
+    end
+  end
+
+  # 3. Add a build phase to the Runner target to embed and sign the SPM frameworks at the app bundle level
+  runner_target = user_project.targets.find { |t| t.name == 'Runner' }
+  if runner_target
+    phase_name = 'Embed and Sign SPM Frameworks'
+    existing_phase = runner_target.shell_script_build_phases.find { |p| p.name == phase_name }
+    
+    script_content = <<-'SH'
+DEST="${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}"
+echo "Embedding SPM binary frameworks into ${DEST}"
+mkdir -p "${DEST}"
+for fw in lame tta-cpp opus FLAC mpg123 mpc wavpack ogg sndfile vorbis; do
+  SRC_PATH=""
+  if [ -d "${BUILT_PRODUCTS_DIR}/${fw}.framework" ]; then
+    SRC_PATH="${BUILT_PRODUCTS_DIR}/${fw}.framework"
+  elif [ -d "${PODS_CONFIGURATION_BUILD_DIR}/${fw}.framework" ]; then
+    SRC_PATH="${PODS_CONFIGURATION_BUILD_DIR}/${fw}.framework"
+  elif [ -d "${BUILT_PRODUCTS_DIR}/audio_core/${fw}.framework" ]; then
+    SRC_PATH="${BUILT_PRODUCTS_DIR}/audio_core/${fw}.framework"
+  fi
+  
+  if [ -n "${SRC_PATH}" ]; then
+    echo "Copying ${fw}.framework from ${SRC_PATH} to ${DEST}"
+    cp -af "${SRC_PATH}" "${DEST}/"
+    if [ -n "${EXPANDED_CODE_SIGN_IDENTITY}" ]; then
+      echo "Codesigning ${fw}.framework with identity: ${EXPANDED_CODE_SIGN_IDENTITY}"
+      /usr/bin/codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --timestamp=none --preserve-metadata=identifier,entitlements,flags "${DEST}/${fw}.framework"
+    else
+      echo "Codesigning ${fw}.framework with ad-hoc identity"
+      /usr/bin/codesign --force --sign - --timestamp=none --preserve-metadata=identifier,entitlements,flags "${DEST}/${fw}.framework"
+    fi
+  fi
+done
+SH
+
+    if existing_phase
+      existing_phase.shell_script = script_content
+    else
+      phase = runner_target.new_shell_script_build_phase(phase_name)
+      phase.shell_script = script_content
+      
+      # Move this build phase to run after the "[CP] Embed Pods Frameworks" phase
+      runner_target.build_phases.delete(phase)
+      embed_phase_index = runner_target.build_phases.index { |p| p.respond_to?(:name) && p.name =~ /Embed Pods Frameworks/ }
+      if embed_phase_index
+        runner_target.build_phases.insert(embed_phase_index + 1, phase)
+      else
+        runner_target.build_phases << phase
+      end
+    end
+    user_project.save
   end
 end

@@ -70,12 +70,17 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLyricsAiProvider = 'lyrics_ai_provider';
   static const String _keyLyricsAiAutoSwitchEnabled =
       'lyrics_ai_auto_switch_enabled';
+  static const String _keyLyricsFontScale = 'lyrics_font_scale';
   static const String _keyGeminiPrimaryModelId = 'gemini_primary_model_id';
   static const String _keyGeminiFallbackModelId = 'gemini_fallback_model_id';
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
   static const String _keyShortcutBindings = 'shortcut_bindings';
   static const String _builtInAcoustidApiKey = 'raGXgwxqws';
   static const int _fixedSampleStride = 8;
+  static const double defaultLyricsFontScale = 1.0;
+  static const double minLyricsFontScale = 0.8;
+  static const double maxLyricsFontScale = 1.5;
+  static const double lyricsFontScaleStep = 0.1;
 
   // Visualizer styling keys
   static const String _keyVisColor = 'visualizer_color';
@@ -129,6 +134,7 @@ class SettingsService extends ChangeNotifier {
   Timer? _inactivityTimer;
   LyricsAiProvider _lyricsAiProvider;
   bool _isLyricsAiAutoSwitchEnabled;
+  double _lyricsFontScale;
   String _geminiPrimaryModelId;
   String _geminiFallbackModelId;
   Map<String, ShortcutBinding> _shortcutBindings;
@@ -181,6 +187,9 @@ class SettingsService extends ChangeNotifier {
       ),
       _isLyricsAiAutoSwitchEnabled =
           _prefs.getBool(_keyLyricsAiAutoSwitchEnabled) ?? false,
+      _lyricsFontScale = _normalizeLyricsFontScale(
+        _prefs.getDouble(_keyLyricsFontScale) ?? defaultLyricsFontScale,
+      ),
       _geminiPrimaryModelId = _initialModelId(
         _prefs.getString(_keyGeminiPrimaryModelId),
         defaultGeminiPrimaryModelId,
@@ -251,6 +260,7 @@ class SettingsService extends ChangeNotifier {
   bool get isUserInactive => _isUserInactive;
   LyricsAiProvider get lyricsAiProvider => _lyricsAiProvider;
   bool get isLyricsAiAutoSwitchEnabled => _isLyricsAiAutoSwitchEnabled;
+  double get lyricsFontScale => _lyricsFontScale;
   String get geminiPrimaryModelId => _geminiPrimaryModelId;
   String get geminiFallbackModelId => _geminiFallbackModelId;
   String get geminiApiKey => _prefs.getString(geminiApiKeyStorageKey) ?? '';
@@ -295,15 +305,20 @@ class SettingsService extends ChangeNotifier {
   static String geminiModelDisplayName(String modelId) {
     final isZh =
         WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
-    switch (modelId.trim()) {
+    final trimmed = modelId.trim();
+    switch (trimmed) {
       case defaultGeminiPrimaryModelId:
         return 'Gemini 3.1 Flash Lite Preview';
       case defaultGeminiFallbackModelId:
         return 'Gemini 2.5 Flash';
       default:
-        return modelId.trim().isEmpty
-            ? (isZh ? '未选择模型' : 'No model selected')
-            : modelId.trim();
+        if (trimmed.isEmpty) {
+          return isZh ? '未选择模型' : 'No model selected';
+        }
+        return trimmed.split('-').map((word) {
+          if (word.isEmpty) return '';
+          return word[0].toUpperCase() + word.substring(1);
+        }).join(' ');
     }
   }
 
@@ -358,6 +373,7 @@ class SettingsService extends ChangeNotifier {
       _transcodeDefaultQualityTier;
   String get transcodeFfmpegPath => _transcodeFfmpegPath;
   bool get transcodeAutoScanOutputEnabled => _transcodeAutoScanOutputEnabled;
+  SharedPreferences get prefs => _prefs;
 
   static AudioFormat _audioFormatFromStorageValue(String? value) {
     final normalized = value?.trim().toLowerCase();
@@ -515,6 +531,28 @@ class SettingsService extends ChangeNotifier {
     _isLyricsAiAutoSwitchEnabled = value;
     _prefs.setBool(_keyLyricsAiAutoSwitchEnabled, value);
     notifyListeners();
+  }
+
+  set lyricsFontScale(double value) {
+    final normalized = _normalizeLyricsFontScale(value);
+    if (_lyricsFontScale == normalized) {
+      return;
+    }
+    _lyricsFontScale = normalized;
+    _prefs.setDouble(_keyLyricsFontScale, normalized);
+    notifyListeners();
+  }
+
+  void increaseLyricsFontScale() {
+    lyricsFontScale = _lyricsFontScale + lyricsFontScaleStep;
+  }
+
+  void decreaseLyricsFontScale() {
+    lyricsFontScale = _lyricsFontScale - lyricsFontScaleStep;
+  }
+
+  void resetLyricsFontScale() {
+    lyricsFontScale = defaultLyricsFontScale;
   }
 
   set geminiPrimaryModelId(String value) {
@@ -823,5 +861,10 @@ class SettingsService extends ChangeNotifier {
   static Future<SettingsService> init() async {
     final prefs = await SharedPreferences.getInstance();
     return SettingsService(prefs);
+  }
+
+  static double _normalizeLyricsFontScale(double value) {
+    final clamped = value.clamp(minLyricsFontScale, maxLyricsFontScale);
+    return (clamped * 10).roundToDouble() / 10.0;
   }
 }

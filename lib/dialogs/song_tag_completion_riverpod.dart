@@ -89,7 +89,7 @@ class SongTagCompletionController extends ChangeNotifier {
       _emit();
     } catch (e) {
       if (_disposed || revision != _musicBrainzQueryRevision) return;
-      musicBrainzErrorMessage = 'MusicBrainz 查询失败：$e';
+      musicBrainzErrorMessage = localizedText('MusicBrainz 查询失败：$e', 'MusicBrainz query failed: $e');
       isMusicBrainzLoading = false;
       _emit();
     }
@@ -117,8 +117,10 @@ class SongTagCompletionController extends ChangeNotifier {
     } on AcoustIDClientException catch (e) {
       debugPrint('AcoustID: client error ${e.statusCode}: ${e.message}');
       if (_disposed) return;
-      acoustidClientErrorMessage =
-          'AcoustID 请求返回 ${e.statusCode}。请申请你自己的 AcoustID API key 并填入设置页。';
+      acoustidClientErrorMessage = localizedText(
+        'AcoustID 请求返回 ${e.statusCode}。请申请你自己的 AcoustID API key 并填入设置页。',
+        'AcoustID request returned ${e.statusCode}. Please apply for your own AcoustID API key and fill it in settings.',
+      );
       isAcoustIDLoading = false;
       _emit();
     } catch (e) {

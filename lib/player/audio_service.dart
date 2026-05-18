@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:collection/collection.dart';
 
 import 'dart:io';
@@ -31,7 +32,256 @@ import 'audio_riverpod.dart';
 import 'library_insights_service.dart';
 import 'lyrics_riverpod.dart';
 
+class _PlaybackSessionState {
+  const _PlaybackSessionState({
+    required this.version,
+    required this.queue,
+    required this.currentIndex,
+    required this.positionMs,
+    required this.playbackMode,
+    required this.randomPlayback,
+  });
+
+  final int version;
+  final List<MusicFile> queue;
+  final int currentIndex;
+  final int positionMs;
+  final PlaylistMode playbackMode;
+  final _RandomPlaybackSessionState randomPlayback;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'version': version,
+      'queue': queue.map(_musicFileToSessionJson).toList(growable: false),
+      'currentIndex': currentIndex,
+      'positionMs': positionMs,
+      'playbackMode': playbackMode.name,
+      'randomPlayback': randomPlayback.toJson(),
+    };
+  }
+
+  factory _PlaybackSessionState.fromJson(Map<String, dynamic> json) {
+    final rawQueue = json['queue'];
+    final queue = <MusicFile>[];
+    if (rawQueue is List) {
+      for (final item in rawQueue) {
+        if (item is Map<String, dynamic>) {
+          queue.add(_musicFileFromSessionJson(item));
+        } else if (item is Map) {
+          queue.add(
+            _musicFileFromSessionJson(
+              item.map((key, value) => MapEntry(key.toString(), value)),
+            ),
+          );
+        }
+      }
+    }
+
+    return _PlaybackSessionState(
+      version: (json['version'] as num?)?.toInt() ?? 1,
+      queue: queue,
+      currentIndex: (json['currentIndex'] as num?)?.toInt() ?? -1,
+      positionMs: (json['positionMs'] as num?)?.toInt() ?? 0,
+      playbackMode: _playbackModeFromStorage(json['playbackMode'] as String?),
+      randomPlayback: _RandomPlaybackSessionState.fromJson(
+        (json['randomPlayback'] as Map? ?? const {}).map(
+          (key, value) => MapEntry(key.toString(), value),
+        ),
+      ),
+    );
+  }
+}
+
+Map<String, Object?> _musicFileToSessionJson(MusicFile song) {
+  return <String, Object?>{
+    'path': song.path,
+    'name': song.name,
+    'title': song.title,
+    'artist': song.artist,
+    'album': song.album,
+    'trackNumber': song.trackNumber,
+    'id': song.id,
+    'mediaUri': song.mediaUri,
+    'thumbnailPath': song.thumbnailPath,
+    'artworkPath': song.artworkPath,
+    'artworkWidth': song.artworkWidth,
+    'artworkHeight': song.artworkHeight,
+    'durationMillis': song.durationMillis,
+    'themeColorsBlob': song.themeColorsBlob == null
+        ? null
+        : base64Encode(song.themeColorsBlob!),
+    'lastModifiedTime': song.lastModifiedTime,
+    'isMissing': song.isMissing,
+  };
+}
+
+MusicFile _musicFileFromSessionJson(Map<String, dynamic> json) {
+  Uint8List? themeColorsBlob;
+  final rawThemeColorsBlob = json['themeColorsBlob'];
+  if (rawThemeColorsBlob is String && rawThemeColorsBlob.isNotEmpty) {
+    themeColorsBlob = base64Decode(rawThemeColorsBlob);
+  }
+
+  return MusicFile(
+    path: json['path'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    title: json['title'] as String?,
+    artist: json['artist'] as String?,
+    album: json['album'] as String?,
+    trackNumber: (json['trackNumber'] as num?)?.toInt(),
+    id: (json['id'] as num?)?.toInt(),
+    mediaUri: json['mediaUri'] as String?,
+    thumbnailPath: json['thumbnailPath'] as String?,
+    artworkPath: json['artworkPath'] as String?,
+    artworkWidth: (json['artworkWidth'] as num?)?.toInt(),
+    artworkHeight: (json['artworkHeight'] as num?)?.toInt(),
+    durationMillis: (json['durationMillis'] as num?)?.toInt(),
+    themeColorsBlob: themeColorsBlob,
+    lastModifiedTime: (json['lastModifiedTime'] as num?)?.toInt(),
+    isMissing: json['isMissing'] as bool? ?? false,
+  );
+}
+
+PlaylistMode _playbackModeFromStorage(String? value) {
+  switch (value) {
+    case 'single':
+      return PlaylistMode.single;
+    case 'singleLoop':
+      return PlaylistMode.singleLoop;
+    case 'queueLoop':
+      return PlaylistMode.queueLoop;
+    case 'autoQueueLoop':
+      return PlaylistMode.autoQueueLoop;
+    case 'queue':
+    default:
+      return PlaylistMode.queue;
+  }
+}
+
+class _RandomHistoryEntryState {
+  const _RandomHistoryEntryState({
+    required this.trackId,
+    required this.playlistId,
+    required this.trackIndex,
+    required this.generatedAtMillis,
+    required this.policyKey,
+  });
+
+  final String trackId;
+  final String? playlistId;
+  final int trackIndex;
+  final int generatedAtMillis;
+  final String policyKey;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'trackId': trackId,
+      'playlistId': playlistId,
+      'trackIndex': trackIndex,
+      'generatedAtMillis': generatedAtMillis,
+      'policyKey': policyKey,
+    };
+  }
+
+  factory _RandomHistoryEntryState.fromJson(Map<String, dynamic> json) {
+    return _RandomHistoryEntryState(
+      trackId: json['trackId'] as String? ?? '',
+      playlistId: json['playlistId'] as String?,
+      trackIndex: (json['trackIndex'] as num?)?.toInt() ?? -1,
+      generatedAtMillis: (json['generatedAtMillis'] as num?)?.toInt() ?? 0,
+      policyKey: json['policyKey'] as String? ?? '',
+    );
+  }
+
+  RandomHistoryEntry toDomain() {
+    return RandomHistoryEntry(
+      trackId: trackId,
+      playlistId: playlistId,
+      trackIndex: trackIndex,
+      generatedAt: DateTime.fromMillisecondsSinceEpoch(generatedAtMillis),
+      policyKey: policyKey,
+    );
+  }
+}
+
+class _RandomPlaybackSessionState {
+  const _RandomPlaybackSessionState({
+    required this.enabled,
+    required this.history,
+    required this.historyCursor,
+    required this.deck,
+    required this.deckCursor,
+    required this.deckSignature,
+    required this.stashedNextTrackId,
+    required this.stashedForTrackId,
+  });
+
+  final bool enabled;
+  final List<_RandomHistoryEntryState> history;
+  final int? historyCursor;
+  final List<String> deck;
+  final int? deckCursor;
+  final String? deckSignature;
+  final String? stashedNextTrackId;
+  final String? stashedForTrackId;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'enabled': enabled,
+      'history': history.map((entry) => entry.toJson()).toList(growable: false),
+      'historyCursor': historyCursor,
+      'deck': deck,
+      'deckCursor': deckCursor,
+      'deckSignature': deckSignature,
+      'stashedNextTrackId': stashedNextTrackId,
+      'stashedForTrackId': stashedForTrackId,
+    };
+  }
+
+  factory _RandomPlaybackSessionState.fromJson(Map<String, dynamic> json) {
+    final rawHistory = json['history'];
+    final history = <_RandomHistoryEntryState>[];
+    if (rawHistory is List) {
+      for (final item in rawHistory) {
+        if (item is Map<String, dynamic>) {
+          history.add(_RandomHistoryEntryState.fromJson(item));
+        } else if (item is Map) {
+          history.add(
+            _RandomHistoryEntryState.fromJson(
+              item.map((key, value) => MapEntry(key.toString(), value)),
+            ),
+          );
+        }
+      }
+    }
+
+    final rawDeck = json['deck'];
+    final deck = <String>[];
+    if (rawDeck is List) {
+      for (final item in rawDeck) {
+        if (item is String && item.isNotEmpty) {
+          deck.add(item);
+        }
+      }
+    }
+
+    return _RandomPlaybackSessionState(
+      enabled: json['enabled'] as bool? ?? false,
+      history: history,
+      historyCursor: (json['historyCursor'] as num?)?.toInt(),
+      deck: deck,
+      deckCursor: (json['deckCursor'] as num?)?.toInt(),
+      deckSignature: json['deckSignature'] as String?,
+      stashedNextTrackId: json['stashedNextTrackId'] as String?,
+      stashedForTrackId: json['stashedForTrackId'] as String?,
+    );
+  }
+}
+
 class AudioService extends Notifier<AudioSnapshot> {
+  static const String _playbackSessionStorageKey = 'playback_session_v1';
+  static const Duration _playbackSessionAutoSaveInterval = Duration(seconds: 2);
+
   late final AudioCoreController _player;
   bool _isPlaying = false;
   Duration _position = Duration.zero;
@@ -63,11 +313,15 @@ class AudioService extends Notifier<AudioSnapshot> {
   Duration? _sleepTimerDuration;
   int _lastWaveformChunks = -1;
   bool _disposed = false;
+  bool _restoringPlaybackSession = false;
+  bool _playbackSessionReady = false;
+  Timer? _playbackSessionAutoSaveTimer;
   late final VoidCallback _settingsListener;
   DateTime _lastPositionDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
   String? _trackedPlaybackSongPath;
   bool _hasLoggedCurrentPlayback = false;
   Duration _lastPlaybackObservedPosition = Duration.zero;
+  String? _lastMissingCurrentTrackPathHandled;
 
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
@@ -143,7 +397,9 @@ class AudioService extends Notifier<AudioSnapshot> {
     settingsService.addListener(_settingsListener);
     ref.onDispose(_dispose);
     unawaited(
-      _player.initialize().then((_) {
+      _player.initialize().then((_) async {
+        if (_disposed) return;
+        await _restorePlaybackSession();
         if (_disposed) return;
         _visualizerOptions.loadOptions().then((_) => notifyListeners());
         if (_disposed) return;
@@ -156,6 +412,253 @@ class AudioService extends Notifier<AudioSnapshot> {
   void notifyListeners() {
     if (_disposed) return;
     state = snapshot;
+  }
+
+  Future<void> _restorePlaybackSession() async {
+    if (_restoringPlaybackSession) return;
+    _restoringPlaybackSession = true;
+    try {
+      final prefs = settingsService.prefs;
+      final rawSession = prefs.getString(_playbackSessionStorageKey);
+      if (rawSession == null || rawSession.trim().isEmpty) {
+        _playbackSessionReady = true;
+        return;
+      }
+
+      final decoded = jsonDecode(rawSession);
+      if (decoded is! Map) {
+        await prefs.remove(_playbackSessionStorageKey);
+        _playbackSessionReady = true;
+        return;
+      }
+
+      final session = _PlaybackSessionState.fromJson(
+        decoded.map((key, value) => MapEntry(key.toString(), value)),
+      );
+      if (session.version != 1 || session.queue.isEmpty) {
+        await prefs.remove(_playbackSessionStorageKey);
+        _playbackSessionReady = true;
+        return;
+      }
+
+      _stopPlaybackSessionAutoSaveTimer();
+      await _player.playlist.resetPlaybackState();
+
+      _queue
+        ..clear()
+        ..addAll(session.queue);
+      _position = Duration.zero;
+      _duration = Duration.zero;
+      _isPlaying = false;
+      _isMuted = false;
+      _lastActionNext = null;
+      _isTransitioning = false;
+      _currentIndex = -1;
+      _resetPlaybackTrackingForSong(null);
+      notifyListeners();
+
+      await _player.playlist.ensureQueuePlaylist();
+      final tracks = _queue.map(_audioTrackForSong).toList(growable: false);
+      await _player.playlist.addTracksToPlaylist(
+        _player.playlist.queuePlaylistId,
+        tracks,
+        reconcile: false,
+      );
+
+      _player.playlist.setMode(session.playbackMode);
+
+      final restoredIndex = await _resolveRestoredQueueIndex(session);
+      if (restoredIndex >= 0) {
+        _currentIndex = restoredIndex;
+        await _player.playlist.setActivePlaylist(
+          _player.playlist.queuePlaylistId,
+          startIndex: restoredIndex,
+          autoPlay: false,
+        );
+
+        await _restoreCurrentThemeColors();
+
+        final maxPositionMs = _duration.inMilliseconds > 0
+            ? _duration.inMilliseconds
+            : (currentMusic?.durationMillis ?? 0);
+        final safeMaxMs = maxPositionMs > 0
+            ? maxPositionMs
+            : (session.positionMs < 0 ? 0 : session.positionMs);
+        final restorePosition = Duration(
+          milliseconds: session.positionMs.clamp(0, safeMaxMs).toInt(),
+        );
+        if (restorePosition > Duration.zero) {
+          await seek(restorePosition);
+        }
+
+        _position = restorePosition;
+        _isPlaying = false;
+      } else {
+        // No restored track still exists, so discard the stale session and
+        // leave the player empty instead of restoring a deleted file.
+        _queue.clear();
+        _currentIndex = -1;
+        _position = Duration.zero;
+        _duration = Duration.zero;
+        _isPlaying = false;
+        _isMuted = false;
+        _lastActionNext = null;
+        _isTransitioning = false;
+        _resetPlaybackTrackingForSong(null);
+        await _player.playlist.clear();
+        await prefs.remove(_playbackSessionStorageKey);
+      }
+
+      await _restoreRandomPlaybackSession(session.randomPlayback);
+
+      _playbackSessionReady = true;
+      _updatePlaybackSessionAutoSaveTimer();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('AudioService: failed to restore playback session: $e');
+      _playbackSessionReady = true;
+    } finally {
+      _restoringPlaybackSession = false;
+    }
+  }
+
+  Future<void> _restoreRandomPlaybackSession(
+    _RandomPlaybackSessionState session,
+  ) async {
+    if (!session.enabled) {
+      _player.playlist.setRandomPolicy(null);
+      return;
+    }
+
+    _applyRandomPolicy(globalSongs: _queue);
+
+    _player.playlist.restoreRandomPlaybackState(
+      policy: _player.playlist.randomPolicy,
+      history: session.history.map((entry) => entry.toDomain()).toList(),
+      historyCursor: session.historyCursor,
+      deck: session.deck,
+      deckCursor: session.deckCursor,
+      deckSignature: session.deckSignature,
+      stashedNextTrackId: session.stashedNextTrackId,
+      stashedForTrackId: session.stashedForTrackId,
+    );
+  }
+
+  Future<void> _restoreCurrentThemeColors() async {
+    final song = currentMusic;
+    if (song == null) {
+      _dynamicStartColor = null;
+      _dynamicEndColor = null;
+      _currentThemeColorsMap = const {};
+      notifyListeners();
+      return;
+    }
+
+    final themeColorsBlob = song.themeColorsBlob;
+    if (themeColorsBlob != null && themeColorsBlob.isNotEmpty) {
+      _applyThemeColors(ThemeColorHelper.blobToColors(themeColorsBlob));
+      notifyListeners();
+      return;
+    }
+
+    await _updatePalette();
+  }
+
+  Future<int> _resolveRestoredQueueIndex(_PlaybackSessionState session) async {
+    if (session.queue.isEmpty) return -1;
+
+    final preferredIndex = session.currentIndex.clamp(
+      0,
+      session.queue.length - 1,
+    );
+    final preferredSong = session.queue[preferredIndex];
+    if (await _songExists(preferredSong.path)) {
+      return preferredIndex;
+    }
+
+    for (var i = preferredIndex + 1; i < session.queue.length; i++) {
+      if (await _songExists(session.queue[i].path)) {
+        return i;
+      }
+    }
+    for (var i = 0; i < preferredIndex; i++) {
+      if (await _songExists(session.queue[i].path)) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  void _updatePlaybackSessionAutoSaveTimer() {
+    if (!_playbackSessionReady || _disposed) return;
+
+    final shouldRun = _queue.isNotEmpty && _isPlaying;
+    if (shouldRun) {
+      _playbackSessionAutoSaveTimer ??= Timer.periodic(
+        _playbackSessionAutoSaveInterval,
+        (_) => unawaited(_persistPlaybackSession()),
+      );
+    } else {
+      _stopPlaybackSessionAutoSaveTimer();
+    }
+  }
+
+  void _stopPlaybackSessionAutoSaveTimer() {
+    _playbackSessionAutoSaveTimer?.cancel();
+    _playbackSessionAutoSaveTimer = null;
+  }
+
+  Future<void> _persistPlaybackSession({bool allowWhenDisposed = false}) async {
+    if ((_disposed && !allowWhenDisposed) ||
+        _restoringPlaybackSession ||
+        !_playbackSessionReady) {
+      return;
+    }
+
+    final prefs = settingsService.prefs;
+    if (_queue.isEmpty || _currentIndex < 0 || _currentIndex >= _queue.length) {
+      await prefs.remove(_playbackSessionStorageKey);
+      return;
+    }
+
+    final session = _PlaybackSessionState(
+      version: 1,
+      queue: List<MusicFile>.unmodifiable(_queue),
+      currentIndex: _currentIndex,
+      positionMs: _position.inMilliseconds,
+      playbackMode: playbackMode,
+      randomPlayback: _captureRandomPlaybackSession(),
+    );
+
+    await prefs.setString(
+      _playbackSessionStorageKey,
+      jsonEncode(session.toJson()),
+    );
+    _updatePlaybackSessionAutoSaveTimer();
+  }
+
+  _RandomPlaybackSessionState _captureRandomPlaybackSession() {
+    return _RandomPlaybackSessionState(
+      enabled: isRandomMode,
+      history: _player.playlist.randomHistory
+          .map(
+            (entry) => _RandomHistoryEntryState(
+              trackId: entry.trackId,
+              playlistId: entry.playlistId,
+              trackIndex: entry.trackIndex,
+              generatedAtMillis: entry.generatedAt.millisecondsSinceEpoch,
+              policyKey: entry.policyKey,
+            ),
+          )
+          .toList(growable: false),
+      historyCursor: _player.playlist.historyCursor,
+      deck: List<String>.unmodifiable(_player.playlist.currentDeck),
+      deckCursor: _player.playlist.deckCursor,
+      deckSignature: _player.playlist.deckSignature,
+      stashedNextTrackId: _player.playlist.stashedNextTrackId,
+      stashedForTrackId: _player.playlist.stashedForTrackId,
+    );
   }
 
   LyricsControllerDependencies get lyricsControllerDependencies {
@@ -273,9 +776,15 @@ class AudioService extends Notifier<AudioSnapshot> {
 
         final current = _queue[_currentIndex];
         if (await _songExists(current.path)) {
+          _lastMissingCurrentTrackPathHandled = null;
           await _syncCurrentPlaybackSong(current);
           return;
         }
+
+        if (_lastMissingCurrentTrackPathHandled == current.path) {
+          return;
+        }
+        _lastMissingCurrentTrackPathHandled = current.path;
 
         setSongMissingStateByPath(current.path, true);
         _showMissingSongNotice(skipped: true);
@@ -288,6 +797,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           _currentIndex = -1;
           _duration = Duration.zero;
           _position = Duration.zero;
+          _lastMissingCurrentTrackPathHandled = null;
           notifyListeners();
           return;
         }
@@ -392,6 +902,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _trackedPlaybackSongPath = song?.path;
     _hasLoggedCurrentPlayback = false;
     _lastPlaybackObservedPosition = Duration.zero;
+    _lastMissingCurrentTrackPathHandled = null;
   }
 
   void _updatePlaybackTrackingForCurrentSong() {
@@ -558,6 +1069,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         _lastActionNext = true; // 记录为自动切歌
       }
       _currentIndex = newIndex;
+      _lastMissingCurrentTrackPathHandled = null;
       if (_currentIndex >= 0 && _currentIndex < _queue.length) {
         final song = _queue[_currentIndex];
         _logLyricsDebug(
@@ -614,6 +1126,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
 
     _notifyIfNeeded();
+    _updatePlaybackSessionAutoSaveTimer();
   }
 
   void _notifyIfNeeded({bool force = false}) {
@@ -694,6 +1207,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   void setPlaybackMode(PlaylistMode mode) {
     _player.playlist.setMode(mode);
     notifyListeners();
+    unawaited(_persistPlaybackSession());
   }
 
   /// 设置歌词模式是否激活。
@@ -802,6 +1316,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _startQueueBackgroundProcessing();
     notifyListeners();
+    unawaited(_persistPlaybackSession());
   }
 
   void ensureEqualizerBandCount(int bandCount) {
@@ -1423,6 +1938,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     } finally {
       _isTransitioning = false;
       notifyListeners();
+      unawaited(_persistPlaybackSession());
     }
   }
 
@@ -1465,6 +1981,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
 
     await _prepareCurrentPlaybackArtwork(current);
+    unawaited(_persistPlaybackSession());
   }
 
   Future<void> addToPlaylist(List<MusicFile> songs) async {
@@ -1479,6 +1996,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         startIndex: 0,
         clearPlayerQueue: false,
       );
+      unawaited(_persistPlaybackSession());
       return;
     }
 
@@ -1486,6 +2004,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     await _player.playlist.addTracks(tracks);
     _startQueueBackgroundProcessing();
     notifyListeners();
+    unawaited(_persistPlaybackSession());
   }
 
   /// Append songs to the end of the playback queue without changing the
@@ -1504,6 +2023,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _startQueueBackgroundProcessing();
     notifyListeners();
+    unawaited(_persistPlaybackSession());
   }
 
   Future<void> enqueueNext(List<MusicFile> songs) async {
@@ -1529,6 +2049,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _startQueueBackgroundProcessing(priorityPath: currentMusic?.path);
     notifyListeners();
+    unawaited(_persistPlaybackSession());
   }
 
   Future<void> removeFromPlaylist(int index) async {
@@ -1545,6 +2066,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
       _startQueueBackgroundProcessing();
       notifyListeners();
+      unawaited(_persistPlaybackSession());
     }
   }
 
@@ -1563,6 +2085,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _position = Duration.zero;
     _isPlaying = false;
     notifyListeners();
+    unawaited(_persistPlaybackSession());
   }
 
   Future<void> next() async {
@@ -1582,6 +2105,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     } finally {
       _isTransitioning = false;
       notifyListeners();
+      unawaited(_persistPlaybackSession());
     }
   }
 
@@ -1610,6 +2134,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     } finally {
       _isTransitioning = false;
       notifyListeners();
+      unawaited(_persistPlaybackSession());
     }
   }
 
@@ -1630,6 +2155,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     } finally {
       _isTransitioning = false;
       notifyListeners();
+      unawaited(_persistPlaybackSession());
     }
   }
 
@@ -1639,6 +2165,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> seek(Duration position) async {
     await _player.player.seek(position);
+    unawaited(_persistPlaybackSession());
   }
 
   Future<void> setVolume(double volume) async {
@@ -1686,6 +2213,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       _applyRandomPolicy(globalSongs: globalSongs);
     }
     notifyListeners();
+    unawaited(_persistPlaybackSession());
   }
 
   void _applyRandomPolicy({List<MusicFile>? globalSongs}) {
@@ -1836,6 +2364,8 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void _dispose() {
+    _stopPlaybackSessionAutoSaveTimer();
+    unawaited(_persistPlaybackSession(allowWhenDisposed: true));
     _disposed = true;
     _sleepTimer?.cancel();
     _player.removeListener(_handlePlayerChanges);

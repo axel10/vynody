@@ -246,6 +246,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addToPlaylist => 'Add to Playlist';
 
   @override
+  String get selectAll => 'Select All';
+
+  @override
+  String get addToQueue => 'Add to Queue';
+
+  @override
+  String get addedToQueue => 'Added to Queue';
+
+  @override
   String songCount(int count) {
     return '$count songs';
   }
@@ -1363,4 +1372,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unknownArtistOrAlbum => 'Unknown';
+
+  @override
+  String get pressAgainToExit => 'Press again to exit';
+
+  @override
+  String get tagCompletionSuccessWithCover =>
+      'Tags completed and saved, cover downloaded to temporary directory';
+
+  @override
+  String get tagCompletionSuccess => 'Tags completed and saved';
+
+  @override
+  String get selectOnlineLyrics => 'Select online lyrics';
+
+  @override
+  String get increaseLyricsFont => 'Increase lyrics font';
+
+  @override
+  String get decreaseLyricsFont => 'Decrease lyrics font';
+
+  @override
+  String get restoreDefaultSize => 'Restore default size';
+
+  @override
+  String get searchingOnlineLyrics => 'Searching online lyrics';
+
+  @override
+  String get onlineLyricsResults => 'Online Lyrics Results';
+
+  @override
+  String get untitledLyrics => 'Untitled lyrics';
+
+  @override
+  String get hasTimeline => 'With timeline';
+
+  @override
+  String get viewLyricsDetails => 'View lyrics details';
+
+  @override
+  String get lyricsDetails => 'Lyrics details';
+
+  @override
+  String get lyricsContent => 'Lyrics content';
+
+  @override
+  String get noLyricsContent => 'No lyrics content';
+
+  @override
+  String get queryContentLabel => 'Content';
+
+  @override
+  String get yes => 'Yes';
+
+  @override
+  String get no => 'No';
+
+  @override
+  String dropAddedSongs(int addedCount) {
+    return 'Added $addedCount songs';
+  }
+
+  @override
+  String dropAddedSongsWithExisting(int addedCount, int existingCount) {
+    return 'Added $addedCount songs, $existingCount already existed';
+  }
 }
