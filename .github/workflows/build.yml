@@ -147,6 +147,27 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Resolve macOS Swift packages
+        run: xcodebuild -resolvePackageDependencies -workspace macos/Runner.xcworkspace -scheme Runner -configuration Release -derivedDataPath build/macos/resolve
+
+      - name: Print SFBAudioEngine resolution
+        run: |
+          echo "Package.resolved entry:"
+          grep -n '"location" : "https://github.com/sbooth/SFBAudioEngine"' -A 6 -B 2 macos/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved || true
+
+          CHECKOUT="build/macos/resolve/SourcePackages/checkouts/SFBAudioEngine"
+          if [ -d "$CHECKOUT" ]; then
+            echo "Checkout HEAD:"
+            git -C "$CHECKOUT" rev-parse HEAD
+            echo "Checkout Package.swift:"
+            sed -n '1,160p' "$CHECKOUT/Package.swift"
+          else
+            echo "SFBAudioEngine checkout not found at $CHECKOUT"
+          fi
+
+          echo "Runner build settings:"
+          xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration Release -showBuildSettings | rg 'CLANG_CXX_LANGUAGE_STANDARD|OTHER_CPLUSPLUSFLAGS|SWIFT_PACKAGE|PACKAGE' || true
+
       - name: Build macOS
         run: flutter build macos --release
 
