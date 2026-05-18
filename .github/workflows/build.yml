@@ -127,8 +127,7 @@ jobs:
     name: Build macOS Package
     runs-on: macos-latest
     env:
-      CXXFLAGS: -std=c++20
-      CFLAGS: -std=c++20
+      CXXFLAGS: -std=gnu++20
 
     steps:
       - name: Checkout
@@ -182,4 +181,3 @@ jobs:
         with:
           name: macos-package
           path: vibeflow-macos.dmg
-
