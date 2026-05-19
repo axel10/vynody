@@ -70,16 +70,28 @@ jobs:
       - name: Cache vcpkg
         uses: actions/cache@v4
         with:
-          path: audio_core/vcpkg
-          key: ${{ runner.os }}-vcpkg-${{ hashFiles('audio_core/ffmpeg-vibeflow-audio/vcpkg.json') }}
+          path: vcpkg
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-vcpkg-
 
       - name: Install FFmpeg via vcpkg
-        shell: bash
+        shell: pwsh
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
         run: |
-          cd audio_core
-          ./download_sources.sh
+          $env:VCPKG_ROOT = $env:VCPKG_ROOT.Replace('\', '/')
+          Write-Host "Using VCPKG_ROOT: $env:VCPKG_ROOT"
+          $script = Get-ChildItem -Path "$env:LOCALAPPDATA/Pub/Cache" -Filter "download_sources.sh" -Recurve -Force -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($script) {
+              Write-Host "Found download_sources.sh at $($script.FullName)"
+              $dir = $script.DirectoryName
+              cd $dir
+              bash ./download_sources.sh
+          } else {
+              Write-Error "Could not find download_sources.sh in Pub Cache!"
+              exit 1
+          }
 
       - name: Patch cargokit symlink resolver
         shell: pwsh
@@ -99,7 +111,7 @@ jobs:
 
       - name: Build Windows
         env:
-          VCPKG_ROOT: ${{ github.workspace }}\audio_core\vcpkg
+          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
           VCPKG_DEFAULT_TRIPLET: x64-windows-audio
         run: flutter build windows --release
 
