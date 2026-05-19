@@ -142,13 +142,57 @@ jobs:
       - name: Build Windows MSIX
         run: dart run msix:create --build-windows false
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $appVersion = (Select-String -Path "pubspec.yaml" -Pattern '^version:\s*([0-9]+\.[0-9]+\.[0-9]+)').Matches[0].Groups[1].Value
+          if (-not $appVersion) {
+            Write-Error "Could not determine app version from pubspec.yaml"
+            exit 1
+          }
+          $sourceDir = Join-Path $env:GITHUB_WORKSPACE "build\\windows\\x64\\runner\\Release"
+          $outputDir = Join-Path $env:GITHUB_WORKSPACE "build\\windows\\installer"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          & "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" `
+            "/DMyAppVersion=$appVersion" `
+            "/DSourceDir=$sourceDir" `
+            "/DOutputDir=$outputDir" `
+            "windows\\installer\\VibeFlow.iss"
+
+      - name: Verify Windows artifacts
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "build/windows/x64/runner/Release/VibeFlow.exe")) {
+            Write-Error "Windows runner executable not found."
+            exit 1
+          }
+          if (-not (Test-Path "build/windows/msix")) {
+            Write-Error "MSIX output directory not found."
+            exit 1
+          }
+          $msixFiles = Get-ChildItem "build/windows/msix" -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue
+          if (-not $msixFiles) {
+            Write-Error "No .msix package was generated."
+            exit 1
+          }
+          $msixFiles | ForEach-Object { Write-Host "Found MSIX: $($_.FullName)" }
+          $installerFiles = Get-ChildItem "build/windows/installer" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue
+          if (-not $installerFiles) {
+            Write-Error "No Inno Setup installer was generated."
+            exit 1
+          }
+          $installerFiles | ForEach-Object { Write-Host "Found installer: $($_.FullName)" }
+
       - name: Package Windows bundle
         shell: pwsh
         run: |
           $output = "vibeflow-windows.zip"
           if (Test-Path $output) { Remove-Item $output -Force }
           Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath $output
-          Copy-Item "build/windows/x64/runner/Release/VibeFlow.exe" -Destination "VibeFlow.exe"
 
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
@@ -156,8 +200,8 @@ jobs:
           name: windows-package
           path: |
             vibeflow-windows.zip
-            VibeFlow.exe
-            build/windows/msix/*.msix
+            build/windows/msix/**/*.msix
+            build/windows/installer/*.exe
 
   linux:
     name: Build Linux Package
@@ -390,17 +434,17 @@ jobs:
           if [ -f artifacts/android/app-arm64-v8a-release.apk ]; then
             mv artifacts/android/app-arm64-v8a-release.apk release_assets/vibeflow-android-arm64-v8a.apk
           fi
-          # Windows exe
-          if [ -f artifacts/windows/VibeFlow.exe ]; then
-            mv artifacts/windows/VibeFlow.exe release_assets/vibeflow-windows.exe
-          fi
           # Windows zip
           if [ -f artifacts/windows/vibeflow-windows.zip ]; then
             mv artifacts/windows/vibeflow-windows.zip release_assets/
           fi
           # Windows MSIX
-          if ls artifacts/windows/*.msix 1> /dev/null 2>&1; then
-            mv artifacts/windows/*.msix release_assets/
+          if find artifacts/windows -type f -name '*.msix' | grep -q .; then
+            find artifacts/windows -type f -name '*.msix' -exec mv {} release_assets/ \;
+          fi
+          # Windows installer
+          if find artifacts/windows -type f -name 'vibeflow-windows-setup.exe' | grep -q .; then
+            find artifacts/windows -type f -name 'vibeflow-windows-setup.exe' -exec mv {} release_assets/ \;
           fi
           # Linux
           if [ -f artifacts/linux/vibeflow-linux.tar.gz ]; then
