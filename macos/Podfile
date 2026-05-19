@@ -48,6 +48,12 @@ post_install do |installer|
     user_project.root_object.package_references << package_ref_user
   end
   package_ref_user.repositoryURL = 'https://github.com/axel10/SFBAudioEngine'
+  
+  user_project.build_configurations.each do |config|
+    config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '13.0'
+    config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'
+    config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -std=gnu++20'
+  end
   user_project.save
 
   # 2. Update Pods.xcodeproj to register the remote package
@@ -62,6 +68,12 @@ post_install do |installer|
     pods_project.root_object.package_references << package_ref_pods
   end
   package_ref_pods.repositoryURL = 'https://github.com/axel10/SFBAudioEngine'
+
+  pods_project.build_configurations.each do |config|
+    config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '13.0'
+    config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'
+    config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -std=gnu++20'
+  end
 
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
