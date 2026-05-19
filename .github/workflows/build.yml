@@ -101,19 +101,19 @@ jobs:
           if (Test-Path $pubCache) {
               Get-ChildItem -Path $pubCache -Filter "resolve_symlinks.ps1" -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object {
                   Write-Host "Patching pub cache: $_"
-                  (Get-Content $_.FullName -Raw).Replace('Get-Item $realPath', 'Get-Item -Force $realPath') | Set-Content $_.FullName
+                  (Get-Content $_.FullName -Raw) -replace 'Get-Item\s+\$realPath', 'Get-Item -Force $realPath' | Set-Content $_.FullName
               }
           }
           Get-ChildItem -Path . -Filter "resolve_symlinks.ps1" -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object {
               Write-Host "Patching workspace: $_"
-              (Get-Content $_.FullName -Raw).Replace('Get-Item $realPath', 'Get-Item -Force $realPath') | Set-Content $_.FullName
+              (Get-Content $_.FullName -Raw) -replace 'Get-Item\s+\$realPath', 'Get-Item -Force $realPath' | Set-Content $_.FullName
           }
 
       - name: Build Windows
         env:
           VCPKG_ROOT: ${{ github.workspace }}\vcpkg
           VCPKG_DEFAULT_TRIPLET: x64-windows-audio
-        run: flutter build windows --release
+        run: flutter build windows --release -v
 
       - name: Build Windows MSIX
         run: dart run msix:create --build-windows false
