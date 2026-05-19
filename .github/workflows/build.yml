@@ -67,7 +67,40 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: audio_core/vcpkg
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('audio_core/ffmpeg-vibeflow-audio/vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
+      - name: Install FFmpeg via vcpkg
+        shell: bash
+        run: |
+          cd audio_core
+          ./download_sources.sh
+
+      - name: Patch cargokit symlink resolver
+        shell: pwsh
+        run: |
+          $pubCache = If ($env:PUB_CACHE) { $env:PUB_CACHE } Else { Join-Path $env:LOCALAPPDATA "Pub/Cache" }
+          Write-Host "Pub Cache path: $pubCache"
+          if (Test-Path $pubCache) {
+              Get-ChildItem -Path $pubCache -Filter "resolve_symlinks.ps1" -Recurve -Force -ErrorAction SilentlyContinue | ForEach-Object {
+                  Write-Host "Patching pub cache: $_"
+                  (Get-Content $_.FullName -Raw).Replace('Get-Item $realPath', 'Get-Item -Force $realPath') | Set-Content $_.FullName
+              }
+          }
+          Get-ChildItem -Path . -Filter "resolve_symlinks.ps1" -Recurve -Force -ErrorAction SilentlyContinue | ForEach-Object {
+              Write-Host "Patching workspace: $_"
+              (Get-Content $_.FullName -Raw).Replace('Get-Item $realPath', 'Get-Item -Force $realPath') | Set-Content $_.FullName
+          }
+
       - name: Build Windows
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}\audio_core\vcpkg
+          VCPKG_DEFAULT_TRIPLET: x64-windows-audio
         run: flutter build windows --release
 
       - name: Build Windows MSIX
