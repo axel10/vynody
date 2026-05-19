@@ -25,7 +25,7 @@ jobs:
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          targets: aarch64-linux-android, armv7-linux-androideabi, i686-linux-android, x86_64-linux-android
+          target: aarch64-linux-android, armv7-linux-androideabi, i686-linux-android, x86_64-linux-android
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -124,8 +124,12 @@ jobs:
           path: vibeflow-linux.tar.gz
 
   macos:
-    name: Build macOS Package
-    runs-on: macos-latest
+    name: Build macOS Package (Xcode ${{ matrix.xcode }})
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        xcode: ['16.4', '26.3']
     env:
       CXXFLAGS: -std=gnu++20
 
@@ -133,10 +137,54 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ matrix.xcode }}
+
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          targets: x86_64-apple-darwin, aarch64-apple-darwin
+          target: x86_64-apple-darwin, aarch64-apple-darwin
+
+      - name: Print Apple toolchain diagnostics
+        run: |
+          echo "Runner:"
+          uname -a
+          sw_vers
+
+          echo "Xcode selection:"
+          xcode-select -p
+          xcodebuild -version
+          xcodebuild -showsdks
+
+          echo "Tool versions:"
+          clang++ --version
+          xcrun clang++ --version
+          swift --version
+          swiftc --version
+
+          echo "SDK info:"
+          xcrun --sdk macosx --show-sdk-path
+          xcrun --sdk macosx --show-sdk-version
+
+          echo "Available Xcodes:"
+          ls -1 /Applications | grep '^Xcode' | sort || true
+
+          echo "C++20 jthread smoke test:"
+          cat > /tmp/jthread_test.cpp <<'EOF'
+          #include <thread>
+          #include <stop_token>
+          #include <iostream>
+
+          int main() {
+            std::jthread t([](std::stop_token) {});
+            std::cout << __cplusplus << std::endl;
+            return 0;
+          }
+          EOF
+          xcrun clang++ -std=gnu++20 /tmp/jthread_test.cpp -o /tmp/jthread_test
+          /tmp/jthread_test
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -150,7 +198,6 @@ jobs:
       - name: Clean macOS package caches
         run: |
           rm -rf build/macos
-          rm -rf macos/Flutter/ephemeral
 
       - name: Resolve macOS Swift packages
         run: xcodebuild -resolvePackageDependencies -workspace macos/Runner.xcworkspace -scheme Runner -configuration Release -derivedDataPath build/macos/resolve -clonedSourcePackagesDirPath build/macos/SourcePackages
