@@ -26,6 +26,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: aarch64-linux-android, armv7-linux-androideabi, i686-linux-android, x86_64-linux-android
+          rustflags: ""
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -57,6 +58,8 @@ jobs:
 
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rustflags: ""
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -80,8 +83,19 @@ jobs:
         env:
           VCPKG_ROOT: ${{ github.workspace }}\vcpkg
         run: |
+          if (-not (Test-Path "$env:VCPKG_ROOT")) {
+              Write-Host "Cloning vcpkg to $env:VCPKG_ROOT..."
+              git clone https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          }
+          if (-not (Test-Path "$env:VCPKG_ROOT\vcpkg.exe")) {
+              Write-Host "Bootstrapping vcpkg..."
+              $currentDir = Get-Location
+              cd "$env:VCPKG_ROOT"
+              cmd.exe /c "bootstrap-vcpkg.bat -disableMetrics"
+              cd $currentDir
+          }
           $env:VCPKG_ROOT = $env:VCPKG_ROOT.Replace('\', '/')
-          Write-Host "Using VCPKG_ROOT: $env:VCPKG_ROOT"
+          Write-Host "Using VCPKG_ROOT for bash: $env:VCPKG_ROOT"
           $script = Get-ChildItem -Path "$env:LOCALAPPDATA/Pub/Cache" -Filter "download_sources.sh" -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($script) {
               Write-Host "Found download_sources.sh at $($script.FullName)"
@@ -148,6 +162,8 @@ jobs:
 
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rustflags: ""
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -193,6 +209,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: x86_64-apple-darwin, aarch64-apple-darwin
+          rustflags: ""
 
       - name: Print Apple toolchain diagnostics
         run: |
