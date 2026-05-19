@@ -37,7 +37,9 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release
+        env:
+          RUST_BACKTRACE: "full"
+        run: flutter build apk --release -v
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
