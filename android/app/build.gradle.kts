@@ -15,6 +15,17 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    aaptOptions {
+        ignoreAssetsPattern = "!._*:!.DS_Store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"
+    }
+
+    packaging {
+        resources {
+            excludes += "**/._*"
+            excludes += "**/._**"
+        }
+    }
+
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }

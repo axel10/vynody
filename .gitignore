@@ -48,3 +48,6 @@ app.*.map.json
 bfg-1.15.0.jar
 
 tmp
+._*
+
+.vscode/
