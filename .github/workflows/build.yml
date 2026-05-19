@@ -127,6 +127,7 @@ jobs:
         env:
           VCPKG_ROOT: ${{ github.workspace }}\vcpkg
           VCPKG_DEFAULT_TRIPLET: x64-windows-audio
+          FFMPEG_DIR: ${{ github.workspace }}\vcpkg\installed\x64-windows-audio
         run: flutter build windows --release -v
 
       - name: Build Windows MSIX
