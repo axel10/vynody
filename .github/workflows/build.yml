@@ -82,7 +82,7 @@ jobs:
         run: |
           $env:VCPKG_ROOT = $env:VCPKG_ROOT.Replace('\', '/')
           Write-Host "Using VCPKG_ROOT: $env:VCPKG_ROOT"
-          $script = Get-ChildItem -Path "$env:LOCALAPPDATA/Pub/Cache" -Filter "download_sources.sh" -Recurve -Force -ErrorAction SilentlyContinue | Select-Object -First 1
+          $script = Get-ChildItem -Path "$env:LOCALAPPDATA/Pub/Cache" -Filter "download_sources.sh" -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($script) {
               Write-Host "Found download_sources.sh at $($script.FullName)"
               $dir = $script.DirectoryName
@@ -99,12 +99,12 @@ jobs:
           $pubCache = If ($env:PUB_CACHE) { $env:PUB_CACHE } Else { Join-Path $env:LOCALAPPDATA "Pub/Cache" }
           Write-Host "Pub Cache path: $pubCache"
           if (Test-Path $pubCache) {
-              Get-ChildItem -Path $pubCache -Filter "resolve_symlinks.ps1" -Recurve -Force -ErrorAction SilentlyContinue | ForEach-Object {
+              Get-ChildItem -Path $pubCache -Filter "resolve_symlinks.ps1" -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object {
                   Write-Host "Patching pub cache: $_"
                   (Get-Content $_.FullName -Raw).Replace('Get-Item $realPath', 'Get-Item -Force $realPath') | Set-Content $_.FullName
               }
           }
-          Get-ChildItem -Path . -Filter "resolve_symlinks.ps1" -Recurve -Force -ErrorAction SilentlyContinue | ForEach-Object {
+          Get-ChildItem -Path . -Filter "resolve_symlinks.ps1" -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object {
               Write-Host "Patching workspace: $_"
               (Get-Content $_.FullName -Raw).Replace('Get-Item $realPath', 'Get-Item -Force $realPath') | Set-Content $_.FullName
           }
