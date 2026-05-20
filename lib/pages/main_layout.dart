@@ -152,6 +152,14 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   Future<void> _handleBackPressed() async {
     if (!Platform.isAndroid) return;
 
+    // 如果在目录页，且当前处于非根目录，由于子 PopScope 会处理返回上一级目录，这里直接返回
+    if (_currentIndex == 0) {
+      final scanner = ref.read(scannerServiceProvider);
+      if (scanner.navigationCurrentFolder != null) {
+        return;
+      }
+    }
+
     final now = DateTime.now();
     final lastBackPressedAt = _lastBackPressedAt;
     final shouldExit =

@@ -522,9 +522,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     final hasPermission = ref.watch(
       scannerServiceProvider.select((scanner) => scanner.hasPermission),
     );
-    final isScanning = ref.watch(
-      scannerServiceProvider.select((scanner) => scanner.isScanning),
-    );
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
@@ -768,9 +765,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
-          if (navigationHistory.isNotEmpty) {
-            _goBack(scanner);
-          }
+          _goBack(scanner);
         },
         child: Column(
           children: [
