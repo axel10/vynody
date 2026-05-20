@@ -10,6 +10,7 @@ import '../player/playlist_service.dart';
 import '../utils/deleted_song_snack.dart';
 import '../widgets/song_thumbnail.dart';
 import '../utils/app_snack_bar.dart';
+import 'playlist_page_riverpod.dart';
 
 class PlaylistTab extends ConsumerStatefulWidget {
   const PlaylistTab({super.key});
@@ -19,13 +20,21 @@ class PlaylistTab extends ConsumerStatefulWidget {
 }
 
 class _PlaylistTabState extends ConsumerState<PlaylistTab> {
-  bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
 
+  @override
+  void dispose() {
+    Future.microtask(() {
+      ref.read(playlistSelectionModeProvider.notifier).setEnabled(false);
+    });
+    super.dispose();
+  }
+
   void _toggleSelectionMode() {
+    final isSelectionMode = ref.read(playlistSelectionModeProvider);
+    ref.read(playlistSelectionModeProvider.notifier).setEnabled(!isSelectionMode);
     setState(() {
-      _isSelectionMode = !_isSelectionMode;
-      if (!_isSelectionMode) {
+      if (isSelectionMode) {
         _selectedIndices.clear();
       }
     });
@@ -577,6 +586,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isSelectionMode = ref.watch(playlistSelectionModeProvider);
     final audio = ref.read(audioServiceProvider);
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
@@ -605,7 +615,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
         Column(
           children: [
             _buildHeader(context, activePlaylist),
-            if (_isSelectionMode)
+            if (isSelectionMode)
               Container(
                 color: Theme.of(context).colorScheme.primaryContainer,
                 padding: const EdgeInsets.symmetric(
@@ -657,7 +667,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                   return GestureDetector(
                     key: ObjectKey(song),
                     onLongPress: () {
-                      if (!_isSelectionMode) {
+                      if (!isSelectionMode) {
                         _toggleSelectionMode();
                         _toggleSelection(index);
                       }
@@ -672,7 +682,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                             Opacity(
                               opacity: isMissing
                                   ? 0.35
-                                  : _isSelectionMode
+                                  : isSelectionMode
                                   ? (isSelected ? 0.5 : 0.7)
                                   : 1.0,
                               child: SongThumbnail(
@@ -681,7 +691,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                                 size: 40.0,
                               ),
                             ),
-                            if (_isSelectionMode)
+                            if (isSelectionMode)
                               Positioned.fill(
                                 child: Align(
                                   alignment: Alignment.center,
@@ -726,7 +736,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: _isSelectionMode
+                      trailing: isSelectionMode
                           ? ReorderableDragStartListener(
                               index: index,
                               child: const Icon(Icons.drag_handle),
@@ -734,7 +744,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                           : _buildDurationTrailing(
                               scanner.metadataMap[song.path]?.duration,
                             ),
-                      onTap: _isSelectionMode
+                      onTap: isSelectionMode
                           ? () {
                               if (isMissing) {
                                 showDeletedSongSnack(context, ref, skipped: false);
@@ -759,7 +769,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
             ),
           ],
         ),
-        if (_isSelectionMode)
+        if (isSelectionMode)
           Positioned(
             left: 0,
             right: 0,

@@ -32,7 +32,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
-  bool _isRootSelectionMode = false;
   final Set<String> _selectedRootPaths = {};
   late final FolderSelectionModeController _folderSelectionModeController;
   StreamSubscription<ScanProgress>? _scanProgressSubscription;
@@ -139,28 +138,30 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   void _toggleRootSelectionMode() {
-    setState(() {
-      _isRootSelectionMode = !_isRootSelectionMode;
-      if (!_isRootSelectionMode) {
+    final enabled = !ref.read(folderRootSelectionModeProvider);
+    ref.read(folderRootSelectionModeProvider.notifier).setEnabled(enabled);
+    if (!enabled) {
+      setState(() {
         _selectedRootPaths.clear();
-      }
-    });
+      });
+    }
   }
 
   void _clearAllSelection() {
     final shouldClearSongSelection =
         _isSelectionMode || _selectedSongPaths.isNotEmpty;
+    final isRootSelectionMode = ref.read(folderRootSelectionModeProvider);
     final shouldClearRootSelection =
-        _isRootSelectionMode || _selectedRootPaths.isNotEmpty;
+        isRootSelectionMode || _selectedRootPaths.isNotEmpty;
     if (!shouldClearSongSelection && !shouldClearRootSelection) return;
 
     setState(() {
       _isSelectionMode = false;
       _selectedSongPaths.clear();
-      _isRootSelectionMode = false;
       _selectedRootPaths.clear();
     });
     _setFolderSelectionMode(false);
+    ref.read(folderRootSelectionModeProvider.notifier).setEnabled(false);
   }
 
   void _ensureScanToastVisible() {
@@ -379,8 +380,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
     setState(() {
       _selectedRootPaths.clear();
-      _isRootSelectionMode = false;
     });
+    ref.read(folderRootSelectionModeProvider.notifier).setEnabled(false);
 
     AppSnackBar.show(
       context,
@@ -422,6 +423,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     // "modifying a provider while building" assertion during tab switches.
     Future.microtask(() {
       _setFolderSelectionMode(false);
+      ref.read(folderRootSelectionModeProvider.notifier).setEnabled(false);
     });
     _scanToastUpdateTimer?.cancel();
     _scanToastAutoDismissTimer?.cancel();
@@ -502,6 +504,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   @override
   Widget build(BuildContext context) {
     final scanner = ref.read(scannerServiceProvider);
+    final isRootSelectionMode = ref.watch(folderRootSelectionModeProvider);
     final rootFolders = ref.watch(
       scannerServiceProvider.select((scanner) => scanner.rootFolders),
     );
@@ -544,7 +547,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     if (currentFolder == null) {
       final l10n = AppLocalizations.of(context)!;
       final selectionLabel = l10n.selectedFolders(_selectedRootPaths.length);
-      final rootListBottomPadding = _isRootSelectionMode ? 224.0 : 160.0;
+      final rootListBottomPadding = isRootSelectionMode ? 224.0 : 160.0;
       currentBody = Stack(
         children: [
           Column(
@@ -612,7 +615,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   padding: EdgeInsets.only(bottom: rootListBottomPadding),
                   itemCount: rootFolders.length,
                   onReorder: (oldIndex, newIndex) {
-                    if (!_isRootSelectionMode) return;
+                    if (!isRootSelectionMode) return;
                     if (newIndex > oldIndex) newIndex--;
                     unawaited(scanner.moveRootPath(oldIndex, newIndex));
                   },
@@ -627,7 +630,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
                         unawaited(
-                          showFolderContextMenu(
+                           showFolderContextMenu(
                             context,
                             details.globalPosition,
                             folderPath: folder.path,
@@ -635,9 +638,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         );
                       },
                       onLongPress: () {
-                        if (!_isRootSelectionMode) {
+                        if (!isRootSelectionMode) {
+                          ref.read(folderRootSelectionModeProvider.notifier).setEnabled(true);
                           setState(() {
-                            _isRootSelectionMode = true;
                             _selectedRootPaths.add(folder.path);
                           });
                         } else {
@@ -654,13 +657,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
-                            enabled: isRootAvailable || _isRootSelectionMode,
-                            selected: _isRootSelectionMode && isSelected,
+                            enabled: isRootAvailable || isRootSelectionMode,
+                            selected: isRootSelectionMode && isSelected,
                             selectedTileColor: Theme.of(context)
                                 .colorScheme
                                 .primaryContainer
                                 .withValues(alpha: 0.45),
-                            leading: _isRootSelectionMode
+                            leading: isRootSelectionMode
                                 ? Checkbox(
                                     value: isSelected,
                                     onChanged: (_) =>
@@ -672,12 +675,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                   ),
                             title: Text(folder.name),
                             subtitle: Text(folder.path),
-                            onTap: _isRootSelectionMode
+                            onTap: isRootSelectionMode
                                 ? () => _toggleRootSelection(folder.path)
                                 : (isRootAvailable
                                       ? () => _navigateTo(folder, scanner)
                                       : null),
-                            trailing: _isRootSelectionMode
+                            trailing: isRootSelectionMode
                                 ? ReorderableDragStartListener(
                                     index: index,
                                     child: const Icon(Icons.drag_handle),
@@ -708,7 +711,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 ).animate(animation);
                 return SlideTransition(position: offsetAnimation, child: child);
               },
-              child: _isRootSelectionMode
+              child: isRootSelectionMode
                   ? Material(
                       key: const ValueKey('root-selection-bar'),
                       elevation: 8,

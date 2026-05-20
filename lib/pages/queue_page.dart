@@ -10,6 +10,7 @@ import '../widgets/song_thumbnail.dart';
 import '../utils/song_context_menu_utils.dart';
 import '../utils/deleted_song_snack.dart';
 import '../utils/app_snack_bar.dart';
+import 'queue_page_riverpod.dart';
 
 // 队列页面
 class QueuePage extends ConsumerStatefulWidget {
@@ -20,14 +21,22 @@ class QueuePage extends ConsumerStatefulWidget {
 }
 
 class _QueuePageState extends ConsumerState<QueuePage> {
-  bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
 
+  @override
+  void dispose() {
+    Future.microtask(() {
+      ref.read(queueSelectionModeProvider.notifier).setEnabled(false);
+    });
+    super.dispose();
+  }
+
   void _toggleSelectionMode() {
+    final isSelectionMode = ref.read(queueSelectionModeProvider);
+    ref.read(queueSelectionModeProvider.notifier).setEnabled(!isSelectionMode);
     setState(() {
-      _isSelectionMode = !_isSelectionMode;
-      if (!_isSelectionMode) {
+      if (isSelectionMode) {
         _selectedIndices.clear();
       }
     });
@@ -156,6 +165,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isSelectionMode = ref.watch(queueSelectionModeProvider);
     final isRandomMode = ref.watch(audioIsRandomModeProvider);
     final isShuffleRandomMode = ref.watch(audioIsShuffleRandomModeProvider);
     final queue = ref.watch(audioPlaybackQueueProvider);
@@ -254,7 +264,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
         children: [
           Column(
             children: [
-              if (_isSelectionMode)
+              if (isSelectionMode)
                 Container(
                   color: Theme.of(context).colorScheme.primaryContainer,
                   padding: const EdgeInsets.symmetric(
@@ -346,7 +356,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         );
                       },
                       onLongPress: () {
-                        if (!_isSelectionMode) {
+                        if (!isSelectionMode) {
                           _toggleSelectionMode();
                           _toggleSelection(index);
                         }
@@ -361,7 +371,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                               Opacity(
                                 opacity: isMissing
                                     ? 0.35
-                                    : _isSelectionMode
+                                    : isSelectionMode
                                     ? (isSelected ? 0.5 : 0.7)
                                     : 1.0,
                                 child: SongThumbnail(
@@ -370,7 +380,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                   size: 40.0,
                                 ),
                               ),
-                              if (_isSelectionMode)
+                              if (isSelectionMode)
                                 Positioned.fill(
                                   child: Align(
                                     alignment: Alignment.center,
@@ -418,7 +428,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: _isSelectionMode
+                        trailing: isSelectionMode
                             ? ReorderableDragStartListener(
                                 index: index,
                                 child: const Icon(Icons.drag_handle),
@@ -426,7 +436,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                             : _buildDurationTrailing(
                                 scanner.metadataMap[song.path]?.duration,
                               ),
-                        onTap: _isSelectionMode
+                        onTap: isSelectionMode
                             ? () {
                                 if (isMissing) {
                                   showDeletedSongSnack(
@@ -469,7 +479,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               ),
             ],
           ),
-          if (_isSelectionMode)
+          if (isSelectionMode)
             Positioned(
               left: 0,
               right: 0,
