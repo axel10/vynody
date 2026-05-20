@@ -647,36 +647,43 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       child: AnimatedOpacity(
                         opacity: isRootAvailable ? 1.0 : 0.45,
                         duration: const Duration(milliseconds: 180),
-                        child: ListTile(
-                          enabled: isRootAvailable || _isRootSelectionMode,
-                          selected: _isRootSelectionMode && isSelected,
-                          selectedTileColor: Theme.of(context)
-                              .colorScheme
-                              .primaryContainer
-                              .withValues(alpha: 0.45),
-                          leading: _isRootSelectionMode
-                              ? Checkbox(
-                                  value: isSelected,
-                                  onChanged: (_) =>
-                                      _toggleRootSelection(folder.path),
-                                )
-                              : const Icon(
-                                  Icons.folder_shared,
-                                  color: Colors.amber,
-                                ),
-                          title: Text(folder.name),
-                          subtitle: Text(folder.path),
-                          onTap: _isRootSelectionMode
-                              ? () => _toggleRootSelection(folder.path)
-                              : (isRootAvailable
-                                    ? () => _navigateTo(folder, scanner)
-                                    : null),
-                          trailing: _isRootSelectionMode
-                              ? ReorderableDragStartListener(
-                                  index: index,
-                                  child: const Icon(Icons.drag_handle),
-                                )
-                              : null,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: ListTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                            enabled: isRootAvailable || _isRootSelectionMode,
+                            selected: _isRootSelectionMode && isSelected,
+                            selectedTileColor: Theme.of(context)
+                                .colorScheme
+                                .primaryContainer
+                                .withValues(alpha: 0.45),
+                            leading: _isRootSelectionMode
+                                ? Checkbox(
+                                    value: isSelected,
+                                    onChanged: (_) =>
+                                        _toggleRootSelection(folder.path),
+                                  )
+                                : const Icon(
+                                    Icons.folder_shared,
+                                    color: Colors.amber,
+                                  ),
+                            title: Text(folder.name),
+                            subtitle: Text(folder.path),
+                            onTap: _isRootSelectionMode
+                                ? () => _toggleRootSelection(folder.path)
+                                : (isRootAvailable
+                                      ? () => _navigateTo(folder, scanner)
+                                      : null),
+                            trailing: _isRootSelectionMode
+                                ? ReorderableDragStartListener(
+                                    index: index,
+                                    child: const Icon(Icons.drag_handle),
+                                  )
+                                : null,
+                          ),
                         ),
                       ),
                     );
@@ -801,10 +808,17 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   var cursor = 0;
 
                   if (index == cursor) {
-                    return ListTile(
-                      leading: const Icon(Icons.arrow_back),
-                      title: Text(AppLocalizations.of(context)!.goBack),
-                      onTap: () => _goBack(scanner),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                        leading: const Icon(Icons.arrow_back_rounded),
+                        title: Text(AppLocalizations.of(context)!.goBack),
+                        onTap: () => _goBack(scanner),
+                      ),
                     );
                   }
                   cursor++;
@@ -858,10 +872,17 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           ),
                         );
                       },
-                      child: ListTile(
-                        leading: const Icon(Icons.folder, color: Colors.amber),
-                        title: Text(folder.name),
-                        onTap: () => _navigateTo(folder, scanner),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                          leading: const Icon(Icons.folder_rounded, color: Colors.amber),
+                          title: Text(folder.name),
+                          onTap: () => _navigateTo(folder, scanner),
+                        ),
                       ),
                     );
                   }
@@ -892,137 +913,144 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           ),
                         );
                       },
-                      child: ListTile(
-                        titleTextStyle: Theme.of(context).textTheme.bodyLarge
-                            ?.copyWith(
-                              color: file.isMissing
-                                  ? Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant
-                                        .withValues(alpha: 0.55)
-                                  : currentMusic?.path == file.path
-                                  ? Theme.of(context).colorScheme.primary
-                                  : null,
-                              fontWeight:
-                                  currentMusic?.path == file.path &&
-                                      !file.isMissing
-                                  ? FontWeight.bold
-                                  : null,
-                            ),
-                        leading: SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Opacity(
-                                opacity: _isSelectionMode
-                                    ? (_selectedSongPaths.contains(file.path)
-                                          ? 0.5
-                                          : 0.7)
-                                    : 1.0,
-                                child: SongThumbnail(
-                                  path: file.path,
-                                  id: file.id,
-                                ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                          titleTextStyle: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: file.isMissing
+                                    ? Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant
+                                          .withValues(alpha: 0.55)
+                                    : currentMusic?.path == file.path
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                                fontWeight:
+                                    currentMusic?.path == file.path &&
+                                        !file.isMissing
+                                    ? FontWeight.bold
+                                    : null,
                               ),
-                              if (_isSelectionMode)
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: SizedBox(
-                                      width: 32,
-                                      height: 32,
-                                      child: Checkbox(
-                                        value: _selectedSongPaths.contains(
-                                          file.path,
-                                        ),
-                                        onChanged: (_) =>
-                                            _toggleSelection(file.path),
-                                        fillColor: WidgetStateProperty.all(
-                                          Colors.white,
-                                        ),
-                                        checkColor: Colors.black,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
+                          leading: SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Opacity(
+                                  opacity: _isSelectionMode
+                                      ? (_selectedSongPaths.contains(file.path)
+                                            ? 0.5
+                                            : 0.7)
+                                      : 1.0,
+                                  child: SongThumbnail(
+                                    path: file.path,
+                                    id: file.id,
+                                  ),
+                                ),
+                                if (_isSelectionMode)
+                                  Positioned.fill(
+                                    child: Align(
+                                      alignment: Alignment.center,
+                                      child: SizedBox(
+                                        width: 32,
+                                        height: 32,
+                                        child: Checkbox(
+                                          value: _selectedSongPaths.contains(
+                                            file.path,
+                                          ),
+                                          onChanged: (_) =>
+                                              _toggleSelection(file.path),
+                                          fillColor: WidgetStateProperty.all(
+                                            Colors.white,
+                                          ),
+                                          checkColor: Colors.black,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        title: Text(file.displayName),
-                        subtitle: Text(
-                          '${file.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${file.album ?? AppLocalizations.of(context)!.unknownAlbum}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                fontSize: 10,
-                                color: file.isMissing
-                                    ? Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant
-                                          .withValues(alpha: 0.5)
-                                    : null,
-                              ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: _isSelectionMode
-                            ? null
-                            : IconButton(
-                                icon: const Icon(Icons.more_vert),
-                                onPressed: () {
-                                  final RenderBox renderBox =
-                                      context.findRenderObject() as RenderBox;
-                                  final Offset offset = renderBox.localToGlobal(
-                                    Offset.zero,
-                                  );
-                                  showSongContextMenu(
-                                    context,
-                                    offset,
-                                    song: file,
-                                    mode: SongContextMenuMode.full,
-                                    onAddToPlaylist: () =>
-                                        showAddSongsToPlaylistDialog(
-                                          context,
-                                          ref.read(playlistServiceProvider),
-                                          [file],
-                                        ),
-                                  );
-                                },
-                              ),
-                        onLongPress: () {
-                          if (!_isSelectionMode) {
-                            _toggleSelectionMode();
-                            _toggleSelection(file.path);
-                          }
-                        },
-                        onTap: _isSelectionMode
-                            ? () => _toggleSelection(file.path)
-                            : () async {
-                                unawaited(() async {
-                                  try {
-                                    await audio.playPlaylist(
-                                      currentFolder.files,
-                                      initialIndex: fileIndex,
+                          title: Text(file.displayName),
+                          subtitle: Text(
+                            '${file.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${file.album ?? AppLocalizations.of(context)!.unknownAlbum}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontSize: 10,
+                                  color: file.isMissing
+                                      ? Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant
+                                            .withValues(alpha: 0.5)
+                                      : null,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: _isSelectionMode
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.more_vert),
+                                  onPressed: () {
+                                    final RenderBox renderBox =
+                                        context.findRenderObject() as RenderBox;
+                                    final Offset offset = renderBox.localToGlobal(
+                                      Offset.zero,
                                     );
-                                  } catch (e, st) {
-                                    debugPrint(
-                                      'FoldersPage: failed to start folder playback for ${file.path}: $e',
+                                    showSongContextMenu(
+                                      context,
+                                      offset,
+                                      song: file,
+                                      mode: SongContextMenuMode.full,
+                                      onAddToPlaylist: () =>
+                                          showAddSongsToPlaylistDialog(
+                                            context,
+                                            ref.read(playlistServiceProvider),
+                                            [file],
+                                          ),
                                     );
-                                    debugPrintStack(stackTrace: st);
-                                  }
-                                }());
+                                  },
+                                ),
+                          onLongPress: () {
+                            if (!_isSelectionMode) {
+                              _toggleSelectionMode();
+                              _toggleSelection(file.path);
+                            }
+                          },
+                          onTap: _isSelectionMode
+                              ? () => _toggleSelection(file.path)
+                              : () async {
+                                  unawaited(() async {
+                                    try {
+                                      await audio.playPlaylist(
+                                        currentFolder.files,
+                                        initialIndex: fileIndex,
+                                      );
+                                    } catch (e, st) {
+                                      debugPrint(
+                                        'FoldersPage: failed to start folder playback for ${file.path}: $e',
+                                      );
+                                      debugPrintStack(stackTrace: st);
+                                    }
+                                  }());
 
-                                if (mounted) {
-                                  _clearAllSelection();
-                                  await widget.onOpenPlayback?.call();
-                                }
-                              },
+                                  if (mounted) {
+                                    _clearAllSelection();
+                                    await widget.onOpenPlayback?.call();
+                                  }
+                                },
+                        ),
                       ),
                     );
                   }
@@ -1395,13 +1423,21 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
     // 首页/根目录图标
     breadcrumbItems.add(
-      InkWell(
-        onTap: () {
-          _goHome(scanner);
-        },
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          child: Icon(Icons.home_outlined, size: 24),
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () {
+            _goHome(scanner);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+            child: Icon(
+              Icons.home_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
         ),
       ),
     );
@@ -1411,26 +1447,37 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       final folder = scanner.navigationHistory[i];
       breadcrumbItems.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 2),
           child: Icon(
-            Icons.chevron_right,
-            size: 20,
+            Icons.chevron_right_rounded,
+            size: 16,
             color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
         ),
       );
       breadcrumbItems.add(
-        InkWell(
-          onTap: () {
-            scanner.setNavigationState(
-              folder,
-              scanner.navigationHistory.take(i).toList(),
-            );
-            _scrollToTop();
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            child: Text(folder.name, style: const TextStyle(fontSize: 16)),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {
+              scanner.setNavigationState(
+                folder,
+                scanner.navigationHistory.take(i).toList(),
+              );
+              _scrollToTop();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              child: Text(
+                folder.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -1439,21 +1486,25 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     // 当前路径段
     breadcrumbItems.add(
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Icon(
-          Icons.chevron_right,
-          size: 20,
+          Icons.chevron_right_rounded,
+          size: 16,
           color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
         ),
       ),
     );
     breadcrumbItems.add(
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
         child: Text(
           current.name,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
             color: theme.colorScheme.primary,
           ),
@@ -1462,7 +1513,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
@@ -1474,9 +1525,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(children: breadcrumbItems),
+              child: Row(
+                children: breadcrumbItems,
+              ),
             ),
           ),
+          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.sort),
             onPressed: () => _showSortDialog(context, scanner),

@@ -7,6 +7,7 @@ import '../player/audio_riverpod.dart';
 import '../models/music_file.dart';
 import '../utils/playback_utils.dart';
 import '../utils/song_context_menu_utils.dart';
+import 'animated_play_pause_button.dart';
 import 'cover_carousel.dart';
 import 'lyrics_panel.dart';
 
@@ -466,14 +467,12 @@ class PlaybackMainButtonsRow extends ConsumerWidget {
               ),
             ],
           ),
-          child: IconButton(
+          child: AnimatedPlayPauseButton(
+            isPlaying: isPlaying,
             onPressed: onPlayPause,
             tooltip: isPlaying ? l10n.pause : l10n.play,
-            icon: Icon(
-              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: (isLandscape ? 48 : 40) * uiScale,
-              color: currentThemeColorsMap['darkVibrant'] ?? currentThemeColorsMap['darkMuted'] ?? Colors.black,
-            ),
+            size: (isLandscape ? 48 : 40) * uiScale,
+            color: currentThemeColorsMap['darkVibrant'] ?? currentThemeColorsMap['darkMuted'] ?? Colors.black,
           ),
         ),
         SizedBox(width: isLandscape ? 24 : 16),

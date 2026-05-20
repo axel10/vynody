@@ -14,6 +14,7 @@ import '../utils/song_context_menu_utils.dart';
 import '../widgets/cover_carousel.dart';
 import '../widgets/lyrics_panel.dart';
 import '../widgets/mini_player_widgets.dart';
+import '../widgets/animated_play_pause_button.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/waveform_progress_bar.dart';
 
@@ -279,11 +280,13 @@ class PlaybackHeroCard extends ConsumerWidget {
                           tooltip: AppLocalizations.of(context)!.previous,
                         ),
                         const SizedBox(width: 8),
-                        MiniControlButton(
-                          icon: isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
+                        AnimatedPlayPauseButton(
+                          isPlaying: isPlaying,
                           onPressed: onPlayPause,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                          size: 24,
                           tooltip: isPlaying
                               ? AppLocalizations.of(context)!.pause
                               : AppLocalizations.of(context)!.play,
@@ -1480,14 +1483,12 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
             ],
           ),
-          child: IconButton(
+          child: AnimatedPlayPauseButton(
+            isPlaying: isPlaying,
             onPressed: onPlayPause,
+            color: controlIconColor,
+            size: 42 * controlsScale,
             tooltip: isPlaying ? l10n.pause : l10n.play,
-            icon: Icon(
-              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: 42 * controlsScale,
-              color: controlIconColor,
-            ),
           ),
         ),
         if (isLandscape) SizedBox(width: 18 * controlsScale),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:ui';
-import '../utils/playback_utils.dart';
 
 class WaveformProgressBar extends StatefulWidget {
   final List<double> waveform;
@@ -13,6 +12,7 @@ class WaveformProgressBar extends StatefulWidget {
   final Color inactiveColor;
   final bool isScrolling;
   final double height;
+  final bool showTooltip;
 
   const WaveformProgressBar({
     super.key,
@@ -25,6 +25,7 @@ class WaveformProgressBar extends StatefulWidget {
     this.inactiveColor = Colors.white24,
     this.isScrolling = true,
     this.height = 80,
+    this.showTooltip = true,
   });
 
   @override
@@ -206,7 +207,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
                           ),
                         ),
                         
-                        if (_hoverProgress != null)
+                        if (widget.showTooltip && _hoverProgress != null)
                           Positioned(
                             left: _hoverProgress! * width,
                             top: 10,
