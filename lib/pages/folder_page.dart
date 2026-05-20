@@ -1188,75 +1188,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       );
     }
 
-    if (Platform.isWindows) {
-      return Stack(
-        children: [
-          currentBody,
-          Positioned(
-            right: 24,
-            bottom: 84, // 24 + 60 (NavigationBar height)
-            child: FloatingActionButton(
-              tooltip: isScanning
-                  ? AppLocalizations.of(context)!.cancel
-                  : AppLocalizations.of(context)!.rebuildTagDatabase,
-              onPressed: () {
-                if (isScanning) {
-                  scanner.cancelScan();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!.cancel),
-                    ),
-                  );
-                  return;
-                }
-                _showRebuildDialog(context, scanner);
-              },
-              child: isScanning
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.refresh),
-            ),
-          ),
-        ],
-      );
-    }
-
     return SafeArea(bottom: true, child: currentBody);
-  }
-
-  void _showRebuildDialog(BuildContext context, ScannerService scanner) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.rebuildDatabase),
-        content: Text(AppLocalizations.of(context)!.confirmRebuildDatabase),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              scanner.rebuildMetadataDatabase();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      AppLocalizations.of(context)!.rebuildingDatabase,
-                    ),
-                  ),
-                );
-              }
-            },
-            child: Text(AppLocalizations.of(context)!.confirm),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showSortDialog(BuildContext context, ScannerService scanner) {
