@@ -47,7 +47,7 @@ jobs:
       - name: Build APK
         env:
           RUST_BACKTRACE: "full"
-        run: flutter build apk --release --target-platform android-arm,android-arm64 --split-per-abi -v
+        run: flutter build apk --release --target-platform android-arm,android-arm64 --split-per-abi --split-debug-info=build/app/outputs/symbols -v
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
