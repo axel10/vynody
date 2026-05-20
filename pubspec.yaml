@@ -166,13 +166,7 @@ flutter:
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
   #
-  fonts:
-    # - family: MiSans  # 你在代码中引用的字体名称
-    #   fonts:
-    #     - asset: assets/fonts/MiSans-Regular.ttf
-    - family: SourceHanSansCN  # 你在代码中引用的字体名称
-      fonts:
-        - asset: assets/fonts/SourceHanSansCN-VF.otf
+
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 

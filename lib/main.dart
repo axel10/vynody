@@ -151,22 +151,6 @@ class MyApp extends ConsumerWidget {
 
   static const Color appPrimaryColor = Color(0xFF39C5BB);
 
-  static const fontFallbacks = [
-    'SourceHanSansCN',
-    'MiSans',
-    'Meiryo',
-    'Yu Gothic',
-    'HarmonyOS Sans SC',
-    'OPPOSans',
-    'VivoSans',
-    'OnePlus Sans',
-    'SamsungOne',
-    'PingFang SC',
-    'Heiti SC',
-    'Microsoft YaHei',
-    'sans-serif',
-  ];
-
   ThemeData _buildTheme(Brightness brightness) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: appPrimaryColor,
@@ -179,8 +163,6 @@ class MyApp extends ConsumerWidget {
     return ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
-      fontFamily: 'SourceHanSansCN',
-      fontFamilyFallback: fontFallbacks,
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: snackBarBackground,
