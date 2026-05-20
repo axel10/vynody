@@ -55,17 +55,19 @@ class MiniControlButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.tooltip,
+    this.iconSize = 24.0,
   });
 
   final IconData icon;
   final VoidCallback? onPressed;
   final String? tooltip;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return IconButton(
-      icon: Icon(icon, color: isDark ? Colors.white : Colors.black87, size: 24),
+      icon: Icon(icon, color: isDark ? Colors.white : Colors.black87, size: iconSize),
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),
       onPressed: onPressed,
@@ -99,6 +101,7 @@ class MiniInlineVolumeControl extends StatelessWidget {
           icon: getVolumeIcon(volume),
           onPressed: onTap,
           tooltip: tooltip,
+          iconSize: 18.0,
         ),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 180),
