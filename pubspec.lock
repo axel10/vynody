@@ -339,6 +339,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.2"
+  dmg:
+    dependency: "direct dev"
+    description:
+      name: dmg
+      sha256: fa35595c18d735fe12248d06acac6d07db17b6630a778ea875f8df10b7df89b7
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.1.10"
   drift:
     dependency: "direct main"
     description:
