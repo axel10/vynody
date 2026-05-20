@@ -3,10 +3,10 @@ $ErrorActionPreference = 'Stop'
 
 $submodules = @{
     "audio_core"         = "https://github.com/axel10/audio_core.git"
-    "audio_converter"    = "https://github.com/axel10/audio_converter.git"
-    "audio_ffmpeg_lib"   = "https://github.com/axel10/audio_ffmpeg_lib.git"
-    "crates/ffmpeg_core" = "https://github.com/axel10/ffmpeg_core.git"
-    "crates/rust-ffmpeg" = "https://github.com/axel10/rust-ffmpeg.git"
+    # "audio_converter"    = "https://github.com/axel10/audio_converter.git"
+    # "audio_ffmpeg_lib"   = "https://github.com/axel10/audio_ffmpeg_lib.git"
+    # "crates/ffmpeg_core" = "https://github.com/axel10/ffmpeg_core.git"
+    # "crates/rust-ffmpeg" = "https://github.com/axel10/rust-ffmpeg.git"
 }
 
 function Write-Log {
