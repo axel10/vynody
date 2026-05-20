@@ -180,12 +180,12 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/images/icon.png"
     icon_size: 256 # Windows 图标最大尺寸，插件会自动处理生成 .ico
-    macos:
-      generate: true
-      image_path: "assets/images/icon.png"
-    linux:
-      generate: true
-      image_path: "assets/images/icon.png"
+  macos:
+    generate: true
+    image_path: "assets/images/icon.png"
+  linux:
+    generate: true
+    image_path: "assets/images/icon.png"
 
 msix_config:
   display_name: VibeFlow

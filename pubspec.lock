@@ -46,7 +46,7 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "1847db5b6fc6e8c429de2ed3e65f71b50e33c09c"
+      resolved-ref: "389c91cc94412fdf303951f307d7443f74432046"
       url: "https://github.com/axel10/audio_core"
     source: git
     version: "0.0.1"
@@ -55,10 +55,10 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "5538c532c8d29b1c7d483656b5dfb1abd1750f53"
+      resolved-ref: e7deb4d84b34120a03069355ce438fa132718561
       url: "https://github.com/axel10/audio_metadata_reader"
     source: git
-    version: "1.5.0"
+    version: "1.6.0"
   audio_service:
     dependency: "direct main"
     description:
@@ -893,10 +893,10 @@ packages:
     dependency: transitive
     description:
       name: objective_c
-      sha256: "100a1c87616ab6ed41ec263b083c0ef3261ee6cd1dc3b0f35f8ddfa4f996fe52"
+      sha256: "02f4ff97ac95fa4abe561242eb033239e08e8903a46eaecf61b047761b89fe1f"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "9.3.0"
+    version: "9.4.0"
   oktoast:
     dependency: "direct main"
     description:
