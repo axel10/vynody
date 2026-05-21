@@ -25,6 +25,10 @@ import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
 
+bool shouldShowGenerateLyricsButton({required bool hasCurrentSong}) {
+  return hasCurrentSong;
+}
+
 class LyricsPanel extends rpod.ConsumerStatefulWidget {
   const LyricsPanel({
     super.key,
@@ -419,7 +423,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
-      SnackBar(content: Text(l10n.searchingOnlineLyrics), duration: const Duration(days: 1)),
+      SnackBar(
+        content: Text(l10n.searchingOnlineLyrics),
+        duration: const Duration(days: 1),
+      ),
     );
 
     final service = ref.read(lyricsServiceProvider);
@@ -772,10 +779,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final lyricsItemExtent = _lyricsItemExtent(lyricsFontScale);
 
     if (!hasRenderableLyrics) {
-      final canGenerateLyrics =
-          lyricsState.isLyricsLoading ||
-          lyricsState.lyricsSearchAttempted ||
-          currentSongTaskState.isGenerationBusy;
+      final canGenerateLyrics = shouldShowGenerateLyricsButton(
+        hasCurrentSong: hasCurrentSong,
+      );
       return LyricsPanelEmptyState(
         accentColor: accent,
         isLoading: lyricsState.isLyricsLoading,
