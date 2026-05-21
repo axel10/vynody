@@ -368,12 +368,13 @@ class AudioService extends Notifier<AudioSnapshot> {
       controller: _player,
       settingsService: settingsService,
     );
+    _waveformService = WaveformService(db: _db, player: _player);
     _queueProcessor = PlaybackQueueProcessor(
       db: _db,
       player: _player,
       settingsService: settingsService,
+      waveformService: _waveformService,
     );
-    _waveformService = WaveformService(db: _db, player: _player);
     _lastWaveformChunks = settingsService.waveformChunks;
 
     _windowsIntegration = Platform.isWindows
@@ -1491,19 +1492,17 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
-    final waveform = await getWaveform(
+    final waveformResult = await _waveformService.getWaveformData(
+      path: path,
       expectedChunks: settingsService.waveformChunks,
       sampleStride: settingsService.sampleStride,
     );
-    if (path == currentMusic?.path && waveform.isNotEmpty) {
+    if (path == currentMusic?.path && waveformResult.waveform.isNotEmpty) {
       if (_currentIndex >= 0 &&
           _currentIndex < _queue.length &&
           _queue[_currentIndex].path == path) {
-        final float32List = Float32List.fromList(
-          waveform.map((e) => e.toDouble()).toList(),
-        );
         _queue[_currentIndex] = _queue[_currentIndex].copyWith(
-          waveformBlob: float32List.buffer.asUint8List(),
+          waveformBlob: waveformResult.waveformBlob,
         );
         if (notify) {
           notifyListeners();

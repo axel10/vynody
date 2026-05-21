@@ -9,6 +9,11 @@ import 'package:path/path.dart' as p;
 import 'metadata_database.dart';
 import 'metadata_helper.dart';
 
+typedef WaveformCacheResult = ({
+  List<double> waveform,
+  Uint8List? waveformBlob,
+});
+
 class WaveformService {
   final MetadataDatabase db;
   final AudioCoreController player;
@@ -20,18 +25,26 @@ class WaveformService {
     int expectedChunks = 80,
     int sampleStride = 8,
   }) async {
+    return (await getWaveformData(
+      path: path,
+      expectedChunks: expectedChunks,
+      sampleStride: sampleStride,
+    ))
+        .waveform;
+  }
+
+  Future<WaveformCacheResult> getWaveformData({
+    required String path,
+    int expectedChunks = 80,
+    int sampleStride = 8,
+    SongMetadata? baseMetadata,
+  }) async {
     var songMetadata = await db.getSongMetadata(path);
     if (songMetadata != null && songMetadata.waveformBlob != null) {
-      final blob = songMetadata.waveformBlob!;
-      // Ensure the offset is aligned to 4 bytes for asFloat32List
-      final alignedBlob = (blob.offsetInBytes % 4 == 0)
-          ? blob
-          : Uint8List.fromList(blob);
-      final list = alignedBlob.buffer.asFloat32List(
-        alignedBlob.offsetInBytes,
-        alignedBlob.length ~/ 4,
+      return (
+        waveform: waveformFromBlob(songMetadata.waveformBlob),
+        waveformBlob: songMetadata.waveformBlob,
       );
-      return list.map((e) => e.toDouble()).toList();
     }
 
     if (songMetadata == null) {
@@ -41,35 +54,48 @@ class WaveformService {
       );
       songMetadata = playbackMetadata?.$1;
       if (songMetadata?.waveformBlob != null) {
-        return waveformFromBlob(songMetadata!.waveformBlob);
+        return (
+          waveform: waveformFromBlob(songMetadata!.waveformBlob),
+          waveformBlob: songMetadata.waveformBlob,
+        );
       }
     }
 
-    // No cache, calculate and store
     final waveform = await player.getWaveform(
       expectedChunks: expectedChunks,
       sampleStride: sampleStride,
       filePath: path,
     );
-    if (waveform.isNotEmpty) {
-      final float32List = Float32List.fromList(
-        waveform.map((e) => e.toDouble()).toList(),
-      );
-      final blob = float32List.buffer.asUint8List();
-
-      final baseMetadata =
-          songMetadata ??
-          SongMetadata(
-            path: path,
-            title: p.basenameWithoutExtension(path),
-            album: 'Unknown Album',
-            artist: 'Unknown Artist',
-          );
-      final updated = baseMetadata.copyWith(waveformBlob: blob);
-      await db.insertOrUpdateSong(updated);
+    if (waveform.isEmpty) {
+      return (waveform: waveform, waveformBlob: null);
     }
 
-    return waveform;
+    final blob = waveformToBlob(waveform);
+    final fallbackMetadata =
+        baseMetadata ??
+        SongMetadata(
+          path: path,
+          title: p.basenameWithoutExtension(path),
+          album: 'Unknown Album',
+          artist: 'Unknown Artist',
+        );
+    final updated = (songMetadata ?? fallbackMetadata).copyWith(
+      waveformBlob: blob,
+    );
+    await db.insertOrUpdateSong(updated);
+
+    return (waveform: waveform, waveformBlob: blob);
+  }
+
+  Future<bool> hasCachedWaveform(String path) async {
+    final songMetadata = await db.getSongMetadata(path);
+    return songMetadata?.waveformBlob != null;
+  }
+
+  Uint8List waveformToBlob(List<double> waveform) {
+    return Float32List.fromList(
+      waveform.map((e) => e.toDouble()).toList(),
+    ).buffer.asUint8List();
   }
 
   List<double> waveformFromBlob(Uint8List? blob) {

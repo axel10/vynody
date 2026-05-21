@@ -15,12 +15,14 @@ import 'metadata_helper.dart';
 import 'settings_service.dart';
 import 'theme_color_helper.dart';
 import 'track_artwork_theme_service.dart';
+import 'waveform_service.dart';
 
 /// Handles background processing of the playback queue (waveforms, colors, etc.)
 class PlaybackQueueProcessor {
   final MetadataDatabase db;
   final AudioCoreController player;
   final SettingsService settingsService;
+  final WaveformService waveformService;
 
   int _currentProcessId = 0;
   bool _isProcessing = false;
@@ -33,6 +35,7 @@ class PlaybackQueueProcessor {
     required this.db,
     required this.player,
     required this.settingsService,
+    required this.waveformService,
   });
 
   void pause() {
@@ -57,7 +60,8 @@ class PlaybackQueueProcessor {
     if (existing == null) return false;
 
     final bool showWaveform = settingsService.isWaveformProgressBarEnabled;
-    final bool needsWaveform = showWaveform && (existing.waveformBlob == null);
+    final bool needsWaveform =
+        showWaveform && !await waveformService.hasCachedWaveform(path);
     final bool needsThemeColor = existing.themeColorsBlob == null;
 
     return !needsWaveform && !needsThemeColor;
@@ -293,25 +297,19 @@ class PlaybackQueueProcessor {
               // Extract waveform if missing AND enabled in settings
               if (showWaveform && meta.waveformBlob == null) {
                 try {
-                  final waveform = await player.getWaveform(
+                  final waveformResult = await waveformService.getWaveformData(
+                    path: song.path,
                     expectedChunks: settingsService.waveformChunks,
                     sampleStride: settingsService.sampleStride,
-                    filePath: song.path,
+                    baseMetadata: meta,
                   );
                   if (_disposed) return;
 
-                  if (waveform.isNotEmpty) {
-                    final float32List = Float32List.fromList(
-                      waveform.map((e) => e.toDouble()).toList(),
-                    );
-                    final blob = float32List.buffer.asUint8List();
-
-                    meta = meta.copyWith(waveformBlob: blob);
-                    await db.insertOrUpdateSong(meta);
-
+                  if (waveformResult.waveform.isNotEmpty) {
+                    meta = meta.copyWith(waveformBlob: waveformResult.waveformBlob);
                     onUpdate(song.path, {
-                      'waveform': waveform,
-                      'waveformBlob': blob,
+                      'waveform': waveformResult.waveform,
+                      'waveformBlob': waveformResult.waveformBlob,
                     });
                   }
                 } catch (e) {
