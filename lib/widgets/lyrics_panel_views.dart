@@ -5,6 +5,7 @@ import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
 import '../l10n/app_localizations.dart';
 import '../player/lyrics_controller_state.dart';
+import 'playback_ui_tuning.dart';
 
 class LyricsPanelEmptyState extends StatelessWidget {
   const LyricsPanelEmptyState({
@@ -197,7 +198,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                       final timedLyricFontSize = 16 * lyricsFontScale;
                       final plainLyricFontSize = 18 * lyricsFontScale;
                       final translationFontSize = 13 * lyricsFontScale;
-                      final verticalItemPadding = 6 * lyricsFontScale;
+                      final verticalItemPadding = PlaybackPageUiTuning.lyricsVerticalPadding * lyricsFontScale;
                       final translatedSpacing = 3 * lyricsFontScale;
                       final lineStyle = hasTimedLyrics
                           ? Theme.of(context).textTheme.bodyLarge!.copyWith(

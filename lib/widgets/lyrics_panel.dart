@@ -23,6 +23,7 @@ import '../player/lyrics_song_task_state.dart';
 import '../player/settings_service.dart';
 import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
+import 'playback_ui_tuning.dart';
 
 bool shouldShowGenerateLyricsButton({required bool hasCurrentSong}) {
   return hasCurrentSong;
@@ -114,7 +115,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final timedLyricFontSize = 16 * lyricsFontScale;
     final plainLyricFontSize = 18 * lyricsFontScale;
     final translationFontSize = 13 * lyricsFontScale;
-    final verticalItemPadding = 6 * lyricsFontScale;
+    final verticalItemPadding = PlaybackPageUiTuning.lyricsVerticalPadding * lyricsFontScale;
     final translatedSpacing = 3 * lyricsFontScale;
 
     final lineStyle = hasTimedLyrics

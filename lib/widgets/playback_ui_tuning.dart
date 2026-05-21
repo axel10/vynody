@@ -20,6 +20,7 @@ class PlaybackPageUiTuning {
   static const double lyricsItemExtent = 100.0;
   static const double minLyricsItemExtent = 82.0;
   static const double maxLyricsItemExtent = 132.0;
+  static const double lyricsVerticalPadding = 18.0;
 
   static EdgeInsets contentPadding({
     required bool isLandscape,
