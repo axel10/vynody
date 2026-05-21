@@ -5,7 +5,6 @@ import '../models/lyric_line.dart';
 import '../models/music_lyric.dart';
 import '../l10n/app_localizations.dart';
 import '../player/lyrics_controller_state.dart';
-import 'auto_size_single_line_text.dart';
 
 class LyricsPanelEmptyState extends StatelessWidget {
   const LyricsPanelEmptyState({
@@ -117,7 +116,6 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.isAutoScrollPaused,
     required this.lyricsFontScale,
     required this.scrollController,
-    required this.itemExtent,
     required this.scrollBehavior,
     required this.onVerticalDragStart,
     required this.onVerticalDragUpdate,
@@ -136,7 +134,6 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final bool isAutoScrollPaused;
   final double lyricsFontScale;
   final ScrollController scrollController;
-  final double itemExtent;
   final ScrollBehavior scrollBehavior;
   final GestureDragStartCallback? onVerticalDragStart;
   final GestureDragUpdateCallback? onVerticalDragUpdate;
@@ -181,7 +178,6 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                     padding: EdgeInsets.only(
                       bottom: bottomSpacerHeight + bottomTabBarHeight + 500,
                     ),
-                    itemExtent: itemExtent,
                     itemCount: displayLines.length,
                     itemBuilder: (context, index) {
                       final line = displayLines[index];
@@ -243,13 +239,10 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Expanded(
-                                        child: DefaultTextStyle(
+                                        child: Text(
+                                          line.text,
+                                          textAlign: TextAlign.center,
                                           style: lineStyle,
-                                          child: AutoSizeSingleLineText(
-                                            line.text,
-                                            textAlign: TextAlign.center,
-                                            maxLines: hasTimedLyrics ? 1 : 2,
-                                          ),
                                         ),
                                       ),
                                     ],
@@ -264,8 +257,6 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                       child: Text(
                                         translated,
                                         textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: Colors.white.withValues(
                                             alpha: 0.62,
