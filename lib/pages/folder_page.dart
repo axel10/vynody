@@ -58,6 +58,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     if (currentFolder == null) return false;
 
     final rootPaths = scanner.rootFolders.map((folder) => folder.path).toSet();
+    rootPaths.add('system');
     if (rootPaths.contains(currentFolder.path)) {
       return true;
     }
