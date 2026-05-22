@@ -627,7 +627,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
                         unawaited(
-                           showFolderContextMenu(
+                          showFolderContextMenu(
                             context,
                             details.globalPosition,
                             folderPath: folder.path,
@@ -636,7 +636,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       },
                       onLongPress: () {
                         if (!isRootSelectionMode) {
-                          ref.read(folderRootSelectionModeProvider.notifier).setEnabled(true);
+                          ref
+                              .read(folderRootSelectionModeProvider.notifier)
+                              .setEnabled(true);
                           setState(() {
                             _selectedRootPaths.add(folder.path);
                           });
@@ -648,12 +650,17 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         opacity: isRootAvailable ? 1.0 : 0.45,
                         duration: const Duration(milliseconds: 180),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           child: ListTile(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                            hoverColor: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.06),
                             enabled: isRootAvailable || isRootSelectionMode,
                             selected: isRootSelectionMode && isSelected,
                             selectedTileColor: Theme.of(context)
@@ -807,12 +814,17 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
                   if (index == cursor) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       child: ListTile(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                        hoverColor: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.06),
                         leading: const Icon(Icons.arrow_back_rounded),
                         title: Text(AppLocalizations.of(context)!.goBack),
                         onTap: () => _goBack(scanner),
@@ -871,13 +883,21 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         );
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: ListTile(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
-                          leading: const Icon(Icons.folder_rounded, color: Colors.amber),
+                          hoverColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.06),
+                          leading: const Icon(
+                            Icons.folder_rounded,
+                            color: Colors.amber,
+                          ),
                           title: Text(folder.name),
                           onTap: () => _navigateTo(folder, scanner),
                         ),
@@ -912,12 +932,17 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         );
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: ListTile(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                          hoverColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.06),
                           titleTextStyle: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
                                 color: file.isMissing
@@ -998,25 +1023,36 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           ),
                           trailing: _isSelectionMode
                               ? null
-                              : IconButton(
-                                  icon: const Icon(Icons.more_vert),
-                                  onPressed: () {
-                                    final RenderBox renderBox =
-                                        context.findRenderObject() as RenderBox;
-                                    final Offset offset = renderBox.localToGlobal(
-                                      Offset.zero,
-                                    );
-                                    showSongContextMenu(
-                                      context,
-                                      offset,
-                                      song: file,
-                                      mode: SongContextMenuMode.full,
-                                      onAddToPlaylist: () =>
-                                          showAddSongsToPlaylistDialog(
-                                            context,
-                                            ref.read(playlistServiceProvider),
-                                            [file],
-                                          ),
+                              : Builder(
+                                  builder: (buttonContext) {
+                                    return IconButton(
+                                      icon: const Icon(Icons.more_vert),
+                                      onPressed: () {
+                                        final renderObject = buttonContext
+                                            .findRenderObject();
+                                        final renderBox =
+                                            renderObject is RenderBox
+                                            ? renderObject
+                                            : null;
+                                        if (renderBox == null) return;
+
+                                        final Offset offset = renderBox
+                                            .localToGlobal(Offset.zero);
+                                        showSongContextMenu(
+                                          buttonContext,
+                                          offset,
+                                          song: file,
+                                          mode: SongContextMenuMode.full,
+                                          onAddToPlaylist: () =>
+                                              showAddSongsToPlaylistDialog(
+                                                buttonContext,
+                                                ref.read(
+                                                  playlistServiceProvider,
+                                                ),
+                                                [file],
+                                              ),
+                                        );
+                                      },
                                     );
                                   },
                                 ),
@@ -1455,9 +1491,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(
-                children: breadcrumbItems,
-              ),
+              child: Row(children: breadcrumbItems),
             ),
           ),
           const SizedBox(width: 8),
