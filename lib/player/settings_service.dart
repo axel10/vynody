@@ -61,6 +61,7 @@ class SettingsService extends ChangeNotifier {
   static const String defaultGeminiPrimaryModelId =
       'gemini-3.1-flash-lite-preview';
   static const String defaultGeminiFallbackModelId = 'gemini-2.5-flash';
+  static const String defaultGeminiTranslationModelId = 'gemma-4-31b-it';
   static const String _keyThemeMode = 'theme_mode';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
@@ -73,6 +74,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLyricsFontScale = 'lyrics_font_scale';
   static const String _keyGeminiPrimaryModelId = 'gemini_primary_model_id';
   static const String _keyGeminiFallbackModelId = 'gemini_fallback_model_id';
+  static const String _keyGeminiTranslationModelId =
+      'gemini_translation_model_id';
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
   static const String _keyShortcutBindings = 'shortcut_bindings';
   static const String _builtInAcoustidApiKey = 'raGXgwxqws';
@@ -137,6 +140,7 @@ class SettingsService extends ChangeNotifier {
   double _lyricsFontScale;
   String _geminiPrimaryModelId;
   String _geminiFallbackModelId;
+  String _geminiTranslationModelId;
   Map<String, ShortcutBinding> _shortcutBindings;
 
   // Visualizer styling state
@@ -197,6 +201,10 @@ class SettingsService extends ChangeNotifier {
       _geminiFallbackModelId = _initialModelId(
         _prefs.getString(_keyGeminiFallbackModelId),
         defaultGeminiFallbackModelId,
+      ),
+      _geminiTranslationModelId = _initialModelId(
+        _prefs.getString(_keyGeminiTranslationModelId),
+        defaultGeminiTranslationModelId,
       ),
       _shortcutBindings = _loadShortcutBindings(_prefs) {
     _visualizerColor = Color(
@@ -263,6 +271,7 @@ class SettingsService extends ChangeNotifier {
   double get lyricsFontScale => _lyricsFontScale;
   String get geminiPrimaryModelId => _geminiPrimaryModelId;
   String get geminiFallbackModelId => _geminiFallbackModelId;
+  String get geminiTranslationModelId => _geminiTranslationModelId;
   String get geminiApiKey => _prefs.getString(geminiApiKeyStorageKey) ?? '';
   String get openRouterApiKey =>
       _prefs.getString(openRouterApiKeyStorageKey) ?? '';
@@ -585,9 +594,25 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  set geminiTranslationModelId(String value) {
+    final normalized = value.trim();
+    final current = geminiTranslationModelId;
+    if (current == normalized || normalized.isEmpty) {
+      if (normalized.isEmpty && current.isNotEmpty) {
+        return;
+      }
+      return;
+    }
+
+    _geminiTranslationModelId = normalized;
+    _prefs.setString(_keyGeminiTranslationModelId, normalized);
+    notifyListeners();
+  }
+
   void resetGeminiModels() {
     geminiPrimaryModelId = defaultGeminiPrimaryModelId;
     geminiFallbackModelId = defaultGeminiFallbackModelId;
+    geminiTranslationModelId = defaultGeminiTranslationModelId;
   }
 
   void setShortcutBinding(AppShortcutAction action, ShortcutBinding binding) {

@@ -1121,13 +1121,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get geminiModelsSectionDescription =>
-      'These two models are used for lyric generation and timeline generation in Google AI Studio.';
+      'These models are used for lyric generation, timeline generation, and lyric translation in Google AI Studio.';
 
   @override
   String get primaryModelLabel => 'Primary model';
 
   @override
   String get backupModelLabel => 'Fallback model';
+
+  @override
+  String get translationModelLabel => 'Translation model';
 
   @override
   String get fetching => 'Fetching...';

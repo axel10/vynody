@@ -3,7 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart'
-    show CancelToken, DioException, DioExceptionType, Headers, Options, RequestOptions, ResponseType;
+    show
+        CancelToken,
+        DioException,
+        DioExceptionType,
+        Headers,
+        Options,
+        RequestOptions,
+        ResponseType;
 import 'package:flutter/foundation.dart';
 
 import '../utils/lrc_utils.dart';
@@ -132,7 +139,7 @@ class LyricsAiService {
     void Function(List<String> translatedLines, String translatedText)?
     onProgress,
     void Function(String? modelLabel)? onModelLabelChanged,
-    String modelId = defaultTranslationModelId,
+    String? modelId,
     CancelToken? cancelToken,
   }) async {
     final apiKey = _settingsService.geminiApiKey.trim();
@@ -143,6 +150,10 @@ class LyricsAiService {
         action: _t('翻译歌词', 'translate lyrics'),
       );
     }
+
+    final effectiveModelId = modelId?.trim().isNotEmpty == true
+        ? modelId!.trim()
+        : _settingsService.geminiTranslationModelId;
 
     final sourceLines = _splitLyricsLines(lyrics);
     final blankLineIndexes = <int>[];
@@ -163,7 +174,7 @@ class LyricsAiService {
     }
     final targetLanguageName = _targetLanguageName(targetLanguageCode);
     final sourceLyricsForModel = _normalizeSourceLyrics(lyrics);
-    onModelLabelChanged?.call(_googleModelLabel(modelId));
+    onModelLabelChanged?.call(_googleModelLabel(effectiveModelId));
     final prompt =
         '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
         '请保留完整时间轴和原有分行顺序，不要删减、合并、重排任何一行，也不要自行补充空行、编号或解释。'
@@ -188,7 +199,7 @@ class LyricsAiService {
     };
 
     final url =
-        'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent';
+        'https://generativelanguage.googleapis.com/v1beta/models/$effectiveModelId:streamGenerateContent';
 
     try {
       debugPrint('[LyricsAi] request start, lyrics length=${lyrics.length}');
@@ -968,9 +979,7 @@ class LyricsAiService {
           }
         } catch (e) {
           lastErrorMessage = _formatGenerationErrorMessage(e);
-          debugPrint(
-            '[LyricsAi] generation error: ${e.runtimeType} $e',
-          );
+          debugPrint('[LyricsAi] generation error: ${e.runtimeType} $e');
           onStageChanged?.call('retrying');
         }
 

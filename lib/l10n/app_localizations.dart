@@ -2147,7 +2147,7 @@ abstract class AppLocalizations {
   /// No description provided for @geminiModelsSectionDescription.
   ///
   /// In zh, this message translates to:
-  /// **'这两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。'**
+  /// **'这些模型会用于 Google AI Studio 的歌词生成、时间轴生成以及歌词翻译。'**
   String get geminiModelsSectionDescription;
 
   /// No description provided for @primaryModelLabel.
@@ -2161,6 +2161,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'备用模型'**
   String get backupModelLabel;
+
+  /// No description provided for @translationModelLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻译模型'**
+  String get translationModelLabel;
 
   /// No description provided for @fetching.
   ///

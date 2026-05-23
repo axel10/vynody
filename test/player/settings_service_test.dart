@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibe_flow/player/settings_service.dart';
 
 void main() {
@@ -43,6 +44,36 @@ void main() {
         displayName == '未选择模型' || displayName == 'No model selected',
         isTrue,
       );
+    });
+  });
+
+  group('SettingsService translation model', () {
+    test('initializes with default value', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+      expect(settings.geminiTranslationModelId, 'gemma-4-31b-it');
+    });
+
+    test('saves and loads custom value', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+      settings.geminiTranslationModelId = 'custom-model';
+      expect(settings.geminiTranslationModelId, 'custom-model');
+      expect(prefs.getString('gemini_translation_model_id'), 'custom-model');
+
+      final settingsReloaded = SettingsService(prefs);
+      expect(settingsReloaded.geminiTranslationModelId, 'custom-model');
+    });
+
+    test('resets to default value', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+      settings.geminiTranslationModelId = 'custom-model';
+      settings.resetGeminiModels();
+      expect(settings.geminiTranslationModelId, 'gemma-4-31b-it');
     });
   });
 }

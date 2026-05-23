@@ -398,7 +398,9 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
         final theme = Theme.of(detailContext);
         return AlertDialog(
           title: Text(
-            track.displayTitle.isNotEmpty ? track.displayTitle : l10n.lyricsDetails,
+            track.displayTitle.isNotEmpty
+                ? track.displayTitle
+                : l10n.lyricsDetails,
           ),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720, maxHeight: 520),
@@ -411,7 +413,10 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
                     label: l10n.durationLabel,
                     value: _formatDuration(track.duration),
                   ),
-                  _DetailLine(label: l10n.albumLabel, value: _textOrDash(track.albumName)),
+                  _DetailLine(
+                    label: l10n.albumLabel,
+                    value: _textOrDash(track.albumName),
+                  ),
                   _DetailLine(
                     label: l10n.artistLabel,
                     value: _textOrDash(track.artistName),

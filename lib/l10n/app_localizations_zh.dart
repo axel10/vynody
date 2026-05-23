@@ -1089,13 +1089,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get geminiModelsSectionDescription =>
-      '这两个模型会用于 Google AI Studio 的歌词生成与时间轴生成。';
+      '这些模型会用于 Google AI Studio 的歌词生成、时间轴生成以及歌词翻译。';
 
   @override
   String get primaryModelLabel => '主模型';
 
   @override
   String get backupModelLabel => '备用模型';
+
+  @override
+  String get translationModelLabel => '翻译模型';
 
   @override
   String get fetching => '获取中...';

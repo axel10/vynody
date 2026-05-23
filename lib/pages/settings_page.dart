@@ -33,6 +33,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       id: SettingsService.defaultGeminiFallbackModelId,
       displayName: 'Gemini 2.5 Flash',
     ),
+    GeminiModelInfo(
+      id: SettingsService.defaultGeminiTranslationModelId,
+      displayName: 'Gemma 4 31b It',
+    ),
   ];
 
   List<GeminiModelInfo> _geminiModels = const [];
@@ -49,6 +53,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     final primaryId = settings.geminiPrimaryModelId.trim();
     final fallbackId = settings.geminiFallbackModelId.trim();
+    final translationId = settings.geminiTranslationModelId.trim();
     if (primaryId.isNotEmpty && !merged.containsKey(primaryId)) {
       merged[primaryId] = GeminiModelInfo(
         id: primaryId,
@@ -59,6 +64,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       merged[fallbackId] = GeminiModelInfo(
         id: fallbackId,
         displayName: SettingsService.geminiModelDisplayName(fallbackId),
+      );
+    }
+    if (translationId.isNotEmpty && !merged.containsKey(translationId)) {
+      merged[translationId] = GeminiModelInfo(
+        id: translationId,
+        displayName: SettingsService.geminiModelDisplayName(translationId),
       );
     }
 
@@ -281,6 +292,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final options = _mergedGeminiModels(settings);
     final primaryValue = settings.geminiPrimaryModelId;
     final fallbackValue = settings.geminiFallbackModelId;
+    final translationValue = settings.geminiTranslationModelId;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
@@ -331,6 +343,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onChanged: (value) {
               if (value == null) return;
               settings.geminiFallbackModelId = value;
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: translationValue.isEmpty ? null : translationValue,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.translationModelLabel,
+              border: const OutlineInputBorder(),
+            ),
+            items: options
+                .map(
+                  (model) => DropdownMenuItem<String>(
+                    value: model.id,
+                    child: Text(model.label, overflow: TextOverflow.ellipsis),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value == null) return;
+              settings.geminiTranslationModelId = value;
             },
           ),
           const SizedBox(height: 16),
