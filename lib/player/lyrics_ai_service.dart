@@ -197,7 +197,7 @@ class LyricsAiService {
         {'googleSearch': {}},
       ],
     };
-
+    debugPrint('[LyricsAi] request data: $requestData');
     final url =
         'https://generativelanguage.googleapis.com/v1beta/models/$effectiveModelId:streamGenerateContent';
 

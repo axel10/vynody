@@ -710,9 +710,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   }
 
   void _syncScrollAnimatingProvider(bool isScrolling) {
-    ref
-        .read(lyricsPanelScrollAnimatingProvider.notifier)
-        .setScrolling(isScrolling);
+    if (!mounted) return;
+    Future.microtask(() {
+      if (!mounted) return;
+      ref
+          .read(lyricsPanelScrollAnimatingProvider.notifier)
+          .setScrolling(isScrolling);
+    });
   }
 
   void _beginLyricsDrag(List<LyricLine> displayLines) {
