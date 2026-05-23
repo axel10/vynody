@@ -26,8 +26,11 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
   @override
   void dispose() {
+    final queueSelectionModeController = ref.read(
+      queueSelectionModeProvider.notifier,
+    );
     Future.microtask(() {
-      ref.read(queueSelectionModeProvider.notifier).setEnabled(false);
+      queueSelectionModeController.setEnabled(false);
     });
     super.dispose();
   }

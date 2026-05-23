@@ -24,8 +24,11 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
   @override
   void dispose() {
+    final playlistSelectionModeController = ref.read(
+      playlistSelectionModeProvider.notifier,
+    );
     Future.microtask(() {
-      ref.read(playlistSelectionModeProvider.notifier).setEnabled(false);
+      playlistSelectionModeController.setEnabled(false);
     });
     super.dispose();
   }
