@@ -9,7 +9,7 @@ import '../player/lyrics_generation_phase.dart';
 import '../player/lyrics_riverpod.dart';
 import '../player/lyrics_task_queue_summary.dart';
 
-class LyricsTaskStatusBanner extends ConsumerWidget {
+class LyricsTaskStatusBanner extends ConsumerStatefulWidget {
   const LyricsTaskStatusBanner({super.key});
 
   static const Duration _transitionDuration = Duration(milliseconds: 260);
@@ -19,7 +19,24 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
   static const Duration _shimmerDuration = Duration(milliseconds: 1800);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LyricsTaskStatusBanner> createState() =>
+      _LyricsTaskStatusBannerState();
+}
+
+class _LyricsTaskStatusBannerState extends ConsumerState<LyricsTaskStatusBanner> {
+  bool _isHovered = false;
+
+  @override
+  void didUpdateWidget(covariant LyricsTaskStatusBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final summary = ref.read(lyricsTaskQueueSummaryProvider);
+    if (!summary.isBusy) {
+      _isHovered = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final summary = ref.watch(lyricsTaskQueueSummaryProvider);
     final generationState = ref.watch(lyricsGenerationDisplayStateProvider);
@@ -56,54 +73,56 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
       LyricsGenerationPhase.idle => '',
     };
 
-    return IgnorePointer(
-      child: AnimatedSwitcher(
-        duration: _transitionDuration,
-        reverseDuration: _reverseTransitionDuration,
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        layoutBuilder: (currentChild, previousChildren) {
-          return Stack(
-            alignment: Alignment.topCenter,
-            clipBehavior: Clip.none,
-            children: [
-              ...previousChildren,
-              if (currentChild case final Widget child) child,
-            ],
-          );
-        },
-        transitionBuilder: (child, animation) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
-          );
+    return AnimatedSwitcher(
+      duration: LyricsTaskStatusBanner._transitionDuration,
+      reverseDuration: LyricsTaskStatusBanner._reverseTransitionDuration,
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (currentChild, previousChildren) {
+        return Stack(
+          alignment: Alignment.topCenter,
+          clipBehavior: Clip.none,
+          children: [
+            ...previousChildren,
+            if (currentChild case final Widget child) child,
+          ],
+        );
+      },
+      transitionBuilder: (child, animation) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
 
-          return FadeTransition(
-            opacity: curved,
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.96, end: 1.0).animate(curved),
-              child: child,
-            ),
-          );
-        },
-        child: summary.isBusy
-            ? LayoutBuilder(
-                key: const ValueKey('lyrics_task_status_banner_visible'),
-                builder: (context, constraints) {
-                  final maxWidth = constraints.maxWidth.isFinite
-                      ? math
-                            .max(
-                              0.0,
-                              math.min(constraints.maxWidth - 32, 440.0),
-                            )
-                            .toDouble()
-                      : 440.0;
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
+      child: summary.isBusy
+          ? LayoutBuilder(
+              key: const ValueKey('lyrics_task_status_banner_visible'),
+              builder: (context, constraints) {
+                final maxWidth = constraints.maxWidth.isFinite
+                    ? math
+                          .max(
+                            0.0,
+                            math.min(constraints.maxWidth - 32, 440.0),
+                          )
+                          .toDouble()
+                    : 440.0;
 
-                  return Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: maxWidth),
+                return Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    child: MouseRegion(
+                      onEnter: (_) => setState(() => _isHovered = true),
+                      onExit: (_) => setState(() => _isHovered = false),
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         padding: const EdgeInsets.symmetric(
@@ -147,17 +166,23 @@ class LyricsTaskStatusBanner extends ConsumerWidget {
                           theme: theme,
                           colorScheme: colorScheme,
                           accent: accent,
-                          shimmerDuration: _shimmerDuration,
+                          shimmerDuration: LyricsTaskStatusBanner._shimmerDuration,
+                          isHovered: _isHovered,
+                          onCancel: () {
+                            ref
+                                .read(lyricsControllerProvider.notifier)
+                                .cancelActiveAiTask();
+                          },
                         ),
                       ),
                     ),
-                  );
-                },
-              )
-            : const SizedBox.shrink(
-                key: ValueKey('lyrics_task_status_banner_hidden'),
-              ),
-      ),
+                  ),
+                );
+              },
+            )
+          : const SizedBox.shrink(
+              key: ValueKey('lyrics_task_status_banner_hidden'),
+            ),
     );
   }
 
@@ -195,6 +220,8 @@ class _BusyBannerBody extends StatelessWidget {
     required this.colorScheme,
     required this.accent,
     required this.shimmerDuration,
+    required this.isHovered,
+    required this.onCancel,
   });
 
   final LyricsTaskQueueSummary summary;
@@ -211,11 +238,66 @@ class _BusyBannerBody extends StatelessWidget {
   final ColorScheme colorScheme;
   final Color accent;
   final Duration shimmerDuration;
+  final bool isHovered;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
     final shimmerBase = accent.withValues(alpha: 0.30);
     final shimmerHighlight = accent.withValues(alpha: 0.78);
+
+    final Widget rightSideWidget;
+    if (isHovered) {
+      rightSideWidget = _CancelButton(
+        key: const ValueKey('cancel_button'),
+        label: l10n.cancel,
+        onPressed: onCancel,
+        accentColor: accent,
+        colorScheme: colorScheme,
+        theme: theme,
+      );
+    } else {
+      rightSideWidget = Row(
+        key: const ValueKey('status_info'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showProgress) ...[
+            Text(
+              phaseLabel,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 32,
+              height: 4,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: accent.withValues(alpha: 0.1),
+                ),
+              ),
+            ),
+          ],
+          if (summary.showQueueCount) ...[
+            const SizedBox(width: 8),
+            Shimmer.fromColors(
+              baseColor: shimmerBase,
+              highlightColor: shimmerHighlight,
+              period: shimmerDuration,
+              child: _BannerPill(
+                label: '${l10n.queueTab} ${summary.taskCount}',
+                accent: accent,
+                filled: true,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -276,41 +358,24 @@ class _BusyBannerBody extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (showProgress) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          phaseLabel,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        SizedBox(
-                          width: 32,
-                          height: 4,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(2),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: accent.withValues(alpha: 0.1),
+                      const SizedBox(width: 8),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SizeTransition(
+                              sizeFactor: animation,
+                              axis: Axis.horizontal,
+                              alignment: Alignment.centerRight,
+                              child: child,
                             ),
-                          ),
-                        ),
-                      ],
-                      if (summary.showQueueCount) ...[
-                        const SizedBox(width: 8),
-                        Shimmer.fromColors(
-                          baseColor: shimmerBase,
-                          highlightColor: shimmerHighlight,
-                          period: shimmerDuration,
-                          child: _BannerPill(
-                            label: '${l10n.queueTab} ${summary.taskCount}',
-                            accent: accent,
-                            filled: true,
-                          ),
-                        ),
-                      ],
+                          );
+                        },
+                        child: rightSideWidget,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -412,6 +477,88 @@ class _BannerPill extends StatelessWidget {
         style: theme.textTheme.labelSmall?.copyWith(
           color: colorScheme.onSurface,
           fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _CancelButton extends StatefulWidget {
+  const _CancelButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    required this.accentColor,
+    required this.colorScheme,
+    required this.theme,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final Color accentColor;
+  final ColorScheme colorScheme;
+  final ThemeData theme;
+
+  @override
+  State<_CancelButton> createState() => _CancelButtonState();
+}
+
+class _CancelButtonState extends State<_CancelButton> {
+  bool _isButtonHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = widget.colorScheme;
+    final hoverBgColor = colorScheme.error.withValues(alpha: 0.12);
+    final normalBgColor = widget.accentColor.withValues(alpha: 0.08);
+    final hoverBorderColor = colorScheme.error.withValues(alpha: 0.3);
+    final normalBorderColor = widget.accentColor.withValues(alpha: 0.18);
+    final hoverTextColor = colorScheme.error;
+    final normalTextColor = widget.accentColor;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isButtonHovered = true),
+      onExit: (_) => setState(() => _isButtonHovered = false),
+      child: AnimatedScale(
+        scale: _isButtonHovered ? 1.05 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutCubic,
+        child: InkWell(
+          onTap: widget.onPressed,
+          borderRadius: BorderRadius.circular(999),
+          hoverColor: Colors.transparent,
+          splashColor: _isButtonHovered
+              ? colorScheme.error.withValues(alpha: 0.15)
+              : widget.accentColor.withValues(alpha: 0.15),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: _isButtonHovered ? hoverBgColor : normalBgColor,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: _isButtonHovered ? hoverBorderColor : normalBorderColor,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.close_rounded,
+                  size: 14,
+                  color: _isButtonHovered ? hoverTextColor : normalTextColor,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  widget.label,
+                  style: widget.theme.textTheme.labelSmall?.copyWith(
+                    color: _isButtonHovered ? hoverTextColor : normalTextColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

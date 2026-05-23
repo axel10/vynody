@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart' show CancelToken, DioException;
 import 'package:flutter/foundation.dart';
 
 import '../models/music_file.dart';
@@ -95,6 +96,9 @@ class LyricsTranslationCoordinator {
       );
     }
 
+    final cancelToken = CancelToken();
+    _context.lyricsAiCancelToken = cancelToken;
+
     try {
       final sourceLyrics = _lyricsSourceForTranslation(currentSong);
       if (sourceLyrics.isEmpty) {
@@ -110,8 +114,17 @@ class LyricsTranslationCoordinator {
         return null;
       }
 
-      return await _runLyricsTranslationRequest(request);
+      return await _runLyricsTranslationRequest(request, cancelToken);
+    } catch (e) {
+      if (cancelToken.isCancelled || (e is DioException && CancelToken.isCancel(e))) {
+        debugPrint('[LyricsController] lyrics translation cancelled by user.');
+        return null;
+      }
+      rethrow;
     } finally {
+      if (_context.lyricsAiCancelToken == cancelToken) {
+        _context.lyricsAiCancelToken = null;
+      }
       _context.updateSongTaskState(
         song.path,
         (current) => current.copyWith(
@@ -167,6 +180,7 @@ class LyricsTranslationCoordinator {
 
   Future<String?> _runLyricsTranslationRequest(
     _LyricsTranslationRequest request,
+    CancelToken cancelToken,
   ) async {
     if (_context.translationInFlightKeys.contains(request.translationKey)) {
       return null;
@@ -187,6 +201,7 @@ class LyricsTranslationCoordinator {
         lyrics: request.sourceLyrics,
         targetLanguageCode: request.languageCode,
         onModelLabelChanged: _updateTranslationModelLabel,
+        cancelToken: cancelToken,
         onProgress: (translatedLines, translatedText) {
           _syncTranslatedLyricsToSong(
             request.songPath,
@@ -222,6 +237,9 @@ class LyricsTranslationCoordinator {
           cacheKey: request.cacheKey,
           languageCode: request.languageCode,
         );
+        return null;
+      }
+      if (cancelToken.isCancelled || errorMessage == 'cancelled') {
         return null;
       }
       return errorMessage;

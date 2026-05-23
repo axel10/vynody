@@ -355,6 +355,14 @@ class LyricsController extends Notifier<LyricsControllerState> {
     );
   }
 
+  void cancelActiveAiTask() {
+    _logDebug('cancelActiveAiTask called');
+    if (_context.lyricsAiCancelToken != null) {
+      _context.lyricsAiCancelToken!.cancel('User cancelled AI lyrics task');
+      _context.lyricsAiCancelToken = null;
+    }
+  }
+
   Future<void> flushPendingLyricsTranslationUpdates() {
     return _translationCoordinator.flushPendingLyricsTranslationUpdates();
   }

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart' show Headers, Options;
+import 'package:dio/dio.dart' show CancelToken, DioException, DioExceptionType, Headers, Options, RequestOptions;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
@@ -30,6 +30,7 @@ class GeminiLyricsApiClient {
     required String apiKey,
     required String mimeType,
     void Function(double progress)? onUploadProgress,
+    CancelToken? cancelToken,
   }) async {
     final fileSize = await file.length();
     final fileName = p.basename(file.path);
@@ -50,6 +51,7 @@ class GeminiLyricsApiClient {
       data: {
         'file': {'display_name': fileName},
       },
+      cancelToken: cancelToken,
     );
 
     debugPrint('[GeminiLyrics] upload init fileName=$fileName');
@@ -79,6 +81,7 @@ class GeminiLyricsApiClient {
         if (total <= 0) return;
         onUploadProgress?.call(sent / total);
       },
+      cancelToken: cancelToken,
     );
 
     debugPrint(
@@ -98,6 +101,7 @@ class GeminiLyricsApiClient {
     required String fileName,
     required String apiKey,
     String? initialState,
+    CancelToken? cancelToken,
   }) async {
     final normalizedInitialState = initialState?.trim().toUpperCase();
     if (normalizedInitialState == null || normalizedInitialState.isEmpty) {
@@ -108,9 +112,21 @@ class GeminiLyricsApiClient {
     }
 
     for (var attempt = 0; attempt < 20; attempt++) {
+      if (cancelToken?.isCancelled == true) {
+        throw DioException(
+          requestOptions: RequestOptions(path: ''),
+          type: DioExceptionType.cancel,
+        );
+      }
       await Future<void>.delayed(const Duration(seconds: 1));
+      if (cancelToken?.isCancelled == true) {
+        throw DioException(
+          requestOptions: RequestOptions(path: ''),
+          type: DioExceptionType.cancel,
+        );
+      }
 
-      final info = await fetchFileInfo(fileName, apiKey);
+      final info = await fetchFileInfo(fileName, apiKey, cancelToken: cancelToken);
       final state = info?.state?.trim().toUpperCase();
       if (state == null || state == 'ACTIVE') {
         return true;
@@ -125,11 +141,13 @@ class GeminiLyricsApiClient {
 
   Future<GeminiFileUploadResult?> fetchFileInfo(
     String fileName,
-    String apiKey,
-  ) async {
+    String apiKey, {
+    CancelToken? cancelToken,
+  }) async {
     final response = await _client.get(
       'https://generativelanguage.googleapis.com/v1beta/$fileName',
       queryParameters: {'key': apiKey},
+      cancelToken: cancelToken,
     );
     return _parseUploadedFile(response.data);
   }

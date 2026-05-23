@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart'
-    show DioException, DioExceptionType, Headers, Options, ResponseType;
+    show CancelToken, DioException, DioExceptionType, Headers, Options, RequestOptions, ResponseType;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
@@ -34,6 +34,7 @@ class LyricsAiOpenRouterClient {
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     final file = File(filePath);
     if (!await file.exists()) {
@@ -84,6 +85,7 @@ class LyricsAiOpenRouterClient {
         apiKey: apiKey,
         requestData: requestData,
         onStageChanged: onStageChanged,
+        cancelToken: cancelToken,
         onChunk: (chunk) {
           generatedBuffer.write(chunk);
           final current = LrcUtils.cleanGeneratedLyricsText(
@@ -134,6 +136,7 @@ class LyricsAiOpenRouterClient {
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     final file = File(filePath);
     if (!await file.exists()) {
@@ -158,8 +161,8 @@ class LyricsAiOpenRouterClient {
 
     final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
     final promptPrefix = hasOriginalTimestamps
-        ? '这是这首歌的歌词和源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
-        : '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
+        ? '这是这首歌的歌词 and 源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
+        : '这是这首歌的歌词 and 原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
     final prompt =
         '$promptPrefix\n'
         '```text\n'
@@ -198,6 +201,7 @@ class LyricsAiOpenRouterClient {
         apiKey: apiKey,
         requestData: requestData,
         onStageChanged: onStageChanged,
+        cancelToken: cancelToken,
         onChunk: (chunk) {
           _logChunk('generate_timeline', chunk);
           generatedBuffer.write(chunk);
@@ -275,6 +279,7 @@ class LyricsAiOpenRouterClient {
     required Map<String, dynamic> requestData,
     void Function(String stage)? onStageChanged,
     required void Function(String chunk) onChunk,
+    CancelToken? cancelToken,
   }) async {
     debugPrint(
       '[OpenRouterLyrics] request dispatch -> '
@@ -293,6 +298,7 @@ class LyricsAiOpenRouterClient {
           'Content-Type': 'application/json',
         },
       ),
+      cancelToken: cancelToken,
     );
 
     onStageChanged?.call('generating');
@@ -314,6 +320,12 @@ class LyricsAiOpenRouterClient {
 
     final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
     await for (final line in textStream.transform(const LineSplitter())) {
+      if (cancelToken?.isCancelled == true) {
+        throw DioException(
+          requestOptions: RequestOptions(path: ''),
+          type: DioExceptionType.cancel,
+        );
+      }
       final trimmed = line.trim();
       if (trimmed.isEmpty) continue;
       if (trimmed.startsWith(':')) {

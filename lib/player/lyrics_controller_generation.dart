@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart' show CancelToken, DioException;
 import 'package:flutter/foundation.dart';
 
 import '../models/lyric_line.dart';
@@ -19,7 +20,8 @@ import 'lyrics_service.dart';
 import '../utils/localized_text.dart';
 
 typedef _LyricsGenerationInvoker =
-    Future<LyricsGenerationResult> Function({
+    Future<LyricsGenerationResult> Function(
+      CancelToken cancelToken, {
       required void Function(double progress) onUploadProgress,
       required void Function(String stage) onStageChanged,
       required void Function(String partialText, bool isFinal) onProgress,
@@ -269,6 +271,7 @@ class LyricsGenerationCoordinator {
     required LyricsCacheSource databaseSource,
     required String statusLabel,
     required String modelLabel,
+    required CancelToken cancelToken,
     required _LyricsGenerationInvoker invoke,
     Map<String, MusicLyricTranslation> Function()? translationProvider,
   }) async {
@@ -279,6 +282,7 @@ class LyricsGenerationCoordinator {
     );
     try {
       final result = await invoke(
+        cancelToken,
         onUploadProgress: (progress) {
           if (!_isActiveLyricsGeneration(session)) {
             return;
@@ -326,6 +330,10 @@ class LyricsGenerationCoordinator {
         return null;
       }
 
+      if (cancelToken.isCancelled) {
+        return null;
+      }
+
       if (!result.isSuccess ||
           result.text == null ||
           result.text!.trim().isEmpty) {
@@ -355,14 +363,17 @@ class LyricsGenerationCoordinator {
   }
 
   Future<String?> _generateLyricsForSong(MusicFile song) async {
+    final cancelToken = CancelToken();
+    _context.lyricsAiCancelToken = cancelToken;
     try {
       return await _runLyricsGeneration(
         song: song,
         databaseSource: LyricsCacheSource.aiGenerate,
         statusLabel: _t('正在生成歌词', 'Generating lyrics'),
         modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
+        cancelToken: cancelToken,
         invoke:
-            ({
+            (cancelToken, {
               required onUploadProgress,
               required onStageChanged,
               required onProgress,
@@ -374,16 +385,24 @@ class LyricsGenerationCoordinator {
                 onUploadProgress: onUploadProgress,
                 onStageChanged: onStageChanged,
                 onProgress: onProgress,
+                cancelToken: cancelToken,
               );
             },
       );
     } catch (e) {
+      if (cancelToken.isCancelled || (e is DioException && CancelToken.isCancel(e))) {
+        debugPrint('[LyricsController] lyrics generation cancelled by user.');
+        return null;
+      }
       debugPrint('[LyricsController] Failed to generate lyrics: $e');
       return _t(
         '生成歌词时发生错误：$e',
         'An error occurred while generating lyrics: $e',
       );
     } finally {
+      if (_context.lyricsAiCancelToken == cancelToken) {
+        _context.lyricsAiCancelToken = null;
+      }
       _context.updateSongTaskState(
         song.path,
         (current) => current.copyWith(
@@ -398,29 +417,32 @@ class LyricsGenerationCoordinator {
   }
 
   Future<String?> _generateTimelineForSong(MusicFile song) async {
-    try {
-      final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
-      if (sourceLyrics.isEmpty) {
-        debugPrint(
-          '[LyricsController] generate timeline skipped: no usable lyrics '
-          'path=${song.path}',
-        );
-        return _t(
-          '没有可用于生成时间轴的歌词。',
-          'No lyrics available for timeline generation.',
-        );
-      }
+    final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
+    if (sourceLyrics.isEmpty) {
+      debugPrint(
+        '[LyricsController] generate timeline skipped: no usable lyrics '
+        'path=${song.path}',
+      );
+      return _t(
+        '没有可用于生成时间轴的歌词。',
+        'No lyrics available for timeline generation.',
+      );
+    }
 
+    final cancelToken = CancelToken();
+    _context.lyricsAiCancelToken = cancelToken;
+    try {
       return await _runLyricsGeneration(
         song: song,
         databaseSource: LyricsCacheSource.aiTimeline,
         statusLabel: _t('正在生成时间轴', 'Generating timeline'),
         modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
+        cancelToken: cancelToken,
         translationProvider: () =>
             _support.songForPath(song.path)?.lyrics?.translations ??
             const <String, MusicLyricTranslation>{},
         invoke:
-            ({
+            (cancelToken, {
               required onUploadProgress,
               required onStageChanged,
               required onProgress,
@@ -433,16 +455,24 @@ class LyricsGenerationCoordinator {
                 onUploadProgress: onUploadProgress,
                 onStageChanged: onStageChanged,
                 onProgress: onProgress,
+                cancelToken: cancelToken,
               );
             },
       );
     } catch (e) {
+      if (cancelToken.isCancelled || (e is DioException && CancelToken.isCancel(e))) {
+        debugPrint('[LyricsController] timeline generation cancelled by user.');
+        return null;
+      }
       debugPrint('[LyricsController] Failed to generate timeline: $e');
       return _t(
         '生成时间轴时发生错误：$e',
         'An error occurred while generating the timeline: $e',
       );
     } finally {
+      if (_context.lyricsAiCancelToken == cancelToken) {
+        _context.lyricsAiCancelToken = null;
+      }
       _context.updateSongTaskState(
         song.path,
         (current) => current.copyWith(

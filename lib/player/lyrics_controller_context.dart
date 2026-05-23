@@ -149,6 +149,7 @@ class LyricsControllerContext {
   int lyricsRequestSerial = 0;
   int lyricsRetrySerial = 0;
   CancelToken? lyricsFetchCancelToken;
+  CancelToken? lyricsAiCancelToken;
   LyricsGenerationDisplayState lyricsGenerationDisplayState =
       const LyricsGenerationDisplayState();
 

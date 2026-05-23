@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart'
-    show DioException, DioExceptionType, Headers, ResponseType;
+    show CancelToken, DioException, DioExceptionType, Headers, Options, RequestOptions, ResponseType;
 import 'package:flutter/foundation.dart';
 
 import '../utils/lrc_utils.dart';
@@ -133,6 +133,7 @@ class LyricsAiService {
     onProgress,
     void Function(String? modelLabel)? onModelLabelChanged,
     String modelId = defaultTranslationModelId,
+    CancelToken? cancelToken,
   }) async {
     final apiKey = _settingsService.geminiApiKey.trim();
     if (apiKey.isEmpty) {
@@ -199,6 +200,7 @@ class LyricsAiService {
           responseType: ResponseType.stream,
           contentType: Headers.jsonContentType,
         ),
+        cancelToken: cancelToken,
       );
 
       final body = response.data;
@@ -254,6 +256,12 @@ class LyricsAiService {
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
       try {
         await for (final line in textStream.transform(const LineSplitter())) {
+          if (cancelToken?.isCancelled == true) {
+            throw DioException(
+              requestOptions: RequestOptions(path: ''),
+              type: DioExceptionType.cancel,
+            );
+          }
           final trimmed = line.trim();
           if (trimmed.isEmpty) continue;
 
@@ -289,6 +297,10 @@ class LyricsAiService {
       }
       return null;
     } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        debugPrint('[LyricsAi] translation request cancelled');
+        return 'cancelled';
+      }
       debugPrint(
         '[LyricsAi] request failed: type=${e.type} '
         'status=${e.response?.statusCode} '
@@ -330,6 +342,7 @@ class LyricsAiService {
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     final credentials = await _loadGenerationCredentials();
     if (credentials == null) {
@@ -350,6 +363,7 @@ class LyricsAiService {
         onUploadProgress: onUploadProgress,
         onStageChanged: onStageChanged,
         onProgress: onProgress,
+        cancelToken: cancelToken,
       );
       return _normalizeGenerationResult(result);
     }
@@ -409,6 +423,7 @@ class LyricsAiService {
         prompt: prompt,
         preserveTimestamps: true,
         onModelLabelChanged: onModelLabelChanged,
+        cancelToken: cancelToken,
         openRouterFallbackGenerator: (apiKey) {
           return _openRouterClient.generateLyricsFromFile(
             apiKey: apiKey,
@@ -417,6 +432,7 @@ class LyricsAiService {
             onUploadProgress: onUploadProgress,
             onStageChanged: onStageChanged,
             onProgress: onProgress,
+            cancelToken: cancelToken,
           );
         },
         onUploadProgress: onUploadProgress,
@@ -438,6 +454,7 @@ class LyricsAiService {
       onUploadProgress: onUploadProgress,
       onStageChanged: onStageChanged,
       onProgress: onProgress,
+      cancelToken: cancelToken,
     );
     return _normalizeGenerationResult(result);
   }
@@ -451,6 +468,7 @@ class LyricsAiService {
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     final credentials = await _loadGenerationCredentials();
     if (credentials == null) {
@@ -471,6 +489,7 @@ class LyricsAiService {
         onUploadProgress: onUploadProgress,
         onStageChanged: onStageChanged,
         onProgress: onProgress,
+        cancelToken: cancelToken,
       );
       return _normalizeGenerationResult(result);
     }
@@ -542,6 +561,7 @@ class LyricsAiService {
         prompt: prompt,
         preserveTimestamps: true,
         onModelLabelChanged: onModelLabelChanged,
+        cancelToken: cancelToken,
         openRouterFallbackGenerator: (apiKey) {
           return _openRouterClient.generateTimelineFromLyrics(
             apiKey: apiKey,
@@ -550,6 +570,7 @@ class LyricsAiService {
             onUploadProgress: onUploadProgress,
             onStageChanged: onStageChanged,
             onProgress: onProgress,
+            cancelToken: cancelToken,
           );
         },
         onUploadProgress: onUploadProgress,
@@ -571,6 +592,7 @@ class LyricsAiService {
       onUploadProgress: onUploadProgress,
       onStageChanged: onStageChanged,
       onProgress: onProgress,
+      cancelToken: cancelToken,
     );
     return _normalizeGenerationResult(result);
   }
@@ -590,6 +612,7 @@ class LyricsAiService {
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     final filePath = file.path;
     try {
@@ -602,6 +625,7 @@ class LyricsAiService {
         apiKey: apiKey,
         mimeType: mimeType,
         onUploadProgress: onUploadProgress,
+        cancelToken: cancelToken,
       );
       if (uploadedFile == null) {
         debugPrint('[LyricsAi] 文件上传失败: $filePath');
@@ -625,6 +649,7 @@ class LyricsAiService {
         fileName: fileName,
         apiKey: apiKey,
         initialState: uploadedFile.state,
+        cancelToken: cancelToken,
       );
       if (!isActive) {
         debugPrint(
@@ -660,6 +685,7 @@ class LyricsAiService {
         onModelLabelChanged: onModelLabelChanged,
         onStageChanged: onStageChanged,
         onProgress: onProgress,
+        cancelToken: cancelToken,
       );
       if (generationOutcome.shouldFallbackToOpenRouter &&
           openRouterFallbackGenerator != null) {
@@ -677,6 +703,9 @@ class LyricsAiService {
       }
       return _normalizeGenerationResult(generationOutcome.result);
     } catch (e) {
+      if (e is DioException && CancelToken.isCancel(e)) {
+        rethrow;
+      }
       if (_shouldUseGoogleServerFlakyMessage(e)) {
         return LyricsGenerationResult.failure(_googleServerFlakyMessage);
       }
@@ -713,6 +742,7 @@ class LyricsAiService {
     void Function(String? modelLabel)? onModelLabelChanged,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     String? lastErrorMessage;
     bool lastFailureShouldUseGoogleFlakyMessage = false;
@@ -726,6 +756,12 @@ class LyricsAiService {
       var shouldTryNextModel = false;
 
       for (var attempt = 1; attempt <= maxGenerationAttempts; attempt++) {
+        if (cancelToken?.isCancelled == true) {
+          throw DioException(
+            requestOptions: RequestOptions(path: ''),
+            type: DioExceptionType.cancel,
+          );
+        }
         final requestData = {
           'contents': [
             {
@@ -761,6 +797,7 @@ class LyricsAiService {
               responseType: ResponseType.stream,
               contentType: Headers.jsonContentType,
             ),
+            cancelToken: cancelToken,
           );
 
           final body = response.data;
@@ -803,6 +840,12 @@ class LyricsAiService {
             await for (final line in textStream.transform(
               const LineSplitter(),
             )) {
+              if (cancelToken?.isCancelled == true) {
+                throw DioException(
+                  requestOptions: RequestOptions(path: ''),
+                  type: DioExceptionType.cancel,
+                );
+              }
               final trimmed = line.trim();
               if (trimmed.isEmpty) continue;
 
@@ -863,6 +906,9 @@ class LyricsAiService {
             result: LyricsGenerationResult.success(normalizedFinalText),
           );
         } on DioException catch (e) {
+          if (CancelToken.isCancel(e)) {
+            rethrow;
+          }
           lastFailureShouldUseGoogleFlakyMessage =
               _shouldUseGoogleServerFlakyMessage(e);
           lastErrorMessage = lastFailureShouldUseGoogleFlakyMessage
