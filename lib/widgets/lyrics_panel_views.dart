@@ -166,7 +166,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                 clipper: const _VerticalOnlyClipper(),
                 child: ScrollConfiguration(
                   behavior: scrollBehavior,
-                  child: ListView.builder(
+                  child: SingleChildScrollView(
                     controller: scrollController,
                     clipBehavior: Clip.none,
                     physics: hasTimedLyrics
@@ -179,104 +179,105 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                     padding: EdgeInsets.only(
                       bottom: bottomSpacerHeight + bottomTabBarHeight + 500,
                     ),
-                    itemCount: displayLines.length,
-                    itemBuilder: (context, index) {
-                      final line = displayLines[index];
-                      final translated =
-                          lyrics
-                              ?.translatedLineAt(
-                                index,
-                                lyricsState.lyricsTranslationLanguageCode,
+                    child: Column(
+                      children: List.generate(displayLines.length, (index) {
+                        final line = displayLines[index];
+                        final translated =
+                            lyrics
+                                ?.translatedLineAt(
+                                  index,
+                                  lyricsState.lyricsTranslationLanguageCode,
+                                )
+                                .trim() ??
+                            '';
+                        final distance = (index - activeIndex).abs();
+                        final isActive = hasTimedLyrics && index == activeIndex;
+                        final isNear =
+                            hasTimedLyrics && distance <= 1 && !isActive;
+                        final targetScale = isActive ? 1.12 : 1.0;
+                        final timedLyricFontSize = 16 * lyricsFontScale;
+                        final plainLyricFontSize = 18 * lyricsFontScale;
+                        final translationFontSize = 13 * lyricsFontScale;
+                        final verticalItemPadding = PlaybackPageUiTuning.lyricsVerticalPadding * lyricsFontScale;
+                        final translatedSpacing = 3 * lyricsFontScale;
+                        final lineStyle = hasTimedLyrics
+                            ? Theme.of(context).textTheme.bodyLarge!.copyWith(
+                                color: isActive
+                                    ? Colors.white
+                                    : Colors.white.withValues(
+                                        alpha: isNear ? 0.72 : 0.46,
+                                      ),
+                                fontSize: timedLyricFontSize,
+                                fontWeight: isActive
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                height: 1.4,
+                                leadingDistribution: TextLeadingDistribution.even,
                               )
-                              .trim() ??
-                          '';
-                      final distance = (index - activeIndex).abs();
-                      final isActive = hasTimedLyrics && index == activeIndex;
-                      final isNear =
-                          hasTimedLyrics && distance <= 1 && !isActive;
-                      final targetScale = isActive ? 1.12 : 1.0;
-                      final timedLyricFontSize = 16 * lyricsFontScale;
-                      final plainLyricFontSize = 18 * lyricsFontScale;
-                      final translationFontSize = 13 * lyricsFontScale;
-                      final verticalItemPadding = PlaybackPageUiTuning.lyricsVerticalPadding * lyricsFontScale;
-                      final translatedSpacing = 3 * lyricsFontScale;
-                      final lineStyle = hasTimedLyrics
-                          ? Theme.of(context).textTheme.bodyLarge!.copyWith(
-                              color: isActive
-                                  ? Colors.white
-                                  : Colors.white.withValues(
-                                      alpha: isNear ? 0.72 : 0.46,
-                                    ),
-                              fontSize: timedLyricFontSize,
-                              fontWeight: isActive
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
-                              height: 1.4,
-                              leadingDistribution: TextLeadingDistribution.even,
-                            )
-                          : TextStyle(
-                              color: Colors.white.withValues(alpha: 0.92),
-                              fontSize: plainLyricFontSize,
-                              fontWeight: FontWeight.w400,
-                              height: 1.6,
-                              leadingDistribution: TextLeadingDistribution.even,
-                            );
+                            : TextStyle(
+                                color: Colors.white.withValues(alpha: 0.92),
+                                fontSize: plainLyricFontSize,
+                                fontWeight: FontWeight.w400,
+                                height: 1.6,
+                                leadingDistribution: TextLeadingDistribution.even,
+                              );
 
-                      return RepaintBoundary(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: verticalItemPadding,
-                          ),
-                          child: Center(
-                            child: AnimatedScale(
-                              duration: const Duration(milliseconds: 220),
-                              curve: Curves.easeOutCubic,
-                              scale: targetScale,
-                              alignment: Alignment.center,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Expanded(
+                        return RepaintBoundary(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: verticalItemPadding,
+                            ),
+                            child: Center(
+                              child: AnimatedScale(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                scale: targetScale,
+                                alignment: Alignment.center,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            line.text,
+                                            textAlign: TextAlign.center,
+                                            style: lineStyle,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (hasTimedLyrics &&
+                                        translated.isNotEmpty) ...[
+                                      SizedBox(height: translatedSpacing),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
                                         child: Text(
-                                          line.text,
+                                          translated,
                                           textAlign: TextAlign.center,
-                                          style: lineStyle,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.62,
+                                            ),
+                                            fontSize: translationFontSize,
+                                            height: 1.3,
+                                            leadingDistribution:
+                                                TextLeadingDistribution.even,
+                                          ),
                                         ),
                                       ),
                                     ],
-                                  ),
-                                  if (hasTimedLyrics &&
-                                      translated.isNotEmpty) ...[
-                                    SizedBox(height: translatedSpacing),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                      ),
-                                      child: Text(
-                                        translated,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.62,
-                                          ),
-                                          fontSize: translationFontSize,
-                                          height: 1.3,
-                                          leadingDistribution:
-                                              TextLeadingDistribution.even,
-                                        ),
-                                      ),
-                                    ),
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      }),
+                    ),
                   ),
                 ),
               ),
