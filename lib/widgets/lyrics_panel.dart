@@ -99,6 +99,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   double? _lastReportedActiveLyricTopOffset;
   ScrollPosition? _attachedScrollPosition;
   int _lastLayoutRevision = 0;
+  List<double>? _oldItemCenters;
+  List<double>? _oldLineHeights;
 
   LyricsController get _lyricsControllerActions =>
       ref.read(lyricsControllerProvider.notifier);
@@ -1112,6 +1114,33 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         final lineHeights = lineMetrics.heights;
         final itemCenters = lineMetrics.itemCenters;
         final anchorCenters = lineMetrics.anchorCenters;
+
+        // --- SCROLL JITTER MITIGATION ---
+        if (_scrollController.hasClients &&
+            _oldItemCenters != null &&
+            _oldLineHeights != null &&
+            _oldItemCenters!.length == itemCenters.length) {
+          final currentOffset = _scrollController.offset;
+          final k = _findClosestLineIndex(currentOffset, _oldItemCenters!);
+          if (k >= 0 && k < itemCenters.length) {
+            final oldTop = _oldItemCenters![k] - _oldLineHeights![k] / 2;
+            final newTop = itemCenters[k] - lineHeights[k] / 2;
+            final delta = newTop - oldTop;
+            if (delta.abs() > 0.01) {
+              final newOffset = currentOffset + delta;
+              _scrollController.position.correctPixels(newOffset);
+              if (kDebugMode) {
+                debugPrint('[LyricsPanel] Anti-jitter scroll correction: '
+                    'anchor line=$k, delta=${delta.toStringAsFixed(1)}, '
+                    'offset: ${currentOffset.toStringAsFixed(1)} -> ${newOffset.toStringAsFixed(1)}');
+              }
+            }
+          }
+        }
+        _oldItemCenters = itemCenters;
+        _oldLineHeights = lineHeights;
+        // ---------------------------------
+
         _attachScrollActivityListener();
 
         final layoutRevisionChanged = layoutRevision != _lastLayoutRevision;
