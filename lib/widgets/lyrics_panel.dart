@@ -29,6 +29,25 @@ bool shouldShowGenerateLyricsButton({required bool hasCurrentSong}) {
   return hasCurrentSong;
 }
 
+double? calculateLyricTopOffsetFromPanelTop({
+  required List<double> lineHeights,
+  required List<double> lineCenters,
+  required int lineIndex,
+  required double scrollOffset,
+  double scale = 1.0,
+}) {
+  if (lineIndex < 0 ||
+      lineIndex >= lineHeights.length ||
+      lineIndex >= lineCenters.length) {
+    return null;
+  }
+
+  final lineHeight = lineHeights[lineIndex];
+  final contentTop = lineCenters[lineIndex] - lineHeight / 2;
+  final scaledTopAdjustment = (lineHeight * scale - lineHeight) / 2;
+  return contentTop - scrollOffset - scaledTopAdjustment;
+}
+
 class LyricsPanel extends rpod.ConsumerStatefulWidget {
   const LyricsPanel({
     super.key,
@@ -37,6 +56,7 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
     this.accentColor,
     this.bottomSpacerHeight = 0.0,
     this.bottomTabBarHeight = 0.0,
+    this.onActiveLyricTopChanged,
   });
 
   final MusicLyric? lyrics;
@@ -44,6 +64,7 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
   final Color? accentColor;
   final double bottomSpacerHeight;
   final double bottomTabBarHeight;
+  final ValueChanged<double?>? onActiveLyricTopChanged;
 
   @override
   rpod.ConsumerState<LyricsPanel> createState() => _LyricsPanelState();
@@ -75,7 +96,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   ToastFuture? _seekToast;
   String? _seekToastSignature;
   Timer? _seekToastAutoDismissTimer;
-  List<double> _cachedCenters = const [];
+  double? _lastReportedActiveLyricTopOffset;
+  ScrollPosition? _attachedScrollPosition;
+  int _lastLayoutRevision = 0;
 
   LyricsController get _lyricsControllerActions =>
       ref.read(lyricsControllerProvider.notifier);
@@ -104,7 +127,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         .toList(growable: false);
   }
 
-  void _calculateHeights({
+  ({List<double> heights, List<double> itemCenters, List<double> anchorCenters})
+  _measureLineMetrics({
     required List<LyricLine> lines,
     required MusicLyric? lyrics,
     required double maxWidth,
@@ -115,7 +139,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final timedLyricFontSize = 16 * lyricsFontScale;
     final plainLyricFontSize = 18 * lyricsFontScale;
     final translationFontSize = 13 * lyricsFontScale;
-    final verticalItemPadding = PlaybackPageUiTuning.lyricsVerticalPadding * lyricsFontScale;
+    final verticalItemPadding =
+        PlaybackPageUiTuning.lyricsVerticalPadding * lyricsFontScale;
     final translatedSpacing = 3 * lyricsFontScale;
 
     final lineStyle = hasTimedLyrics
@@ -142,25 +167,26 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final textScaler = MediaQuery.textScalerOf(context);
 
     final heights = <double>[];
-    final centers = <double>[];
+    final itemCenters = <double>[];
+    final anchorCenters = <double>[];
     double currentTop = 0.0;
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
-      final translated = lyrics
-          ?.translatedLineAt(
-            i,
-            ref.read(lyricsControllerProvider).lyricsTranslationLanguageCode,
-          )
-          .trim() ??
+      final translated =
+          lyrics
+              ?.translatedLineAt(
+                i,
+                ref
+                    .read(lyricsControllerProvider)
+                    .lyricsTranslationLanguageCode,
+              )
+              .trim() ??
           '';
 
       // 1. Calculate main text height
       final textPainter = TextPainter(
-        text: TextSpan(
-          text: line.text,
-          style: lineStyle,
-        ),
+        text: TextSpan(text: line.text, style: lineStyle),
         textDirection: textDirection,
         textScaler: textScaler,
       )..layout(maxWidth: maxWidth);
@@ -169,25 +195,29 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       // 2. Calculate translation height if present
       if (hasTimedLyrics && translated.isNotEmpty) {
         final transPainter = TextPainter(
-          text: TextSpan(
-            text: translated,
-            style: translationStyle,
-          ),
+          text: TextSpan(text: translated, style: translationStyle),
           textDirection: textDirection,
           textScaler: textScaler,
         )..layout(maxWidth: math.max(0.0, maxWidth - 24.0));
-          itemHeight += translatedSpacing + transPainter.height;
+        itemHeight += translatedSpacing + transPainter.height;
       }
 
       // 3. Add vertical padding
       itemHeight += verticalItemPadding * 2;
 
       heights.add(itemHeight);
-      centers.add(currentTop + itemHeight / 2);
+      itemCenters.add(currentTop + itemHeight / 2);
+      anchorCenters.add(
+        currentTop + verticalItemPadding + textPainter.height / 2,
+      );
       currentTop += itemHeight;
     }
 
-    _cachedCenters = centers;
+    return (
+      heights: heights,
+      itemCenters: itemCenters,
+      anchorCenters: anchorCenters,
+    );
   }
 
   int _findClosestLineIndex(double targetCenter, List<double> centers) {
@@ -215,8 +245,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     return low;
   }
 
-
-
   ScrollBehavior _lyricsScrollBehavior(BuildContext context) {
     return ScrollConfiguration.of(context).copyWith(
       scrollbars: false,
@@ -235,14 +263,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _timelineOffsetSeconds = _timelineOffsetToSeconds(
       widget.lyrics?.timelineOffset,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _scheduleScrollIfNeeded(force: true);
-    });
   }
 
   @override
   void dispose() {
+    _detachScrollActivityListener();
     _seekToastAutoDismissTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -330,7 +355,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (oldOffset != newOffset) {
       _timelineOffsetSeconds = newOffset;
     }
-    _scheduleScrollIfNeeded();
   }
 
   Future<void> _showContextMenu(
@@ -451,10 +475,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (selected == 'toggle_auto_scroll') {
       setState(() {
         _isAutoScrollPaused = !_isAutoScrollPaused;
+        if (!_isAutoScrollPaused) {
+          _lastActiveIndex = -1;
+        }
       });
-      if (!_isAutoScrollPaused) {
-        _scheduleScrollIfNeeded(force: true);
-      } else {
+      if (_isAutoScrollPaused) {
         _dismissSeekToast();
       }
     } else if (selected == 'generate') {
@@ -593,7 +618,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   void _scheduleScrollIfNeeded({
     bool force = false,
+    bool animate = true,
     List<LyricLine>? displayLines,
+    required List<double> anchorCenters,
   }) {
     final lines = displayLines ?? _displayLinesForCurrentLyrics();
     if (lines.isEmpty ||
@@ -609,11 +636,81 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
+      if (kDebugMode) {
+        final currentOffset = _scrollController.offset;
+        final viewportHeight = _scrollController.position.viewportDimension;
+        final bottomSpacers =
+            widget.bottomSpacerHeight + widget.bottomTabBarHeight;
+        final visibleCenter = (viewportHeight - bottomSpacers) / 2;
+        final targetCenter =
+            activeIndex >= 0 && activeIndex < anchorCenters.length
+            ? anchorCenters[activeIndex]
+            : double.nan;
+        debugPrint(
+          '[LyricsPanel] scheduleScroll '
+          'force=$force animate=$animate '
+          'activeIndex=$activeIndex '
+          'currentOffset=${currentOffset.toStringAsFixed(1)} '
+          'viewport=${viewportHeight.toStringAsFixed(1)} '
+          'visibleCenter=${visibleCenter.toStringAsFixed(1)} '
+          'targetCenter=${targetCenter.toStringAsFixed(1)}',
+        );
+      }
       _scrollToLineIndex(
         activeIndex,
-        animate: true,
+        animate: animate,
+        anchorCenters: anchorCenters,
       );
     });
+  }
+
+  void _attachScrollActivityListener() {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    if (identical(_attachedScrollPosition, position)) {
+      return;
+    }
+
+    _detachScrollActivityListener();
+    _attachedScrollPosition = position;
+    position.isScrollingNotifier.addListener(_handleScrollActivityChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !identical(_attachedScrollPosition, position)) return;
+      _syncScrollAnimatingProvider(position.isScrollingNotifier.value);
+      if (!position.isScrollingNotifier.value) {
+        unawaited(
+          _lyricsControllerActions.flushPendingLyricsTranslationUpdates(),
+        );
+      }
+    });
+  }
+
+  void _detachScrollActivityListener() {
+    final position = _attachedScrollPosition;
+    if (position == null) return;
+    position.isScrollingNotifier.removeListener(_handleScrollActivityChanged);
+    _attachedScrollPosition = null;
+    _syncScrollAnimatingProvider(false);
+  }
+
+  void _handleScrollActivityChanged() {
+    final position = _attachedScrollPosition;
+    if (position == null) return;
+
+    final isScrolling = position.isScrollingNotifier.value;
+    _syncScrollAnimatingProvider(isScrolling);
+    if (!isScrolling) {
+      unawaited(
+        _lyricsControllerActions.flushPendingLyricsTranslationUpdates(),
+      );
+    }
+  }
+
+  void _syncScrollAnimatingProvider(bool isScrolling) {
+    ref
+        .read(lyricsPanelScrollAnimatingProvider.notifier)
+        .setScrolling(isScrolling);
   }
 
   void _beginLyricsDrag(List<LyricLine> displayLines) {
@@ -640,9 +737,47 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
   }
 
+  void _reportActiveLyricTopOffset({
+    required int activeIndex,
+    required bool hasTimedLyrics,
+    required bool isDraggingLyrics,
+    required int? dragCurrentLine,
+    required List<double> lineHeights,
+    required List<double> itemCenters,
+  }) {
+    final callback = widget.onActiveLyricTopChanged;
+    if (callback == null) return;
+    if (!hasTimedLyrics || !_scrollController.hasClients) {
+      if (_lastReportedActiveLyricTopOffset != null) {
+        _lastReportedActiveLyricTopOffset = null;
+        callback(null);
+      }
+      return;
+    }
+
+    final focusedIndex = isDraggingLyrics && dragCurrentLine != null
+        ? dragCurrentLine
+        : activeIndex;
+    final topOffset = calculateLyricTopOffsetFromPanelTop(
+      lineHeights: lineHeights,
+      lineCenters: itemCenters,
+      lineIndex: focusedIndex,
+      scrollOffset: _scrollController.offset,
+      scale: 1.12,
+    );
+
+    if (_lastReportedActiveLyricTopOffset == topOffset) {
+      return;
+    }
+
+    _lastReportedActiveLyricTopOffset = topOffset;
+    callback(topOffset);
+  }
+
   void _updateLyricsDrag(
     DragUpdateDetails details,
     List<LyricLine> displayLines,
+    List<double> anchorCenters,
   ) {
     if (displayLines.isEmpty || !_hasTimedLyrics(displayLines)) {
       return;
@@ -673,12 +808,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       _dismissSeekToast();
     }
 
-    if (startLine < _cachedCenters.length) {
-      final startCenter = _cachedCenters[startLine];
+    if (startLine < anchorCenters.length) {
+      final startCenter = anchorCenters[startLine];
       final targetCenter = startCenter - _dragDistancePixels;
-      final targetIndex = _findClosestLineIndex(targetCenter, _cachedCenters)
-          .clamp(0, displayLines.length - 1)
-          .toInt();
+      final targetIndex = _findClosestLineIndex(
+        targetCenter,
+        anchorCenters,
+      ).clamp(0, displayLines.length - 1).toInt();
 
       if (_dragCurrentLine != targetIndex) {
         if (mounted) {
@@ -690,11 +826,38 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
       }
 
-      _scrollToLineIndex(targetIndex, animate: false);
+      _scrollToLineIndex(
+        targetIndex,
+        animate: false,
+        anchorCenters: anchorCenters,
+      );
       _syncSeekToast(
-        _audioSeekPositionForLyricTimestamp(displayLines[targetIndex].timestamp),
+        _audioSeekPositionForLyricTimestamp(
+          displayLines[targetIndex].timestamp,
+        ),
       );
     }
+  }
+
+  void _handleLyricsLayoutRevisionChanged({
+    required int layoutRevision,
+    required bool hasTimedLyrics,
+    required List<LyricLine> displayLines,
+    required List<double> anchorCenters,
+  }) {
+    if (layoutRevision == _lastLayoutRevision) {
+      return;
+    }
+
+    _lastLayoutRevision = layoutRevision;
+    if (!hasTimedLyrics) return;
+
+    _scheduleScrollIfNeeded(
+      force: true,
+      animate: false,
+      displayLines: displayLines,
+      anchorCenters: anchorCenters,
+    );
   }
 
   void _endLyricsDrag(List<LyricLine> displayLines) {
@@ -742,9 +905,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   void _scrollToLineIndex(
     int index, {
     required bool animate,
+    required List<double> anchorCenters,
   }) {
     if (!_scrollController.hasClients) return;
-    if (index < 0 || index >= _cachedCenters.length) return;
+    if (index < 0 || index >= anchorCenters.length) return;
 
     final viewportHeight = _scrollController.position.viewportDimension;
     if (!viewportHeight.isFinite || viewportHeight <= 0) return;
@@ -754,11 +918,22 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     // 计算可见区域的中心（避开底部遮挡/渐变区）
     final visibleCenter = (viewportHeight - bottomSpacers) / 2;
 
-    final targetCenter = _cachedCenters[index];
+    final targetCenter = anchorCenters[index];
     final target = math.max(
       0.0,
       math.min(targetCenter - visibleCenter, maxExtent),
     );
+    if (kDebugMode) {
+      debugPrint(
+        '[LyricsPanel] scrollToLine '
+        'index=$index '
+        'targetCenter=${targetCenter.toStringAsFixed(1)} '
+        'visibleCenter=${visibleCenter.toStringAsFixed(1)} '
+        'currentOffset=${_scrollController.offset.toStringAsFixed(1)} '
+        'targetOffset=${target.toStringAsFixed(1)} '
+        'delta=${(target - _scrollController.offset).toStringAsFixed(1)}',
+      );
+    }
 
     if (animate) {
       unawaited(
@@ -874,6 +1049,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final displayLyrics = ref.watch(
       lyricsDisplayLyricsProvider(lyricsForDisplay),
     );
+    final layoutRevision = ref.watch(lyricsLayoutRevisionProvider);
     final hasRenderableLyrics = ref.watch(
       lyricsHasRenderableContentProvider(lyricsForDisplay),
     );
@@ -929,7 +1105,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        _calculateHeights(
+        final lineMetrics = _measureLineMetrics(
           lines: renderedLines,
           lyrics: lyrics,
           maxWidth: constraints.maxWidth,
@@ -937,13 +1113,15 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           hasTimedLyrics: hasTimedLyrics,
           context: context,
         );
+        final lineHeights = lineMetrics.heights;
+        final itemCenters = lineMetrics.itemCenters;
+        final anchorCenters = lineMetrics.anchorCenters;
+        _attachScrollActivityListener();
 
-        if (hasTimedLyrics) {
-          _scheduleScrollIfNeeded(
-            displayLines: displayLines,
-          );
-        }
-        final activeIndex = hasTimedLyrics ? _activeLineIndex(displayLines) : -1;
+        final layoutRevisionChanged = layoutRevision != _lastLayoutRevision;
+        final activeIndex = hasTimedLyrics
+            ? _activeLineIndex(displayLines)
+            : -1;
         final focusedIndex = _isDraggingLyrics && _dragCurrentLine != null
             ? _dragCurrentLine!
             : activeIndex;
@@ -952,6 +1130,48 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           activeIndex: focusedIndex,
           hasTimedLyrics: hasTimedLyrics,
         );
+        if (hasTimedLyrics) {
+          if (layoutRevisionChanged) {
+            if (kDebugMode) {
+              debugPrint(
+                '[LyricsPanel] layoutRevisionChanged -> '
+                'revision=$layoutRevision activeIndex=$activeIndex '
+                'focusedIndex=$focusedIndex lines=${displayLines.length}',
+              );
+              _logLayoutMetrics(
+                displayLines: displayLines,
+                lyrics: lyrics,
+                lineHeights: lineHeights,
+                itemCenters: itemCenters,
+                anchorCenters: anchorCenters,
+                activeIndex: activeIndex,
+                viewportHeight: constraints.maxHeight,
+              );
+            }
+            _handleLyricsLayoutRevisionChanged(
+              layoutRevision: layoutRevision,
+              hasTimedLyrics: hasTimedLyrics,
+              displayLines: displayLines,
+              anchorCenters: anchorCenters,
+            );
+          } else {
+            _scheduleScrollIfNeeded(
+              displayLines: displayLines,
+              anchorCenters: anchorCenters,
+            );
+          }
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _reportActiveLyricTopOffset(
+            activeIndex: activeIndex,
+            hasTimedLyrics: hasTimedLyrics,
+            isDraggingLyrics: _isDraggingLyrics,
+            dragCurrentLine: _dragCurrentLine,
+            lineHeights: lineHeights,
+            itemCenters: itemCenters,
+          );
+        });
 
         return LyricsPanelTimedLyricsView(
           lyrics: lyrics,
@@ -968,7 +1188,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               : null,
           onVerticalDragUpdate: hasTimedLyrics
               ? (details) =>
-                    _updateLyricsDrag(details, displayLines)
+                    _updateLyricsDrag(details, displayLines, anchorCenters)
               : null,
           onVerticalDragEnd: hasTimedLyrics
               ? (_) => _endLyricsDrag(displayLines)
@@ -1035,6 +1255,49 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     //   'delta=${_formatSignedMs(deltaMs)}ms '
     //   'lines=${displayLines.length}',
     // );
+  }
+
+  void _logLayoutMetrics({
+    required List<LyricLine> displayLines,
+    required MusicLyric? lyrics,
+    required List<double> lineHeights,
+    required List<double> itemCenters,
+    required List<double> anchorCenters,
+    required int activeIndex,
+    required double viewportHeight,
+  }) {
+    if (!kDebugMode) return;
+    if (activeIndex < 0 || activeIndex >= displayLines.length) return;
+
+    final start = math.max(0, activeIndex - 3);
+    final end = math.min(displayLines.length - 1, activeIndex + 3);
+    final buffer = StringBuffer();
+    buffer.writeln(
+      '[LyricsPanel] metrics activeIndex=$activeIndex '
+      'viewport=${viewportHeight.toStringAsFixed(1)} '
+      'scrollOffset=${_scrollController.offset.toStringAsFixed(1)}',
+    );
+    for (var i = start; i <= end; i++) {
+      final translated =
+          lyrics
+              ?.translatedLineAt(
+                i,
+                ref
+                    .read(lyricsControllerProvider)
+                    .lyricsTranslationLanguageCode,
+              )
+              .trim() ??
+          '';
+      buffer.writeln(
+        '  idx=$i '
+        'h=${lineHeights[i].toStringAsFixed(1)} '
+        'itemC=${itemCenters[i].toStringAsFixed(1)} '
+        'anchorC=${anchorCenters[i].toStringAsFixed(1)} '
+        'transLen=${translated.length} '
+        'textLen=${displayLines[i].text.length}',
+      );
+    }
+    debugPrint(buffer.toString().trimRight());
   }
 
   // String _formatMs(int value) {

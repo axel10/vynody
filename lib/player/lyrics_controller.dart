@@ -97,6 +97,9 @@ class LyricsController extends Notifier<LyricsControllerState> {
       clearLyricsGenerationStatus: _clearLyricsGenerationStatus,
       watchLyricsCacheForSong: watchLyricsCacheForSong,
       bumpRevision: _bumpRevision,
+      bumpLyricsLayoutRevision: _bumpLyricsLayoutRevision,
+      isLyricsPanelScrolling: () =>
+          ref.read(lyricsPanelScrollAnimatingProvider),
       logDebug: _logDebug,
     );
     _support = LyricsControllerSupport(_context);
@@ -169,6 +172,10 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   void _bumpRevision() {
     state = state.copyWith(revision: state.revision + 1);
+  }
+
+  void _bumpLyricsLayoutRevision() {
+    ref.read(lyricsLayoutRevisionProvider.notifier).state++;
   }
 
   void setTranslationLanguageCode(String languageCode) {
@@ -348,6 +355,10 @@ class LyricsController extends Notifier<LyricsControllerState> {
     );
   }
 
+  Future<void> flushPendingLyricsTranslationUpdates() {
+    return _translationCoordinator.flushPendingLyricsTranslationUpdates();
+  }
+
   Future<void> updateLyricsTimelineOffsetForCurrentSong(
     Duration timelineOffset,
   ) {
@@ -457,5 +468,8 @@ class LyricsController extends Notifier<LyricsControllerState> {
     );
 
     _context.bumpRevision();
+    if (nextLyrics.translations.isNotEmpty) {
+      _context.bumpLyricsLayoutRevision();
+    }
   }
 }

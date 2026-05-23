@@ -194,10 +194,28 @@ class LyricsTranslationCoordinator {
             request.languageCode,
             translatedLines,
             translatedText,
+            cacheKey: request.cacheKey,
           );
         },
       );
       if (errorMessage == null) {
+        if (_context.isLyricsPanelScrolling()) {
+          final pending =
+              _context.pendingLyricsTranslationUpdates[request.songPath];
+          if (pending != null) {
+            _context.stashPendingLyricsTranslationUpdate(
+              songPath: pending.songPath,
+              cacheKey: request.cacheKey,
+              languageCode: pending.languageCode,
+              lyricsId: pending.lyricsId,
+              translatedLines: pending.translatedLines,
+              translatedText: pending.translatedText,
+              completed: true,
+            );
+          }
+          return null;
+        }
+
         _context.translatedLyricsKeys.add(request.translationKey);
         await _saveTranslatedLyricsToDatabase(
           songPath: request.songPath,
@@ -218,6 +236,37 @@ class LyricsTranslationCoordinator {
         ),
       );
     }
+  }
+
+  Future<void> flushPendingLyricsTranslationUpdates() async {
+    final pendingUpdates = _context.pendingLyricsTranslationUpdates.values
+        .toList(growable: false);
+    if (pendingUpdates.isEmpty) return;
+
+    for (final pending in pendingUpdates) {
+      _context.pendingLyricsTranslationUpdates.remove(pending.songPath);
+      _syncTranslatedLyricsToSong(
+        pending.songPath,
+        pending.lyricsId,
+        pending.languageCode,
+        pending.translatedLines,
+        pending.translatedText,
+        cacheKey: pending.cacheKey,
+        bumpLayoutRevision: false,
+      );
+      if (pending.completed) {
+        await _saveTranslatedLyricsToDatabase(
+          songPath: pending.songPath,
+          cacheKey: pending.cacheKey,
+          languageCode: pending.languageCode,
+        );
+        _context.translatedLyricsKeys.add(
+          _lyricsTranslationCacheKey(pending.cacheKey, pending.languageCode),
+        );
+      }
+    }
+
+    _context.bumpLyricsLayoutRevision();
   }
 
   void _updateTranslationModelLabel(String? modelLabel) {
@@ -248,8 +297,27 @@ class LyricsTranslationCoordinator {
     String lyricsId,
     String languageCode,
     List<String> translatedLines,
-    String translatedText,
-  ) {
+    String translatedText, {
+    String? cacheKey,
+    bool bumpLayoutRevision = true,
+  }) {
+    if (_context.isLyricsPanelScrolling()) {
+      _context.logDebug(
+        'translation sync deferred while panel scrolling -> '
+        'path="$songPath" lang="$languageCode" '
+        'lines=${translatedLines.length} textLen=${translatedText.trim().length}',
+      );
+      _context.stashPendingLyricsTranslationUpdate(
+        songPath: songPath,
+        cacheKey: cacheKey ?? '',
+        languageCode: languageCode,
+        lyricsId: lyricsId,
+        translatedLines: translatedLines,
+        translatedText: translatedText,
+      );
+      return;
+    }
+
     MusicFile? updatedSong;
     _support.replaceSongIfPath(songPath, (currentSong) {
       final existingLyrics = currentSong.lyrics ?? const MusicLyric();
@@ -278,7 +346,15 @@ class LyricsTranslationCoordinator {
     });
 
     if (updatedSong == null) return;
+    _context.logDebug(
+      'translation sync applied -> path="$songPath" lang="$languageCode" '
+      'lines=${translatedLines.length} textLen=${translatedText.trim().length} '
+      'bumpLayout=$bumpLayoutRevision',
+    );
     _context.bumpRevision();
+    if (bumpLayoutRevision) {
+      _context.bumpLyricsLayoutRevision();
+    }
   }
 
   Future<void> _saveTranslatedLyricsToDatabase({

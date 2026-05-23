@@ -32,6 +32,34 @@ final lyricsControllerProvider =
       LyricsController.new,
     );
 
+class _LyricsPanelScrollStateNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setScrolling(bool value) {
+    state = value;
+  }
+}
+
+class _LyricsLayoutRevisionNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() {
+    state = state + 1;
+  }
+}
+
+final lyricsPanelScrollAnimatingProvider =
+    NotifierProvider<_LyricsPanelScrollStateNotifier, bool>(
+      _LyricsPanelScrollStateNotifier.new,
+    );
+
+final lyricsLayoutRevisionProvider =
+    NotifierProvider<_LyricsLayoutRevisionNotifier, int>(
+      _LyricsLayoutRevisionNotifier.new,
+    );
+
 final lyricsSongTaskStateProvider =
     Provider.family<LyricsSongTaskState, String>((ref, songPath) {
       ref.watch(lyricsControllerProvider.select((state) => state.revision));

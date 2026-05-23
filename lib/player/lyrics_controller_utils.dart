@@ -173,6 +173,7 @@ class LyricsControllerSupport {
       queue[i] = copySongWithLyrics(queue[i], null);
     }
 
+    _context.clearPendingLyricsTranslationUpdatesForSong(path);
     _context.clearState(notify: false);
   }
 
@@ -189,6 +190,8 @@ class LyricsControllerSupport {
         ),
       );
     }
+
+    _context.clearPendingLyricsTranslationUpdatesForSong(path);
   }
 
   Future<void> updateLyricsTimelineOffsetForCurrentSong(
@@ -575,6 +578,7 @@ class LyricsControllerSupport {
       }
 
       _context.bumpRevision();
+      _context.bumpLyricsLayoutRevision();
     } catch (e) {
       debugPrint('[LyricsController] Failed to restore translated lyrics: $e');
     }

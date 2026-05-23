@@ -72,6 +72,8 @@ class LyricsControllerContext {
     required this.clearLyricsGenerationStatus,
     required this.watchLyricsCacheForSong,
     required this.bumpRevision,
+    required this.bumpLyricsLayoutRevision,
+    required this.isLyricsPanelScrolling,
     required this.logDebug,
   });
 
@@ -109,6 +111,8 @@ class LyricsControllerContext {
   final void Function() clearLyricsGenerationStatus;
   final Future<void> Function(MusicFile song) watchLyricsCacheForSong;
   final void Function() bumpRevision;
+  final void Function() bumpLyricsLayoutRevision;
+  final bool Function() isLyricsPanelScrolling;
   final void Function(String message) logDebug;
 
   final LyricsGenerationRuntime lyricsGeneration = LyricsGenerationRuntime();
@@ -117,6 +121,31 @@ class LyricsControllerContext {
       <String, LyricsSongTaskState>{};
   final Set<String> translatedLyricsKeys = <String>{};
   final Set<String> translationInFlightKeys = <String>{};
+  final Map<
+    String,
+    ({
+      String songPath,
+      String cacheKey,
+      String languageCode,
+      String lyricsId,
+      List<String> translatedLines,
+      String translatedText,
+      bool completed,
+    })
+  >
+  pendingLyricsTranslationUpdates =
+      <
+        String,
+        ({
+          String songPath,
+          String cacheKey,
+          String languageCode,
+          String lyricsId,
+          List<String> translatedLines,
+          String translatedText,
+          bool completed,
+        })
+      >{};
   int lyricsRequestSerial = 0;
   int lyricsRetrySerial = 0;
   CancelToken? lyricsFetchCancelToken;
@@ -168,5 +197,30 @@ class LyricsControllerContext {
 
   bool isLyricsTaskBusyForSong(String path) {
     return taskStateForSong(path).isAnyBusy;
+  }
+
+  void stashPendingLyricsTranslationUpdate({
+    required String songPath,
+    required String cacheKey,
+    required String languageCode,
+    required String lyricsId,
+    required List<String> translatedLines,
+    required String translatedText,
+    bool completed = false,
+  }) {
+    final existing = pendingLyricsTranslationUpdates[songPath];
+    pendingLyricsTranslationUpdates[songPath] = (
+      songPath: songPath,
+      cacheKey: cacheKey,
+      languageCode: languageCode,
+      lyricsId: lyricsId,
+      translatedLines: translatedLines,
+      translatedText: translatedText,
+      completed: completed || existing?.completed == true,
+    );
+  }
+
+  void clearPendingLyricsTranslationUpdatesForSong(String songPath) {
+    pendingLyricsTranslationUpdates.remove(songPath);
   }
 }

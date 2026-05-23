@@ -293,9 +293,11 @@ class LyricsFetchCoordinator {
 
     if (_context.currentMusic()?.path != song.path) return;
 
+    _context.clearPendingLyricsTranslationUpdatesForSong(song.path);
     _support.clearTranslationStateForPath(song.path);
     _context.setLyricsTranslationStatus('');
     _context.bumpRevision();
+    _context.bumpLyricsLayoutRevision();
   }
 
   Future<void> requeryLyricsForCurrentSong() async {
