@@ -124,6 +124,18 @@ class PlaybackQueueProcessor {
         }
       }
 
+      // Priority Phase: Immediately process current song's heavy metadata (waveform, colors)
+      // so it is available instantly without waiting for the fast-pass of other songs' covers.
+      if (sortedList.isNotEmpty) {
+        final currentSong = sortedList.first;
+        await _processSongHeavyData(
+          song: currentSong,
+          artworkThemeService: artworkThemeService,
+          onUpdate: onUpdate,
+          myId: myId,
+        );
+      }
+
       // Phase 1: FAST PASS - Immediately load HD artwork for prioritized songs
       // This ensures that when skipping fast, covers are already in memory.
       // We look at the top 15 songs from our sorted list (which includes current and upcoming).
@@ -184,150 +196,166 @@ class PlaybackQueueProcessor {
           return;
         }
 
-        await _waitUntilResumed();
-
-        try {
-          final existing = await db.getSongMetadata(song.path);
-          final bool showWaveform =
-              settingsService.isWaveformProgressBarEnabled;
-
-          // Decide what needs to be done
-          final bool needsWaveform =
-              showWaveform &&
-              (existing == null || existing.waveformBlob == null);
-          final bool needsThemeColor =
-              existing == null || existing.themeColorsBlob == null;
-
-          // Heavy Processing: Thumbnails, Colors and Waveform
-          if (needsWaveform ||
-              needsThemeColor ||
-              existing.thumbnailPath == null) {
-            if (_disposed) return;
-
-            debugPrint(
-              'Background processing (Thumbnail/Colors/Waveform): ${song.path}',
-            );
-
-            // We need a metadata object (either from DB or a quick scan) to get the artwork path
-            SongMetadata? m = existing;
-            if (m == null) {
-              final result = await MetadataHelper.processMetadata(
-                song.path,
-                generateThumbnail: false,
-              );
-              if (_disposed) return;
-              m = result?.$1;
-            }
-
-            if (m != null) {
-              // Use a non-nullable reference
-              SongMetadata meta = m;
-
-              final artworkTheme = await artworkThemeService
-                  .getTrackArtworkTheme(
-                    song.path,
-                    controller: player,
-                    saveLargeArtwork: !Platform.isWindows,
-                    thumbnailSize: generatedArtworkThumbnailSize,
-                  );
-              if (_disposed) return;
-
-              if (artworkTheme != null &&
-                  (artworkTheme.hasArtworkPath ||
-                      artworkTheme.hasThemeColors)) {
-                meta = artworkTheme.toSongMetadata(base: meta);
-                await db.insertOrUpdateSong(meta);
-
-                final updates = <String, dynamic>{
-                  'thumbnailPath':
-                      artworkTheme.thumbnailPath ?? meta.thumbnailPath,
-                  'artworkPath': artworkTheme.artworkPath ?? meta.artworkPath,
-                  'artworkWidth': meta.artworkWidth,
-                  'artworkHeight': meta.artworkHeight,
-                };
-                if (meta.themeColorsBlob != null) {
-                  updates['themeColorsBlob'] = meta.themeColorsBlob;
-                  updates['themeColors'] = ThemeColorHelper.blobToColors(
-                    meta.themeColorsBlob!,
-                  );
-                }
-
-                onUpdate(song.path, updates);
-              } else if (meta.themeColorsBlob == null) {
-                try {
-                  final paletteBytes =
-                      song.artworkBytes ??
-                      (meta.artworkPath != null
-                          ? await File(meta.artworkPath!).readAsBytes()
-                          : null);
-                  Uint8List? themeColorsBlob =
-                      await TrackArtworkThemeService.generateThemeColorsBlob(
-                        bytes: paletteBytes,
-                        path: meta.artworkPath ?? meta.thumbnailPath,
-                      );
-
-                  if (themeColorsBlob == null) {
-                    final extractedBytes =
-                        await MetadataHelper.decodeEmbeddedArtwork(song.path);
-                    if (_disposed) return;
-                    themeColorsBlob =
-                        await TrackArtworkThemeService.generateThemeColorsBlob(
-                          bytes: extractedBytes,
-                        );
-                  }
-
-                  if (themeColorsBlob != null) {
-                    meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
-                    await db.insertOrUpdateSong(meta);
-
-                    onUpdate(song.path, {
-                      'themeColors': ThemeColorHelper.blobToColors(
-                        themeColorsBlob,
-                      ),
-                      'themeColorsBlob': themeColorsBlob,
-                    });
-                  }
-                } catch (e) {
-                  debugPrint(
-                    'Theme color extraction error for ${song.path}: $e',
-                  );
-                }
-              }
-
-              // Extract waveform if missing AND enabled in settings
-              if (showWaveform && meta.waveformBlob == null) {
-                try {
-                  final waveformResult = await waveformService.getWaveformData(
-                    path: song.path,
-                    expectedChunks: settingsService.waveformChunks,
-                    sampleStride: settingsService.sampleStride,
-                    baseMetadata: meta,
-                  );
-                  if (_disposed) return;
-
-                  if (waveformResult.waveform.isNotEmpty) {
-                    meta = meta.copyWith(waveformBlob: waveformResult.waveformBlob);
-                    onUpdate(song.path, {
-                      'waveform': waveformResult.waveform,
-                      'waveformBlob': waveformResult.waveformBlob,
-                    });
-                  }
-                } catch (e) {
-                  debugPrint('Waveform extraction error for ${song.path}: $e');
-                }
-              }
-            }
-
-            // Small delay between songs to keep main thread snappy
-            await Future.delayed(const Duration(milliseconds: 300));
-          }
-        } catch (e) {
-          debugPrint('Error processing background song ${song.path}: $e');
-        }
+        await _processSongHeavyData(
+          song: song,
+          artworkThemeService: artworkThemeService,
+          onUpdate: onUpdate,
+          myId: myId,
+        );
       }
     } finally {
       _isProcessing = false;
       debugPrint('Background queue processing finished');
+    }
+  }
+
+  Future<void> _processSongHeavyData({
+    required MusicFile song,
+    required TrackArtworkThemeService artworkThemeService,
+    required Function(String path, Map<String, dynamic> updates) onUpdate,
+    required int myId,
+  }) async {
+    if (_disposed || myId != _currentProcessId) return;
+
+    await _waitUntilResumed();
+
+    try {
+      final existing = await db.getSongMetadata(song.path);
+      final bool showWaveform =
+          settingsService.isWaveformProgressBarEnabled;
+
+      // Decide what needs to be done
+      final bool needsWaveform =
+          showWaveform &&
+          (existing == null || existing.waveformBlob == null);
+      final bool needsThemeColor =
+          existing == null || existing.themeColorsBlob == null;
+
+      // Heavy Processing: Thumbnails, Colors and Waveform
+      if (needsWaveform ||
+          needsThemeColor ||
+          existing.thumbnailPath == null) {
+        if (_disposed || myId != _currentProcessId) return;
+
+        debugPrint(
+          'Background processing (Thumbnail/Colors/Waveform): ${song.path}',
+        );
+
+        // We need a metadata object (either from DB or a quick scan) to get the artwork path
+        SongMetadata? m = existing;
+        if (m == null) {
+          final result = await MetadataHelper.processMetadata(
+            song.path,
+            generateThumbnail: false,
+          );
+          if (_disposed || myId != _currentProcessId) return;
+          m = result?.$1;
+        }
+
+        if (m != null) {
+          // Use a non-nullable reference
+          SongMetadata meta = m;
+
+          final artworkTheme = await artworkThemeService
+              .getTrackArtworkTheme(
+                song.path,
+                controller: player,
+                saveLargeArtwork: !Platform.isWindows,
+                thumbnailSize: generatedArtworkThumbnailSize,
+              );
+          if (_disposed || myId != _currentProcessId) return;
+
+          if (artworkTheme != null &&
+              (artworkTheme.hasArtworkPath ||
+                  artworkTheme.hasThemeColors)) {
+            meta = artworkTheme.toSongMetadata(base: meta);
+            await db.insertOrUpdateSong(meta);
+
+            final updates = <String, dynamic>{
+              'thumbnailPath':
+                  artworkTheme.thumbnailPath ?? meta.thumbnailPath,
+              'artworkPath': artworkTheme.artworkPath ?? meta.artworkPath,
+              'artworkWidth': meta.artworkWidth,
+              'artworkHeight': meta.artworkHeight,
+            };
+            if (meta.themeColorsBlob != null) {
+              updates['themeColorsBlob'] = meta.themeColorsBlob;
+              updates['themeColors'] = ThemeColorHelper.blobToColors(
+                meta.themeColorsBlob!,
+              );
+            }
+
+            onUpdate(song.path, updates);
+          } else if (meta.themeColorsBlob == null) {
+            try {
+              final paletteBytes =
+                  song.artworkBytes ??
+                  (meta.artworkPath != null
+                      ? await File(meta.artworkPath!).readAsBytes()
+                      : null);
+              Uint8List? themeColorsBlob =
+                  await TrackArtworkThemeService.generateThemeColorsBlob(
+                    bytes: paletteBytes,
+                    path: meta.artworkPath ?? meta.thumbnailPath,
+                  );
+
+              if (themeColorsBlob == null) {
+                final extractedBytes =
+                    await MetadataHelper.decodeEmbeddedArtwork(song.path);
+                if (_disposed || myId != _currentProcessId) return;
+                themeColorsBlob =
+                    await TrackArtworkThemeService.generateThemeColorsBlob(
+                      bytes: extractedBytes,
+                    );
+              }
+
+              if (themeColorsBlob != null) {
+                meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
+                await db.insertOrUpdateSong(meta);
+
+                onUpdate(song.path, {
+                  'themeColors': ThemeColorHelper.blobToColors(
+                    themeColorsBlob,
+                  ),
+                  'themeColorsBlob': themeColorsBlob,
+                });
+              }
+            } catch (e) {
+              debugPrint(
+                'Theme color extraction error for ${song.path}: $e',
+              );
+            }
+          }
+
+          // Extract waveform if missing AND enabled in settings
+          if (showWaveform && meta.waveformBlob == null) {
+            try {
+              final waveformResult = await waveformService.getWaveformData(
+                path: song.path,
+                expectedChunks: settingsService.waveformChunks,
+                sampleStride: settingsService.sampleStride,
+                baseMetadata: meta,
+              );
+              if (_disposed || myId != _currentProcessId) return;
+
+              if (waveformResult.waveform.isNotEmpty) {
+                meta = meta.copyWith(waveformBlob: waveformResult.waveformBlob);
+                onUpdate(song.path, {
+                  'waveform': waveformResult.waveform,
+                  'waveformBlob': waveformResult.waveformBlob,
+                });
+              }
+            } catch (e) {
+              debugPrint('Waveform extraction error for ${song.path}: $e');
+            }
+          }
+        }
+
+        // Small delay between songs to keep main thread snappy
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+    } catch (e) {
+      debugPrint('Error processing background song ${song.path}: $e');
     }
   }
 
