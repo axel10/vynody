@@ -24,6 +24,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     beforeOpen: (details) async {
       await customStatement('PRAGMA busy_timeout = 5000');
+
+      final migrator = createMigrator();
+      for (final table in allTables) {
+        final exists = await _tableExists(table.actualTableName);
+        if (!exists) {
+          debugPrint('[Database] Table ${table.actualTableName} is missing, recreating...');
+          await migrator.createTable(table as TableInfo<Table, dynamic>);
+        }
+      }
+
       await _repairLegacyLyricsCacheRows();
       await _repairLegacyArtistCacheRows();
     },
@@ -282,6 +292,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<bool> _columnExists(String table, String column) async {
     final rows = await customSelect('PRAGMA table_info($table)').get();
     return rows.any((row) => row.data['name'] == column);
+  }
+
+  Future<bool> _tableExists(String table) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+      variables: [Variable(table)],
+    ).get();
+    return rows.isNotEmpty;
   }
 
   Future<void> _repairLegacyLyricsCacheRows() async {
