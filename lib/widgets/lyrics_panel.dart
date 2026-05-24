@@ -94,6 +94,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   int _lastDebugPositionMs = -1;
   DateTime _lastDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
   ToastFuture? _seekToast;
+  ValueNotifier<({Duration target, String timeLabel})>? _seekToastStateNotifier;
   String? _seekToastSignature;
   Timer? _seekToastAutoDismissTimer;
   double? _lastReportedActiveLyricTopOffset;
@@ -270,7 +271,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   @override
   void dispose() {
     _detachScrollActivityListener();
-    _seekToastAutoDismissTimer?.cancel();
+    _dismissSeekToast(showAnim: false);
     _scrollController.dispose();
     super.dispose();
   }
@@ -281,6 +282,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _seekToast?.dismiss(showAnim: showAnim);
     _seekToast = null;
     _seekToastSignature = null;
+    _seekToastStateNotifier?.dispose();
+    _seekToastStateNotifier = null;
   }
 
   String _formatDuration(Duration duration) {
@@ -292,18 +295,28 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   void _syncSeekToast(Duration target) {
     final signature = target.inMilliseconds.toString();
-    if (_seekToastSignature == signature && _seekToast?.mounted == true) {
+    final l10n = AppLocalizations.of(context);
+    final timeText = _formatDuration(target);
+    final timeLabelText = l10n?.targetTimeLabel(timeText) ?? 'Target time $timeText';
+
+    if (_seekToast?.mounted == true && _seekToastStateNotifier != null) {
+      _seekToastSignature = signature;
+      _seekToastStateNotifier!.value = (target: target, timeLabel: timeLabelText);
+      _seekToastAutoDismissTimer?.cancel();
+      _seekToastAutoDismissTimer = Timer(_seekToastAutoDismissDelay, () {
+        if (!mounted) return;
+        if (_seekToastSignature != signature) return;
+        _dismissSeekToast(showAnim: true);
+      });
       return;
     }
 
     _dismissSeekToast();
     _seekToastSignature = signature;
-    final l10n = AppLocalizations.of(context);
-    final timeText = _formatDuration(target);
+    _seekToastStateNotifier = ValueNotifier((target: target, timeLabel: timeLabelText));
     _seekToast = showToastWidget(
       LyricsSeekToast(
-        target: target,
-        timeLabel: l10n?.targetTimeLabel(timeText) ?? 'Target time $timeText',
+        stateListenable: _seekToastStateNotifier!,
         accentColor:
             widget.accentColor ?? Theme.of(context).colorScheme.primary,
       ),
@@ -882,25 +895,24 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     if (targetLine == null || !_hasTimedLyrics(displayLines)) {
-      _dismissSeekToast();
+      _dismissSeekToast(showAnim: true);
       return;
     }
 
     if (!wasDraggingLyrics) {
-      _dismissSeekToast();
+      _dismissSeekToast(showAnim: true);
       return;
     }
 
     // 用户抬手后先立刻收掉进度提示，再异步执行 seek，避免 toast
     // 因为播放器跳转或后续重建而滞留在屏幕上。
-    _dismissSeekToast();
+    _dismissSeekToast(showAnim: true);
 
     if (targetLine >= 0 && targetLine < displayLines.length) {
       final targetPosition = _audioSeekPositionForLyricTimestamp(
         displayLines[targetLine].timestamp,
       );
       unawaited(ref.read(audioServiceProvider).seek(targetPosition));
-      _syncSeekToast(targetPosition);
     }
   }
 

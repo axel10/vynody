@@ -200,13 +200,11 @@ class _InfoPill extends StatelessWidget {
 class LyricsSeekToast extends StatelessWidget {
   const LyricsSeekToast({
     super.key,
-    required this.target,
-    required this.timeLabel,
+    required this.stateListenable,
     required this.accentColor,
   });
 
-  final Duration target;
-  final String timeLabel;
+  final ValueNotifier<({Duration target, String timeLabel})> stateListenable;
   final Color accentColor;
 
   @override
@@ -218,37 +216,42 @@ class LyricsSeekToast extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 240),
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: accentColor.withValues(alpha: 0.24)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.12),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
+      child: ValueListenableBuilder<({Duration target, String timeLabel})>(
+        valueListenable: stateListenable,
+        builder: (context, state, _) {
+          return Container(
+            constraints: const BoxConstraints(maxWidth: 240),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: accentColor.withValues(alpha: 0.24)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.schedule_rounded, size: 18, color: accentColor),
-            const SizedBox(width: 10),
-            Text(
-              timeLabel,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: onSurface,
-                fontWeight: FontWeight.w700,
-                height: 1.1,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.schedule_rounded, size: 18, color: accentColor),
+                const SizedBox(width: 10),
+                Text(
+                  state.timeLabel,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: onSurface,
+                    fontWeight: FontWeight.w700,
+                    height: 1.1,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
