@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -108,7 +109,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
   @override
   void didUpdateWidget(WaveformProgressBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.waveform != oldWidget.waveform) {
+    if (!listEquals(widget.waveform, oldWidget.waveform)) {
       _targetWaveform = _getEffectiveWaveform(widget.waveform);
       
       // 如果长度不一致，先将当前波形缩放到目标长度，以便进行逐点插值动画
@@ -118,6 +119,8 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
       _animationController.forward(from: 0);
     }
   }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -251,7 +254,6 @@ class WaveformPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 即使没有数据，我们也在 State 层提供了默认数据，所以这里通常不会为空
     if (waveform.isEmpty) return;
 
     final double centerY = size.height / 2;
@@ -265,13 +267,30 @@ class WaveformPainter extends CustomPainter {
     final double centerX = isScrolling ? size.width / 2 : size.width * progress;
 
     // 1. 绘制底色层 (全量绘制未激活颜色)
-    _drawWaveformLayer(canvas, size, centerY, maxBarHeight, totalBarWidth, currentIdx, inactiveColor);
+    _drawWaveformLayer(
+      canvas,
+      size,
+      centerY,
+      maxBarHeight,
+      totalBarWidth,
+      currentIdx,
+      inactiveColor,
+    );
 
-    // 2. 绘制激活层 (使用裁剪实现像素级颜色平滑过渡)
+    // 2. 绘制激活层 (使用裁剪实现像素级颜色平滑过渡，并通过 maxExclusiveX 限制绘制的索引范围)
     canvas.save();
-    // 裁剪出播放头左侧的区域
     canvas.clipRect(Rect.fromLTWH(0, 0, centerX, size.height));
-    _drawWaveformLayer(canvas, size, centerY, maxBarHeight, totalBarWidth, currentIdx, activeColor, withGlow: true);
+    _drawWaveformLayer(
+      canvas,
+      size,
+      centerY,
+      maxBarHeight,
+      totalBarWidth,
+      currentIdx,
+      activeColor,
+      withGlow: true,
+      maxExclusiveX: centerX,
+    );
     canvas.restore();
   }
 
@@ -284,36 +303,70 @@ class WaveformPainter extends CustomPainter {
     double currentIdx,
     Color color, {
     bool withGlow = false,
+    double? maxExclusiveX,
   }) {
     final double viewCenterX = size.width / 2;
     final paint = Paint()..style = PaintingStyle.fill;
 
-    for (int i = 0; i < waveform.length; i++) {
+    // 创建单次着色器，共享于此图层的所有波形条
+    paint.shader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        color.withValues(alpha: 0.7),
+        color,
+        color.withValues(alpha: 0.7),
+      ],
+    ).createShader(Rect.fromLTWH(0, centerY - maxBarHeight / 2, size.width, maxBarHeight));
+
+    Paint? glowPaint;
+    if (withGlow && barWidth > 2) {
+      glowPaint = Paint()
+        ..color = color.withValues(alpha: 0.1)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    }
+
+    final double stepWidth = isScrolling ? totalBarWidth : (size.width / math.max(1, waveform.length));
+
+    // 计算起点与终点索引，仅绘制屏幕内可见的波形条
+    int startIndex = 0;
+    int endIndex = waveform.length;
+
+    if (isScrolling) {
+      final double startFloat = currentIdx - (viewCenterX + barWidth) / stepWidth;
+      startIndex = math.max(0, startFloat.floor());
+
+      final double endFloat = currentIdx + (size.width - viewCenterX) / stepWidth;
+      endIndex = math.min(waveform.length, endFloat.ceil() + 1);
+
+      if (maxExclusiveX != null) {
+        // 在滚动模式下，播放头 centerX 就是 viewCenterX
+        // 任何 x > viewCenterX 的波形条都不需要被激活层绘制
+        // viewCenterX + (i - currentIdx) * stepWidth <= viewCenterX  =>  i <= currentIdx
+        endIndex = math.min(endIndex, currentIdx.ceil() + 1);
+      }
+    } else {
+      if (maxExclusiveX != null) {
+        // x = i * stepWidth <= maxExclusiveX
+        // => i <= maxExclusiveX / stepWidth
+        final double maxIndexFloat = maxExclusiveX / stepWidth;
+        endIndex = math.min(endIndex, maxIndexFloat.ceil() + 1);
+      }
+    }
+
+    for (int i = startIndex; i < endIndex; i++) {
       double x;
       if (isScrolling) {
-        x = viewCenterX + (i - currentIdx) * totalBarWidth;
+        x = viewCenterX + (i - currentIdx) * stepWidth;
       } else {
-        x = i * (size.width / math.max(1, waveform.length));
+        x = i * stepWidth;
       }
 
-      // 只绘制可见区域内的波形
       if (x + barWidth < 0 || x > size.width) continue;
+      if (maxExclusiveX != null && x > maxExclusiveX) continue;
 
-      // 确保即使数据为0，也有一定的基础高度
       final double barHeight = math.max(2.0, waveform[i] * maxBarHeight);
       final double y = centerY - barHeight / 2;
-
-      // 设置颜色和渐变
-      paint.color = color;
-      paint.shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          color.withValues(alpha: 0.7),
-          color,
-          color.withValues(alpha: 0.7),
-        ],
-      ).createShader(Rect.fromLTWH(x, y, barWidth, barHeight));
 
       final RRect rrect = RRect.fromRectAndRadius(
         Rect.fromLTWH(x, y, barWidth, barHeight),
@@ -322,11 +375,7 @@ class WaveformPainter extends CustomPainter {
       
       canvas.drawRRect(rrect, paint);
       
-      // 添加发光效果 (只针对激活层)
-      if (withGlow && barWidth > 2) {
-        final glowPaint = Paint()
-          ..color = color.withValues(alpha: 0.1)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      if (glowPaint != null) {
         canvas.drawRRect(rrect.inflate(1), glowPaint);
       }
     }
@@ -334,7 +383,7 @@ class WaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant WaveformPainter oldDelegate) {
-    return oldDelegate.waveform != waveform ||
+    return !listEquals(oldDelegate.waveform, waveform) ||
         oldDelegate.progress != progress ||
         oldDelegate.activeColor != activeColor ||
         oldDelegate.inactiveColor != inactiveColor ||
