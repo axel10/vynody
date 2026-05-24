@@ -163,6 +163,17 @@ class MyApp extends ConsumerWidget {
     return ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
+      fontFamily: 'Segoe UI',
+      fontFamilyFallback: const [
+        'Microsoft YaHei UI',
+        'Microsoft YaHei',
+        'PingFang SC',
+        'Heiti SC',
+        'Noto Sans CJK SC',
+        'Noto Sans SC',
+        'Source Han Sans SC',
+        'sans-serif',
+      ],
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: snackBarBackground,
