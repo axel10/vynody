@@ -17,9 +17,6 @@ class PlaybackPageUiTuning {
   static const double portraitTopPadding = 12.0;
   static const double lyricsTopPadding = 8.0;
 
-  static const double lyricsItemExtent = 100.0;
-  static const double minLyricsItemExtent = 82.0;
-  static const double maxLyricsItemExtent = 132.0;
   static const double lyricsVerticalPadding = 28.0; // 每行歌词之间的间距
 
   static EdgeInsets contentPadding({
@@ -57,8 +54,6 @@ class PlaybackHeroCardUiTuning {
   static const Duration transitionDuration = Duration(milliseconds: 400);
 
   // 竖屏参数 (Portrait parameters)
-  static const double pControlsMinHeight = 180.0;
-  static const double pControlsMaxHeight = 400.0;
   static const double pInfoHeight = 80.0;
   static const double pCoverMaxSide = 1000.0;
   static const double pNormalCoverInfoMinGap = 26.0; // 竖屏下标题区距离封面底部的最小距离
@@ -76,10 +71,8 @@ class PlaybackHeroCardUiTuning {
 
   static const double trackTitlePortraitLyricsFont = 20.0;
   static const double trackTitleStandardFont = 24.0;
-  static const double trackTitleLargeFont = 30.0;
   static const double trackArtistPortraitLyricsFont = 14.0;
   static const double trackArtistStandardFont = 16.0;
-  static const double trackArtistLargeFont = 20.0;
 
   // static const double controlsRowLandscapeGap = 16.0;
   static const double controlsRowPortraitGap = 8.0;
@@ -88,13 +81,11 @@ class PlaybackHeroCardUiTuning {
   static const double topButtonsInnerGap = 6.0; // 减小按钮之间的间距
 
   static const double waveformOverlayHeight = 200.0;
-  static const double waveformOverlayTopPadding = 20.0;
   static const double waveformOverlayTimeSide = 20.0;
   static const double waveformOverlayTimeBottom = 10.0;
   static const double waveformPortraitLyricsHeight = 100.0; // 竖屏下波形进度条的高度
   static const double waveformLandscapeHeight = 74.0; // 横屏下波形进度条的高度
   static const double waveformStandardHorizontalPadding = 16.0;
-  static const double waveformStandardTimeRowHorizontalPadding = 20.0;
   static const double waveformStandardTimeRowSpacing = 0.0;
   static const double portraitWaveformOverflowScale =
       1.35; // 竖屏波形进度条溢出缩放 (仅视觉，不影响布局)
