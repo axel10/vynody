@@ -34,6 +34,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   final Set<String> _selectedSongPaths = {};
   final Set<String> _selectedRootPaths = {};
   late final FolderSelectionModeController _folderSelectionModeController;
+  late final FolderRootSelectionModeController _folderRootSelectionModeController;
   StreamSubscription<ScanProgress>? _scanProgressSubscription;
   ToastFuture? _scanToast;
   bool _wasScanning = false;
@@ -410,6 +411,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     _folderSelectionModeController = ref.read(
       folderSelectionModeProvider.notifier,
     );
+    _folderRootSelectionModeController = ref.read(
+      folderRootSelectionModeProvider.notifier,
+    );
     _wasScanning = _scanner!.isScanning;
     _scanner!.addListener(_handleScannerChanged);
     _scanProgressSubscription = _scanner!.scanProgressStream.listen(
@@ -422,12 +426,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     // Defer the provider write so it happens after the current widget tree
     // finishes unmounting. Doing it synchronously here can trip Riverpod's
     // "modifying a provider while building" assertion during tab switches.
-    final folderRootSelectionModeController = ref.read(
-      folderRootSelectionModeProvider.notifier,
-    );
     Future.microtask(() {
       _setFolderSelectionMode(false);
-      folderRootSelectionModeController.setEnabled(false);
+      _folderRootSelectionModeController.setEnabled(false);
     });
     _scanToastUpdateTimer?.cancel();
     _scanToastAutoDismissTimer?.cancel();

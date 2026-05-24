@@ -23,14 +23,20 @@ class QueuePage extends ConsumerStatefulWidget {
 class _QueuePageState extends ConsumerState<QueuePage> {
   final Set<int> _selectedIndices = {};
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
+  late final QueueSelectionModeController _queueSelectionModeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _queueSelectionModeController = ref.read(
+      queueSelectionModeProvider.notifier,
+    );
+  }
 
   @override
   void dispose() {
-    final queueSelectionModeController = ref.read(
-      queueSelectionModeProvider.notifier,
-    );
     Future.microtask(() {
-      queueSelectionModeController.setEnabled(false);
+      _queueSelectionModeController.setEnabled(false);
     });
     super.dispose();
   }

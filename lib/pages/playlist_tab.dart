@@ -21,14 +21,20 @@ class PlaylistTab extends ConsumerStatefulWidget {
 
 class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   final Set<int> _selectedIndices = {};
+  late final PlaylistSelectionModeController _playlistSelectionModeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _playlistSelectionModeController = ref.read(
+      playlistSelectionModeProvider.notifier,
+    );
+  }
 
   @override
   void dispose() {
-    final playlistSelectionModeController = ref.read(
-      playlistSelectionModeProvider.notifier,
-    );
     Future.microtask(() {
-      playlistSelectionModeController.setEnabled(false);
+      _playlistSelectionModeController.setEnabled(false);
     });
     super.dispose();
   }
