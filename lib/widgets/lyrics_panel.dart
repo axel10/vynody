@@ -1162,11 +1162,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         if (hasTimedLyrics) {
           if (layoutRevisionChanged) {
             if (kDebugMode) {
-              debugPrint(
-                '[LyricsPanel] layoutRevisionChanged -> '
-                'revision=$layoutRevision activeIndex=$activeIndex '
-                'focusedIndex=$focusedIndex lines=${displayLines.length}',
-              );
+
               _logLayoutMetrics(
                 displayLines: displayLines,
                 lyrics: lyrics,
@@ -1304,11 +1300,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final scrollOffsetStr = _scrollController.hasClients
         ? _scrollController.offset.toStringAsFixed(1)
         : 'not_attached';
-    buffer.writeln(
-      '[LyricsPanel] metrics activeIndex=$activeIndex '
-      'viewport=${viewportHeight.toStringAsFixed(1)} '
-      'scrollOffset=$scrollOffsetStr',
-    );
+    // buffer.writeln(
+    //   '[LyricsPanel] metrics activeIndex=$activeIndex '
+    //   'viewport=${viewportHeight.toStringAsFixed(1)} '
+    //   'scrollOffset=$scrollOffsetStr',
+    // );
     for (var i = start; i <= end; i++) {
       final translated =
           lyrics
