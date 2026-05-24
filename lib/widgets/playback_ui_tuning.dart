@@ -20,7 +20,7 @@ class PlaybackPageUiTuning {
   static const double lyricsItemExtent = 100.0;
   static const double minLyricsItemExtent = 82.0;
   static const double maxLyricsItemExtent = 132.0;
-  static const double lyricsVerticalPadding = 18.0;
+  static const double lyricsVerticalPadding = 28.0; // 每行歌词之间的间距
 
   static EdgeInsets contentPadding({
     required bool isLandscape,
@@ -110,7 +110,7 @@ class PlaybackHeroCardUiTuning {
   static const double progressBarWidthFactor = 1.0; // 进度条宽度比例（相对于按钮区）
   static const double portraitProgressBarWidthFactor =
       1.1; // 竖屏进度条宽度比例 (增加一点溢出感)
-  static const double landscapeInfoControlsGap = 10.0;
+  static const double landscapeInfoControlsGap = 10.0; // 横屏下标题区到控件区的距离
   static const double landscapeInfoHeightBase = 48.0;
   static const double controlsRowLandscapeGap = 12.0;
 
