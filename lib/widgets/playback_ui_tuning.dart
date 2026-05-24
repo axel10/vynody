@@ -110,7 +110,7 @@ class PlaybackHeroCardUiTuning {
   static const double progressBarWidthFactor = 1.0; // 进度条宽度比例（相对于按钮区）
   static const double portraitProgressBarWidthFactor =
       1.1; // 竖屏进度条宽度比例 (增加一点溢出感)
-  static const double landscapeInfoControlsGap = 20.0;
+  static const double landscapeInfoControlsGap = 10.0;
   static const double landscapeInfoHeightBase = 48.0;
   static const double controlsRowLandscapeGap = 12.0;
 
