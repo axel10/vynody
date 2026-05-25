@@ -71,6 +71,7 @@ Future<void> showTranscodeDialog(
     SnackBar(
       content: Text(message),
       duration: const Duration(seconds: 4),
+      persist: false,
       action:
           summary.firstOutputPath != null &&
               (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
