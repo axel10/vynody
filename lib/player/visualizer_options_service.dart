@@ -43,10 +43,27 @@ class VisualizerOptionsService extends ChangeNotifier {
           ),
         );
         controller.visualizer.updateOptions(options);
-        notifyListeners();
       } else {
         // Apply default values if no saved settings
         resetOptions();
+      }
+
+      // If auto mode is enabled, apply the auto settings using current orientation
+      if (settingsService.isAutoMode) {
+        final dispatcher = WidgetsBinding.instance.platformDispatcher;
+        final view = dispatcher.views.isEmpty ? null : dispatcher.views.first;
+        final Orientation orientation;
+        if (view != null) {
+          final size = view.physicalSize;
+          orientation = size.width > size.height
+              ? Orientation.landscape
+              : Orientation.portrait;
+        } else {
+          orientation = Orientation.portrait;
+        }
+        applySettings(orientation: orientation);
+      } else {
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error loading visualizer options: $e');

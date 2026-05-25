@@ -13,6 +13,7 @@ import 'song_tag_completion_widgets.dart';
 import 'song_tag_musicbrainz_cards.dart';
 import 'song_tag_acoustid_cards.dart';
 import 'song_tag_completion_riverpod.dart';
+import '../utils/app_snack_bar.dart';
 
 enum _SummaryCondition { title, artist, album, duration }
 
@@ -335,9 +336,12 @@ class _SongTagCompletionSheetState
         acoustidErrorMessage != null &&
         acoustidErrorMessage != _lastAcoustIDClientErrorMessage) {
       _lastAcoustIDClientErrorMessage = acoustidErrorMessage;
-      ScaffoldMessenger.of(context).showSnackBar(
+      AppSnackBar.show(
+        context,
+        ref,
         SnackBar(
           content: Text(acoustidErrorMessage),
+          duration: const Duration(seconds: 4),
           action: SnackBarAction(
             label: l10n.goToSettings,
             onPressed: () {

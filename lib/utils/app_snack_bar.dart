@@ -5,20 +5,20 @@ import '../pages/main_layout_riverpod.dart';
 class AppSnackBar {
   static void show(
     BuildContext context,
-    WidgetRef ref,
+    WidgetRef? ref,
     SnackBar snackBar, {
     double offset = 70.0,
   }) {
     final messenger = ScaffoldMessenger.of(context);
-    final controller = ref.read(mainLayoutUiControllerProvider.notifier);
+    final controller = ref != null
+        ? ref.read(mainLayoutUiControllerProvider.notifier)
+        : ProviderScope.containerOf(context, listen: false)
+            .read(mainLayoutUiControllerProvider.notifier);
 
-    // If there's already a snackbar being shown, we might already have an offset.
-    // ScaffoldMessenger queues snackbars, so we should keep the offset until the last one is closed.
-    // For simplicity, we just set it now and reset it when THIS one is closed.
-    // If multiple are shown, the offset will persist until the last one's 'closed' future completes.
-    
+    // Dismiss any active snackbar immediately to avoid queuing and layout collision
+    messenger.hideCurrentSnackBar();
     controller.setSnackBarOffset(offset);
-    
+
     messenger.showSnackBar(snackBar).closed.then((reason) {
       // Only reset if this was the last snackbar or if we want to be safe.
       // In a more complex app, we'd count active snackbars.

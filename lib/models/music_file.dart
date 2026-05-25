@@ -31,9 +31,18 @@ abstract class MusicFile with _$MusicFile {
     @Default(false) bool isMissing,
   }) = _MusicFile;
 
+  static final Expando<List<double>> _waveformCache = Expando<List<double>>();
+
   List<double> get waveform {
+    final cached = _waveformCache[this];
+    if (cached != null) return cached;
+
     final blob = waveformBlob;
-    if (blob == null || blob.isEmpty) return const [];
+    if (blob == null || blob.isEmpty) {
+      const empty = <double>[];
+      _waveformCache[this] = empty;
+      return empty;
+    }
     final alignedBlob = (blob.offsetInBytes % 4 == 0)
         ? blob
         : Uint8List.fromList(blob);
@@ -41,7 +50,9 @@ abstract class MusicFile with _$MusicFile {
       alignedBlob.offsetInBytes,
       alignedBlob.length ~/ 4,
     );
-    return list.map((e) => e.toDouble()).toList();
+    final result = list.map((e) => e.toDouble()).toList();
+    _waveformCache[this] = result;
+    return result;
   }
 
   String get displayName {

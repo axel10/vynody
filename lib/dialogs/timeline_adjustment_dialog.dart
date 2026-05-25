@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 
-const double _timelineOffsetMinSeconds = -10.0;
-const double _timelineOffsetMaxSeconds = 10.0;
+const double _timelineOffsetMinSeconds = -20.0;
+const double _timelineOffsetMaxSeconds = 20.0;
 const double _timelineOffsetStepSeconds = 0.1;
 
 Future<void> showTimelineAdjustmentDialog(
@@ -45,7 +45,7 @@ Future<void> showTimelineAdjustmentDialog(
                     Text(
                       dialogL10n.timelineAdjustmentDescription,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                         height: 1.4,
                       ),
                     ),
@@ -53,7 +53,7 @@ Future<void> showTimelineAdjustmentDialog(
                     Text(
                       label,
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -85,16 +85,16 @@ Future<void> showTimelineAdjustmentDialog(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          dialogL10n.timelineOffsetEarlier('30.0'),
+                          dialogL10n.timelineOffsetEarlier('20.0'),
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                             fontSize: 12,
                           ),
                         ),
                         Text(
-                          dialogL10n.timelineOffsetLater('30.0'),
+                          dialogL10n.timelineOffsetLater('20.0'),
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                             fontSize: 12,
                           ),
                         ),

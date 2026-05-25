@@ -108,6 +108,8 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                     context,
                   ).orientation;
                   audio.applyVisualizerSettings(orientation: orientation);
+                } else {
+                  audio.visualizerOptions.loadOptions();
                 }
                 setDialogState(() {});
               },
@@ -475,6 +477,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
             resetLabel: l10n.resetAppearance,
             onReset: () {
               settings.resetVisualizerAppearance();
+              final Orientation orientation = MediaQuery.of(
+                context,
+              ).orientation;
+              audio.applyVisualizerSettings(orientation: orientation);
               setDialogState(() {});
             },
           ),

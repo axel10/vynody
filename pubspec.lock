@@ -46,7 +46,7 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: c36939e49eeabda25314b6e4591f6a5655cca584
+      resolved-ref: "8f9fcaed817f701bb800ada3450717bf4a20b71c"
       url: "https://github.com/axel10/audio_core"
     source: git
     version: "0.0.1"

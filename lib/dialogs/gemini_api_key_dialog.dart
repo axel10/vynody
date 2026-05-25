@@ -82,11 +82,13 @@ class _ApiKeyDialog extends StatefulWidget {
   State<_ApiKeyDialog> createState() => _ApiKeyDialogState();
 }
 
+enum _StatusType { none, warning, loading, success, error }
+
 class _ApiKeyDialogState extends State<_ApiKeyDialog> {
   late final TextEditingController _controller;
   bool _isTesting = false;
   String _statusText = '';
-  Color _statusColor = Colors.white70;
+  _StatusType _statusType = _StatusType.none;
 
   @override
   void initState() {
@@ -105,7 +107,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
     if (apiKey.isEmpty) {
       setState(() {
         _statusText = widget.emptyMessage;
-        _statusColor = Colors.orangeAccent;
+        _statusType = _StatusType.warning;
       });
       return;
     }
@@ -113,7 +115,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
     setState(() {
       _isTesting = true;
       _statusText = AppLocalizations.of(context)!.testingConnection;
-      _statusColor = Colors.white70;
+      _statusType = _StatusType.loading;
     });
 
     final result = await widget.testConnection(apiKey);
@@ -122,9 +124,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
     setState(() {
       _isTesting = false;
       _statusText = result.message;
-      _statusColor = result.success
-          ? Colors.lightGreenAccent
-          : Colors.redAccent;
+      _statusType = result.success ? _StatusType.success : _StatusType.error;
     });
   }
 
@@ -132,6 +132,19 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
   Widget build(BuildContext context) {
     final apiKey = _controller.text.trim();
     final canSave = apiKey.isNotEmpty && !_isTesting;
+    final theme = Theme.of(context);
+
+    final statusColor = switch (_statusType) {
+      _StatusType.warning => theme.brightness == Brightness.dark
+          ? Colors.orangeAccent
+          : Colors.orange.shade800,
+      _StatusType.loading => theme.colorScheme.onSurface.withValues(alpha: 0.7),
+      _StatusType.success => theme.brightness == Brightness.dark
+          ? Colors.greenAccent
+          : Colors.green.shade800,
+      _StatusType.error => theme.colorScheme.error,
+      _StatusType.none => Colors.transparent,
+    };
 
     return AlertDialog(
       title: Text(widget.title),
@@ -157,6 +170,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
                 onChanged: (_) {
                   setState(() {
                     _statusText = '';
+                    _statusType = _StatusType.none;
                   });
                 },
               ),
@@ -164,7 +178,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
                 const SizedBox(height: 12),
                 Text(
                   _statusText,
-                  style: TextStyle(color: _statusColor, fontSize: 13),
+                  style: TextStyle(color: statusColor, fontSize: 13),
                 ),
               ],
             ],

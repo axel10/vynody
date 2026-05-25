@@ -478,6 +478,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         );
 
         await _restoreCurrentThemeColors();
+        unawaited(_refreshCurrentWaveform());
 
         final maxPositionMs = _duration.inMilliseconds > 0
             ? _duration.inMilliseconds
@@ -1078,14 +1079,14 @@ class AudioService extends Notifier<AudioSnapshot> {
           'path="${song.path}" duration=$_duration active=$isLyricsActive',
         );
         unawaited(
-          // 发起完整的元数据更新流程
+          // 发起元数据更新和后台处理
           _updateCurrentMetadata(song).then((_) {
-            _refreshCurrentWaveform();
             _windowsIntegration?.updateMetadata(_queue[newIndex]);
             _androidIntegration?.updateMetadata(_queue[newIndex]);
             _startQueueBackgroundProcessing();
           }),
         );
+        unawaited(_refreshCurrentWaveform());
       }
       _notifyIfNeeded(force: true);
     }

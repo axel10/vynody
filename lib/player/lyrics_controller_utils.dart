@@ -249,6 +249,7 @@ class LyricsControllerSupport {
       plainText: normalizedText,
       source: source.musicLyricSource,
       timelineOffset: song.lyrics?.timelineOffset ?? Duration.zero,
+      translations: song.lyrics?.translations ?? const <String, MusicLyricTranslation>{},
     );
 
     final updatedSong = replaceCurrentSongIfPath(
@@ -258,13 +259,7 @@ class LyricsControllerSupport {
     if (updatedSong == null) return;
 
     if (cacheKey.isNotEmpty) {
-      await _context.lyricsCacheRepository.clearAllLyricsCachesByKey(cacheKey);
-      _context.translatedLyricsKeys.removeWhere(
-        (key) => key.startsWith('$cacheKey|'),
-      );
-      _context.translationInFlightKeys.removeWhere(
-        (key) => key.startsWith('$cacheKey|'),
-      );
+      await _context.lyricsCacheRepository.clearLyricsCacheByKey(cacheKey);
     }
 
     _context.setHasLyrics(true);
@@ -282,6 +277,7 @@ class LyricsControllerSupport {
     );
 
     _context.bumpRevision();
+    _context.bumpLyricsLayoutRevision();
 
     try {
       await _context.lyricsCacheRepository.saveLyricsCache(

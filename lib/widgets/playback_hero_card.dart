@@ -347,6 +347,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     (s) => s.isWaveformProgressBarEnabled,
                   ),
                 );
+                final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
 
                 final layout = _buildPlaybackCardLayout(
                   context,
@@ -391,6 +392,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.center,
                               child: SizedBox(
+                                key: ValueKey('controls_sizing_box_${useOverlayStyle ? 'overlay' : 'default'}'),
                                 width:
                                     (isLandscape
                                         ? lerpDouble(
@@ -1123,10 +1125,8 @@ class PlaybackHeroCard extends ConsumerWidget {
     final isFavorite =
         currentMusic != null && playlistService.isFavoriteSong(currentMusic);
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
-    final duration = ref.watch(audioDurationProvider);
     final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
-    final progress = ref.watch(audioProgressProvider);
     final l10n = AppLocalizations.of(context)!;
 
     final isWaveformEnabled = ref.watch(
@@ -1530,101 +1530,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     ),
   );
 
-    // 进度条及时间显示容器 (Common container for progress bar and time display)
-    Widget buildProgressSection() {
-      // 在横屏切换到歌词模式的过程中，平滑插值宽度系数和基准宽度
-      // 在横屏切换到歌词模式的过程中，平滑插值宽度系数
-      final widthFactor = isLandscape
-          ? (lerpDouble(
-              PlaybackHeroCardUiTuning.progressBarWidthFactor,
-              1.0,
-              tLyrics,
-            )!)
-          : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor;
-
-      return SizedBox(
-        width: buttonsRowWidth * widthFactor,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Builder(
-              builder: (context) {
-                final waveform =
-                    overrideWaveform ?? currentMusic?.waveform ?? const [];
-                final displayProgress =
-                    overrideProgress ?? progress.clamp(0.0, 1.0);
-
-                if (isWaveformEnabled) {
-                  final waveformWidget = WaveformProgressBar(
-                    waveform: waveform,
-                    progress: displayProgress,
-                    duration: duration,
-                    onScrubbing: onScrubbing ?? (_) {},
-                    onSeek: onSeek ?? (_) {},
-                    height:
-                        (isLandscape
-                            ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
-                            : PlaybackHeroCardUiTuning
-                                  .waveformPortraitLyricsHeight) *
-                        controlsScale,
-                  );
-                  if (!isLandscape) {
-                    return Transform.scale(
-                      scaleX: PlaybackHeroCardUiTuning
-                          .portraitWaveformOverflowScale,
-                      child: waveformWidget,
-                    );
-                  }
-                  return waveformWidget;
-                }
-                return _buildStandardSlider(
-                  context,
-                  displayProgress,
-                  controlsScale,
-                  noPadding: true,
-                );
-              },
-            ),
-            SizedBox(
-              height:
-                  (isLandscape
-                      ? PlaybackHeroCardUiTuning.controlsTimeGap
-                      : 8.0) *
-                  controlsScale,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    formatDuration(
-                      overridePosition ?? ref.watch(audioPositionProvider),
-                    ),
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12 * controlsScale,
-                    ),
-                  ),
-                  Text(
-                    formatDuration(duration),
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12 * controlsScale,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     if (useOverlayStyle) {
-      final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
-      final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
-
       return Column(
         key: const ValueKey('overlay_controls_column'),
         mainAxisSize: MainAxisSize.min,
@@ -1638,114 +1544,16 @@ class PlaybackHeroCard extends ConsumerWidget {
             key: const ValueKey('overlay_controls_stack'),
             alignment: Alignment.center,
             children: [
-              // 1. 只有波形进度条进行缩放 (Only waveform is scaled)
-              Transform.scale(
-                scaleX: PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
-                child: SizedBox(
-                  width: totalWidth,
-                  child: WaveformProgressBar(
-                    waveform: waveform,
-                    progress: displayProgress,
-                    duration: duration,
-                    onScrubbing: onScrubbing ?? (_) {},
-                    onSeek: onSeek ?? (_) {},
-                    height:
-                        PlaybackHeroCardUiTuning.waveformOverlayHeight *
-                        controlsScale,
-                  ),
-                ),
-              ),
-              // 2. 时间文字单独平移，避免拉伸 (Time text translated separately to avoid stretching)
-              // 计算平移距离：使其跟随波形向外移动，但增加阻尼，并严格限制最小屏幕边距
-              Builder(
-                builder: (context) {
-                  final screenWidth = MediaQuery.of(context).size.width;
-                  final pagePadding =
-                      PlaybackPageUiTuning.normalPortraitHorizontalPadding;
-                  const minScreenMargin = 10.0; // 强制要求的最小屏幕边距
-
-                  // 计算当前 FittedBox 的缩放比例 (理想宽度 / 实际显示宽度)
-                  // 注意：此处 cardWidth 是 PlaybackHeroCard 的实际可用宽度
-                  final cardWidth = screenWidth - (pagePadding * 2);
-                  final fittedScale = cardWidth / totalWidth;
-
-                  // 初始位移计算 (带阻尼)
-                  final rawShift =
-                      (PlaybackHeroCardUiTuning.waveformOverlayTimeSide -
-                          totalWidth / 2) *
-                      (PlaybackHeroCardUiTuning.portraitWaveformOverflowScale -
-                          1) *
-                      0.8;
-
-                  final safeFittedScale =
-                      (fittedScale.isFinite && fittedScale > 0)
-                          ? fittedScale
-                          : 1.0;
-                  final minAllowedShift =
-                      (minScreenMargin - pagePadding) / safeFittedScale -
-                          PlaybackHeroCardUiTuning.waveformOverlayTimeSide;
-
-                  final lowerBound = math.min(
-                    minAllowedShift.isFinite ? minAllowedShift : 0.0,
-                    0.0,
-                  );
-                  final safeShift =
-                      rawShift.isFinite ? rawShift.clamp(lowerBound, 0.0) : 0.0;
-
-                  return SizedBox(
-                    width: totalWidth,
-                    height:
-                        PlaybackHeroCardUiTuning.waveformOverlayHeight *
-                        controlsScale,
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          left:
-                              PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
-                          bottom: PlaybackHeroCardUiTuning
-                              .waveformOverlayTimeBottom,
-                          child: Transform.translate(
-                            offset: Offset(safeShift, 0),
-                            child: Text(
-                              formatDuration(
-                                overridePosition ??
-                                    ref.watch(audioPositionProvider),
-                              ),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12 * controlsScale,
-                                fontWeight: FontWeight.bold,
-                                shadows: const [
-                                  Shadow(color: Colors.black45, blurRadius: 4),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right:
-                              PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
-                          bottom: PlaybackHeroCardUiTuning
-                              .waveformOverlayTimeBottom,
-                          child: Transform.translate(
-                            offset: Offset(-safeShift, 0),
-                            child: Text(
-                              formatDuration(duration),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12 * controlsScale,
-                                fontWeight: FontWeight.bold,
-                                shadows: const [
-                                  Shadow(color: Colors.black45, blurRadius: 4),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              PlaybackOverlayProgressTimeLayer(
+                key: const ValueKey('playback_overlay_progress_time_layer'),
+                currentMusic: currentMusic,
+                controlsScale: controlsScale,
+                totalWidth: totalWidth,
+                overrideProgress: overrideProgress,
+                overridePosition: overridePosition,
+                overrideWaveform: overrideWaveform,
+                onScrubbing: onScrubbing,
+                onSeek: onSeek,
               ),
               // 3. 播放控制按钮叠在上面，不跟随缩放 (Playback controls on top, no scaling)
               Padding(
@@ -1772,7 +1580,19 @@ class PlaybackHeroCard extends ConsumerWidget {
                 PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
                 controlsScale,
           ),
-          buildProgressSection(),
+          PlaybackProgressSection(
+            key: const ValueKey('playback_progress_section_landscape'),
+            currentMusic: currentMusic,
+            controlsScale: controlsScale,
+            tLyrics: tLyrics,
+            isLandscape: isLandscape,
+            buttonsRowWidth: buttonsRowWidth,
+            overrideProgress: overrideProgress,
+            overridePosition: overridePosition,
+            overrideWaveform: overrideWaveform,
+            onScrubbing: onScrubbing,
+            onSeek: onSeek,
+          ),
           SizedBox(
             height:
                 PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
@@ -1795,7 +1615,19 @@ class PlaybackHeroCard extends ConsumerWidget {
           height:
               PlaybackHeroCardUiTuning.controlsRowPortraitGap * controlsScale,
         ),
-        buildProgressSection(),
+        PlaybackProgressSection(
+          key: const ValueKey('playback_progress_section_portrait'),
+          currentMusic: currentMusic,
+          controlsScale: controlsScale,
+          tLyrics: tLyrics,
+          isLandscape: isLandscape,
+          buttonsRowWidth: buttonsRowWidth,
+          overrideProgress: overrideProgress,
+          overridePosition: overridePosition,
+          overrideWaveform: overrideWaveform,
+          onScrubbing: onScrubbing,
+          onSeek: onSeek,
+        ),
         SizedBox(
           height:
               PlaybackHeroCardUiTuning.controlsRowPortraitGap * controlsScale,
@@ -1824,41 +1656,270 @@ class PlaybackHeroCard extends ConsumerWidget {
       bottomTabBarHeight: lyricsBottomTabBarHeight,
     );
   }
+}
 
-  Widget _buildStandardSlider(
-    BuildContext context,
-    double displayProgress,
-    double controlsScale, {
-    bool noPadding = false,
-  }) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: noPadding
-            ? 0.0
-            : PlaybackHeroCardUiTuning.waveformStandardHorizontalPadding,
-      ),
-      child: SliderTheme(
-        data: SliderTheme.of(context).copyWith(
-          trackHeight: 4 * controlsScale,
-          thumbShape: RoundSliderThumbShape(
-            enabledThumbRadius: 7 * controlsScale,
-          ),
-          overlayShape: RoundSliderOverlayShape(
-            overlayRadius: 16 * controlsScale,
-          ),
-          activeTrackColor: Colors.white,
-          inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
-          thumbColor: Colors.white,
-          overlayColor: Colors.white.withValues(alpha: 0.1),
+class PlaybackProgressSection extends ConsumerWidget {
+  final MusicFile? currentMusic;
+  final double controlsScale;
+  final double tLyrics;
+  final bool isLandscape;
+  final double buttonsRowWidth;
+  final double? overrideProgress;
+  final Duration? overridePosition;
+  final List<double>? overrideWaveform;
+  final ValueChanged<double>? onScrubbing;
+  final ValueChanged<double>? onSeek;
+
+  const PlaybackProgressSection({
+    super.key,
+    required this.currentMusic,
+    required this.controlsScale,
+    required this.tLyrics,
+    required this.isLandscape,
+    required this.buttonsRowWidth,
+    this.overrideProgress,
+    this.overridePosition,
+    this.overrideWaveform,
+    this.onScrubbing,
+    this.onSeek,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = ref.watch(audioProgressProvider);
+    final position = ref.watch(audioPositionProvider);
+    final duration = ref.watch(audioDurationProvider);
+    final isWaveformEnabled = ref.watch(
+      settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
+    );
+
+    final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
+    final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
+
+    final widthFactor = isLandscape
+        ? (lerpDouble(
+            PlaybackHeroCardUiTuning.progressBarWidthFactor,
+            1.0,
+            tLyrics,
+          )!)
+        : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor;
+
+    Widget buildStandardSlider(BuildContext context, double displayProgress, double controlsScale, {bool noPadding = false}) {
+      return Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: noPadding
+              ? 0.0
+              : PlaybackHeroCardUiTuning.waveformStandardHorizontalPadding,
         ),
-        child: Slider(
-          value: displayProgress.clamp(0.0, 1.0),
-          onChanged: onScrubbing,
-          onChangeEnd: (value) {
-            onSeek?.call(value);
+        child: SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 4 * controlsScale,
+            thumbShape: RoundSliderThumbShape(
+              enabledThumbRadius: 7 * controlsScale,
+            ),
+            overlayShape: RoundSliderOverlayShape(
+              overlayRadius: 16 * controlsScale,
+            ),
+            activeTrackColor: Colors.white,
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+            thumbColor: Colors.white,
+            overlayColor: Colors.white.withValues(alpha: 0.1),
+          ),
+          child: Slider(
+            value: displayProgress.clamp(0.0, 1.0),
+            onChanged: onScrubbing,
+            onChangeEnd: (value) {
+              onSeek?.call(value);
+            },
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: buttonsRowWidth * widthFactor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Builder(
+            builder: (context) {
+              if (isWaveformEnabled) {
+                final waveformWidget = WaveformProgressBar(
+                  waveform: waveform,
+                  progress: displayProgress,
+                  duration: duration,
+                  onScrubbing: onScrubbing ?? (_) {},
+                  onSeek: onSeek ?? (_) {},
+                  height: (isLandscape
+                          ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
+                          : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
+                      controlsScale,
+                );
+                if (!isLandscape) {
+                  return Transform.scale(
+                    scaleX: PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
+                    child: waveformWidget,
+                  );
+                }
+                return waveformWidget;
+              }
+              return buildStandardSlider(
+                context,
+                displayProgress,
+                controlsScale,
+                noPadding: true,
+              );
+            },
+          ),
+          SizedBox(
+            height: (isLandscape ? PlaybackHeroCardUiTuning.controlsTimeGap : 8.0) * controlsScale,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  formatDuration(overridePosition ?? position),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12 * controlsScale,
+                  ),
+                ),
+                Text(
+                  formatDuration(duration),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12 * controlsScale,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
+  final MusicFile? currentMusic;
+  final double controlsScale;
+  final double totalWidth;
+  final double? overrideProgress;
+  final Duration? overridePosition;
+  final List<double>? overrideWaveform;
+  final ValueChanged<double>? onScrubbing;
+  final ValueChanged<double>? onSeek;
+
+  const PlaybackOverlayProgressTimeLayer({
+    super.key,
+    required this.currentMusic,
+    required this.controlsScale,
+    required this.totalWidth,
+    this.overrideProgress,
+    this.overridePosition,
+    this.overrideWaveform,
+    this.onScrubbing,
+    this.onSeek,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = ref.watch(audioProgressProvider);
+    final position = ref.watch(audioPositionProvider);
+    final duration = ref.watch(audioDurationProvider);
+    final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
+    final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // 1. 只有波形进度条进行缩放 (Only waveform is scaled)
+        Transform.scale(
+          scaleX: PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
+          child: SizedBox(
+            width: totalWidth,
+            child: WaveformProgressBar(
+              waveform: waveform,
+              progress: displayProgress,
+              duration: duration,
+              onScrubbing: onScrubbing ?? (_) {},
+              onSeek: onSeek ?? (_) {},
+              height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
+            ),
+          ),
+        ),
+        // 2. 时间文字单独平移，避免拉伸 (Time text translated separately to avoid stretching)
+        Builder(
+          builder: (context) {
+            final screenWidth = MediaQuery.of(context).size.width;
+            final pagePadding = PlaybackPageUiTuning.normalPortraitHorizontalPadding;
+            const minScreenMargin = 10.0;
+
+            final cardWidth = screenWidth - (pagePadding * 2);
+            final fittedScale = cardWidth / totalWidth;
+
+            final rawShift = (PlaybackHeroCardUiTuning.waveformOverlayTimeSide - totalWidth / 2) *
+                (PlaybackHeroCardUiTuning.portraitWaveformOverflowScale - 1) * 0.8;
+
+            final safeFittedScale = (fittedScale.isFinite && fittedScale > 0) ? fittedScale : 1.0;
+            final minAllowedShift = (minScreenMargin - pagePadding) / safeFittedScale -
+                PlaybackHeroCardUiTuning.waveformOverlayTimeSide;
+
+            final lowerBound = math.min(
+              minAllowedShift.isFinite ? minAllowedShift : 0.0,
+              0.0,
+            );
+            final safeShift = rawShift.isFinite ? rawShift.clamp(lowerBound, 0.0) : 0.0;
+
+            return SizedBox(
+              width: totalWidth,
+              height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
+                    bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
+                    child: Transform.translate(
+                      offset: Offset(safeShift, 0),
+                      child: Text(
+                        formatDuration(overridePosition ?? position),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12 * controlsScale,
+                          fontWeight: FontWeight.bold,
+                          shadows: const [
+                            Shadow(color: Colors.black45, blurRadius: 4),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
+                    bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
+                    child: Transform.translate(
+                      offset: Offset(-safeShift, 0),
+                      child: Text(
+                        formatDuration(duration),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12 * controlsScale,
+                          fontWeight: FontWeight.bold,
+                          shadows: const [
+                            Shadow(color: Colors.black45, blurRadius: 4),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
           },
         ),
-      ),
+      ],
     );
   }
 }

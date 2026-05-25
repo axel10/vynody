@@ -7,6 +7,7 @@ import '../dialogs/transcode_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../player/playlist_service.dart';
+import 'app_snack_bar.dart';
 
 enum SongContextMenuMode { full, title, artistAlbum }
 
@@ -245,13 +246,16 @@ Future<void> showAddSongsToPlaylistDialog(
   Future<void> addSongsToPlaylist(Playlist playlist) async {
     await playlistService.addSongsToPlaylist(playlist.id, songs);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    AppSnackBar.show(
+      context,
+      null,
       SnackBar(
         content: Text(
           AppLocalizations.of(
             context,
           )!.addedToPlaylist(songs.length, playlist.name),
         ),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -285,13 +289,16 @@ Future<void> showAddSongsToPlaylistDialog(
               await playlistService.addSongsToPlaylist(playlist.id, songs);
               if (!context.mounted) return;
               Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
+              AppSnackBar.show(
+                context,
+                null,
                 SnackBar(
                   content: Text(
                     AppLocalizations.of(
                       context,
                     )!.createdPlaylist(name, songs.length),
                   ),
+                  duration: const Duration(seconds: 4),
                 ),
               );
             },
