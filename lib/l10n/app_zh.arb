@@ -1038,5 +1038,7 @@
         "type": "int"
       }
     }
-  }
+  },
+  "copyCover": "复制封面到剪贴板",
+  "copyCoverSuccess": "封面已复制到剪贴板"
 }

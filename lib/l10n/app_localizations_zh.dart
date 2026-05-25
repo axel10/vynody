@@ -1409,4 +1409,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String dropAddedSongsWithExisting(int addedCount, int existingCount) {
     return '已添加 $addedCount 首歌曲，$existingCount 首已存在';
   }
+
+  @override
+  String get copyCover => '复制封面到剪贴板';
+
+  @override
+  String get copyCoverSuccess => '封面已复制到剪贴板';
 }

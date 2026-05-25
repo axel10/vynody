@@ -1452,4 +1452,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String dropAddedSongsWithExisting(int addedCount, int existingCount) {
     return 'Added $addedCount songs, $existingCount already existed';
   }
+
+  @override
+  String get copyCover => 'Copy Cover to Clipboard';
+
+  @override
+  String get copyCoverSuccess => 'Cover copied to clipboard';
 }

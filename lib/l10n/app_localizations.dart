@@ -2737,6 +2737,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已添加 {addedCount} 首歌曲，{existingCount} 首已存在'**
   String dropAddedSongsWithExisting(int addedCount, int existingCount);
+
+  /// No description provided for @copyCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制封面到剪贴板'**
+  String get copyCover;
+
+  /// No description provided for @copyCoverSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'封面已复制到剪贴板'**
+  String get copyCoverSuccess;
 }
 
 class _AppLocalizationsDelegate

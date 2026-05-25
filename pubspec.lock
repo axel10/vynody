@@ -44,11 +44,9 @@ packages:
   audio_core:
     dependency: "direct main"
     description:
-      path: "."
-      ref: main
-      resolved-ref: "8f9fcaed817f701bb800ada3450717bf4a20b71c"
-      url: "https://github.com/axel10/audio_core"
-    source: git
+      path: audio_core
+      relative: true
+    source: path
     version: "0.0.1"
   audio_metadata_reader:
     dependency: "direct main"
@@ -963,6 +961,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.1.0"
+  pasteboard:
+    dependency: "direct main"
+    description:
+      name: pasteboard
+      sha256: fedbe8da188d2f713aa8b01260737342e6e1087534a3ab26e1a719f8d3e8f32f
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.5.0"
   path:
     dependency: "direct main"
     description:

@@ -3,6 +3,8 @@ import 'dart:ui' show lerpDouble, ImageFilter;
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
+import 'package:pasteboard/pasteboard.dart';
+import '../utils/app_snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -173,6 +175,64 @@ class PlaybackHeroCard extends ConsumerWidget {
           ? SongContextMenuMode.title
           : SongContextMenuMode.artistAlbum,
     );
+  }
+
+  Future<void> _showCoverContextMenu(
+    BuildContext context,
+    WidgetRef ref,
+    Offset globalPosition,
+    MusicFile? currentMusic,
+  ) async {
+    if (currentMusic == null) return;
+
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final audioService = ref.read(audioServiceProvider);
+
+    final bytes = currentMusic.artworkBytes ?? audioService.getCachedArtwork(currentMusic.path);
+    final hasCover = bytes != null && bytes.isNotEmpty;
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromPoints(globalPosition, globalPosition),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem<String>(
+          value: 'copy_cover',
+          enabled: hasCover,
+          child: Text(l10n.copyCover),
+        ),
+      ],
+    );
+
+    if (!context.mounted || selected == null) return;
+
+    if (selected == 'copy_cover') {
+      try {
+        if (bytes != null && bytes.isNotEmpty) {
+          await Pasteboard.writeImage(bytes);
+          if (context.mounted) {
+            AppSnackBar.show(
+              context,
+              ref,
+              SnackBar(content: Text(l10n.copyCoverSuccess)),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to copy cover to clipboard: $e');
+        if (context.mounted) {
+          AppSnackBar.show(
+            context,
+            ref,
+            const SnackBar(content: Text('Failed to copy cover')),
+          );
+        }
+      }
+    }
   }
 
   String _formatSleepTimer(Duration duration) {
@@ -963,11 +1023,18 @@ class PlaybackHeroCard extends ConsumerWidget {
       ),
     );
 
-    if (onCoverTap == null) return cover;
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onCoverTap,
+      onSecondaryTapDown: (details) {
+        _showCoverContextMenu(context, ref, details.globalPosition, currentMusic);
+      },
+      onLongPressStart: (details) {
+        HapticFeedback.mediumImpact();
+        _showCoverContextMenu(context, ref, details.globalPosition, currentMusic);
+      },
       child: cover,
     );
   }
