@@ -66,6 +66,11 @@ class TranscodeService {
       outputFormat: draft.outputFormat,
     );
 
+    final supportsBitRate = draft.outputFormat.supportsBitRateControls;
+    final hasAacEncoder = supportsBitRate &&
+        !draft.useSystemEncoder &&
+        !(Platform.isIOS || Platform.isMacOS);
+
     final result = androidOutputDirectory != null
         ? await _converter.convertAndSaveToAndroidDirectory(
             ConvertRequest.forOutputDirectory(
@@ -74,12 +79,10 @@ class TranscodeService {
               outputFormat: draft.outputFormat,
               sampleRate: draft.sampleRate,
               channels: draft.channels,
-              bitRate: draft.outputFormat.supportsBitRateControls
-                  ? draft.bitRate
-                  : null,
-              bitRateMode: draft.outputFormat.supportsBitRateControls
-                  ? draft.bitRateMode
-                  : null,
+              bitRate: supportsBitRate ? draft.bitRate : null,
+              bitRateMode: supportsBitRate ? draft.bitRateMode : null,
+              useSystemEncoder: draft.useSystemEncoder,
+              aacEncoder: hasAacEncoder ? draft.aacEncoder : null,
               ffmpegPath: _normalizeOptional(ffmpegPath),
             ),
             androidOutputDirectory,
@@ -92,12 +95,10 @@ class TranscodeService {
               outputFormat: draft.outputFormat,
               sampleRate: draft.sampleRate,
               channels: draft.channels,
-              bitRate: draft.outputFormat.supportsBitRateControls
-                  ? draft.bitRate
-                  : null,
-              bitRateMode: draft.outputFormat.supportsBitRateControls
-                  ? draft.bitRateMode
-                  : null,
+              bitRate: supportsBitRate ? draft.bitRate : null,
+              bitRateMode: supportsBitRate ? draft.bitRateMode : null,
+              useSystemEncoder: draft.useSystemEncoder,
+              aacEncoder: hasAacEncoder ? draft.aacEncoder : null,
               ffmpegPath: _normalizeOptional(ffmpegPath),
               onProgress: onProgress,
             ),

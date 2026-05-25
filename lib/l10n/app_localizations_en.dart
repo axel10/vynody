@@ -776,6 +776,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcodeBitRateMode => 'Bitrate Mode';
 
   @override
+  String get transcodeEncodingEngine => 'Encoding Engine';
+
+  @override
+  String get transcodeSystemEncoder => 'Media3 (System)';
+
+  @override
+  String get transcodeFfmpegRustEncoder => 'FFmpeg (Rust)';
+
+  @override
+  String get transcodeAacEncoder => 'AAC Encoder';
+
+  @override
   String get transcodeSampleRate => 'Sample Rate';
 
   @override

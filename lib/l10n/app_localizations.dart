@@ -1520,6 +1520,30 @@ abstract class AppLocalizations {
   /// **'码率控制模式'**
   String get transcodeBitRateMode;
 
+  /// No description provided for @transcodeEncodingEngine.
+  ///
+  /// In zh, this message translates to:
+  /// **'编码引擎'**
+  String get transcodeEncodingEngine;
+
+  /// No description provided for @transcodeSystemEncoder.
+  ///
+  /// In zh, this message translates to:
+  /// **'Media3 (系统)'**
+  String get transcodeSystemEncoder;
+
+  /// No description provided for @transcodeFfmpegRustEncoder.
+  ///
+  /// In zh, this message translates to:
+  /// **'FFmpeg (Rust)'**
+  String get transcodeFfmpegRustEncoder;
+
+  /// No description provided for @transcodeAacEncoder.
+  ///
+  /// In zh, this message translates to:
+  /// **'AAC 编码器'**
+  String get transcodeAacEncoder;
+
   /// No description provided for @transcodeSampleRate.
   ///
   /// In zh, this message translates to:

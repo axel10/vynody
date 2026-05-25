@@ -117,7 +117,6 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   ];
   static const List<int?> _channelOptions = <int?>[null, 1, 2];
 
-  final TextEditingController _bitRateController = TextEditingController();
   final TranscodePresetResolver _presetResolver =
       const TranscodePresetResolver();
 
@@ -154,14 +153,14 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       channels: preset.channels,
       valueOrigin: TranscodeValueOrigin.presetDerived,
       outputDirectory: _initialOutputDirectory(),
+      useSystemEncoder: false,
+      aacEncoder: AacEncoder.ffmpeg,
     );
-    _bitRateController.text = preset.bitRate.toString();
     unawaited(_loadCapabilities());
   }
 
   @override
   void dispose() {
-    _bitRateController.dispose();
     super.dispose();
   }
 
@@ -222,8 +221,9 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         sampleRate: resolved.sampleRate,
         channels: resolved.channels,
         valueOrigin: TranscodeValueOrigin.presetDerived,
+        useSystemEncoder: false,
+        aacEncoder: AacEncoder.ffmpeg,
       );
-      _bitRateController.text = resolved.bitRate.toString();
       _errorText = null;
     });
   }
@@ -233,6 +233,8 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
     BitRateMode? bitRateMode,
     int? sampleRate,
     int? channels,
+    bool? useSystemEncoder,
+    AacEncoder? aacEncoder,
   }) {
     setState(() {
       _draft = _draft.copyWith(
@@ -240,6 +242,8 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         bitRateMode: bitRateMode,
         sampleRate: sampleRate,
         channels: channels,
+        useSystemEncoder: useSystemEncoder,
+        aacEncoder: aacEncoder,
         valueOrigin: TranscodeValueOrigin.customized,
       );
       _errorText = null;
@@ -299,21 +303,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       });
       return;
     }
-    final bitRate = int.tryParse(_bitRateController.text.trim());
-    if (_draft.outputFormat.supportsBitRateControls &&
-        (bitRate == null || bitRate <= 0)) {
-      setState(() {
-        _errorText = l10n.transcodeBitRateInvalid;
-      });
-      return;
-    }
 
     final service = ref.read(transcodeServiceProvider);
     final settings = ref.read(settingsServiceProvider);
-    final draft = _draft.copyWith(
-      bitRate: bitRate ?? _draft.bitRate,
-      valueOrigin: _draft.valueOrigin,
-    );
+    final draft = _draft;
 
     setState(() {
       _isSubmitting = true;
@@ -422,11 +415,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       top: false,
       child: FractionallySizedBox(
         heightFactor: 0.92,
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
+        child: Material(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          clipBehavior: Clip.antiAlias,
           child: Padding(
             padding: EdgeInsets.only(bottom: bottomInset),
             child: Column(
@@ -690,6 +682,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   }
 
   Widget _buildAdvancedSection(AppLocalizations l10n) {
+    final hasAacEncoder = _supportsBitRateControls &&
+        !_draft.useSystemEncoder &&
+        !(Platform.isIOS || Platform.isMacOS);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -715,21 +711,27 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         if (_draft.showAdvancedOptions) ...[
           if (_supportsBitRateControls) ...[
             const SizedBox(height: 10),
-            TextField(
-              controller: _bitRateController,
-              enabled: !_isSubmitting,
-              keyboardType: TextInputType.number,
+            DropdownButtonFormField<int>(
+              initialValue: [128000, 192000, 256000, 320000].contains(_draft.bitRate)
+                  ? _draft.bitRate
+                  : 192000,
+              isExpanded: true,
               decoration: InputDecoration(
                 labelText: l10n.transcodeBitRate,
-                suffixText: 'bps',
                 border: const OutlineInputBorder(),
               ),
-              onChanged: (value) {
-                final parsed = int.tryParse(value.trim());
-                if (parsed != null && parsed > 0) {
-                  _markCustomized(bitRate: parsed);
-                }
-              },
+              items: const [
+                DropdownMenuItem(value: 128000, child: Text('128 kbps')),
+                DropdownMenuItem(value: 192000, child: Text('192 kbps')),
+                DropdownMenuItem(value: 256000, child: Text('256 kbps')),
+                DropdownMenuItem(value: 320000, child: Text('320 kbps')),
+              ],
+              onChanged: _isSubmitting
+                  ? null
+                  : (value) {
+                      if (value == null) return;
+                      _markCustomized(bitRate: value);
+                    },
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<BitRateMode>(
@@ -754,6 +756,62 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                       _markCustomized(bitRateMode: value);
                     },
             ),
+            if (Platform.isAndroid && _draft.outputFormat == AudioFormat.m4a) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<bool>(
+                initialValue: _draft.useSystemEncoder,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: l10n.transcodeEncodingEngine,
+                  border: const OutlineInputBorder(),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: false,
+                    child: Text(l10n.transcodeFfmpegRustEncoder),
+                  ),
+                  DropdownMenuItem(
+                    value: true,
+                    child: Text(l10n.transcodeSystemEncoder),
+                  ),
+                ],
+                onChanged: _isSubmitting
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        _markCustomized(useSystemEncoder: value);
+                      },
+              ),
+            ],
+            if (hasAacEncoder &&
+                (_draft.outputFormat == AudioFormat.aac ||
+                    _draft.outputFormat == AudioFormat.m4a ||
+                    _draft.outputFormat == AudioFormat.m4b ||
+                    _draft.outputFormat == AudioFormat.caf)) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<AacEncoder>(
+                initialValue: _draft.aacEncoder,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: l10n.transcodeAacEncoder,
+                  border: const OutlineInputBorder(),
+                ),
+                items: AacEncoder.values
+                    .map(
+                      (enc) => DropdownMenuItem<AacEncoder>(
+                        value: enc,
+                        child: Text(enc.label),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: _isSubmitting
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        _markCustomized(aacEncoder: value);
+                      },
+              ),
+            ],
             const SizedBox(height: 12),
           ],
           DropdownButtonFormField<int?>(

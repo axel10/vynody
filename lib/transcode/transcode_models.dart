@@ -76,6 +76,8 @@ class TranscodeDraft {
     this.channels,
     this.outputDirectory,
     this.showAdvancedOptions = false,
+    this.useSystemEncoder = false,
+    this.aacEncoder = AacEncoder.ffmpeg,
   });
 
   final AudioFormat outputFormat;
@@ -87,6 +89,8 @@ class TranscodeDraft {
   final String? outputDirectory;
   final bool showAdvancedOptions;
   final TranscodeValueOrigin valueOrigin;
+  final bool useSystemEncoder;
+  final AacEncoder aacEncoder;
 
   bool get isCustomized => valueOrigin == TranscodeValueOrigin.customized;
 
@@ -100,6 +104,8 @@ class TranscodeDraft {
     Object? outputDirectory = _sentinel,
     bool? showAdvancedOptions,
     TranscodeValueOrigin? valueOrigin,
+    bool? useSystemEncoder,
+    AacEncoder? aacEncoder,
   }) {
     return TranscodeDraft(
       outputFormat: outputFormat ?? this.outputFormat,
@@ -113,6 +119,8 @@ class TranscodeDraft {
           : outputDirectory as String?,
       showAdvancedOptions: showAdvancedOptions ?? this.showAdvancedOptions,
       valueOrigin: valueOrigin ?? this.valueOrigin,
+      useSystemEncoder: useSystemEncoder ?? this.useSystemEncoder,
+      aacEncoder: aacEncoder ?? this.aacEncoder,
     );
   }
 

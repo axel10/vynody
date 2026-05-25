@@ -761,6 +761,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcodeBitRateMode => '码率控制模式';
 
   @override
+  String get transcodeEncodingEngine => '编码引擎';
+
+  @override
+  String get transcodeSystemEncoder => 'Media3 (系统)';
+
+  @override
+  String get transcodeFfmpegRustEncoder => 'FFmpeg (Rust)';
+
+  @override
+  String get transcodeAacEncoder => 'AAC 编码器';
+
+  @override
   String get transcodeSampleRate => '采样率';
 
   @override
