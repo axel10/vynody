@@ -281,6 +281,9 @@ class _RandomPlaybackSessionState {
 class AudioService extends Notifier<AudioSnapshot> {
   static const String _playbackSessionStorageKey = 'playback_session_v1';
   static const Duration _playbackSessionAutoSaveInterval = Duration(seconds: 2);
+  static const String _volumeStorageKey = 'player_volume';
+  static const String _previousVolumeStorageKey = 'player_previous_volume';
+  static const String _isMutedStorageKey = 'player_is_muted';
 
   late final AudioCoreController _player;
   bool _isPlaying = false;
@@ -316,6 +319,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _restoringPlaybackSession = false;
   bool _playbackSessionReady = false;
   Timer? _playbackSessionAutoSaveTimer;
+  bool _initialVolumeApplied = false;
   late final VoidCallback _settingsListener;
   DateTime _lastPositionDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
   String? _trackedPlaybackSongPath;
@@ -357,6 +361,10 @@ class AudioService extends Notifier<AudioSnapshot> {
   @override
   AudioSnapshot build() {
     settingsService = ref.read(settingsServiceProvider);
+    _volume = settingsService.prefs.getDouble(_volumeStorageKey) ?? 100.0;
+    _previousVolume = settingsService.prefs.getDouble(_previousVolumeStorageKey) ?? 100.0;
+    _isMuted = settingsService.prefs.getBool(_isMutedStorageKey) ?? false;
+
     _player = AudioCoreController(
       fadeSettings: FadeSettings(
         fadeOnSwitch: true,
@@ -402,6 +410,11 @@ class AudioService extends Notifier<AudioSnapshot> {
         if (_disposed) return;
         await _restorePlaybackSession();
         if (_disposed) return;
+        
+        final targetVolume = _isMuted ? 0.0 : _volume;
+        await _player.player.setVolume(targetVolume / 100.0);
+        _initialVolumeApplied = true;
+
         _visualizerOptions.loadOptions().then((_) => notifyListeners());
         if (_disposed) return;
         _initializeMiniPlayerFftStream();
@@ -451,7 +464,6 @@ class AudioService extends Notifier<AudioSnapshot> {
       _position = Duration.zero;
       _duration = Duration.zero;
       _isPlaying = false;
-      _isMuted = false;
       _lastActionNext = null;
       _isTransitioning = false;
       _currentIndex = -1;
@@ -1061,7 +1073,9 @@ class AudioService extends Notifier<AudioSnapshot> {
     _isPlaying = _player.player.isPlaying;
     _position = _player.player.position;
     _duration = _player.player.duration;
-    _volume = (_player.player.volume * 100.0).roundToDouble();
+    if (_initialVolumeApplied) {
+      _volume = (_player.player.volume * 100.0).roundToDouble();
+    }
     _logPositionDebug();
 
     final int newIndex = _player.playlist.currentIndex ?? -1;
@@ -2174,16 +2188,25 @@ class AudioService extends Notifier<AudioSnapshot> {
       _isMuted = false;
     }
     await _player.player.setVolume(_volume / 100.0);
+    
+    final prefs = settingsService.prefs;
+    unawaited(prefs.setDouble(_volumeStorageKey, _volume));
+    unawaited(prefs.setBool(_isMutedStorageKey, _isMuted));
+    
     notifyListeners();
   }
 
   Future<void> toggleMute() async {
+    final prefs = settingsService.prefs;
     if (_isMuted) {
       _isMuted = false;
+      unawaited(prefs.setBool(_isMutedStorageKey, false));
       await setVolume(_previousVolume);
     } else {
       _previousVolume = _volume;
+      unawaited(prefs.setDouble(_previousVolumeStorageKey, _previousVolume));
       _isMuted = true;
+      unawaited(prefs.setBool(_isMutedStorageKey, true));
       await setVolume(0);
     }
   }
