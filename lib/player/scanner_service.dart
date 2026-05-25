@@ -680,6 +680,27 @@ class ScannerService extends ChangeNotifier {
               '[ScannerService] mobile storage event=${event.typeName} '
               'path=${event.path ?? "unknown"} affectedRoots=$affectedRoots',
             );
+            if (_supportsPersistentAccess) {
+              final controller = _playerController;
+              if (controller != null) {
+                for (final path in affectedRoots) {
+                  final normalized = _normalizePath(path);
+                  _activeScopedRootPaths.remove(normalized);
+                  if (event.type == MobileStorageEventType.unmounted ||
+                      event.type == MobileStorageEventType.removed ||
+                      event.type == MobileStorageEventType.eject ||
+                      event.type == MobileStorageEventType.badRemoval) {
+                    try {
+                      unawaited(controller.endScopedAccess(path: normalized));
+                    } catch (e) {
+                      debugPrint(
+                        '[ScannerService] endScopedAccess failed for $normalized: $e',
+                      );
+                    }
+                  }
+                }
+              }
+            }
           }
           _pendingRootAvailabilityRescan = true;
           _scheduleRootAvailabilityRefresh();
@@ -720,6 +741,10 @@ class ScannerService extends ChangeNotifier {
     required bool shouldNotifyListeners,
     bool rescanRestoredRoots = false,
   }) async {
+    if (_supportsPersistentAccess && _playerController != null) {
+      await _syncActiveScopedRootAccess();
+    }
+
     final declaredRoots = _roots.rootPaths.toList(growable: false);
     final declaredKeys = declaredRoots.map(_pathLookupKey).toSet();
     final previousAvailability = Map<String, bool>.from(_rootAvailability);
@@ -769,6 +794,10 @@ class ScannerService extends ChangeNotifier {
       _navigationState.setState(null, const []);
     }
 
+    if (restoredRoots.isNotEmpty) {
+      await _loadCachedRootFoldersFromDatabase(rootPaths: restoredRoots);
+    }
+
     // Keep the last known tree for temporarily missing roots so a brief
     // unplug/replug cycle does not collapse the visible folder structure.
     if (missingRoots.isNotEmpty || restoredRoots.isNotEmpty) {
@@ -780,7 +809,10 @@ class ScannerService extends ChangeNotifier {
     }
 
     if (rescanRestoredRoots && restoredRoots.isNotEmpty) {
-      _restartFullRootScan();
+      _scanCoordinator.requestRescan();
+      if (!_scanCoordinator.isScanning) {
+        unawaited(_scanRootsWithFullFlow(restoredRoots, clearScannedRoots: false));
+      }
     }
   }
 
@@ -1770,7 +1802,7 @@ class ScannerService extends ChangeNotifier {
     if (_scanCoordinator.isScanning) {
       return;
     }
-    unawaited(scan());
+    unawaited(scan(clearScannedRoots: false));
   }
 
   bool _isScanTokenCurrent(int scanToken) {
@@ -2522,8 +2554,8 @@ class ScannerService extends ChangeNotifier {
     );
   }
 
-  Future<void> scan() async {
-    await _scanRootsWithFullFlow(_roots.rootPaths, clearScannedRoots: true);
+  Future<void> scan({bool clearScannedRoots = true}) async {
+    await _scanRootsWithFullFlow(_roots.rootPaths, clearScannedRoots: clearScannedRoots);
   }
 
   Future<void> _scanRootsWithFullFlow(
@@ -2587,8 +2619,6 @@ class ScannerService extends ChangeNotifier {
 
       if (clearScannedRoots) {
         _scannedRootFolders.clear();
-      } else {
-        _removeRootsFromScannedTree(scanRoots);
       }
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree();
