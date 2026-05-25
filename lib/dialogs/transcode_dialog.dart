@@ -13,6 +13,7 @@ import '../transcode/transcode_models.dart';
 import '../transcode/transcode_preset.dart';
 import '../transcode/transcode_riverpod.dart';
 import '../transcode/transcode_service.dart';
+import '../utils/app_snack_bar.dart';
 import '../utils/song_context_menu_utils.dart';
 
 class TranscodeSubmitSummary {
@@ -64,9 +65,12 @@ Future<void> showTranscodeDialog(
           summary.failureCount,
         );
 
-  ScaffoldMessenger.of(context).showSnackBar(
+  AppSnackBar.show(
+    context,
+    null,
     SnackBar(
       content: Text(message),
+      duration: const Duration(seconds: 4),
       action:
           summary.firstOutputPath != null &&
               (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
@@ -81,9 +85,14 @@ Future<void> showTranscodeDialog(
   );
 
   if (summary.failureCount > 0 && summary.lastErrorMessage != null) {
-    ScaffoldMessenger.of(
+    AppSnackBar.show(
       context,
-    ).showSnackBar(SnackBar(content: Text(summary.lastErrorMessage!)));
+      null,
+      SnackBar(
+        content: Text(summary.lastErrorMessage!),
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 }
 
