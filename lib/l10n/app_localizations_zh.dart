@@ -66,8 +66,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rebuildDatabase => '重建数据库';
 
   @override
-  String get confirmRebuildDatabase =>
-      '确定要手动刷新所有歌曲的标签信息吗？这可能需要一些时间来重新加载封面和元数据。';
+  String get confirmRebuildDatabase => '确定要手动刷新所有歌曲的标签信息吗？这可能需要一些时间来重新加载封面和元数据。';
 
   @override
   String get cancel => '取消';
@@ -930,8 +929,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterGoogleAiStudioApiKeyTitle => '填写 Google AI Studio API Key';
 
   @override
-  String get googleAiStudioApiKeyDescription =>
-      '用于 Google AI Studio 的歌词生成、时间轴生成和翻译。';
+  String get googleAiStudioApiKeyDescription => '用于 Google AI Studio 的歌词生成、时间轴生成和翻译。';
 
   @override
   String get pasteGoogleAiStudioApiKey => '粘贴 Google AI Studio API Key';
@@ -940,8 +938,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterOpenRouterApiKeyTitle => '填写 OpenRouter API Key';
 
   @override
-  String get openRouterApiKeyDescription =>
-      '用于 OpenRouter 的歌词生成和时间轴生成，翻译始终走 Gemini。';
+  String get openRouterApiKeyDescription => '用于 OpenRouter 的歌词生成和时间轴生成，翻译始终走 Gemini。';
 
   @override
   String get pasteOpenRouterApiKey => '粘贴 OpenRouter API Key';
@@ -1062,33 +1059,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoSwitchLyricsProvider => '自动切换歌词供应商';
 
   @override
-  String get autoSwitchLyricsProviderEnabledDesc =>
-      '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。';
+  String get autoSwitchLyricsProviderEnabledDesc => '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。';
 
   @override
-  String get autoSwitchLyricsProviderDisabledDesc =>
-      '请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。';
+  String get autoSwitchLyricsProviderDisabledDesc => '请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。';
 
   @override
   String get lyricsAiProviderTitle => '歌词生成 AI 提供方';
 
   @override
-  String get lyricsAiProviderDescription =>
-      '这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio。';
+  String get lyricsAiProviderDescription => '这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio。';
 
   @override
   String get googleAiStudioApiKeySaved => 'Google AI Studio API Key 已保存';
 
   @override
-  String get googleAiStudioApiKeyMissing =>
-      '当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。';
+  String get googleAiStudioApiKeyMissing => '当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。';
 
   @override
   String get openRouterApiKeySaved => 'OpenRouter API Key 已保存';
 
   @override
-  String get openRouterApiKeyMissing =>
-      '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。';
+  String get openRouterApiKeyMissing => '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。';
 
   @override
   String get fill => '填写';
@@ -1100,8 +1092,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get geminiModelsSectionTitle => 'Gemini 模型';
 
   @override
-  String get geminiModelsSectionDescription =>
-      '这些模型会用于 Google AI Studio 的歌词生成、时间轴生成以及歌词翻译。';
+  String get geminiModelsSectionDescription => '这些模型会用于 Google AI Studio 的歌词生成、时间轴生成以及歌词翻译。';
 
   @override
   String get primaryModelLabel => '主模型';
@@ -1137,8 +1128,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get acoustidApiKeyDefault => '当前使用应用内置的默认 key，建议申请你自己的 key 后替换。';
 
   @override
-  String get applyForApiKey =>
-      '申请 API key: https://acoustid.org/new-application';
+  String get applyForApiKey => '申请 API key: https://acoustid.org/new-application';
 
   @override
   String get queueTabBarFavoriteAdded => '已加入收藏';
@@ -1189,15 +1179,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get musicBrainzQueryFailed => 'MusicBrainz 查询失败';
 
   @override
-  String get musicBrainzNetworkErrorHint =>
-      'MusicBrainz 请求失败，通常是网络连接不稳定、超时或被服务端拒绝。可以稍后重试。';
+  String get musicBrainzNetworkErrorHint => 'MusicBrainz 请求失败，通常是网络连接不稳定、超时或被服务端拒绝。可以稍后重试。';
 
   @override
   String get musicBrainzFilteredEmptyHint => '当前过滤条件下没有包含该关键词的 release 标题。';
 
   @override
-  String get musicBrainzEmptyHint =>
-      'MusicBrainz 没有返回可用结果。可以放宽标题、艺人或专辑条件后再试一次。';
+  String get musicBrainzEmptyHint => 'MusicBrainz 没有返回可用结果。可以放宽标题、艺人或专辑条件后再试一次。';
 
   @override
   String get musicBrainzEmptyMoreCompleteHint => '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。';

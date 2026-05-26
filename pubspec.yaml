@@ -74,6 +74,7 @@ dependencies:
       ref: master
   smtc_windows: ^1.1.0
   audio_service: ^0.18.18 
+  audio_session: ^0.2.3
   audio_metadata_reader:  
     git:
       url: https://github.com/axel10/audio_metadata_reader

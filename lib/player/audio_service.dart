@@ -22,6 +22,7 @@ import 'playback_queue_processor.dart';
 import 'waveform_service.dart';
 import 'windows_integration_service.dart';
 import 'android_integration_service.dart';
+import 'ios_integration_service.dart';
 import 'scanner_service.dart';
 import 'playlist_service.dart';
 import 'metadata_helper.dart';
@@ -335,6 +336,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   Map<String, Color> _currentThemeColorsMap = const {};
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
+  late final IosIntegrationService? _iosIntegration;
   String? _themePaletteRecomputeInProgressPath;
 
   Color? get dynamicStartColor => _dynamicStartColor;
@@ -390,6 +392,9 @@ class AudioService extends Notifier<AudioSnapshot> {
         : null;
     _androidIntegration = Platform.isAndroid
         ? AndroidIntegrationService(this)
+        : null;
+    _iosIntegration = Platform.isIOS
+        ? IosIntegrationService(this)
         : null;
     _player.addListener(_handlePlayerChanges);
     _settingsListener = () {
@@ -1097,6 +1102,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           _updateCurrentMetadata(song).then((_) {
             _windowsIntegration?.updateMetadata(_queue[newIndex]);
             _androidIntegration?.updateMetadata(_queue[newIndex]);
+            _iosIntegration?.updateMetadata(_queue[newIndex]);
             _startQueueBackgroundProcessing();
           }),
         );
@@ -1116,8 +1122,10 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _windowsIntegration?.updateTimeline(_position, _duration);
     _androidIntegration?.updateTimeline(_position, _duration);
+    _iosIntegration?.updateTimeline(_position, _duration);
     _windowsIntegration?.updatePlaybackStatus(_isPlaying);
     _androidIntegration?.updatePlaybackStatus(_isPlaying);
+    _iosIntegration?.updatePlaybackStatus(_isPlaying);
     _updatePlaybackTrackingForCurrentSong();
 
     // 如果当前开启了歌词模式，但因为切歌瞬间加载太快（时长 Duration 还没准备好）
@@ -1813,6 +1821,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     // controls / Android notification UI stay in sync with playback.
     _windowsIntegration?.updateMetadata(song);
     _androidIntegration?.updateMetadata(song);
+    _iosIntegration?.updateMetadata(song);
 
     // Trigger lyric loading only when lyric mode is active and we still do not
     // have lyrics for this track.

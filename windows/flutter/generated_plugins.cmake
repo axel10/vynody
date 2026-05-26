@@ -4,24 +4,13 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   dart_chromaprint
-  desktop_drop
   file_selector_windows
-  mobile_storage_listener
-  pasteboard
   permission_handler_windows
-  screen_retriever_windows
-  sqlite3_flutter_libs
-  url_launcher_windows
-  window_manager
-  windows_single_instance
-  windows_taskbar
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   audio_core
   jni
-  proxy_getter
-  smtc_windows
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)
