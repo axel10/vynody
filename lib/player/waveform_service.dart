@@ -23,7 +23,7 @@ class WaveformService {
   Future<List<double>> getWaveform({
     required String path,
     int expectedChunks = 80,
-    int sampleStride = 8,
+    int sampleStride = 4,
   }) async {
     return (await getWaveformData(
       path: path,
@@ -36,7 +36,7 @@ class WaveformService {
   Future<WaveformCacheResult> getWaveformData({
     required String path,
     int expectedChunks = 80,
-    int sampleStride = 8,
+    int sampleStride = 4,
     SongMetadata? baseMetadata,
   }) async {
     var songMetadata = await db.getSongMetadata(path);

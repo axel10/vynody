@@ -523,6 +523,31 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ),
+        ListTile(
+          title: Text(l10n.sampleStride),
+          subtitle: Text(l10n.sampleStrideDescription),
+          trailing: SizedBox(
+            width: 120,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove),
+                  onPressed: settings.sampleStride > 1
+                      ? () => settings.sampleStride -= 1
+                      : null,
+                ),
+                Text('${settings.sampleStride}'),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: settings.sampleStride < 16
+                      ? () => settings.sampleStride += 1
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
         SwitchListTile(
           title: Text(l10n.enableWaveformProgressBar),
           subtitle: Text(l10n.enableWaveformProgressBarDescription),

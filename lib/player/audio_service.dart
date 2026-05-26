@@ -1062,7 +1062,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<List<double>> getWaveform({
     int expectedChunks = 80,
-    int sampleStride = 8,
+    int sampleStride = 4,
   }) async {
     final path = currentMusic?.path;
     if (path == null) return [];

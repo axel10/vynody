@@ -79,7 +79,7 @@ class SettingsService extends ChangeNotifier {
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
   static const String _keyShortcutBindings = 'shortcut_bindings';
   static const String _builtInAcoustidApiKey = 'raGXgwxqws';
-  static const int _fixedSampleStride = 8;
+  static const int defaultSampleStride = 4;
   static const double defaultLyricsFontScale = 1.0;
   static const double minLyricsFontScale = 0.8;
   static const double maxLyricsFontScale = 1.5;
@@ -133,6 +133,7 @@ class SettingsService extends ChangeNotifier {
   ThemeMode _themeMode;
   bool _isImmersiveTabBarEnabled;
   int _waveformChunks;
+  int _sampleStride;
   bool _isUserInactive = false;
   Timer? _inactivityTimer;
   LyricsAiProvider _lyricsAiProvider;
@@ -186,6 +187,7 @@ class SettingsService extends ChangeNotifier {
     : _themeMode = ThemeModeX.fromStorageValue(_prefs.getString(_keyThemeMode)),
       _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
       _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 120,
+      _sampleStride = _prefs.getInt(_keySampleStride) ?? defaultSampleStride,
       _lyricsAiProvider = LyricsAiProviderX.fromStorageValue(
         _prefs.getString(_keyLyricsAiProvider),
       ),
@@ -263,7 +265,7 @@ class SettingsService extends ChangeNotifier {
 
   ThemeMode get themeMode => _themeMode;
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
-  int get sampleStride => _fixedSampleStride;
+  int get sampleStride => _sampleStride;
   int get waveformChunks => _waveformChunks;
   bool get isUserInactive => _isUserInactive;
   LyricsAiProvider get lyricsAiProvider => _lyricsAiProvider;
@@ -481,7 +483,11 @@ class SettingsService extends ChangeNotifier {
   }
 
   set sampleStride(int value) {
-    _prefs.setInt(_keySampleStride, _fixedSampleStride);
+    if (_sampleStride == value) {
+      return;
+    }
+    _sampleStride = value;
+    _prefs.setInt(_keySampleStride, value);
     notifyListeners();
   }
 
