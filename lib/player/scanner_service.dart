@@ -143,7 +143,6 @@ class ScannerService extends ChangeNotifier {
     return _rootAvailability[_pathLookupKey(normalizedPath)] ?? true;
   }
 
-  @visibleForTesting
   Future<void> get ready => _readyCompleter.future;
 
   ScannerService({

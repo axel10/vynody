@@ -437,6 +437,9 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (_restoringPlaybackSession) return;
     _restoringPlaybackSession = true;
     try {
+      if (Platform.isIOS || Platform.isMacOS) {
+        await ref.read(scannerServiceProvider).ready;
+      }
       final prefs = settingsService.prefs;
       final rawSession = prefs.getString(_playbackSessionStorageKey);
       if (rawSession == null || rawSession.trim().isEmpty) {
