@@ -36,7 +36,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get directoryAddedSuccess => 'Directory added successfully';
 
   @override
-  String get directoryAddedNoMusic => 'Directory added, but no playable audio files found';
+  String get directoryAddedNoMusic =>
+      'Directory added, but no playable audio files found';
 
   @override
   String get scanDirectory => 'Scan Directory';
@@ -66,7 +67,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rebuildDatabase => 'Rebuild Database';
 
   @override
-  String get confirmRebuildDatabase => 'Are you sure you want to manually refresh all song tag information? This may take some time to reload covers and metadata.';
+  String get confirmRebuildDatabase =>
+      'Are you sure you want to manually refresh all song tag information? This may take some time to reload covers and metadata.';
 
   @override
   String get cancel => 'Cancel';
@@ -192,7 +194,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearQueue => 'Clear Queue';
 
   @override
-  String get confirmClearQueue => 'Are you sure you want to clear the current queue?';
+  String get confirmClearQueue =>
+      'Are you sure you want to clear the current queue?';
 
   @override
   String get queueCleared => 'Queue cleared';
@@ -291,7 +294,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mostPlayedDescription => 'Ranked by completed plays';
 
   @override
-  String get recentlyAddedDescription => 'Sorted by when songs entered your library';
+  String get recentlyAddedDescription =>
+      'Sorted by when songs entered your library';
 
   @override
   String get allTime => 'All Time';
@@ -463,19 +467,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get immersiveTabBar => 'Immersive Tab Bar';
 
   @override
-  String get immersiveTabBarDescription => 'Show the navigation bar when the mouse moves, then hide it after 3 seconds of inactivity';
+  String get immersiveTabBarDescription =>
+      'Show the navigation bar when the mouse moves, then hide it after 3 seconds of inactivity';
 
   @override
   String get sampleStride => 'Sample Stride';
 
   @override
-  String get sampleStrideDescription => 'Larger values scan faster but with lower waveform precision (default: 4)';
+  String get sampleStrideDescription =>
+      'Larger values scan faster but with lower waveform precision (default: 4)';
 
   @override
   String get waveformSegments => 'Waveform Segments';
 
   @override
-  String get waveformSegmentsDescription => 'Number of waveform bars to display (default: 80)';
+  String get waveformSegmentsDescription =>
+      'Number of waveform bars to display (default: 80)';
 
   @override
   String get playbackBackground => 'Playback Background';
@@ -562,7 +569,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enableWaveformProgressBar => 'Enable Waveform Progress Bar';
 
   @override
-  String get enableWaveformProgressBarDescription => 'Use full-song waveform instead of standard slider';
+  String get enableWaveformProgressBarDescription =>
+      'Use full-song waveform instead of standard slider';
 
   @override
   String get randomMode => 'Random Mode';
@@ -625,7 +633,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get unsupportedFormatSingle => 'This format (OGG/Opus) does not support saving tags';
+  String get unsupportedFormatSingle =>
+      'This format (OGG/Opus) does not support saving tags';
 
   @override
   String get savingTags => 'Saving tags...';
@@ -646,7 +655,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcodeSectionTitle => 'Audio Transcoding';
 
   @override
-  String get transcodeSectionDescription => 'Set default output format, quality preset, and ffmpeg path for audio conversion.';
+  String get transcodeSectionDescription =>
+      'Set default output format, quality preset, and ffmpeg path for audio conversion.';
 
   @override
   String get transcodeDefaultFormat => 'Default Output Format';
@@ -658,7 +668,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcodeAutoScanOutput => 'Auto-scan converted files';
 
   @override
-  String get transcodeAutoScanOutputDescription => 'Refresh the music library after a successful transcode.';
+  String get transcodeAutoScanOutputDescription =>
+      'Refresh the music library after a successful transcode.';
 
   @override
   String get transcodeFfmpegPath => 'ffmpeg Path';
@@ -710,7 +721,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get transcodeUsingSystemFfmpeg => 'Using ffmpeg from your system PATH.';
+  String get transcodeUsingSystemFfmpeg =>
+      'Using ffmpeg from your system PATH.';
 
   @override
   String transcodeUsingCustomFfmpeg(Object path) {
@@ -736,19 +748,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcodeQualityExtreme => 'Highest';
 
   @override
-  String get transcodeLosslessPresetHint => 'This lossless format does not use quality tiers or bitrate mode.';
+  String get transcodeLosslessPresetHint =>
+      'This lossless format does not use quality tiers or bitrate mode.';
 
   @override
   String get transcodeAdvancedOptions => 'Advanced Options';
 
   @override
-  String get transcodeAdvancedCustomized => 'Advanced parameters were customized';
+  String get transcodeAdvancedCustomized =>
+      'Advanced parameters were customized';
 
   @override
-  String get transcodeAdvancedFollowingPreset => 'Advanced parameters follow the current preset';
+  String get transcodeAdvancedFollowingPreset =>
+      'Advanced parameters follow the current preset';
 
   @override
-  String get transcodeLosslessAdvancedHint => 'Only source-preserving options are available for this lossless format.';
+  String get transcodeLosslessAdvancedHint =>
+      'Only source-preserving options are available for this lossless format.';
 
   @override
   String get transcodeBitRateInvalid => 'Please enter a valid bitrate';
@@ -808,7 +824,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openFolderLocation => 'Open Folder Location';
 
   @override
-  String get songTagsSavedToSourceFileAndApp => 'Song tags saved to the source file and the app';
+  String get songTagsSavedToSourceFileAndApp =>
+      'Song tags saved to the source file and the app';
 
   @override
   String get songTagsSavedToApp => 'Song tags saved to the app';
@@ -847,13 +864,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sleepTimerTitle => 'Sleep Timer';
 
   @override
-  String get sleepTimerDescription => 'Choose a countdown and playback will pause when time is up.';
+  String get sleepTimerDescription =>
+      'Choose a countdown and playback will pause when time is up.';
 
   @override
   String get sleepTimerRunningTitle => 'Sleep Timer Running';
 
   @override
-  String get sleepTimerRunningDescription => 'Playback will pause automatically when the countdown ends.';
+  String get sleepTimerRunningDescription =>
+      'Playback will pause automatically when the countdown ends.';
 
   @override
   String get remainingTime => 'Remaining time';
@@ -889,7 +908,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timelineAdjustmentTitle => 'Adjust Timeline';
 
   @override
-  String get timelineAdjustmentDescription => 'Drag right to delay the lyrics, drag left to make them play earlier.';
+  String get timelineAdjustmentDescription =>
+      'Drag right to delay the lyrics, drag left to make them play earlier.';
 
   @override
   String timelineOffsetEarlier(Object seconds) {
@@ -908,7 +928,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterAcoustidApiKeyTitle => 'Enter AcoustID API Key';
 
   @override
-  String get acoustidApiKeyDescription => 'Used for audio fingerprinting. Leaving it blank will restore the built-in default key.';
+  String get acoustidApiKeyDescription =>
+      'Used for audio fingerprinting. Leaving it blank will restore the built-in default key.';
 
   @override
   String get acoustidApiKeyHint => 'Paste your AcoustID API Key';
@@ -923,13 +944,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterLyricsTitle => 'Enter Lyrics';
 
   @override
-  String get lyricsInputHint => 'Paste or type lyrics here. Multiline text is supported.';
+  String get lyricsInputHint =>
+      'Paste or type lyrics here. Multiline text is supported.';
 
   @override
   String get enterGoogleAiStudioApiKeyTitle => 'Enter Google AI Studio API Key';
 
   @override
-  String get googleAiStudioApiKeyDescription => 'Used for lyric generation, timeline generation, and translation in Google AI Studio.';
+  String get googleAiStudioApiKeyDescription =>
+      'Used for lyric generation, timeline generation, and translation in Google AI Studio.';
 
   @override
   String get pasteGoogleAiStudioApiKey => 'Paste Google AI Studio API Key';
@@ -938,7 +961,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterOpenRouterApiKeyTitle => 'Enter OpenRouter API Key';
 
   @override
-  String get openRouterApiKeyDescription => 'Used for lyric generation and timeline generation in OpenRouter. Translation always uses Gemini.';
+  String get openRouterApiKeyDescription =>
+      'Used for lyric generation and timeline generation in OpenRouter. Translation always uses Gemini.';
 
   @override
   String get pasteOpenRouterApiKey => 'Paste OpenRouter API Key';
@@ -968,7 +992,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editSongTagsTitle => 'Edit Song Tags';
 
   @override
-  String get editSongTagsDescription => 'You can save changes only in the app, or write them back to the source file as well.';
+  String get editSongTagsDescription =>
+      'You can save changes only in the app, or write them back to the source file as well.';
 
   @override
   String get artistLabel => 'Artist';
@@ -983,13 +1008,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trackNumberMustBeInteger => 'Track number must be an integer';
 
   @override
-  String get leaveBlankKeepsCurrentValue => 'Leave blank to keep the current value';
+  String get leaveBlankKeepsCurrentValue =>
+      'Leave blank to keep the current value';
 
   @override
-  String get currentFileFormatCannotWriteBack => 'This file format does not support writing back to the source file. Changes can only be saved in the app.';
+  String get currentFileFormatCannotWriteBack =>
+      'This file format does not support writing back to the source file. Changes can only be saved in the app.';
 
   @override
-  String get leaveBlankDoesNotClearOriginalValue => 'Tip: leaving a field blank will not clear the original value; it keeps the current tag.';
+  String get leaveBlankDoesNotClearOriginalValue =>
+      'Tip: leaving a field blank will not clear the original value; it keeps the current tag.';
 
   @override
   String get saveToApp => 'Save to App';
@@ -998,7 +1026,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveToSourceFileAndApp => 'Save to Source File and App';
 
   @override
-  String get saveToSourceFileFailed => 'Failed to save to the source file. Please make sure the file format supports writing and the file is not in use.';
+  String get saveToSourceFileFailed =>
+      'Failed to save to the source file. Please make sure the file format supports writing and the file is not in use.';
 
   @override
   String get saveFailed => 'Save failed. Please try again later.';
@@ -1015,25 +1044,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get generalSectionTitle => 'Interface';
 
   @override
-  String get generalSectionDescription => 'These options affect the overall appearance of the pages and playback UI.';
+  String get generalSectionDescription =>
+      'These options affect the overall appearance of the pages and playback UI.';
 
   @override
   String get scanSectionTitle => 'Scanning';
 
   @override
-  String get scanSectionDescription => 'These options control how the library scan treats audio files.';
+  String get scanSectionDescription =>
+      'These options control how the library scan treats audio files.';
 
   @override
   String get skipShortAudioDuringScan => 'Skip short audio during scan';
 
   @override
-  String get skipShortAudioDuringScanDescription => 'Audio shorter than the threshold will not be added to the library.';
+  String get skipShortAudioDuringScanDescription =>
+      'Audio shorter than the threshold will not be added to the library.';
 
   @override
   String get shortAudioScanThreshold => 'Short audio threshold';
 
   @override
-  String get shortAudioScanThresholdDescription => 'Files shorter than this duration will be skipped.';
+  String get shortAudioScanThresholdDescription =>
+      'Files shorter than this duration will be skipped.';
 
   @override
   String shortAudioScanThresholdValue(Object seconds) {
@@ -1044,7 +1077,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shortcutSettingsTitle => 'Custom Shortcuts';
 
   @override
-  String get shortcutSettingsDescription => 'Click to re-record and save shortcuts for player actions.';
+  String get shortcutSettingsDescription =>
+      'Click to re-record and save shortcuts for player actions.';
 
   @override
   String get edit => 'Edit';
@@ -1053,34 +1087,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lyricsSectionTitle => 'Lyrics';
 
   @override
-  String get lyricsSectionDescription => 'These settings only affect lyric generation and timeline generation.';
+  String get lyricsSectionDescription =>
+      'These settings only affect lyric generation and timeline generation.';
 
   @override
   String get autoSwitchLyricsProvider => 'Auto-switch lyric provider';
 
   @override
-  String get autoSwitchLyricsProviderEnabledDesc => 'Google AI Studio is tried first. If both the primary and fallback models fail with 429 or 5xx errors, the app automatically switches to OpenRouter and keeps trying.';
+  String get autoSwitchLyricsProviderEnabledDesc =>
+      'Google AI Studio is tried first. If both the primary and fallback models fail with 429 or 5xx errors, the app automatically switches to OpenRouter and keeps trying.';
 
   @override
-  String get autoSwitchLyricsProviderDisabledDesc => 'You need API keys for both Google AI Studio and OpenRouter before auto-switching can be enabled.';
+  String get autoSwitchLyricsProviderDisabledDesc =>
+      'You need API keys for both Google AI Studio and OpenRouter before auto-switching can be enabled.';
 
   @override
   String get lyricsAiProviderTitle => 'Lyrics AI Provider';
 
   @override
-  String get lyricsAiProviderDescription => 'This only affects lyric generation and timeline generation. Translation always uses Google AI Studio.';
+  String get lyricsAiProviderDescription =>
+      'This only affects lyric generation and timeline generation. Translation always uses Google AI Studio.';
 
   @override
   String get googleAiStudioApiKeySaved => 'Google AI Studio API key saved';
 
   @override
-  String get googleAiStudioApiKeyMissing => 'No Google AI Studio API key is saved yet. Lyric generation and timeline generation will prompt you first.';
+  String get googleAiStudioApiKeyMissing =>
+      'No Google AI Studio API key is saved yet. Lyric generation and timeline generation will prompt you first.';
 
   @override
   String get openRouterApiKeySaved => 'OpenRouter API key saved';
 
   @override
-  String get openRouterApiKeyMissing => 'No OpenRouter API key is saved yet. Lyric generation and timeline generation will prompt you first.';
+  String get openRouterApiKeyMissing =>
+      'No OpenRouter API key is saved yet. Lyric generation and timeline generation will prompt you first.';
 
   @override
   String get fill => 'Fill in';
@@ -1092,7 +1132,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get geminiModelsSectionTitle => 'Gemini Models';
 
   @override
-  String get geminiModelsSectionDescription => 'These models are used for lyric generation, timeline generation, and lyric translation in Google AI Studio.';
+  String get geminiModelsSectionDescription =>
+      'These models are used for lyric generation, timeline generation, and lyric translation in Google AI Studio.';
 
   @override
   String get primaryModelLabel => 'Primary model';
@@ -1119,16 +1160,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get acoustidApiKeyTitle => 'AcoustID API Key';
 
   @override
-  String get acoustidApiKeyHelp => 'AcoustID is used for audio fingerprinting. We recommend using your own API key.';
+  String get acoustidApiKeyHelp =>
+      'AcoustID is used for audio fingerprinting. We recommend using your own API key.';
 
   @override
   String get acoustidApiKeySaved => 'AcoustID API key saved';
 
   @override
-  String get acoustidApiKeyDefault => 'The built-in default key is currently in use. We recommend replacing it with your own key.';
+  String get acoustidApiKeyDefault =>
+      'The built-in default key is currently in use. We recommend replacing it with your own key.';
 
   @override
-  String get applyForApiKey => 'Apply for API key: https://acoustid.org/new-application';
+  String get applyForApiKey =>
+      'Apply for API key: https://acoustid.org/new-application';
 
   @override
   String get queueTabBarFavoriteAdded => 'Added to favorites';
@@ -1140,7 +1184,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tagCompletion => 'Tag completion';
 
   @override
-  String get tagCompletionDescription => 'Match tags with AcoustID and MusicBrainz results';
+  String get tagCompletionDescription =>
+      'Match tags with AcoustID and MusicBrainz results';
 
   @override
   String get goToSettings => 'Go to Settings';
@@ -1155,7 +1200,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refreshResults => 'Refresh results';
 
   @override
-  String get filterMusicBrainzReleaseTitle => 'Filter MusicBrainz release titles';
+  String get filterMusicBrainzReleaseTitle =>
+      'Filter MusicBrainz release titles';
 
   @override
   String get clearSearch => 'Clear search';
@@ -1170,7 +1216,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicBrainzLoading => 'MusicBrainz is loading';
 
   @override
-  String get musicBrainzLoadingWithResults => 'Existing results will stay in the panel';
+  String get musicBrainzLoadingWithResults =>
+      'Existing results will stay in the panel';
 
   @override
   String get musicBrainzLoadingHint => 'Please wait';
@@ -1179,16 +1226,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicBrainzQueryFailed => 'MusicBrainz query failed';
 
   @override
-  String get musicBrainzNetworkErrorHint => 'The request failed, usually because of unstable network, timeout, or server rejection. Try again later.';
+  String get musicBrainzNetworkErrorHint =>
+      'The request failed, usually because of unstable network, timeout, or server rejection. Try again later.';
 
   @override
-  String get musicBrainzFilteredEmptyHint => 'No release titles containing that keyword were found under the current filters.';
+  String get musicBrainzFilteredEmptyHint =>
+      'No release titles containing that keyword were found under the current filters.';
 
   @override
-  String get musicBrainzEmptyHint => 'MusicBrainz returned no usable results. Try loosening the title, artist, or album filters.';
+  String get musicBrainzEmptyHint =>
+      'MusicBrainz returned no usable results. Try loosening the title, artist, or album filters.';
 
   @override
-  String get musicBrainzEmptyMoreCompleteHint => 'Try again later, or confirm the current title or artist info is more complete.';
+  String get musicBrainzEmptyMoreCompleteHint =>
+      'Try again later, or confirm the current title or artist info is more complete.';
 
   @override
   String get retry => 'Retry';
@@ -1209,13 +1260,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicBrainzRecordings => 'MusicBrainz recordings';
 
   @override
-  String get noExpandableReleaseGroups => 'No expandable release groups available';
+  String get noExpandableReleaseGroups =>
+      'No expandable release groups available';
 
   @override
   String get noExpandableReleases => 'No expandable releases available';
 
   @override
-  String get noMatchingResultHint => 'Try again later, or confirm the current title or artist info is more complete.';
+  String get noMatchingResultHint =>
+      'Try again later, or confirm the current title or artist info is more complete.';
 
   @override
   String releaseCountLabel(int count) {
@@ -1318,7 +1371,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get persistentAccessDenied => 'Could not save access to that folder. Please select it again.';
+  String get persistentAccessDenied =>
+      'Could not save access to that folder. Please select it again.';
 
   @override
   String get folderAddFailed => 'Failed to add the folder';
@@ -1338,7 +1392,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pressAgainToExit => 'Press again to exit';
 
   @override
-  String get tagCompletionSuccessWithCover => 'Tags completed and saved, cover downloaded to temporary directory';
+  String get tagCompletionSuccessWithCover =>
+      'Tags completed and saved, cover downloaded to temporary directory';
 
   @override
   String get tagCompletionSuccess => 'Tags completed and saved';
