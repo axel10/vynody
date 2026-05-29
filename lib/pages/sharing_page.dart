@@ -16,13 +16,16 @@ class SharingPage extends ConsumerStatefulWidget {
 }
 
 class _SharingPageState extends ConsumerState<SharingPage> {
+  late final SharingServerStateNotifier _sharingServerNotifier;
+
   @override
   void initState() {
     super.initState();
+    _sharingServerNotifier = ref.read(sharingServerStateProvider.notifier);
     // Auto-start server when page opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(sharingServerStateProvider.notifier).start();
+        _sharingServerNotifier.start();
       }
     });
   }
@@ -33,8 +36,8 @@ class _SharingPageState extends ConsumerState<SharingPage> {
     // Since this is a tab page, we want it to stop when user navigates away or it's unmounted.
     // However, if we want it to run only during this page session:
     // To ensure the server stops when we exit, we stop it in dispose.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(sharingServerStateProvider.notifier).stop();
+    Future.microtask(() {
+      _sharingServerNotifier.stop();
     });
     super.dispose();
   }
