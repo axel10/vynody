@@ -14,6 +14,9 @@ import '../pages/playback_page.dart';
 import '../pages/library_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
+import '../pages/sharing_page.dart';
+import 'package:vibe_flow/player/sharing/sharing_service.dart';
+import 'package:vibe_flow/dialogs/transfer_dialogs.dart';
 import 'package:vibe_flow/player/library/music_file_utils.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 import 'package:vibe_flow/player/settings/shortcut_bindings.dart';
@@ -259,7 +262,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   }
 
   Future<void> _onDestinationSelected(int index) async {
-    if (index == 4) {
+    if (index == 5) {
       await _openSettingsPage();
       return;
     }
@@ -333,6 +336,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
           child: const QueuePage(),
         );
+      case 4:
+        return Padding(
+          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
+          child: const SharingPage(),
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -395,6 +403,19 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           color: isPlayback ? Colors.white : null,
         ),
         label: l10n.queueTab,
+      ),
+      NavigationDestination(
+        icon: _buildTooltipIcon(
+          message: l10n.share,
+          icon: Icons.share_outlined,
+          color: isPlayback ? Colors.white70 : null,
+        ),
+        selectedIcon: _buildTooltipIcon(
+          message: l10n.share,
+          icon: Icons.share,
+          color: isPlayback ? Colors.white : null,
+        ),
+        label: l10n.share,
       ),
       NavigationDestination(
         icon: _buildTooltipIcon(
@@ -508,6 +529,24 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         padding: const EdgeInsets.symmetric(vertical: verticalPadding),
         icon: railIcon(
           _buildTooltipIcon(
+            message: l10n.share,
+            icon: Icons.share_outlined,
+            color: isPlayback ? Colors.white70 : null,
+          ),
+        ),
+        selectedIcon: railIcon(
+          _buildTooltipIcon(
+            message: l10n.share,
+            icon: Icons.share,
+            color: isPlayback ? Colors.white : null,
+          ),
+        ),
+        label: Text(l10n.share),
+      ),
+      NavigationRailDestination(
+        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
+        icon: railIcon(
+          _buildTooltipIcon(
             message: l10n.settings,
             icon: Icons.settings_outlined,
             color: isPlayback ? Colors.white70 : null,
@@ -527,6 +566,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for incoming LAN file transfers
+    ref.listen<IncomingTransferRequest?>(incomingRequestProvider, (previous, next) {
+      if (next != null) {
+        showIncomingTransferDialog(context, next);
+      }
+    });
+
     final uiState = ref.watch(mainLayoutUiControllerProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final hideMiniPlayerForSelection = ref.watch(folderSelectionModeProvider);

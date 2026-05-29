@@ -1,0 +1,68 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'sharing_service.dart';
+import 'lan_device.dart';
+
+// Provider that instantiates and holds the SharingService
+final sharingServiceProvider = Provider<SharingService>((ref) {
+  final service = SharingService(ref);
+  
+  // Clean up when provider is disposed
+  ref.onDispose(() {
+    service.stop();
+  });
+  
+  return service;
+});
+
+// State of the Sharing Server running status
+class SharingServerState {
+  final bool isRunning;
+  final String? localIp;
+  final int? httpPort;
+
+  SharingServerState({
+    required this.isRunning,
+    this.localIp,
+    this.httpPort,
+  });
+}
+
+class SharingServerStateNotifier extends Notifier<SharingServerState> {
+  @override
+  SharingServerState build() {
+    return SharingServerState(isRunning: false);
+  }
+
+  Future<void> start() async {
+    if (state.isRunning) return;
+    final service = ref.read(sharingServiceProvider);
+    await service.start();
+    state = SharingServerState(
+      isRunning: true,
+      localIp: service.localIp,
+      httpPort: service.httpPort,
+    );
+  }
+
+  Future<void> stop() async {
+    if (!state.isRunning) return;
+    final service = ref.read(sharingServiceProvider);
+    await service.stop();
+    state = SharingServerState(isRunning: false);
+  }
+}
+
+final sharingServerStateProvider = NotifierProvider<SharingServerStateNotifier, SharingServerState>(
+  SharingServerStateNotifier.new,
+);
+
+// Stream provider for active, discovered LAN devices
+final discoveredDevicesProvider = StreamProvider<List<LanDevice>>((ref) {
+  final service = ref.watch(sharingServiceProvider);
+  // Only listen when the server is active
+  final serverState = ref.watch(sharingServerStateProvider);
+  if (!serverState.isRunning) {
+    return Stream.value([]);
+  }
+  return service.discoveredDevicesStream;
+});

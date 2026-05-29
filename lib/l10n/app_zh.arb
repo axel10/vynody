@@ -1040,5 +1040,9 @@
     }
   },
   "copyCover": "复制封面到剪贴板",
-  "copyCoverSuccess": "封面已复制到剪贴板"
+  "copyCoverSuccess": "已成功复制封面",
+  "share": "共享",
+  "@share": {
+    "description": "Share tab label"
+  }
 }

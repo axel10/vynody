@@ -1458,4 +1458,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get copyCoverSuccess => 'Cover copied to clipboard';
+
+  @override
+  String get share => 'Share';
 }

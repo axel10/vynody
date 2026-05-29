@@ -2747,8 +2747,14 @@ abstract class AppLocalizations {
   /// No description provided for @copyCoverSuccess.
   ///
   /// In zh, this message translates to:
-  /// **'封面已复制到剪贴板'**
+  /// **'已成功复制封面'**
   String get copyCoverSuccess;
+
+  /// Share tab label
+  ///
+  /// In zh, this message translates to:
+  /// **'共享'**
+  String get share;
 }
 
 class _AppLocalizationsDelegate

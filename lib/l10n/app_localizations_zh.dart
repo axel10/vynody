@@ -1414,5 +1414,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get copyCover => '复制封面到剪贴板';
 
   @override
-  String get copyCoverSuccess => '封面已复制到剪贴板';
+  String get copyCoverSuccess => '已成功复制封面';
+
+  @override
+  String get share => '共享';
 }

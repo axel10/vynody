@@ -601,5 +601,9 @@
   "dropAddedSongs": "Added {addedCount} songs",
   "dropAddedSongsWithExisting": "Added {addedCount} songs, {existingCount} already existed",
   "copyCover": "Copy Cover to Clipboard",
-  "copyCoverSuccess": "Cover copied to clipboard"
+  "copyCoverSuccess": "Cover copied to clipboard",
+  "share": "Share",
+  "@share": {
+    "description": "Share tab label"
+  }
 }
