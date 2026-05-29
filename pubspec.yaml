@@ -100,7 +100,9 @@ dependencies:
   drift_dev: ^2.32.1
 
   audio_core:
-    path: audio_core
+    git:
+      url: https://github.com/axel10/audio_core
+      ref: main
   watcher: ^1.2.1
   pasteboard: ^0.5.0
 

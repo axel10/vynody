@@ -515,6 +515,20 @@ class AudioService extends Notifier<AudioSnapshot> {
 
         _position = restorePosition;
         _isPlaying = false;
+
+        final currentSong = _queue[restoredIndex];
+        final duration = _duration > Duration.zero
+            ? _duration
+            : Duration(milliseconds: currentSong.durationMillis ?? 0);
+        _windowsIntegration?.updateMetadata(currentSong);
+        _androidIntegration?.updateMetadata(currentSong);
+        _darwinIntegration?.updateMetadata(currentSong);
+        _windowsIntegration?.updatePlaybackStatus(_isPlaying);
+        _androidIntegration?.updatePlaybackStatus(_isPlaying);
+        _darwinIntegration?.updatePlaybackStatus(_isPlaying);
+        _windowsIntegration?.updateTimeline(_position, duration);
+        _androidIntegration?.updateTimeline(_position, duration);
+        _darwinIntegration?.updateTimeline(_position, duration);
       } else {
         // No restored track still exists, so discard the stale session and
         // leave the player empty instead of restoring a deleted file.
