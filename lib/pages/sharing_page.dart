@@ -45,7 +45,8 @@ class _SharingPageState extends ConsumerState<SharingPage> {
   Future<void> _handleSendFile(LanDevice device) async {
     try {
       final result = await FilePicker.pickFiles(
-        type: FileType.audio,
+        type: FileType.custom,
+        allowedExtensions: const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
         allowMultiple: false,
       );
 

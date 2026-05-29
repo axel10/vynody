@@ -264,7 +264,12 @@ class SharingService {
     try {
       _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 53535);
       _udpSocket!.broadcastEnabled = true;
-      _udpSocket!.listen(_handleUdpEvent);
+      _udpSocket!.listen(
+        _handleUdpEvent,
+        onError: (e) {
+          debugPrint('[SharingService] UDP Socket error: $e');
+        },
+      );
       debugPrint('[SharingService] UDP Discovery listening on port 53535');
     } catch (e) {
       debugPrint('[SharingService] UDP Socket binding failed: $e');
