@@ -927,6 +927,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                             context,
                             details.globalPosition,
                             song: file,
+                            songs: songsToAdd,
                             mode: SongContextMenuMode.full,
                             onAddToPlaylist: () => showAddSongsToPlaylistDialog(
                               context,

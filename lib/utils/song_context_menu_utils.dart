@@ -96,6 +96,7 @@ Future<void> showSongContextMenu(
   BuildContext context,
   Offset globalPosition, {
   required MusicFile? song,
+  List<MusicFile>? songs,
   SongContextMenuMode mode = SongContextMenuMode.full,
   Future<void> Function()? onAddToPlaylist,
 }) async {
@@ -143,7 +144,7 @@ Future<void> showSongContextMenu(
         const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'transcode',
-          enabled: song != null,
+          enabled: song != null || (songs != null && songs.isNotEmpty),
           child: Text(l10n.transcodeAction),
         ),
       ]);
@@ -229,7 +230,9 @@ Future<void> showSongContextMenu(
       }
       break;
     case 'transcode':
-      if (song != null) {
+      if (songs != null && songs.isNotEmpty) {
+        await showTranscodeDialog(context, songs: songs);
+      } else if (song != null) {
         await showTranscodeDialog(context, songs: [song]);
       }
       break;

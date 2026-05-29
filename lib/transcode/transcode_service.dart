@@ -121,6 +121,63 @@ class TranscodeService {
     );
   }
 
+  Future<List<TranscodeExecutionResult>> convertMultipleToOutputDirectory({
+    required List<String> inputPaths,
+    required TranscodeDraft draft,
+    AndroidOutputDirectory? androidOutputDirectory,
+    String? ffmpegPath,
+    List<String>? metadataSourcePaths,
+    AudioConverterProgressCallback? onProgress,
+  }) async {
+    final outputDirectory =
+        draft.outputDirectory ??
+        (inputPaths.isNotEmpty ? File(inputPaths.first).parent.path : '');
+
+    final supportsBitRate = draft.outputFormat.supportsBitRateControls;
+    final hasAacEncoder = supportsBitRate &&
+        !draft.useSystemEncoder &&
+        !(Platform.isIOS || Platform.isMacOS);
+
+    final rawResults = await _converter.convertFilesToOutputDirectory(
+      inputPaths: inputPaths,
+      outputDirectory: outputDirectory,
+      outputFormat: draft.outputFormat,
+      sampleRate: draft.sampleRate,
+      channels: draft.channels,
+      bitRate: supportsBitRate ? draft.bitRate : null,
+      bitRateMode: supportsBitRate ? draft.bitRateMode : null,
+      useSystemEncoder: draft.useSystemEncoder,
+      aacEncoder: hasAacEncoder ? draft.aacEncoder : null,
+      ffmpegPath: _normalizeOptional(ffmpegPath),
+      androidOutputDirectory: androidOutputDirectory,
+      onProgress: onProgress,
+      metadataSourcePaths: metadataSourcePaths,
+      copyMetadata: true,
+      audioCoreController: _audioCoreController,
+    );
+
+    final results = <TranscodeExecutionResult>[];
+    for (var index = 0; index < rawResults.length; index++) {
+      final rawResult = rawResults[index];
+      final inputPath = inputPaths[index];
+
+      final plannedOutputPath = _converter.buildOutputPath(
+        inputPath: inputPath,
+        outputDirectory: outputDirectory,
+        outputFormat: draft.outputFormat,
+      );
+
+      results.add(
+        TranscodeExecutionResult(
+          plannedOutputPath: plannedOutputPath,
+          result: rawResult,
+        ),
+      );
+    }
+
+    return results;
+  }
+
   Future<void> _copyMetadataFromSourceToOutput({
     required String sourcePath,
     required String outputPath,

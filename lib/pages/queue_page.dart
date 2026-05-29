@@ -355,6 +355,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                             context,
                             details.globalPosition,
                             song: song,
+                            songs: songsToAdd,
                             mode: SongContextMenuMode.full,
                             onAddToPlaylist: () => showAddSongsToPlaylistDialog(
                               context,

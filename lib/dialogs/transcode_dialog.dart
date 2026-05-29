@@ -318,56 +318,58 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       _errorText = null;
     });
 
+    final songPaths = widget.songs.map((s) => s.path).toList();
+    final metadataPaths = widget.songs
+        .map((s) => TranscodeService.resolveMetadataSourcePath(s))
+        .toList();
+
     var successCount = 0;
     var failureCount = 0;
     String? firstOutputPath;
     String? lastErrorMessage;
 
-    for (var index = 0; index < widget.songs.length; index++) {
-      final song = widget.songs[index];
-      if (!mounted) return;
-
-      final result = await service.convertToOutputDirectory(
-        inputPath: song.path,
+    try {
+      final results = await service.convertMultipleToOutputDirectory(
+        inputPaths: songPaths,
         draft: draft,
         androidOutputDirectory: _androidOutputDirectory,
         ffmpegPath: settings.transcodeFfmpegPath,
-        metadataSourcePath: TranscodeService.resolveMetadataSourcePath(song),
+        metadataSourcePaths: metadataPaths,
         onProgress: (progress) {
           if (!mounted) return;
-          final fileProgress = progress.currentFileProgress?.clamp(0.0, 1.0);
-          final batchProgress = fileProgress == null
-              ? index / widget.songs.length
-              : (index + fileProgress) / widget.songs.length;
+          final currentNumber =
+              (progress.completedFiles + 1).clamp(1, progress.totalFiles);
           setState(() {
             _currentFileProgress = progress.currentFileProgress;
-            _overallProgress = batchProgress.clamp(0.0, 1.0).toDouble();
-            _submitLabel =
-                progress.message ??
-                l10n.transcodeProgress(index + 1, widget.songs.length);
+            _overallProgress = progress.overallProgress;
+            _submitLabel = progress.message ??
+                l10n.transcodeProgress(currentNumber, progress.totalFiles);
             _currentFileLabel = p.basename(progress.currentFilePath);
           });
         },
       );
 
-      if (result.result.success) {
-        successCount += 1;
-        firstOutputPath ??=
-            result.result.outputPath ?? result.plannedOutputPath;
-      } else {
-        failureCount += 1;
-        lastErrorMessage =
-            result.result.errorMessage ?? l10n.transcodeFailedGeneric;
-        debugPrint(lastErrorMessage);
+      for (final executionResult in results) {
+        if (executionResult.result.success) {
+          successCount += 1;
+          firstOutputPath ??=
+              executionResult.result.outputPath ??
+              executionResult.plannedOutputPath;
+        } else {
+          failureCount += 1;
+          lastErrorMessage =
+              executionResult.result.errorMessage ?? l10n.transcodeFailedGeneric;
+          debugPrint(lastErrorMessage);
+        }
       }
-
-      if (!mounted) return;
-      setState(() {
-        _currentFileProgress = 1;
-        _overallProgress = (index + 1) / widget.songs.length;
-        _submitLabel = l10n.transcodeProgress(index + 1, widget.songs.length);
-        _currentFileLabel = p.basename(song.path);
-      });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _errorText = error.toString();
+          _isSubmitting = false;
+        });
+      }
+      return;
     }
 
     if (!mounted) return;
