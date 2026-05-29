@@ -56,7 +56,6 @@ final sharingServerStateProvider = NotifierProvider<SharingServerStateNotifier, 
   SharingServerStateNotifier.new,
 );
 
-// Stream provider for active, discovered LAN devices
 final discoveredDevicesProvider = StreamProvider<List<LanDevice>>((ref) {
   final service = ref.watch(sharingServiceProvider);
   // Only listen when the server is active
@@ -64,5 +63,12 @@ final discoveredDevicesProvider = StreamProvider<List<LanDevice>>((ref) {
   if (!serverState.isRunning) {
     return Stream.value([]);
   }
-  return service.discoveredDevicesStream;
+
+  // Prepend current devices to avoid starting in AsyncLoading state
+  Stream<List<LanDevice>> getDevicesStream() async* {
+    yield service.discoveredDevices;
+    yield* service.discoveredDevicesStream;
+  }
+
+  return getDevicesStream();
 });

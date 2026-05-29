@@ -347,9 +347,32 @@ class SharingService {
     
     final bytes = utf8.encode(jsonEncode(payload));
     try {
-      _udpSocket!.send(bytes, InternetAddress('255.255.255.255'), 53535);
+      final bytesSent = _udpSocket!.send(bytes, InternetAddress('255.255.255.255'), 53535);
+      debugPrint('[SharingService] _broadcastDiscoveryPing sent bytesSent=$bytesSent to 255.255.255.255:53535');
     } catch (e) {
-      // Ignore send errors
+      debugPrint('[SharingService] _broadcastDiscoveryPing send error: $e');
+    }
+  }
+
+  void _sendUnicastPing(String targetIp, String action) {
+    if (_udpSocket == null || _localIp == null || _httpPort == null) return;
+    
+    final payload = {
+      'app': 'VibeFlow',
+      'version': '0.11.0',
+      'action': action,
+      'id': _deviceId,
+      'name': _deviceName,
+      'deviceType': _deviceType,
+      'httpPort': _httpPort,
+    };
+    
+    final bytes = utf8.encode(jsonEncode(payload));
+    try {
+      final bytesSent = _udpSocket!.send(bytes, InternetAddress(targetIp), 53535);
+      debugPrint('[SharingService] Sent unicast $action ($bytesSent bytes) to $targetIp:53535');
+    } catch (e) {
+      debugPrint('[SharingService] Failed to send unicast $action to $targetIp: $e');
     }
   }
 
@@ -361,6 +384,7 @@ class SharingService {
     
     try {
       final text = utf8.decode(datagram.data);
+      debugPrint('[SharingService] Received UDP packet from ${datagram.address.address}:${datagram.port}: $text');
       final json = jsonDecode(text) as Map<String, dynamic>;
       
       if (json['app'] == 'VibeFlow' && json['id'] != _deviceId) {
@@ -368,12 +392,23 @@ class SharingService {
         final senderIp = datagram.address.address;
         
         final device = LanDevice.fromJson(json, senderIp, DateTime.now());
+        debugPrint('[SharingService] Discovered/Updated device: ${device.name} ($senderIp) isOnline=${device.isOnline}');
         
         _discoveredDevicesMap[id] = device;
         _devicesController.add(_discoveredDevicesMap.values.toList());
+
+        // If we received a broadcast ping, reply with a unicast pong to the sender
+        final action = json['action'] as String? ?? 'ping';
+        if (action == 'ping') {
+          _sendUnicastPing(senderIp, 'pong');
+        }
+      } else if (json['id'] == _deviceId) {
+        // Ignored self ping
+      } else {
+        debugPrint('[SharingService] Ignored packet: app=${json['app']}, id=${json['id']}');
       }
-    } catch (_) {
-      // Ignore malformed packets
+    } catch (e) {
+      debugPrint('[SharingService] Error parsing UDP packet: $e');
     }
   }
 
