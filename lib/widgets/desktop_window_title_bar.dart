@@ -96,68 +96,78 @@ class _DesktopWindowTitleBarState extends State<DesktopWindowTitleBar>
 
     final isMacOS = Platform.isMacOS;
 
-    return DragToMoveArea(
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onDoubleTap: () async {
-          if (_isFullScreen) return;
-          if (_isMaximized) {
-            await windowManager.unmaximize();
-          } else {
-            await windowManager.maximize();
-          }
-        },
-        child: SizedBox(
-          height: widget.height,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (!isMacOS) ...[
-                _WindowButton(
-                  icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                  brightness: widget.brightness,
-                  hoverColor: hoverColor,
-                  onPressed: () => _setFullScreen(!_isFullScreen),
-                ),
-                _WindowButton(
-                  icon: Icons.remove,
-                  brightness: widget.brightness,
-                  hoverColor: hoverColor,
-                  onPressed: () async {
-                    if (_isFullScreen) {
-                      await _setFullScreen(false);
-                    }
-                    await windowManager.minimize();
-                  },
-                ),
-                _WindowButton(
-                  icon: _isMaximized ? Icons.filter_none : Icons.crop_square,
-                  iconSize: 14,
-                  brightness: widget.brightness,
-                  hoverColor: hoverColor,
-                  onPressed: () async {
-                    if (_isFullScreen) {
-                      await _setFullScreen(false);
-                    } else if (_isMaximized) {
-                      await windowManager.unmaximize();
-                    } else {
-                      await windowManager.maximize();
-                    }
-                  },
-                ),
-                _WindowButton(
-                  icon: Icons.close,
-                  isClose: true,
-                  brightness: widget.brightness,
-                  hoverColor: hoverColor,
-                  onPressed: windowManager.close,
-                ),
-              ],
+    final Widget titleBarContent = GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onPanStart: (details) {
+        windowManager.startDragging();
+      },
+      onDoubleTap: () async {
+        if (_isFullScreen) return;
+        if (_isMaximized) {
+          await windowManager.unmaximize();
+        } else {
+          await windowManager.maximize();
+        }
+      },
+      child: SizedBox(
+        height: widget.height,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (!isMacOS) ...[
+              _WindowButton(
+                icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                brightness: widget.brightness,
+                hoverColor: hoverColor,
+                onPressed: () => _setFullScreen(!_isFullScreen),
+              ),
+              _WindowButton(
+                icon: Icons.remove,
+                brightness: widget.brightness,
+                hoverColor: hoverColor,
+                onPressed: () async {
+                  if (_isFullScreen) {
+                    await _setFullScreen(false);
+                  }
+                  await windowManager.minimize();
+                },
+              ),
+              _WindowButton(
+                icon: _isMaximized ? Icons.filter_none : Icons.crop_square,
+                iconSize: 14,
+                brightness: widget.brightness,
+                hoverColor: hoverColor,
+                onPressed: () async {
+                  if (_isFullScreen) {
+                    await _setFullScreen(false);
+                  } else if (_isMaximized) {
+                    await windowManager.unmaximize();
+                  } else {
+                    await windowManager.maximize();
+                  }
+                },
+              ),
+              _WindowButton(
+                icon: Icons.close,
+                isClose: true,
+                brightness: widget.brightness,
+                hoverColor: hoverColor,
+                onPressed: windowManager.close,
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
+
+    if (isMacOS) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 80.0),
+        child: titleBarContent,
+      );
+    }
+
+    return titleBarContent;
   }
 }
 
