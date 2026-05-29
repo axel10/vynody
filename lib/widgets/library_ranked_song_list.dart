@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
-import '../models/music_file.dart';
-import '../player/audio_riverpod.dart';
-import '../player/audio_service.dart';
-import '../player/library_insights_service.dart';
-import '../player/playlist_service.dart';
-import '../utils/song_context_menu_utils.dart';
+import 'package:vibe_flow/models/music_file.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/audio/audio_service.dart';
+import 'package:vibe_flow/player/library/library_insights_service.dart';
+import 'package:vibe_flow/player/library/playlist_service.dart';
+import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'song_thumbnail.dart';
 
 class LibraryRankedSongList extends ConsumerWidget {

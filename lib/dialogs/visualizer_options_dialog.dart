@@ -3,9 +3,9 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
-import '../player/audio_riverpod.dart';
-import '../player/audio_service.dart';
-import '../player/settings_service.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/audio/audio_service.dart';
+import 'package:vibe_flow/player/settings/settings_service.dart';
 
 class VisualizerOptionsDialog extends ConsumerWidget {
   const VisualizerOptionsDialog({

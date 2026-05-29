@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import '../player/audio_riverpod.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 
 class SongThumbnail extends ConsumerStatefulWidget {
   final String path;

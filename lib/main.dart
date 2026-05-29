@@ -12,9 +12,9 @@ import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
-import 'player/audio_riverpod.dart';
-import 'player/music_file_utils.dart';
-import 'player/settings_service.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/library/music_file_utils.dart';
+import 'package:vibe_flow/player/settings/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
 

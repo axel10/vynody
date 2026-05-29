@@ -12,11 +12,11 @@ import 'package:vibe_flow/l10n/app_localizations.dart';
 import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/models/music_folder.dart';
 import 'package:vibe_flow/pages/folder_page.dart';
-import 'package:vibe_flow/player/audio_riverpod.dart';
-import 'package:vibe_flow/player/audio_service.dart';
-import 'package:vibe_flow/player/metadata_database.dart';
-import 'package:vibe_flow/player/scanner_service.dart';
-import 'package:vibe_flow/player/scanner_state.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/audio/audio_service.dart';
+import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vibe_flow/player/scanner/scanner_service.dart';
+import 'package:vibe_flow/player/scanner/scanner_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -10,9 +10,9 @@ import '../dialogs/acoustid_api_key_dialog.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
 import '../dialogs/shortcut_settings_dialog.dart';
 import '../l10n/app_localizations.dart';
-import '../player/ai_api_key_service.dart';
-import '../player/audio_riverpod.dart';
-import '../player/settings_service.dart';
+import 'package:vibe_flow/player/ai/ai_api_key_service.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/settings/settings_service.dart';
 import '../transcode/transcode_models.dart';
 import '../widgets/desktop_window_title_bar.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../player/musicbrainz_tag_completion_service.dart';
+import 'package:vibe_flow/player/metadata/musicbrainz_tag_completion_service.dart';
 import 'song_tag_completion_widgets.dart';
 
 class SongTagMusicBrainzRecordingCard extends StatelessWidget {

@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vibe_flow/player/scanner_directory_scanner.dart';
-import 'package:vibe_flow/player/scanner_scan_support.dart';
+import 'package:vibe_flow/player/scanner/scanner_directory_scanner.dart';
+import 'package:vibe_flow/player/scanner/scanner_scan_support.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

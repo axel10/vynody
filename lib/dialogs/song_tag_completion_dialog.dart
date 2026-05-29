@@ -3,17 +3,17 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
-import '../utils/clean_helper.dart';
-import '../player/acoustid_service.dart';
-import '../player/metadata_helper.dart';
-import '../player/metadata_database.dart';
-import '../player/musicbrainz_tag_completion_service.dart';
+import 'package:vibe_flow/utils/clean_helper.dart';
+import 'package:vibe_flow/player/metadata/acoustid_service.dart';
+import 'package:vibe_flow/player/metadata/metadata_helper.dart';
+import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vibe_flow/player/metadata/musicbrainz_tag_completion_service.dart';
 import '../pages/main_layout.dart';
 import 'song_tag_completion_widgets.dart';
 import 'song_tag_musicbrainz_cards.dart';
 import 'song_tag_acoustid_cards.dart';
 import 'song_tag_completion_riverpod.dart';
-import '../utils/app_snack_bar.dart';
+import 'package:vibe_flow/utils/app_snack_bar.dart';
 
 enum _SummaryCondition { title, artist, album, duration }
 

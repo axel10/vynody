@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
-import '../models/album_summary.dart';
-import '../player/album_library.dart';
-import '../player/audio_riverpod.dart';
-import '../utils/song_context_menu_utils.dart';
+import 'package:vibe_flow/models/album_summary.dart';
+import 'package:vibe_flow/player/library/album_library.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
 

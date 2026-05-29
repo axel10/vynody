@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
-import '../models/music_file.dart';
-import '../player/audio_riverpod.dart';
-import '../player/playlist_service.dart';
-import '../utils/deleted_song_snack.dart';
+import 'package:vibe_flow/models/music_file.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/library/playlist_service.dart';
+import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import '../widgets/song_thumbnail.dart';
-import '../utils/app_snack_bar.dart';
+import 'package:vibe_flow/utils/app_snack_bar.dart';
 import 'playlist_page_riverpod.dart';
 
 class PlaylistTab extends ConsumerStatefulWidget {

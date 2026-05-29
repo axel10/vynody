@@ -8,15 +8,15 @@ import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
-import '../models/music_file.dart';
-import '../models/music_folder.dart';
-import '../player/audio_riverpod.dart';
-import '../player/scanner_sorting.dart';
-import '../player/scanner_service.dart';
+import 'package:vibe_flow/models/music_file.dart';
+import 'package:vibe_flow/models/music_folder.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/scanner/scanner_sorting.dart';
+import 'package:vibe_flow/player/scanner/scanner_service.dart';
 import 'folder_page_riverpod.dart';
-import '../utils/song_context_menu_utils.dart';
+import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
-import '../utils/app_snack_bar.dart';
+import 'package:vibe_flow/utils/app_snack_bar.dart';
 
 // 目录页
 class FoldersPage extends ConsumerStatefulWidget {

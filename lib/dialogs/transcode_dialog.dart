@@ -7,14 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../l10n/app_localizations.dart';
-import '../models/music_file.dart';
-import '../player/audio_riverpod.dart';
+import 'package:vibe_flow/models/music_file.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import '../transcode/transcode_models.dart';
 import '../transcode/transcode_preset.dart';
 import '../transcode/transcode_riverpod.dart';
 import '../transcode/transcode_service.dart';
-import '../utils/app_snack_bar.dart';
-import '../utils/song_context_menu_utils.dart';
+import 'package:vibe_flow/utils/app_snack_bar.dart';
+import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 
 class TranscodeSubmitSummary {
   const TranscodeSubmitSummary({

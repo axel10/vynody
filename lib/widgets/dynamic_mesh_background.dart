@@ -3,8 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mesh_gradient/mesh_gradient.dart';
-import '../player/audio_riverpod.dart';
-import '../player/theme_color_helper.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/settings/theme_color_helper.dart';
 
 class DynamicMeshBackground extends ConsumerStatefulWidget {
   const DynamicMeshBackground({super.key});

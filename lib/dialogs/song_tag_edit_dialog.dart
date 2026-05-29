@@ -4,9 +4,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../models/music_file.dart';
-import '../player/metadata_database.dart';
-import '../player/metadata_helper.dart';
+import 'package:vibe_flow/models/music_file.dart';
+import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vibe_flow/player/metadata/metadata_helper.dart';
 
 class SongTagEditResult {
   const SongTagEditResult({

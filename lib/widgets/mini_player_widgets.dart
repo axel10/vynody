@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
-import '../player/audio_riverpod.dart';
-import '../player/audio_service.dart';
-import '../utils/playback_utils.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/audio/audio_service.dart';
+import 'package:vibe_flow/utils/playback_utils.dart';
 
 class MiniArtwork extends ConsumerWidget {
   const MiniArtwork({super.key});

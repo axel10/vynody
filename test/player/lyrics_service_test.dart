@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vibe_flow/player/lyrics_service.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
 import 'package:vibe_flow/utils/network_client.dart';
 
 void main() {

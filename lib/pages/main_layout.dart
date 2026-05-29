@@ -7,16 +7,16 @@ import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
-import '../player/audio_riverpod.dart';
-import '../player/audio_service.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/audio/audio_service.dart';
 import '../pages/folder_page.dart';
 import '../pages/playback_page.dart';
 import '../pages/library_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
-import '../player/music_file_utils.dart';
-import '../player/settings_service.dart';
-import '../player/shortcut_bindings.dart';
+import 'package:vibe_flow/player/library/music_file_utils.dart';
+import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vibe_flow/player/settings/shortcut_bindings.dart';
 import 'folder_page_riverpod.dart';
 import 'playlist_page_riverpod.dart';
 import 'queue_page_riverpod.dart';
@@ -25,7 +25,7 @@ import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/global_drop_target.dart';
-import '../utils/deleted_song_snack.dart';
+import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import 'dart:async';
 
 Route<void> buildMainLayoutRoute({

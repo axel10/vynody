@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
-import '../models/album_summary.dart';
-import '../player/audio_riverpod.dart';
-import '../utils/song_context_menu_utils.dart';
+import 'package:vibe_flow/models/album_summary.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
 import 'dart:io';

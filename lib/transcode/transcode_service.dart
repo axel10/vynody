@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 
-import '../models/music_file.dart';
+import 'package:vibe_flow/models/music_file.dart';
 import 'transcode_models.dart';
 
 class TranscodeExecutionResult {

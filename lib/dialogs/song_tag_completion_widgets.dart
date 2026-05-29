@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 
 import '../l10n/app_localizations.dart';
-import '../player/acoustid_service.dart';
-import '../player/musicbrainz_tag_completion_service.dart';
-import '../utils/network_client.dart';
+import 'package:vibe_flow/player/metadata/acoustid_service.dart';
+import 'package:vibe_flow/player/metadata/musicbrainz_tag_completion_service.dart';
+import 'package:vibe_flow/utils/network_client.dart';
 import '../widgets/query_condition_chip.dart';
 
 class SongTagScoreBadge extends StatelessWidget {

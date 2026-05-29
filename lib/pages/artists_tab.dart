@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
-import '../models/artist_summary.dart';
-import '../player/artist_library.dart';
-import '../player/audio_riverpod.dart';
+import 'package:vibe_flow/models/artist_summary.dart';
+import 'package:vibe_flow/player/library/artist_library.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'artist_detail_page.dart';
 import '../widgets/artist_avatar.dart';
 

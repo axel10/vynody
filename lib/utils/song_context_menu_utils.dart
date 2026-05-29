@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 
 import '../dialogs/transcode_dialog.dart';
 import '../l10n/app_localizations.dart';
-import '../models/music_file.dart';
-import '../player/playlist_service.dart';
+import 'package:vibe_flow/models/music_file.dart';
+import 'package:vibe_flow/player/library/playlist_service.dart';
 import 'app_snack_bar.dart';
 
 enum SongContextMenuMode { full, title, artistAlbum }

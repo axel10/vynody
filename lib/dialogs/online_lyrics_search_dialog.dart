@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../player/lyrics_service.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
 import '../widgets/query_condition_chip.dart';
 
 typedef OnlineLyricsSearch =

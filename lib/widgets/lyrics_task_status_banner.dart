@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../l10n/app_localizations.dart';
-import '../player/lyrics_generation_phase.dart';
-import '../player/lyrics_riverpod.dart';
-import '../player/lyrics_task_queue_summary.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_riverpod.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_task_queue_summary.dart';
 
 class LyricsTaskStatusBanner extends ConsumerStatefulWidget {
   const LyricsTaskStatusBanner({super.key});

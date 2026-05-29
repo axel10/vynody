@@ -7,19 +7,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import '../l10n/app_localizations.dart';
-import '../player/audio_riverpod.dart';
-import '../player/audio_service.dart';
-import '../player/settings_service.dart';
-import '../player/musicbrainz_tag_completion_service.dart';
-import '../player/metadata_helper.dart';
-import '../player/metadata_database.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/audio/audio_service.dart';
+import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vibe_flow/player/metadata/musicbrainz_tag_completion_service.dart';
+import 'package:vibe_flow/player/metadata/metadata_helper.dart';
+import 'package:vibe_flow/player/metadata/metadata_database.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/visualizer_painter.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/dynamic_mesh_background.dart';
-import '../utils/playback_utils.dart';
-import '../player/playlist_service.dart';
-import '../models/music_file.dart';
+import 'package:vibe_flow/utils/playback_utils.dart';
+import 'package:vibe_flow/player/library/playlist_service.dart';
+import 'package:vibe_flow/models/music_file.dart';
 import '../dialogs/visualizer_options_dialog.dart';
 import '../dialogs/song_tag_edit_dialog.dart';
 import '../dialogs/song_tag_completion_dialog.dart';
@@ -28,7 +28,7 @@ import '../widgets/equalizer_panel.dart';
 import '../widgets/lyrics_task_status_banner.dart';
 import '../widgets/playback_ui_tuning.dart';
 import 'main_layout_riverpod.dart';
-import '../utils/app_snack_bar.dart';
+import 'package:vibe_flow/utils/app_snack_bar.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
 
