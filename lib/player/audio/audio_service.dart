@@ -22,7 +22,7 @@ import 'package:vibe_flow/player/audio/playback_queue_processor.dart';
 import 'package:vibe_flow/player/audio/waveform_service.dart';
 import 'package:vibe_flow/player/platform/windows_integration_service.dart';
 import 'package:vibe_flow/player/platform/android_integration_service.dart';
-import 'package:vibe_flow/player/platform/ios_integration_service.dart';
+import 'package:vibe_flow/player/platform/darwin_integration_service.dart';
 import 'package:vibe_flow/player/scanner/scanner_service.dart';
 import 'package:vibe_flow/player/library/playlist_service.dart';
 import 'package:vibe_flow/player/metadata/metadata_helper.dart';
@@ -336,7 +336,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   Map<String, Color> _currentThemeColorsMap = const {};
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
-  late final IosIntegrationService? _iosIntegration;
+  late final DarwinIntegrationService? _darwinIntegration;
   String? _themePaletteRecomputeInProgressPath;
 
   Color? get dynamicStartColor => _dynamicStartColor;
@@ -393,8 +393,8 @@ class AudioService extends Notifier<AudioSnapshot> {
     _androidIntegration = Platform.isAndroid
         ? AndroidIntegrationService(this)
         : null;
-    _iosIntegration = Platform.isIOS
-        ? IosIntegrationService(this)
+    _darwinIntegration = (Platform.isIOS || Platform.isMacOS)
+        ? DarwinIntegrationService(this)
         : null;
     _player.addListener(_handlePlayerChanges);
     _settingsListener = () {
@@ -1105,7 +1105,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           _updateCurrentMetadata(song).then((_) {
             _windowsIntegration?.updateMetadata(_queue[newIndex]);
             _androidIntegration?.updateMetadata(_queue[newIndex]);
-            _iosIntegration?.updateMetadata(_queue[newIndex]);
+            _darwinIntegration?.updateMetadata(_queue[newIndex]);
             _startQueueBackgroundProcessing();
           }),
         );
@@ -1125,10 +1125,10 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _windowsIntegration?.updateTimeline(_position, _duration);
     _androidIntegration?.updateTimeline(_position, _duration);
-    _iosIntegration?.updateTimeline(_position, _duration);
+    _darwinIntegration?.updateTimeline(_position, _duration);
     _windowsIntegration?.updatePlaybackStatus(_isPlaying);
     _androidIntegration?.updatePlaybackStatus(_isPlaying);
-    _iosIntegration?.updatePlaybackStatus(_isPlaying);
+    _darwinIntegration?.updatePlaybackStatus(_isPlaying);
     _updatePlaybackTrackingForCurrentSong();
 
     // 如果当前开启了歌词模式，但因为切歌瞬间加载太快（时长 Duration 还没准备好）
@@ -1824,7 +1824,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     // controls / Android notification UI stay in sync with playback.
     _windowsIntegration?.updateMetadata(song);
     _androidIntegration?.updateMetadata(song);
-    _iosIntegration?.updateMetadata(song);
+    _darwinIntegration?.updateMetadata(song);
 
     // Trigger lyric loading only when lyric mode is active and we still do not
     // have lyrics for this track.
