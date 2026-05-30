@@ -757,6 +757,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutCubic,
                         bottom: (useSidebar ? 20 : 80) +
+                            MediaQuery.of(context).padding.bottom +
                             uiState.snackBarOffset +
                             (((isRootSelectionMode && _currentIndex == 0) ||
                                     (isPlaylistSelectionMode && _currentIndex == 2) ||
