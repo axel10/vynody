@@ -6,6 +6,10 @@ class ScannerRepository {
 
   final MetadataDatabase _database;
 
+  Future<void> ensureOpen() {
+    return _database.ensureOpen();
+  }
+
   Stream<List<SongMetadata>> watchAllSongMetadata() {
     return _database.watchAllSongMetadata();
   }

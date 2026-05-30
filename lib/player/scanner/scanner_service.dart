@@ -416,6 +416,9 @@ class ScannerService extends ChangeNotifier {
   Future<void> _init() async {
     final totalStopwatch = Stopwatch()..start();
     try {
+      // Force database open to run path migrations first (critical for iOS sandbox UUID changes)
+      await _repository.ensureOpen();
+
       final canUsePersistentAccess =
           _supportsPersistentAccess && _playerController != null;
       await _timeInitStep('load root paths', () {

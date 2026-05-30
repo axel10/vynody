@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vibe_flow/models/lyric_line.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_cache_models.dart';
@@ -396,6 +397,8 @@ class MetadataDatabase {
   factory MetadataDatabase() => _instance;
 
   MetadataDatabase._internal();
+
+  Future<void> ensureOpen() => _db.customSelect('SELECT 1').get();
 
   Stream<List<SongMetadata>> watchAllSongMetadata() =>
       _db.watchAllSongMetadata();

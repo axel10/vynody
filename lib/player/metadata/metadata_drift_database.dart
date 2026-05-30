@@ -25,6 +25,10 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     beforeOpen: (details) async {
       await customStatement('PRAGMA busy_timeout = 5000');
 
+      if (Platform.isIOS) {
+        await _migrateIosSandboxPaths();
+      }
+
       final migrator = createMigrator();
       for (final table in allTables) {
         final exists = await _tableExists(table.actualTableName);
@@ -1372,6 +1376,219 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       playCount: row.read<int>('playCount'),
       lastPlayedAt: row.read<int?>('lastPlayedAt'),
     );
+  }
+
+  Future<void> _migrateIosSandboxPaths() async {
+    try {
+      final docDir = await getApplicationDocumentsDirectory();
+      final currentSandbox = p.dirname(docDir.path);
+      
+      // Ensure the sharing directory is created so it's never grayed out in the files app!
+      final sharingFolderPath = p.join(docDir.path, 'VibeFlow Music');
+      final dir = Directory(sharingFolderPath);
+      if (!dir.existsSync()) {
+        try {
+          dir.createSync(recursive: true);
+          debugPrint('[PathMigration] Created VibeFlow Music directory at: $sharingFolderPath');
+        } catch (e) {
+          debugPrint('[PathMigration] Failed to create VibeFlow Music directory: $e');
+        }
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final lastKnownSandbox = prefs.getString('last_known_sandbox_path');
+      
+      String? oldSandboxPrefix;
+      if (lastKnownSandbox != null) {
+        if (lastKnownSandbox != currentSandbox) {
+          oldSandboxPrefix = lastKnownSandbox;
+        }
+      } else {
+        // Try to detect old sandbox path from SharedPreferences root_paths
+        final rootPaths = prefs.getStringList('root_paths') ?? [];
+        final regExp = RegExp(r'^(.*)/Containers/Data/Application/([^/]+)');
+        for (final path in rootPaths) {
+          final match = regExp.firstMatch(path);
+          if (match != null) {
+            final oldPrefix = match.group(0);
+            if (oldPrefix != null && oldPrefix != currentSandbox) {
+              oldSandboxPrefix = oldPrefix;
+              break;
+            }
+          }
+        }
+        
+        // If not found in SharedPreferences, check the database songs table
+        if (oldSandboxPrefix == null) {
+          try {
+            final row = await customSelect(
+              "SELECT path FROM songs WHERE path LIKE '%/Containers/Data/Application/%' LIMIT 1"
+            ).getSingleOrNull();
+            if (row != null) {
+              final path = row.read<String>('path');
+              final match = regExp.firstMatch(path);
+              if (match != null) {
+                final oldPrefix = match.group(0);
+                if (oldPrefix != null && oldPrefix != currentSandbox) {
+                  oldSandboxPrefix = oldPrefix;
+                }
+              }
+            }
+          } catch (e) {
+            debugPrint('[PathMigration] Failed to check database for old sandbox prefix: $e');
+          }
+        }
+      }
+      
+      if (oldSandboxPrefix != null && oldSandboxPrefix != currentSandbox) {
+        final oldPrefix = oldSandboxPrefix;
+        debugPrint('[PathMigration] Sandbox UUID change detected on iOS.');
+        debugPrint('[PathMigration] Old sandbox: $oldPrefix');
+        debugPrint('[PathMigration] Current sandbox: $currentSandbox');
+        
+        // 1. Update songs table
+        await customStatement(
+          'UPDATE songs SET path = REPLACE(path, ?, ?), '
+          'artworkPath = REPLACE(artworkPath, ?, ?), '
+          'thumbnailPath = REPLACE(thumbnailPath, ?, ?) '
+          'WHERE path LIKE ?',
+          <Object>[
+            oldPrefix, currentSandbox,
+            oldPrefix, currentSandbox,
+            oldPrefix, currentSandbox,
+            '$oldPrefix%'
+          ],
+        );
+
+        // 2. Update song_play_history table
+        await customStatement(
+          'UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) '
+          'WHERE songPath LIKE ?',
+          <Object>[
+            oldPrefix, currentSandbox,
+            '$oldPrefix%'
+          ],
+        );
+
+        // 3. Update lyrics_cache table (cacheKey contains the filePath)
+        await customStatement(
+          'UPDATE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
+          'WHERE cacheKey LIKE ?',
+          <Object>[
+            oldPrefix, currentSandbox,
+            '%$oldPrefix%'
+          ],
+        );
+
+        // 4. Update lyrics_translation_cache table
+        await customStatement(
+          'UPDATE lyrics_translation_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
+          'WHERE cacheKey LIKE ?',
+          <Object>[
+            oldPrefix, currentSandbox,
+            '%$oldPrefix%'
+          ],
+        );
+
+        // 5. Update artist_image_cache table
+        await customStatement(
+          'UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) '
+          'WHERE imagePath LIKE ?',
+          <Object>[
+            oldPrefix, currentSandbox,
+            '$oldPrefix%'
+          ],
+        );
+        
+        // 6. Migrate root_paths in SharedPreferences
+        final rootPaths = prefs.getStringList('root_paths');
+        if (rootPaths != null) {
+          final updatedRootPaths = rootPaths.map((p) {
+            if (p.contains(oldPrefix)) {
+              return p.replaceAll(oldPrefix, currentSandbox);
+            }
+            return p;
+          }).toList();
+          await prefs.setStringList('root_paths', updatedRootPaths);
+          debugPrint('[PathMigration] Migrated root_paths in SharedPreferences.');
+        }
+
+        // 7. Migrate playlists in SharedPreferences
+        final playlistsJson = prefs.getString('playlists');
+        if (playlistsJson != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(playlistsJson);
+            bool changed = false;
+            for (final playlist in jsonList) {
+              if (playlist is Map<String, dynamic>) {
+                final songs = playlist['songs'];
+                if (songs is List) {
+                  for (final song in songs) {
+                    if (song is Map<String, dynamic>) {
+                      final path = song['path'];
+                      if (path is String && path.contains(oldPrefix)) {
+                        song['path'] = path.replaceAll(oldPrefix, currentSandbox);
+                        changed = true;
+                      }
+                      final thumbnailPath = song['thumbnailPath'];
+                      if (thumbnailPath is String && thumbnailPath.contains(oldPrefix)) {
+                        song['thumbnailPath'] = thumbnailPath.replaceAll(oldPrefix, currentSandbox);
+                        changed = true;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            if (changed) {
+              await prefs.setString('playlists', jsonEncode(jsonList));
+              debugPrint('[PathMigration] Migrated playlists in SharedPreferences.');
+            }
+          } catch (e) {
+            debugPrint('[PathMigration] Failed to migrate playlists in SharedPreferences: $e');
+          }
+        }
+
+        // 8. Migrate playback_session_v1 in SharedPreferences
+        final rawSession = prefs.getString('playback_session_v1');
+        if (rawSession != null && rawSession.trim().isNotEmpty) {
+          try {
+            final decoded = jsonDecode(rawSession);
+            if (decoded is Map<String, dynamic>) {
+              bool changed = false;
+              final queue = decoded['queue'];
+              if (queue is List) {
+                for (final song in queue) {
+                  if (song is Map<String, dynamic>) {
+                    final path = song['path'];
+                    if (path is String && path.contains(oldPrefix)) {
+                      song['path'] = path.replaceAll(oldPrefix, currentSandbox);
+                      changed = true;
+                    }
+                    final thumbnailPath = song['thumbnailPath'];
+                    if (thumbnailPath is String && thumbnailPath.contains(oldPrefix)) {
+                      song['thumbnailPath'] = thumbnailPath.replaceAll(oldPrefix, currentSandbox);
+                      changed = true;
+                    }
+                  }
+                }
+              }
+              if (changed) {
+                await prefs.setString('playback_session_v1', jsonEncode(decoded));
+                debugPrint('[PathMigration] Migrated playback_session_v1 in SharedPreferences.');
+              }
+            }
+          } catch (e) {
+            debugPrint('[PathMigration] Failed to migrate playback_session_v1 in SharedPreferences: $e');
+          }
+        }
+      }
+      
+      // Always save the current sandbox path
+      await prefs.setString('last_known_sandbox_path', currentSandbox);
+    } catch (e, st) {
+      debugPrint('[PathMigration] Error running iOS sandbox path migration: $e\n$st');
+    }
   }
 }
 
