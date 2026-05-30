@@ -489,6 +489,18 @@ class SharingService {
     }
   }
 
+  String _deriveSessionName(List<TransferFileItem> files) {
+    if (files.isEmpty) return '未命名传输';
+    if (files.length == 1) return files[0].name;
+    
+    final firstPath = files[0].name;
+    final parts = p.split(firstPath);
+    if (parts.length > 1) {
+      return parts[0];
+    }
+    return '批量传输 (${files.length} 个文件)';
+  }
+
   Future<void> _handleTransferRequest(HttpRequest request) async {
     final content = await utf8.decoder.bind(request).join();
     final json = jsonDecode(content) as Map<String, dynamic>;
@@ -530,11 +542,26 @@ class SharingService {
 
     if (accepted) {
       final token = 'tkn_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(100000)}';
+      final totalSize = files.fold<int>(0, (sum, f) => sum + f.size);
+      final sessionName = _deriveSessionName(files);
+
       _activeTokens[token] = _UploadRequestMetadata(
-        fileName: files[0].name,
-        fileSize: files[0].size,
+        sessionName: sessionName,
+        files: files,
+        totalSize: totalSize,
         senderName: senderName,
       );
+
+      // Add TransferSession on receiver side immediately upon acceptance
+      _ref.read(activeTransfersProvider.notifier).addSession(TransferSession(
+        id: token,
+        fileName: files.length > 1 ? '$sessionName (${files.length}个文件)' : sessionName,
+        totalBytes: totalSize,
+        bytesTransferred: 0,
+        isSending: false,
+        deviceName: senderName,
+        status: TransferStatus.transferring,
+      ));
 
       request.response.statusCode = HttpStatus.ok;
       request.response.write(jsonEncode({
@@ -565,59 +592,81 @@ class SharingService {
     final metadata = _activeTokens[token]!;
     
     // Fallback if client doesn't use standard request streaming body
-    String fileName = metadata.fileName;
+    String relativePath = metadata.sessionName;
     final encodedFileName = request.headers.value('X-File-Name');
     if (encodedFileName != null) {
       try {
-        fileName = Uri.decodeComponent(encodedFileName);
+        relativePath = Uri.decodeComponent(encodedFileName);
       } catch (_) {}
     }
 
-    // Resolve duplicate name
-    final extension = p.extension(fileName);
-    final baseName = p.basenameWithoutExtension(fileName);
-    String targetPath = p.join(_sharingFolderPath, fileName);
-    int counter = 1;
-    while (File(targetPath).existsSync()) {
-      targetPath = p.join(_sharingFolderPath, '$baseName ($counter)$extension');
-      counter++;
+    // Resolve target path (which may contain relative subfolders)
+    String targetPath = p.join(_sharingFolderPath, relativePath);
+    
+    // Resolve duplicate name, keeping relative subfolder structure
+    final file = File(targetPath);
+    if (file.existsSync()) {
+      final extension = p.extension(relativePath);
+      final dirName = p.dirname(relativePath);
+      final baseName = p.basenameWithoutExtension(relativePath);
+      int counter = 1;
+      while (true) {
+        final newRelative = dirName == '.' 
+            ? '$baseName ($counter)$extension'
+            : p.join(dirName, '$baseName ($counter)$extension');
+        targetPath = p.join(_sharingFolderPath, newRelative);
+        if (!File(targetPath).existsSync()) {
+          break;
+        }
+        counter++;
+      }
     }
 
     final targetFile = File(targetPath);
-    final ioSink = targetFile.openWrite();
-    
-    final sessionId = token;
-    _ref.read(activeTransfersProvider.notifier).addSession(TransferSession(
-      id: sessionId,
-      fileName: p.basename(targetPath),
-      totalBytes: metadata.fileSize,
-      bytesTransferred: 0,
-      isSending: false,
-      deviceName: metadata.senderName,
-      status: TransferStatus.transferring,
-    ));
+    // Ensure parent directories exist
+    final parentDir = targetFile.parent;
+    if (!parentDir.existsSync()) {
+      parentDir.createSync(recursive: true);
+    }
 
-    int bytesWritten = 0;
+    final ioSink = targetFile.openWrite();
+    final sessionId = token;
+
     try {
       await for (final chunk in request) {
         ioSink.add(chunk);
-        bytesWritten += chunk.length;
-        _ref.read(activeTransfersProvider.notifier).updateProgress(sessionId, bytesWritten);
+        
+        final newCumulative = metadata.bytesTransferredCumulative + chunk.length;
+        metadata.bytesTransferredCumulative = newCumulative;
+        
+        _ref.read(activeTransfersProvider.notifier).updateProgress(
+          sessionId, 
+          newCumulative,
+        );
       }
       await ioSink.flush();
       await ioSink.close();
       
-      _ref.read(activeTransfersProvider.notifier).updateProgress(
-        sessionId, 
-        bytesWritten, 
-        status: TransferStatus.success
-      );
+      // Track completed file
+      metadata.completedFiles.add(relativePath);
       
-      _activeTokens.remove(token);
+      // Check if all files in the metadata session are completed
+      final allFiles = metadata.files.map((f) => f.name).toSet();
+      final isFinished = metadata.completedFiles.containsAll(allFiles) ||
+                         metadata.completedFiles.length >= metadata.files.length;
+      
+      if (isFinished) {
+        _ref.read(activeTransfersProvider.notifier).updateProgress(
+          sessionId, 
+          metadata.totalSize, 
+          status: TransferStatus.success
+        );
+        _activeTokens.remove(token);
 
-      // Trigger targeted Scanner rescan
-      final scanner = _ref.read(scannerServiceProvider);
-      unawaited(scanner.scan(clearScannedRoots: false));
+        // Trigger targeted Scanner rescan
+        final scanner = _ref.read(scannerServiceProvider);
+        unawaited(scanner.scan(clearScannedRoots: false));
+      }
 
       request.response.statusCode = HttpStatus.ok;
       request.response.write(jsonEncode({'success': true, 'path': targetPath}));
@@ -629,6 +678,7 @@ class SharingService {
         } catch (_) {}
       }
       _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
+      _activeTokens.remove(token);
       
       request.response.statusCode = HttpStatus.internalServerError;
       request.response.write(jsonEncode({'error': 'Transfer interrupted: $e'}));
@@ -679,18 +729,55 @@ class SharingService {
 
   // --- Sending File to Remote App ---
 
-  Future<bool> sendFile(LanDevice targetDevice, String filePath) async {
-    if (!File(filePath).existsSync()) return false;
-    
-    final file = File(filePath);
-    final size = file.lengthSync();
-    final fileName = p.basename(filePath);
-    
+  Future<bool> sendFile(LanDevice targetDevice, String filePath) {
+    return sendFiles(
+      targetDevice: targetDevice,
+      filePaths: [filePath],
+    );
+  }
+
+  Future<bool> sendFiles({
+    required LanDevice targetDevice,
+    required List<String> filePaths,
+    String? baseSourcePath,
+  }) async {
+    final List<Map<String, dynamic>> filesPayload = [];
+    final List<_FileToSend> filesToSend = [];
+    int totalSize = 0;
+
+    for (final path in filePaths) {
+      final file = File(path);
+      if (!file.existsSync()) continue;
+      
+      final size = file.lengthSync();
+      totalSize += size;
+      
+      String relativeName = p.basename(path);
+      if (baseSourcePath != null) {
+        relativeName = p.relative(path, from: baseSourcePath);
+      }
+      
+      filesPayload.add({
+        'name': relativeName,
+        'size': size,
+        'duration_ms': 0,
+      });
+      
+      filesToSend.add(_FileToSend(path: path, relativeName: relativeName, size: size));
+    }
+
+    if (filesToSend.isEmpty) return false;
+
+    // Derive display name for progress dialog
+    final firstRelPath = filesToSend[0].relativeName;
+    final parts = p.split(firstRelPath);
+    final sessionName = parts.length > 1 ? parts[0] : p.basename(filesToSend[0].path);
+
     final sessionId = 'send_${DateTime.now().millisecondsSinceEpoch}';
     _ref.read(activeTransfersProvider.notifier).addSession(TransferSession(
       id: sessionId,
-      fileName: fileName,
-      totalBytes: size,
+      fileName: filesToSend.length > 1 ? '$sessionName (${filesToSend.length}个文件)' : sessionName,
+      totalBytes: totalSize,
       bytesTransferred: 0,
       isSending: true,
       deviceName: targetDevice.name,
@@ -708,7 +795,7 @@ class SharingService {
       request.write(jsonEncode({
         'sender_id': _deviceId,
         'sender_name': _deviceName,
-        'files': [{ 'name': fileName, 'size': size, 'duration_ms': 0 }]
+        'files': filesPayload,
       }));
       
       final response = await request.close();
@@ -727,35 +814,43 @@ class SharingService {
 
       final token = responseJson['token'] as String;
       
-      // 2. Perform Upload
+      // 2. Perform Uploads sequentially
       _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.transferring);
       
-      final uploadUri = Uri.parse('http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/upload');
-      final uploadRequest = await client.postUrl(uploadUri);
-      uploadRequest.headers.add('Authorization', 'Bearer $token');
-      uploadRequest.headers.add('X-File-Name', Uri.encodeComponent(fileName));
-      uploadRequest.headers.contentType = ContentType.binary;
-      uploadRequest.contentLength = size;
+      int totalBytesSent = 0;
 
-      final fileStream = file.openRead();
-      int bytesSent = 0;
-      
-      await for (final chunk in fileStream) {
-        uploadRequest.add(chunk);
-        bytesSent += chunk.length;
-        _ref.read(activeTransfersProvider.notifier).updateProgress(sessionId, bytesSent);
+      for (final fileInfo in filesToSend) {
+        final uploadUri = Uri.parse('http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/upload');
+        final uploadRequest = await client.postUrl(uploadUri);
+        uploadRequest.headers.add('Authorization', 'Bearer $token');
+        uploadRequest.headers.add('X-File-Name', Uri.encodeComponent(fileInfo.relativeName));
+        uploadRequest.headers.contentType = ContentType.binary;
+        uploadRequest.contentLength = fileInfo.size;
+
+        final fileStream = File(fileInfo.path).openRead();
+        
+        try {
+          await for (final chunk in fileStream) {
+            uploadRequest.add(chunk);
+            totalBytesSent += chunk.length;
+            _ref.read(activeTransfersProvider.notifier).updateProgress(sessionId, totalBytesSent);
+          }
+          final uploadResponse = await uploadRequest.close();
+          if (uploadResponse.statusCode != HttpStatus.ok) {
+            _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
+            return false;
+          }
+        } catch (e) {
+          debugPrint('[SharingService] Error uploading file ${fileInfo.relativeName}: $e');
+          _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
+          return false;
+        }
       }
       
-      final uploadResponse = await uploadRequest.close();
-      if (uploadResponse.statusCode == HttpStatus.ok) {
-        _ref.read(activeTransfersProvider.notifier).updateProgress(sessionId, size, status: TransferStatus.success);
-        return true;
-      } else {
-        _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
-        return false;
-      }
+      _ref.read(activeTransfersProvider.notifier).updateProgress(sessionId, totalSize, status: TransferStatus.success);
+      return true;
     } catch (e) {
-      debugPrint('[SharingService] Failed to send file: $e');
+      debugPrint('[SharingService] Failed to send files: $e');
       _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
       return false;
     } finally {
@@ -765,13 +860,28 @@ class SharingService {
 }
 
 class _UploadRequestMetadata {
-  final String fileName;
-  final int fileSize;
+  final String sessionName;
+  final List<TransferFileItem> files;
+  final int totalSize;
   final String senderName;
+  int bytesTransferredCumulative = 0;
+  final Set<String> completedFiles = {};
 
   _UploadRequestMetadata({
-    required this.fileName,
-    required this.fileSize,
+    required this.sessionName,
+    required this.files,
+    required this.totalSize,
     required this.senderName,
+  });
+}
+
+class _FileToSend {
+  final String path;
+  final String relativeName;
+  final int size;
+  _FileToSend({
+    required this.path,
+    required this.relativeName,
+    required this.size,
   });
 }

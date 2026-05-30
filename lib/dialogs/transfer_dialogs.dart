@@ -10,7 +10,13 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
     builder: (context) {
       final totalSize = request.files.fold<int>(0, (sum, f) => sum + f.size);
       final sizeMb = (totalSize / (1024 * 1024)).toStringAsFixed(1);
-      final fileNames = request.files.map((f) => f.name).join(', ');
+      
+      String fileNames;
+      if (request.files.length > 2) {
+        fileNames = '${request.files[0].name}, ${request.files[1].name} 等共 ${request.files.length} 个文件';
+      } else {
+        fileNames = request.files.map((f) => f.name).join(', ');
+      }
 
       return BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),

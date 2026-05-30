@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:path/path.dart' as p;
+import 'package:vibe_flow/player/library/music_file_utils.dart';
 import 'package:vibe_flow/player/sharing/sharing_riverpod.dart';
 import 'package:vibe_flow/player/sharing/sharing_service.dart';
 import 'package:vibe_flow/player/sharing/lan_device.dart';
@@ -91,6 +94,67 @@ class _SharingPageState extends ConsumerState<SharingPage> {
       }
     } catch (e) {
       showToast('发送文件失败: $e');
+    }
+  }
+
+  Future<void> _handleSendFolder(LanDevice device) async {
+    try {
+      final dirPath = await FilePicker.getDirectoryPath();
+
+      if (dirPath == null) {
+        return;
+      }
+
+      showToast('正在扫描文件夹中的音乐文件...');
+
+      final dir = Directory(dirPath);
+      final List<String> musicFiles = [];
+      
+      try {
+        final entries = dir.listSync(recursive: true);
+        for (final entry in entries) {
+          if (entry is File && MusicFileUtils.isMusicFilePath(entry.path)) {
+            musicFiles.add(entry.path);
+          }
+        }
+      } catch (e) {
+        showToast('扫描文件夹失败: $e');
+        return;
+      }
+
+      if (musicFiles.isEmpty) {
+        showToast('未在此文件夹中找到支持的音乐文件');
+        return;
+      }
+
+      final parentPath = p.dirname(dirPath);
+      final service = ref.read(sharingServiceProvider);
+
+      late ProviderSubscription subscription;
+      subscription = ref.listenManual(activeTransfersProvider, (previous, next) {
+        final newSendSession = next.firstWhere(
+          (s) => s.isSending && s.deviceName == device.name && s.status == TransferStatus.pending,
+          orElse: () => TransferSession(
+            id: '', fileName: '', totalBytes: 0, bytesTransferred: 0, isSending: true, deviceName: '', status: TransferStatus.failed
+          ),
+        );
+        if (newSendSession.id.isNotEmpty) {
+          subscription.close();
+          showTransferProgressDialog(context, newSendSession.id);
+        }
+      });
+
+      final success = await service.sendFiles(
+        targetDevice: device,
+        filePaths: musicFiles,
+        baseSourcePath: parentPath,
+      );
+      
+      if (!success) {
+        subscription.close();
+      }
+    } catch (e) {
+      showToast('发送文件夹失败: $e');
     }
   }
 
@@ -351,12 +415,40 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                                 ),
                               ],
                             ),
-                            trailing: device.isOnline
-                                ? IconButton(
-                                    icon: const Icon(Icons.send_rounded, color: Colors.purpleAccent),
-                                    onPressed: () => _handleSendFile(device),
-                                  )
-                                : null,
+                             trailing: device.isOnline
+                                 ? PopupMenuButton<String>(
+                                     icon: const Icon(Icons.send_rounded, color: Colors.purpleAccent),
+                                     onSelected: (value) {
+                                       if (value == 'file') {
+                                         _handleSendFile(device);
+                                       } else if (value == 'folder') {
+                                         _handleSendFolder(device);
+                                       }
+                                     },
+                                     itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                       const PopupMenuItem<String>(
+                                         value: 'file',
+                                         child: Row(
+                                           children: [
+                                             Icon(Icons.insert_drive_file, size: 18, color: Colors.purpleAccent),
+                                             SizedBox(width: 8),
+                                             Text('发送音乐文件'),
+                                           ],
+                                         ),
+                                       ),
+                                       const PopupMenuItem<String>(
+                                         value: 'folder',
+                                         child: Row(
+                                           children: [
+                                             Icon(Icons.folder, size: 18, color: Colors.purpleAccent),
+                                             SizedBox(width: 8),
+                                             Text('发送文件夹'),
+                                           ],
+                                         ),
+                                       ),
+                                     ],
+                                   )
+                                 : null,
                           ),
                         );
                       },
