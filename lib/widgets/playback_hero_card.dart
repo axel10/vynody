@@ -19,6 +19,7 @@ import '../widgets/mini_player_widgets.dart';
 import '../widgets/animated_play_pause_button.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/waveform_progress_bar.dart';
+import 'marquee_text.dart';
 
 const String playbackHeroTag = 'player_capsule';
 
@@ -1111,10 +1112,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                 child: Builder(
+                  builder: (context) {
+                    final style = DefaultTextStyle.of(context).style;
+                    return MarqueeText(
+                      text: title,
+                      style: style,
+                      alignment: titleAlignment,
+                    );
+                  },
                 ),
               ),
             ),
@@ -1161,14 +1167,19 @@ class PlaybackHeroCard extends ConsumerWidget {
                           controlsScale,
                       height: 1.3,
                     ),
-                    child: Text(
-                      hasArtist && hasAlbum
-                          ? '$rawArtist — $rawAlbum'
-                          : (hasArtist
-                                ? rawArtist
-                                : (hasAlbum ? rawAlbum : l10n.unknown)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Builder(
+                      builder: (context) {
+                        final style = DefaultTextStyle.of(context).style;
+                        return MarqueeText(
+                          text: hasArtist && hasAlbum
+                              ? '$rawArtist — $rawAlbum'
+                              : (hasArtist
+                                    ? rawArtist
+                                    : (hasAlbum ? rawAlbum : l10n.unknown)),
+                          style: style,
+                          alignment: titleAlignment,
+                        );
+                      },
                     ),
                   ),
                 ),
