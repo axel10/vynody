@@ -224,6 +224,21 @@ class SharingService {
   Future<void> _ensureRegisteredInScanner() async {
     final scanner = _ref.read(scannerServiceProvider);
     await scanner.ready;
+
+    if (Platform.isIOS) {
+      // iOS app sandbox path contains a dynamic UUID that can change on each run/update.
+      // Clean up obsolete sharing folders from previous launches.
+      final obsoletePaths = scanner.rootPaths.where((path) {
+        return !p.equals(path, _sharingFolderPath) &&
+            (path.endsWith('/Documents/VibeFlow Music') || path.endsWith('\\Documents\\VibeFlow Music'));
+      }).toList();
+
+      if (obsoletePaths.isNotEmpty) {
+        debugPrint('[SharingService] Removing obsolete iOS sharing folders: $obsoletePaths');
+        await scanner.removeRootPaths(obsoletePaths);
+      }
+    }
+
     if (!scanner.rootPaths.any((path) => p.equals(path, _sharingFolderPath))) {
       debugPrint('[SharingService] Adding sharing folder to scanner: $_sharingFolderPath');
       await scanner.addRootPath(_sharingFolderPath);
