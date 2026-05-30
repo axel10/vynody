@@ -898,6 +898,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     )..where((t) => t.cacheKey.equals(normalizedCacheKey))).go();
   }
 
+  Future<List<LyricsCacheRecord>> getAllLyricsCaches() async {
+    final rows = await select(lyricsCaches).get();
+    return rows.map(_lyricsCacheFromRow).toList(growable: false);
+  }
+
   Future<void> insertOrUpdateLyricsTranslationCache(
     LyricsTranslationCacheRecord record,
   ) async {
@@ -978,6 +983,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     await (delete(
       lyricsTranslationCaches,
     )..where((t) => t.cacheKey.equals(normalizedCacheKey))).go();
+  }
+
+  Future<List<LyricsTranslationCacheRecord>> getAllLyricsTranslationCaches() async {
+    final rows = await select(lyricsTranslationCaches).get();
+    return rows.map(_lyricsTranslationCacheFromRow).toList(growable: false);
   }
 
   Future<void> insertOrUpdateAcoustIDCache(AcoustIDCacheRecord record) async {

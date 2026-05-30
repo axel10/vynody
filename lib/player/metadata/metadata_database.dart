@@ -550,6 +550,12 @@ class MetadataDatabase {
 
   Future<void> clearLyricsTranslationCacheByKey(String cacheKey) =>
       _db.clearLyricsTranslationCacheByKey(cacheKey);
+
+  Future<List<LyricsCacheRecord>> getAllLyricsCaches() =>
+      _db.getAllLyricsCaches();
+
+  Future<List<LyricsTranslationCacheRecord>> getAllLyricsTranslationCaches() =>
+      _db.getAllLyricsTranslationCaches();
 }
 
 String _normalizePath(String path) {

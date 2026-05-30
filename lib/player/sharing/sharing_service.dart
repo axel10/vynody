@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibe_flow/player/library/music_file_utils.dart';
 import 'package:vibe_flow/player/scanner/scanner_repository.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
 import 'lan_device.dart';
 import 'web_share_html.dart';
 
@@ -77,11 +79,19 @@ class TransferFileItem {
   final String name;
   final int size;
   final int durationMs;
+  final String? title;
+  final String? artist;
+  final String? album;
+  final Map<String, dynamic>? lyricsPackage;
 
   TransferFileItem({
     required this.name,
     required this.size,
     required this.durationMs,
+    this.title,
+    this.artist,
+    this.album,
+    this.lyricsPackage,
   });
 }
 
@@ -476,6 +486,10 @@ class SharingService {
         await _handleGetSongsList(request);
       } else if (method == 'GET' && path == '/api/download') {
         await _handleDownloadSong(request);
+      } else if (method == 'GET' && path == '/api/lyrics/export') {
+        await _handleExportLyrics(request);
+      } else if (method == 'POST' && path == '/api/lyrics/import') {
+        await _handleImportLyrics(request);
       } else {
         request.response.statusCode = HttpStatus.notFound;
         await request.response.close();
@@ -515,6 +529,10 @@ class SharingService {
         name: map['name'] as String? ?? 'Unnamed',
         size: map['size'] as int? ?? 0,
         durationMs: map['duration_ms'] as int? ?? 0,
+        title: map['title'] as String?,
+        artist: map['artist'] as String?,
+        album: map['album'] as String?,
+        lyricsPackage: map['lyrics_package'] as Map<String, dynamic>?,
       );
     }).toList();
 
@@ -647,6 +665,33 @@ class SharingService {
       await ioSink.flush();
       await ioSink.close();
       
+      // Save lyrics package if available
+      try {
+        final fileItem = metadata.files.firstWhere(
+          (f) => f.name == relativePath,
+          orElse: () => metadata.files.firstWhere(
+            (f) => p.basename(f.name) == p.basename(relativePath),
+            orElse: () => TransferFileItem(name: '', size: 0, durationMs: 0),
+          ),
+        );
+        if (fileItem.name.isNotEmpty && fileItem.lyricsPackage != null) {
+          final localQuery = LyricsQuery(
+            filePath: targetPath,
+            fileName: p.basename(targetPath),
+            title: fileItem.title ?? p.basenameWithoutExtension(targetPath),
+            artist: fileItem.artist,
+            album: fileItem.album,
+            duration: fileItem.durationMs > 0 ? Duration(milliseconds: fileItem.durationMs) : null,
+          );
+          await _importLyricsPackageWithConflict(
+            localCacheKey: localQuery.cacheKey,
+            incomingPackage: fileItem.lyricsPackage!,
+          );
+        }
+      } catch (e) {
+        debugPrint('[SharingService] Error importing lyrics package: $e');
+      }
+
       // Track completed file
       metadata.completedFiles.add(relativePath);
       
@@ -756,11 +801,41 @@ class SharingService {
       if (baseSourcePath != null) {
         relativeName = p.relative(path, from: baseSourcePath);
       }
+
+      Map<String, dynamic>? lyricsPackage;
+      SongMetadata? song;
+      try {
+        song = await MetadataDatabase().getSongMetadata(path);
+        if (song != null) {
+          final query = LyricsQuery(
+            filePath: song.path,
+            fileName: p.basename(song.path),
+            title: song.title,
+            artist: song.artist,
+            album: song.album,
+            duration: song.duration != null ? Duration(milliseconds: song.duration!) : null,
+          );
+          final cacheRecord = await MetadataDatabase().getLyricsCache(query.cacheKey);
+          if (cacheRecord != null && cacheRecord.source != LyricsCacheSource.none) {
+            final translations = await MetadataDatabase().getLyricsTranslationCaches(query.cacheKey);
+            lyricsPackage = {
+              'lyrics_cache': cacheRecord.toMap(),
+              'translations': translations.map((t) => t.toMap()).toList(),
+            };
+          }
+        }
+      } catch (e) {
+        debugPrint('[SharingService] Error reading local lyrics for file $path: $e');
+      }
       
       filesPayload.add({
         'name': relativeName,
         'size': size,
-        'duration_ms': 0,
+        'duration_ms': song?.duration ?? 0,
+        'title': song?.title,
+        'artist': song?.artist,
+        'album': song?.album,
+        'lyrics_package': lyricsPackage,
       });
       
       filesToSend.add(_FileToSend(path: path, relativeName: relativeName, size: size));
@@ -856,6 +931,282 @@ class SharingService {
     } finally {
       client.close();
     }
+  }
+
+  Future<bool> _importLyricsPackageWithConflict({
+    required String localCacheKey,
+    required Map<String, dynamic> incomingPackage,
+  }) async {
+    final rawIncomingLyrics = incomingPackage['lyrics_cache'] as Map<String, dynamic>?;
+    if (rawIncomingLyrics == null) return false;
+
+    final incomingLyrics = LyricsCacheRecord.fromMap(rawIncomingLyrics);
+    final incomingTranslations = (incomingPackage['translations'] as List<dynamic>?)
+        ?.map((t) => LyricsTranslationCacheRecord.fromMap(t as Map<String, dynamic>))
+        .toList() ?? [];
+
+    final localLyrics = await MetadataDatabase().getLyricsCache(localCacheKey);
+    bool shouldOverwrite = false;
+
+    if (localLyrics == null) {
+      shouldOverwrite = true;
+    } else {
+      final incomingPriority = _getLyricsSourcePriority(incomingLyrics.source);
+      final localPriority = _getLyricsSourcePriority(localLyrics.source);
+
+      if (incomingPriority > localPriority) {
+        shouldOverwrite = true;
+      } else if (incomingPriority == localPriority) {
+        if (incomingLyrics.updatedAtMillis > localLyrics.updatedAtMillis) {
+          shouldOverwrite = true;
+        }
+      }
+    }
+
+    if (shouldOverwrite) {
+      debugPrint('[SharingService] Overwriting lyrics for cacheKey: $localCacheKey');
+      
+      final newRecord = LyricsCacheRecord(
+        cacheKey: localCacheKey,
+        source: incomingLyrics.source,
+        isSynced: incomingLyrics.isSynced,
+        syncedLyrics: incomingLyrics.syncedLyrics,
+        syncedLines: incomingLyrics.syncedLines,
+        timelineOffsetMillis: incomingLyrics.timelineOffsetMillis,
+        updatedAtMillis: incomingLyrics.updatedAtMillis,
+      );
+      await MetadataDatabase().insertOrUpdateLyricsCache(newRecord);
+
+      await MetadataDatabase().clearLyricsTranslationCacheByKey(localCacheKey);
+      for (final translation in incomingTranslations) {
+        final newTranslation = LyricsTranslationCacheRecord(
+          cacheKey: localCacheKey,
+          languageCode: translation.languageCode,
+          translatedText: translation.translatedText,
+          translatedLines: translation.translatedLines,
+          provider: translation.provider,
+          updatedAtMillis: translation.updatedAtMillis,
+        );
+        await MetadataDatabase().insertOrUpdateLyricsTranslationCache(newTranslation);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  int _getLyricsSourcePriority(LyricsCacheSource source) {
+    switch (source) {
+      case LyricsCacheSource.manualAdjust:
+        return 4;
+      case LyricsCacheSource.ai:
+      case LyricsCacheSource.aiTimeline:
+      case LyricsCacheSource.aiGenerate:
+        return 3;
+      case LyricsCacheSource.lrclib:
+        return 2;
+      case LyricsCacheSource.none:
+        return 1;
+    }
+  }
+
+  bool _isMetadataMatch(String? a, String? b) {
+    final normA = _normalizeMetadataString(a);
+    final normB = _normalizeMetadataString(b);
+    if (normA.isEmpty || normB.isEmpty) {
+      return normA == normB;
+    }
+    return normA == normB;
+  }
+
+  String _normalizeMetadataString(String? s) {
+    if (s == null) return '';
+    return s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fff]+'), '').trim();
+  }
+
+  Future<Map<String, int>> _importLyricsList(List<dynamic> lyrics) async {
+    final localSongs = await MetadataDatabase().getAllSongMetadata();
+    int matchedCount = 0;
+    int overwrittenCount = 0;
+    int skippedCount = 0;
+
+    for (final item in lyrics) {
+      final map = item as Map<String, dynamic>;
+      final title = map['title'] as String? ?? '';
+      final artist = map['artist'] as String? ?? '';
+      final durationMs = map['duration_ms'] as int?;
+
+      final matches = localSongs.where((song) {
+        final titleMatch = _isMetadataMatch(song.title, title);
+        final artistMatch = _isMetadataMatch(song.artist, artist);
+        
+        bool durationMatch = true;
+        if (durationMs != null && song.duration != null) {
+          durationMatch = (song.duration! - durationMs).abs() <= 3000;
+        }
+        return titleMatch && artistMatch && durationMatch;
+      }).toList();
+
+      if (matches.isEmpty) {
+        skippedCount++;
+        continue;
+      }
+
+      matchedCount += matches.length;
+
+      for (final song in matches) {
+        final localQuery = LyricsQuery(
+          filePath: song.path,
+          fileName: p.basename(song.path),
+          title: song.title,
+          artist: song.artist,
+          album: song.album,
+          duration: song.duration != null ? Duration(milliseconds: song.duration!) : null,
+        );
+        final localCacheKey = localQuery.cacheKey;
+        
+        final success = await _importLyricsPackageWithConflict(
+          localCacheKey: localCacheKey,
+          incomingPackage: map,
+        );
+        if (success) {
+          overwrittenCount++;
+        } else {
+          skippedCount++;
+        }
+      }
+    }
+
+    return {
+      'matched': matchedCount,
+      'overwritten': overwrittenCount,
+      'skipped': skippedCount,
+    };
+  }
+
+  Future<Map<String, int>> syncLyricsToDevice(LanDevice targetDevice) async {
+    final songs = await MetadataDatabase().getAllSongMetadata();
+    final List<Map<String, dynamic>> exportedList = [];
+
+    for (final song in songs) {
+      final query = LyricsQuery(
+        filePath: song.path,
+        fileName: p.basename(song.path),
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        duration: song.duration != null ? Duration(milliseconds: song.duration!) : null,
+      );
+      final cacheKey = query.cacheKey;
+      final cacheRecord = await MetadataDatabase().getLyricsCache(cacheKey);
+
+      if (cacheRecord != null && cacheRecord.source != LyricsCacheSource.none) {
+        final translations = await MetadataDatabase().getLyricsTranslationCaches(cacheKey);
+        exportedList.add({
+          'title': song.title,
+          'artist': song.artist,
+          'album': song.album,
+          'duration_ms': song.duration,
+          'lyrics_cache': cacheRecord.toMap(),
+          'translations': translations.map((t) => t.toMap()).toList(),
+        });
+      }
+    }
+
+    if (exportedList.isEmpty) {
+      return {'matched': 0, 'overwritten': 0, 'skipped': 0};
+    }
+
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 5);
+    try {
+      final uri = Uri.parse('http://${targetDevice.ip}:${targetDevice.httpPort}/api/lyrics/import');
+      final request = await client.postUrl(uri);
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode({'lyrics': exportedList}));
+      
+      final response = await request.close();
+      if (response.statusCode == HttpStatus.ok) {
+        final body = await utf8.decoder.bind(response).join();
+        final json = jsonDecode(body) as Map<String, dynamic>;
+        return {
+          'matched': json['matched'] as int? ?? 0,
+          'overwritten': json['overwritten'] as int? ?? 0,
+          'skipped': json['skipped'] as int? ?? 0,
+        };
+      } else {
+        throw Exception('Server returned status code ${response.statusCode}');
+      }
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<Map<String, int>> pullLyricsFromDevice(LanDevice targetDevice) async {
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 5);
+    try {
+      final uri = Uri.parse('http://${targetDevice.ip}:${targetDevice.httpPort}/api/lyrics/export');
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      
+      if (response.statusCode == HttpStatus.ok) {
+        final body = await utf8.decoder.bind(response).join();
+        final json = jsonDecode(body) as Map<String, dynamic>;
+        
+        final lyrics = json['lyrics'] as List<dynamic>? ?? [];
+        return await _importLyricsList(lyrics);
+      } else {
+        throw Exception('Server returned status code ${response.statusCode}');
+      }
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> _handleExportLyrics(HttpRequest request) async {
+    final songs = await MetadataDatabase().getAllSongMetadata();
+    final List<Map<String, dynamic>> exportedList = [];
+
+    for (final song in songs) {
+      final query = LyricsQuery(
+        filePath: song.path,
+        fileName: p.basename(song.path),
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        duration: song.duration != null ? Duration(milliseconds: song.duration!) : null,
+      );
+      final cacheKey = query.cacheKey;
+      final cacheRecord = await MetadataDatabase().getLyricsCache(cacheKey);
+
+      if (cacheRecord != null && cacheRecord.source != LyricsCacheSource.none) {
+        final translations = await MetadataDatabase().getLyricsTranslationCaches(cacheKey);
+        exportedList.add({
+          'title': song.title,
+          'artist': song.artist,
+          'album': song.album,
+          'duration_ms': song.duration,
+          'lyrics_cache': cacheRecord.toMap(),
+          'translations': translations.map((t) => t.toMap()).toList(),
+        });
+      }
+    }
+
+    request.response.headers.contentType = ContentType.json;
+    request.response.write(jsonEncode({'lyrics': exportedList}));
+    await request.response.close();
+  }
+
+  Future<void> _handleImportLyrics(HttpRequest request) async {
+    final content = await utf8.decoder.bind(request).join();
+    final json = jsonDecode(content) as Map<String, dynamic>;
+    final lyrics = json['lyrics'] as List<dynamic>? ?? [];
+    
+    final stats = await _importLyricsList(lyrics);
+    
+    request.response.headers.contentType = ContentType.json;
+    request.response.write(jsonEncode(stats));
+    await request.response.close();
   }
 }
 

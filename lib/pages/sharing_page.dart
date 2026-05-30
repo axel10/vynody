@@ -158,6 +158,28 @@ class _SharingPageState extends ConsumerState<SharingPage> {
     }
   }
 
+  Future<void> _handleSyncLyricsToDevice(LanDevice device) async {
+    try {
+      showToast('正在向 ${device.name} 同步歌词...');
+      final service = ref.read(sharingServiceProvider);
+      final stats = await service.syncLyricsToDevice(device);
+      showToast('同步成功: 匹配 ${stats['matched']} 首, 更新 ${stats['overwritten']} 首, 忽略 ${stats['skipped']} 首');
+    } catch (e) {
+      showToast('同步歌词失败: $e');
+    }
+  }
+
+  Future<void> _handleSyncLyricsFromDevice(LanDevice device) async {
+    try {
+      showToast('正在从 ${device.name} 同步歌词...');
+      final service = ref.read(sharingServiceProvider);
+      final stats = await service.pullLyricsFromDevice(device);
+      showToast('同步成功: 本地匹配 ${stats['matched']} 首, 更新 ${stats['overwritten']} 首, 忽略 ${stats['skipped']} 首');
+    } catch (e) {
+      showToast('同步歌词失败: $e');
+    }
+  }
+
   IconData _getPlatformIcon(String type) {
     switch (type.toLowerCase()) {
       case 'macos':
@@ -415,40 +437,65 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                                 ),
                               ],
                             ),
-                             trailing: device.isOnline
-                                 ? PopupMenuButton<String>(
-                                     icon: const Icon(Icons.send_rounded, color: Colors.purpleAccent),
-                                     onSelected: (value) {
-                                       if (value == 'file') {
-                                         _handleSendFile(device);
-                                       } else if (value == 'folder') {
-                                         _handleSendFolder(device);
-                                       }
-                                     },
-                                     itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                                       const PopupMenuItem<String>(
-                                         value: 'file',
-                                         child: Row(
-                                           children: [
-                                             Icon(Icons.insert_drive_file, size: 18, color: Colors.purpleAccent),
-                                             SizedBox(width: 8),
-                                             Text('发送音乐文件'),
-                                           ],
-                                         ),
-                                       ),
-                                       const PopupMenuItem<String>(
-                                         value: 'folder',
-                                         child: Row(
-                                           children: [
-                                             Icon(Icons.folder, size: 18, color: Colors.purpleAccent),
-                                             SizedBox(width: 8),
-                                             Text('发送文件夹'),
-                                           ],
-                                         ),
-                                       ),
-                                     ],
-                                   )
-                                 : null,
+                            trailing: device.isOnline
+                                ? PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert, color: Colors.purpleAccent),
+                                    onSelected: (value) {
+                                      if (value == 'file') {
+                                        _handleSendFile(device);
+                                      } else if (value == 'folder') {
+                                        _handleSendFolder(device);
+                                      } else if (value == 'sync_to') {
+                                        _handleSyncLyricsToDevice(device);
+                                      } else if (value == 'sync_from') {
+                                        _handleSyncLyricsFromDevice(device);
+                                      }
+                                    },
+                                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                      const PopupMenuItem<String>(
+                                        value: 'file',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.insert_drive_file, size: 18, color: Colors.purpleAccent),
+                                            SizedBox(width: 8),
+                                            Text('发送音乐文件'),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuItem<String>(
+                                        value: 'folder',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.folder, size: 18, color: Colors.purpleAccent),
+                                            SizedBox(width: 8),
+                                            Text('发送文件夹'),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuDivider(),
+                                      const PopupMenuItem<String>(
+                                        value: 'sync_to',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.cloud_upload_rounded, size: 18, color: Colors.purpleAccent),
+                                            SizedBox(width: 8),
+                                            Text('同步歌词至该设备'),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuItem<String>(
+                                        value: 'sync_from',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.cloud_download_rounded, size: 18, color: Colors.purpleAccent),
+                                            SizedBox(width: 8),
+                                            Text('从该设备同步歌词'),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : null,
                           ),
                         );
                       },
