@@ -602,6 +602,7 @@
   "dropAddedSongsWithExisting": "Added {addedCount} songs, {existingCount} already existed",
   "copyCover": "Copy Cover to Clipboard",
   "copyCoverSuccess": "Cover copied to clipboard",
+  "searchLyricsPlaceholder": "Enter song title, artist, or lyrics to search",
   "share": "Share",
   "@share": {
     "description": "Share tab label"

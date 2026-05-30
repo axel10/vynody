@@ -2750,6 +2750,12 @@ abstract class AppLocalizations {
   /// **'已成功复制封面'**
   String get copyCoverSuccess;
 
+  /// No description provided for @searchLyricsPlaceholder.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入歌名、歌手或歌词进行搜索'**
+  String get searchLyricsPlaceholder;
+
   /// Share tab label
   ///
   /// In zh, this message translates to:

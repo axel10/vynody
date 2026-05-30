@@ -567,36 +567,19 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(l10n.searchingOnlineLyrics),
-        duration: const Duration(days: 1),
-      ),
-    );
-
     final service = ref.read(lyricsServiceProvider);
-    final tracks = await service.searchTracksByTitle(title: songTitle);
-
-    if (!mounted) return;
-    messenger.hideCurrentSnackBar();
-
-    if (tracks.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.noMatchingResults)));
-      return;
-    }
 
     final selectedTrack = await showOnlineLyricsSearchDialog(
       context: context,
       queryTitle: songTitle,
-      tracks: tracks,
       queryArtist: songArtist?.isNotEmpty == true ? songArtist : null,
       queryAlbum: songAlbum?.isNotEmpty == true ? songAlbum : null,
-      searchTracks: ({required String title, String? artist, String? album}) {
+      searchTracks: ({required String title, String? artist, String? album, String? q}) {
         return service.searchTracksByQuery(
           title: title,
           artist: artist,
           album: album,
+          q: q,
         );
       },
     );
@@ -1309,9 +1292,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final start = math.max(0, activeIndex - 3);
     final end = math.min(displayLines.length - 1, activeIndex + 3);
     final buffer = StringBuffer();
-    final scrollOffsetStr = _scrollController.hasClients
-        ? _scrollController.offset.toStringAsFixed(1)
-        : 'not_attached';
+    // final scrollOffsetStr = _scrollController.hasClients
+    //     ? _scrollController.offset.toStringAsFixed(1)
+    //     : 'not_attached';
     // buffer.writeln(
     //   '[LyricsPanel] metrics activeIndex=$activeIndex '
     //   'viewport=${viewportHeight.toStringAsFixed(1)} '

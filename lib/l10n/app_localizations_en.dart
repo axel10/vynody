@@ -1460,5 +1460,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get copyCoverSuccess => 'Cover copied to clipboard';
 
   @override
+  String get searchLyricsPlaceholder =>
+      'Enter song title, artist, or lyrics to search';
+
+  @override
   String get share => 'Share';
 }

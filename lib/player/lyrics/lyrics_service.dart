@@ -160,17 +160,19 @@ class LyricsService {
     required String title,
     String? artist,
     String? album,
+    String? q,
     CancelToken? cancelToken,
   }) {
     final normalizedTitle = _cleanField(title);
-    if (normalizedTitle == null) {
+    if (normalizedTitle == null && q == null) {
       return Future.value(const []);
     }
 
     return _searchByQuery(
-      normalizedTitle,
+      normalizedTitle ?? '',
       artist: _cleanField(artist),
       album: _cleanField(album),
+      q: q,
       cancelToken: cancelToken,
     );
   }
@@ -609,18 +611,26 @@ class LyricsService {
     String title, {
     String? artist,
     String? album,
+    String? q,
     CancelToken? cancelToken,
   }) async {
     try {
-      final params = <String, dynamic>{
-        'track_name': title,
-        if (artist != null && artist.trim().isNotEmpty) 'artist_name': artist,
-        'q': _buildSearchTextFromParts(
-          title: title,
-          artist: artist,
-          album: album,
-        ),
-      };
+      final Map<String, dynamic> params;
+      if (q != null && q.trim().isNotEmpty) {
+        params = <String, dynamic>{
+          'q': q,
+        };
+      } else {
+        params = <String, dynamic>{
+          'track_name': title,
+          if (artist != null && artist.trim().isNotEmpty) 'artist_name': artist,
+          'q': _buildSearchTextFromParts(
+            title: title,
+            artist: artist,
+            album: album,
+          ),
+        };
+      }
 
       final response = await _client.get(
         'https://lrclib.net/api/search',
@@ -628,7 +638,7 @@ class LyricsService {
         cancelToken: cancelToken,
       );
       _logDebug(
-        'http search done -> track="$title" '
+        'http search done -> q="${q ?? title}" '
         'resultType=${response.data.runtimeType}',
       );
 

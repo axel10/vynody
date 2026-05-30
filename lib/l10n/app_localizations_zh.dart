@@ -1417,5 +1417,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get copyCoverSuccess => '已成功复制封面';
 
   @override
+  String get searchLyricsPlaceholder => '输入歌名、歌手或歌词进行搜索';
+
+  @override
   String get share => '共享';
 }

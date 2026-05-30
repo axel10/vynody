@@ -1041,6 +1041,7 @@
   },
   "copyCover": "复制封面到剪贴板",
   "copyCoverSuccess": "已成功复制封面",
+  "searchLyricsPlaceholder": "输入歌名、歌手或歌词进行搜索",
   "share": "共享",
   "@share": {
     "description": "Share tab label"
