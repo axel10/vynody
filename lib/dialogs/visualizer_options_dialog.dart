@@ -131,6 +131,8 @@ class VisualizerOptionsDialog extends ConsumerWidget {
             const SizedBox(height: 12),
             _buildSpectrumAdvancedControls(context, ref, setDialogState),
           ],
+          const SizedBox(height: 16),
+          _buildSpectrumAppearanceControls(context, setDialogState),
         ],
       ),
     );
@@ -470,135 +472,147 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          _buildSectionHeader(
-            context,
-            l10n.spectrumAppearanceGroup,
-            resetLabel: l10n.resetAppearance,
-            onReset: () {
-              settings.resetVisualizerAppearance();
-              final Orientation orientation = MediaQuery.of(
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpectrumAppearanceControls(
+    BuildContext context,
+    StateSetter setDialogState,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          context,
+          l10n.spectrumAppearanceGroup,
+          resetLabel: l10n.resetAppearance,
+          onReset: () {
+            settings.resetVisualizerAppearance();
+            final Orientation orientation = MediaQuery.of(
+              context,
+            ).orientation;
+            audio.applyVisualizerSettings(orientation: orientation);
+            setDialogState(() {});
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildOptionSlider(
                 context,
-              ).orientation;
-              audio.applyVisualizerSettings(orientation: orientation);
-              setDialogState(() {});
-            },
-          ),
-          const SizedBox(height: 12),
-          _buildSectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                label: l10n.opacity,
+                value: settings.visualizerOpacity,
+                min: 0.0,
+                max: 1.0,
+                onChanged: (val) {
+                  settings.visualizerOpacity = val;
+                  setDialogState(() {});
+                },
+              ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                title: Text(
+                  l10n.enableGradient,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
+                value: settings.isVisualizerGradientEnabled,
+                activeThumbColor: Colors.blueAccent,
+                onChanged: (val) {
+                  settings.isVisualizerGradientEnabled = val;
+                  setDialogState(() {});
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
+              const SizedBox(height: 4),
+              if (settings.isVisualizerGradientEnabled) ...[
+                _buildColorPickerRow(
+                  context,
+                  label: l10n.startColor,
+                  color: settings.visualizerStartColor,
+                  isDynamic: settings.isVisualizerDynamicStartColor,
+                  onDynamicChanged: (val) {
+                    settings.isVisualizerDynamicStartColor = val;
+                    if (val) {
+                      audio.updateDynamicColors();
+                    }
+                    setDialogState(() {});
+                  },
+                  onColorChanged: (c) {
+                    settings.visualizerStartColor = c;
+                    setDialogState(() {});
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildColorPickerRow(
+                  context,
+                  label: l10n.endColor,
+                  color: settings.visualizerEndColor,
+                  isDynamic: settings.isVisualizerDynamicEndColor,
+                  onDynamicChanged: (val) {
+                    settings.isVisualizerDynamicEndColor = val;
+                    if (val) {
+                      audio.updateDynamicColors();
+                    }
+                    setDialogState(() {});
+                  },
+                  onColorChanged: (c) {
+                    settings.visualizerEndColor = c;
+                    setDialogState(() {});
+                  },
+                ),
+                const SizedBox(height: 16),
                 _buildOptionSlider(
                   context,
-                  label: l10n.opacity,
-                  value: settings.visualizerOpacity,
+                  label: l10n.gradientRangeStop1,
+                  value: settings.visualizerGradientStop1,
                   min: 0.0,
                   max: 1.0,
                   onChanged: (val) {
-                    settings.visualizerOpacity = val;
+                    settings.visualizerGradientStop1 = val;
                     setDialogState(() {});
                   },
                 ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  title: Text(
-                    l10n.enableGradient,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                  ),
-                  value: settings.isVisualizerGradientEnabled,
-                  activeThumbColor: Colors.blueAccent,
+                const SizedBox(height: 16),
+                _buildOptionSlider(
+                  context,
+                  label: l10n.gradientRangeStop2,
+                  value: settings.visualizerGradientStop2,
+                  min: 0.0,
+                  max: 1.0,
                   onChanged: (val) {
-                    settings.isVisualizerGradientEnabled = val;
+                    settings.visualizerGradientStop2 = val;
                     setDialogState(() {});
                   },
-                  contentPadding: EdgeInsets.zero,
                 ),
-                const SizedBox(height: 4),
-                if (settings.isVisualizerGradientEnabled) ...[
-                  _buildColorPickerRow(
-                    context,
-                    label: l10n.startColor,
-                    color: settings.visualizerStartColor,
-                    isDynamic: settings.isVisualizerDynamicStartColor,
-                    onDynamicChanged: (val) {
-                      settings.isVisualizerDynamicStartColor = val;
-                      if (val) {
-                        audio.updateDynamicColors();
-                      }
-                      setDialogState(() {});
-                    },
-                    onColorChanged: (c) {
-                      settings.visualizerStartColor = c;
-                      setDialogState(() {});
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildColorPickerRow(
-                    context,
-                    label: l10n.endColor,
-                    color: settings.visualizerEndColor,
-                    isDynamic: settings.isVisualizerDynamicEndColor,
-                    onDynamicChanged: (val) {
-                      settings.isVisualizerDynamicEndColor = val;
-                      if (val) {
-                        audio.updateDynamicColors();
-                      }
-                      setDialogState(() {});
-                    },
-                    onColorChanged: (c) {
-                      settings.visualizerEndColor = c;
-                      setDialogState(() {});
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildOptionSlider(
-                    context,
-                    label: l10n.gradientRangeStop1,
-                    value: settings.visualizerGradientStop1,
-                    min: 0.0,
-                    max: 1.0,
-                    onChanged: (val) {
-                      settings.visualizerGradientStop1 = val;
-                      setDialogState(() {});
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildOptionSlider(
-                    context,
-                    label: l10n.gradientRangeStop2,
-                    value: settings.visualizerGradientStop2,
-                    min: 0.0,
-                    max: 1.0,
-                    onChanged: (val) {
-                      settings.visualizerGradientStop2 = val;
-                      setDialogState(() {});
-                    },
-                  ),
-                ] else ...[
-                  _buildColorPickerRow(
-                    context,
-                    label: l10n.color,
-                    color: settings.visualizerColor,
-                    isDynamic: settings.isVisualizerDynamicColor,
-                    onDynamicChanged: (val) {
-                      settings.isVisualizerDynamicColor = val;
-                      if (val) {
-                        audio.updateDynamicColors();
-                      }
-                      setDialogState(() {});
-                    },
-                    onColorChanged: (c) {
-                      settings.visualizerColor = c;
-                      setDialogState(() {});
-                    },
-                  ),
-                ],
+              ] else ...[
+                _buildColorPickerRow(
+                  context,
+                  label: l10n.color,
+                  color: settings.visualizerColor,
+                  isDynamic: settings.isVisualizerDynamicColor,
+                  onDynamicChanged: (val) {
+                    settings.isVisualizerDynamicColor = val;
+                    if (val) {
+                      audio.updateDynamicColors();
+                    }
+                    setDialogState(() {});
+                  },
+                  onColorChanged: (c) {
+                    settings.visualizerColor = c;
+                    setDialogState(() {});
+                  },
+                ),
               ],
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
