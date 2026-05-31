@@ -151,7 +151,6 @@ class TranscodeService {
       ffmpegPath: _normalizeOptional(ffmpegPath),
       androidOutputDirectory: androidOutputDirectory,
       onProgress: onProgress,
-      metadataSourcePaths: metadataSourcePaths,
       copyMetadata: true,
       audioCoreController: _audioCoreController,
     );
