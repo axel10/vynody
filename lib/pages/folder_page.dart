@@ -1029,38 +1029,64 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           ),
                           trailing: _isSelectionMode
                               ? null
-                              : Builder(
-                                  builder: (buttonContext) {
-                                    return IconButton(
-                                      icon: const Icon(Icons.more_vert),
-                                      onPressed: () {
-                                        final renderObject = buttonContext
-                                            .findRenderObject();
-                                        final renderBox =
-                                            renderObject is RenderBox
-                                            ? renderObject
-                                            : null;
-                                        if (renderBox == null) return;
-
-                                        final Offset offset = renderBox
-                                            .localToGlobal(Offset.zero);
-                                        showSongContextMenu(
-                                          buttonContext,
-                                          offset,
-                                          song: file,
-                                          mode: SongContextMenuMode.full,
-                                          onAddToPlaylist: () =>
-                                              showAddSongsToPlaylistDialog(
-                                                buttonContext,
-                                                ref.read(
-                                                  playlistServiceProvider,
-                                                ),
-                                                [file],
-                                              ),
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Builder(
+                                      builder: (context) {
+                                        final durationMs = file.durationMillis;
+                                        final d = durationMs != null
+                                            ? Duration(milliseconds: durationMs)
+                                            : Duration.zero;
+                                        final minutes = d.inMinutes;
+                                        final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
+                                        final durationStr = durationMs != null ? '$minutes:$seconds' : '--:--';
+                                        final ext = p.extension(file.path).replaceAll('.', '').toUpperCase();
+                                        final formatStr = ext.isNotEmpty ? ext : 'UNKNOWN';
+                                        return Text(
+                                          '$durationStr | $formatStr',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
                                         );
                                       },
-                                    );
-                                  },
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Builder(
+                                      builder: (buttonContext) {
+                                        return IconButton(
+                                          icon: const Icon(Icons.more_vert),
+                                          onPressed: () {
+                                            final renderObject = buttonContext
+                                                .findRenderObject();
+                                            final renderBox =
+                                                renderObject is RenderBox
+                                                ? renderObject
+                                                : null;
+                                            if (renderBox == null) return;
+
+                                            final Offset offset = renderBox
+                                                .localToGlobal(Offset.zero);
+                                            showSongContextMenu(
+                                              buttonContext,
+                                              offset,
+                                              song: file,
+                                              mode: SongContextMenuMode.full,
+                                              onAddToPlaylist: () =>
+                                                  showAddSongsToPlaylistDialog(
+                                                    buttonContext,
+                                                    ref.read(
+                                                      playlistServiceProvider,
+                                                    ),
+                                                    [file],
+                                                  ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                           onLongPress: () {
                             if (!_isSelectionMode) {

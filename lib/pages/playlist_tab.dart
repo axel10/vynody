@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/models/music_file.dart';
@@ -209,13 +210,15 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
     );
   }
 
-  Widget? _buildDurationTrailing(int? durationMs) {
-    if (durationMs == null) return null;
-    final d = Duration(milliseconds: durationMs);
+  Widget? _buildDurationTrailing(int? durationMs, String path) {
+    final d = durationMs != null ? Duration(milliseconds: durationMs) : Duration.zero;
     final minutes = d.inMinutes;
     final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
+    final durationStr = durationMs != null ? '$minutes:$seconds' : '--:--';
+    final ext = p.extension(path).replaceAll('.', '').toUpperCase();
+    final formatStr = ext.isNotEmpty ? ext : 'UNKNOWN';
     return Text(
-      '$minutes:$seconds',
+      '$durationStr | $formatStr',
       style: const TextStyle(fontSize: 12, color: Colors.grey),
     );
   }
@@ -752,6 +755,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                             )
                           : _buildDurationTrailing(
                               scanner.metadataMap[song.path]?.duration,
+                              song.path,
                             ),
                       onTap: isSelectionMode
                           ? () {
