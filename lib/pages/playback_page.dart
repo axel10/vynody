@@ -856,18 +856,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 Positioned.fill(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 800),
-                    child: backgroundType == 1
-                        ? const RepaintBoundary(
-                            key: ValueKey('fluid_bg'),
-                            child: DynamicMeshBackground(),
-                          )
-                        : _buildBlurredBackground(context),
+                    child: _buildBackgroundWidget(context, backgroundType, settings),
                   ),
                 ),
-                _buildBackgroundScrim(isLyricsMode),
+                _buildBackgroundScrim(isLyricsMode, backgroundType, settings),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
-                _buildLyricsModeScrim(isLyricsMode),
+                _buildLyricsModeScrim(isLyricsMode, backgroundType, settings),
                 RepaintBoundary(child: content),
                 Positioned(
                   left: 0,
@@ -909,7 +904,51 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 
-  Widget _buildBackgroundScrim(bool isLyricsMode) {
+  Widget _buildBackgroundWidget(BuildContext context, int backgroundType, SettingsService settings) {
+    switch (backgroundType) {
+      case 1:
+        return const RepaintBoundary(
+          key: ValueKey('fluid_bg'),
+          child: DynamicMeshBackground(),
+        );
+      case 2:
+        return Container(
+          key: ValueKey('solid_color_bg_${settings.playbackBackgroundColor}'),
+          color: Color(settings.playbackBackgroundColor),
+          width: double.infinity,
+          height: double.infinity,
+        );
+      case 3:
+        final path = settings.playbackBackgroundCustomImagePath;
+        if (path.isEmpty || !File(path).existsSync()) {
+          return Container(
+            key: const ValueKey('custom_image_empty'),
+            color: Colors.black,
+            width: double.infinity,
+            height: double.infinity,
+          );
+        }
+        return Image.file(
+          File(path),
+          key: ValueKey('custom_image_bg_$path'),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        );
+      case 0:
+      default:
+        return _buildBlurredBackground(context);
+    }
+  }
+
+  Widget _buildBackgroundScrim(bool isLyricsMode, int backgroundType, SettingsService settings) {
+    double opacity = 0.20;
+    if (backgroundType == 2) {
+      opacity = settings.playbackSolidColorNormalOpacity;
+    } else if (backgroundType == 3) {
+      opacity = settings.playbackCustomImageNormalOpacity;
+    }
+
     return Positioned.fill(
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 400),
@@ -918,13 +957,18 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         child: IgnorePointer(
           child: DecoratedBox(
             decoration: BoxDecoration(
-              gradient: RadialGradient(
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.20),
-                ],
-                stops: const [0.1, 1.0],
-              ),
+              color: settings.playbackRadialGradientEnabled
+                  ? null
+                  : Colors.black.withValues(alpha: opacity),
+              gradient: settings.playbackRadialGradientEnabled
+                  ? RadialGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: opacity),
+                      ],
+                      stops: const [0.1, 1.0],
+                    )
+                  : null,
             ),
           ),
         ),
@@ -932,14 +976,21 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 
-  Widget _buildLyricsModeScrim(bool isLyricsMode) {
+  Widget _buildLyricsModeScrim(bool isLyricsMode, int backgroundType, SettingsService settings) {
+    double opacity = 0.28;
+    if (backgroundType == 2) {
+      opacity = settings.playbackSolidColorLyricsOpacity;
+    } else if (backgroundType == 3) {
+      opacity = settings.playbackCustomImageLyricsOpacity;
+    }
+
     return Positioned.fill(
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
         opacity: isLyricsMode ? 1.0 : 0.0,
         child: IgnorePointer(
-          child: ColoredBox(color: Colors.black.withValues(alpha: 0.28)),
+          child: ColoredBox(color: Colors.black.withValues(alpha: opacity)),
         ),
       ),
     );

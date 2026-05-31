@@ -488,10 +488,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playbackBackground => 'Playback Background';
 
   @override
+  String get playbackRadialGradient => 'Center Dark Gradient';
+
+  @override
   String get blurredArtwork => 'Blurred Artwork (Default)';
 
   @override
   String get dynamicMesh => 'Dynamic Mesh (Apple Music style)';
+
+  @override
+  String get solidColor => 'Solid Color';
+
+  @override
+  String get customImage => 'Custom Image';
+
+  @override
+  String get presetColors => 'Preset Colors';
+
+  @override
+  String get customColor => 'Custom Color';
+
+  @override
+  String get uploadImage => 'Upload Image';
+
+  @override
+  String get normalOpacity => 'Normal State Opacity';
+
+  @override
+  String get lyricsOpacity => 'Lyrics State Opacity';
+
+  @override
+  String get chooseImageError => 'Failed to select image';
+
+  @override
+  String get noImageSelected => 'No image selected';
 
   @override
   String get unknown => 'Unknown';

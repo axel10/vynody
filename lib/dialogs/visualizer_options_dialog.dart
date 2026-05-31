@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/audio/audio_service.dart';
@@ -445,6 +447,8 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   ) {
     final l10n = AppLocalizations.of(context)!;
     final isDynamicMeshBackground = settings.playbackBackgroundType == 1;
+    final isSolidColorBackground = settings.playbackBackgroundType == 2;
+    final isCustomImageBackground = settings.playbackBackgroundType == 3;
 
     return SingleChildScrollView(
       child: Column(
@@ -469,6 +473,24 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                     },
                   ),
                 ],
+                if (isSolidColorBackground)
+                  _buildSolidColorControls(context, settings, setDialogState),
+                if (isCustomImageBackground)
+                  _buildCustomImageControls(context, settings, setDialogState),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  title: Text(
+                    l10n.playbackRadialGradient,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                  value: settings.playbackRadialGradientEnabled,
+                  activeThumbColor: Colors.blueAccent,
+                  onChanged: (val) {
+                    settings.playbackRadialGradientEnabled = val;
+                    setDialogState(() {});
+                  },
+                  contentPadding: EdgeInsets.zero,
+                ),
               ],
             ),
           ),
@@ -791,6 +813,14 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               value: 1,
               child: Text(AppLocalizations.of(context)!.dynamicMesh),
             ),
+            DropdownMenuItem(
+              value: 2,
+              child: Text(AppLocalizations.of(context)!.solidColor),
+            ),
+            DropdownMenuItem(
+              value: 3,
+              child: Text(AppLocalizations.of(context)!.customImage),
+            ),
           ],
           onChanged: (val) {
             if (val != null) {
@@ -801,6 +831,228 @@ class VisualizerOptionsDialog extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildSolidColorControls(
+    BuildContext context,
+    SettingsService settings,
+    StateSetter setDialogState,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final presetColors = [
+      0xFF121212, // Classic Dark
+      0xFF1A1F2C, // Midnight Blue
+      0xFF2D1B4E, // Deep Purple
+      0xFF0D2D20, // Dark Emerald
+      0xFF3A1A22, // Velvet Burgundy
+      0xFF202225, // Slate Gray
+    ];
+    final activeColor = settings.playbackBackgroundColor;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Text(
+          l10n.presetColors,
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            ...presetColors.map((colorValue) {
+              final color = Color(colorValue);
+              final isSelected = activeColor == colorValue;
+              return GestureDetector(
+                onTap: () {
+                  settings.playbackBackgroundColor = colorValue;
+                  setDialogState(() {});
+                },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? Colors.blueAccent : Colors.white24,
+                      width: isSelected ? 3 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: Colors.blueAccent.withValues(alpha: 0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            )
+                          ]
+                        : null,
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, color: Colors.white, size: 18)
+                      : null,
+                ),
+              );
+            }),
+            GestureDetector(
+              onTap: () {
+                _pickColor(
+                  context,
+                  Color(settings.playbackBackgroundColor),
+                  (c) {
+                    settings.playbackBackgroundColor = c.toARGB32();
+                    setDialogState(() {});
+                  },
+                );
+              },
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: !presetColors.contains(activeColor)
+                        ? Colors.blueAccent
+                        : Colors.white24,
+                    width: !presetColors.contains(activeColor) ? 3 : 1,
+                  ),
+                ),
+                child: Icon(
+                  Icons.color_lens_outlined,
+                  color: !presetColors.contains(activeColor)
+                      ? Colors.blueAccent
+                      : Colors.white70,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildOptionSlider(
+          context,
+          label: l10n.normalOpacity,
+          value: settings.playbackSolidColorNormalOpacity,
+          min: 0.0,
+          max: 1.0,
+          onChanged: (val) {
+            settings.playbackSolidColorNormalOpacity = val;
+            setDialogState(() {});
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildOptionSlider(
+          context,
+          label: l10n.lyricsOpacity,
+          value: settings.playbackSolidColorLyricsOpacity,
+          min: 0.0,
+          max: 1.0,
+          onChanged: (val) {
+            settings.playbackSolidColorLyricsOpacity = val;
+            setDialogState(() {});
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCustomImageControls(
+    BuildContext context,
+    SettingsService settings,
+    StateSetter setDialogState,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final path = settings.playbackBackgroundCustomImagePath;
+    final hasImage = path.isNotEmpty && File(path).existsSync();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Text(
+          l10n.customImage,
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (hasImage) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  File(path),
+                  width: 90,
+                  height: 60,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 16),
+            ],
+            ElevatedButton.icon(
+              onPressed: () => _pickCustomImage(context, settings, setDialogState),
+              icon: const Icon(Icons.upload_file_rounded, size: 18),
+              label: Text(l10n.uploadImage),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildOptionSlider(
+          context,
+          label: l10n.normalOpacity,
+          value: settings.playbackCustomImageNormalOpacity,
+          min: 0.0,
+          max: 1.0,
+          onChanged: (val) {
+            settings.playbackCustomImageNormalOpacity = val;
+            setDialogState(() {});
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildOptionSlider(
+          context,
+          label: l10n.lyricsOpacity,
+          value: settings.playbackCustomImageLyricsOpacity,
+          min: 0.0,
+          max: 1.0,
+          onChanged: (val) {
+            settings.playbackCustomImageLyricsOpacity = val;
+            setDialogState(() {});
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickCustomImage(
+    BuildContext context,
+    SettingsService settings,
+    StateSetter setDialogState,
+  ) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+      if (result != null && result.files.single.path != null) {
+        settings.playbackBackgroundCustomImagePath = result.files.single.path!;
+        setDialogState(() {});
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    }
   }
 
   Widget _buildSectionHeader(

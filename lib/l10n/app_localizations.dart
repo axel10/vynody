@@ -998,6 +998,12 @@ abstract class AppLocalizations {
   /// **'播放页背景'**
   String get playbackBackground;
 
+  /// No description provided for @playbackRadialGradient.
+  ///
+  /// In zh, this message translates to:
+  /// **'中心暗色渐变'**
+  String get playbackRadialGradient;
+
   /// No description provided for @blurredArtwork.
   ///
   /// In zh, this message translates to:
@@ -1009,6 +1015,60 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'动态流变 (Apple Music 效果)'**
   String get dynamicMesh;
+
+  /// No description provided for @solidColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'纯色'**
+  String get solidColor;
+
+  /// No description provided for @customImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义图片'**
+  String get customImage;
+
+  /// No description provided for @presetColors.
+  ///
+  /// In zh, this message translates to:
+  /// **'预设颜色'**
+  String get presetColors;
+
+  /// No description provided for @customColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义颜色'**
+  String get customColor;
+
+  /// No description provided for @uploadImage.
+  ///
+  /// In zh, this message translates to:
+  /// **'上传图片'**
+  String get uploadImage;
+
+  /// No description provided for @normalOpacity.
+  ///
+  /// In zh, this message translates to:
+  /// **'常规不透明度'**
+  String get normalOpacity;
+
+  /// No description provided for @lyricsOpacity.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词不透明度'**
+  String get lyricsOpacity;
+
+  /// No description provided for @chooseImageError.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择图片失败'**
+  String get chooseImageError;
+
+  /// No description provided for @noImageSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'未选择图片'**
+  String get noImageSelected;
 
   /// No description provided for @unknown.
   ///

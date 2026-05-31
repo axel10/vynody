@@ -100,6 +100,13 @@ class SettingsService extends ChangeNotifier {
   static const String _keyVisualizerDynamicEndColor =
       'visualizer_dynamic_end_color';
   static const String _keyPlaybackBackgroundType = 'playback_background_type';
+  static const String _keyPlaybackRadialGradientEnabled = 'playback_radial_gradient_enabled';
+  static const String _keyPlaybackBackgroundColor = 'playback_background_color';
+  static const String _keyPlaybackBackgroundCustomImagePath = 'playback_background_custom_image_path';
+  static const String _keyPlaybackSolidColorNormalOpacity = 'playback_solid_color_normal_opacity';
+  static const String _keyPlaybackSolidColorLyricsOpacity = 'playback_solid_color_lyrics_opacity';
+  static const String _keyPlaybackCustomImageNormalOpacity = 'playback_custom_image_normal_opacity';
+  static const String _keyPlaybackCustomImageLyricsOpacity = 'playback_custom_image_lyrics_opacity';
   static const String _keyPlaybackMeshBackgroundSpeed =
       'playback_mesh_background_speed';
   static const String _keyIsAutoMode = 'visualizer_auto_mode';
@@ -157,6 +164,13 @@ class SettingsService extends ChangeNotifier {
   late bool _isVisualizerDynamicStartColor;
   late bool _isVisualizerDynamicEndColor;
   late int _playbackBackgroundType;
+  late bool _playbackRadialGradientEnabled;
+  late int _playbackBackgroundColor;
+  late String _playbackBackgroundCustomImagePath;
+  late double _playbackSolidColorNormalOpacity;
+  late double _playbackSolidColorLyricsOpacity;
+  late double _playbackCustomImageNormalOpacity;
+  late double _playbackCustomImageLyricsOpacity;
   late double _playbackMeshBackgroundSpeed;
   late bool _isAutoMode;
   late String _autoSpectrumQuantity;
@@ -231,6 +245,13 @@ class SettingsService extends ChangeNotifier {
     _isVisualizerDynamicEndColor =
         _prefs.getBool(_keyVisualizerDynamicEndColor) ?? false;
     _playbackBackgroundType = _prefs.getInt(_keyPlaybackBackgroundType) ?? 0;
+    _playbackRadialGradientEnabled = _prefs.getBool(_keyPlaybackRadialGradientEnabled) ?? true;
+    _playbackBackgroundColor = _prefs.getInt(_keyPlaybackBackgroundColor) ?? 0xFF1A1F2C;
+    _playbackBackgroundCustomImagePath = _prefs.getString(_keyPlaybackBackgroundCustomImagePath) ?? '';
+    _playbackSolidColorNormalOpacity = _prefs.getDouble(_keyPlaybackSolidColorNormalOpacity) ?? 0.20;
+    _playbackSolidColorLyricsOpacity = _prefs.getDouble(_keyPlaybackSolidColorLyricsOpacity) ?? 0.30;
+    _playbackCustomImageNormalOpacity = _prefs.getDouble(_keyPlaybackCustomImageNormalOpacity) ?? 0.40;
+    _playbackCustomImageLyricsOpacity = _prefs.getDouble(_keyPlaybackCustomImageLyricsOpacity) ?? 0.50;
     _playbackMeshBackgroundSpeed =
         _prefs.getDouble(_keyPlaybackMeshBackgroundSpeed) ?? 0.05;
     _isAutoMode = _prefs.getBool(_keyIsAutoMode) ?? true;
@@ -365,6 +386,13 @@ class SettingsService extends ChangeNotifier {
   bool get isVisualizerDynamicStartColor => _isVisualizerDynamicStartColor;
   bool get isVisualizerDynamicEndColor => _isVisualizerDynamicEndColor;
   int get playbackBackgroundType => _playbackBackgroundType;
+  bool get playbackRadialGradientEnabled => _playbackRadialGradientEnabled;
+  int get playbackBackgroundColor => _playbackBackgroundColor;
+  String get playbackBackgroundCustomImagePath => _playbackBackgroundCustomImagePath;
+  double get playbackSolidColorNormalOpacity => _playbackSolidColorNormalOpacity;
+  double get playbackSolidColorLyricsOpacity => _playbackSolidColorLyricsOpacity;
+  double get playbackCustomImageNormalOpacity => _playbackCustomImageNormalOpacity;
+  double get playbackCustomImageLyricsOpacity => _playbackCustomImageLyricsOpacity;
   double get playbackMeshBackgroundSpeed => _playbackMeshBackgroundSpeed;
   bool get isAutoMode => _isAutoMode;
   String get autoSpectrumQuantity => _autoSpectrumQuantity;
@@ -455,6 +483,13 @@ class SettingsService extends ChangeNotifier {
     isVisualizerDynamicStartColor = false;
     isVisualizerDynamicEndColor = false;
     playbackMeshBackgroundSpeed = 0.05;
+    playbackBackgroundColor = 0xFF1A1F2C;
+    playbackRadialGradientEnabled = true;
+    playbackBackgroundCustomImagePath = '';
+    playbackSolidColorNormalOpacity = 0.20;
+    playbackSolidColorLyricsOpacity = 0.30;
+    playbackCustomImageNormalOpacity = 0.40;
+    playbackCustomImageLyricsOpacity = 0.50;
     isAutoMode = true;
     autoSpectrumQuantity = 'high';
     autoSpeed = 'medium';
@@ -754,6 +789,48 @@ class SettingsService extends ChangeNotifier {
   set playbackBackgroundType(int value) {
     _playbackBackgroundType = value;
     _prefs.setInt(_keyPlaybackBackgroundType, value);
+    notifyListeners();
+  }
+
+  set playbackRadialGradientEnabled(bool value) {
+    _playbackRadialGradientEnabled = value;
+    _prefs.setBool(_keyPlaybackRadialGradientEnabled, value);
+    notifyListeners();
+  }
+
+  set playbackBackgroundColor(int value) {
+    _playbackBackgroundColor = value;
+    _prefs.setInt(_keyPlaybackBackgroundColor, value);
+    notifyListeners();
+  }
+
+  set playbackBackgroundCustomImagePath(String value) {
+    _playbackBackgroundCustomImagePath = value;
+    _prefs.setString(_keyPlaybackBackgroundCustomImagePath, value);
+    notifyListeners();
+  }
+
+  set playbackSolidColorNormalOpacity(double value) {
+    _playbackSolidColorNormalOpacity = value;
+    _prefs.setDouble(_keyPlaybackSolidColorNormalOpacity, value);
+    notifyListeners();
+  }
+
+  set playbackSolidColorLyricsOpacity(double value) {
+    _playbackSolidColorLyricsOpacity = value;
+    _prefs.setDouble(_keyPlaybackSolidColorLyricsOpacity, value);
+    notifyListeners();
+  }
+
+  set playbackCustomImageNormalOpacity(double value) {
+    _playbackCustomImageNormalOpacity = value;
+    _prefs.setDouble(_keyPlaybackCustomImageNormalOpacity, value);
+    notifyListeners();
+  }
+
+  set playbackCustomImageLyricsOpacity(double value) {
+    _playbackCustomImageLyricsOpacity = value;
+    _prefs.setDouble(_keyPlaybackCustomImageLyricsOpacity, value);
     notifyListeners();
   }
 

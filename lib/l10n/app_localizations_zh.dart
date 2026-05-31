@@ -482,10 +482,40 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playbackBackground => '播放页背景';
 
   @override
+  String get playbackRadialGradient => '中心暗色渐变';
+
+  @override
   String get blurredArtwork => '模糊封面 (默认)';
 
   @override
   String get dynamicMesh => '动态流变 (Apple Music 效果)';
+
+  @override
+  String get solidColor => '纯色';
+
+  @override
+  String get customImage => '自定义图片';
+
+  @override
+  String get presetColors => '预设颜色';
+
+  @override
+  String get customColor => '自定义颜色';
+
+  @override
+  String get uploadImage => '上传图片';
+
+  @override
+  String get normalOpacity => '常规不透明度';
+
+  @override
+  String get lyricsOpacity => '歌词不透明度';
+
+  @override
+  String get chooseImageError => '选择图片失败';
+
+  @override
+  String get noImageSelected => '未选择图片';
 
   @override
   String get unknown => '未知';
