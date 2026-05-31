@@ -57,6 +57,84 @@ extension LyricsAiProviderX on LyricsAiProvider {
   }
 }
 
+class SettingProperty<T> {
+  final String key;
+  final T defaultValue;
+  final SharedPreferences prefs;
+  final VoidCallback? onChanged;
+  final T Function(SharedPreferences prefs, String key, T defaultValue)? customRead;
+  final void Function(SharedPreferences prefs, String key, T value)? customWrite;
+
+  T _value;
+
+  SettingProperty({
+    required this.key,
+    required this.defaultValue,
+    required this.prefs,
+    this.onChanged,
+    this.customRead,
+    this.customWrite,
+  }) : _value = _read(prefs, key, defaultValue, customRead);
+
+  T get value => _value;
+
+  set value(T newValue) {
+    if (_value == newValue) return;
+    _value = newValue;
+    _write(prefs, key, newValue, customWrite);
+    onChanged?.call();
+  }
+
+  static T _read<T>(
+    SharedPreferences prefs,
+    String key,
+    T defaultValue,
+    T Function(SharedPreferences prefs, String key, T defaultValue)? customRead,
+  ) {
+    if (customRead != null) {
+      return customRead(prefs, key, defaultValue);
+    }
+    if (T == bool) {
+      return (prefs.getBool(key) ?? defaultValue) as T;
+    }
+    if (T == int) {
+      return (prefs.getInt(key) ?? defaultValue) as T;
+    }
+    if (T == double) {
+      return (prefs.getDouble(key) ?? defaultValue) as T;
+    }
+    if (T == String) {
+      return (prefs.getString(key) ?? defaultValue) as T;
+    }
+    return defaultValue;
+  }
+
+  static void _write<T>(
+    SharedPreferences prefs,
+    String key,
+    T value,
+    void Function(SharedPreferences prefs, String key, T value)? customWrite,
+  ) {
+    if (customWrite != null) {
+      customWrite(prefs, key, value);
+      return;
+    }
+    if (value is bool) {
+      prefs.setBool(key, value);
+    } else if (value is int) {
+      prefs.setInt(key, value);
+    } else if (value is double) {
+      prefs.setDouble(key, value);
+    } else if (value is String) {
+      prefs.setString(key, value);
+    }
+  }
+
+  void reset() {
+    value = defaultValue;
+  }
+}
+
 class SettingsService extends ChangeNotifier {
   static const String defaultGeminiPrimaryModelId =
       'gemini-3.1-flash-lite-preview';
@@ -139,59 +217,406 @@ class SettingsService extends ChangeNotifier {
       'transcode_auto_scan_output_enabled';
 
   final SharedPreferences _prefs;
-  ThemeMode _themeMode;
-  bool _isImmersiveTabBarEnabled;
-  int _waveformChunks;
-  int _sampleStride;
   bool _isUserInactive = false;
   Timer? _inactivityTimer;
-  LyricsAiProvider _lyricsAiProvider;
-  bool _isLyricsAiAutoSwitchEnabled;
-  double _lyricsFontScale;
-  String _geminiPrimaryModelId;
-  String _geminiFallbackModelId;
-  String _geminiTranslationModelId;
   Map<String, ShortcutBinding> _shortcutBindings;
 
-  // Visualizer styling state
-  late Color _visualizerColor;
-  late double _visualizerOpacity;
-  late bool _isVisualizerGradientEnabled;
-  late Color _visualizerStartColor;
-  late Color _visualizerEndColor;
-  late double _visualizerGradientStop1;
-  late double _visualizerGradientStop2;
-  late int _visualizerGradientTileMode;
-  late bool _isVisualizerDynamicColor;
-  late bool _isVisualizerDynamicStartColor;
-  late bool _isVisualizerDynamicEndColor;
-  late int _playbackBackgroundType;
-  late bool _playbackRadialGradientEnabled;
-  late int _playbackBackgroundColor;
-  late String _playbackBackgroundCustomImagePath;
-  late double _playbackSolidColorNormalOpacity;
-  late double _playbackSolidColorLyricsOpacity;
-  late double _playbackCustomImageNormalOpacity;
-  late double _playbackCustomImageLyricsOpacity;
-  late double _playbackBlurredArtworkBlurSigma;
-  late double _playbackCustomImageBlurSigma;
-  late double _playbackMeshBackgroundSpeed;
-  late bool _isAutoMode;
-  late String _autoSpectrumQuantity;
-  late String _autoSpeed;
-  late int _portraitFrequencyGroups;
-  late int _landscapeFrequencyGroups;
-  late double _portraitGap;
-  late double _landscapeGap;
-  late bool _isWaveformProgressBarEnabled;
-  late bool _skipShortAudioScanEnabled;
-  late int _skipShortAudioScanMinimumDurationSeconds;
-  late int _randomRange; // 0: current, 1: global
-  late int _randomMethod; // 0: complete, 1: shuffle
-  late AudioFormat _transcodeDefaultFormat;
-  late TranscodeQualityTier _transcodeDefaultQualityTier;
-  late String _transcodeFfmpegPath;
-  late bool _transcodeAutoScanOutputEnabled;
+  // SettingProperty definitions for all configuration options
+  late final _themeModeProperty = SettingProperty<ThemeMode>(
+    key: _keyThemeMode,
+    defaultValue: ThemeMode.system,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => ThemeModeX.fromStorageValue(prefs.getString(key)),
+    customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+  );
+
+  late final _isImmersiveTabBarEnabledProperty = SettingProperty<bool>(
+    key: _keyImmersiveTabBar,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _waveformChunksProperty = SettingProperty<int>(
+    key: _keyWaveformChunks,
+    defaultValue: 120,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _sampleStrideProperty = SettingProperty<int>(
+    key: _keySampleStride,
+    defaultValue: defaultSampleStride,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _lyricsAiProviderProperty = SettingProperty<LyricsAiProvider>(
+    key: _keyLyricsAiProvider,
+    defaultValue: LyricsAiProvider.googleAiStudio,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => LyricsAiProviderX.fromStorageValue(prefs.getString(key)),
+    customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+  );
+
+  late final _isLyricsAiAutoSwitchEnabledProperty = SettingProperty<bool>(
+    key: _keyLyricsAiAutoSwitchEnabled,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _lyricsFontScaleProperty = SettingProperty<double>(
+    key: _keyLyricsFontScale,
+    defaultValue: defaultLyricsFontScale,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => _normalizeLyricsFontScale(prefs.getDouble(key) ?? def),
+    customWrite: (prefs, key, val) => prefs.setDouble(key, _normalizeLyricsFontScale(val)),
+  );
+
+  late final _geminiPrimaryModelIdProperty = SettingProperty<String>(
+    key: _keyGeminiPrimaryModelId,
+    defaultValue: defaultGeminiPrimaryModelId,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => _initialModelId(prefs.getString(key), def),
+  );
+
+  late final _geminiFallbackModelIdProperty = SettingProperty<String>(
+    key: _keyGeminiFallbackModelId,
+    defaultValue: defaultGeminiFallbackModelId,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => _initialModelId(prefs.getString(key), def),
+  );
+
+  late final _geminiTranslationModelIdProperty = SettingProperty<String>(
+    key: _keyGeminiTranslationModelId,
+    defaultValue: defaultGeminiTranslationModelId,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => _initialModelId(prefs.getString(key), def),
+  );
+
+  late final _geminiApiKeyProperty = SettingProperty<String>(
+    key: geminiApiKeyStorageKey,
+    defaultValue: '',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customWrite: (prefs, key, val) {
+      final normalized = val.trim();
+      if (normalized.isEmpty) {
+        prefs.remove(key);
+      } else {
+        prefs.setString(key, normalized);
+      }
+    },
+  );
+
+  late final _openRouterApiKeyProperty = SettingProperty<String>(
+    key: openRouterApiKeyStorageKey,
+    defaultValue: '',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customWrite: (prefs, key, val) {
+      final normalized = val.trim();
+      if (normalized.isEmpty) {
+        prefs.remove(key);
+      } else {
+        prefs.setString(key, normalized);
+      }
+    },
+  );
+
+  late final _visualizerColorProperty = SettingProperty<Color>(
+    key: _keyVisColor,
+    defaultValue: Colors.white,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => Color(prefs.getInt(key) ?? def.toARGB32()),
+    customWrite: (prefs, key, val) => prefs.setInt(key, val.toARGB32()),
+  );
+
+  late final _visualizerOpacityProperty = SettingProperty<double>(
+    key: _keyVisOpacity,
+    defaultValue: 0.2,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _isVisualizerGradientEnabledProperty = SettingProperty<bool>(
+    key: _keyVisGradient,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _visualizerStartColorProperty = SettingProperty<Color>(
+    key: _keyVisStartColor,
+    defaultValue: Colors.blue,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => Color(prefs.getInt(key) ?? def.toARGB32()),
+    customWrite: (prefs, key, val) => prefs.setInt(key, val.toARGB32()),
+  );
+
+  late final _visualizerEndColorProperty = SettingProperty<Color>(
+    key: _keyVisEndColor,
+    defaultValue: Colors.purple,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => Color(prefs.getInt(key) ?? def.toARGB32()),
+    customWrite: (prefs, key, val) => prefs.setInt(key, val.toARGB32()),
+  );
+
+  late final _visualizerGradientStop1Property = SettingProperty<double>(
+    key: _keyVisGradientStop1,
+    defaultValue: 0.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _visualizerGradientStop2Property = SettingProperty<double>(
+    key: _keyVisGradientStop2,
+    defaultValue: 1.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _visualizerGradientTileModeProperty = SettingProperty<int>(
+    key: _keyVisGradientTileMode,
+    defaultValue: TileMode.clamp.index,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _isVisualizerDynamicColorProperty = SettingProperty<bool>(
+    key: _keyVisualizerDynamicColor,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _isVisualizerDynamicStartColorProperty = SettingProperty<bool>(
+    key: _keyVisualizerDynamicStartColor,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _isVisualizerDynamicEndColorProperty = SettingProperty<bool>(
+    key: _keyVisualizerDynamicEndColor,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackBackgroundTypeProperty = SettingProperty<int>(
+    key: _keyPlaybackBackgroundType,
+    defaultValue: 0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackRadialGradientEnabledProperty = SettingProperty<bool>(
+    key: _keyPlaybackRadialGradientEnabled,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackBackgroundColorProperty = SettingProperty<int>(
+    key: _keyPlaybackBackgroundColor,
+    defaultValue: 0xFF1A1F2C,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackBackgroundCustomImagePathProperty = SettingProperty<String>(
+    key: _keyPlaybackBackgroundCustomImagePath,
+    defaultValue: '',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackSolidColorNormalOpacityProperty = SettingProperty<double>(
+    key: _keyPlaybackSolidColorNormalOpacity,
+    defaultValue: 0.20,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackSolidColorLyricsOpacityProperty = SettingProperty<double>(
+    key: _keyPlaybackSolidColorLyricsOpacity,
+    defaultValue: 0.30,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackCustomImageNormalOpacityProperty = SettingProperty<double>(
+    key: _keyPlaybackCustomImageNormalOpacity,
+    defaultValue: 0.40,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackCustomImageLyricsOpacityProperty = SettingProperty<double>(
+    key: _keyPlaybackCustomImageLyricsOpacity,
+    defaultValue: 0.50,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackBlurredArtworkBlurSigmaProperty = SettingProperty<double>(
+    key: _keyPlaybackBlurredArtworkBlurSigma,
+    defaultValue: 30.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackCustomImageBlurSigmaProperty = SettingProperty<double>(
+    key: _keyPlaybackCustomImageBlurSigma,
+    defaultValue: 0.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _playbackMeshBackgroundSpeedProperty = SettingProperty<double>(
+    key: _keyPlaybackMeshBackgroundSpeed,
+    defaultValue: 0.05,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _isAutoModeProperty = SettingProperty<bool>(
+    key: _keyIsAutoMode,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _autoSpectrumQuantityProperty = SettingProperty<String>(
+    key: _keyAutoSpectrumQuantity,
+    defaultValue: 'high',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _autoSpeedProperty = SettingProperty<String>(
+    key: _keyAutoSpeed,
+    defaultValue: 'medium',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _portraitFrequencyGroupsProperty = SettingProperty<int>(
+    key: _keyPortraitFrequencyGroups,
+    defaultValue: 100,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _landscapeFrequencyGroupsProperty = SettingProperty<int>(
+    key: _keyLandscapeFrequencyGroups,
+    defaultValue: 172,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _portraitGapProperty = SettingProperty<double>(
+    key: _keyPortraitGap,
+    defaultValue: 1.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _landscapeGapProperty = SettingProperty<double>(
+    key: _keyLandscapeGap,
+    defaultValue: 2.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _isWaveformProgressBarEnabledProperty = SettingProperty<bool>(
+    key: _keyIsWaveformProgressBarEnabled,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _skipShortAudioScanEnabledProperty = SettingProperty<bool>(
+    key: skipShortAudioScanEnabledStorageKey,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _skipShortAudioScanMinimumDurationSecondsProperty = SettingProperty<int>(
+    key: skipShortAudioScanMinimumDurationSecondsStorageKey,
+    defaultValue: defaultSkipShortAudioScanMinimumDurationSeconds,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customWrite: (prefs, key, val) {
+      prefs.setInt(key, val.clamp(1, 3600).toInt());
+    },
+  );
+
+  late final _randomRangeProperty = SettingProperty<int>(
+    key: _keyRandomRange,
+    defaultValue: 0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _randomMethodProperty = SettingProperty<int>(
+    key: _keyRandomMethod,
+    defaultValue: 1, // Default to shuffle
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _transcodeDefaultFormatProperty = SettingProperty<AudioFormat>(
+    key: _keyTranscodeDefaultFormat,
+    defaultValue: AudioFormat.m4a,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => _audioFormatFromStorageValue(prefs.getString(key)),
+    customWrite: (prefs, key, val) => prefs.setString(key, val.value),
+  );
+
+  late final _transcodeDefaultQualityTierProperty = SettingProperty<TranscodeQualityTier>(
+    key: _keyTranscodeDefaultQualityTier,
+    defaultValue: TranscodeQualityTier.medium,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => TranscodeQualityTierX.fromStorageValue(prefs.getString(key)),
+    customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+  );
+
+  late final _transcodeFfmpegPathProperty = SettingProperty<String>(
+    key: _keyTranscodeFfmpegPath,
+    defaultValue: '',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customWrite: (prefs, key, val) {
+      final normalized = val.trim();
+      if (normalized.isEmpty) {
+        prefs.remove(key);
+      } else {
+        prefs.setString(key, normalized);
+      }
+    },
+  );
+
+  late final _transcodeAutoScanOutputEnabledProperty = SettingProperty<bool>(
+    key: _keyTranscodeAutoScanOutputEnabled,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
 
   static String _initialModelId(String? value, String defaultValue) {
     final normalized = value?.trim();
@@ -202,108 +627,55 @@ class SettingsService extends ChangeNotifier {
   }
 
   SettingsService(this._prefs)
-    : _themeMode = ThemeModeX.fromStorageValue(_prefs.getString(_keyThemeMode)),
-      _isImmersiveTabBarEnabled = _prefs.getBool(_keyImmersiveTabBar) ?? false,
-      _waveformChunks = _prefs.getInt(_keyWaveformChunks) ?? 120,
-      _sampleStride = _prefs.getInt(_keySampleStride) ?? defaultSampleStride,
-      _lyricsAiProvider = LyricsAiProviderX.fromStorageValue(
-        _prefs.getString(_keyLyricsAiProvider),
-      ),
-      _isLyricsAiAutoSwitchEnabled =
-          _prefs.getBool(_keyLyricsAiAutoSwitchEnabled) ?? false,
-      _lyricsFontScale = _normalizeLyricsFontScale(
-        _prefs.getDouble(_keyLyricsFontScale) ?? defaultLyricsFontScale,
-      ),
-      _geminiPrimaryModelId = _initialModelId(
-        _prefs.getString(_keyGeminiPrimaryModelId),
-        defaultGeminiPrimaryModelId,
-      ),
-      _geminiFallbackModelId = _initialModelId(
-        _prefs.getString(_keyGeminiFallbackModelId),
-        defaultGeminiFallbackModelId,
-      ),
-      _geminiTranslationModelId = _initialModelId(
-        _prefs.getString(_keyGeminiTranslationModelId),
-        defaultGeminiTranslationModelId,
-      ),
-      _shortcutBindings = _loadShortcutBindings(_prefs) {
-    _visualizerColor = Color(
-      _prefs.getInt(_keyVisColor) ?? Colors.white.toARGB32(),
-    );
-    _visualizerOpacity = _prefs.getDouble(_keyVisOpacity) ?? 0.2;
-    _isVisualizerGradientEnabled = _prefs.getBool(_keyVisGradient) ?? false;
-    _visualizerStartColor = Color(
-      _prefs.getInt(_keyVisStartColor) ?? Colors.blue.toARGB32(),
-    );
-    _visualizerEndColor = Color(
-      _prefs.getInt(_keyVisEndColor) ?? Colors.purple.toARGB32(),
-    );
-    _visualizerGradientStop1 = _prefs.getDouble(_keyVisGradientStop1) ?? 0.0;
-    _visualizerGradientStop2 = _prefs.getDouble(_keyVisGradientStop2) ?? 1.0;
-    _visualizerGradientTileMode =
-        _prefs.getInt(_keyVisGradientTileMode) ?? TileMode.clamp.index;
-    _isVisualizerDynamicColor =
-        _prefs.getBool(_keyVisualizerDynamicColor) ?? false;
-    _isVisualizerDynamicStartColor =
-        _prefs.getBool(_keyVisualizerDynamicStartColor) ?? false;
-    _isVisualizerDynamicEndColor =
-        _prefs.getBool(_keyVisualizerDynamicEndColor) ?? false;
-    _playbackBackgroundType = _prefs.getInt(_keyPlaybackBackgroundType) ?? 0;
-    _playbackRadialGradientEnabled = _prefs.getBool(_keyPlaybackRadialGradientEnabled) ?? true;
-    _playbackBackgroundColor = _prefs.getInt(_keyPlaybackBackgroundColor) ?? 0xFF1A1F2C;
-    _playbackBackgroundCustomImagePath = _prefs.getString(_keyPlaybackBackgroundCustomImagePath) ?? '';
-    _playbackSolidColorNormalOpacity = _prefs.getDouble(_keyPlaybackSolidColorNormalOpacity) ?? 0.20;
-    _playbackSolidColorLyricsOpacity = _prefs.getDouble(_keyPlaybackSolidColorLyricsOpacity) ?? 0.30;
-    _playbackCustomImageNormalOpacity = _prefs.getDouble(_keyPlaybackCustomImageNormalOpacity) ?? 0.40;
-    _playbackCustomImageLyricsOpacity = _prefs.getDouble(_keyPlaybackCustomImageLyricsOpacity) ?? 0.50;
-    _playbackBlurredArtworkBlurSigma = _prefs.getDouble(_keyPlaybackBlurredArtworkBlurSigma) ?? 30.0;
-    _playbackCustomImageBlurSigma = _prefs.getDouble(_keyPlaybackCustomImageBlurSigma) ?? 0.0;
-    _playbackMeshBackgroundSpeed =
-        _prefs.getDouble(_keyPlaybackMeshBackgroundSpeed) ?? 0.05;
-    _isAutoMode = _prefs.getBool(_keyIsAutoMode) ?? true;
-    _autoSpectrumQuantity =
-        _prefs.getString(_keyAutoSpectrumQuantity) ?? 'high';
-    _autoSpeed = _prefs.getString(_keyAutoSpeed) ?? 'medium';
-    _portraitFrequencyGroups =
-        _prefs.getInt(_keyPortraitFrequencyGroups) ?? 100;
-    _landscapeFrequencyGroups =
-        _prefs.getInt(_keyLandscapeFrequencyGroups) ?? 172;
-    _portraitGap = _prefs.getDouble(_keyPortraitGap) ?? 1.0;
-    _landscapeGap = _prefs.getDouble(_keyLandscapeGap) ?? 2.0;
-    _isWaveformProgressBarEnabled =
-        _prefs.getBool(_keyIsWaveformProgressBarEnabled) ?? false;
-    _skipShortAudioScanEnabled =
-        _prefs.getBool(skipShortAudioScanEnabledStorageKey) ?? false;
-    _skipShortAudioScanMinimumDurationSeconds =
-        _prefs.getInt(skipShortAudioScanMinimumDurationSecondsStorageKey) ??
-        defaultSkipShortAudioScanMinimumDurationSeconds;
-    _randomRange = _prefs.getInt(_keyRandomRange) ?? 0;
-    _randomMethod = _prefs.getInt(_keyRandomMethod) ?? 1; // Default to shuffle
-    _transcodeDefaultFormat = _audioFormatFromStorageValue(
-      _prefs.getString(_keyTranscodeDefaultFormat),
-    );
-    _transcodeDefaultQualityTier = TranscodeQualityTierX.fromStorageValue(
-      _prefs.getString(_keyTranscodeDefaultQualityTier),
-    );
-    _transcodeFfmpegPath = _prefs.getString(_keyTranscodeFfmpegPath) ?? '';
-    _transcodeAutoScanOutputEnabled =
-        _prefs.getBool(_keyTranscodeAutoScanOutputEnabled) ?? true;
+      : _shortcutBindings = _loadShortcutBindings(_prefs);
+
+  ThemeMode get themeMode => _themeModeProperty.value;
+  set themeMode(ThemeMode value) => _themeModeProperty.value = value;
+
+  bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabledProperty.value;
+  set isImmersiveTabBarEnabled(bool value) => _isImmersiveTabBarEnabledProperty.value = value;
+
+  int get sampleStride => _sampleStrideProperty.value;
+  set sampleStride(int value) => _sampleStrideProperty.value = value;
+
+  int get waveformChunks => _waveformChunksProperty.value;
+  set waveformChunks(int value) => _waveformChunksProperty.value = value;
+
+  bool get isUserInactive => _isUserInactive;
+  set isUserInactive(bool value) {
+    if (_isUserInactive != value) {
+      _isUserInactive = value;
+      notifyListeners();
+    }
+    if (!value) {
+      startInactivityTimer();
+    }
   }
 
-  ThemeMode get themeMode => _themeMode;
-  bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabled;
-  int get sampleStride => _sampleStride;
-  int get waveformChunks => _waveformChunks;
-  bool get isUserInactive => _isUserInactive;
-  LyricsAiProvider get lyricsAiProvider => _lyricsAiProvider;
-  bool get isLyricsAiAutoSwitchEnabled => _isLyricsAiAutoSwitchEnabled;
-  double get lyricsFontScale => _lyricsFontScale;
-  String get geminiPrimaryModelId => _geminiPrimaryModelId;
-  String get geminiFallbackModelId => _geminiFallbackModelId;
-  String get geminiTranslationModelId => _geminiTranslationModelId;
-  String get geminiApiKey => _prefs.getString(geminiApiKeyStorageKey) ?? '';
-  String get openRouterApiKey =>
-      _prefs.getString(openRouterApiKeyStorageKey) ?? '';
+  LyricsAiProvider get lyricsAiProvider => _lyricsAiProviderProperty.value;
+  set lyricsAiProvider(LyricsAiProvider value) => _lyricsAiProviderProperty.value = value;
+
+  bool get isLyricsAiAutoSwitchEnabled => _isLyricsAiAutoSwitchEnabledProperty.value;
+  set isLyricsAiAutoSwitchEnabled(bool value) => _isLyricsAiAutoSwitchEnabledProperty.value = value;
+
+  double get lyricsFontScale => _lyricsFontScaleProperty.value;
+  set lyricsFontScale(double value) => _lyricsFontScaleProperty.value = value;
+
+  String get geminiPrimaryModelId => _geminiPrimaryModelIdProperty.value;
+  set geminiPrimaryModelId(String value) => _geminiPrimaryModelIdProperty.value = value;
+
+  String get geminiFallbackModelId => _geminiFallbackModelIdProperty.value;
+  set geminiFallbackModelId(String value) => _geminiFallbackModelIdProperty.value = value;
+
+  String get geminiTranslationModelId => _geminiTranslationModelIdProperty.value;
+  set geminiTranslationModelId(String value) => _geminiTranslationModelIdProperty.value = value;
+
+  String get geminiApiKey => _geminiApiKeyProperty.value;
+  set geminiApiKey(String value) => _geminiApiKeyProperty.value = value;
+
+  String get openRouterApiKey => _openRouterApiKeyProperty.value;
+  set openRouterApiKey(String value) => _openRouterApiKeyProperty.value = value;
+
   bool get hasCustomGoogleAiStudioApiKey =>
       _prefs.containsKey(geminiApiKeyStorageKey);
   bool get hasCustomOpenRouterApiKey =>
@@ -312,9 +684,9 @@ class SettingsService extends ChangeNotifier {
       geminiApiKey.trim().isNotEmpty && openRouterApiKey.trim().isNotEmpty;
   bool get canAutoSwitchLyricsProvider => hasBothLyricsGenerationApiKeys;
   bool get shouldAutoSwitchLyricsProvider =>
-      _isLyricsAiAutoSwitchEnabled && hasBothLyricsGenerationApiKeys;
+      isLyricsAiAutoSwitchEnabled && hasBothLyricsGenerationApiKeys;
   String get activeLyricsGenerationApiKey {
-    return switch (_lyricsAiProvider) {
+    return switch (lyricsAiProvider) {
       LyricsAiProvider.googleAiStudio => geminiApiKey,
       LyricsAiProvider.openRouter => openRouterApiKey,
     };
@@ -380,46 +752,120 @@ class SettingsService extends ChangeNotifier {
     return _builtInAcoustidApiKey;
   }
 
-  Color get visualizerColor => _visualizerColor;
-  double get visualizerOpacity => _visualizerOpacity;
-  bool get isVisualizerGradientEnabled => _isVisualizerGradientEnabled;
-  Color get visualizerStartColor => _visualizerStartColor;
-  Color get visualizerEndColor => _visualizerEndColor;
-  double get visualizerGradientStop1 => _visualizerGradientStop1;
-  double get visualizerGradientStop2 => _visualizerGradientStop2;
-  int get visualizerGradientTileMode => _visualizerGradientTileMode;
-  bool get isVisualizerDynamicColor => _isVisualizerDynamicColor;
-  bool get isVisualizerDynamicStartColor => _isVisualizerDynamicStartColor;
-  bool get isVisualizerDynamicEndColor => _isVisualizerDynamicEndColor;
-  int get playbackBackgroundType => _playbackBackgroundType;
-  bool get playbackRadialGradientEnabled => _playbackRadialGradientEnabled;
-  int get playbackBackgroundColor => _playbackBackgroundColor;
-  String get playbackBackgroundCustomImagePath => _playbackBackgroundCustomImagePath;
-  double get playbackSolidColorNormalOpacity => _playbackSolidColorNormalOpacity;
-  double get playbackSolidColorLyricsOpacity => _playbackSolidColorLyricsOpacity;
-  double get playbackCustomImageNormalOpacity => _playbackCustomImageNormalOpacity;
-  double get playbackCustomImageLyricsOpacity => _playbackCustomImageLyricsOpacity;
-  double get playbackBlurredArtworkBlurSigma => _playbackBlurredArtworkBlurSigma;
-  double get playbackCustomImageBlurSigma => _playbackCustomImageBlurSigma;
-  double get playbackMeshBackgroundSpeed => _playbackMeshBackgroundSpeed;
-  bool get isAutoMode => _isAutoMode;
-  String get autoSpectrumQuantity => _autoSpectrumQuantity;
-  String get autoSpeed => _autoSpeed;
-  int get portraitFrequencyGroups => _portraitFrequencyGroups;
-  int get landscapeFrequencyGroups => _landscapeFrequencyGroups;
-  double get portraitGap => _portraitGap;
-  double get landscapeGap => _landscapeGap;
-  bool get isWaveformProgressBarEnabled => _isWaveformProgressBarEnabled;
-  bool get skipShortAudioScanEnabled => _skipShortAudioScanEnabled;
-  int get skipShortAudioScanMinimumDurationSeconds =>
-      _skipShortAudioScanMinimumDurationSeconds;
-  int get randomRange => _randomRange;
-  int get randomMethod => _randomMethod;
-  AudioFormat get transcodeDefaultFormat => _transcodeDefaultFormat;
-  TranscodeQualityTier get transcodeDefaultQualityTier =>
-      _transcodeDefaultQualityTier;
-  String get transcodeFfmpegPath => _transcodeFfmpegPath;
-  bool get transcodeAutoScanOutputEnabled => _transcodeAutoScanOutputEnabled;
+  Color get visualizerColor => _visualizerColorProperty.value;
+  set visualizerColor(Color value) => _visualizerColorProperty.value = value;
+
+  double get visualizerOpacity => _visualizerOpacityProperty.value;
+  set visualizerOpacity(double value) => _visualizerOpacityProperty.value = value;
+
+  bool get isVisualizerGradientEnabled => _isVisualizerGradientEnabledProperty.value;
+  set isVisualizerGradientEnabled(bool value) => _isVisualizerGradientEnabledProperty.value = value;
+
+  Color get visualizerStartColor => _visualizerStartColorProperty.value;
+  set visualizerStartColor(Color value) => _visualizerStartColorProperty.value = value;
+
+  Color get visualizerEndColor => _visualizerEndColorProperty.value;
+  set visualizerEndColor(Color value) => _visualizerEndColorProperty.value = value;
+
+  double get visualizerGradientStop1 => _visualizerGradientStop1Property.value;
+  set visualizerGradientStop1(double value) => _visualizerGradientStop1Property.value = value;
+
+  double get visualizerGradientStop2 => _visualizerGradientStop2Property.value;
+  set visualizerGradientStop2(double value) => _visualizerGradientStop2Property.value = value;
+
+  int get visualizerGradientTileMode => _visualizerGradientTileModeProperty.value;
+  set visualizerGradientTileMode(int value) => _visualizerGradientTileModeProperty.value = value;
+
+  bool get isVisualizerDynamicColor => _isVisualizerDynamicColorProperty.value;
+  set isVisualizerDynamicColor(bool value) => _isVisualizerDynamicColorProperty.value = value;
+
+  bool get isVisualizerDynamicStartColor => _isVisualizerDynamicStartColorProperty.value;
+  set isVisualizerDynamicStartColor(bool value) => _isVisualizerDynamicStartColorProperty.value = value;
+
+  bool get isVisualizerDynamicEndColor => _isVisualizerDynamicEndColorProperty.value;
+  set isVisualizerDynamicEndColor(bool value) => _isVisualizerDynamicEndColorProperty.value = value;
+
+  int get playbackBackgroundType => _playbackBackgroundTypeProperty.value;
+  set playbackBackgroundType(int value) => _playbackBackgroundTypeProperty.value = value;
+
+  bool get playbackRadialGradientEnabled => _playbackRadialGradientEnabledProperty.value;
+  set playbackRadialGradientEnabled(bool value) => _playbackRadialGradientEnabledProperty.value = value;
+
+  int get playbackBackgroundColor => _playbackBackgroundColorProperty.value;
+  set playbackBackgroundColor(int value) => _playbackBackgroundColorProperty.value = value;
+
+  String get playbackBackgroundCustomImagePath => _playbackBackgroundCustomImagePathProperty.value;
+  set playbackBackgroundCustomImagePath(String value) => _playbackBackgroundCustomImagePathProperty.value = value;
+
+  double get playbackSolidColorNormalOpacity => _playbackSolidColorNormalOpacityProperty.value;
+  set playbackSolidColorNormalOpacity(double value) => _playbackSolidColorNormalOpacityProperty.value = value;
+
+  double get playbackSolidColorLyricsOpacity => _playbackSolidColorLyricsOpacityProperty.value;
+  set playbackSolidColorLyricsOpacity(double value) => _playbackSolidColorLyricsOpacityProperty.value = value;
+
+  double get playbackCustomImageNormalOpacity => _playbackCustomImageNormalOpacityProperty.value;
+  set playbackCustomImageNormalOpacity(double value) => _playbackCustomImageNormalOpacityProperty.value = value;
+
+  double get playbackCustomImageLyricsOpacity => _playbackCustomImageLyricsOpacityProperty.value;
+  set playbackCustomImageLyricsOpacity(double value) => _playbackCustomImageLyricsOpacityProperty.value = value;
+
+  double get playbackBlurredArtworkBlurSigma => _playbackBlurredArtworkBlurSigmaProperty.value;
+  set playbackBlurredArtworkBlurSigma(double value) => _playbackBlurredArtworkBlurSigmaProperty.value = value;
+
+  double get playbackCustomImageBlurSigma => _playbackCustomImageBlurSigmaProperty.value;
+  set playbackCustomImageBlurSigma(double value) => _playbackCustomImageBlurSigmaProperty.value = value;
+
+  double get playbackMeshBackgroundSpeed => _playbackMeshBackgroundSpeedProperty.value;
+  set playbackMeshBackgroundSpeed(double value) => _playbackMeshBackgroundSpeedProperty.value = value;
+
+  bool get isAutoMode => _isAutoModeProperty.value;
+  set isAutoMode(bool value) => _isAutoModeProperty.value = value;
+
+  String get autoSpectrumQuantity => _autoSpectrumQuantityProperty.value;
+  set autoSpectrumQuantity(String value) => _autoSpectrumQuantityProperty.value = value;
+
+  String get autoSpeed => _autoSpeedProperty.value;
+  set autoSpeed(String value) => _autoSpeedProperty.value = value;
+
+  int get portraitFrequencyGroups => _portraitFrequencyGroupsProperty.value;
+  set portraitFrequencyGroups(int value) => _portraitFrequencyGroupsProperty.value = value;
+
+  int get landscapeFrequencyGroups => _landscapeFrequencyGroupsProperty.value;
+  set landscapeFrequencyGroups(int value) => _landscapeFrequencyGroupsProperty.value = value;
+
+  double get portraitGap => _portraitGapProperty.value;
+  set portraitGap(double value) => _portraitGapProperty.value = value;
+
+  double get landscapeGap => _landscapeGapProperty.value;
+  set landscapeGap(double value) => _landscapeGapProperty.value = value;
+
+  bool get isWaveformProgressBarEnabled => _isWaveformProgressBarEnabledProperty.value;
+  set isWaveformProgressBarEnabled(bool value) => _isWaveformProgressBarEnabledProperty.value = value;
+
+  bool get skipShortAudioScanEnabled => _skipShortAudioScanEnabledProperty.value;
+  set skipShortAudioScanEnabled(bool value) => _skipShortAudioScanEnabledProperty.value = value;
+
+  int get skipShortAudioScanMinimumDurationSeconds => _skipShortAudioScanMinimumDurationSecondsProperty.value;
+  set skipShortAudioScanMinimumDurationSeconds(int value) => _skipShortAudioScanMinimumDurationSecondsProperty.value = value;
+
+  int get randomRange => _randomRangeProperty.value;
+  set randomRange(int value) => _randomRangeProperty.value = value;
+
+  int get randomMethod => _randomMethodProperty.value;
+  set randomMethod(int value) => _randomMethodProperty.value = value;
+
+  AudioFormat get transcodeDefaultFormat => _transcodeDefaultFormatProperty.value;
+  set transcodeDefaultFormat(AudioFormat value) => _transcodeDefaultFormatProperty.value = value;
+
+  TranscodeQualityTier get transcodeDefaultQualityTier => _transcodeDefaultQualityTierProperty.value;
+  set transcodeDefaultQualityTier(TranscodeQualityTier value) => _transcodeDefaultQualityTierProperty.value = value;
+
+  String get transcodeFfmpegPath => _transcodeFfmpegPathProperty.value;
+  set transcodeFfmpegPath(String value) => _transcodeFfmpegPathProperty.value = value;
+
+  bool get transcodeAutoScanOutputEnabled => _transcodeAutoScanOutputEnabledProperty.value;
+  set transcodeAutoScanOutputEnabled(bool value) => _transcodeAutoScanOutputEnabledProperty.value = value;
+
   SharedPreferences get prefs => _prefs;
 
   static AudioFormat _audioFormatFromStorageValue(String? value) {
@@ -479,191 +925,55 @@ class SettingsService extends ChangeNotifier {
   }
 
   void resetVisualizerAppearance() {
-    visualizerOpacity = 0.2;
-    visualizerColor = Colors.white;
-    isVisualizerGradientEnabled = false;
-    visualizerStartColor = Colors.blue;
-    visualizerEndColor = Colors.purple;
-    visualizerGradientStop1 = 0.0;
-    visualizerGradientStop2 = 1.0;
-    visualizerGradientTileMode = TileMode.clamp.index;
-    isVisualizerDynamicColor = false;
-    isVisualizerDynamicStartColor = false;
-    isVisualizerDynamicEndColor = false;
-    playbackMeshBackgroundSpeed = 0.05;
-    playbackBackgroundColor = 0xFF1A1F2C;
-    playbackRadialGradientEnabled = true;
-    playbackBackgroundCustomImagePath = '';
-    playbackSolidColorNormalOpacity = 0.20;
-    playbackSolidColorLyricsOpacity = 0.30;
-    playbackCustomImageNormalOpacity = 0.40;
-    playbackCustomImageLyricsOpacity = 0.50;
-    playbackBlurredArtworkBlurSigma = 30.0;
-    playbackCustomImageBlurSigma = 0.0;
-    isAutoMode = true;
-    autoSpectrumQuantity = 'high';
-    autoSpeed = 'medium';
-    portraitFrequencyGroups = 100;
-    landscapeFrequencyGroups = 172;
-    portraitGap = 1.0;
-    landscapeGap = 2.0;
-    isWaveformProgressBarEnabled = false;
-    randomRange = 0;
-    randomMethod = 1;
-  }
-
-  set isImmersiveTabBarEnabled(bool value) {
-    _isImmersiveTabBarEnabled = value;
-    _prefs.setBool(_keyImmersiveTabBar, value);
-    notifyListeners();
-  }
-
-  set themeMode(ThemeMode value) {
-    if (_themeMode == value) {
-      return;
-    }
-    _themeMode = value;
-    _prefs.setString(_keyThemeMode, value.storageValue);
-    notifyListeners();
-  }
-
-  set sampleStride(int value) {
-    if (_sampleStride == value) {
-      return;
-    }
-    _sampleStride = value;
-    _prefs.setInt(_keySampleStride, value);
-    notifyListeners();
-  }
-
-  set waveformChunks(int value) {
-    if (_waveformChunks == value) {
-      return;
-    }
-    _waveformChunks = value;
-    _prefs.setInt(_keyWaveformChunks, value);
-    notifyListeners();
-  }
-
-  set geminiApiKey(String value) {
-    final normalized = value.trim();
-    final current = geminiApiKey;
-    if (current == normalized) {
-      return;
-    }
-
-    if (normalized.isEmpty) {
-      _prefs.remove(geminiApiKeyStorageKey);
-    } else {
-      _prefs.setString(geminiApiKeyStorageKey, normalized);
-    }
-    notifyListeners();
-  }
-
-  set openRouterApiKey(String value) {
-    final normalized = value.trim();
-    final current = openRouterApiKey;
-    if (current == normalized) {
-      return;
-    }
-
-    if (normalized.isEmpty) {
-      _prefs.remove(openRouterApiKeyStorageKey);
-    } else {
-      _prefs.setString(openRouterApiKeyStorageKey, normalized);
-    }
-    notifyListeners();
-  }
-
-  set lyricsAiProvider(LyricsAiProvider value) {
-    if (_lyricsAiProvider == value) {
-      return;
-    }
-    _lyricsAiProvider = value;
-    _prefs.setString(_keyLyricsAiProvider, value.storageValue);
-    notifyListeners();
-  }
-
-  set isLyricsAiAutoSwitchEnabled(bool value) {
-    if (_isLyricsAiAutoSwitchEnabled == value) {
-      return;
-    }
-    _isLyricsAiAutoSwitchEnabled = value;
-    _prefs.setBool(_keyLyricsAiAutoSwitchEnabled, value);
-    notifyListeners();
-  }
-
-  set lyricsFontScale(double value) {
-    final normalized = _normalizeLyricsFontScale(value);
-    if (_lyricsFontScale == normalized) {
-      return;
-    }
-    _lyricsFontScale = normalized;
-    _prefs.setDouble(_keyLyricsFontScale, normalized);
-    notifyListeners();
+    _visualizerOpacityProperty.reset();
+    _visualizerColorProperty.reset();
+    _isVisualizerGradientEnabledProperty.reset();
+    _visualizerStartColorProperty.reset();
+    _visualizerEndColorProperty.reset();
+    _visualizerGradientStop1Property.reset();
+    _visualizerGradientStop2Property.reset();
+    _visualizerGradientTileModeProperty.reset();
+    _isVisualizerDynamicColorProperty.reset();
+    _isVisualizerDynamicStartColorProperty.reset();
+    _isVisualizerDynamicEndColorProperty.reset();
+    _playbackMeshBackgroundSpeedProperty.reset();
+    _playbackBackgroundColorProperty.reset();
+    _playbackRadialGradientEnabledProperty.reset();
+    _playbackBackgroundCustomImagePathProperty.reset();
+    _playbackSolidColorNormalOpacityProperty.reset();
+    _playbackSolidColorLyricsOpacityProperty.reset();
+    _playbackCustomImageNormalOpacityProperty.reset();
+    _playbackCustomImageLyricsOpacityProperty.reset();
+    _playbackBlurredArtworkBlurSigmaProperty.reset();
+    _playbackCustomImageBlurSigmaProperty.reset();
+    _isAutoModeProperty.reset();
+    _autoSpectrumQuantityProperty.reset();
+    _autoSpeedProperty.reset();
+    _portraitFrequencyGroupsProperty.reset();
+    _landscapeFrequencyGroupsProperty.reset();
+    _portraitGapProperty.reset();
+    _landscapeGapProperty.reset();
+    _isWaveformProgressBarEnabledProperty.reset();
+    _randomRangeProperty.reset();
+    _randomMethodProperty.reset();
   }
 
   void increaseLyricsFontScale() {
-    lyricsFontScale = _lyricsFontScale + lyricsFontScaleStep;
+    lyricsFontScale = lyricsFontScale + lyricsFontScaleStep;
   }
 
   void decreaseLyricsFontScale() {
-    lyricsFontScale = _lyricsFontScale - lyricsFontScaleStep;
+    lyricsFontScale = lyricsFontScale - lyricsFontScaleStep;
   }
 
   void resetLyricsFontScale() {
-    lyricsFontScale = defaultLyricsFontScale;
-  }
-
-  set geminiPrimaryModelId(String value) {
-    final normalized = value.trim();
-    final current = geminiPrimaryModelId;
-    if (current == normalized || normalized.isEmpty) {
-      if (normalized.isEmpty && current.isNotEmpty) {
-        return;
-      }
-      return;
-    }
-
-    _geminiPrimaryModelId = normalized;
-    _prefs.setString(_keyGeminiPrimaryModelId, normalized);
-    notifyListeners();
-  }
-
-  set geminiFallbackModelId(String value) {
-    final normalized = value.trim();
-    final current = geminiFallbackModelId;
-    if (current == normalized || normalized.isEmpty) {
-      if (normalized.isEmpty && current.isNotEmpty) {
-        return;
-      }
-      return;
-    }
-
-    _geminiFallbackModelId = normalized;
-    _prefs.setString(_keyGeminiFallbackModelId, normalized);
-    notifyListeners();
-  }
-
-  set geminiTranslationModelId(String value) {
-    final normalized = value.trim();
-    final current = geminiTranslationModelId;
-    if (current == normalized || normalized.isEmpty) {
-      if (normalized.isEmpty && current.isNotEmpty) {
-        return;
-      }
-      return;
-    }
-
-    _geminiTranslationModelId = normalized;
-    _prefs.setString(_keyGeminiTranslationModelId, normalized);
-    notifyListeners();
+    _lyricsFontScaleProperty.reset();
   }
 
   void resetGeminiModels() {
-    geminiPrimaryModelId = defaultGeminiPrimaryModelId;
-    geminiFallbackModelId = defaultGeminiFallbackModelId;
-    geminiTranslationModelId = defaultGeminiTranslationModelId;
+    _geminiPrimaryModelIdProperty.reset();
+    _geminiFallbackModelIdProperty.reset();
+    _geminiTranslationModelIdProperty.reset();
   }
 
   void setShortcutBinding(AppShortcutAction action, ShortcutBinding binding) {
@@ -688,8 +998,7 @@ class SettingsService extends ChangeNotifier {
 
   set acoustidApiKey(String value) {
     final normalized = value.trim();
-    final current = acoustidApiKey;
-    if (current == normalized) {
+    if (acoustidApiKey == normalized) {
       return;
     }
 
@@ -699,17 +1008,6 @@ class SettingsService extends ChangeNotifier {
       _prefs.setString(acoustidApiKeyStorageKey, normalized);
     }
     notifyListeners();
-  }
-
-  set isUserInactive(bool value) {
-    if (_isUserInactive != value) {
-      _isUserInactive = value;
-      notifyListeners();
-    }
-    if (!value) {
-      // If we are setting it to active (not inactive), reset the timer
-      startInactivityTimer();
-    }
   }
 
   void startInactivityTimer() {
@@ -728,264 +1026,6 @@ class SettingsService extends ChangeNotifier {
       notifyListeners();
     }
     startInactivityTimer();
-  }
-
-  set visualizerColor(Color value) {
-    _visualizerColor = value;
-    _prefs.setInt(_keyVisColor, value.toARGB32());
-    notifyListeners();
-  }
-
-  set visualizerOpacity(double value) {
-    _visualizerOpacity = value;
-    _prefs.setDouble(_keyVisOpacity, value);
-    notifyListeners();
-  }
-
-  set isVisualizerGradientEnabled(bool value) {
-    _isVisualizerGradientEnabled = value;
-    _prefs.setBool(_keyVisGradient, value);
-    notifyListeners();
-  }
-
-  set visualizerStartColor(Color value) {
-    _visualizerStartColor = value;
-    _prefs.setInt(_keyVisStartColor, value.toARGB32());
-    notifyListeners();
-  }
-
-  set visualizerEndColor(Color value) {
-    _visualizerEndColor = value;
-    _prefs.setInt(_keyVisEndColor, value.toARGB32());
-    notifyListeners();
-  }
-
-  set visualizerGradientStop1(double value) {
-    _visualizerGradientStop1 = value;
-    _prefs.setDouble(_keyVisGradientStop1, value);
-    notifyListeners();
-  }
-
-  set visualizerGradientStop2(double value) {
-    _visualizerGradientStop2 = value;
-    _prefs.setDouble(_keyVisGradientStop2, value);
-    notifyListeners();
-  }
-
-  set visualizerGradientTileMode(int value) {
-    _visualizerGradientTileMode = value;
-    _prefs.setInt(_keyVisGradientTileMode, value);
-    notifyListeners();
-  }
-
-  set isVisualizerDynamicColor(bool value) {
-    _isVisualizerDynamicColor = value;
-    _prefs.setBool(_keyVisualizerDynamicColor, value);
-    notifyListeners();
-  }
-
-  set isVisualizerDynamicStartColor(bool value) {
-    _isVisualizerDynamicStartColor = value;
-    _prefs.setBool(_keyVisualizerDynamicStartColor, value);
-    notifyListeners();
-  }
-
-  set isVisualizerDynamicEndColor(bool value) {
-    _isVisualizerDynamicEndColor = value;
-    _prefs.setBool(_keyVisualizerDynamicEndColor, value);
-    notifyListeners();
-  }
-
-  set playbackBackgroundType(int value) {
-    _playbackBackgroundType = value;
-    _prefs.setInt(_keyPlaybackBackgroundType, value);
-    notifyListeners();
-  }
-
-  set playbackRadialGradientEnabled(bool value) {
-    _playbackRadialGradientEnabled = value;
-    _prefs.setBool(_keyPlaybackRadialGradientEnabled, value);
-    notifyListeners();
-  }
-
-  set playbackBackgroundColor(int value) {
-    _playbackBackgroundColor = value;
-    _prefs.setInt(_keyPlaybackBackgroundColor, value);
-    notifyListeners();
-  }
-
-  set playbackBackgroundCustomImagePath(String value) {
-    _playbackBackgroundCustomImagePath = value;
-    _prefs.setString(_keyPlaybackBackgroundCustomImagePath, value);
-    notifyListeners();
-  }
-
-  set playbackSolidColorNormalOpacity(double value) {
-    _playbackSolidColorNormalOpacity = value;
-    _prefs.setDouble(_keyPlaybackSolidColorNormalOpacity, value);
-    notifyListeners();
-  }
-
-  set playbackSolidColorLyricsOpacity(double value) {
-    _playbackSolidColorLyricsOpacity = value;
-    _prefs.setDouble(_keyPlaybackSolidColorLyricsOpacity, value);
-    notifyListeners();
-  }
-
-  set playbackCustomImageNormalOpacity(double value) {
-    _playbackCustomImageNormalOpacity = value;
-    _prefs.setDouble(_keyPlaybackCustomImageNormalOpacity, value);
-    notifyListeners();
-  }
-
-  set playbackCustomImageLyricsOpacity(double value) {
-    _playbackCustomImageLyricsOpacity = value;
-    _prefs.setDouble(_keyPlaybackCustomImageLyricsOpacity, value);
-    notifyListeners();
-  }
-
-  set playbackBlurredArtworkBlurSigma(double value) {
-    _playbackBlurredArtworkBlurSigma = value;
-    _prefs.setDouble(_keyPlaybackBlurredArtworkBlurSigma, value);
-    notifyListeners();
-  }
-
-  set playbackCustomImageBlurSigma(double value) {
-    _playbackCustomImageBlurSigma = value;
-    _prefs.setDouble(_keyPlaybackCustomImageBlurSigma, value);
-    notifyListeners();
-  }
-
-  set playbackMeshBackgroundSpeed(double value) {
-    if (_playbackMeshBackgroundSpeed == value) {
-      return;
-    }
-    _playbackMeshBackgroundSpeed = value;
-    _prefs.setDouble(_keyPlaybackMeshBackgroundSpeed, value);
-    notifyListeners();
-  }
-
-  set isAutoMode(bool value) {
-    _isAutoMode = value;
-    _prefs.setBool(_keyIsAutoMode, value);
-    notifyListeners();
-  }
-
-  set autoSpectrumQuantity(String value) {
-    _autoSpectrumQuantity = value;
-    _prefs.setString(_keyAutoSpectrumQuantity, value);
-    notifyListeners();
-  }
-
-  set autoSpeed(String value) {
-    _autoSpeed = value;
-    _prefs.setString(_keyAutoSpeed, value);
-    notifyListeners();
-  }
-
-  set portraitFrequencyGroups(int value) {
-    _portraitFrequencyGroups = value;
-    _prefs.setInt(_keyPortraitFrequencyGroups, value);
-    notifyListeners();
-  }
-
-  set landscapeFrequencyGroups(int value) {
-    _landscapeFrequencyGroups = value;
-    _prefs.setInt(_keyLandscapeFrequencyGroups, value);
-    notifyListeners();
-  }
-
-  set portraitGap(double value) {
-    _portraitGap = value;
-    _prefs.setDouble(_keyPortraitGap, value);
-    notifyListeners();
-  }
-
-  set landscapeGap(double value) {
-    _landscapeGap = value;
-    _prefs.setDouble(_keyLandscapeGap, value);
-    notifyListeners();
-  }
-
-  set isWaveformProgressBarEnabled(bool value) {
-    _isWaveformProgressBarEnabled = value;
-    _prefs.setBool(_keyIsWaveformProgressBarEnabled, value);
-    notifyListeners();
-  }
-
-  set skipShortAudioScanEnabled(bool value) {
-    if (_skipShortAudioScanEnabled == value) {
-      return;
-    }
-    _skipShortAudioScanEnabled = value;
-    _prefs.setBool(skipShortAudioScanEnabledStorageKey, value);
-    notifyListeners();
-  }
-
-  set skipShortAudioScanMinimumDurationSeconds(int value) {
-    final normalized = value.clamp(1, 3600).toInt();
-    if (_skipShortAudioScanMinimumDurationSeconds == normalized) {
-      return;
-    }
-    _skipShortAudioScanMinimumDurationSeconds = normalized;
-    _prefs.setInt(
-      skipShortAudioScanMinimumDurationSecondsStorageKey,
-      normalized,
-    );
-    notifyListeners();
-  }
-
-  set randomRange(int value) {
-    _randomRange = value;
-    _prefs.setInt(_keyRandomRange, value);
-    notifyListeners();
-  }
-
-  set randomMethod(int value) {
-    _randomMethod = value;
-    _prefs.setInt(_keyRandomMethod, value);
-    notifyListeners();
-  }
-
-  set transcodeDefaultFormat(AudioFormat value) {
-    if (_transcodeDefaultFormat == value) {
-      return;
-    }
-    _transcodeDefaultFormat = value;
-    _prefs.setString(_keyTranscodeDefaultFormat, value.value);
-    notifyListeners();
-  }
-
-  set transcodeDefaultQualityTier(TranscodeQualityTier value) {
-    if (_transcodeDefaultQualityTier == value) {
-      return;
-    }
-    _transcodeDefaultQualityTier = value;
-    _prefs.setString(_keyTranscodeDefaultQualityTier, value.storageValue);
-    notifyListeners();
-  }
-
-  set transcodeFfmpegPath(String value) {
-    final normalized = value.trim();
-    if (_transcodeFfmpegPath == normalized) {
-      return;
-    }
-    _transcodeFfmpegPath = normalized;
-    if (normalized.isEmpty) {
-      _prefs.remove(_keyTranscodeFfmpegPath);
-    } else {
-      _prefs.setString(_keyTranscodeFfmpegPath, normalized);
-    }
-    notifyListeners();
-  }
-
-  set transcodeAutoScanOutputEnabled(bool value) {
-    if (_transcodeAutoScanOutputEnabled == value) {
-      return;
-    }
-    _transcodeAutoScanOutputEnabled = value;
-    _prefs.setBool(_keyTranscodeAutoScanOutputEnabled, value);
-    notifyListeners();
   }
 
   static Future<SettingsService> init() async {
