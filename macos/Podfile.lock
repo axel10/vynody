@@ -130,7 +130,7 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/window_manager/macos
 
 SPEC CHECKSUMS:
-  audio_core: 30726fb07ad4add47b744616754b9bfeda811c0e
+  audio_core: 940f8201535af9579f6f1a85b2ef44214be3f4ae
   audio_service: aa99a6ba2ae7565996015322b0bb024e1d25c6fd
   audio_session: eaca2512cf2b39212d724f35d11f46180ad3a33e
   dart_chromaprint: 7c2501dbb5a6319a0d4b38d447bf4bf483f6b610
