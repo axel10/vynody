@@ -459,6 +459,20 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildBackgroundTypeDropdown(context, settings, setDialogState),
+                if (settings.playbackBackgroundType == 0) ...[
+                  const SizedBox(height: 20),
+                  _buildOptionSlider(
+                    context,
+                    label: l10n.blurIntensity,
+                    value: settings.playbackBlurredArtworkBlurSigma,
+                    min: 0.0,
+                    max: 100.0,
+                    onChanged: (val) {
+                      settings.playbackBlurredArtworkBlurSigma = val;
+                      setDialogState(() {});
+                    },
+                  ),
+                ],
                 if (isDynamicMeshBackground) ...[
                   const SizedBox(height: 20),
                   _buildOptionSlider(
@@ -1029,6 +1043,18 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           max: 1.0,
           onChanged: (val) {
             settings.playbackCustomImageLyricsOpacity = val;
+            setDialogState(() {});
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildOptionSlider(
+          context,
+          label: l10n.blurIntensity,
+          value: settings.playbackCustomImageBlurSigma,
+          min: 0.0,
+          max: 100.0,
+          onChanged: (val) {
+            settings.playbackCustomImageBlurSigma = val;
             setDialogState(() {});
           },
         ),

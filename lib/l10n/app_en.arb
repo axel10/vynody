@@ -176,6 +176,7 @@
   "waveformSegmentsDescription": "Number of waveform bars to display (default: 80)",
   "playbackBackground": "Playback Background",
   "playbackRadialGradient": "Center Dark Gradient",
+  "blurIntensity": "Blur Intensity",
   "blurredArtwork": "Blurred Artwork (Default)",
   "dynamicMesh": "Dynamic Mesh (Apple Music style)",
   "solidColor": "Solid Color",

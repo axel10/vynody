@@ -491,6 +491,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playbackRadialGradient => 'Center Dark Gradient';
 
   @override
+  String get blurIntensity => 'Blur Intensity';
+
+  @override
   String get blurredArtwork => 'Blurred Artwork (Default)';
 
   @override

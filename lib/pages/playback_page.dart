@@ -928,16 +928,25 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             height: double.infinity,
           );
         }
-        return Image.file(
+        final imageWidget = Image.file(
           File(path),
           key: ValueKey('custom_image_bg_$path'),
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
         );
+        final blur = settings.playbackCustomImageBlurSigma;
+        if (blur > 0.0) {
+          return ImageFiltered(
+            key: ValueKey('custom_image_bg_blurred_$path'),
+            imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+            child: Transform.scale(scale: 1.2, child: imageWidget),
+          );
+        }
+        return imageWidget;
       case 0:
       default:
-        return _buildBlurredBackground(context);
+        return _buildBlurredBackground(context, settings);
     }
   }
 
@@ -1000,7 +1009,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   ///
   /// 该组件实现了当音乐切换或封面更新时，背景图的平滑过渡效果。
   /// 使用 _pendingArtworkBytes，在轮播动画完成后才更新背景。
-  Widget _buildBlurredBackground(BuildContext context) {
+  Widget _buildBlurredBackground(BuildContext context, SettingsService settings) {
     return RepaintBoundary(
       key: const ValueKey('blurred_bg'),
       child: Stack(
@@ -1041,7 +1050,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
                   key: ValueKey(bytes.hashCode),
                   // 减小模糊强度并增加缩放以更好地覆盖边缘
-                  imageFilter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                  imageFilter: ui.ImageFilter.blur(
+                    sigmaX: settings.playbackBlurredArtworkBlurSigma,
+                    sigmaY: settings.playbackBlurredArtworkBlurSigma,
+                  ),
                   child: Transform.scale(scale: 1.2, child: imageProvider),
                 );
               }

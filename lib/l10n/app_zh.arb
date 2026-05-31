@@ -601,6 +601,7 @@
   },
   "playbackBackground": "播放页背景",
   "playbackRadialGradient": "中心暗色渐变",
+  "blurIntensity": "模糊强度",
   "blurredArtwork": "模糊封面 (默认)",
   "dynamicMesh": "动态流变 (Apple Music 效果)",
   "solidColor": "纯色",

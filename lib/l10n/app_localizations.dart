@@ -1004,6 +1004,12 @@ abstract class AppLocalizations {
   /// **'中心暗色渐变'**
   String get playbackRadialGradient;
 
+  /// No description provided for @blurIntensity.
+  ///
+  /// In zh, this message translates to:
+  /// **'模糊强度'**
+  String get blurIntensity;
+
   /// No description provided for @blurredArtwork.
   ///
   /// In zh, this message translates to:

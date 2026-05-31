@@ -107,6 +107,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyPlaybackSolidColorLyricsOpacity = 'playback_solid_color_lyrics_opacity';
   static const String _keyPlaybackCustomImageNormalOpacity = 'playback_custom_image_normal_opacity';
   static const String _keyPlaybackCustomImageLyricsOpacity = 'playback_custom_image_lyrics_opacity';
+  static const String _keyPlaybackBlurredArtworkBlurSigma = 'playback_blurred_artwork_blur_sigma';
+  static const String _keyPlaybackCustomImageBlurSigma = 'playback_custom_image_blur_sigma';
   static const String _keyPlaybackMeshBackgroundSpeed =
       'playback_mesh_background_speed';
   static const String _keyIsAutoMode = 'visualizer_auto_mode';
@@ -171,6 +173,8 @@ class SettingsService extends ChangeNotifier {
   late double _playbackSolidColorLyricsOpacity;
   late double _playbackCustomImageNormalOpacity;
   late double _playbackCustomImageLyricsOpacity;
+  late double _playbackBlurredArtworkBlurSigma;
+  late double _playbackCustomImageBlurSigma;
   late double _playbackMeshBackgroundSpeed;
   late bool _isAutoMode;
   late String _autoSpectrumQuantity;
@@ -252,6 +256,8 @@ class SettingsService extends ChangeNotifier {
     _playbackSolidColorLyricsOpacity = _prefs.getDouble(_keyPlaybackSolidColorLyricsOpacity) ?? 0.30;
     _playbackCustomImageNormalOpacity = _prefs.getDouble(_keyPlaybackCustomImageNormalOpacity) ?? 0.40;
     _playbackCustomImageLyricsOpacity = _prefs.getDouble(_keyPlaybackCustomImageLyricsOpacity) ?? 0.50;
+    _playbackBlurredArtworkBlurSigma = _prefs.getDouble(_keyPlaybackBlurredArtworkBlurSigma) ?? 30.0;
+    _playbackCustomImageBlurSigma = _prefs.getDouble(_keyPlaybackCustomImageBlurSigma) ?? 0.0;
     _playbackMeshBackgroundSpeed =
         _prefs.getDouble(_keyPlaybackMeshBackgroundSpeed) ?? 0.05;
     _isAutoMode = _prefs.getBool(_keyIsAutoMode) ?? true;
@@ -393,6 +399,8 @@ class SettingsService extends ChangeNotifier {
   double get playbackSolidColorLyricsOpacity => _playbackSolidColorLyricsOpacity;
   double get playbackCustomImageNormalOpacity => _playbackCustomImageNormalOpacity;
   double get playbackCustomImageLyricsOpacity => _playbackCustomImageLyricsOpacity;
+  double get playbackBlurredArtworkBlurSigma => _playbackBlurredArtworkBlurSigma;
+  double get playbackCustomImageBlurSigma => _playbackCustomImageBlurSigma;
   double get playbackMeshBackgroundSpeed => _playbackMeshBackgroundSpeed;
   bool get isAutoMode => _isAutoMode;
   String get autoSpectrumQuantity => _autoSpectrumQuantity;
@@ -490,6 +498,8 @@ class SettingsService extends ChangeNotifier {
     playbackSolidColorLyricsOpacity = 0.30;
     playbackCustomImageNormalOpacity = 0.40;
     playbackCustomImageLyricsOpacity = 0.50;
+    playbackBlurredArtworkBlurSigma = 30.0;
+    playbackCustomImageBlurSigma = 0.0;
     isAutoMode = true;
     autoSpectrumQuantity = 'high';
     autoSpeed = 'medium';
@@ -831,6 +841,18 @@ class SettingsService extends ChangeNotifier {
   set playbackCustomImageLyricsOpacity(double value) {
     _playbackCustomImageLyricsOpacity = value;
     _prefs.setDouble(_keyPlaybackCustomImageLyricsOpacity, value);
+    notifyListeners();
+  }
+
+  set playbackBlurredArtworkBlurSigma(double value) {
+    _playbackBlurredArtworkBlurSigma = value;
+    _prefs.setDouble(_keyPlaybackBlurredArtworkBlurSigma, value);
+    notifyListeners();
+  }
+
+  set playbackCustomImageBlurSigma(double value) {
+    _playbackCustomImageBlurSigma = value;
+    _prefs.setDouble(_keyPlaybackCustomImageBlurSigma, value);
     notifyListeners();
   }
 

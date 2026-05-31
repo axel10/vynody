@@ -485,6 +485,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playbackRadialGradient => '中心暗色渐变';
 
   @override
+  String get blurIntensity => '模糊强度';
+
+  @override
   String get blurredArtwork => '模糊封面 (默认)';
 
   @override
