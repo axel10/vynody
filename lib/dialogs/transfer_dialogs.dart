@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_flow/player/sharing/sharing_service.dart';
 
 void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest request) {
+  final theme = Theme.of(context);
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -21,18 +22,17 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
       return BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: AlertDialog(
-          backgroundColor: Colors.black.withOpacity(0.8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
-            side: BorderSide(color: Colors.white.withOpacity(0.08)),
+            side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45)),
           ),
           title: Row(
             children: [
-              const Icon(Icons.share, color: Colors.purpleAccent),
+              Icon(Icons.share, color: theme.colorScheme.primary),
               const SizedBox(width: 12),
               const Text(
                 '收到文件共享请求',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -42,38 +42,38 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
             children: [
               Text(
                 '来自 "${request.senderName}" 的发送请求:',
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 14),
               ),
               const SizedBox(height: 12),
               Container(
                 width: double.maxFinite,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       fileNames,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '文件大小: $sizeMb MB',
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 '提示：接收后文件将自动保存至本地音乐文件夹并加入媒体库。',
-                style: TextStyle(color: Colors.grey, fontSize: 11),
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6), fontSize: 11),
               ),
             ],
           ),
@@ -81,26 +81,24 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
           actions: [
             OutlinedButton(
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Colors.white.withOpacity(0.2)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               onPressed: () {
                 Navigator.of(context).pop();
                 request.onDecision(false);
               },
-              child: const Text('拒绝', style: TextStyle(color: Colors.white70)),
+              child: const Text('拒绝'),
             ),
             const SizedBox(width: 8),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.purpleAccent,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               onPressed: () {
                 Navigator.of(context).pop();
                 request.onDecision(true);
               },
-              child: const Text('接收', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text('接收', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -110,6 +108,7 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
 }
 
 void showTransferProgressDialog(BuildContext context, String sessionId) {
+  final theme = Theme.of(context);
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -149,10 +148,6 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(text),
-                      backgroundColor: isSuccess ? Colors.green.withOpacity(0.8) : Colors.red.withOpacity(0.8),
-                      behavior: SnackBarBehavior.floating,
-                      margin: const EdgeInsets.all(16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   );
                 }
@@ -164,14 +159,13 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
             final title = session.isSending ? '正在发送到 ${session.deviceName}' : '正在从 ${session.deviceName} 接收';
 
             return AlertDialog(
-              backgroundColor: Colors.black.withOpacity(0.8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
-                side: BorderSide(color: Colors.white.withOpacity(0.08)),
+                side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45)),
               ),
               title: Text(
                 title,
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -179,15 +173,15 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                 children: [
                   Text(
                     session.fileName,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 16),
                   LinearProgressIndicator(
                     value: session.progress,
-                    backgroundColor: Colors.white.withOpacity(0.08),
-                    color: Colors.purpleAccent,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    color: theme.colorScheme.primary,
                     minHeight: 6,
                     borderRadius: BorderRadius.circular(3),
                   ),
@@ -197,11 +191,11 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                     children: [
                       Text(
                         '进度: ${(session.progress * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
                       ),
                       Text(
                         '$speed / $total MB',
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
                       ),
                     ],
                   ),

@@ -200,315 +200,309 @@ class _SharingPageState extends ConsumerState<SharingPage> {
   Widget build(BuildContext context) {
     final serverState = ref.watch(sharingServerStateProvider);
     final devicesAsync = ref.watch(discoveredDevicesProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('局域网文件共享', style: TextStyle(fontWeight: FontWeight.bold)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.purple.withOpacity(0.05),
-              Colors.blue.withOpacity(0.05),
-              Colors.black,
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 10),
-              
-              // 1. Local Device Status Card
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 10),
+            
+            // 1. Local Device Status Card
+            Card(
+              elevation: 0,
+              color: theme.colorScheme.surfaceContainerLow,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: (serverState.isRunning ? Colors.green : Colors.red).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        serverState.isRunning ? Icons.wifi_tethering : Icons.portable_wifi_off,
+                        color: serverState.isRunning ? Colors.green : Colors.red,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            serverState.isRunning ? '局域网共享已开启' : '局域网共享未开启',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            serverState.isRunning
+                                ? '本机 IP: ${serverState.localIp} (端口: ${serverState.httpPort})'
+                                : '正在启动服务...',
+                            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: serverState.isRunning,
+                      onChanged: (val) {
+                        if (val) {
+                          ref.read(sharingServerStateProvider.notifier).start();
+                        } else {
+                          ref.read(sharingServerStateProvider.notifier).stop();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 2. Web Share / Browser upload collapsible card
+            if (serverState.isRunning && serverState.localIp != null) ...[
               Card(
-                color: Colors.white.withOpacity(0.04),
+                elevation: 0,
+                color: theme.colorScheme.surfaceContainerLow,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(color: Colors.white.withOpacity(0.08)),
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+                  ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Row(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: (serverState.isRunning ? Colors.green : Colors.red).withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          serverState.isRunning ? Icons.wifi_tethering : Icons.portable_wifi_off,
-                          color: serverState.isRunning ? Colors.greenAccent : Colors.redAccent,
-                          size: 32,
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.language, color: theme.colorScheme.primary, size: 20),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '浏览器网页传输 (Web Share)',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 12),
+                      Text(
+                        '同一局域网的手机/电脑可通过浏览器打开下方链接，直接向本设备上传或下载音乐：',
+                        style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
                           children: [
-                            Text(
-                              serverState.isRunning ? '局域网共享已开启' : '局域网共享未开启',
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            Expanded(
+                              child: Text(
+                                'http://${serverState.localIp}:${serverState.httpPort}/',
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                  fontSize: 14,
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              serverState.isRunning
-                                  ? '本机 IP: ${serverState.localIp} (端口: ${serverState.httpPort})'
-                                  : '正在启动服务...',
-                              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                            IconButton(
+                              icon: const Icon(Icons.copy, size: 18),
+                              onPressed: () {
+                                Clipboard.setData(ClipboardData(text: 'http://${serverState.localIp}:${serverState.httpPort}/'));
+                                showToast('链接已复制到剪贴板');
+                              },
                             ),
                           ],
                         ),
-                      ),
-                      Switch(
-                        value: serverState.isRunning,
-                        activeColor: Colors.purpleAccent,
-                        onChanged: (val) {
-                          if (val) {
-                            ref.read(sharingServerStateProvider.notifier).start();
-                          } else {
-                            ref.read(sharingServerStateProvider.notifier).stop();
-                          }
-                        },
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+            ],
 
-              // 2. Web Share / Browser upload collapsible card
-              if (serverState.isRunning && serverState.localIp != null) ...[
-                Card(
-                  color: Colors.white.withOpacity(0.02),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: Colors.white.withOpacity(0.05)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.language, color: Colors.blueAccent, size: 20),
-                            const SizedBox(width: 8),
-                            const Text(
-                              '浏览器网页传输 (Web Share)',
-                              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '同一局域网的手机/电脑可通过浏览器打开下方链接，直接向本设备上传或下载音乐：',
-                          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.4),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white.withOpacity(0.06)),
+            // 3. Discovered Devices Section
+            Text(
+              '附近的设备',
+              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: devicesAsync.when(
+                data: (devices) {
+                  // Filter out local device if any
+                  final remoteDevices = devices;
+                  if (remoteDevices.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi, size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
+                          const SizedBox(height: 12),
+                          Text(
+                            serverState.isRunning ? '正在寻找局域网内其他设备...' : '开启共享后开始寻找设备',
+                            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4), fontSize: 13),
                           ),
-                          child: Row(
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    itemCount: remoteDevices.length,
+                    itemBuilder: (context, index) {
+                      final device = remoteDevices[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        elevation: 0,
+                        color: theme.colorScheme.surfaceContainerLow,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: BorderSide(
+                            color: device.isOnline 
+                                ? theme.colorScheme.primary.withValues(alpha: 0.3) 
+                                : theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _getPlatformIcon(device.deviceType),
+                              color: device.isOnline ? theme.colorScheme.onSurface : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          title: Text(
+                            device.name,
+                            style: TextStyle(
+                              color: device.isOnline ? theme.colorScheme.onSurface : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Row(
                             children: [
-                              Expanded(
-                                child: Text(
-                                  'http://${serverState.localIp}:${serverState.httpPort}/',
-                                  style: const TextStyle(
-                                    color: Colors.blueAccent,
-                                    fontSize: 14,
-                                    fontFamily: 'monospace',
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              Text(
+                                device.ip,
+                                style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4), fontSize: 11),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: device.isOnline ? Colors.green : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                  shape: BoxShape.circle,
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.copy, size: 18, color: Colors.white70),
-                                onPressed: () {
-                                  Clipboard.setData(ClipboardData(text: 'http://${serverState.localIp}:${serverState.httpPort}/'));
-                                  showToast('链接已复制到剪贴板');
-                                },
+                              const SizedBox(width: 4),
+                              Text(
+                                device.isOnline ? '在线' : '已断开',
+                                style: TextStyle(
+                                  color: device.isOnline ? Colors.green : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              // 3. Discovered Devices Section
-              const Text(
-                '附近的设备',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: devicesAsync.when(
-                  data: (devices) {
-                    // Filter out local device if any
-                    final remoteDevices = devices;
-                    if (remoteDevices.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.wifi, size: 48, color: Colors.white.withOpacity(0.2)),
-                            const SizedBox(height: 12),
-                            Text(
-                              serverState.isRunning ? '正在寻找局域网内其他设备...' : '开启共享后开始寻找设备',
-                              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13),
-                            ),
-                          ],
+                          trailing: device.isOnline
+                              ? PopupMenuButton<String>(
+                                  icon: Icon(Icons.more_vert, color: theme.colorScheme.primary),
+                                  onSelected: (value) {
+                                    if (value == 'file') {
+                                      _handleSendFile(device);
+                                    } else if (value == 'folder') {
+                                      _handleSendFolder(device);
+                                    } else if (value == 'sync_to') {
+                                      _handleSyncLyricsToDevice(device);
+                                    } else if (value == 'sync_from') {
+                                      _handleSyncLyricsFromDevice(device);
+                                    }
+                                  },
+                                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                    PopupMenuItem<String>(
+                                      value: 'file',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.insert_drive_file, size: 18, color: theme.colorScheme.primary),
+                                          const SizedBox(width: 8),
+                                          const Text('发送音乐文件'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem<String>(
+                                      value: 'folder',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.folder, size: 18, color: theme.colorScheme.primary),
+                                          const SizedBox(width: 8),
+                                          const Text('发送文件夹'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuDivider(),
+                                    PopupMenuItem<String>(
+                                      value: 'sync_to',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.cloud_upload_rounded, size: 18, color: theme.colorScheme.primary),
+                                          const SizedBox(width: 8),
+                                          const Text('同步歌词至该设备'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem<String>(
+                                      value: 'sync_from',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.cloud_download_rounded, size: 18, color: theme.colorScheme.primary),
+                                          const SizedBox(width: 8),
+                                          const Text('从该设备同步歌词'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : null,
                         ),
                       );
-                    }
-
-                    return ListView.builder(
-                      itemCount: remoteDevices.length,
-                      itemBuilder: (context, index) {
-                        final device = remoteDevices[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          color: Colors.white.withOpacity(device.isOnline ? 0.04 : 0.01),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: BorderSide(
-                              color: device.isOnline 
-                                  ? Colors.purpleAccent.withOpacity(0.2) 
-                                  : Colors.white.withOpacity(0.04)
-                            ),
-                          ),
-                          child: ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.04),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                _getPlatformIcon(device.deviceType),
-                                color: device.isOnline ? Colors.white : Colors.grey,
-                              ),
-                            ),
-                            title: Text(
-                              device.name,
-                              style: TextStyle(
-                                color: device.isOnline ? Colors.white : Colors.grey,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Row(
-                              children: [
-                                Text(
-                                  device.ip,
-                                  style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: BoxDecoration(
-                                    color: device.isOnline ? Colors.greenAccent : Colors.grey,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  device.isOnline ? '在线' : '已断开',
-                                  style: TextStyle(
-                                    color: device.isOnline ? Colors.greenAccent : Colors.grey,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: device.isOnline
-                                ? PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert, color: Colors.purpleAccent),
-                                    onSelected: (value) {
-                                      if (value == 'file') {
-                                        _handleSendFile(device);
-                                      } else if (value == 'folder') {
-                                        _handleSendFolder(device);
-                                      } else if (value == 'sync_to') {
-                                        _handleSyncLyricsToDevice(device);
-                                      } else if (value == 'sync_from') {
-                                        _handleSyncLyricsFromDevice(device);
-                                      }
-                                    },
-                                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                                      const PopupMenuItem<String>(
-                                        value: 'file',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.insert_drive_file, size: 18, color: Colors.purpleAccent),
-                                            SizedBox(width: 8),
-                                            Text('发送音乐文件'),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem<String>(
-                                        value: 'folder',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.folder, size: 18, color: Colors.purpleAccent),
-                                            SizedBox(width: 8),
-                                            Text('发送文件夹'),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuDivider(),
-                                      const PopupMenuItem<String>(
-                                        value: 'sync_to',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.cloud_upload_rounded, size: 18, color: Colors.purpleAccent),
-                                            SizedBox(width: 8),
-                                            Text('同步歌词至该设备'),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem<String>(
-                                        value: 'sync_from',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.cloud_download_rounded, size: 18, color: Colors.purpleAccent),
-                                            SizedBox(width: 8),
-                                            Text('从该设备同步歌词'),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : null,
-                          ),
-                        );
-                      },
-                    );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator(color: Colors.purpleAccent)),
-                  error: (e, _) => Center(
-                    child: Text('加载设备出错: $e', style: const TextStyle(color: Colors.redAccent)),
-                  ),
+                    },
+                  );
+                },
+                loading: () => Center(child: CircularProgressIndicator(color: theme.colorScheme.primary)),
+                error: (e, _) => Center(
+                  child: Text('加载设备出错: $e', style: TextStyle(color: theme.colorScheme.error)),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
