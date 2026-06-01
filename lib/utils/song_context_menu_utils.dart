@@ -92,6 +92,16 @@ Future<void> openFolderLocation(String folderPath) async {
   }
 }
 
+String _getRemoveFromQueueLabel(BuildContext context) {
+  final locale = Localizations.localeOf(context).languageCode;
+  return locale == 'zh' ? '从队列中移除' : 'Remove from Queue';
+}
+
+String _getRemoveFromPlaylistLabel(BuildContext context) {
+  final locale = Localizations.localeOf(context).languageCode;
+  return locale == 'zh' ? '从歌单中移除' : 'Remove from Playlist';
+}
+
 Future<void> showSongContextMenu(
   BuildContext context,
   Offset globalPosition, {
@@ -99,6 +109,10 @@ Future<void> showSongContextMenu(
   List<MusicFile>? songs,
   SongContextMenuMode mode = SongContextMenuMode.full,
   Future<void> Function()? onAddToPlaylist,
+  VoidCallback? onPlayNext,
+  VoidCallback? onAddToQueue,
+  VoidCallback? onRemoveFromQueue,
+  VoidCallback? onRemoveFromPlaylist,
 }) async {
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
   if (overlay == null) return;
@@ -117,6 +131,58 @@ Future<void> showSongContextMenu(
 
   final items = <PopupMenuEntry<String>>[];
 
+  // 1. Playback actions (Top)
+  if (onPlayNext != null) {
+    items.add(
+      PopupMenuItem<String>(
+        value: 'play_next',
+        child: Text(l10n.playNext),
+      ),
+    );
+  }
+  if (onAddToQueue != null) {
+    items.add(
+      PopupMenuItem<String>(
+        value: 'add_to_queue',
+        child: Text(l10n.addToQueue),
+      ),
+    );
+  }
+  if (onRemoveFromQueue != null) {
+    items.add(
+      PopupMenuItem<String>(
+        value: 'remove_from_queue',
+        child: Text(_getRemoveFromQueueLabel(context)),
+      ),
+    );
+  }
+  if (onRemoveFromPlaylist != null) {
+    items.add(
+      PopupMenuItem<String>(
+        value: 'remove_from_playlist',
+        child: Text(_getRemoveFromPlaylistLabel(context)),
+      ),
+    );
+  }
+
+  final hasPlaybackActions = onPlayNext != null ||
+      onAddToQueue != null ||
+      onRemoveFromQueue != null ||
+      onRemoveFromPlaylist != null;
+
+  final hasStandardActions = mode != SongContextMenuMode.full ||
+      canOpenLocation ||
+      hasTitle ||
+      hasArtist ||
+      hasAlbum ||
+      song != null ||
+      onAddToPlaylist != null;
+
+  if (hasPlaybackActions && hasStandardActions) {
+    items.add(const PopupMenuDivider());
+  }
+
+  // 2. Standard Metadata / File Actions
   switch (mode) {
     case SongContextMenuMode.full:
       items.addAll([
@@ -181,7 +247,7 @@ Future<void> showSongContextMenu(
   }
 
   if (onAddToPlaylist != null) {
-    if (items.isNotEmpty) {
+    if (items.isNotEmpty && items.last is! PopupMenuDivider) {
       items.add(const PopupMenuDivider());
     }
     items.add(
@@ -204,6 +270,18 @@ Future<void> showSongContextMenu(
   if (!context.mounted || selected == null) return;
 
   switch (selected) {
+    case 'play_next':
+      onPlayNext?.call();
+      break;
+    case 'add_to_queue':
+      onAddToQueue?.call();
+      break;
+    case 'remove_from_queue':
+      onRemoveFromQueue?.call();
+      break;
+    case 'remove_from_playlist':
+      onRemoveFromPlaylist?.call();
+      break;
     case 'copy_title':
       if (hasTitle) {
         await Clipboard.setData(ClipboardData(text: titleText));

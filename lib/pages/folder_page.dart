@@ -15,7 +15,7 @@ import 'package:vibe_flow/player/scanner/scanner_sorting.dart';
 import 'package:vibe_flow/player/scanner/scanner_service.dart';
 import 'folder_page_riverpod.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
-import '../widgets/song_thumbnail.dart';
+import '../widgets/song_tile.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 
 // 目录页
@@ -915,185 +915,45 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   if (fileIndex >= 0 &&
                       fileIndex < currentFolder.files.length) {
                     final file = currentFolder.files[fileIndex];
+                    final isCurrent = currentMusic?.path == file.path;
+                    final isSelected = _selectedSongPaths.contains(file.path);
+                    final songsToAdd = _selectedSongPaths.isNotEmpty
+                        ? _selectedSongsFromFolder(currentFolder.files)
+                        : <MusicFile>[file];
+
+                    void handleShowMenu(BuildContext menuContext, Offset position) {
+                      showSongContextMenu(
+                        menuContext,
+                        position,
+                        song: file,
+                        songs: songsToAdd,
+                        mode: SongContextMenuMode.full,
+                        onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                          menuContext,
+                          ref.read(playlistServiceProvider),
+                          songsToAdd,
+                        ),
+                        onPlayNext: () => ref.read(audioServiceProvider).enqueueNext(songsToAdd),
+                        onAddToQueue: () => ref.read(audioServiceProvider).appendToQueue(songsToAdd),
+                      );
+                    }
+
                     return GestureDetector(
                       key: ValueKey(file.path),
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
-                        final songsToAdd = _selectedSongPaths.isNotEmpty
-                            ? _selectedSongsFromFolder(currentFolder.files)
-                            : <MusicFile>[file];
-                        unawaited(
-                          showSongContextMenu(
-                            context,
-                            details.globalPosition,
-                            song: file,
-                            songs: songsToAdd,
-                            mode: SongContextMenuMode.full,
-                            onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-                              context,
-                              ref.read(playlistServiceProvider),
-                              songsToAdd,
-                            ),
-                          ),
-                        );
+                        handleShowMenu(context, details.globalPosition);
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 4,
                         ),
-                        child: ListTile(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          hoverColor: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.06),
-                          titleTextStyle: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                color: file.isMissing
-                                    ? Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant
-                                          .withValues(alpha: 0.55)
-                                    : currentMusic?.path == file.path
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                                fontWeight:
-                                    currentMusic?.path == file.path &&
-                                        !file.isMissing
-                                    ? FontWeight.bold
-                                    : null,
-                              ),
-                          leading: SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Opacity(
-                                  opacity: _isSelectionMode
-                                      ? (_selectedSongPaths.contains(file.path)
-                                            ? 0.5
-                                            : 0.7)
-                                      : 1.0,
-                                  child: SongThumbnail(
-                                    path: file.path,
-                                    id: file.id,
-                                  ),
-                                ),
-                                if (_isSelectionMode)
-                                  Positioned.fill(
-                                    child: Align(
-                                      alignment: Alignment.center,
-                                      child: SizedBox(
-                                        width: 32,
-                                        height: 32,
-                                        child: Checkbox(
-                                          value: _selectedSongPaths.contains(
-                                            file.path,
-                                          ),
-                                          onChanged: (_) =>
-                                              _toggleSelection(file.path),
-                                          fillColor: WidgetStateProperty.all(
-                                            Colors.white,
-                                          ),
-                                          checkColor: Colors.black,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          title: Text(file.displayName),
-                          subtitle: Text(
-                            '${file.artist ?? AppLocalizations.of(context)!.unknownArtist} - ${file.album ?? AppLocalizations.of(context)!.unknownAlbum}',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  fontSize: 10,
-                                  color: file.isMissing
-                                      ? Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant
-                                            .withValues(alpha: 0.5)
-                                      : null,
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: _isSelectionMode
-                              ? null
-                              : Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Builder(
-                                      builder: (context) {
-                                        final durationMs = file.durationMillis;
-                                        final d = durationMs != null
-                                            ? Duration(milliseconds: durationMs)
-                                            : Duration.zero;
-                                        final minutes = d.inMinutes;
-                                        final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
-                                        final durationStr = durationMs != null ? '$minutes:$seconds' : '--:--';
-                                        final ext = p.extension(file.path).replaceAll('.', '').toUpperCase();
-                                        final formatStr = ext.isNotEmpty ? ext : 'UNKNOWN';
-                                        return Text(
-                                          '$durationStr | $formatStr',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Builder(
-                                      builder: (buttonContext) {
-                                        return IconButton(
-                                          icon: const Icon(Icons.more_vert),
-                                          onPressed: () {
-                                            final renderObject = buttonContext
-                                                .findRenderObject();
-                                            final renderBox =
-                                                renderObject is RenderBox
-                                                ? renderObject
-                                                : null;
-                                            if (renderBox == null) return;
-
-                                            final Offset offset = renderBox
-                                                .localToGlobal(Offset.zero);
-                                            showSongContextMenu(
-                                              buttonContext,
-                                              offset,
-                                              song: file,
-                                              mode: SongContextMenuMode.full,
-                                              onAddToPlaylist: () =>
-                                                  showAddSongsToPlaylistDialog(
-                                                    buttonContext,
-                                                    ref.read(
-                                                      playlistServiceProvider,
-                                                    ),
-                                                    [file],
-                                                  ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                          onLongPress: () {
-                            if (!_isSelectionMode) {
-                              _toggleSelectionMode();
-                              _toggleSelection(file.path);
-                            }
-                          },
+                        child: SongTile(
+                          song: file,
+                          isCurrent: isCurrent,
+                          isSelected: isSelected,
+                          isSelectionMode: _isSelectionMode,
                           onTap: _isSelectionMode
                               ? () => _toggleSelection(file.path)
                               : () async {
@@ -1116,6 +976,22 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                     await widget.onOpenPlayback?.call();
                                   }
                                 },
+                          onLongPress: () {
+                            if (!_isSelectionMode) {
+                              _toggleSelectionMode();
+                              _toggleSelection(file.path);
+                            }
+                          },
+                          onSecondaryTapDown: (details) {
+                            handleShowMenu(context, details.globalPosition);
+                          },
+                          onMorePressed: (buttonContext) {
+                            final renderObject = buttonContext.findRenderObject();
+                            final renderBox = renderObject is RenderBox ? renderObject : null;
+                            if (renderBox == null) return;
+                            final Offset offset = renderBox.localToGlobal(Offset.zero);
+                            handleShowMenu(buttonContext, offset);
+                          },
                         ),
                       ),
                     );

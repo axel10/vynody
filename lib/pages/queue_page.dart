@@ -2,12 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/scanner/scanner_service.dart';
-import '../widgets/song_thumbnail.dart';
+import '../widgets/song_tile.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
@@ -98,31 +96,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
         .toList(growable: false);
   }
 
-  String _buildSongSubtitle(
-    BuildContext context,
-    MusicFile song,
-    ScannerService scanner,
-  ) {
-    final metadata = scanner.metadataMap[song.path];
-    final artist =
-        metadata?.artist ?? AppLocalizations.of(context)!.unknownArtist;
-    final album = metadata?.album ?? AppLocalizations.of(context)!.unknownAlbum;
-    return '$artist - $album';
-  }
-
-  Widget? _buildDurationTrailing(int? durationMs, String path) {
-    final d = durationMs != null ? Duration(milliseconds: durationMs) : Duration.zero;
-    final minutes = d.inMinutes;
-    final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
-    final durationStr = durationMs != null ? '$minutes:$seconds' : '--:--';
-    final ext = p.extension(path).replaceAll('.', '').toUpperCase();
-    final formatStr = ext.isNotEmpty ? ext : 'UNKNOWN';
-    return Text(
-      '$durationStr | $formatStr',
-      style: const TextStyle(fontSize: 12, color: Colors.grey),
-    );
-  }
-
   void _showClearQueueDialog(BuildContext context) {
     final audio = ref.read(audioServiceProvider);
     showDialog(
@@ -186,7 +159,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     final historyCursor = ref.watch(audioHistoryCursorProvider);
     final deckCursor = ref.watch(audioDeckCursorProvider);
-    final scanner = ref.watch(scannerServiceProvider);
 
     if (queue.isEmpty) {
       return Scaffold(
@@ -337,119 +309,54 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                     } else {
                       isCurrent = (currentIndex == index);
                     }
-                    final textColor = isMissing
-                        ? Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.55)
-                        : isCurrent
-                        ? Theme.of(context).colorScheme.primary
-                        : null;
-
                     final isSelected = _selectedIndices.contains(index);
+                    final songsToAdd = _selectedIndices.isNotEmpty
+                        ? _selectedSongsFromDisplay(displayQueue)
+                        : <MusicFile>[song];
 
-                    return GestureDetector(
+                    void handleShowMenu(BuildContext menuContext, Offset position) {
+                      showSongContextMenu(
+                        menuContext,
+                        position,
+                        song: song,
+                        songs: songsToAdd,
+                        mode: SongContextMenuMode.full,
+                        onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                          menuContext,
+                          ref.read(playlistServiceProvider),
+                          songsToAdd,
+                        ),
+                        onPlayNext: (isCurrent || isSelectionMode || isHistoryView || isRandomQueueView)
+                            ? null
+                            : () {
+                                final curIdx = ref.read(audioCurrentIndexProvider);
+                                if (curIdx >= 0) {
+                                  ref.read(audioServiceProvider).moveQueueTrack(index, curIdx + 1);
+                                }
+                              },
+                        onRemoveFromQueue: (isSelectionMode || isHistoryView || isRandomQueueView)
+                            ? null
+                            : () {
+                                ref.read(audioServiceProvider).removeFromPlaylist(index);
+                              },
+                      );
+                    }
+
+                    return Padding(
                       key: ObjectKey(song),
-                      onSecondaryTapDown: (details) {
-                        final songsToAdd = _selectedIndices.isNotEmpty
-                            ? _selectedSongsFromDisplay(displayQueue)
-                            : <MusicFile>[song];
-                        unawaited(
-                          showSongContextMenu(
-                            context,
-                            details.globalPosition,
-                            song: song,
-                            songs: songsToAdd,
-                            mode: SongContextMenuMode.full,
-                            onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-                              context,
-                              ref.read(playlistServiceProvider),
-                              songsToAdd,
-                            ),
-                          ),
-                        );
-                      },
-                      onLongPress: () {
-                        if (!isSelectionMode) {
-                          _toggleSelectionMode();
-                          _toggleSelection(index);
-                        }
-                      },
-                      child: ListTile(
-                        leading: SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Opacity(
-                                opacity: isMissing
-                                    ? 0.35
-                                    : isSelectionMode
-                                    ? (isSelected ? 0.5 : 0.7)
-                                    : 1.0,
-                                child: SongThumbnail(
-                                  path: song.path,
-                                  id: song.id,
-                                  size: 40.0,
-                                ),
-                              ),
-                              if (isSelectionMode)
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: SizedBox(
-                                      width: 32,
-                                      height: 32,
-                                      child: Checkbox(
-                                        value: isSelected,
-                                        onChanged: (_) =>
-                                            _toggleSelection(index),
-                                        fillColor: WidgetStateProperty.all(
-                                          Colors.white,
-                                        ),
-                                        checkColor: Colors.black,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      child: SongTile(
+                        song: song,
+                        isCurrent: isCurrent,
+                        isSelected: isSelected,
+                        isSelectionMode: isSelectionMode,
+                        dragHandle: ReorderableDragStartListener(
+                          index: index,
+                          child: const Icon(Icons.drag_handle),
                         ),
-                        title: Text(
-                          song.title ?? song.name,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: textColor,
-                            fontWeight: isCurrent && !isMissing
-                                ? FontWeight.bold
-                                : null,
-                          ),
-                        ),
-                        subtitle: Text(
-                          _buildSongSubtitle(context, song, scanner),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                fontSize: 10,
-                                color: isMissing
-                                    ? Theme.of(context).colorScheme.onSurfaceVariant
-                                          .withValues(alpha: 0.5)
-                                    : null,
-                              ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: isSelectionMode
-                            ? ReorderableDragStartListener(
-                                index: index,
-                                child: const Icon(Icons.drag_handle),
-                              )
-                            : _buildDurationTrailing(
-                                scanner.metadataMap[song.path]?.duration,
-                                song.path,
-                              ),
                         onTap: isSelectionMode
                             ? () {
                                 if (isMissing) {
@@ -486,6 +393,22 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                       .playAtIndex(index);
                                 }
                               },
+                        onLongPress: () {
+                          if (!isSelectionMode) {
+                            _toggleSelectionMode();
+                            _toggleSelection(index);
+                          }
+                        },
+                        onSecondaryTapDown: (details) {
+                          handleShowMenu(context, details.globalPosition);
+                        },
+                        onMorePressed: (buttonContext) {
+                          final renderObject = buttonContext.findRenderObject();
+                          final renderBox = renderObject is RenderBox ? renderObject : null;
+                          if (renderBox == null) return;
+                          final Offset offset = renderBox.localToGlobal(Offset.zero);
+                          handleShowMenu(buttonContext, offset);
+                        },
                       ),
                     );
                   },
