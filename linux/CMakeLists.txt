@@ -16,6 +16,11 @@ cmake_policy(SET CMP0063 NEW)
 # Load bundled libraries from the lib/ directory relative to the binary.
 set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
 
+# Force using DT_RPATH instead of DT_RUNPATH so that transitive dependencies of
+# dynamically loaded libraries (e.g. FFmpeg dependencies of libaudio_core.so)
+# can be resolved from the bundled lib/ directory.
+add_link_options("-Wl,--disable-new-dtags")
+
 # Root filesystem for cross-building.
 if(FLUTTER_TARGET_PLATFORM_SYSROOT)
   set(CMAKE_SYSROOT ${FLUTTER_TARGET_PLATFORM_SYSROOT})
