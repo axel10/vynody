@@ -11,6 +11,7 @@ import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
+import '../widgets/mini_player_wrapper.dart';
 
 class ArtistDetailPage extends ConsumerWidget {
   const ArtistDetailPage({super.key, required this.artist});
@@ -44,7 +45,7 @@ class ArtistDetailPage extends ConsumerWidget {
       );
     }
 
-    return content;
+    return MiniPlayerWrapper(child: content);
   }
 }
 
@@ -141,6 +142,9 @@ class ArtistDetailContent extends ConsumerWidget {
               },
             ),
           ),
+        SliverToBoxAdapter(
+          child: SizedBox(height: currentMusic != null ? 120 : 20),
+        ),
       ],
     );
   }
