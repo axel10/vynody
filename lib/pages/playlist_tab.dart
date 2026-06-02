@@ -532,19 +532,17 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
+              buildContextMenuItem<String>(
                 value: 'create',
-                child: ListTile(
-                  leading: const Icon(Icons.add),
-                  title: Text(l10n.createPlaylist),
-                ),
+                label: l10n.createPlaylist,
+                icon: Icons.add_rounded,
+                context: context,
               ),
-              PopupMenuItem(
+              buildContextMenuItem<String>(
                 value: 'manage',
-                child: ListTile(
-                  leading: const Icon(Icons.list),
-                  title: Text(l10n.managePlaylists),
-                ),
+                label: l10n.managePlaylists,
+                icon: Icons.list_rounded,
+                context: context,
               ),
             ],
           ),

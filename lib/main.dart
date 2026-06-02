@@ -185,6 +185,14 @@ class MyApp extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         elevation: 0,
       ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: isDark ? null : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        elevation: 6,
+        surfaceTintColor: Colors.transparent,
+      ),
 
       // 将焦点颜色设为透明
       // focusColor: Colors.transparent,

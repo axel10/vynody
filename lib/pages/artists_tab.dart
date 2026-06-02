@@ -8,6 +8,7 @@ import 'package:vibe_flow/player/library/artist_library.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'artist_detail_page.dart';
 import '../widgets/artist_avatar.dart';
+import '../utils/song_context_menu_utils.dart';
 
 enum _ArtistSortField { artist, songCount }
 
@@ -512,11 +513,31 @@ Future<void> _showArtistContextMenuForArtist(
       Offset.zero & overlay.size,
     ),
     items: [
-      PopupMenuItem(value: 'play_all', child: Text(playAllLabel)),
-      PopupMenuItem(value: 'shuffle', child: Text(shufflePlayLabel)),
+      buildContextMenuItem<String>(
+        value: 'play_all',
+        label: playAllLabel,
+        icon: Icons.play_arrow_rounded,
+        context: context,
+      ),
+      buildContextMenuItem<String>(
+        value: 'shuffle',
+        label: shufflePlayLabel,
+        icon: Icons.shuffle_rounded,
+        context: context,
+      ),
       const PopupMenuDivider(),
-      PopupMenuItem(value: 'view_details', child: Text(viewArtistDetailsLabel)),
-      PopupMenuItem(value: 'copy_artist', child: Text(copyArtistNameLabel)),
+      buildContextMenuItem<String>(
+        value: 'view_details',
+        label: viewArtistDetailsLabel,
+        icon: Icons.person_rounded,
+        context: context,
+      ),
+      buildContextMenuItem<String>(
+        value: 'copy_artist',
+        label: copyArtistNameLabel,
+        icon: Icons.copy_rounded,
+        context: context,
+      ),
     ],
   );
 
@@ -586,13 +607,17 @@ class _ArtistsToolbar extends StatelessWidget {
           tooltip: l10n.albumSort,
           onSelected: onSortFieldSelected,
           itemBuilder: (context) => [
-            PopupMenuItem(
+            buildContextMenuItem<_ArtistSortField>(
               value: _ArtistSortField.artist,
-              child: Text(l10n.sortArtistAsc),
+              label: l10n.sortArtistAsc,
+              icon: Icons.person_rounded,
+              context: context,
             ),
-            PopupMenuItem(
+            buildContextMenuItem<_ArtistSortField>(
               value: _ArtistSortField.songCount,
-              child: Text(l10n.sortTrackCount),
+              label: l10n.sortTrackCount,
+              icon: Icons.format_list_numbered_rounded,
+              context: context,
             ),
           ],
           child: Container(

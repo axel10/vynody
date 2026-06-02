@@ -134,33 +134,41 @@ Future<void> showSongContextMenu(
   // 1. Playback actions (Top)
   if (onPlayNext != null) {
     items.add(
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'play_next',
-        child: Text(l10n.playNext),
+        label: l10n.playNext,
+        icon: Icons.queue_play_next_rounded,
+        context: context,
       ),
     );
   }
   if (onAddToQueue != null) {
     items.add(
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'add_to_queue',
-        child: Text(l10n.addToQueue),
+        label: l10n.addToQueue,
+        icon: Icons.queue_music_rounded,
+        context: context,
       ),
     );
   }
   if (onRemoveFromQueue != null) {
     items.add(
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'remove_from_queue',
-        child: Text(_getRemoveFromQueueLabel(context)),
+        label: _getRemoveFromQueueLabel(context),
+        icon: Icons.playlist_remove_rounded,
+        context: context,
       ),
     );
   }
   if (onRemoveFromPlaylist != null) {
     items.add(
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'remove_from_playlist',
-        child: Text(_getRemoveFromPlaylistLabel(context)),
+        label: _getRemoveFromPlaylistLabel(context),
+        icon: Icons.delete_outline_rounded,
+        context: context,
       ),
     );
   }
@@ -186,61 +194,79 @@ Future<void> showSongContextMenu(
   switch (mode) {
     case SongContextMenuMode.full:
       items.addAll([
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'open_file_location',
           enabled: canOpenLocation,
-          child: Text(l10n.openFileLocation),
+          label: l10n.openFileLocation,
+          icon: Icons.folder_open_rounded,
+          context: context,
         ),
         const PopupMenuDivider(),
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'copy_title',
           enabled: hasTitle,
-          child: Text(l10n.copyTitle),
+          label: l10n.copyTitle,
+          icon: Icons.title_rounded,
+          context: context,
         ),
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'copy_album',
           enabled: hasAlbum,
-          child: Text(l10n.copyAlbumTitle),
+          label: l10n.copyAlbumTitle,
+          icon: Icons.album_rounded,
+          context: context,
         ),
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'copy_artist',
           enabled: hasArtist,
-          child: Text(l10n.copyArtistName),
+          label: l10n.copyArtistName,
+          icon: Icons.person_rounded,
+          context: context,
         ),
         const PopupMenuDivider(),
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'transcode',
           enabled: song != null || (songs != null && songs.isNotEmpty),
-          child: Text(l10n.transcodeAction),
+          label: l10n.transcodeAction,
+          icon: Icons.sync_rounded,
+          context: context,
         ),
       ]);
       break;
     case SongContextMenuMode.title:
       items.addAll([
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'copy_title',
           enabled: hasTitle,
-          child: Text(l10n.copyTitle),
+          label: l10n.copyTitle,
+          icon: Icons.title_rounded,
+          context: context,
         ),
         const PopupMenuDivider(),
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'open_file_location',
           enabled: canOpenLocation,
-          child: Text(l10n.openFileLocation),
+          label: l10n.openFileLocation,
+          icon: Icons.folder_open_rounded,
+          context: context,
         ),
       ]);
       break;
     case SongContextMenuMode.artistAlbum:
       items.addAll([
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'copy_artist',
           enabled: hasArtist,
-          child: Text(l10n.copyArtistName),
+          label: l10n.copyArtistName,
+          icon: Icons.person_rounded,
+          context: context,
         ),
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'copy_album',
           enabled: hasAlbum,
-          child: Text(l10n.copyAlbumTitle),
+          label: l10n.copyAlbumTitle,
+          icon: Icons.album_rounded,
+          context: context,
         ),
       ]);
       break;
@@ -251,9 +277,11 @@ Future<void> showSongContextMenu(
       items.add(const PopupMenuDivider());
     }
     items.add(
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'add_to_playlist',
-        child: Text(l10n.addToPlaylist),
+        label: l10n.addToPlaylist,
+        icon: Icons.playlist_add_rounded,
+        context: context,
       ),
     );
   }
@@ -454,10 +482,12 @@ Future<void> showFolderContextMenu(
       Offset.zero & overlay.size,
     ),
     items: [
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'open_folder_location',
         enabled: canOpenLocation,
-        child: Text(l10n.openFolderLocation),
+        label: l10n.openFolderLocation,
+        icon: Icons.folder_open_rounded,
+        context: context,
       ),
     ],
   );
@@ -467,4 +497,41 @@ Future<void> showFolderContextMenu(
   if (selected == 'open_folder_location' && canOpenLocation) {
     await openFolderLocation(folderPath);
   }
+}
+
+PopupMenuItem<T> buildContextMenuItem<T>({
+  required T value,
+  required String label,
+  required IconData icon,
+  required BuildContext context,
+  bool enabled = true,
+  Color? iconColor,
+}) {
+  final theme = Theme.of(context);
+  final defaultIconColor = theme.colorScheme.onSurfaceVariant;
+  return PopupMenuItem<T>(
+    value: value,
+    enabled: enabled,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: enabled
+              ? (iconColor ?? defaultIconColor)
+              : defaultIconColor.withValues(alpha: 0.4),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: enabled
+                ? theme.colorScheme.onSurface
+                : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+          ),
+        ),
+      ],
+    ),
+  );
 }

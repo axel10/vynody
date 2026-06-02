@@ -201,10 +201,12 @@ class PlaybackHeroCard extends ConsumerWidget {
         Offset.zero & overlay.size,
       ),
       items: [
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'copy_cover',
           enabled: hasCover,
-          child: Text(l10n.copyCover),
+          label: l10n.copyCover,
+          icon: Icons.image_outlined,
+          context: context,
         ),
       ],
     );

@@ -24,6 +24,7 @@ import 'package:vibe_flow/player/settings/settings_service.dart';
 import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
+import '../utils/song_context_menu_utils.dart';
 
 bool shouldShowGenerateLyricsButton({required bool hasCurrentSong}) {
   return hasCurrentSong;
@@ -389,22 +390,28 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final l10n = AppLocalizations.of(context)!;
 
     final items = <PopupMenuEntry<String>>[
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'fill_lyrics',
         enabled: hasCurrentSong,
-        child: Text(l10n.enterLyricsTitle),
+        label: l10n.enterLyricsTitle,
+        icon: Icons.edit_note_rounded,
+        context: context,
       ),
       if (lyricsState.hasLyrics)
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'generate',
           enabled: hasCurrentSong && !taskState.isGenerationBusy,
-          child: Text(l10n.generateLyrics),
+          label: l10n.generateLyrics,
+          icon: Icons.auto_awesome_rounded,
+          context: context,
         ),
       if (lyricsState.hasLyrics)
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'generate_timeline',
           enabled: hasCurrentSong && !taskState.isGenerationBusy,
-          child: Text(l10n.generateTimeline),
+          label: l10n.generateTimeline,
+          icon: Icons.timer_rounded,
+          context: context,
         ),
       if (!requeryOnly &&
           _hasTimedLyrics(displayLines) &&
@@ -413,66 +420,83 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       if (!requeryOnly &&
           _hasTimedLyrics(displayLines) &&
           lyricsState.hasLyrics)
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'adjust_timeline',
           enabled: hasCurrentSong,
-          child: Text(l10n.timelineAdjustmentTitle),
+          label: l10n.timelineAdjustmentTitle,
+          icon: Icons.more_time_rounded,
+          context: context,
         ),
       if (!requeryOnly && _hasTimedLyrics(displayLines))
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'toggle_auto_scroll',
           enabled: hasCurrentSong,
-          child: Text(
-            _isAutoScrollPaused ? l10n.resumeAutoScroll : l10n.pauseAutoScroll,
-          ),
+          label: _isAutoScrollPaused ? l10n.resumeAutoScroll : l10n.pauseAutoScroll,
+          icon: _isAutoScrollPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+          context: context,
         ),
       if (!requeryOnly)
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'translate',
           enabled: hasCurrentSong && !taskState.isTranslationBusy,
-          child: Text(l10n.translateLyrics),
+          label: l10n.translateLyrics,
+          icon: Icons.translate_rounded,
+          context: context,
         ),
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'search_online_lyrics',
         enabled: hasCurrentSong,
-        child: Text(l10n.selectOnlineLyrics),
+        label: l10n.selectOnlineLyrics,
+        icon: Icons.cloud_download_rounded,
+        context: context,
       ),
       if (!requeryOnly)
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'clear_lyrics_cache',
           enabled: hasCurrentSong && lyricsState.hasLyrics,
-          child: Text(l10n.clearLyricsCache),
+          label: l10n.clearLyricsCache,
+          icon: Icons.delete_sweep_rounded,
+          context: context,
         ),
       if (!requeryOnly)
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'clear_translation_cache',
           enabled: hasCurrentSong && lyricsState.hasLyrics,
-          child: Text(l10n.clearTranslationCache),
+          label: l10n.clearTranslationCache,
+          icon: Icons.delete_outline_rounded,
+          context: context,
         ),
       if (requeryOnly)
-        PopupMenuItem<String>(
+        buildContextMenuItem<String>(
           value: 'requery',
-          enabled:
-              hasCurrentSong &&
+          enabled: hasCurrentSong &&
               !lyricsState.isLyricsLoading &&
               !taskState.isGenerationBusy,
-          child: Text(l10n.requery),
+          label: l10n.requery,
+          icon: Icons.refresh_rounded,
+          context: context,
         ),
       const PopupMenuDivider(),
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'increase_lyrics_font',
         enabled: lyricsFontScale < SettingsService.maxLyricsFontScale,
-        child: Text(l10n.increaseLyricsFont),
+        label: l10n.increaseLyricsFont,
+        icon: Icons.text_increase_rounded,
+        context: context,
       ),
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'decrease_lyrics_font',
         enabled: lyricsFontScale > SettingsService.minLyricsFontScale,
-        child: Text(l10n.decreaseLyricsFont),
+        label: l10n.decreaseLyricsFont,
+        icon: Icons.text_decrease_rounded,
+        context: context,
       ),
-      PopupMenuItem<String>(
+      buildContextMenuItem<String>(
         value: 'reset_lyrics_font',
         enabled: lyricsFontScale != SettingsService.defaultLyricsFontScale,
-        child: Text(l10n.restoreDefaultSize),
+        label: l10n.restoreDefaultSize,
+        icon: Icons.format_size_rounded,
+        context: context,
       ),
     ];
 

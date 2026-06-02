@@ -339,29 +339,62 @@ class _AlbumCard extends ConsumerWidget {
         Offset.zero & overlay.size,
       ),
       items: [
-        PopupMenuItem(value: 'play_all', child: Text(l10n.playAll)),
-        PopupMenuItem(value: 'shuffle', child: Text(l10n.shufflePlay)),
-        PopupMenuItem(value: 'play_next', child: Text(l10n.playNext)),
-        PopupMenuItem(
+        buildContextMenuItem<String>(
+          value: 'play_all',
+          label: l10n.playAll,
+          icon: Icons.play_arrow_rounded,
+          context: context,
+        ),
+        buildContextMenuItem<String>(
+          value: 'shuffle',
+          label: l10n.shufflePlay,
+          icon: Icons.shuffle_rounded,
+          context: context,
+        ),
+        buildContextMenuItem<String>(
+          value: 'play_next',
+          label: l10n.playNext,
+          icon: Icons.queue_play_next_rounded,
+          context: context,
+        ),
+        buildContextMenuItem<String>(
           value: 'add_to_playlist',
-          child: Text(l10n.addToPlaylist),
+          label: l10n.addToPlaylist,
+          icon: Icons.playlist_add_rounded,
+          context: context,
         ),
-        PopupMenuItem(
+        buildContextMenuItem<String>(
           value: 'add_to_favorites',
-          child: Text(l10n.addToFavorites),
+          label: l10n.addToFavorites,
+          icon: Icons.favorite_border_rounded,
+          context: context,
         ),
         const PopupMenuDivider(),
-        PopupMenuItem(
+        buildContextMenuItem<String>(
           value: 'view_details',
-          child: Text(l10n.viewAlbumDetails),
+          label: l10n.viewAlbumDetails,
+          icon: Icons.album_rounded,
+          context: context,
         ),
-        PopupMenuItem(
+        buildContextMenuItem<String>(
           value: 'open_location',
-          child: Text(l10n.openFileLocation),
+          label: l10n.openFileLocation,
+          icon: Icons.folder_open_rounded,
+          context: context,
         ),
         const PopupMenuDivider(),
-        PopupMenuItem(value: 'copy_album', child: Text(l10n.copyAlbumTitle)),
-        PopupMenuItem(value: 'copy_artist', child: Text(l10n.copyArtistName)),
+        buildContextMenuItem<String>(
+          value: 'copy_album',
+          label: l10n.copyAlbumTitle,
+          icon: Icons.copy_rounded,
+          context: context,
+        ),
+        buildContextMenuItem<String>(
+          value: 'copy_artist',
+          label: l10n.copyArtistName,
+          icon: Icons.person_rounded,
+          context: context,
+        ),
       ],
     );
 
@@ -491,25 +524,35 @@ class _AlbumsToolbar extends StatelessWidget {
           tooltip: l10n.albumSort,
           onSelected: onSortFieldSelected,
           itemBuilder: (context) => [
-            PopupMenuItem(
+            buildContextMenuItem<_AlbumSortField>(
               value: _AlbumSortField.artist,
-              child: Text(l10n.sortArtistAsc),
+              label: l10n.sortArtistAsc,
+              icon: Icons.person_rounded,
+              context: context,
             ),
-            PopupMenuItem(
+            buildContextMenuItem<_AlbumSortField>(
               value: _AlbumSortField.title,
-              child: Text(l10n.sortTitleAsc),
+              label: l10n.sortTitleAsc,
+              icon: Icons.title_rounded,
+              context: context,
             ),
-            PopupMenuItem(
+            buildContextMenuItem<_AlbumSortField>(
               value: _AlbumSortField.trackCount,
-              child: Text(l10n.sortTrackCount),
+              label: l10n.sortTrackCount,
+              icon: Icons.format_list_numbered_rounded,
+              context: context,
             ),
-            PopupMenuItem(
+            buildContextMenuItem<_AlbumSortField>(
               value: _AlbumSortField.duration,
-              child: Text(l10n.sortDuration),
+              label: l10n.sortDuration,
+              icon: Icons.access_time_rounded,
+              context: context,
             ),
-            PopupMenuItem(
+            buildContextMenuItem<_AlbumSortField>(
               value: _AlbumSortField.recentAdded,
-              child: Text(l10n.sortRecentAdded),
+              label: l10n.sortRecentAdded,
+              icon: Icons.add_circle_outline_rounded,
+              context: context,
             ),
           ],
           child: Container(
