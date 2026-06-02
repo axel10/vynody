@@ -934,6 +934,20 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: Colors.black,
+              width: double.infinity,
+              height: double.infinity,
+              child: const Center(
+                child: Icon(
+                  Icons.broken_image_rounded,
+                  color: Colors.white24,
+                  size: 48,
+                ),
+              ),
+            );
+          },
         );
         final blur = settings.playbackCustomImageBlurSigma;
         if (blur > 0.0) {

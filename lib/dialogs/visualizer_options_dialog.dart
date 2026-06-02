@@ -4,6 +4,8 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/audio/audio_service.dart';
@@ -1003,6 +1005,18 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   width: 90,
                   height: 60,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 90,
+                      height: 60,
+                      color: Colors.white.withValues(alpha: 0.05),
+                      child: const Icon(
+                        Icons.broken_image_rounded,
+                        color: Colors.white38,
+                        size: 24,
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 16),
@@ -1073,7 +1087,37 @@ class VisualizerOptionsDialog extends ConsumerWidget {
         allowMultiple: false,
       );
       if (result != null && result.files.single.path != null) {
-        settings.playbackBackgroundCustomImagePath = result.files.single.path!;
+        final originalPath = result.files.single.path!;
+        final appSupportDir = await getApplicationSupportDirectory();
+        
+        // Create custom_backgrounds directory under Application Support
+        final targetDir = Directory(p.join(appSupportDir.path, 'custom_backgrounds'));
+        if (!await targetDir.exists()) {
+          await targetDir.create(recursive: true);
+        }
+        
+        // Delete the previous custom background image if it was also in this directory
+        final oldPath = settings.playbackBackgroundCustomImagePath;
+        if (oldPath.isNotEmpty) {
+          final oldFile = File(oldPath);
+          if (p.isWithin(targetDir.path, oldPath) && await oldFile.exists()) {
+            try {
+              await oldFile.delete();
+            } catch (e) {
+              debugPrint('Error deleting old custom background image: $e');
+            }
+          }
+        }
+        
+        // Copy selected file to our custom_backgrounds directory
+        final extension = p.extension(originalPath);
+        final newFileName = 'custom_bg_${DateTime.now().millisecondsSinceEpoch}$extension';
+        final newPath = p.join(targetDir.path, newFileName);
+        
+        final originalFile = File(originalPath);
+        await originalFile.copy(newPath);
+        
+        settings.playbackBackgroundCustomImagePath = newPath;
         setDialogState(() {});
       }
     } catch (e) {
