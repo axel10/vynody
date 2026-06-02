@@ -216,7 +216,8 @@ class MetadataHelper {
   }) async {
     try {
       final db = MetadataDatabase();
-      final existing = existingMetadata ?? await db.getSongMetadata(filePath);
+      final dbRecord = await db.getSongMetadata(filePath);
+      final existing = dbRecord ?? existingMetadata;
       final now = DateTime.now().millisecondsSinceEpoch;
 
       var resolvedArtworkPath = artworkPath ?? existing?.artworkPath;
@@ -277,7 +278,7 @@ class MetadataHelper {
             artist: 'Unknown Artist',
           );
 
-      final updated = base.copyWith(
+      var updated = base.copyWith(
         title: _resolveText(title, base.title),
         artist: _resolveText(artist, base.artist),
         album: _resolveText(album, base.album),
@@ -293,7 +294,10 @@ class MetadataHelper {
         metadataImgScanned: artworkBytes != null && artworkBytes.isNotEmpty
             ? now
             : base.metadataImgScanned,
-        createdAt: base.createdAt ?? now,
+        createdAt: base.createdAt ??
+            (File(filePath).existsSync()
+                ? File(filePath).lastModifiedSync().millisecondsSinceEpoch
+                : now),
         genres: genres ?? base.genres,
       );
 
@@ -307,6 +311,12 @@ class MetadataHelper {
         if (!fileUpdated) {
           return null;
         }
+
+        final mtime = File(filePath).lastModifiedSync().millisecondsSinceEpoch;
+        updated = updated.copyWith(
+          lastModifiedTime: mtime,
+          createdAt: mtime,
+        );
       }
 
       await db.insertOrUpdateSong(updated);
@@ -314,6 +324,55 @@ class MetadataHelper {
     } catch (e) {
       debugPrint('Error saving selected metadata for $filePath: $e');
       return null;
+    }
+  }
+
+  /// Writes current database metadata and cached artwork of the song back to the physical audio file,
+  /// and resets the `isModified` flag in the database.
+  static Future<bool> saveDatabaseMetadataToFile(String filePath) async {
+    try {
+      final db = MetadataDatabase();
+      final metadata = await db.getSongMetadata(filePath);
+      if (metadata == null) {
+        debugPrint('[MetadataHelper] Cannot save to file: No database metadata found for $filePath');
+        return false;
+      }
+
+      Uint8List? artworkBytes;
+      if (metadata.artworkPath != null && metadata.artworkPath!.isNotEmpty) {
+        final artworkFile = File(metadata.artworkPath!);
+        if (await artworkFile.exists()) {
+          artworkBytes = await artworkFile.readAsBytes();
+        }
+      }
+
+      // If we don't have artworkBytes locally but we have a thumbnail, we can fall back to the thumbnail
+      if (artworkBytes == null && metadata.thumbnailPath != null && metadata.thumbnailPath!.isNotEmpty) {
+        final thumbnailFile = File(metadata.thumbnailPath!);
+        if (await thumbnailFile.exists()) {
+          artworkBytes = await thumbnailFile.readAsBytes();
+        }
+      }
+
+      final success = await _writeSelectionMetadataToFile(
+        filePath: filePath,
+        metadata: metadata,
+        artworkBytes: artworkBytes,
+      );
+
+      if (success) {
+        final mtime = File(filePath).lastModifiedSync().millisecondsSinceEpoch;
+        final updated = metadata.copyWith(
+          lastModifiedTime: mtime,
+          createdAt: mtime,
+        );
+        await db.insertOrUpdateSong(updated);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[MetadataHelper] Error saving database metadata to file for $filePath: $e');
+      return false;
     }
   }
 
@@ -333,8 +392,11 @@ class MetadataHelper {
     }
     final lastModified = (await file.lastModified()).millisecondsSinceEpoch;
 
-    // 1. 如果数据库已有记录且修改时间相同，直接返回
+    // 1. 如果数据库已有记录且已被修改尚未保存，或者修改时间相同，直接返回
     final existing = await db.getSongMetadata(filePath);
+    if (existing != null && existing.isModified) {
+      return (existing, null);
+    }
     if (existing != null && existing.lastModifiedTime == lastModified) {
       final hasArtwork =
           (existing.artworkPath?.isNotEmpty ?? false) ||

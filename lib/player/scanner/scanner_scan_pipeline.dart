@@ -138,7 +138,9 @@ class ScannerScanPipeline {
       final textScanned = existing?.metadataTextScanned;
       final imgScanned = existing?.metadataImgScanned;
 
-      if (existing != null &&
+      if (existing != null && existing.isModified) {
+        stageByPath[path] = ScanFileStage.unchanged;
+      } else if (existing != null &&
           currentLastModified != null &&
           textScanned == currentLastModified &&
           imgScanned == currentLastModified) {

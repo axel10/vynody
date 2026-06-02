@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/player/metadata/acoustid_service.dart';
+import 'package:vibe_flow/player/metadata/metadata_database.dart';
 import 'package:vibe_flow/player/ai/ai_api_key_service.dart';
 import 'package:vibe_flow/player/ai/openrouter_api_key_service.dart';
 import 'package:vibe_flow/player/library/playlist_service.dart';
@@ -228,4 +229,8 @@ final audioCurrentVisualizerOptionsProvider =
 
 final audioVisualizerStreamProvider = Provider<Stream<FftFrame>?>((ref) {
   return ref.read(audioServiceProvider).visualizerStream;
+});
+
+final songMetadataProvider = StreamProvider.family<SongMetadata?, String>((ref, path) {
+  return MetadataDatabase().watchSongMetadata(path);
 });

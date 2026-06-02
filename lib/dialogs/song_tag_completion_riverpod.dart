@@ -168,10 +168,11 @@ class SongTagCompletionController extends ChangeNotifier {
         duration: durationMillis,
         artworkBytes: coverArtBytes,
         existingMetadata: existingMetadata,
+        writeToFile: false,
       );
 
       if (saved == null) {
-        throw StateError('写入标签和文件同步失败');
+        throw StateError('写入标签数据库失败');
       }
 
       final updated = saved.$1;
@@ -235,6 +236,7 @@ class SongTagCompletionController extends ChangeNotifier {
         selectedRelease: release,
         fallbackDurationMillis: fallbackDurationMillis,
         existingMetadata: existingMetadata,
+        writeToFile: false,
       );
 
       if (_disposed) return null;

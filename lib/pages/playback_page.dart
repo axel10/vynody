@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
-import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/audio/audio_service.dart';
@@ -267,12 +266,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     }
   }
 
-  void _showTagSaveMenu(BuildContext context, AudioService audio) {
+  void _showTagSaveMenu(BuildContext context, AudioService audio, {required bool isModified}) {
     final l10n = AppLocalizations.of(context)!;
     final currentSong = ref.read(audioCurrentMusicProvider);
     final queue = ref.read(audioPlaybackQueueProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final isEditEnabled = currentSong != null;
+    final isSaveEnabled = currentSong != null && isMetadataWritable(currentSong.path) && isModified;
+    final isQueueEnabled = queue.isNotEmpty;
 
     showDialog(
       context: context,
@@ -286,15 +289,21 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.edit_rounded,
-                color: Colors.orangeAccent,
+                color: isEditEnabled
+                    ? Colors.orangeAccent
+                    : (isDark ? Colors.white30 : theme.disabledColor),
               ),
               title: Text(
                 l10n.editSongTagsTitle,
-                style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
+                style: TextStyle(
+                  color: isEditEnabled
+                      ? (isDark ? Colors.white : theme.colorScheme.onSurface)
+                      : (isDark ? Colors.white38 : theme.disabledColor),
+                ),
               ),
-              enabled: currentSong != null,
+              enabled: isEditEnabled,
               onTap: () {
                 Navigator.pop(dialogContext);
                 _showSongTagEditSheet(context, audio);
@@ -302,28 +311,45 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             ),
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.music_note, color: Colors.blueAccent),
+              leading: Icon(
+                Icons.music_note,
+                color: isSaveEnabled
+                    ? Colors.blueAccent
+                    : (isDark ? Colors.white30 : theme.disabledColor),
+              ),
               title: Text(
                 l10n.saveCurrentTagsToFile,
-                style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
+                style: TextStyle(
+                  color: isSaveEnabled
+                      ? (isDark ? Colors.white : theme.colorScheme.onSurface)
+                      : (isDark ? Colors.white38 : theme.disabledColor),
+                ),
               ),
-              enabled:
-                  currentSong != null && isMetadataWritable(currentSong.path),
+              enabled: isSaveEnabled,
               onTap: () {
                 Navigator.pop(dialogContext);
-                _saveCurrentSongTags(context, audio);
+                _saveCurrentSongTags(audio);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.queue_music, color: Colors.greenAccent),
+              leading: Icon(
+                Icons.queue_music,
+                color: isQueueEnabled
+                    ? Colors.greenAccent
+                    : (isDark ? Colors.white30 : theme.disabledColor),
+              ),
               title: Text(
                 l10n.saveQueueTagsToFile,
-                style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
+                style: TextStyle(
+                  color: isQueueEnabled
+                      ? (isDark ? Colors.white : theme.colorScheme.onSurface)
+                      : (isDark ? Colors.white38 : theme.disabledColor),
+                ),
               ),
-              enabled: queue.isNotEmpty,
+              enabled: isQueueEnabled,
               onTap: () {
                 Navigator.pop(dialogContext);
-                _saveQueueTags(context, audio);
+                _saveQueueTags(audio);
               },
             ),
           ],
@@ -342,7 +368,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   }
 
   Future<void> _saveCurrentSongTags(
-    BuildContext context,
     AudioService audio,
   ) async {
     final l10n = AppLocalizations.of(context)!;
@@ -363,49 +388,46 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     }
 
     // Show loading
-    if (context.mounted) {
+    if (mounted) {
       AppSnackBar.show(context, ref, SnackBar(content: Text(l10n.savingTags)));
     }
 
     try {
-      // Get artwork bytes if available
-      List<Picture>? pictures;
-      if (song.artworkBytes != null) {
-        pictures = [
-          Picture(song.artworkBytes!, 'image/jpeg', PictureType.coverFront),
-        ];
-      }
+      final success = await MetadataHelper.saveDatabaseMetadataToFile(song.path);
 
-      final success = await MetadataHelper.saveMetadataToFile(
-        song.path,
-        title: song.displayName,
-        artist: song.artist,
-        album: song.album,
-        trackNumber: song.trackNumber,
-        pictures: pictures,
-      );
-
-      if (context.mounted) {
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(
-            content: Text(success ? l10n.tagsSaved : l10n.tagsSaveFailed),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
+      if (success) {
+        final db = MetadataDatabase();
+        final updatedMetadata = await db.getSongMetadata(song.path);
+        if (updatedMetadata != null) {
+          if (!mounted) return;
+          final messenger = ScaffoldMessenger.of(context);
+          await _applySongMetadataResult(
+            messenger,
+            audio: audio,
+            metadata: updatedMetadata,
+            artworkBytes: song.artworkBytes,
+            successMessage: l10n.tagsSaved,
+          );
+        }
+      } else {
+        if (!mounted) return;
         AppSnackBar.show(
           context,
           ref,
           SnackBar(content: Text(l10n.tagsSaveFailed)),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackBar.show(
+        context,
+        ref,
+        SnackBar(content: Text(l10n.tagsSaveFailed)),
+      );
     }
   }
 
-  Future<void> _saveQueueTags(BuildContext context, AudioService audio) async {
+  Future<void> _saveQueueTags(AudioService audio) async {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     final queue = ref.read(audioPlaybackQueueProvider);
@@ -459,6 +481,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     }
 
     // Show initial snackbar with progress
+    if (!mounted) return;
     messenger.hideCurrentSnackBar();
     AppSnackBar.show(
       context,
@@ -487,25 +510,21 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       final song = songs[i];
       final artworkBytes = artworkBytesMap[song.path];
 
-      List<Picture>? pictures;
-      if (artworkBytes != null) {
-        pictures = [
-          Picture(artworkBytes, 'image/jpeg', PictureType.coverFront),
-        ];
-      }
-
-      final success = await MetadataHelper.saveMetadataToFile(
-        song.path,
-        title: song.title,
-        artist: song.artist,
-        album: song.album,
-        trackNumber: song.trackNumber,
-        genres: song.genres,
-        pictures: pictures,
-      );
+      final success = await MetadataHelper.saveDatabaseMetadataToFile(song.path);
 
       if (success) {
         savedCount++;
+        final db = MetadataDatabase();
+        final updatedMetadata = await db.getSongMetadata(song.path);
+        if (updatedMetadata != null) {
+          final audio = ref.read(audioServiceProvider);
+          final scanner = ref.read(scannerServiceProvider);
+          final playlistService = ref.read(playlistServiceProvider);
+          
+          await audio.applyUpdatedSongMetadata(updatedMetadata, artworkBytes: artworkBytes);
+          scanner.updateMetadataForPath(updatedMetadata, artworkBytes: artworkBytes);
+          await playlistService.updateSongMetadataByPath(updatedMetadata, artworkBytes: artworkBytes);
+        }
       } else {
         if (isMetadataWritable(song.path)) {
           failedCount++;
@@ -674,6 +693,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   Widget build(BuildContext context) {
     // Separate UI status from rendering visibility to avoid flicker
     final audio = ref.read(audioServiceProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final currentMetadataAsync = currentMusic != null
+        ? ref.watch(songMetadataProvider(currentMusic.path))
+        : null;
+    final isModified = currentMetadataAsync?.value?.isModified ?? false;
     final isLyricsMode = ref.watch(audioIsLyricsActiveProvider);
     final isVisualizerEnabled = ref.watch(audioIsVisualizerEnabledProvider);
     final isTransitioning = ref.watch(audioIsTransitioningProvider);
@@ -812,7 +836,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                   ),
                             onTagCompletionLongPress: currentMusic == null
                                 ? null
-                                : () => _showTagSaveMenu(context, audio),
+                                : () => _showTagSaveMenu(context, audio, isModified: isModified),
                             onSleepTimerTap: () =>
                                 _showSleepTimerSheet(context),
                             onEqualizerTap: () => _showEqualizerPanel(context),

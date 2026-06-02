@@ -339,6 +339,7 @@ class MusicBrainzTagCompletionService {
     MusicBrainzReleaseMatch? selectedRelease,
     SongMetadata? existingMetadata,
     int? fallbackDurationMillis,
+    bool writeToFile = false,
   }) async {
     final effectiveRelease =
         selectedRelease ??
@@ -380,6 +381,7 @@ class MusicBrainzTagCompletionService {
       artworkWidth: cover?.width,
       artworkHeight: cover?.height,
       existingMetadata: existingMetadata,
+      writeToFile: writeToFile,
     );
 
     if (saved == null) {
