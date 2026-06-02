@@ -513,6 +513,8 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                       setDialogState(() {});
                     },
                   ),
+                  const SizedBox(height: 12),
+                  _buildOpacitySettings(context, settings, setDialogState),
                 ],
                 if (isDynamicMeshBackground) ...[
                   const SizedBox(height: 20),
@@ -749,6 +751,64 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildOpacitySettings(
+    BuildContext context,
+    SettingsService settings,
+    StateSetter setDialogState,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildOptionSlider(
+          context,
+          label: l10n.normalOpacity,
+          value: settings.playbackBackgroundNormalOpacity,
+          min: 0.0,
+          max: 1.0,
+          onChanged: (val) {
+            settings.playbackBackgroundNormalOpacity = val;
+            setDialogState(() {});
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildOptionSlider(
+          context,
+          label: l10n.lyricsOpacity,
+          value: settings.playbackBackgroundLyricsOpacity,
+          min: 0.0,
+          max: 1.0,
+          onChanged: (val) {
+            settings.playbackBackgroundLyricsOpacity = val;
+            setDialogState(() {});
+          },
+        ),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: () {
+            settings.playbackBackgroundNormalOpacity = 0.20;
+            settings.playbackBackgroundLyricsOpacity = 0.40;
+            setDialogState(() {});
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.primary,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          icon: const Icon(Icons.refresh_rounded, size: 16),
+          label: Text(
+            l10n.reset,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1057,29 +1117,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 20),
-        _buildOptionSlider(
-          context,
-          label: l10n.normalOpacity,
-          value: settings.playbackSolidColorNormalOpacity,
-          min: 0.0,
-          max: 1.0,
-          onChanged: (val) {
-            settings.playbackSolidColorNormalOpacity = val;
-            setDialogState(() {});
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildOptionSlider(
-          context,
-          label: l10n.lyricsOpacity,
-          value: settings.playbackSolidColorLyricsOpacity,
-          min: 0.0,
-          max: 1.0,
-          onChanged: (val) {
-            settings.playbackSolidColorLyricsOpacity = val;
-            setDialogState(() {});
-          },
-        ),
+        _buildOpacitySettings(context, settings, setDialogState),
       ],
     );
   }
@@ -1145,29 +1183,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 20),
-        _buildOptionSlider(
-          context,
-          label: l10n.normalOpacity,
-          value: settings.playbackCustomImageNormalOpacity,
-          min: 0.0,
-          max: 1.0,
-          onChanged: (val) {
-            settings.playbackCustomImageNormalOpacity = val;
-            setDialogState(() {});
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildOptionSlider(
-          context,
-          label: l10n.lyricsOpacity,
-          value: settings.playbackCustomImageLyricsOpacity,
-          min: 0.0,
-          max: 1.0,
-          onChanged: (val) {
-            settings.playbackCustomImageLyricsOpacity = val;
-            setDialogState(() {});
-          },
-        ),
+        _buildOpacitySettings(context, settings, setDialogState),
         const SizedBox(height: 12),
         _buildOptionSlider(
           context,

@@ -1055,13 +1055,13 @@ abstract class AppLocalizations {
   /// No description provided for @normalOpacity.
   ///
   /// In zh, this message translates to:
-  /// **'常规不透明度'**
+  /// **'常规暗色层不透明度'**
   String get normalOpacity;
 
   /// No description provided for @lyricsOpacity.
   ///
   /// In zh, this message translates to:
-  /// **'歌词不透明度'**
+  /// **'歌词暗色层不透明度'**
   String get lyricsOpacity;
 
   /// No description provided for @chooseImageError.

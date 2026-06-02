@@ -509,10 +509,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get uploadImage => '上传图片';
 
   @override
-  String get normalOpacity => '常规不透明度';
+  String get normalOpacity => '常规暗色层不透明度';
 
   @override
-  String get lyricsOpacity => '歌词不透明度';
+  String get lyricsOpacity => '歌词暗色层不透明度';
 
   @override
   String get chooseImageError => '选择图片失败';

@@ -181,10 +181,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyPlaybackRadialGradientEnabled = 'playback_radial_gradient_enabled';
   static const String _keyPlaybackBackgroundColor = 'playback_background_color';
   static const String _keyPlaybackBackgroundCustomImagePath = 'playback_background_custom_image_path';
-  static const String _keyPlaybackSolidColorNormalOpacity = 'playback_solid_color_normal_opacity';
-  static const String _keyPlaybackSolidColorLyricsOpacity = 'playback_solid_color_lyrics_opacity';
-  static const String _keyPlaybackCustomImageNormalOpacity = 'playback_custom_image_normal_opacity';
-  static const String _keyPlaybackCustomImageLyricsOpacity = 'playback_custom_image_lyrics_opacity';
+  static const String _keyPlaybackBackgroundNormalOpacity = 'playback_background_normal_opacity';
+  static const String _keyPlaybackBackgroundLyricsOpacity = 'playback_background_lyrics_opacity';
   static const String _keyPlaybackBlurredArtworkBlurSigma = 'playback_blurred_artwork_blur_sigma';
   static const String _keyPlaybackCustomImageBlurSigma = 'playback_custom_image_blur_sigma';
   static const String _keyPlaybackMeshBackgroundSpeed =
@@ -442,30 +440,16 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
-  late final _playbackSolidColorNormalOpacityProperty = SettingProperty<double>(
-    key: _keyPlaybackSolidColorNormalOpacity,
+  late final _playbackBackgroundNormalOpacityProperty = SettingProperty<double>(
+    key: _keyPlaybackBackgroundNormalOpacity,
     defaultValue: 0.20,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
 
-  late final _playbackSolidColorLyricsOpacityProperty = SettingProperty<double>(
-    key: _keyPlaybackSolidColorLyricsOpacity,
-    defaultValue: 0.30,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-  );
-
-  late final _playbackCustomImageNormalOpacityProperty = SettingProperty<double>(
-    key: _keyPlaybackCustomImageNormalOpacity,
+  late final _playbackBackgroundLyricsOpacityProperty = SettingProperty<double>(
+    key: _keyPlaybackBackgroundLyricsOpacity,
     defaultValue: 0.40,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-  );
-
-  late final _playbackCustomImageLyricsOpacityProperty = SettingProperty<double>(
-    key: _keyPlaybackCustomImageLyricsOpacity,
-    defaultValue: 0.50,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -797,17 +781,11 @@ class SettingsService extends ChangeNotifier {
   String get playbackBackgroundCustomImagePath => _playbackBackgroundCustomImagePathProperty.value;
   set playbackBackgroundCustomImagePath(String value) => _playbackBackgroundCustomImagePathProperty.value = value;
 
-  double get playbackSolidColorNormalOpacity => _playbackSolidColorNormalOpacityProperty.value;
-  set playbackSolidColorNormalOpacity(double value) => _playbackSolidColorNormalOpacityProperty.value = value;
+  double get playbackBackgroundNormalOpacity => _playbackBackgroundNormalOpacityProperty.value;
+  set playbackBackgroundNormalOpacity(double value) => _playbackBackgroundNormalOpacityProperty.value = value;
 
-  double get playbackSolidColorLyricsOpacity => _playbackSolidColorLyricsOpacityProperty.value;
-  set playbackSolidColorLyricsOpacity(double value) => _playbackSolidColorLyricsOpacityProperty.value = value;
-
-  double get playbackCustomImageNormalOpacity => _playbackCustomImageNormalOpacityProperty.value;
-  set playbackCustomImageNormalOpacity(double value) => _playbackCustomImageNormalOpacityProperty.value = value;
-
-  double get playbackCustomImageLyricsOpacity => _playbackCustomImageLyricsOpacityProperty.value;
-  set playbackCustomImageLyricsOpacity(double value) => _playbackCustomImageLyricsOpacityProperty.value = value;
+  double get playbackBackgroundLyricsOpacity => _playbackBackgroundLyricsOpacityProperty.value;
+  set playbackBackgroundLyricsOpacity(double value) => _playbackBackgroundLyricsOpacityProperty.value = value;
 
   double get playbackBlurredArtworkBlurSigma => _playbackBlurredArtworkBlurSigmaProperty.value;
   set playbackBlurredArtworkBlurSigma(double value) => _playbackBlurredArtworkBlurSigmaProperty.value = value;
@@ -940,10 +918,8 @@ class SettingsService extends ChangeNotifier {
     _playbackBackgroundColorProperty.reset();
     _playbackRadialGradientEnabledProperty.reset();
     _playbackBackgroundCustomImagePathProperty.reset();
-    _playbackSolidColorNormalOpacityProperty.reset();
-    _playbackSolidColorLyricsOpacityProperty.reset();
-    _playbackCustomImageNormalOpacityProperty.reset();
-    _playbackCustomImageLyricsOpacityProperty.reset();
+    _playbackBackgroundNormalOpacityProperty.reset();
+    _playbackBackgroundLyricsOpacityProperty.reset();
     _playbackBlurredArtworkBlurSigmaProperty.reset();
     _playbackCustomImageBlurSigmaProperty.reset();
     _isAutoModeProperty.reset();

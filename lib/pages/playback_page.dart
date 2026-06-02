@@ -970,11 +970,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   }
 
   Widget _buildBackgroundScrim(bool isLyricsMode, int backgroundType, SettingsService settings) {
-    double opacity = 0.20;
-    if (backgroundType == 2) {
-      opacity = settings.playbackSolidColorNormalOpacity;
-    } else if (backgroundType == 3) {
-      opacity = settings.playbackCustomImageNormalOpacity;
+    double opacity = 0.30;
+    if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
+      opacity = settings.playbackBackgroundNormalOpacity;
     }
 
     return Positioned.fill(
@@ -1005,11 +1003,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   }
 
   Widget _buildLyricsModeScrim(bool isLyricsMode, int backgroundType, SettingsService settings) {
-    double opacity = 0.28;
-    if (backgroundType == 2) {
-      opacity = settings.playbackSolidColorLyricsOpacity;
-    } else if (backgroundType == 3) {
-      opacity = settings.playbackCustomImageLyricsOpacity;
+    double opacity = 0.40;
+    if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
+      opacity = settings.playbackBackgroundLyricsOpacity;
     }
 
     return Positioned.fill(

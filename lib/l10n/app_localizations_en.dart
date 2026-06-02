@@ -515,10 +515,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uploadImage => 'Upload Image';
 
   @override
-  String get normalOpacity => 'Normal State Opacity';
+  String get normalOpacity => 'Normal Dark Layer Opacity';
 
   @override
-  String get lyricsOpacity => 'Lyrics State Opacity';
+  String get lyricsOpacity => 'Lyrics Dark Layer Opacity';
 
   @override
   String get chooseImageError => 'Failed to select image';
