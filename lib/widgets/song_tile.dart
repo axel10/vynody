@@ -52,8 +52,8 @@ class SongTile extends ConsumerWidget {
 
     // Build leading widget (thumbnail + selection checkbox)
     final leadingWidget = SizedBox(
-      width: 40,
-      height: 40,
+      width: 56,
+      height: 56,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -66,7 +66,7 @@ class SongTile extends ConsumerWidget {
             child: SongThumbnail(
               path: song.path,
               id: song.id,
-              size: 40.0,
+              size: 56.0,
             ),
           ),
           if (isSelectionMode)
@@ -95,12 +95,26 @@ class SongTile extends ConsumerWidget {
     // Build trailing widget (more button or drag handle)
     Widget? trailingWidget;
     if (isSelectionMode) {
-      trailingWidget = dragHandle;
+      if (dragHandle != null) {
+        trailingWidget = IconTheme(
+          data: theme.iconTheme.copyWith(
+            color: isCurrent && !isMissing
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+          child: dragHandle!,
+        );
+      }
     } else {
       trailingWidget = Builder(
         builder: (buttonContext) {
           return IconButton(
-            icon: const Icon(Icons.more_vert),
+            icon: Icon(
+              Icons.more_vert,
+              color: isCurrent && !isMissing
+                  ? theme.colorScheme.primary
+                  : null,
+            ),
             onPressed: onMorePressed != null
                 ? () => onMorePressed!(buttonContext)
                 : null,
@@ -119,71 +133,89 @@ class SongTile extends ConsumerWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: onSecondaryTapDown,
-      child: ListTile(
-        shape: RoundedRectangleBorder(
+      child: Material(
+        color: isSelectionMode && isSelected
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
           borderRadius: BorderRadius.circular(12),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        selected: isSelectionMode && isSelected,
-        selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
-        leading: leadingWidget,
-        title: Row(
-          children: [
-            if (isCurrent && !isMissing) ...[
-              Icon(
-                Icons.volume_up_rounded,
-                color: theme.colorScheme.primary,
-                size: 16,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Expanded(
-              child: Text(
-                song.displayName,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: textColor,
-                  fontWeight: isCurrent && !isMissing ? FontWeight.bold : FontWeight.normal,
+          onTap: onTap,
+          onLongPress: onLongPress,
+          hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                leadingWidget,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          if (isCurrent && !isMissing) ...[
+                            Icon(
+                              Icons.volume_up_rounded,
+                              color: theme.colorScheme.primary,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Expanded(
+                            child: Text(
+                              song.displayName,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: textColor,
+                                fontWeight: isCurrent && !isMissing ? FontWeight.bold : FontWeight.normal,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        artistAlbumText,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                          color: isMissing
+                              ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                              : isCurrent
+                                  ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                                  : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        durationFormatText,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                          color: isMissing
+                              ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
+                              : isCurrent
+                                  ? theme.colorScheme.primary.withValues(alpha: 0.6)
+                                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                        maxLines: 1,
+                      ),
+                    ],
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+                if (trailingWidget != null) ...[
+                  const SizedBox(width: 16),
+                  trailingWidget,
+                ],
+              ],
             ),
-          ],
+          ),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 2),
-            Text(
-              artistAlbumText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: 12,
-                color: isMissing
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              durationFormatText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: 11,
-                color: isMissing
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
-                    : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
-              maxLines: 1,
-            ),
-          ],
-        ),
-        isThreeLine: true,
-        trailing: trailingWidget,
-        onTap: onTap,
-        onLongPress: onLongPress,
       ),
     );
   }
