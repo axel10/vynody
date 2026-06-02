@@ -23,6 +23,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return DefaultTabController(
       length: 2,
       child: StatefulBuilder(
@@ -30,7 +33,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           final l10n = AppLocalizations.of(context)!;
 
           return AlertDialog(
-            backgroundColor: const Color(0xFF101114),
+            backgroundColor: isDark ? const Color(0xFF101114) : theme.colorScheme.surface,
             surfaceTintColor: Colors.transparent,
             titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
             contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
@@ -40,8 +43,8 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               children: [
                 Text(
                   l10n.visualizerSettings,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : theme.colorScheme.onSurface,
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                   ),
@@ -52,9 +55,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                     Tab(text: l10n.algorithm),
                     Tab(text: l10n.appearance),
                   ],
-                  labelColor: Colors.blueAccent,
-                  unselectedLabelColor: Colors.white70,
-                  indicatorColor: Colors.blueAccent,
+                  labelColor: theme.colorScheme.primary,
+                  unselectedLabelColor: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                  indicatorColor: theme.colorScheme.primary,
                   dividerColor: Colors.transparent,
                 ),
               ],
@@ -74,7 +77,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                 onPressed: () => Navigator.pop(context),
                 child: Text(
                   AppLocalizations.of(context)!.confirm,
-                  style: TextStyle(color: Colors.blueAccent),
+                  style: TextStyle(color: theme.colorScheme.primary),
                 ),
               ),
             ],
@@ -91,20 +94,27 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   ) {
     final l10n = AppLocalizations.of(context)!;
     final isAuto = settings.isAutoMode;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionCard(
+            context: context,
             child: SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               title: Text(
                 l10n.autoMode,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(
+                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                  fontSize: 14,
+                ),
               ),
               value: isAuto,
-              activeThumbColor: Colors.blueAccent,
+              activeThumbColor: theme.colorScheme.primary,
+              activeTrackColor: theme.colorScheme.primary.withValues(alpha: 0.5),
               onChanged: (val) {
                 settings.isAutoMode = val;
                 if (val) {
@@ -147,17 +157,24 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     StateSetter setDialogState,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return _buildSectionCard(
+      context: context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             l10n.spectrumQuantity,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(
+              color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 8),
           _buildSegmentedControl<String>(
+            context,
             value: settings.autoSpectrumQuantity,
             items: {
               'low': l10n.quantityLow,
@@ -175,10 +192,14 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           const SizedBox(height: 24),
           Text(
             l10n.speed,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(
+              color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 8),
           _buildSegmentedControl<String>(
+            context,
             value: settings.autoSpeed,
             items: {
               'slow': l10n.speedSlow,
@@ -206,6 +227,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final options = ref.watch(audioCurrentVisualizerOptionsProvider);
 
     return _buildSectionCard(
+      context: context,
       child: Wrap(
         spacing: 20,
         runSpacing: 10,
@@ -370,11 +392,15 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     );
   }
 
-  Widget _buildSegmentedControl<T>({
+  Widget _buildSegmentedControl<T>(
+    BuildContext context, {
     required T value,
     required Map<T, String> items,
     required ValueChanged<T> onChanged,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return SegmentedButton<T>(
       segments: items.entries.map((e) {
         return ButtonSegment<T>(
@@ -387,11 +413,13 @@ class VisualizerOptionsDialog extends ConsumerWidget {
         onChanged(selection.first);
       },
       style: SegmentedButton.styleFrom(
-        backgroundColor: Colors.grey[850],
-        selectedBackgroundColor: Colors.blueAccent,
-        selectedForegroundColor: Colors.white,
-        foregroundColor: Colors.white70,
-        side: const BorderSide(color: Colors.white12),
+        backgroundColor: isDark ? Colors.grey[850] : Colors.grey[200],
+        selectedBackgroundColor: theme.colorScheme.primary,
+        selectedForegroundColor: theme.colorScheme.onPrimary,
+        foregroundColor: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+        side: BorderSide(
+          color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
+        ),
       ),
     );
   }
@@ -401,27 +429,35 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     VisualizerOptimizationOptions options,
     StateSetter setDialogState,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return SizedBox(
       width: 270,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.only(top: 16, bottom: 8),
+            padding: const EdgeInsets.only(top: 16, bottom: 8),
             child: Text(
               AppLocalizations.of(context)!.aggregationMode,
-              style: TextStyle(color: Colors.white70, fontSize: 13),
+              style: TextStyle(
+                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
             ),
           ),
           DropdownButtonFormField<FftAggregationMode>(
             initialValue: options.aggregationMode,
-            dropdownColor: Colors.grey[900],
-            decoration: const InputDecoration(
+            dropdownColor: isDark ? Colors.grey[900] : theme.colorScheme.surfaceContainer,
+            decoration: InputDecoration(
               enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white12),
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
+                ),
               ),
             ),
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
             items: FftAggregationMode.values.map((mode) {
               return DropdownMenuItem(
                 value: mode,
@@ -451,12 +487,15 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final isDynamicMeshBackground = settings.playbackBackgroundType == 1;
     final isSolidColorBackground = settings.playbackBackgroundType == 2;
     final isCustomImageBackground = settings.playbackBackgroundType == 3;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionCard(
+            context: context,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -497,10 +536,14 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                 SwitchListTile(
                   title: Text(
                     l10n.playbackRadialGradient,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                      fontSize: 13,
+                    ),
                   ),
                   value: settings.playbackRadialGradientEnabled,
-                  activeThumbColor: Colors.blueAccent,
+                  activeThumbColor: theme.colorScheme.primary,
+                  activeTrackColor: theme.colorScheme.primary.withValues(alpha: 0.5),
                   onChanged: (val) {
                     settings.playbackRadialGradientEnabled = val;
                     setDialogState(() {});
@@ -520,6 +563,8 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     StateSetter setDialogState,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,6 +584,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         _buildSectionCard(
+          context: context,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -557,10 +603,14 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               SwitchListTile(
                 title: Text(
                   l10n.enableGradient,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: TextStyle(
+                    color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                    fontSize: 13,
+                  ),
                 ),
                 value: settings.isVisualizerGradientEnabled,
-                activeThumbColor: Colors.blueAccent,
+                activeThumbColor: theme.colorScheme.primary,
+                activeTrackColor: theme.colorScheme.primary.withValues(alpha: 0.5),
                 onChanged: (val) {
                   settings.isVisualizerGradientEnabled = val;
                   setDialogState(() {});
@@ -664,6 +714,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     required ValueChanged<double> onChanged,
     VoidCallback? onChangeEnd,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return SizedBox(
       width: 270,
       child: Column(
@@ -673,14 +726,17 @@ class VisualizerOptionsDialog extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 16, bottom: 8),
             child: Text(
               '$label: ${value.toStringAsFixed(2)}',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
+              style: TextStyle(
+                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
             ),
           ),
           SliderTheme(
-            data: const SliderThemeData(
-              activeTrackColor: Colors.blueAccent,
-              inactiveTrackColor: Colors.white12,
-              thumbColor: Colors.blueAccent,
+            data: SliderThemeData(
+              activeTrackColor: theme.colorScheme.primary,
+              inactiveTrackColor: isDark ? Colors.white12 : theme.colorScheme.primary.withValues(alpha: 0.12),
+              thumbColor: theme.colorScheme.primary,
             ),
             child: Slider(
               value: value,
@@ -704,6 +760,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     bool isDynamic = false,
     ValueChanged<bool>? onDynamicChanged,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -711,7 +770,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(
+                color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(width: 16),
             if (!isDynamic)
@@ -722,7 +784,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   height: 32,
                   decoration: BoxDecoration(
                     color: color,
-                    border: Border.all(color: Colors.white70, width: 1),
+                    border: Border.all(
+                      color: isDark ? Colors.white70 : theme.colorScheme.outlineVariant,
+                      width: 1,
+                    ),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -734,11 +799,15 @@ class VisualizerOptionsDialog extends ConsumerWidget {
             children: [
               Text(
                 AppLocalizations.of(context)!.followCoverColor,
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
               Switch(
                 value: isDynamic,
-                activeTrackColor: Colors.blueAccent,
+                activeThumbColor: theme.colorScheme.primary,
+                activeTrackColor: theme.colorScheme.primary.withValues(alpha: 0.5),
                 onChanged: onDynamicChanged,
               ),
             ],
@@ -752,15 +821,18 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     Color initialColor,
     ValueChanged<Color> onColorChanged,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     Color selectedColor = initialColor;
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.grey[900],
+          backgroundColor: isDark ? Colors.grey[900] : theme.colorScheme.surface,
           title: Text(
             AppLocalizations.of(context)!.selectColor,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
           ),
           content: SingleChildScrollView(
             child: ColorPicker(
@@ -777,7 +849,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 AppLocalizations.of(context)!.cancel,
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             TextButton(
@@ -787,7 +861,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               },
               child: Text(
                 AppLocalizations.of(context)!.confirm,
-                style: TextStyle(color: Colors.blueAccent),
+                style: TextStyle(color: theme.colorScheme.primary),
               ),
             ),
           ],
@@ -801,6 +875,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     SettingsService settings,
     StateSetter setDialogState,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -808,18 +885,26 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           padding: const EdgeInsets.only(top: 8, bottom: 8),
           child: Text(
             AppLocalizations.of(context)!.playbackBackground,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(
+              color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
           ),
         ),
         DropdownButtonFormField<int>(
           initialValue: settings.playbackBackgroundType,
-          dropdownColor: Colors.grey[900],
-          decoration: const InputDecoration(
+          dropdownColor: isDark ? Colors.grey[900] : theme.colorScheme.surfaceContainer,
+          decoration: InputDecoration(
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white12),
+              borderSide: BorderSide(
+                color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
+              ),
             ),
           ),
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: TextStyle(
+            color: isDark ? Colors.white : theme.colorScheme.onSurface,
+            fontSize: 14,
+          ),
           items: [
             DropdownMenuItem(
               value: 0,
@@ -855,14 +940,26 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     StateSetter setDialogState,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final presetColors = [
-      0xFF121212, // Classic Dark
-      0xFF1A1F2C, // Midnight Blue
-      0xFF2D1B4E, // Deep Purple
-      0xFF0D2D20, // Dark Emerald
-      0xFF3A1A22, // Velvet Burgundy
-      0xFF202225, // Slate Gray
-    ];
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final presetColors = isDark
+        ? [
+            0xFF121212, // Classic Dark
+            0xFF1A1F2C, // Midnight Blue
+            0xFF2D1B4E, // Deep Purple
+            0xFF0D2D20, // Dark Emerald
+            0xFF3A1A22, // Velvet Burgundy
+            0xFF202225, // Slate Gray
+          ]
+        : [
+            0xFFF5F5F7, // Classic Light
+            0xFFE8ECEF, // Soft Blue
+            0xFFF0EBF4, // Soft Purple
+            0xFFE2EBE5, // Soft Emerald
+            0xFFF5EBF0, // Soft Burgundy
+            0xFFECEFF1, // Soft Gray
+          ];
     final activeColor = settings.playbackBackgroundColor;
 
     return Column(
@@ -871,7 +968,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
         const SizedBox(height: 20),
         Text(
           l10n.presetColors,
-          style: const TextStyle(color: Colors.white70, fontSize: 13),
+          style: TextStyle(
+            color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+            fontSize: 13,
+          ),
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -894,13 +994,15 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                     color: color,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? Colors.blueAccent : Colors.white24,
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : (isDark ? Colors.white24 : theme.colorScheme.outlineVariant),
                       width: isSelected ? 3 : 1,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Colors.blueAccent.withValues(alpha: 0.4),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.4),
                               blurRadius: 8,
                               spreadRadius: 1,
                             )
@@ -908,7 +1010,11 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                         : null,
                   ),
                   child: isSelected
-                      ? const Icon(Icons.check, color: Colors.white, size: 18)
+                      ? Icon(
+                          Icons.check,
+                          color: color.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+                          size: 18,
+                        )
                       : null,
                 ),
               );
@@ -928,20 +1034,22 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.05),
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: !presetColors.contains(activeColor)
-                        ? Colors.blueAccent
-                        : Colors.white24,
+                        ? theme.colorScheme.primary
+                        : (isDark ? Colors.white24 : theme.colorScheme.outlineVariant),
                     width: !presetColors.contains(activeColor) ? 3 : 1,
                   ),
                 ),
                 child: Icon(
                   Icons.color_lens_outlined,
                   color: !presetColors.contains(activeColor)
-                      ? Colors.blueAccent
-                      : Colors.white70,
+                      ? theme.colorScheme.primary
+                      : (isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant),
                   size: 20,
                 ),
               ),
@@ -1131,13 +1239,16 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     String? resetLabel,
     VoidCallback? onReset,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Row(
       children: [
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: isDark ? Colors.white : theme.colorScheme.onSurface,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
@@ -1167,14 +1278,26 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     };
   }
 
-  Widget _buildSectionCard({required Widget child}) {
+  Widget _buildSectionCard({
+    required BuildContext context,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.06),
+        ),
       ),
       child: child,
     );

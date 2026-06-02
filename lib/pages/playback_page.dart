@@ -271,14 +271,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     final l10n = AppLocalizations.of(context)!;
     final currentSong = ref.read(audioCurrentMusicProvider);
     final queue = ref.read(audioPlaybackQueueProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: isDark ? Colors.grey[900] : theme.colorScheme.surface,
         title: Text(
           l10n.saveTagsToFile,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -290,7 +292,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               ),
               title: Text(
                 l10n.editSongTagsTitle,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
               ),
               enabled: currentSong != null,
               onTap: () {
@@ -303,7 +305,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               leading: const Icon(Icons.music_note, color: Colors.blueAccent),
               title: Text(
                 l10n.saveCurrentTagsToFile,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
               ),
               enabled:
                   currentSong != null && isMetadataWritable(currentSong.path),
@@ -316,7 +318,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               leading: const Icon(Icons.queue_music, color: Colors.greenAccent),
               title: Text(
                 l10n.saveQueueTagsToFile,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
               ),
               enabled: queue.isNotEmpty,
               onTap: () {
@@ -329,7 +331,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.cancel),
+            child: Text(
+              l10n.cancel,
+              style: TextStyle(color: theme.colorScheme.primary),
+            ),
           ),
         ],
       ),

@@ -59,6 +59,9 @@ class SongTagSummaryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return QueryConditionChip(
       label: label,
       value: value,
@@ -66,13 +69,17 @@ class SongTagSummaryChip extends StatelessWidget {
       onTap: onTap,
       onEdit: onEdit,
       activeBackgroundColor: const Color(0xFF46D27A).withValues(alpha: 0.12),
-      inactiveBackgroundColor: Colors.white.withValues(alpha: 0.04),
+      inactiveBackgroundColor: isDark
+          ? Colors.white.withValues(alpha: 0.04)
+          : Colors.black.withValues(alpha: 0.03),
       activeBorderColor: const Color(0xFF46D27A).withValues(alpha: 0.28),
-      inactiveBorderColor: Colors.white.withValues(alpha: 0.06),
-      activeTextColor: Colors.white.withValues(alpha: 0.88),
-      inactiveTextColor: Colors.white.withValues(alpha: 0.58),
+      inactiveBorderColor: isDark
+          ? Colors.white.withValues(alpha: 0.06)
+          : Colors.black.withValues(alpha: 0.06),
+      activeTextColor: isDark ? Colors.white.withValues(alpha: 0.88) : theme.colorScheme.onSurface,
+      inactiveTextColor: isDark ? Colors.white.withValues(alpha: 0.58) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
       activeIconColor: const Color(0xFF46D27A),
-      inactiveIconColor: Colors.white.withValues(alpha: 0.35),
+      inactiveIconColor: isDark ? Colors.white.withValues(alpha: 0.35) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
       editTooltip: AppLocalizations.of(context)!.editQueryCondition,
     );
   }
@@ -96,19 +103,26 @@ class SongTagEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 52, color: Colors.white.withValues(alpha: 0.35)),
+            Icon(
+              icon,
+              size: 52,
+              color: isDark ? Colors.white.withValues(alpha: 0.35) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
+            ),
             const SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: isDark ? Colors.white : theme.colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -118,7 +132,7 @@ class SongTagEmptyState extends StatelessWidget {
               subtitle,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: isDark ? Colors.white.withValues(alpha: 0.6) : theme.colorScheme.onSurfaceVariant,
                 height: 1.35,
               ),
             ),
@@ -229,6 +243,9 @@ class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     if (_isLoading) {
       return Center(
         child: SizedBox(
@@ -237,7 +254,7 @@ class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
           child: CircularProgressIndicator(
             strokeWidth: 1.5,
             valueColor: AlwaysStoppedAnimation<Color>(
-              Colors.white.withValues(alpha: 0.15),
+              isDark ? Colors.white.withValues(alpha: 0.15) : theme.colorScheme.primary.withValues(alpha: 0.3),
             ),
           ),
         ),
@@ -248,7 +265,7 @@ class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
     if (bytes == null || bytes.isEmpty) {
       final error = _error ?? StateError('Failed to load image bytes.');
       return widget.errorBuilder?.call(context, error, null) ??
-          const Icon(Icons.image_not_supported_outlined, color: Colors.white24);
+          Icon(Icons.image_not_supported_outlined, color: isDark ? Colors.white24 : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3));
     }
 
     return AnimatedOpacity(
@@ -307,6 +324,9 @@ class _SongTagMatchCoverImageState extends State<SongTagMatchCoverImage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     if (!_hasResolved) {
       return Center(
         child: SizedBox(
@@ -315,7 +335,7 @@ class _SongTagMatchCoverImageState extends State<SongTagMatchCoverImage> {
           child: CircularProgressIndicator(
             strokeWidth: 1.5,
             valueColor: AlwaysStoppedAnimation<Color>(
-              Colors.white.withValues(alpha: 0.15),
+              isDark ? Colors.white.withValues(alpha: 0.15) : theme.colorScheme.primary.withValues(alpha: 0.3),
             ),
           ),
         ),
@@ -328,17 +348,17 @@ class _SongTagMatchCoverImageState extends State<SongTagMatchCoverImage> {
       return ProxyNetworkImage(
         url: url,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => const Icon(
+        errorBuilder: (context, error, stackTrace) => Icon(
           Icons.music_note_rounded,
-          color: Colors.white24,
+          color: isDark ? Colors.white24 : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
           size: 24,
         ),
       );
     }
 
-    return const Icon(
+    return Icon(
       Icons.music_note_rounded,
-      color: Colors.white24,
+      color: isDark ? Colors.white24 : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
       size: 24,
     );
   }

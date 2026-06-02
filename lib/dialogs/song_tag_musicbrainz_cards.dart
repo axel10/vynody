@@ -36,11 +36,13 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
     final releaseCount = match.releases.length;
     final hasReleases = releaseCount > 0;
     final durationText = match.durationLabel;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Material(
-        color: Colors.white.withValues(alpha: 0.045),
+        color: isDark ? Colors.white.withValues(alpha: 0.045) : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -60,7 +62,7 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
                           width: 52,
                           height: 52,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.08),
+                            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           clipBehavior: Clip.antiAlias,
@@ -102,8 +104,8 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
                             match.title.isNotEmpty ? match.title : displayTitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : theme.colorScheme.onSurface,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
@@ -119,7 +121,7 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: isDark ? Colors.white.withValues(alpha: 0.7) : theme.colorScheme.onSurfaceVariant,
                               fontSize: 12,
                               height: 1.3,
                             ),
@@ -134,7 +136,7 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.45),
+                              color: isDark ? Colors.white.withValues(alpha: 0.45) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                               fontSize: 11,
                             ),
                           ),
@@ -155,8 +157,8 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
                                 ? Icons.keyboard_arrow_down_rounded
                                 : Icons.remove_rounded,
                             color: hasReleases
-                                ? Colors.white.withValues(alpha: 0.45)
-                                : Colors.white.withValues(alpha: 0.2),
+                                ? (isDark ? Colors.white.withValues(alpha: 0.45) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6))
+                                : (isDark ? Colors.white.withValues(alpha: 0.2) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
                           ),
                         ),
                       ],
@@ -192,7 +194,7 @@ class SongTagMusicBrainzRecordingCard extends StatelessWidget {
                           : Text(
                               l10n.noExpandableReleases,
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.42),
+                                color: isDark ? Colors.white.withValues(alpha: 0.42) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                                 fontSize: 11,
                               ),
                             ),
@@ -227,8 +229,11 @@ class SongTagMusicBrainzReleaseItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Material(
-      color: Colors.white.withValues(alpha: 0.03),
+      color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
       borderRadius: BorderRadius.circular(9),
       child: InkWell(
         borderRadius: BorderRadius.circular(9),
@@ -246,10 +251,10 @@ class SongTagMusicBrainzReleaseItem extends StatelessWidget {
                     url: release.thumbnailUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      child: const Icon(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                      child: Icon(
                         Icons.album_outlined,
-                        color: Colors.white24,
+                        color: isDark ? Colors.white24 : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                         size: 18,
                       ),
                     ),
@@ -265,8 +270,8 @@ class SongTagMusicBrainzReleaseItem extends StatelessWidget {
                       release.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                       ),
@@ -286,7 +291,7 @@ class SongTagMusicBrainzReleaseItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: isDark ? Colors.white.withValues(alpha: 0.5) : theme.colorScheme.onSurfaceVariant,
                         fontSize: 10.5,
                       ),
                     ),
@@ -296,7 +301,7 @@ class SongTagMusicBrainzReleaseItem extends StatelessWidget {
               const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right_rounded,
-                color: Colors.white.withValues(alpha: 0.3),
+                color: isDark ? Colors.white.withValues(alpha: 0.3) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
             ],
           ),

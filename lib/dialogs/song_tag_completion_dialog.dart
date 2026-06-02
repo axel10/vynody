@@ -468,6 +468,9 @@ class _SongTagCompletionSheetState
     AppLocalizations l10n,
     SongTagCompletionController controller,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
       child: Column(
@@ -483,7 +486,7 @@ class _SongTagCompletionSheetState
                     Text(
                       l10n.tagCompletion,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                       ),
@@ -492,7 +495,7 @@ class _SongTagCompletionSheetState
                     Text(
                       l10n.tagCompletionDescription,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: isDark ? Colors.white.withValues(alpha: 0.6) : theme.colorScheme.onSurfaceVariant,
                         fontSize: 12,
                         height: 1.35,
                       ),
@@ -508,7 +511,7 @@ class _SongTagCompletionSheetState
                       : Icons.search_rounded,
                   color: _hasMusicBrainzSearchQuery
                       ? const Color(0xFF46D27A)
-                      : Colors.white70,
+                      : (isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant),
                 ),
                 tooltip: _isMusicBrainzSearchExpanded
                     ? l10n.closeSearch
@@ -518,12 +521,18 @@ class _SongTagCompletionSheetState
                 onPressed: controller.isMusicBrainzLoading
                     ? null
                     : _loadMatches,
-                icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+                icon: Icon(
+                  Icons.refresh_rounded,
+                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                ),
                 tooltip: l10n.refreshResults,
               ),
               IconButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                icon: Icon(
+                  Icons.close_rounded,
+                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                ),
                 tooltip: l10n.close,
               ),
             ],
@@ -538,29 +547,29 @@ class _SongTagCompletionSheetState
                     child: TextField(
                       controller: _musicBrainzSearchController,
                       focusNode: _musicBrainzSearchFocusNode,
-                      style: const TextStyle(color: Colors.white),
-                      cursorColor: const Color(0xFF46D27A),
+                      style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
+                      cursorColor: theme.colorScheme.primary,
                       decoration: InputDecoration(
                         hintText: l10n.filterMusicBrainzReleaseTitle,
                         hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
+                          color: isDark ? Colors.white.withValues(alpha: 0.35) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                         ),
                         prefixIcon: Icon(
                           Icons.search_rounded,
-                          color: Colors.white.withValues(alpha: 0.45),
+                          color: isDark ? Colors.white.withValues(alpha: 0.45) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                         ),
                         suffixIcon: _hasMusicBrainzSearchQuery
                             ? IconButton(
                                 onPressed: _clearMusicBrainzSearch,
                                 icon: Icon(
                                   Icons.clear_rounded,
-                                  color: Colors.white.withValues(alpha: 0.55),
+                                  color: isDark ? Colors.white.withValues(alpha: 0.55) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                 ),
                                 tooltip: l10n.clearSearch,
                               )
                             : null,
                         filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.06),
+                        fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide.none,
@@ -568,13 +577,13 @@ class _SongTagCompletionSheetState
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.06),
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF46D27A),
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.primary,
                             width: 1.1,
                           ),
                         ),
@@ -597,6 +606,9 @@ class _SongTagCompletionSheetState
     AppLocalizations l10n,
     SongTagCompletionController controller,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final summaryItems = <Widget>[
       SongTagSummaryChip(
         label: l10n.localTitle,
@@ -645,7 +657,7 @@ class _SongTagCompletionSheetState
           Text(
             l10n.queryConditions,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.68),
+              color: isDark ? Colors.white.withValues(alpha: 0.68) : theme.colorScheme.onSurfaceVariant,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,
@@ -663,6 +675,8 @@ class _SongTagCompletionSheetState
     AppLocalizations l10n,
     SongTagCompletionController controller,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final filteredMusicBrainzMatches = _filteredMusicBrainzMatches(controller);
     final hasFilteredMusicBrainzMatches = filteredMusicBrainzMatches.isNotEmpty;
     final hasAnyResults =
@@ -686,7 +700,7 @@ class _SongTagCompletionSheetState
                 height: 38,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.6,
-                  color: const Color(0xFF46D27A).withValues(alpha: 0.95),
+                  color: theme.colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 18),
@@ -694,7 +708,7 @@ class _SongTagCompletionSheetState
                 l10n.musicBrainzLoading,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -704,7 +718,7 @@ class _SongTagCompletionSheetState
                 _musicBrainzLoadingSubtitle(l10n, controller),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: isDark ? Colors.white.withValues(alpha: 0.6) : theme.colorScheme.onSurfaceVariant,
                   height: 1.35,
                 ),
               ),
@@ -743,9 +757,11 @@ class _SongTagCompletionSheetState
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              border: Border.all(
+                color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.06),
+              ),
             ),
             child: Row(
               children: [
@@ -754,7 +770,7 @@ class _SongTagCompletionSheetState
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: const Color(0xFF46D27A).withValues(alpha: 0.95),
+                    color: theme.colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -762,7 +778,7 @@ class _SongTagCompletionSheetState
                   child: Text(
                     _musicBrainzLoadingSubtitle(l10n, controller),
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.72),
+                      color: isDark ? Colors.white.withValues(alpha: 0.72) : theme.colorScheme.onSurfaceVariant,
                       fontSize: 12,
                     ),
                   ),
@@ -788,7 +804,7 @@ class _SongTagCompletionSheetState
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: isDark ? Colors.white.withValues(alpha: 0.5) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -801,7 +817,7 @@ class _SongTagCompletionSheetState
           child: Text(
             l10n.acoustidRecognitionRecords,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.72),
+              color: isDark ? Colors.white.withValues(alpha: 0.72) : theme.colorScheme.onSurfaceVariant,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -885,7 +901,7 @@ class _SongTagCompletionSheetState
               child: Text(
                 l10n.musicBrainzRecordings,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.72),
+                  color: isDark ? Colors.white.withValues(alpha: 0.72) : theme.colorScheme.onSurfaceVariant,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -955,6 +971,8 @@ class _SongTagCompletionSheetState
       songTagCompletionControllerProvider(widget.songPath),
     );
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return SafeArea(
       top: false,
@@ -964,12 +982,12 @@ class _SongTagCompletionSheetState
           filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.82),
+              color: isDark ? Colors.black.withValues(alpha: 0.82) : theme.colorScheme.surface.withValues(alpha: 0.95),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(32),
               ),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -1036,22 +1054,24 @@ class _EditSummaryConditionDialogState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final canSave = _controller.text.trim().isNotEmpty;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return AlertDialog(
-      backgroundColor: const Color(0xFF171717),
+      backgroundColor: isDark ? const Color(0xFF171717) : theme.colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       title: Text(
         l10n.editQueryCondition,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
       ),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        style: const TextStyle(color: Colors.white),
-        cursorColor: const Color(0xFF46D27A),
+        style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
+        cursorColor: theme.colorScheme.primary,
         decoration: InputDecoration(
           hintText: l10n.enterNewQueryText,
-          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+          hintStyle: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.35) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
         ),
         onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
         onChanged: (_) => setState(() {}),
@@ -1060,7 +1080,10 @@ class _EditSummaryConditionDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
+          child: Text(
+            l10n.cancel,
+            style: TextStyle(color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant),
+          ),
         ),
         FilledButton(
           onPressed: canSave ? _submit : null,

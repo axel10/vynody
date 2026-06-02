@@ -44,10 +44,15 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Material(
-        color: const Color(0xFF46D27A).withValues(alpha: 0.1),
+        color: isDark
+            ? const Color(0xFF46D27A).withValues(alpha: 0.1)
+            : const Color(0xFF46D27A).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
@@ -64,7 +69,9 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
                       width: 54,
                       height: 54,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF46D27A).withValues(alpha: 0.2),
+                        color: isDark
+                            ? const Color(0xFF46D27A).withValues(alpha: 0.2)
+                            : const Color(0xFF46D27A).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       clipBehavior: Clip.antiAlias,
@@ -84,8 +91,8 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
                                       : displayTitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : theme.colorScheme.onSurface,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -98,20 +105,20 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFF46D27A,
-                                  ).withValues(alpha: 0.2),
+                                  color: isDark
+                                      ? const Color(0xFF46D27A).withValues(alpha: 0.2)
+                                      : const Color(0xFF1E824C).withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
-                                    color: const Color(
-                                      0xFF46D27A,
-                                    ).withValues(alpha: 0.4),
+                                    color: isDark
+                                        ? const Color(0xFF46D27A).withValues(alpha: 0.4)
+                                        : const Color(0xFF1E824C).withValues(alpha: 0.2),
                                   ),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'AcoustID',
                                   style: TextStyle(
-                                    color: Color(0xFF46D27A),
+                                    color: isDark ? const Color(0xFF46D27A) : const Color(0xFF1E824C),
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -130,7 +137,9 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.7)
+                                  : theme.colorScheme.onSurfaceVariant,
                               fontSize: 12,
                               height: 1.3,
                             ),
@@ -149,7 +158,9 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.45),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.45)
+                                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                               fontSize: 11,
                             ),
                           ),
@@ -161,7 +172,9 @@ class SongTagAcoustIDResultCard extends StatelessWidget {
                       isExpanded
                           ? Icons.keyboard_arrow_up_rounded
                           : Icons.keyboard_arrow_down_rounded,
-                      color: const Color(0xFF46D27A).withValues(alpha: 0.6),
+                      color: isDark
+                          ? const Color(0xFF46D27A).withValues(alpha: 0.6)
+                          : const Color(0xFF1E824C).withValues(alpha: 0.8),
                     ),
                   ],
                 ),
@@ -240,11 +253,20 @@ class SongTagAcoustIDRecordingBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.03)
+            : Colors.black.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -258,14 +280,18 @@ class SongTagAcoustIDRecordingBlock extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.black.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     '${recordingIndex + 1}',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.75)
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.8),
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -282,8 +308,8 @@ class SongTagAcoustIDRecordingBlock extends StatelessWidget {
                             : trackResult.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : theme.colorScheme.onSurface,
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                         ),
@@ -297,7 +323,9 @@ class SongTagAcoustIDRecordingBlock extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.55),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.55)
+                              : theme.colorScheme.onSurfaceVariant,
                           fontSize: 11,
                         ),
                       ),
@@ -311,7 +339,9 @@ class SongTagAcoustIDRecordingBlock extends StatelessWidget {
               Text(
                 l10n.noExpandableReleaseGroups,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.42),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.42)
+                      : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                   fontSize: 11,
                 ),
               )
@@ -382,12 +412,20 @@ class SongTagAcoustIDReleaseGroupRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final hasReleases = releaseGroup.releases.isNotEmpty;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.12),
+        color: isDark
+            ? Colors.black.withValues(alpha: 0.12)
+            : Colors.black.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -405,10 +443,14 @@ class SongTagAcoustIDReleaseGroupRow extends StatelessWidget {
                     url: releaseGroup.thumbnailUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.white.withValues(alpha: 0.04),
-                      child: const Icon(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.04)
+                          : Colors.black.withValues(alpha: 0.03),
+                      child: Icon(
                         Icons.album_rounded,
-                        color: Colors.white24,
+                        color: isDark
+                            ? Colors.white24
+                            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                         size: 22,
                       ),
                     ),
@@ -437,8 +479,8 @@ class SongTagAcoustIDReleaseGroupRow extends StatelessWidget {
                           releaseGroup.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : theme.colorScheme.onSurface,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
@@ -458,7 +500,9 @@ class SongTagAcoustIDReleaseGroupRow extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.55),
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.55)
+                                : theme.colorScheme.onSurfaceVariant,
                             fontSize: 11,
                           ),
                         ),
@@ -475,8 +519,12 @@ class SongTagAcoustIDReleaseGroupRow extends StatelessWidget {
                   child: Icon(
                     Icons.keyboard_arrow_down_rounded,
                     color: hasReleases
-                        ? Colors.white.withValues(alpha: 0.7)
-                        : Colors.white.withValues(alpha: 0.2),
+                        ? (isDark
+                            ? Colors.white.withValues(alpha: 0.7)
+                            : theme.colorScheme.onSurfaceVariant)
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
                   ),
                 ),
               ),
@@ -541,8 +589,13 @@ class SongTagAcoustIDReleaseRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Material(
-      color: Colors.white.withValues(alpha: 0.04),
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.04)
+          : Colors.black.withValues(alpha: 0.02),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -563,10 +616,14 @@ class SongTagAcoustIDReleaseRow extends StatelessWidget {
                     url: release.thumbnailUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      child: const Icon(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.03),
+                      child: Icon(
                         Icons.album_outlined,
-                        color: Colors.white24,
+                        color: isDark
+                            ? Colors.white24
+                            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                         size: 20,
                       ),
                     ),
@@ -582,8 +639,8 @@ class SongTagAcoustIDReleaseRow extends StatelessWidget {
                       release.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                       ),
@@ -603,7 +660,9 @@ class SongTagAcoustIDReleaseRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.5)
+                            : theme.colorScheme.onSurfaceVariant,
                         fontSize: 10.5,
                       ),
                     ),

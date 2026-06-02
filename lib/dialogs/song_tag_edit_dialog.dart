@@ -136,6 +136,8 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     final canWriteToSourceFile = isMetadataWritable(widget.song.path);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return SafeArea(
       top: false,
@@ -145,12 +147,12 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.86),
+              color: isDark ? Colors.black.withValues(alpha: 0.86) : theme.colorScheme.surface.withValues(alpha: 0.95),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(32),
               ),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -170,7 +172,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                               Text(
                                 l10n.editSongTagsTitle,
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
                                   fontSize: 22,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -179,7 +181,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                               Text(
                                 l10n.editSongTagsDescription,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.6),
+                                  color: isDark ? Colors.white.withValues(alpha: 0.6) : theme.colorScheme.onSurfaceVariant,
                                   fontSize: 12,
                                   height: 1.35,
                                 ),
@@ -191,9 +193,9 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                           onPressed: _isSaving
                               ? null
                               : () => Navigator.of(context).pop(),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.close_rounded,
-                            color: Colors.white70,
+                            color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -204,24 +206,28 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                       children: [
                         _buildField(
+                          context: context,
                           controller: _titleController,
                           label: l10n.title,
                           icon: Icons.title_rounded,
                         ),
                         const SizedBox(height: 12),
                         _buildField(
+                          context: context,
                           controller: _artistController,
                           label: l10n.artistLabel,
                           icon: Icons.person_rounded,
                         ),
                         const SizedBox(height: 12),
                         _buildField(
+                          context: context,
                           controller: _albumController,
                           label: l10n.albumLabel,
                           icon: Icons.album_rounded,
                         ),
                         const SizedBox(height: 12),
                         _buildField(
+                          context: context,
                           controller: _trackNumberController,
                           label: l10n.trackNumberLabel,
                           icon: Icons.numbers_rounded,
@@ -230,6 +236,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                         ),
                         const SizedBox(height: 16),
                         _buildReadonlyInfo(
+                          context: context,
                           label: l10n.file,
                           value: widget.song.path,
                           icon: Icons.folder_open_rounded,
@@ -263,7 +270,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                         Text(
                           l10n.leaveBlankDoesNotClearOriginalValue,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45),
+                            color: isDark ? Colors.white.withValues(alpha: 0.45) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                             fontSize: 12,
                             height: 1.4,
                           ),
@@ -310,58 +317,70 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
   }
 
   Widget _buildField({
+    required BuildContext context,
     required TextEditingController controller,
     required String label,
     required IconData icon,
     TextInputType? keyboardType,
     String? helperText,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return TextField(
       controller: controller,
       enabled: !_isSaving,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
-      cursorColor: const Color(0xFF46D27A),
+      style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
+      cursorColor: theme.colorScheme.primary,
       decoration: InputDecoration(
         labelText: label,
         helperText: helperText,
-        prefixIcon: Icon(icon, color: Colors.white70),
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.75)),
-        helperStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+        prefixIcon: Icon(icon, color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant),
+        labelStyle: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.75) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75)),
+        helperStyle: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.4) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.06),
+        fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          borderSide: BorderSide(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF46D27A), width: 1.1),
+          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.1),
         ),
       ),
     );
   }
 
   Widget _buildReadonlyInfo({
+    required BuildContext context,
     required String label,
     required String value,
     required IconData icon,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.06),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.white.withValues(alpha: 0.7), size: 18),
+          Icon(icon, color: isDark ? Colors.white.withValues(alpha: 0.7) : theme.colorScheme.onSurfaceVariant, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -370,7 +389,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                 Text(
                   label,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
+                    color: isDark ? Colors.white.withValues(alpha: 0.55) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                     fontSize: 11,
                   ),
                 ),
@@ -378,7 +397,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                 Text(
                   value,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.86),
+                    color: isDark ? Colors.white.withValues(alpha: 0.86) : theme.colorScheme.onSurface,
                     fontSize: 12,
                   ),
                 ),

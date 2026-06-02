@@ -56,7 +56,6 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
     Navigator.of(context).pop();
   }
 
-
   Future<void> _endTimer() async {
     final audio = ref.read(audioServiceProvider);
     await audio.cancelSleepTimer();
@@ -81,15 +80,17 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
   Widget build(BuildContext context) {
     final remaining = ref.watch(audioSleepTimerRemainingProvider);
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.78),
+          color: isDark ? Colors.black.withValues(alpha: 0.78) : theme.colorScheme.surface.withValues(alpha: 0.9),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -107,14 +108,17 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
     );
   }
 
-  Widget _buildTitle(String title, String subtitle) {
+  Widget _buildTitle(BuildContext context, String title, String subtitle) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: isDark ? Colors.white : theme.colorScheme.onSurface,
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
@@ -122,25 +126,33 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
         const SizedBox(height: 6),
         Text(
           subtitle,
-          style: const TextStyle(color: Colors.white70, fontSize: 13),
+          style: TextStyle(
+            color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+            fontSize: 13,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildConfigureView(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       key: const ValueKey('configure'),
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTitle(l10n.sleepTimerTitle, l10n.sleepTimerDescription),
+        _buildTitle(context, l10n.sleepTimerTitle, l10n.sleepTimerDescription),
         const SizedBox(height: 18),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.04),
+            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.06),
+            ),
           ),
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: SizedBox(
@@ -154,17 +166,28 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
                   PointerDeviceKind.stylus,
                 },
               ),
-              child: CupertinoTimerPicker(
-                mode: CupertinoTimerPickerMode.hms,
-                initialTimerDuration: _selectedDuration,
-                minuteInterval: 1,
-                secondInterval: 1,
-                alignment: Alignment.center,
-                onTimerDurationChanged: (value) {
-                  setState(() {
-                    _selectedDuration = value;
-                  });
-                },
+              child: CupertinoTheme(
+                data: CupertinoThemeData(
+                  brightness: theme.brightness,
+                  textTheme: CupertinoTextThemeData(
+                    dateTimePickerTextStyle: TextStyle(
+                      color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                      fontSize: 22,
+                    ),
+                  ),
+                ),
+                child: CupertinoTimerPicker(
+                  mode: CupertinoTimerPickerMode.hms,
+                  initialTimerDuration: _selectedDuration,
+                  minuteInterval: 1,
+                  secondInterval: 1,
+                  alignment: Alignment.center,
+                  onTimerDurationChanged: (value) {
+                    setState(() {
+                      _selectedDuration = value;
+                    });
+                  },
+                ),
               ),
             ),
           ),
@@ -196,13 +219,17 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
     Duration? remaining,
     AppLocalizations l10n,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final displayRemaining = remaining ?? Duration.zero;
+
     return Column(
       key: const ValueKey('active'),
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildTitle(
+          context,
           l10n.sleepTimerRunningTitle,
           l10n.sleepTimerRunningDescription,
         ),
@@ -210,8 +237,8 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
         Center(
           child: Text(
             _formatDuration(displayRemaining),
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: isDark ? Colors.white : theme.colorScheme.onSurface,
               fontSize: 40,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.4,
@@ -223,7 +250,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
           child: Text(
             l10n.remainingTime,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.65),
+              color: isDark ? Colors.white.withValues(alpha: 0.65) : theme.colorScheme.onSurfaceVariant,
               fontSize: 13,
             ),
           ),
@@ -232,7 +259,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
         Row(
           children: [
             Expanded(
-            child: OutlinedButton(
+              child: OutlinedButton(
                 onPressed: _resetTimer,
                 child: Text(l10n.reset),
               ),

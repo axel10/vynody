@@ -37,16 +37,18 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     final audio = ref.read(audioServiceProvider);
     final config = ref.watch(audioSnapshotProvider).equalizerConfig;
     final l10n = AppLocalizations.of(context)!;
-    const accentColor = Colors.blueAccent;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = theme.colorScheme.primary;
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
+          color: isDark ? Colors.black.withValues(alpha: 0.7) : theme.colorScheme.surface.withValues(alpha: 0.9),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -71,6 +73,10 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     EqualizerConfig config,
     AppLocalizations l10n,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = theme.colorScheme.primary;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -80,7 +86,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
             Text(
               l10n.equalizer,
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : theme.colorScheme.onSurface,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
@@ -91,7 +97,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                   ? l10n.equalizerEnabledStatus
                   : l10n.equalizerDisabledStatus,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: isDark ? Colors.white.withValues(alpha: 0.5) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                 fontSize: 12,
               ),
             ),
@@ -99,7 +105,8 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
         ),
         Switch(
           value: config.enabled,
-          activeThumbColor: Colors.blueAccent,
+          activeThumbColor: accentColor,
+          activeTrackColor: accentColor.withValues(alpha: 0.5),
           onChanged: (val) => audio.setEqualizerEnabled(val),
         ),
       ],
@@ -111,6 +118,9 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     EqualizerConfig config,
     Color accentColor,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return SizedBox(
       height: 220,
       child: Row(
@@ -138,7 +148,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                       ? _formatFreq(_frequencies[index])
                       : '',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: isDark ? Colors.white.withValues(alpha: 0.6) : theme.colorScheme.onSurfaceVariant,
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                   ),
@@ -157,6 +167,9 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     Color accentColor,
     AppLocalizations l10n,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Row(
       children: [
         _buildKnobControl(
@@ -177,7 +190,10 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                 children: [
                   Text(
                     l10n.preampGain,
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
                   ),
                   Text(
                     '${config.preampDb.toStringAsFixed(1)} dB',
@@ -205,7 +221,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                   min: -12.0,
                   max: 12.0,
                   activeColor: accentColor,
-                  inactiveColor: Colors.white12,
+                  inactiveColor: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
                   onChanged: (val) => audio.setEqualizerPreamp(val),
                 ),
               ),
@@ -215,7 +231,10 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
         const SizedBox(width: 16),
         IconButton(
           onPressed: () => audio.resetEqualizerDefaults(),
-          icon: const Icon(Icons.refresh, color: Colors.white54),
+          icon: Icon(
+            Icons.refresh,
+            color: isDark ? Colors.white54 : theme.colorScheme.onSurfaceVariant,
+          ),
           tooltip: l10n.reset,
         ),
       ],
@@ -230,11 +249,17 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     required Color accentColor,
     required ValueChanged<double> onChanged,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(
+            color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
         ),
         const SizedBox(height: 12),
         _Knob(
@@ -283,6 +308,9 @@ class _VerticalEqSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return RotatedBox(
       quarterTurns: 3,
       child: SliderTheme(
@@ -291,7 +319,7 @@ class _VerticalEqSlider extends StatelessWidget {
           thumbShape: _CustomThumbShape(color: activeColor),
           overlayShape: const RoundSliderOverlayShape(overlayRadius: 0),
           activeTrackColor: activeColor,
-          inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+          inactiveTrackColor: isDark ? Colors.white.withValues(alpha: 0.1) : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
           trackShape: const RoundedRectSliderTrackShape(),
         ),
         child: Slider(
@@ -416,10 +444,15 @@ class _KnobState extends State<_Knob> {
       child: CustomPaint(
         size: Size(widget.size, widget.size),
         painter: _KnobPainter(
+          context: context,
           value: _dragValue,
           min: widget.min,
           max: widget.max,
           themeColor: widget.themeColor,
+        ),
+        child: SizedBox(
+          width: widget.size,
+          height: widget.size,
         ),
       ),
     );
@@ -427,12 +460,14 @@ class _KnobState extends State<_Knob> {
 }
 
 class _KnobPainter extends CustomPainter {
+  final BuildContext context;
   final double value;
   final double min;
   final double max;
   final Color themeColor;
 
   _KnobPainter({
+    required this.context,
     required this.value,
     required this.min,
     required this.max,
@@ -441,6 +476,9 @@ class _KnobPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
     final strokeWidth = 6.0;
@@ -450,13 +488,17 @@ class _KnobPainter extends CustomPainter {
       center,
       radius - strokeWidth / 2,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.05)
+        ..color = isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : theme.colorScheme.onSurface.withValues(alpha: 0.05)
         ..style = PaintingStyle.fill,
     );
 
     // Track
     final trackPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.1)
+      ..color = isDark
+          ? Colors.white.withValues(alpha: 0.1)
+          : theme.colorScheme.onSurface.withValues(alpha: 0.1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
@@ -495,19 +537,25 @@ class _KnobPainter extends CustomPainter {
       center.dy + (radius - 12) * math.sin(angle),
     );
 
-    canvas.drawCircle(dotPos, 4, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      dotPos,
+      4,
+      Paint()..color = isDark ? Colors.white : theme.colorScheme.onSurface,
+    );
 
     // Inner hub
     canvas.drawCircle(
       center,
       radius - 18,
       Paint()
-        ..color = Colors.white10
+        ..color = isDark
+            ? Colors.white10
+            : theme.colorScheme.onSurface.withValues(alpha: 0.05)
         ..style = PaintingStyle.fill,
     );
   }
 
   @override
   bool shouldRepaint(covariant _KnobPainter oldDelegate) =>
-      oldDelegate.value != value || oldDelegate.themeColor != themeColor;
+      oldDelegate.value != value || oldDelegate.themeColor != themeColor || oldDelegate.context != context;
 }
