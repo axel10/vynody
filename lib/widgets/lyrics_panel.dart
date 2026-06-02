@@ -945,15 +945,15 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       math.min(targetCenter - visibleCenter, maxExtent),
     );
     if (kDebugMode) {
-      debugPrint(
-        '[LyricsPanel] scrollToLine '
-        'index=$index '
-        'targetCenter=${targetCenter.toStringAsFixed(1)} '
-        'visibleCenter=${visibleCenter.toStringAsFixed(1)} '
-        'currentOffset=${_scrollController.offset.toStringAsFixed(1)} '
-        'targetOffset=${target.toStringAsFixed(1)} '
-        'delta=${(target - _scrollController.offset).toStringAsFixed(1)}',
-      );
+      // debugPrint(
+      //   '[LyricsPanel] scrollToLine '
+      //   'index=$index '
+      //   'targetCenter=${targetCenter.toStringAsFixed(1)} '
+      //   'visibleCenter=${visibleCenter.toStringAsFixed(1)} '
+      //   'currentOffset=${_scrollController.offset.toStringAsFixed(1)} '
+      //   'targetOffset=${target.toStringAsFixed(1)} '
+      //   'delta=${(target - _scrollController.offset).toStringAsFixed(1)}',
+      // );
     }
 
     if (animate) {
