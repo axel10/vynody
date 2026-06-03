@@ -764,7 +764,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                                     (isQueueSelectionMode && _currentIndex == 3))
                                 ? 80.0
                                 : 0.0),
-                        left: (useSidebar && !isPlayback) ? 80 : 0,
+                        left: 0,
                         right: 0,
                         child: Center(
                           child:
