@@ -655,8 +655,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         opacity: isRootAvailable ? 1.0 : 0.45,
                         duration: const Duration(milliseconds: 180),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
                             vertical: 4,
                           ),
                           child: ListTile(
@@ -819,8 +819,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
                   if (index == cursor) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
                         vertical: 4,
                       ),
                       child: ListTile(
@@ -888,8 +888,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         );
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
                           vertical: 4,
                         ),
                         child: ListTile(
@@ -945,8 +945,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         handleShowMenu(context, details.globalPosition);
                       },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
                           vertical: 4,
                         ),
                         child: SongTile(

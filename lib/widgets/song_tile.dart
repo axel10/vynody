@@ -144,7 +144,10 @@ class SongTile extends ConsumerWidget {
           onLongPress: onLongPress,
           hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 16,
+              vertical: 8,
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [

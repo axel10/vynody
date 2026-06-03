@@ -678,8 +678,8 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
                     return Padding(
                       key: ObjectKey(song),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
                         vertical: 4,
                       ),
                       child: SongTile(
