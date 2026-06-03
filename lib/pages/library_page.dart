@@ -61,11 +61,14 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Scaffold(
       appBar: AppBar(
         title:TabBar(
           controller: _tabController,
+          isScrollable: isPortrait,
+          tabAlignment: isPortrait ? TabAlignment.center : TabAlignment.fill,
           tabs: [
             Tab(text: l10n.playlist),
             Tab(text: l10n.mostPlayed),
