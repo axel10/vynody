@@ -457,12 +457,23 @@ class _CoverItemState extends State<_CoverItem> {
                       borderRadius: BorderRadius.circular(24),
                       color: Colors.black26,
                       boxShadow: [
+                        // Deep soft ambient shadow
                         BoxShadow(
                           color: Colors.black.withValues(
-                            alpha: 0.10 + (0.1 * (1 - pageOffset.abs())),
+                            alpha: (0.18 + 0.12 * (1 - pageOffset.abs())),
                           ),
-                          blurRadius: 50 * scale,
-                          spreadRadius: 15 * scale,
+                          blurRadius: 3 * scale,
+                          spreadRadius: 2 * scale,
+                          offset: Offset(0, 2 * scale),
+                        ),
+                        // Crisp contact shadow
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: (0.10 + 0.08 * (1 - pageOffset.abs())),
+                          ),
+                          blurRadius: 16 * scale,
+                          spreadRadius: -4 * scale,
+                          offset: Offset(0, 8 * scale),
                         ),
                       ],
                     ),

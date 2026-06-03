@@ -999,10 +999,19 @@ class PlaybackHeroCard extends ConsumerWidget {
             borderRadius: BorderRadius.circular(24),
             color: Colors.black87,
             boxShadow: [
+              // Deep soft ambient shadow
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 50,
-                spreadRadius: 15,
+                color: Colors.black.withValues(alpha: 0.30),
+                blurRadius: 40,
+                spreadRadius: 0,
+                offset: const Offset(0, 16),
+              ),
+              // Crisp contact shadow
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 16,
+                spreadRadius: -4,
+                offset: const Offset(0, 8),
               ),
             ],
           ),

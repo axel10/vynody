@@ -141,7 +141,7 @@ class AndroidIntegrationService {
       return;
     }
     _lastDebugLogAt = now;
-    debugPrint('[AndroidIntegration] $message');
+    // debugPrint('[AndroidIntegration] $message');
   }
 
   String _formatDuration(Duration duration) {
