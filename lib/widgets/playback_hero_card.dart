@@ -1870,20 +1870,68 @@ class PlaybackProgressSection extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  formatDuration(overridePosition ?? position),
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12 * controlsScale,
+                if (isLandscape)
+                  Text(
+                    formatDuration(overridePosition ?? position),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12 * controlsScale,
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      formatDuration(overridePosition ?? position),
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 11 * controlsScale,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-                Text(
-                  formatDuration(duration),
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12 * controlsScale,
+                if (isLandscape)
+                  Text(
+                    formatDuration(duration),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12 * controlsScale,
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      formatDuration(duration),
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 11 * controlsScale,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -1944,6 +1992,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
         // 2. 时间文字单独平移，避免拉伸 (Time text translated separately to avoid stretching)
         Builder(
           builder: (context) {
+            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
             final screenWidth = MediaQuery.of(context).size.width;
             final pagePadding = PlaybackPageUiTuning.normalPortraitHorizontalPadding;
             const minScreenMargin = 10.0;
@@ -1974,17 +2023,40 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                     bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
                     child: Transform.translate(
                       offset: Offset(safeShift, 0),
-                      child: Text(
-                        formatDuration(overridePosition ?? position),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12 * controlsScale,
-                          fontWeight: FontWeight.bold,
-                          shadows: const [
-                            Shadow(color: Colors.black45, blurRadius: 4),
-                          ],
-                        ),
-                      ),
+                      child: isLandscape
+                          ? Text(
+                              formatDuration(overridePosition ?? position),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12 * controlsScale,
+                                fontWeight: FontWeight.bold,
+                                shadows: const [
+                                  Shadow(color: Colors.black45, blurRadius: 4),
+                                ],
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(100),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                formatDuration(overridePosition ?? position),
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 11 * controlsScale,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                   Positioned(
@@ -1992,17 +2064,40 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                     bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
                     child: Transform.translate(
                       offset: Offset(-safeShift, 0),
-                      child: Text(
-                        formatDuration(duration),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12 * controlsScale,
-                          fontWeight: FontWeight.bold,
-                          shadows: const [
-                            Shadow(color: Colors.black45, blurRadius: 4),
-                          ],
-                        ),
-                      ),
+                      child: isLandscape
+                          ? Text(
+                              formatDuration(duration),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12 * controlsScale,
+                                fontWeight: FontWeight.bold,
+                                shadows: const [
+                                  Shadow(color: Colors.black45, blurRadius: 4),
+                                ],
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(100),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                formatDuration(duration),
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 11 * controlsScale,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                 ],

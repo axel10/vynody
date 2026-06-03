@@ -128,7 +128,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
         // 缩放因子：决定波形的“宽度”。这里我们让每个波形点占据一定的像素宽度
         // 如果是滚动模式，我们让波形更宽一些，超出屏幕
         final double barWidth = widget.isScrolling ? 5.0 : (width / math.max(1, _animatedWaveform.length));
-        final double barGap = widget.isScrolling ? 1.0 : 0.0;
+        final double barGap = widget.isScrolling ? 2.0 : 0.0;
         final double totalBarWidth = barWidth + barGap;
         final double totalWaveformWidth = _animatedWaveform.length * totalBarWidth;
 
