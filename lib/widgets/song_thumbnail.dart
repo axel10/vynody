@@ -9,12 +9,16 @@ class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
   final int? id;
   final double size;
+  final double? width;
+  final double? height;
 
   const SongThumbnail({
     super.key,
     required this.path,
     this.id,
     this.size = 40.0,
+    this.width,
+    this.height,
   });
 
   @override
@@ -104,6 +108,9 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
 
     final double dpr = MediaQuery.of(context).devicePixelRatio;
     final double adjustedSize = (widget.size * dpr).round() / dpr;
+    final double layoutWidth = widget.width ?? adjustedSize;
+    final double layoutHeight = widget.height ?? adjustedSize;
+    final int cachePixels = (widget.size * dpr).round();
 
     if (imagePath != null) {
       final file = File(imagePath);
@@ -111,13 +118,13 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         borderRadius: BorderRadius.circular(4),
         child: Image.file(
           file,
-          width: adjustedSize,
-          height: adjustedSize,
+          width: layoutWidth,
+          height: layoutHeight,
           fit: BoxFit.cover,
-          cacheWidth: (adjustedSize * dpr).round(),
-          cacheHeight: (adjustedSize * dpr).round(),
+          cacheWidth: cachePixels,
+          cacheHeight: cachePixels,
           filterQuality: FilterQuality.low,
-          errorBuilder: (_, _, _) => _fallbackIcon(adjustedSize),
+          errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight),
         ),
       );
     }
@@ -128,13 +135,13 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           borderRadius: BorderRadius.circular(4),
           child: Image.memory(
             _artworkBytes!,
-            width: adjustedSize,
-            height: adjustedSize,
+            width: layoutWidth,
+            height: layoutHeight,
             fit: BoxFit.cover,
-            cacheWidth: (adjustedSize * dpr).round(),
-            cacheHeight: (adjustedSize * dpr).round(),
+            cacheWidth: cachePixels,
+            cacheHeight: cachePixels,
             filterQuality: FilterQuality.low,
-            errorBuilder: (_, _, _) => _fallbackIcon(adjustedSize),
+            errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight),
           ),
         );
       }
@@ -142,7 +149,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         _triggerLoad();
       }
       // Still fetching or no artwork — show fallback without flickering.
-      return _fallbackIcon(adjustedSize);
+      return _fallbackIcon(layoutWidth, layoutHeight);
     } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       // Metadata not yet in map, or the cached entry still lacks a thumbnail.
       if (metadata == null || metadata.thumbnailPath == null) {
@@ -150,21 +157,29 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       }
     }
 
-    return _fallbackIcon(adjustedSize);
+    return _fallbackIcon(layoutWidth, layoutHeight);
   }
 
-  Widget _fallbackIcon(double adjustedSize) {
+  Widget _fallbackIcon(double width, double height) {
     return Container(
-      width: adjustedSize,
-      height: adjustedSize,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Icon(
-        Icons.music_note,
-        color: Colors.blue,
-        size: adjustedSize * 0.6,
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Icon(
+              Icons.music_note,
+              color: Colors.blue,
+              size: 48,
+            ),
+          ),
+        ),
       ),
     );
   }

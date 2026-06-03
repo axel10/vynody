@@ -79,6 +79,11 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
               _ => 2,
             };
 
+            final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+            final double textHeight = isPortrait ? 80.0 : 96.0;
+            final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+            final childAspectRatio = itemWidth / (itemWidth + textHeight);
+
             return CustomScrollView(
               cacheExtent: 1000,
               slivers: [
@@ -130,6 +135,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
                       title: "",
                       albums: knownAlbums,
                       crossAxisCount: crossAxisCount,
+                      childAspectRatio: childAspectRatio,
                     ),
                   ],
                   if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
@@ -139,6 +145,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
                       title: l10n.unknownAlbum,
                       albums: unknownAlbums,
                       crossAxisCount: crossAxisCount,
+                      childAspectRatio: childAspectRatio,
                     ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
@@ -187,6 +194,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
     required String? title,
     required List<AlbumSummary> albums,
     required int crossAxisCount,
+    required double childAspectRatio,
   }) {
     return [
 
@@ -197,7 +205,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 0.72,
+            childAspectRatio: childAspectRatio,
           ),
           delegate: SliverChildBuilderDelegate(
             (context, index) => _AlbumCard(album: albums[index]),
@@ -219,6 +227,7 @@ class _AlbumCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final audio = ref.read(audioServiceProvider);
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Material(
       color: Colors.transparent,
@@ -250,65 +259,98 @@ class _AlbumCard extends ConsumerWidget {
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Hero(
-                      tag: 'album-cover-${album.id}',
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: SongThumbnail(
-                            path: album.representativeSong.path,
-                            id: album.representativeSong.id,
-                            size: 220,
-                          ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Hero(
+                  tag: 'album-cover-${album.id}',
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(23),
+                      topRight: Radius.circular(23),
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: SongThumbnail(
+                        path: album.representativeSong.path,
+                        id: album.representativeSong.id,
+                        size: 250,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      isPortrait ? 10 : 12,
+                      isPortrait ? 8 : 10,
+                      isPortrait ? 10 : 12,
+                      isPortrait ? 6 : 8,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              album.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: (isPortrait
+                                      ? theme.textTheme.titleSmall
+                                      : theme.textTheme.titleMedium)
+                                  ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              album.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: (isPortrait
+                                      ? theme.textTheme.bodySmall
+                                      : theme.textTheme.bodyMedium)
+                                  ?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    album.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    album.artist,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.songCount(album.trackCount),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                l10n.songCount(album.trackCount),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontSize: isPortrait ? 10 : 11,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: l10n.playAll,
+                              onPressed: () => audio.playPlaylist(album.songs),
+                              icon: Icon(
+                                Icons.play_circle_filled,
+                                size: isPortrait ? 22 : 26,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      IconButton(
-                        tooltip: l10n.playAll,
-                        onPressed: () => audio.playPlaylist(album.songs),
-                        icon: const Icon(Icons.play_arrow),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
