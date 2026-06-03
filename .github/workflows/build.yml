@@ -52,13 +52,19 @@ jobs:
           RUST_BACKTRACE: "full"
         run: flutter build apk --release --target-platform android-arm,android-arm64 --split-per-abi --split-debug-info=build/app/outputs/symbols -v
 
+      - name: Rename APKs with version
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
+          mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk build/app/outputs/flutter-apk/vibeflow-android-${VERSION}-armeabi-v7a.apk
+          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk build/app/outputs/flutter-apk/vibeflow-android-${VERSION}-arm64-v8a.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: |
-            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/vibeflow-android-*-armeabi-v7a.apk
+            build/app/outputs/flutter-apk/vibeflow-android-*-arm64-v8a.apk
 
   windows:
     name: Build Windows Package
@@ -160,19 +166,40 @@ jobs:
           }
           $installerFiles | ForEach-Object { Write-Host "Found installer: $($_.FullName)" }
 
-      - name: Package Windows bundle
+      - name: Package and rename Windows artifacts
         shell: pwsh
         run: |
-          $output = "vibeflow-windows.zip"
-          if (Test-Path $output) { Remove-Item $output -Force }
-          Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath $output
+          $appVersion = (Select-String -Path "pubspec.yaml" -Pattern '^version:\s*([0-9]+\.[0-9]+\.[0-9]+)').Matches[0].Groups[1].Value
+          if (-not $appVersion) {
+            Write-Error "Could not determine app version from pubspec.yaml"
+            exit 1
+          }
+          
+          # 1. Package zip with version
+          $zipOutput = "vibeflow-windows-$appVersion.zip"
+          if (Test-Path $zipOutput) { Remove-Item $zipOutput -Force }
+          Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath $zipOutput
+
+          # 2. Rename MSIX files with version
+          Get-ChildItem "build/windows/msix" -Filter "*.msix" -Recurse | ForEach-Object {
+              $newName = "vibeflow-windows-$appVersion.msix"
+              $newPath = Join-Path $_.DirectoryName $newName
+              Move-Item $_.FullName $newPath -Force
+          }
+
+          # 3. Rename Inno Setup installer with version
+          Get-ChildItem "build/windows/installer" -Filter "*.exe" -Recurse | ForEach-Object {
+              $newName = "vibeflow-windows-$appVersion-setup.exe"
+              $newPath = Join-Path $_.DirectoryName $newName
+              Move-Item $_.FullName $newPath -Force
+          }
 
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
         with:
           name: windows-package
           path: |
-            vibeflow-windows.zip
+            vibeflow-windows-*.zip
             build/windows/msix/**/*.msix
             build/windows/installer/*.exe
 
@@ -210,13 +237,15 @@ jobs:
         run: flutter build linux --release
 
       - name: Package Linux bundle
-        run: tar -czf vibeflow-linux.tar.gz -C build/linux/x64/release bundle
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
+          tar -czf vibeflow-linux-$VERSION.tar.gz -C build/linux/x64/release bundle
 
       - name: Upload Linux package
         uses: actions/upload-artifact@v4
         with:
           name: linux-package
-          path: vibeflow-linux.tar.gz
+          path: vibeflow-linux-*.tar.gz
 
   macos:
     name: Build macOS Package (Xcode ${{ matrix.xcode }})
@@ -358,18 +387,19 @@ jobs:
 
       - name: Package macOS DMG
         run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
           hdiutil create \
             -volname "VibeFlow" \
             -srcfolder vibeflow-dmg \
             -ov \
             -format UDZO \
-            vibeflow-macos.dmg
+            vibeflow-macos-$VERSION.dmg
 
       - name: Upload macOS package
         uses: actions/upload-artifact@v4
         with:
           name: macos-package
-          path: vibeflow-macos.dmg
+          path: vibeflow-macos-*.dmg
 
   release:
     name: Create Release and Upload Assets
@@ -406,36 +436,8 @@ jobs:
       - name: Prepare Assets
         run: |
           mkdir -p release_assets
-          # Android
-          if [ -f artifacts/android/app-release.apk ]; then
-            mv artifacts/android/app-release.apk release_assets/vibeflow-android.apk
-          fi
-          if [ -f artifacts/android/app-armeabi-v7a-release.apk ]; then
-            mv artifacts/android/app-armeabi-v7a-release.apk release_assets/vibeflow-android-armeabi-v7a.apk
-          fi
-          if [ -f artifacts/android/app-arm64-v8a-release.apk ]; then
-            mv artifacts/android/app-arm64-v8a-release.apk release_assets/vibeflow-android-arm64-v8a.apk
-          fi
-          # Windows zip
-          if [ -f artifacts/windows/vibeflow-windows.zip ]; then
-            mv artifacts/windows/vibeflow-windows.zip release_assets/
-          fi
-          # Windows MSIX
-          if find artifacts/windows -type f -name '*.msix' | grep -q .; then
-            find artifacts/windows -type f -name '*.msix' -exec mv {} release_assets/ \;
-          fi
-          # Windows installer
-          if find artifacts/windows -type f -name 'vibeflow-windows-setup.exe' | grep -q .; then
-            find artifacts/windows -type f -name 'vibeflow-windows-setup.exe' -exec mv {} release_assets/ \;
-          fi
-          # Linux
-          if [ -f artifacts/linux/vibeflow-linux.tar.gz ]; then
-            mv artifacts/linux/vibeflow-linux.tar.gz release_assets/
-          fi
-          # macOS
-          if [ -f artifacts/macos/vibeflow-macos.dmg ]; then
-            mv artifacts/macos/vibeflow-macos.dmg release_assets/
-          fi
+          # Copy all versioned artifacts starting with vibeflow- to release_assets
+          find artifacts -type f -name "vibeflow-*" -exec cp {} release_assets/ \;
           ls -l release_assets
 
       - name: Create Release and Upload Assets
