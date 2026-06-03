@@ -105,4 +105,32 @@ class ScannerPathUtils {
 
     return normalizedPath;
   }
+
+  static String cleanDisplayPath(String path) {
+    var cleaned = normalizePath(path);
+    if (Platform.isIOS) {
+      // Clean AppGroup path: /private/var/mobile/Containers/Shared/AppGroup/UUID/ -> AppGroup/
+      cleaned = cleaned.replaceFirst(
+        RegExp(r'^/(private/)?var/mobile/Containers/Shared/AppGroup/[^/]+/'),
+        'AppGroup/',
+      );
+      // Clean Application Documents path: /private/var/mobile/Containers/Data/Application/UUID/Documents/ -> Documents/
+      cleaned = cleaned.replaceFirst(
+        RegExp(r'^/(private/)?var/mobile/Containers/Data/Application/[^/]+/Documents/'),
+        'Documents/',
+      );
+      // Clean Application Library path: /private/var/mobile/Containers/Data/Application/UUID/Library/ -> Library/
+      cleaned = cleaned.replaceFirst(
+        RegExp(r'^/(private/)?var/mobile/Containers/Data/Application/[^/]+/Library/'),
+        'Library/',
+      );
+      // Clean general Containers path: /private/var/mobile/Containers/Type/UUID/ -> Container/
+      cleaned = cleaned.replaceFirst(
+        RegExp(r'^/(private/)?var/mobile/Containers/[^/]+/[^/]+/'),
+        'Container/',
+      );
+    }
+    return cleaned;
+  }
 }
+

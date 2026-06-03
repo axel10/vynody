@@ -13,6 +13,7 @@ import 'package:vibe_flow/models/music_folder.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/scanner/scanner_sorting.dart';
 import 'package:vibe_flow/player/scanner/scanner_service.dart';
+import 'package:vibe_flow/player/scanner/scanner_path_utils.dart';
 import 'folder_page_riverpod.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/song_tile.dart';
@@ -683,7 +684,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                     color: Colors.amber,
                                   ),
                             title: Text(folder.name),
-                            subtitle: Text(folder.path),
+                            subtitle: Text(ScannerPathUtils.cleanDisplayPath(folder.path)),
                             onTap: isRootSelectionMode
                                 ? () => _toggleRootSelection(folder.path)
                                 : (isRootAvailable
