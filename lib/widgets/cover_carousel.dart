@@ -502,7 +502,7 @@ class _CoverItemState extends State<_CoverItem> {
         ? (rawSize / 20).round() * 20
         : rawSize.round();
     
-    final int finalCacheWidth = math.min(cacheSize, limit);
+    final int? finalCacheWidth = cacheSize > 0 ? math.min(cacheSize, limit) : null;
 
     final cachedBytes = widget.audioService.getCachedArtwork(
       widget.musicFile.path,
