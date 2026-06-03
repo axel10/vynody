@@ -992,6 +992,12 @@ abstract class AppLocalizations {
   /// **'要显示的波形柱数量 (默认: 80)'**
   String get waveformSegmentsDescription;
 
+  /// Show developer options label
+  ///
+  /// In zh, this message translates to:
+  /// **'显示开发人员选项'**
+  String get showDeveloperOptions;
+
   /// No description provided for @playbackBackground.
   ///
   /// In zh, this message translates to:

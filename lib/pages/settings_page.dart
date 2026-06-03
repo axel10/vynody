@@ -24,18 +24,22 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  static const List<GeminiModelInfo> _defaultGeminiModels = [
+  static final List<GeminiModelInfo> _defaultGeminiModels = [
     GeminiModelInfo(
       id: SettingsService.defaultGeminiPrimaryModelId,
-      displayName: 'Gemini 3.1 Flash Lite Preview',
+      displayName:
+          SettingsService.geminiModelDisplayName(SettingsService.defaultGeminiPrimaryModelId),
     ),
     GeminiModelInfo(
       id: SettingsService.defaultGeminiFallbackModelId,
-      displayName: 'Gemini 2.5 Flash',
+      displayName:
+          SettingsService.geminiModelDisplayName(SettingsService.defaultGeminiFallbackModelId),
     ),
     GeminiModelInfo(
       id: SettingsService.defaultGeminiTranslationModelId,
-      displayName: 'Gemma 4 31b It',
+      displayName: SettingsService.geminiModelDisplayName(
+        SettingsService.defaultGeminiTranslationModelId,
+      ),
     ),
   ];
 

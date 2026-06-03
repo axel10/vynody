@@ -479,6 +479,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get waveformSegmentsDescription => '要显示的波形柱数量 (默认: 80)';
 
   @override
+  String get showDeveloperOptions => '显示开发人员选项';
+
+  @override
   String get playbackBackground => '播放页背景';
 
   @override

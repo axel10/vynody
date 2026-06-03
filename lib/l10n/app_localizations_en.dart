@@ -485,6 +485,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Number of waveform bars to display (default: 80)';
 
   @override
+  String get showDeveloperOptions => 'Show Developer Options';
+
+  @override
   String get playbackBackground => 'Playback Background';
 
   @override
