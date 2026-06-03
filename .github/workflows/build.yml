@@ -63,6 +63,8 @@ jobs:
   windows:
     name: Build Windows Package
     runs-on: windows-2025-vs2026
+    env:
+      PUB_CACHE: C:\p
 
     steps:
       - name: Checkout
@@ -81,6 +83,10 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Prepare short cache paths
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path $env:PUB_CACHE | Out-Null
 
       - name: Install dependencies
         run: flutter pub get
