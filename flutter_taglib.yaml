@@ -1,0 +1,4 @@
+# flutter_taglib.yaml
+platforms:
+  ios: false
+  macos: false

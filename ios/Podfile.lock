@@ -53,6 +53,8 @@ PODS:
     - Mantle
     - SDWebImage
     - SDWebImageWebPCoder
+  - flutter_taglib (0.0.1):
+    - Flutter
   - libwebp (1.5.0):
     - libwebp/demux (= 1.5.0)
     - libwebp/mux (= 1.5.0)
@@ -73,7 +75,7 @@ PODS:
     - SwiftyBeaver
   - pasteboard (0.0.1):
     - Flutter
-  - permission_handler_apple (9.3.0):
+  - permission_handler_apple (9.4.8):
     - Flutter
   - proxy_getter (0.0.1):
     - Flutter
@@ -114,7 +116,7 @@ PODS:
     - sqlite3/perf-threadsafe
     - sqlite3/rtree
     - sqlite3/session
-  - SwiftyBeaver (1.9.5)
+  - SwiftyBeaver (2.1.1)
   - SwiftyGif (5.4.5)
   - url_launcher_ios (0.0.1):
     - Flutter
@@ -129,6 +131,7 @@ DEPENDENCIES:
   - file_selector_ios (from `.symlinks/plugins/file_selector_ios/ios`)
   - Flutter (from `Flutter`)
   - flutter_image_compress_common (from `.symlinks/plugins/flutter_image_compress_common/ios`)
+  - flutter_taglib (from `.symlinks/plugins/flutter_taglib/ios`)
   - on_audio_query_ios (from `.symlinks/plugins/on_audio_query_ios/ios`)
   - pasteboard (from `.symlinks/plugins/pasteboard/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
@@ -169,6 +172,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_image_compress_common:
     :path: ".symlinks/plugins/flutter_image_compress_common/ios"
+  flutter_taglib:
+    :path: ".symlinks/plugins/flutter_taglib/ios"
   on_audio_query_ios:
     :path: ".symlinks/plugins/on_audio_query_ios/ios"
   pasteboard:
@@ -187,7 +192,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
-  audio_core: 30726fb07ad4add47b744616754b9bfeda811c0e
+  audio_core: 940f8201535af9579f6f1a85b2ef44214be3f4ae
   audio_service: aa99a6ba2ae7565996015322b0bb024e1d25c6fd
   audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
   dart_chromaprint: 944f8c222a8ab7676a4213d7e0dbd9555a0c482a
@@ -198,11 +203,12 @@ SPEC CHECKSUMS:
   file_selector_ios: ec57ec07954363dd730b642e765e58f199bb621a
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_image_compress_common: 1697a328fd72bfb335507c6bca1a65fa5ad87df1
+  flutter_taglib: cc3aa57678a502616b821de3e98b412806bf288d
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   Mantle: c5aa8794a29a022dfbbfc9799af95f477a69b62d
   on_audio_query_ios: 28a780e2d0d85d92d500ba6e12c6c8167022b2fa
   pasteboard: 3913b69d3f2be214970a8ae94e7e87fe76e47e98
-  permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
+  permission_handler_apple: 92d754bbaa7361d436db2d6c3c1c2a0fdcec462e
   proxy_getter: e6f17d71198a8c93b9244dc7450875af23cbf0c0
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
@@ -210,10 +216,10 @@ SPEC CHECKSUMS:
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   sqlite3: a51c07cf16e023d6c48abd5e5791a61a47354921
   sqlite3_flutter_libs: b3e120efe9a82017e5552a620f696589ed4f62ab
-  SwiftyBeaver: 84069991dd5dca07d7069100985badaca7f0ce82
+  SwiftyBeaver: ade157e4f857812e7d7f15f2e3396bb8733f8a1c
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
-PODFILE CHECKSUM: 62c50efb50b5803861447bd55c376d592f580bd0
+PODFILE CHECKSUM: 8f38c55e3c0fcccc37ea7cfde5b1ac397ba362c7
 
 COCOAPODS: 1.16.2
