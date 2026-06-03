@@ -23,9 +23,9 @@ class LyricsAiOpenRouterClient {
   final NetworkClient _client;
   final LyricsAiStreamTextParser _streamParser;
 
-  static const String audioModelId = 'google/gemini-3.1-flash-lite-preview';
-  static const String textModelId = 'google/gemini-3.1-flash-lite-preview';
-  static const String textModelDisplayName = 'Gemini 3.1 Flash Lite Preview';
+  static const String audioModelId = 'google/gemini-3.1-flash-lite';
+  static const String textModelId = 'google/gemini-3.1-flash-lite';
+  static const String textModelDisplayName = 'Gemini 3.1 Flash Lite';
 
   Future<LyricsGenerationResult> generateLyricsFromFile({
     required String apiKey,
