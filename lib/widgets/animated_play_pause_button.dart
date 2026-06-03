@@ -7,6 +7,7 @@ class AnimatedPlayPauseButton extends StatefulWidget {
   final double size;
   final String? tooltip;
   final EdgeInsetsGeometry padding;
+  final MaterialTapTargetSize? materialTapTargetSize;
 
   const AnimatedPlayPauseButton({
     super.key,
@@ -16,6 +17,7 @@ class AnimatedPlayPauseButton extends StatefulWidget {
     required this.size,
     this.tooltip,
     this.padding = EdgeInsets.zero,
+    this.materialTapTargetSize,
   });
 
   @override
@@ -61,6 +63,9 @@ class _AnimatedPlayPauseButtonState extends State<AnimatedPlayPauseButton>
       tooltip: widget.tooltip,
       padding: widget.padding,
       constraints: const BoxConstraints(),
+      style: widget.materialTapTargetSize != null
+          ? IconButton.styleFrom(tapTargetSize: widget.materialTapTargetSize)
+          : null,
       icon: AnimatedIcon(
         icon: AnimatedIcons.play_pause,
         progress: _animationController,

@@ -342,7 +342,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                           onPressed: onPrevious,
                           tooltip: AppLocalizations.of(context)!.previous,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         AnimatedPlayPauseButton(
                           isPlaying: isPlaying,
                           onPressed: onPlayPause,
@@ -350,11 +350,13 @@ class PlaybackHeroCard extends ConsumerWidget {
                               ? Colors.white
                               : Colors.black87,
                           size: 24,
+                          padding: const EdgeInsets.all(6.0),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           tooltip: isPlaying
                               ? AppLocalizations.of(context)!.pause
                               : AppLocalizations.of(context)!.play,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         MiniControlButton(
                           icon: Icons.skip_next_rounded,
                           onPressed: onNext,
