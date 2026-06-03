@@ -498,56 +498,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             settings.isImmersiveTabBarEnabled = value;
           },
         ),
-        ListTile(
-          title: Text(l10n.waveformSegments),
-          subtitle: Text(l10n.waveformSegmentsDescription),
-          trailing: SizedBox(
-            width: 120,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: settings.waveformChunks > 20
-                      ? () => settings.waveformChunks -= 10
-                      : null,
-                ),
-                Text('${settings.waveformChunks}'),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: settings.waveformChunks < 200
-                      ? () => settings.waveformChunks += 10
-                      : null,
-                ),
-              ],
-            ),
-          ),
-        ),
-        ListTile(
-          title: Text(l10n.sampleStride),
-          subtitle: Text(l10n.sampleStrideDescription),
-          trailing: SizedBox(
-            width: 120,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: settings.sampleStride > 1
-                      ? () => settings.sampleStride -= 1
-                      : null,
-                ),
-                Text('${settings.sampleStride}'),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: settings.sampleStride < 16
-                      ? () => settings.sampleStride += 1
-                      : null,
-                ),
-              ],
-            ),
-          ),
-        ),
         SwitchListTile(
           title: Text(l10n.enableWaveformProgressBar),
           subtitle: Text(l10n.enableWaveformProgressBarDescription),
@@ -556,6 +506,65 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             settings.isWaveformProgressBarEnabled = value;
           },
         ),
+        SwitchListTile(
+          title: Text(l10n.showDeveloperOptions),
+          value: settings.showDeveloperOptions,
+          onChanged: (value) {
+            settings.showDeveloperOptions = value;
+          },
+        ),
+        if (settings.showDeveloperOptions) ...[
+          ListTile(
+            title: Text(l10n.waveformSegments),
+            subtitle: Text(l10n.waveformSegmentsDescription),
+            trailing: SizedBox(
+              width: 120,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: settings.waveformChunks > 20
+                        ? () => settings.waveformChunks -= 10
+                        : null,
+                  ),
+                  Text('${settings.waveformChunks}'),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: settings.waveformChunks < 200
+                        ? () => settings.waveformChunks += 10
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ListTile(
+            title: Text(l10n.sampleStride),
+            subtitle: Text(l10n.sampleStrideDescription),
+            trailing: SizedBox(
+              width: 120,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: settings.sampleStride > 1
+                        ? () => settings.sampleStride -= 1
+                        : null,
+                  ),
+                  Text('${settings.sampleStride}'),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: settings.sampleStride < 16
+                        ? () => settings.sampleStride += 1
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const Divider(height: 1),
         _buildSectionHeader(l10n.scanSectionTitle, l10n.scanSectionDescription),
         _buildScanSection(context, settings),

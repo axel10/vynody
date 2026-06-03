@@ -599,6 +599,10 @@
   "@waveformSegmentsDescription": {
     "description": "Waveform Segments description"
   },
+  "showDeveloperOptions": "显示开发人员选项",
+  "@showDeveloperOptions": {
+    "description": "Show developer options label"
+  },
   "playbackBackground": "播放页背景",
   "playbackRadialGradient": "中心暗色渐变",
   "blurIntensity": "模糊强度",

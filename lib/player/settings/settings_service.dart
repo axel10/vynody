@@ -199,6 +199,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLandscapeGap = 'visualizer_landscape_gap';
   static const String _keyIsWaveformProgressBarEnabled =
       'waveform_progress_bar_enabled';
+  static const String _keyShowDeveloperOptions = 'show_developer_options';
   static const String skipShortAudioScanEnabledStorageKey =
       'scan_skip_short_audio_enabled';
   static const String skipShortAudioScanMinimumDurationSecondsStorageKey =
@@ -531,6 +532,13 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _showDeveloperOptionsProperty = SettingProperty<bool>(
+    key: _keyShowDeveloperOptions,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _skipShortAudioScanEnabledProperty = SettingProperty<bool>(
     key: skipShortAudioScanEnabledStorageKey,
     defaultValue: false,
@@ -820,6 +828,9 @@ class SettingsService extends ChangeNotifier {
   bool get isWaveformProgressBarEnabled => _isWaveformProgressBarEnabledProperty.value;
   set isWaveformProgressBarEnabled(bool value) => _isWaveformProgressBarEnabledProperty.value = value;
 
+  bool get showDeveloperOptions => _showDeveloperOptionsProperty.value;
+  set showDeveloperOptions(bool value) => _showDeveloperOptionsProperty.value = value;
+
   bool get skipShortAudioScanEnabled => _skipShortAudioScanEnabledProperty.value;
   set skipShortAudioScanEnabled(bool value) => _skipShortAudioScanEnabledProperty.value = value;
 
@@ -930,6 +941,7 @@ class SettingsService extends ChangeNotifier {
     _portraitGapProperty.reset();
     _landscapeGapProperty.reset();
     _isWaveformProgressBarEnabledProperty.reset();
+    _showDeveloperOptionsProperty.reset();
     _randomRangeProperty.reset();
     _randomMethodProperty.reset();
   }
