@@ -40,23 +40,72 @@ class LibraryRankedSongList extends ConsumerWidget {
 
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            border: Border(
-              bottom: BorderSide(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 600;
+            return Container(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 12 : 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                border: Border(
+                  bottom: BorderSide(
+                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
               ),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
+                  if (isWide)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                subtitle,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (items.isNotEmpty) ...[
+                          FilledButton.icon(
+                            onPressed: () {
+                              audio.playPlaylist(
+                                items
+                                    .map((entry) => entry.song)
+                                    .toList(growable: false),
+                              );
+                            },
+                            icon: const Icon(Icons.play_arrow_rounded),
+                            label: Text(l10n.playAll),
+                          ),
+                          const SizedBox(width: 12),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              final songs = items.map((entry) => entry.song).toList()
+                                ..shuffle();
+                              audio.playPlaylist(songs);
+                            },
+                            icon: const Icon(Icons.shuffle_rounded),
+                            label: Text(l10n.shufflePlay),
+                          ),
+                        ],
+                      ],
+                    )
+                  else
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -72,49 +121,61 @@ class LibraryRankedSongList extends ConsumerWidget {
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                        if (items.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: () {
+                                    audio.playPlaylist(
+                                      items
+                                          .map((entry) => entry.song)
+                                          .toList(growable: false),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.play_arrow_rounded),
+                                  label: Text(l10n.playAll),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    final songs = items.map((entry) => entry.song).toList()
+                                      ..shuffle();
+                                    audio.playPlaylist(songs);
+                                  },
+                                  icon: const Icon(Icons.shuffle_rounded),
+                                  label: Text(l10n.shufflePlay),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  const SizedBox(height: 16),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        for (int i = 0; i < LibraryTimeRange.values.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: Text(_timeRangeLabel(l10n, LibraryTimeRange.values[i])),
+                            selected: selectedRange == LibraryTimeRange.values[i],
+                            onSelected: (_) => onRangeChanged(LibraryTimeRange.values[i]),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                  if (items.isNotEmpty) ...[
-                    FilledButton.tonalIcon(
-                      onPressed: () {
-                        audio.playPlaylist(
-                          items
-                              .map((entry) => entry.song)
-                              .toList(growable: false),
-                        );
-                      },
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: Text(l10n.playAll),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton.tonalIcon(
-                      onPressed: () {
-                        final songs = items.map((entry) => entry.song).toList()
-                          ..shuffle();
-                        audio.playPlaylist(songs);
-                      },
-                      icon: const Icon(Icons.shuffle_rounded),
-                      label: Text(l10n.shufflePlay),
-                    ),
-                  ],
                 ],
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final range in LibraryTimeRange.values)
-                    ChoiceChip(
-                      label: Text(_timeRangeLabel(l10n, range)),
-                      selected: selectedRange == range,
-                      onSelected: (_) => onRangeChanged(range),
-                    ),
-                ],
-              ),
-            ],
-          ),
+            );
+          },
         ),
         Expanded(
           child: items.isEmpty
