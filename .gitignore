@@ -53,3 +53,8 @@ tmp
 .vscode/
 
 *.dmg
+
+# Android signing keys and configuration
+**/android/key.properties
+*.jks
+*.keystore
