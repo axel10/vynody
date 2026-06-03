@@ -85,43 +85,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Cache vcpkg
-        uses: actions/cache@v4
-        with:
-          path: vcpkg
-          key: ${{ runner.os }}-vcpkg-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-vcpkg-
-
-      - name: Install FFmpeg via vcpkg
-        shell: pwsh
-        env:
-          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
-        run: |
-          if (-not (Test-Path "$env:VCPKG_ROOT")) {
-              Write-Host "Cloning vcpkg to $env:VCPKG_ROOT..."
-              git clone https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
-          }
-          if (-not (Test-Path "$env:VCPKG_ROOT\vcpkg.exe")) {
-              Write-Host "Bootstrapping vcpkg..."
-              $currentDir = Get-Location
-              cd "$env:VCPKG_ROOT"
-              cmd.exe /c "bootstrap-vcpkg.bat -disableMetrics"
-              cd $currentDir
-          }
-          $env:VCPKG_ROOT = $env:VCPKG_ROOT.Replace('\', '/')
-          Write-Host "Using VCPKG_ROOT for bash: $env:VCPKG_ROOT"
-          $script = Get-ChildItem -Path "$env:LOCALAPPDATA/Pub/Cache" -Filter "download_sources.sh" -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($script) {
-              Write-Host "Found download_sources.sh at $($script.FullName)"
-              $dir = $script.DirectoryName
-              cd $dir
-              bash ./download_sources.sh
-          } else {
-              Write-Error "Could not find download_sources.sh in Pub Cache!"
-              exit 1
-          }
-
       - name: Patch cargokit symlink resolver
         shell: pwsh
         run: |
@@ -140,9 +103,7 @@ jobs:
 
       - name: Build Windows
         env:
-          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
-          VCPKG_DEFAULT_TRIPLET: x64-windows-audio
-          FFMPEG_DIR: ${{ github.workspace }}\vcpkg\installed\x64-windows-audio
+          FFMPEG_DIR: ${{ github.workspace }}\audio_core\windows\third_party\ffmpeg
         run: flutter build windows --release -v
 
       - name: Build Windows MSIX
