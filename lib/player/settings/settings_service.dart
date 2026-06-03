@@ -157,7 +157,7 @@ class SettingsService extends ChangeNotifier {
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
   static const String _keyShortcutBindings = 'shortcut_bindings';
   static const String _builtInAcoustidApiKey = 'raGXgwxqws';
-  static const int defaultSampleStride = 4;
+  static const int defaultSampleStride = 1;
   static const double defaultLyricsFontScale = 1.0;
   static const double minLyricsFontScale = 0.8;
   static const double maxLyricsFontScale = 1.5;
@@ -526,7 +526,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _isWaveformProgressBarEnabledProperty = SettingProperty<bool>(
     key: _keyIsWaveformProgressBarEnabled,
-    defaultValue: false,
+    defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
