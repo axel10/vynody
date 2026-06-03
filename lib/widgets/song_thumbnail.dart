@@ -102,19 +102,22 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     final metadata = scanner.metadataMap[widget.path];
     final imagePath = metadata?.thumbnailPath;
 
+    final double dpr = MediaQuery.of(context).devicePixelRatio;
+    final double adjustedSize = (widget.size * dpr).round() / dpr;
+
     if (imagePath != null) {
       final file = File(imagePath);
       return ClipRRect(
         borderRadius: BorderRadius.circular(4),
         child: Image.file(
           file,
-          width: widget.size,
-          height: widget.size,
+          width: adjustedSize,
+          height: adjustedSize,
           fit: BoxFit.cover,
-          cacheWidth: (widget.size * MediaQuery.of(context).devicePixelRatio).round(),
-          cacheHeight: (widget.size * MediaQuery.of(context).devicePixelRatio).round(),
+          cacheWidth: (adjustedSize * dpr).round(),
+          cacheHeight: (adjustedSize * dpr).round(),
           filterQuality: FilterQuality.low,
-          errorBuilder: (_, _, _) => _fallbackIcon(),
+          errorBuilder: (_, _, _) => _fallbackIcon(adjustedSize),
         ),
       );
     }
@@ -125,13 +128,13 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           borderRadius: BorderRadius.circular(4),
           child: Image.memory(
             _artworkBytes!,
-            width: widget.size,
-            height: widget.size,
+            width: adjustedSize,
+            height: adjustedSize,
             fit: BoxFit.cover,
-            cacheWidth: (widget.size * MediaQuery.of(context).devicePixelRatio).round(),
-            cacheHeight: (widget.size * MediaQuery.of(context).devicePixelRatio).round(),
+            cacheWidth: (adjustedSize * dpr).round(),
+            cacheHeight: (adjustedSize * dpr).round(),
             filterQuality: FilterQuality.low,
-            errorBuilder: (_, _, _) => _fallbackIcon(),
+            errorBuilder: (_, _, _) => _fallbackIcon(adjustedSize),
           ),
         );
       }
@@ -139,7 +142,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         _triggerLoad();
       }
       // Still fetching or no artwork — show fallback without flickering.
-      return _fallbackIcon();
+      return _fallbackIcon(adjustedSize);
     } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       // Metadata not yet in map, or the cached entry still lacks a thumbnail.
       if (metadata == null || metadata.thumbnailPath == null) {
@@ -147,13 +150,13 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       }
     }
 
-    return _fallbackIcon();
+    return _fallbackIcon(adjustedSize);
   }
 
-  Widget _fallbackIcon() {
+  Widget _fallbackIcon(double adjustedSize) {
     return Container(
-      width: widget.size,
-      height: widget.size,
+      width: adjustedSize,
+      height: adjustedSize,
       decoration: BoxDecoration(
         color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
@@ -161,7 +164,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       child: Icon(
         Icons.music_note,
         color: Colors.blue,
-        size: widget.size * 0.6,
+        size: adjustedSize * 0.6,
       ),
     );
   }
