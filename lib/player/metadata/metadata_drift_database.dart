@@ -1451,12 +1451,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           'UPDATE songs SET path = REPLACE(path, ?, ?), '
           'artworkPath = REPLACE(artworkPath, ?, ?), '
           'thumbnailPath = REPLACE(thumbnailPath, ?, ?) '
-          'WHERE path LIKE ?',
+          'WHERE path LIKE ? OR artworkPath LIKE ? OR thumbnailPath LIKE ?',
           <Object>[
             oldPrefix, currentSandbox,
             oldPrefix, currentSandbox,
             oldPrefix, currentSandbox,
-            '$oldPrefix%'
+            '$oldPrefix%',
+            '$oldPrefix%',
+            '$oldPrefix%',
           ],
         );
 

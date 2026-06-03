@@ -1874,7 +1874,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void _logLyricsDebug(String message) {
     if (!kDebugMode) return;
-    debugPrint('[AudioService][Lyrics] $message');
+    // debugPrint('[AudioService][Lyrics] $message');
   }
 
   Future<MusicFile> _buildMusicFileFromPath(

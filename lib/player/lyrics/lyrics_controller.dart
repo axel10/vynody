@@ -402,7 +402,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   void _logDebug(String message) {
     if (!kDebugMode) return;
-    debugPrint('[AudioService][Lyrics] $message');
+    // debugPrint('[AudioService][Lyrics] $message');
   }
 
   Future<void> _syncLyricsCacheWatch(String songPath, String cacheKey) async {
