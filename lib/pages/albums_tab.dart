@@ -234,10 +234,10 @@ class _AlbumCard extends ConsumerWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onSecondaryTapDown: (details) {
-          _showAlbumContextMenu(context, ref, details.globalPosition);
+          _showAlbumContextMenu(context, ref);
         },
-        onLongPressStart: (details) {
-          _showAlbumContextMenu(context, ref, details.globalPosition);
+        onLongPress: () {
+          _showAlbumContextMenu(context, ref);
         },
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
@@ -367,77 +367,137 @@ class _AlbumCard extends ConsumerWidget {
   Future<void> _showAlbumContextMenu(
     BuildContext context,
     WidgetRef ref,
-    Offset globalPosition,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
+    final theme = Theme.of(context);
 
-    final selected = await showMenu<String>(
+    final selected = await showModalBottomSheet<String>(
       context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromPoints(globalPosition, globalPosition),
-        Offset.zero & overlay.size,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      isScrollControlled: true,
+      builder: (context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.pop(context),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: GestureDetector(
+                  onTap: () {}, // Prevent taps on the card itself from closing the sheet
+                  child: Material(
+                    elevation: 16,
+                    color: theme.colorScheme.surface,
+                    shadowColor: Colors.black26,
+                    borderRadius: BorderRadius.circular(24),
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Header showing Album title and artwork
+                          Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: SizedBox(
+                                  width: 52,
+                                  height: 52,
+                                  child: SongThumbnail(
+                                    path: album.representativeSong.path,
+                                    id: album.representativeSong.id,
+                                    size: 52,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      album.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      album.artist,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(height: 1),
+                          const SizedBox(height: 8),
+                          // Actions list
+                          _buildBottomSheetItem(
+                            context: context,
+                            value: 'play_all',
+                            label: l10n.playAll,
+                            icon: Icons.play_arrow_rounded,
+                          ),
+                          _buildBottomSheetItem(
+                            context: context,
+                            value: 'shuffle',
+                            label: l10n.shufflePlay,
+                            icon: Icons.shuffle_rounded,
+                          ),
+                          _buildBottomSheetItem(
+                            context: context,
+                            value: 'play_next',
+                            label: l10n.playNext,
+                            icon: Icons.queue_play_next_rounded,
+                          ),
+                          _buildBottomSheetItem(
+                            context: context,
+                            value: 'add_to_playlist',
+                            label: l10n.addToPlaylist,
+                            icon: Icons.playlist_add_rounded,
+                          ),
+                          _buildBottomSheetItem(
+                            context: context,
+                            value: 'add_to_favorites',
+                            label: l10n.addToFavorites,
+                            icon: Icons.favorite_border_rounded,
+                          ),
+                          _buildBottomSheetItem(
+                            context: context,
+                            value: 'copy_album',
+                            label: l10n.copyAlbumTitle,
+                            icon: Icons.copy_rounded,
+                          ),
+                          _buildBottomSheetItem(
+                            context: context,
+                            value: 'copy_artist',
+                            label: l10n.copyArtistName,
+                            icon: Icons.person_rounded,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
-      items: [
-        buildContextMenuItem<String>(
-          value: 'play_all',
-          label: l10n.playAll,
-          icon: Icons.play_arrow_rounded,
-          context: context,
-        ),
-        buildContextMenuItem<String>(
-          value: 'shuffle',
-          label: l10n.shufflePlay,
-          icon: Icons.shuffle_rounded,
-          context: context,
-        ),
-        buildContextMenuItem<String>(
-          value: 'play_next',
-          label: l10n.playNext,
-          icon: Icons.queue_play_next_rounded,
-          context: context,
-        ),
-        buildContextMenuItem<String>(
-          value: 'add_to_playlist',
-          label: l10n.addToPlaylist,
-          icon: Icons.playlist_add_rounded,
-          context: context,
-        ),
-        buildContextMenuItem<String>(
-          value: 'add_to_favorites',
-          label: l10n.addToFavorites,
-          icon: Icons.favorite_border_rounded,
-          context: context,
-        ),
-        const PopupMenuDivider(),
-        buildContextMenuItem<String>(
-          value: 'view_details',
-          label: l10n.viewAlbumDetails,
-          icon: Icons.album_rounded,
-          context: context,
-        ),
-        buildContextMenuItem<String>(
-          value: 'open_location',
-          label: l10n.openFileLocation,
-          icon: Icons.folder_open_rounded,
-          context: context,
-        ),
-        const PopupMenuDivider(),
-        buildContextMenuItem<String>(
-          value: 'copy_album',
-          label: l10n.copyAlbumTitle,
-          icon: Icons.copy_rounded,
-          context: context,
-        ),
-        buildContextMenuItem<String>(
-          value: 'copy_artist',
-          label: l10n.copyArtistName,
-          icon: Icons.person_rounded,
-          context: context,
-        ),
-      ],
     );
 
     if (!context.mounted || selected == null) return;
@@ -473,12 +533,6 @@ class _AlbumCard extends ConsumerWidget {
           );
         }
         break;
-      case 'view_details':
-        _openAlbumDetail(context);
-        break;
-      case 'open_location':
-        await openSongFileLocation(album.representativeSong.path);
-        break;
       case 'copy_album':
         await Clipboard.setData(ClipboardData(text: album.title));
         break;
@@ -486,6 +540,28 @@ class _AlbumCard extends ConsumerWidget {
         await Clipboard.setData(ClipboardData(text: album.artist));
         break;
     }
+  }
+
+  Widget _buildBottomSheetItem({
+    required BuildContext context,
+    required String value,
+    required String label,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+    return ListTile(
+      leading: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
+      title: Text(
+        label,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: theme.colorScheme.onSurface,
+        ),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      onTap: () => Navigator.pop(context, value),
+    );
   }
 }
 
