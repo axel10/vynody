@@ -59,13 +59,15 @@ class LibrarySelectionPanel extends ConsumerWidget {
               : 'Deselect All')
         : l10n.selectAll;
 
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: SafeArea(
         top: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 372),
+            constraints: BoxConstraints(maxWidth: isLandscape ? 620 : 372),
             child: Material(
               elevation: 16,
               color: theme.colorScheme.surface,
