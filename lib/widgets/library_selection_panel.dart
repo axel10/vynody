@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
@@ -19,8 +18,8 @@ class LibrarySelectionActiveNotifier extends Notifier<bool> {
 
 final librarySelectionActiveProvider =
     NotifierProvider<LibrarySelectionActiveNotifier, bool>(
-  LibrarySelectionActiveNotifier.new,
-);
+      LibrarySelectionActiveNotifier.new,
+    );
 
 class LibrarySelectionPanel extends ConsumerWidget {
   const LibrarySelectionPanel({
@@ -43,17 +42,21 @@ class LibrarySelectionPanel extends ConsumerWidget {
     final audio = ref.read(audioServiceProvider);
     final playlistService = ref.read(playlistServiceProvider);
 
-    final isAllSelected = selectedSongs.length == allSongs.length && allSongs.isNotEmpty;
+    final isAllSelected =
+        selectedSongs.length == allSongs.length && allSongs.isNotEmpty;
     final isSingleSelected = selectedSongs.length == 1;
     final isEmpty = selectedSongs.isEmpty;
 
-    final hasFilePath = isSingleSelected && selectedSongs.first.path.trim().isNotEmpty;
+    final hasFilePath =
+        isSingleSelected && selectedSongs.first.path.trim().isNotEmpty;
     final canOpenLocation =
         (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
         hasFilePath;
 
     final selectAllText = isAllSelected
-        ? (Localizations.localeOf(context).languageCode == 'zh' ? '取消全选' : 'Deselect All')
+        ? (Localizations.localeOf(context).languageCode == 'zh'
+              ? '取消全选'
+              : 'Deselect All')
         : l10n.selectAll;
 
     return Padding(
@@ -62,7 +65,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
         top: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
+            constraints: const BoxConstraints(maxWidth: 372),
             child: Material(
               elevation: 16,
               color: theme.colorScheme.surface,
@@ -73,6 +76,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header row
                     Row(
@@ -93,135 +97,142 @@ class LibrarySelectionPanel extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Row 1 of actions
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildSelectionActionButton(
-                          context: context,
-                          icon: isAllSelected ? Icons.deselect : Icons.select_all,
-                          label: selectAllText,
-                          onPressed: allSongs.isEmpty ? null : onToggleSelectAll,
+                        Expanded(
+                          child: _buildSelectionActionButton(
+                            context: context,
+                            icon: isAllSelected
+                                ? Icons.deselect
+                                : Icons.select_all,
+                            label: selectAllText,
+                            onPressed: allSongs.isEmpty
+                                ? null
+                                : onToggleSelectAll,
+                          ),
                         ),
-                        _buildSelectionActionButton(
-                          context: context,
-                          icon: Icons.queue_play_next_rounded,
-                          label: l10n.playNext,
-                          onPressed: isEmpty
-                              ? null
-                              : () async {
-                                  await audio.enqueueNext(selectedSongs);
-                                  onCancel();
-                                },
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildSelectionActionButton(
+                            context: context,
+                            icon: Icons.queue_play_next_rounded,
+                            label: l10n.playNext,
+                            onPressed: isEmpty
+                                ? null
+                                : () async {
+                                    await audio.enqueueNext(selectedSongs);
+                                    onCancel();
+                                  },
+                          ),
                         ),
-                        _buildSelectionActionButton(
-                          context: context,
-                          icon: Icons.queue_music_rounded,
-                          label: l10n.addToQueue,
-                          onPressed: isEmpty
-                              ? null
-                              : () async {
-                                  await audio.appendToQueue(selectedSongs);
-                                  onCancel();
-                                },
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildSelectionActionButton(
+                            context: context,
+                            icon: Icons.queue_music_rounded,
+                            label: l10n.addToQueue,
+                            onPressed: isEmpty
+                                ? null
+                                : () async {
+                                    await audio.appendToQueue(selectedSongs);
+                                    onCancel();
+                                  },
+                          ),
                         ),
-                        _buildSelectionActionButton(
-                          context: context,
-                          icon: Icons.playlist_add_rounded,
-                          label: l10n.addToPlaylist,
-                          onPressed: isEmpty
-                              ? null
-                              : () async {
-                                  await showAddSongsToPlaylistDialog(
-                                    context,
-                                    playlistService,
-                                    selectedSongs,
-                                  );
-                                  onCancel();
-                                },
-                        ),
-                        _buildSelectionActionButton(
-                          context: context,
-                          icon: Icons.favorite_rounded,
-                          label: l10n.addToFavorites,
-                          onPressed: isEmpty
-                              ? null
-                              : () async {
-                                  await playlistService.addSongsToPlaylist(
-                                    PlaylistService.favoritePlaylistId,
-                                    selectedSongs,
-                                  );
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          l10n.addedToPlaylist(selectedSongs.length, '收藏'),
-                                        ),
-                                      ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildSelectionActionButton(
+                            context: context,
+                            icon: Icons.playlist_add_rounded,
+                            label: l10n.addToPlaylist,
+                            onPressed: isEmpty
+                                ? null
+                                : () async {
+                                    await showAddSongsToPlaylistDialog(
+                                      context,
+                                      playlistService,
+                                      selectedSongs,
                                     );
-                                  }
-                                  onCancel();
-                                },
+                                    onCancel();
+                                  },
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Row 2 of actions
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildSelectionActionButton(
-                          context: context,
-                          icon: Icons.sync_rounded,
-                          label: l10n.transcodeAction,
-                          onPressed: isEmpty
-                              ? null
-                              : () async {
-                                  await showTranscodeDialog(context, songs: selectedSongs);
-                                  onCancel();
-                                },
-                        ),
-                        _buildSelectionActionButton(
-                          context: context,
-                          icon: Icons.title_rounded,
-                          label: l10n.copyTitle,
-                          onPressed: isSingleSelected
-                              ? () async {
-                                  await Clipboard.setData(
-                                    ClipboardData(text: selectedSongs.first.displayName),
-                                  );
-                                  onCancel();
-                                }
-                              : null,
-                        ),
-                        _buildSelectionActionButton(
-                          context: context,
-                          icon: Icons.person_rounded,
-                          label: l10n.copyArtistName,
-                          onPressed: isSingleSelected && selectedSongs.first.artist != null
-                              ? () async {
-                                  await Clipboard.setData(
-                                    ClipboardData(text: selectedSongs.first.artist!),
-                                  );
-                                  onCancel();
-                                }
-                              : null,
-                        ),
-                        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux)
-                          _buildSelectionActionButton(
+                        Expanded(
+                          child: _buildSelectionActionButton(
                             context: context,
-                            icon: Icons.folder_open_rounded,
-                            label: l10n.openFileLocation,
-                            onPressed: canOpenLocation
-                                ? () async {
-                                    await openSongFileLocation(selectedSongs.first.path);
+                            icon: Icons.favorite_rounded,
+                            label: l10n.addToFavorites,
+                            onPressed: isEmpty
+                                ? null
+                                : () async {
+                                    await playlistService.addSongsToPlaylist(
+                                      PlaylistService.favoritePlaylistId,
+                                      selectedSongs,
+                                    );
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            l10n.addedToPlaylist(
+                                              selectedSongs.length,
+                                              '收藏',
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }
                                     onCancel();
-                                  }
-                                : null,
-                          )
-                        else
-                          const SizedBox(width: 80),
-                        const SizedBox(width: 80),
+                                  },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildSelectionActionButton(
+                            context: context,
+                            icon: Icons.sync_rounded,
+                            label: l10n.transcodeAction,
+                            onPressed: isEmpty
+                                ? null
+                                : () async {
+                                    await showTranscodeDialog(
+                                      context,
+                                      songs: selectedSongs,
+                                    );
+                                    onCancel();
+                                  },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (Platform.isWindows ||
+                            Platform.isMacOS ||
+                            Platform.isLinux) ...[
+                          Expanded(
+                            child: _buildSelectionActionButton(
+                              context: context,
+                              icon: Icons.folder_open_rounded,
+                              label: l10n.openFileLocation,
+                              onPressed: canOpenLocation
+                                  ? () async {
+                                      await openSongFileLocation(
+                                        selectedSongs.first.path,
+                                      );
+                                      onCancel();
+                                    }
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(child: SizedBox.shrink()),
+                        ] else ...[
+                          const Expanded(child: SizedBox.shrink()),
+                          const SizedBox(width: 8),
+                          const Expanded(child: SizedBox.shrink()),
+                        ],
                       ],
                     ),
                   ],
@@ -244,31 +255,28 @@ class LibrarySelectionPanel extends ConsumerWidget {
     final isEnabled = onPressed != null;
     return Opacity(
       opacity: isEnabled ? 1.0 : 0.38,
-      child: SizedBox(
-        width: 80,
-        child: TextButton(
-          onPressed: onPressed,
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.onSurface,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          foregroundColor: theme.colorScheme.onSurface,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 22, color: theme.colorScheme.primary),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 10),
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 22, color: theme.colorScheme.primary),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );
