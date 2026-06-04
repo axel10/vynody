@@ -44,9 +44,11 @@ packages:
   audio_core:
     dependency: "direct main"
     description:
-      path: audio_core
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: "60b8d2aaaf23b62d6b0b10a7772008b252e79177"
+      url: "https://github.com/axel10/audio_core"
+    source: git
     version: "0.0.1"
   audio_metadata_reader:
     dependency: "direct main"
@@ -600,7 +602,7 @@ packages:
     description:
       path: "."
       ref: master
-      resolved-ref: fa8560895a1b26a97d4310255b1966201a58b319
+      resolved-ref: "632163a7066e64c8caa8f02bbfdf66ace17957e0"
       url: "https://github.com/axel10/flutter_taglib"
     source: git
     version: "1.2.0"

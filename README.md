@@ -1,110 +1,211 @@
-# 🎵 VibeFlow (Pure Player)
+# VibeFlow (Pure Player)
 
-[![Flutter](https://img.shields.io/badge/Flutter-^3.11.1-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Rust](https://img.shields.io/badge/Rust-Core-000000?logo=rust&logoColor=white)](https://www.rust-lang.org)
-[![FFmpeg](https://img.shields.io/badge/FFmpeg-Engine-007800?logo=ffmpeg&logoColor=white)](https://ffmpeg.org)
-[![Gemini](https://img.shields.io/badge/AI-Gemini--Powered-4285F4?logo=google-gemini&logoColor=white)](https://ai.google.dev)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 
-**VibeFlow** (在代码中也称为 **Pure Player**) 是一款优雅、功能强大的本地音乐播放器，专为极致音频体验与现代视觉美学设计。它采用 Flutter 构建外壳，底层使用 Rust + FFmpeg 打造高性能的自研解码播放核心，深度融合 Gemini 等大语言模型，提供革命性的 AI 智能歌词与转码管理功能。
+VibeFlow（代码中也称为 Pure Player）是一款以本地音乐播放为核心的跨平台播放器，使用 Flutter 构建界面，并根据不同平台接入对应的原生音频内核，兼顾统一体验与底层能力。
 
----
+项目当前面向以下平台：
 
-## 🚀 核心架构与技术栈
+- Windows
+- Linux
+- macOS
+- iOS
+- Android
 
-VibeFlow 的技术设计遵循“高性能原生底层 + 响应式现代前端”原则：
+## 特性概览
 
-```mermaid
-graph TD
-    UI[Flutter UI - Riverpod State] -->|控制与查询| AS[Audio Service 播放管理]
-    AS -->|播放指令| AC[audio_core Rust 插件]
-    AC -->|FFmpeg / AVFoundation / Media3| Decoder[Native Audio Decoder 底层解码]
-    AS -->|媒体库持久化| DB[(Drift SQLite 数据库)]
-    AS -->|音频指纹识别| MB[MusicBrainz / AcoustID API]
-    AS -->|AI 歌词/时间轴/翻译| AI[Gemini / OpenRouter API]
-    SS[Settings Service 配置管理] -.-> UI & AS
+- 跨平台本地音乐播放器，覆盖桌面端与移动端
+- 多平台原生播放内核接入，按平台选择更合适的实现
+- 本地媒体库扫描、增量更新与歌曲管理
+- 歌曲标签在线补全，支持通过音频指纹补全元数据
+- 在线歌词获取，支持从 LRCLIB 拉取歌词
+- 听歌识曲能力，基于音频指纹进行歌曲识别
+- 本地局域网歌词与音乐文件共享
+- 睡眠定时器
+- 歌词相关增强能力，包括在线搜索、缓存与时间轴处理
+- 频谱、波形、封面取色等播放界面增强体验
+
+## 平台播放内核
+
+VibeFlow 并不是所有平台都共用同一套播放器内核，而是按平台采用不同实现：
+
+| 平台 | 播放内核 |
+| :--- | :--- |
+| Windows | Rust 音频内核 |
+| Linux | Rust 音频内核 |
+| Android | ExoPlayer |
+| macOS | SFBAudioEngine |
+| iOS | SFBAudioEngine |
+
+这种设计的目标是：在保证跨平台 UI 一致性的同时，尽量利用各平台成熟的底层音频能力。
+
+## 核心能力
+
+### 1. 本地播放与媒体库
+
+- 扫描本地文件夹并建立媒体库
+- 支持文件变更后的增量更新
+- 提供专辑、艺术家、歌曲等常见浏览方式
+- 面向本地播放器场景，强调稳定播放与日常管理效率
+
+### 2. 歌曲标签在线补全
+
+针对标签不完整或信息缺失的音频文件，VibeFlow 支持在线补全歌曲元数据。
+
+- 使用音频指纹识别歌曲
+- 结合 AcoustID 与 MusicBrainz 匹配结果
+- 补全标题、艺术家、专辑等标签信息
+- 支持封面等元数据的补充
+
+这部分能力尤其适合整理来源较杂、标签质量不一致的本地曲库。
+
+### 3. 在线歌词获取
+
+项目内置在线歌词搜索与获取能力，当前可接入：
+
+- LRCLIB
+
+可用于：
+
+- 搜索匹配当前歌曲的在线歌词
+- 获取纯文本歌词或带时间轴歌词
+- 将歌词与本地歌曲关联并缓存
+- 对已有歌词做进一步整理和时间轴处理
+
+### 4. 听歌识曲
+
+VibeFlow 支持基于音频指纹的歌曲识别能力，可用于：
+
+- 识别本地音频文件对应的歌曲
+- 为歌曲标签补全提供候选结果
+- 辅助整理未知来源或缺失元数据的文件
+
+### 5. 睡眠定时器
+
+内置睡眠定时器，适合夜间听歌或临睡前使用。
+
+- 支持设置播放停止倒计时
+- 支持查看剩余时间
+- 支持手动取消
+
+### 6. 局域网歌词与音乐文件共享
+
+VibeFlow 内置局域网共享能力，可在同一网络下与其他设备交换音乐文件和歌词数据。
+
+- 自动发现局域网内运行中的 VibeFlow 设备
+- 支持发送单个音乐文件
+- 支持发送整个音乐文件夹，并保留相对目录结构
+- 支持设备之间双向同步歌词缓存与翻译缓存
+- 支持通过浏览器访问本机共享页面，进行上传或下载
+
+这项能力适合在多台设备之间迁移曲库，或者把一台设备上整理好的歌词同步到另一台设备。
+
+## 技术架构
+
+项目整体采用“Flutter UI + 平台原生音频实现”的思路：
+
+- Flutter：负责跨平台界面与交互
+- Rust：承担 Windows / Linux 平台的核心音频能力，以及部分底层处理
+- ExoPlayer：承担 Android 平台播放能力
+- SFBAudioEngine：承担 Apple 平台播放能力
+- SQLite / Drift：用于本地媒体库与缓存管理
+
+在线相关能力主要包括：
+
+- LRCLIB：在线歌词获取
+- AcoustID：音频指纹识别
+- MusicBrainz：标签与元数据补全
+
+局域网共享相关能力主要包括：
+
+- UDP 广播发现局域网设备
+- 内置 HTTP 共享服务
+- 浏览器网页传输入口
+- 歌词缓存导入、导出与冲突处理
+
+## 适合的人群
+
+如果你希望要的是一款偏本地化、可整理曲库、并且在歌词与标签补全方面做得更完整的播放器，这个项目会比较合适。
+
+它更偏向：
+
+- 本地音乐收藏用户
+- 对标签整理有要求的用户
+- 需要跨平台统一体验的用户
+- 希望继续扩展播放器能力的开发者
+
+## 开发与运行
+
+### 基本依赖
+
+- Flutter SDK
+- Rust toolchain
+- 对应平台的原生构建环境
+
+不同平台还需要各自的系统依赖，例如：
+
+- Android：Android Studio / SDK / NDK（按项目实际配置）
+- iOS / macOS：Xcode 与 Apple 平台构建环境
+- Windows：Visual Studio C++ 构建工具
+- Linux：Flutter Desktop 与系统开发依赖
+
+### 拉取项目
+
+```bash
+git clone https://github.com/axel10/vibe_flow
+cd vibe_flow
 ```
 
-*   **跨平台前端**：基于 **Flutter** 与 **Riverpod** 状态管理，提供流畅无缝的响应式 UI。
-*   **自研音频核心 (`audio_core`)**：通过 **Rust** 结合 FFI / `flutter_rust_bridge` 提供底层音频管道。
-*   **多平台 FFmpeg 编解码**：
-    *   在 Android 端支持自编译的 **Media3 FFmpeg 扩展**，并在 FFmpeg 缺失时自动后备至系统原生 MediaCodec 管道。
-    *   在 Apple 端（macOS/iOS）优先使用 **AVFoundation** 解码主流格式，冷门格式自动解析为 PCM 数据，通过 `AVAudioPlayerNode` 进行硬件加速级别的调度。
-*   **本地数据库**：使用高性能 SQLite 的 Dart 封装 **Drift**，实现毫秒级的音乐扫描与本地媒体库管理。
+### 运行
 
----
+```bash
+flutter pub get
+flutter run -d <device-id>
+```
 
-## ✨ 亮点功能
+如果你是在桌面平台首次构建，通常还需要先确认 Flutter Desktop 与 Rust 工具链都已经可用。
 
-### 1. 🧠 AI 智能歌词助理 (Gemini & OpenRouter 驱动)
-*   **语音转文字歌词生成**：直接将本地音频文件上传至 Google AI Studio，利用 Gemini 大模型对歌曲进行智能“听写”，自动生成带时间轴的标准 **LRC 格式歌词**。
-*   **歌词智能翻译**：利用大模型将外文歌词意译为目标语言（支持中英双向等），在翻译的同时完美保留原歌词的精确时间轴。
-*   **时间轴重排与校对**：自动分析本地音频与已有文本歌词，针对时间轴错位或无时间轴的歌词进行智能对齐与微调。
-*   **自动容灾切换**：支持配置 Gemini 与 OpenRouter 双重 API Key，当主模型达到限额或响应异常时，自动无感切换。
+## 可配置能力
 
-### 2. 🎛️ FFmpeg 本地音频转码引擎
-*   内置转码管理器（`TranscodeService`），支持多种主流及无损格式（AAC, ALAC, AIFF, CAF, FLAC, M4A, M4B, MP3, OGG, Opus, WAV）相互转换。
-*   支持预设音质档位（低、中、高、极致）以及自定义声道数、采样率、码率（CBR/VBR）。
+项目中已经包含或预留了多项可配置能力，常见包括：
 
-### 3. 🎨 现代极致视觉美学 (Rich Aesthetics)
-*   **封面色彩自适应主题**：采用 `PaletteGenerator` 实时提取当前播放歌曲专辑封面的核心色彩，动态计算出最契合的 UI 主题与柔和渐变色。
-*   **动态流沙背景 (Mesh Gradient)**：基于自定义顶点着色器（Mesh Gradient）的动态流动漸变背景，支持调节流动速度与色彩深度，营造沉浸式音乐氛围。
-*   **音乐可视化光谱**：配备精美的实时音频频谱仪表（Spectrum Visualizer）与波形进度条，支持自定义频段密度、采样步长、间距与渐变动效。
-*   **全端自适应响应式排版**：
-    *   **桌面端**：沉浸式隐藏标题栏、左侧悬浮导航栏、支持键盘全局/局部快捷键、窗口单例运行（支持通过双击关联音频文件直接唤起并追加到播放队列）。
-    *   **移动端**：符合现代手势的底部导航、支持划动返回、灵动可缩放的迷你播放器。
+- 播放相关设置
+- 歌词来源与歌词处理相关设置
+- AcoustID API Key
+- 外观、主题、可视化效果
+- 快捷键与交互行为
 
-### 4. 📂 增量扫描与媒体库管理
-*   **智能增量扫描**：支持监听本地文件夹变化（Watcher），文件增删时自动触发增量更新，无需全量重扫。
-*   **短音频过滤**：自动识别并跳过微信语音、系统铃声等短音频（可设定秒数阈值，如跳过少于 30 秒的音频）。
-*   **标签自动补全**：无标签的本地音乐文件可通过 AcoustID 计算音频指纹，自动对接 MusicBrainz 补全歌曲标题、艺术家、专辑及封面封面。
+如果你准备长期使用歌曲标签补全和音频指纹识别，建议配置自己的 AcoustID API Key。
 
----
+## 项目定位
 
-## 🛠️ 配置与安装指南
+VibeFlow 的重点不是做“全平台都完全同一套底层”的播放器，而是在统一界面的前提下，尽量把各平台的播放体验、媒体库整理能力和歌词能力做好。
 
-### 依赖环境
-*   **Flutter SDK**: `^3.11.1` 或更新版本。
-*   **Rust 工具链**: 用于构建 `audio_core` 底层部分（需要 `cargo` 编译器）。
-*   **FFmpeg 开发库**: 多平台编译脚本包含在项目 `audio_core` 中。
+因此 README 里更适合强调这些实际能力：
 
-### 编译与运行
+- 跨平台兼容
+- 多内核播放架构
+- 本地曲库管理
+- 标签补全
+- 在线歌词
+- 听歌识曲
+- 局域网共享
+- 睡眠定时器
 
-1.  **克隆项目与子模块**：
-    ```bash
-    git clone https://github.com/axel10/vibe_flow
-    cd vibe_flow
-    ```
+## 贡献
 
-2.  **构建 & 运行应用**：
-    ```bash
-    flutter run -d <your-device-id>
-    ```
+欢迎提交 issue 或 pull request。
 
----
+如果你要参与开发，建议至少先完成以下检查：
 
-## ⚙️ 核心配置项与自定义
+```bash
+flutter test
+```
 
-在 VibeFlow 的系统设置中，你可以进行丰富的个性化定制：
+并尽量保持代码风格与现有工程结构一致。
 
-| 配置模块 | 功能描述 | 关键参数 |
-| :--- | :--- | :--- |
-| **外观与主题** | 自适应封面取色、深色/浅色/系统模式、流沙背景流动速度。 | `visualizer_dynamic_color`, `playback_background_type` |
-| **音乐频谱** | 频谱间距、频谱数量、不透明度、渐变起止色、波形进度条。 | `visualizer_color`, `visualizer_opacity`, `waveform_progress_bar_enabled` |
-| **AI 歌词助手** | Google AI Studio / OpenRouter 提供商切换、模型 ID 选择、API 密钥管理。 | `lyrics_ai_provider`, `gemini_primary_model_id` |
-| **音频转码** | 默认输出格式、默认转码质量、自定义外部 FFmpeg 路径。 | `transcode_default_output_format`, `transcode_ffmpeg_path` |
-| **键盘快捷键** | 播放暂停、上一曲/下一曲、音量加减、静音、快进/快退、全屏切换。 | `shortcut_bindings` |
+## License
 
----
-
-## 🤝 参与贡献
-
-如果你想为 VibeFlow 贡献代码：
-1. 请确保你遵守 `analysis_options.yaml` 中的 Lint 规则。
-2. 提交 PR 前请在本地运行 `flutter test` 确保没有破坏已有测试。
-
----
-
-## 📝 许可证
-
-本项目采用 **GNU General Public License v3.0** (GPL-3.0) 授权开源。有关详细许可条款，请参阅 [LICENSE](LICENSE) 文件。
+本项目基于 [GPL-3.0](LICENSE) 开源。
