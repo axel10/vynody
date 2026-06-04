@@ -108,7 +108,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                       child: Row(
                         children: [
                           SizedBox(
@@ -182,7 +182,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                         )
                       : ListView.separated(
                           controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                           itemCount: visibleArtists.length,
                           separatorBuilder: (context, index) =>
                               const SizedBox(height: 8),
@@ -714,22 +714,36 @@ class _ArtistsToolbar extends StatelessWidget {
             ),
           ],
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
+              color: theme.colorScheme.secondaryContainer,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.sort_rounded, size: 18),
+                Icon(
+                  Icons.sort_rounded,
+                  size: 18,
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
                 const SizedBox(width: 8),
-                Text(_sortFieldLabel(l10n, sortField)),
+                Text(
+                  _sortFieldLabel(l10n, sortField),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSecondaryContainer,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
         ),
         IconButton.filledTonal(
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          padding: EdgeInsets.zero,
           tooltip: sortAscending ? l10n.sortAscending : l10n.sortDescending,
           onPressed: onSortOrderToggled,
           icon: Icon(
@@ -741,8 +755,55 @@ class _ArtistsToolbar extends StatelessWidget {
       ],
     );
 
+    Widget buildTextField() {
+      return TextField(
+        controller: searchController,
+        onChanged: onSearchChanged,
+        decoration: InputDecoration(
+          hintText: searchArtistsLabel,
+          hintStyle: TextStyle(
+            color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.6),
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
+          ),
+          suffixIcon: searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  onPressed: onSearchCleared,
+                  icon: Icon(
+                    Icons.close,
+                    color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
+                    size: 18,
+                  ),
+                ),
+          filled: true,
+          fillColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        ),
+        style: TextStyle(
+          color: theme.colorScheme.onSecondaryContainer,
+          fontSize: 14,
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+      ),
       child: isWide
           ? Row(
               children: [
@@ -769,25 +830,7 @@ class _ArtistsToolbar extends StatelessWidget {
                 ),
                 Expanded(
                   flex: 5,
-                  child: TextField(
-                    controller: searchController,
-                    onChanged: onSearchChanged,
-                    decoration: InputDecoration(
-                      hintText: searchArtistsLabel,
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: searchQuery.isEmpty
-                          ? null
-                          : IconButton(
-                              onPressed: onSearchCleared,
-                              icon: const Icon(Icons.close),
-                            ),
-                      filled: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
+                  child: buildTextField(),
                 ),
                 const SizedBox(width: 12),
                 sortControls,
@@ -822,25 +865,7 @@ class _ArtistsToolbar extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: searchController,
-                  onChanged: onSearchChanged,
-                  decoration: InputDecoration(
-                    hintText: searchArtistsLabel,
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: searchQuery.isEmpty
-                        ? null
-                        : IconButton(
-                            onPressed: onSearchCleared,
-                            icon: const Icon(Icons.close),
-                          ),
-                    filled: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
+                buildTextField(),
               ],
             ),
     );

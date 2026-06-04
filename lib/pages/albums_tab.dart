@@ -130,7 +130,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
                   )
                 else ...[
                   if (knownAlbums.isNotEmpty) ...[
-                    const SliverToBoxAdapter(child: SizedBox(height: 4)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
                     ..._albumSectionSlivers(
                       title: "",
                       albums: knownAlbums,
@@ -618,18 +618,35 @@ class _AlbumsToolbar extends StatelessWidget {
       onChanged: onSearchChanged,
       decoration: InputDecoration(
         hintText: l10n.searchAlbums,
-        prefixIcon: const Icon(Icons.search),
+        hintStyle: TextStyle(
+          color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.6),
+        ),
+        prefixIcon: Icon(
+          Icons.search,
+          color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
+        ),
         suffixIcon: searchQuery.isEmpty
             ? null
             : IconButton(
                 onPressed: onSearchCleared,
-                icon: const Icon(Icons.close),
+                icon: Icon(
+                  Icons.close,
+                  color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
+                  size: 18,
+                ),
               ),
         filled: true,
+        fillColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      ),
+      style: TextStyle(
+        color: theme.colorScheme.onSecondaryContainer,
+        fontSize: 14,
       ),
     );
 
@@ -674,22 +691,36 @@ class _AlbumsToolbar extends StatelessWidget {
             ),
           ],
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
+              color: theme.colorScheme.secondaryContainer,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.sort_rounded, size: 18),
+                Icon(
+                  Icons.sort_rounded,
+                  size: 18,
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
                 const SizedBox(width: 8),
-                Text(_sortFieldLabel(l10n, sortField)),
+                Text(
+                  _sortFieldLabel(l10n, sortField),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSecondaryContainer,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
         ),
         IconButton.filledTonal(
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          padding: EdgeInsets.zero,
           tooltip: sortAscending ? l10n.sortAscending : l10n.sortDescending,
           onPressed: onSortOrderToggled,
           icon: Icon(
@@ -703,6 +734,14 @@ class _AlbumsToolbar extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+      ),
       child: isWide
           ? Row(
               children: [
