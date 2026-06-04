@@ -685,7 +685,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get copyTitle => 'Copy Title';
 
   @override
-  String get transcodeAction => 'Transcode...';
+  String get transcodeAction => 'Transcode';
 
   @override
   String get transcodeSectionTitle => 'Audio Transcoding';

@@ -677,7 +677,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get copyTitle => '复制标题';
 
   @override
-  String get transcodeAction => '转码...';
+  String get transcodeAction => '转码';
 
   @override
   String get transcodeSectionTitle => '音频转码';

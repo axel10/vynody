@@ -669,7 +669,7 @@
   "noModifiedTagsToSave": "没有需要保存的已修改标签",
   "clearPlaylist": "清空列表",
   "copyTitle": "复制标题",
-  "transcodeAction": "转码...",
+  "transcodeAction": "转码",
   "transcodeSectionTitle": "音频转码",
   "transcodeSectionDescription": "设置默认输出格式、质量预设以及 ffmpeg 路径。",
   "transcodeDefaultFormat": "默认输出格式",

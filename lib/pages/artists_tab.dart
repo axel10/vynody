@@ -108,7 +108,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                       child: Row(
                         children: [
                           SizedBox(
@@ -182,7 +182,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                         )
                       : ListView.separated(
                           controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                           itemCount: visibleArtists.length,
                           separatorBuilder: (context, index) =>
                               const SizedBox(height: 8),
@@ -367,15 +367,13 @@ class _ArtistListItem extends ConsumerWidget {
           _showArtistContextMenuForArtist(
             context,
             ref,
-            details.globalPosition,
             artist,
           );
         },
-        onLongPressStart: (details) {
+        onLongPress: () {
           _showArtistContextMenuForArtist(
             context,
             ref,
-            details.globalPosition,
             artist,
           );
         },
@@ -495,50 +493,123 @@ class _ArtistDetailPane extends StatelessWidget {
 Future<void> _showArtistContextMenuForArtist(
   BuildContext context,
   WidgetRef ref,
-  Offset globalPosition,
   ArtistSummary artist,
 ) async {
   final l10n = AppLocalizations.of(context)!;
-  final playAllLabel = l10n.playAll;
-  final shufflePlayLabel = l10n.shufflePlay;
-  final viewArtistDetailsLabel = l10n.viewArtistDetails;
-  final copyArtistNameLabel = l10n.copyArtistName;
-  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
-  if (overlay == null) return;
+  final theme = Theme.of(context);
+  final subtitleParts = <String>[
+    l10n.songCount(artist.songCount),
+    if ((artist.country?.trim().isNotEmpty ?? false)) artist.country!.trim(),
+  ];
+  if (artist.disambiguation?.trim().isNotEmpty ?? false) {
+    subtitleParts.add(artist.disambiguation!.trim());
+  }
 
-  final selected = await showMenu<String>(
+  final selected = await showModalBottomSheet<String>(
     context: context,
-    position: RelativeRect.fromRect(
-      Rect.fromPoints(globalPosition, globalPosition),
-      Offset.zero & overlay.size,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    isScrollControlled: true,
+    builder: (context) => GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.pop(context),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: GestureDetector(
+                onTap: () {}, // Prevent taps on the card itself from closing the sheet
+                child: Material(
+                  elevation: 16,
+                  color: theme.colorScheme.surface,
+                  shadowColor: Colors.black26,
+                  borderRadius: BorderRadius.circular(24),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Header showing Artist name and avatar
+                        Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: const SizedBox(
+                                width: 52,
+                                height: 52,
+                                child: Center(child: ArtistAvatar(diameter: 52)),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    artist.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    subtitleParts.join(' · '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        // Actions list
+                        _buildArtistBottomSheetItem(
+                          context: context,
+                          value: 'play_all',
+                          label: l10n.playAll,
+                          icon: Icons.play_arrow_rounded,
+                        ),
+                        _buildArtistBottomSheetItem(
+                          context: context,
+                          value: 'shuffle',
+                          label: l10n.shufflePlay,
+                          icon: Icons.shuffle_rounded,
+                        ),
+                        _buildArtistBottomSheetItem(
+                          context: context,
+                          value: 'view_details',
+                          label: l10n.viewArtistDetails,
+                          icon: Icons.person_rounded,
+                        ),
+                        _buildArtistBottomSheetItem(
+                          context: context,
+                          value: 'copy_artist',
+                          label: l10n.copyArtistName,
+                          icon: Icons.copy_rounded,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     ),
-    items: [
-      buildContextMenuItem<String>(
-        value: 'play_all',
-        label: playAllLabel,
-        icon: Icons.play_arrow_rounded,
-        context: context,
-      ),
-      buildContextMenuItem<String>(
-        value: 'shuffle',
-        label: shufflePlayLabel,
-        icon: Icons.shuffle_rounded,
-        context: context,
-      ),
-      const PopupMenuDivider(),
-      buildContextMenuItem<String>(
-        value: 'view_details',
-        label: viewArtistDetailsLabel,
-        icon: Icons.person_rounded,
-        context: context,
-      ),
-      buildContextMenuItem<String>(
-        value: 'copy_artist',
-        label: copyArtistNameLabel,
-        icon: Icons.copy_rounded,
-        context: context,
-      ),
-    ],
   );
 
   if (!context.mounted || selected == null) return;
@@ -563,6 +634,28 @@ Future<void> _showArtistContextMenuForArtist(
       await Clipboard.setData(ClipboardData(text: artist.name));
       break;
   }
+}
+
+Widget _buildArtistBottomSheetItem({
+  required BuildContext context,
+  required String value,
+  required String label,
+  required IconData icon,
+}) {
+  final theme = Theme.of(context);
+  return ListTile(
+    leading: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
+    title: Text(
+      label,
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: theme.colorScheme.onSurface,
+      ),
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    onTap: () => Navigator.pop(context, value),
+  );
 }
 
 class _ArtistsToolbar extends StatelessWidget {
@@ -621,22 +714,36 @@ class _ArtistsToolbar extends StatelessWidget {
             ),
           ],
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
+              color: theme.colorScheme.secondaryContainer,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.sort_rounded, size: 18),
+                Icon(
+                  Icons.sort_rounded,
+                  size: 18,
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
                 const SizedBox(width: 8),
-                Text(_sortFieldLabel(l10n, sortField)),
+                Text(
+                  _sortFieldLabel(l10n, sortField),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSecondaryContainer,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
         ),
         IconButton.filledTonal(
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          padding: EdgeInsets.zero,
           tooltip: sortAscending ? l10n.sortAscending : l10n.sortDescending,
           onPressed: onSortOrderToggled,
           icon: Icon(
@@ -648,8 +755,55 @@ class _ArtistsToolbar extends StatelessWidget {
       ],
     );
 
+    Widget buildTextField() {
+      return TextField(
+        controller: searchController,
+        onChanged: onSearchChanged,
+        decoration: InputDecoration(
+          hintText: searchArtistsLabel,
+          hintStyle: TextStyle(
+            color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.6),
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
+          ),
+          suffixIcon: searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  onPressed: onSearchCleared,
+                  icon: Icon(
+                    Icons.close,
+                    color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
+                    size: 18,
+                  ),
+                ),
+          filled: true,
+          fillColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        ),
+        style: TextStyle(
+          color: theme.colorScheme.onSecondaryContainer,
+          fontSize: 14,
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+      ),
       child: isWide
           ? Row(
               children: [
@@ -676,25 +830,7 @@ class _ArtistsToolbar extends StatelessWidget {
                 ),
                 Expanded(
                   flex: 5,
-                  child: TextField(
-                    controller: searchController,
-                    onChanged: onSearchChanged,
-                    decoration: InputDecoration(
-                      hintText: searchArtistsLabel,
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: searchQuery.isEmpty
-                          ? null
-                          : IconButton(
-                              onPressed: onSearchCleared,
-                              icon: const Icon(Icons.close),
-                            ),
-                      filled: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
+                  child: buildTextField(),
                 ),
                 const SizedBox(width: 12),
                 sortControls,
@@ -729,25 +865,7 @@ class _ArtistsToolbar extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: searchController,
-                  onChanged: onSearchChanged,
-                  decoration: InputDecoration(
-                    hintText: searchArtistsLabel,
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: searchQuery.isEmpty
-                        ? null
-                        : IconButton(
-                            onPressed: onSearchCleared,
-                            icon: const Icon(Icons.close),
-                          ),
-                    filled: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
+                buildTextField(),
               ],
             ),
     );

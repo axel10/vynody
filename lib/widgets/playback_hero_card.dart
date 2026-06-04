@@ -473,6 +473,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                 child: _buildPlaybackControlsWidget(
                                   context,
                                   ref,
+                                  width: width,
                                   controlsScale: layout.controlsScale,
                                   tLyrics: tLyrics,
                                 ),
@@ -1206,6 +1207,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   Widget _buildPlaybackControlsWidget(
     BuildContext context,
     WidgetRef ref, {
+    required double width,
     double controlsScale = 1.0,
     double tLyrics = 0.0,
   }) {
@@ -1232,16 +1234,6 @@ class PlaybackHeroCard extends ConsumerWidget {
         PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale;
     final buttonsRowWidth =
         topButtonsCount * singleButtonWidth + topButtonsGaps * gapWidth;
-
-    final baseWidth = isLandscape
-        ? (lerpDouble(
-            PlaybackHeroCardUiTuning.lControlsScaleBase,
-            PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide,
-            tLyrics,
-          )!)
-        : PlaybackHeroCardUiTuning.pControlsScaleBase;
-
-    final totalWidth = baseWidth * controlsScale;
 
     // 竖屏模式下如果启用波形进度条，则使用叠层布局 (Overlay layout in portrait if waveform is enabled)
     final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
@@ -1639,7 +1631,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 key: const ValueKey('playback_overlay_progress_time_layer'),
                 currentMusic: currentMusic,
                 controlsScale: controlsScale,
-                totalWidth: totalWidth,
+                totalWidth: width,
                 overrideProgress: overrideProgress,
                 overridePosition: overridePosition,
                 overrideWaveform: overrideWaveform,

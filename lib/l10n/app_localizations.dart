@@ -1379,7 +1379,7 @@ abstract class AppLocalizations {
   /// No description provided for @transcodeAction.
   ///
   /// In zh, this message translates to:
-  /// **'转码...'**
+  /// **'转码'**
   String get transcodeAction;
 
   /// No description provided for @transcodeSectionTitle.

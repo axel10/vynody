@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/widgets/playback_hero_card.dart';
+import 'library_selection_panel.dart';
 import '../pages/main_layout.dart';
 import '../pages/main_layout_riverpod.dart';
 
@@ -25,6 +26,8 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final uiState = ref.watch(mainLayoutUiControllerProvider);
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final librarySelectionActive = ref.watch(librarySelectionActiveProvider);
+    final showPlayer = currentMusic != null && !librarySelectionActive;
 
     return Stack(
       children: [
@@ -32,9 +35,11 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
         AnimatedPositioned(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
-          bottom: 20.0 +
-              MediaQuery.of(context).padding.bottom +
-              uiState.snackBarOffset,
+          bottom: showPlayer
+              ? (20.0 +
+                  MediaQuery.of(context).padding.bottom +
+                  uiState.snackBarOffset)
+              : -120.0,
           left: 0,
           right: 0,
           child: Center(
