@@ -59,7 +59,7 @@ class PlaybackHeroCardUiTuning {
   static const double pNormalCoverInfoMinGap = 26.0; // 竖屏下标题区距离封面底部的最小距离
   static const double portraitControlsWidthFactor =
       1.0; // 竖屏控件区宽度比例 (0.0 - 1.0)
-  static const double pControlsHeightFactor = 0.45; // 竖屏控件区最大高度比例 (相对于屏幕高度)
+  static const double pControlsHeightFactor = 0.58; // 竖屏控件区最大高度比例 (相对于屏幕高度)
 
   // 横屏参数 (Landscape parameters)
   static const double lControlsMinWidth = 440.0;
