@@ -221,6 +221,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
                           )
                         else
                           const SizedBox(width: 80),
+                        const SizedBox(width: 80),
                       ],
                     ),
                   ],

@@ -250,7 +250,7 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
                 : ListView.builder(
                   padding: EdgeInsets.fromLTRB(12, 12, 12, 140 + (_isSelectionMode ? 220.0 : 0.0)),
                   itemCount: widget.items.length,
-                  scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+                  cacheExtent: 1000,
                   prototypeItem: widget.items.isNotEmpty
                       ? Padding(
                           padding: const EdgeInsets.only(bottom: 8),
