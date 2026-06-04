@@ -238,7 +238,7 @@
   "noModifiedTagsToSave": "No modified tags to save",
   "clearPlaylist": "Clear List",
   "copyTitle": "Copy Title",
-  "transcodeAction": "Transcode...",
+  "transcodeAction": "Transcode",
   "transcodeSectionTitle": "Audio Transcoding",
   "transcodeSectionDescription": "Set default output format, quality preset, and ffmpeg path for audio conversion.",
   "transcodeDefaultFormat": "Default Output Format",
