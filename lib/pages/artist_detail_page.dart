@@ -14,6 +14,7 @@ import 'package:vibe_flow/dialogs/transcode_dialog.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/mini_player_wrapper.dart';
+import '../widgets/library_selection_panel.dart';
 
 class ArtistDetailPage extends ConsumerWidget {
   const ArtistDetailPage({super.key, required this.artist});
@@ -51,13 +52,61 @@ class ArtistDetailPage extends ConsumerWidget {
   }
 }
 
-class ArtistDetailContent extends ConsumerWidget {
+class ArtistDetailContent extends ConsumerStatefulWidget {
   const ArtistDetailContent({super.key, required this.artist});
 
   final ArtistSummary artist;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ArtistDetailContent> createState() => _ArtistDetailContentState();
+}
+
+class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent> {
+  bool _isSelectionMode = false;
+  final Set<String> _selectedSongPaths = {};
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedSongPaths.clear();
+        ref.read(librarySelectionActiveProvider.notifier).state = false;
+      } else {
+        ref.read(librarySelectionActiveProvider.notifier).state = true;
+      }
+    });
+  }
+
+  void _toggleSelection(String path) {
+    setState(() {
+      if (_selectedSongPaths.contains(path)) {
+        _selectedSongPaths.remove(path);
+      } else {
+        _selectedSongPaths.add(path);
+      }
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedSongPaths.clear();
+      ref.read(librarySelectionActiveProvider.notifier).state = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(librarySelectionActiveProvider.notifier).state = false;
+      }
+    });
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final unknownAlbumLabel = l10n.unknownAlbum;
     final theme = Theme.of(context);
@@ -66,73 +115,132 @@ class ArtistDetailContent extends ConsumerWidget {
     final headerColor = theme.colorScheme.tertiaryContainer.withValues(
       alpha: 0.65,
     );
-    final albumSections = _buildAlbumSections(artist.songs, unknownAlbumLabel);
+    final albumSections = _buildAlbumSections(widget.artist.songs, unknownAlbumLabel);
     final displaySongs = albumSections
         .expand((section) => section.songs)
         .toList(growable: false);
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [headerColor, theme.colorScheme.surface],
+    final selectedSongs = displaySongs.where((song) => _selectedSongPaths.contains(song.path)).toList();
+
+    void toggleSelectAll() {
+      setState(() {
+        if (_selectedSongPaths.length == displaySongs.length) {
+          _selectedSongPaths.clear();
+        } else {
+          _selectedSongPaths.addAll(displaySongs.map((s) => s.path));
+        }
+      });
+    }
+
+    return Stack(
+      children: [
+        CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [headerColor, theme.colorScheme.surface],
+                  ),
+                ),
+                child: _ArtistInfo(
+                  artist: widget.artist,
+                  onPlayAll: () => audio.playPlaylist(displaySongs),
+                  onShufflePlay: () =>
+                      audio.playPlaylist(List.of(displaySongs)..shuffle()),
+                ),
               ),
             ),
-            child: _ArtistInfo(
-              artist: artist,
-              onPlayAll: () => audio.playPlaylist(displaySongs),
-              onShufflePlay: () =>
-                  audio.playPlaylist(List.of(displaySongs)..shuffle()),
+            if (albumSections.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(l10n.emptyList, style: theme.textTheme.titleMedium),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                sliver: SliverList.builder(
+                  itemCount: albumSections.length,
+                  itemBuilder: (context, index) {
+                    final section = albumSections[index];
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index == albumSections.length - 1 ? 0 : 12,
+                      ),
+                      child: _AlbumSectionCard(
+                        section: section,
+                        currentMusic: currentMusic,
+                        theme: theme,
+                        onPlayAlbum: () => audio.playPlaylist(section.songs),
+                        onShufflePlayAlbum: () =>
+                            audio.playPlaylist(List.of(section.songs)..shuffle()),
+                        onSongTap: (songIndex) {
+                          final song = section.songs[songIndex];
+                          if (_isSelectionMode) {
+                            _toggleSelection(song.path);
+                          } else {
+                            audio.playPlaylist(
+                              displaySongs,
+                              initialIndex: section.startIndex + songIndex,
+                            );
+                          }
+                        },
+                        onSongSecondaryTapDown: (details, song) {
+                          if (!_isSelectionMode) {
+                            _showSongBottomSheet(context, ref, song);
+                          }
+                        },
+                        onSongLongPress: (song) {
+                          if (!_isSelectionMode) {
+                            _toggleSelectionMode();
+                            _toggleSelection(song.path);
+                          }
+                        },
+                        isSelectionMode: _isSelectionMode,
+                        selectedSongPaths: _selectedSongPaths,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: (currentMusic != null ? 120 : 20) + (_isSelectionMode ? 220.0 : 0.0),
+              ),
             ),
-          ),
+          ],
         ),
-        if (albumSections.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Text(l10n.emptyList, style: theme.textTheme.titleMedium),
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            sliver: SliverList.builder(
-              itemCount: albumSections.length,
-              itemBuilder: (context, index) {
-                final section = albumSections[index];
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: index == albumSections.length - 1 ? 0 : 12,
-                  ),
-                  child: _AlbumSectionCard(
-                    section: section,
-                    currentMusic: currentMusic,
-                    theme: theme,
-                    onPlayAlbum: () => audio.playPlaylist(section.songs),
-                    onShufflePlayAlbum: () =>
-                        audio.playPlaylist(List.of(section.songs)..shuffle()),
-                    onSongTap: (songIndex) => audio.playPlaylist(
-                      displaySongs,
-                      initialIndex: section.startIndex + songIndex,
-                    ),
-                    onSongSecondaryTapDown: (details, song) {
-                      _showSongBottomSheet(context, ref, song);
-                    },
-                    onSongLongPress: (song) {
-                      _showSongBottomSheet(context, ref, song);
-                    },
-                  ),
-                );
-              },
-            ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            reverseDuration: const Duration(milliseconds: 200),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              final offsetAnimation = Tween<Offset>(
+                begin: const Offset(0, 1.0),
+                end: Offset.zero,
+              ).animate(animation);
+              return SlideTransition(position: offsetAnimation, child: child);
+            },
+            child: _isSelectionMode
+                ? LibrarySelectionPanel(
+                    key: const ValueKey('library-selection-panel'),
+                    selectedSongs: selectedSongs,
+                    allSongs: displaySongs,
+                    onToggleSelectAll: toggleSelectAll,
+                    onCancel: _cancelSelection,
+                  )
+                : const SizedBox.shrink(key: ValueKey('library-selection-panel-hidden')),
           ),
-        SliverToBoxAdapter(
-          child: SizedBox(height: currentMusic != null ? 120 : 20),
         ),
       ],
     );
@@ -485,6 +593,8 @@ class _AlbumSectionCard extends StatelessWidget {
     required this.onSongTap,
     required this.onSongSecondaryTapDown,
     required this.onSongLongPress,
+    this.isSelectionMode = false,
+    required this.selectedSongPaths,
   });
 
   final _AlbumSection section;
@@ -496,6 +606,8 @@ class _AlbumSectionCard extends StatelessWidget {
   final void Function(TapDownDetails details, MusicFile song)
   onSongSecondaryTapDown;
   final ValueChanged<MusicFile> onSongLongPress;
+  final bool isSelectionMode;
+  final Set<String> selectedSongPaths;
 
   @override
   Widget build(BuildContext context) {
@@ -620,6 +732,8 @@ class _AlbumSectionCard extends StatelessWidget {
                       onSecondaryTapDown: (details) =>
                           onSongSecondaryTapDown(details, section.songs[i]),
                       onLongPress: () => onSongLongPress(section.songs[i]),
+                      isSelectionMode: isSelectionMode,
+                      isSelected: selectedSongPaths.contains(section.songs[i].path),
                     ),
                   ],
                 ],
@@ -640,6 +754,8 @@ class _AlbumSongTile extends StatelessWidget {
     required this.onTap,
     required this.onSecondaryTapDown,
     required this.onLongPress,
+    this.isSelectionMode = false,
+    this.isSelected = false,
   });
 
   final MusicFile song;
@@ -648,6 +764,8 @@ class _AlbumSongTile extends StatelessWidget {
   final VoidCallback onTap;
   final void Function(TapDownDetails details) onSecondaryTapDown;
   final VoidCallback onLongPress;
+  final bool isSelectionMode;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -658,11 +776,16 @@ class _AlbumSongTile extends StatelessWidget {
       onSecondaryTapDown: onSecondaryTapDown,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        selected: isCurrent,
+        selected: isSelectionMode ? isSelected : isCurrent,
         selectedTileColor: theme.colorScheme.primaryContainer.withValues(
           alpha: 0.35,
         ),
-
+        leading: isSelectionMode
+            ? Checkbox(
+                value: isSelected,
+                onChanged: (_) => onTap(),
+              )
+            : null,
         title: Text(
           song.displayName,
           style: theme.textTheme.bodyLarge?.copyWith(

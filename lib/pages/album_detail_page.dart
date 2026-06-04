@@ -15,14 +15,74 @@ import 'package:vibe_flow/dialogs/transcode_dialog.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/mini_player_wrapper.dart';
+import '../widgets/library_selection_panel.dart';
 
-class AlbumDetailPage extends ConsumerWidget {
+class AlbumDetailPage extends ConsumerStatefulWidget {
   const AlbumDetailPage({super.key, required this.album});
 
   final AlbumSummary album;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AlbumDetailPage> createState() => _AlbumDetailPageState();
+}
+
+class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
+  bool _isSelectionMode = false;
+  final Set<String> _selectedSongPaths = {};
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedSongPaths.clear();
+        ref.read(librarySelectionActiveProvider.notifier).state = false;
+      } else {
+        ref.read(librarySelectionActiveProvider.notifier).state = true;
+      }
+    });
+  }
+
+  void _toggleSelection(String path) {
+    setState(() {
+      if (_selectedSongPaths.contains(path)) {
+        _selectedSongPaths.remove(path);
+      } else {
+        _selectedSongPaths.add(path);
+      }
+    });
+  }
+
+  void _toggleSelectAll() {
+    final allSongs = widget.album.songs;
+    setState(() {
+      if (_selectedSongPaths.length == allSongs.length) {
+        _selectedSongPaths.clear();
+      } else {
+        _selectedSongPaths.addAll(allSongs.map((s) => s.path));
+      }
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedSongPaths.clear();
+      ref.read(librarySelectionActiveProvider.notifier).state = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(librarySelectionActiveProvider.notifier).state = false;
+      }
+    });
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final audio = ref.read(audioServiceProvider);
@@ -35,114 +95,161 @@ class AlbumDetailPage extends ConsumerWidget {
     final bool showCustomTitleBar =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
+    final selectedSongs = widget.album.songs.where((song) => _selectedSongPaths.contains(song.path)).toList();
+
     Widget content = Scaffold(
-      appBar: AppBar(title: Text(album.title)),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [headerColor, theme.colorScheme.surface],
+      appBar: AppBar(title: Text(widget.album.title)),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [headerColor, theme.colorScheme.surface],
+                    ),
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth >= 700;
+                      final cover = Hero(
+                        tag: 'album-cover-${widget.album.id}',
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: SongThumbnail(
+                            path: widget.album.representativeSong.path,
+                            id: widget.album.representativeSong.id,
+                            size: isWide
+                                ? 220
+                                : math.min(220, constraints.maxWidth),
+                          ),
+                        ),
+                      );
+                      final info = _AlbumInfo(
+                        album: widget.album,
+                        onPlayAll: () => audio.playPlaylist(widget.album.songs),
+                        onShufflePlay: () =>
+                            audio.playPlaylist(List.of(widget.album.songs)..shuffle()),
+                      );
+
+                      if (isWide) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            cover,
+                            const SizedBox(width: 24),
+                            Expanded(child: info),
+                          ],
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(child: cover),
+                          const SizedBox(height: 20),
+                          info,
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 700;
-                  final cover = Hero(
-                    tag: 'album-cover-${album.id}',
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: SongThumbnail(
-                        path: album.representativeSong.path,
-                        id: album.representativeSong.id,
-                        size: isWide
-                            ? 220
-                            : math.min(220, constraints.maxWidth),
+              SliverList.builder(
+                itemCount: widget.album.songs.length,
+                itemBuilder: (context, index) {
+                  final song = widget.album.songs[index];
+                  final isCurrent = currentMusic?.path == song.path;
+                  final isSelected = _selectedSongPaths.contains(song.path);
+                  final durationLabel = _formatDuration(song.durationMillis);
+                  final trackLabel = '${index + 1}'.padLeft(2, '0');
+
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onSecondaryTapDown: (details) {
+                      if (!_isSelectionMode) {
+                        _showSongBottomSheet(context, ref, song);
+                      }
+                    },
+                    onLongPress: () {
+                      if (!_isSelectionMode) {
+                        _toggleSelectionMode();
+                        _toggleSelection(song.path);
+                      }
+                    },
+                    child: ListTile(
+                      selected: _isSelectionMode ? isSelected : isCurrent,
+                      selectedTileColor: theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.35),
+                      leading: _isSelectionMode
+                          ? Checkbox(
+                              value: isSelected,
+                              onChanged: (_) => _toggleSelection(song.path),
+                            )
+                          : SizedBox(
+                              width: 32,
+                              child: Text(
+                                trackLabel,
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: isCurrent ? theme.colorScheme.primary : null,
+                                  fontWeight: isCurrent ? FontWeight.w700 : null,
+                                ),
+                              ),
+                            ),
+                      title: Text(
+                        song.displayName,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: isCurrent ? theme.colorScheme.primary : null,
+                          fontWeight: isCurrent ? FontWeight.w700 : null,
+                        ),
                       ),
+                      subtitle: Text(song.artist ?? l10n.unknownArtist),
+                      trailing: durationLabel == null ? null : Text(durationLabel),
+                      onTap: _isSelectionMode
+                          ? () => _toggleSelection(song.path)
+                          : () => audio.playPlaylist(widget.album.songs, initialIndex: index),
                     ),
-                  );
-                  final info = _AlbumInfo(
-                    album: album,
-                    onPlayAll: () => audio.playPlaylist(album.songs),
-                    onShufflePlay: () =>
-                        audio.playPlaylist(List.of(album.songs)..shuffle()),
-                  );
-
-                  if (isWide) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        cover,
-                        const SizedBox(width: 24),
-                        Expanded(child: info),
-                      ],
-                    );
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(child: cover),
-                      const SizedBox(height: 20),
-                      info,
-                    ],
                   );
                 },
               ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: (currentMusic != null ? 120 : 20) + (_isSelectionMode ? 220.0 : 0.0),
+                ),
+              ),
+            ],
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              reverseDuration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offsetAnimation = Tween<Offset>(
+                  begin: const Offset(0, 1.0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return SlideTransition(position: offsetAnimation, child: child);
+              },
+              child: _isSelectionMode
+                  ? LibrarySelectionPanel(
+                      key: const ValueKey('library-selection-panel'),
+                      selectedSongs: selectedSongs,
+                      allSongs: widget.album.songs,
+                      onToggleSelectAll: _toggleSelectAll,
+                      onCancel: _cancelSelection,
+                    )
+                  : const SizedBox.shrink(key: ValueKey('library-selection-panel-hidden')),
             ),
-          ),
-          SliverList.builder(
-            itemCount: album.songs.length,
-            itemBuilder: (context, index) {
-              final song = album.songs[index];
-              final isCurrent = currentMusic?.path == song.path;
-              final durationLabel = _formatDuration(song.durationMillis);
-              final trackLabel = '${index + 1}'.padLeft(2, '0');
-
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onSecondaryTapDown: (details) {
-                  _showSongBottomSheet(context, ref, song);
-                },
-                onLongPress: () {
-                  _showSongBottomSheet(context, ref, song);
-                },
-                child: ListTile(
-                  selected: isCurrent,
-                  selectedTileColor: theme.colorScheme.primaryContainer
-                      .withValues(alpha: 0.35),
-                  leading: SizedBox(
-                    width: 32,
-                    child: Text(
-                      trackLabel,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isCurrent ? theme.colorScheme.primary : null,
-                        fontWeight: isCurrent ? FontWeight.w700 : null,
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    song.displayName,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: isCurrent ? theme.colorScheme.primary : null,
-                      fontWeight: isCurrent ? FontWeight.w700 : null,
-                    ),
-                  ),
-                  subtitle: Text(song.artist ?? l10n.unknownArtist),
-                  trailing: durationLabel == null ? null : Text(durationLabel),
-                  onTap: () =>
-                      audio.playPlaylist(album.songs, initialIndex: index),
-                ),
-              );
-            },
-          ),
-          SliverToBoxAdapter(
-            child: SizedBox(height: currentMusic != null ? 120 : 20),
           ),
         ],
       ),

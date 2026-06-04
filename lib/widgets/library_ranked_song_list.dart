@@ -13,8 +13,9 @@ import 'package:vibe_flow/player/library/playlist_service.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/dialogs/transcode_dialog.dart';
 import 'song_thumbnail.dart';
+import 'library_selection_panel.dart';
 
-class LibraryRankedSongList extends ConsumerWidget {
+class LibraryRankedSongList extends ConsumerStatefulWidget {
   const LibraryRankedSongList({
     super.key,
     required this.title,
@@ -35,13 +36,74 @@ class LibraryRankedSongList extends ConsumerWidget {
   final Widget Function(BuildContext, LibraryInsightSongEntry) trailingBuilder;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LibraryRankedSongList> createState() => _LibraryRankedSongListState();
+}
+
+class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
+  bool _isSelectionMode = false;
+  final Set<String> _selectedSongPaths = {};
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedSongPaths.clear();
+        ref.read(librarySelectionActiveProvider.notifier).state = false;
+      } else {
+        ref.read(librarySelectionActiveProvider.notifier).state = true;
+      }
+    });
+  }
+
+  void _toggleSelection(String path) {
+    setState(() {
+      if (_selectedSongPaths.contains(path)) {
+        _selectedSongPaths.remove(path);
+      } else {
+        _selectedSongPaths.add(path);
+      }
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedSongPaths.clear();
+      ref.read(librarySelectionActiveProvider.notifier).state = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(librarySelectionActiveProvider.notifier).state = false;
+      }
+    });
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final audio = ref.read(audioServiceProvider);
     final playlistService = ref.read(playlistServiceProvider);
 
-    return Column(
+    final allSongs = widget.items.map((entry) => entry.song).toList();
+    final selectedSongs = allSongs.where((song) => _selectedSongPaths.contains(song.path)).toList();
+
+    void toggleSelectAll() {
+      setState(() {
+        if (_selectedSongPaths.length == allSongs.length) {
+          _selectedSongPaths.clear();
+        } else {
+          _selectedSongPaths.addAll(allSongs.map((s) => s.path));
+        }
+      });
+    }
+
+    Widget currentBody = Column(
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
@@ -67,14 +129,14 @@ class LibraryRankedSongList extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                title,
+                                widget.title,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                subtitle,
+                                widget.subtitle,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
@@ -82,14 +144,10 @@ class LibraryRankedSongList extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        if (items.isNotEmpty) ...[
+                        if (widget.items.isNotEmpty) ...[
                           FilledButton.icon(
                             onPressed: () {
-                              audio.playPlaylist(
-                                items
-                                    .map((entry) => entry.song)
-                                    .toList(growable: false),
-                              );
+                              audio.playPlaylist(allSongs);
                             },
                             icon: const Icon(Icons.play_arrow_rounded),
                             label: Text(l10n.playAll),
@@ -97,8 +155,7 @@ class LibraryRankedSongList extends ConsumerWidget {
                           const SizedBox(width: 12),
                           OutlinedButton.icon(
                             onPressed: () {
-                              final songs = items.map((entry) => entry.song).toList()
-                                ..shuffle();
+                              final songs = List<MusicFile>.from(allSongs)..shuffle();
                               audio.playPlaylist(songs);
                             },
                             icon: const Icon(Icons.shuffle_rounded),
@@ -112,30 +169,26 @@ class LibraryRankedSongList extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          title,
+                          widget.title,
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          subtitle,
+                          widget.subtitle,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        if (items.isNotEmpty) ...[
+                        if (widget.items.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           Row(
                             children: [
                               Expanded(
                                 child: FilledButton.icon(
                                   onPressed: () {
-                                    audio.playPlaylist(
-                                      items
-                                          .map((entry) => entry.song)
-                                          .toList(growable: false),
-                                    );
+                                    audio.playPlaylist(allSongs);
                                   },
                                   icon: const Icon(Icons.play_arrow_rounded),
                                   label: Text(l10n.playAll),
@@ -145,8 +198,7 @@ class LibraryRankedSongList extends ConsumerWidget {
                               Expanded(
                                 child: OutlinedButton.icon(
                                   onPressed: () {
-                                    final songs = items.map((entry) => entry.song).toList()
-                                      ..shuffle();
+                                    final songs = List<MusicFile>.from(allSongs)..shuffle();
                                     audio.playPlaylist(songs);
                                   },
                                   icon: const Icon(Icons.shuffle_rounded),
@@ -168,8 +220,8 @@ class LibraryRankedSongList extends ConsumerWidget {
                           if (i > 0) const SizedBox(width: 8),
                           ChoiceChip(
                             label: Text(_timeRangeLabel(l10n, LibraryTimeRange.values[i])),
-                            selected: selectedRange == LibraryTimeRange.values[i],
-                            onSelected: (_) => onRangeChanged(LibraryTimeRange.values[i]),
+                            selected: widget.selectedRange == LibraryTimeRange.values[i],
+                            onSelected: (_) => widget.onRangeChanged(LibraryTimeRange.values[i]),
                           ),
                         ],
                       ],
@@ -181,12 +233,12 @@ class LibraryRankedSongList extends ConsumerWidget {
           },
         ),
         Expanded(
-          child: items.isEmpty
+          child: widget.items.isEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      emptyText,
+                      widget.emptyText,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
@@ -195,38 +247,95 @@ class LibraryRankedSongList extends ConsumerWidget {
                   ),
                 )
                 : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 140),
-                  itemCount: items.length,
-                  cacheExtent: 1000,
-                  prototypeItem: items.isNotEmpty
+                  padding: EdgeInsets.fromLTRB(12, 12, 12, 140 + (_isSelectionMode ? 220.0 : 0.0)),
+                  itemCount: widget.items.length,
+                  scrollCacheExtent: 1000,
+                  prototypeItem: widget.items.isNotEmpty
                       ? Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: _SongListItem(
-                            entry: items.first,
+                            entry: widget.items.first,
                             index: 0,
                             l10n: l10n,
                             audio: audio,
                             playlistService: playlistService,
-                            items: items,
-                            trailingBuilder: trailingBuilder,
+                            items: widget.items,
+                            trailingBuilder: widget.trailingBuilder,
+                            isSelectionMode: _isSelectionMode,
+                            isSelected: false,
+                            onTap: () {},
+                            onLongPress: () {},
                           ),
                         )
                       : null,
                   itemBuilder: (context, index) {
+                    final entry = widget.items[index];
+                    final isSelected = _selectedSongPaths.contains(entry.song.path);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: _SongListItem(
-                        entry: items[index],
+                        entry: entry,
                         index: index,
                         l10n: l10n,
                         audio: audio,
                         playlistService: playlistService,
-                        items: items,
-                        trailingBuilder: trailingBuilder,
+                        items: widget.items,
+                        trailingBuilder: widget.trailingBuilder,
+                        isSelectionMode: _isSelectionMode,
+                        isSelected: isSelected,
+                        onTap: () {
+                          if (_isSelectionMode) {
+                            _toggleSelection(entry.song.path);
+                          } else {
+                            audio.playPlaylist(
+                              allSongs,
+                              initialIndex: index,
+                            );
+                          }
+                        },
+                        onLongPress: () {
+                          if (!_isSelectionMode) {
+                            _toggleSelectionMode();
+                            _toggleSelection(entry.song.path);
+                          }
+                        },
                       ),
                     );
                   },
                 ),
+        ),
+      ],
+    );
+
+    return Stack(
+      children: [
+        currentBody,
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            reverseDuration: const Duration(milliseconds: 200),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              final offsetAnimation = Tween<Offset>(
+                begin: const Offset(0, 1.0),
+                end: Offset.zero,
+              ).animate(animation);
+              return SlideTransition(position: offsetAnimation, child: child);
+            },
+            child: _isSelectionMode
+                ? LibrarySelectionPanel(
+                    key: const ValueKey('library-selection-panel'),
+                    selectedSongs: selectedSongs,
+                    allSongs: allSongs,
+                    onToggleSelectAll: toggleSelectAll,
+                    onCancel: _cancelSelection,
+                  )
+                : const SizedBox.shrink(key: ValueKey('library-selection-panel-hidden')),
+          ),
         ),
       ],
     );
@@ -251,6 +360,10 @@ class _SongListItem extends StatelessWidget {
     required this.playlistService,
     required this.items,
     required this.trailingBuilder,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    required this.onTap,
+    required this.onLongPress,
   });
 
   final LibraryInsightSongEntry entry;
@@ -260,6 +373,10 @@ class _SongListItem extends StatelessWidget {
   final PlaylistService playlistService;
   final List<LibraryInsightSongEntry> items;
   final Widget Function(BuildContext, LibraryInsightSongEntry) trailingBuilder;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -270,22 +387,19 @@ class _SongListItem extends StatelessWidget {
       child: Card(
         margin: EdgeInsets.zero,
         elevation: 0,
-        color: theme.colorScheme.surfaceContainerLow,
+        color: isSelectionMode && isSelected
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+            : theme.colorScheme.surfaceContainerLow,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            audio.playPlaylist(
-              items.map((item) => item.song).toList(growable: false),
-              initialIndex: index,
-            );
-          },
-          onLongPress: () async {
-            await _showSongBottomSheet(context, song);
-          },
+          onTap: onTap,
+          onLongPress: onLongPress,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onSecondaryTapDown: (details) async {
-              await _showSongBottomSheet(context, song);
+              if (!isSelectionMode) {
+                await _showSongBottomSheet(context, song);
+              }
             },
             child: ListTile(
               isThreeLine: true,
@@ -293,20 +407,27 @@ class _SongListItem extends StatelessWidget {
                 horizontal: 12,
                 vertical: 8,
               ),
+              selected: isSelectionMode ? isSelected : false,
+              selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
               leading: SizedBox(
                 width: 72,
                 child: Row(
                   children: [
                     SizedBox(
                       width: 24,
-                      child: Text(
-                        '${index + 1}',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+                      child: isSelectionMode
+                          ? Checkbox(
+                              value: isSelected,
+                              onChanged: (_) => onTap(),
+                            )
+                          : Text(
+                              '${index + 1}',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                     ),
                     const SizedBox(width: 8),
                     SongThumbnail(

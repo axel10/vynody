@@ -28,6 +28,7 @@ import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/global_drop_target.dart';
+import '../widgets/library_selection_panel.dart';
 import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import 'dart:async';
 
@@ -575,7 +576,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
     final uiState = ref.watch(mainLayoutUiControllerProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final hideMiniPlayerForSelection = ref.watch(folderSelectionModeProvider);
+    final isLibrarySelectionActive = ref.watch(librarySelectionActiveProvider);
+    final hideMiniPlayerForSelection = ref.watch(folderSelectionModeProvider) || isLibrarySelectionActive;
     final isRootSelectionMode = ref.watch(folderRootSelectionModeProvider);
     final isPlaylistSelectionMode = ref.watch(playlistSelectionModeProvider);
     final isQueueSelectionMode = ref.watch(queueSelectionModeProvider);
@@ -756,21 +758,22 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                       AnimatedPositioned(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutCubic,
-                        bottom: (useSidebar ? 20 : 80) +
-                            MediaQuery.of(context).padding.bottom +
-                            uiState.snackBarOffset +
-                            (((isRootSelectionMode && _currentIndex == 0) ||
-                                    (isPlaylistSelectionMode && _currentIndex == 2) ||
-                                    (isQueueSelectionMode && _currentIndex == 3))
-                                ? 80.0
-                                : 0.0),
+                        bottom: (!isPlayback && currentMusic != null && !hideMiniPlayerForSelection)
+                            ? ((useSidebar ? 20 : 80) +
+                                MediaQuery.of(context).padding.bottom +
+                                uiState.snackBarOffset +
+                                (((isRootSelectionMode && _currentIndex == 0) ||
+                                        (isPlaylistSelectionMode && _currentIndex == 2) ||
+                                        (isQueueSelectionMode && _currentIndex == 3))
+                                    ? 80.0
+                                    : 0.0))
+                            : -120.0,
                         left: 0,
                         right: 0,
                         child: Center(
                           child:
                               !isPlayback &&
-                                  currentMusic != null &&
-                                  !hideMiniPlayerForSelection
+                                  currentMusic != null
                               ? Builder(
                                   builder: (context) {
                                     final audio = ref.read(
