@@ -191,7 +191,6 @@ msix_config:
   display_name: VibeFlow
   publisher_display_name: VibeFlow
   identity_name: app.vibeflow.player
-  msix_version: 1.0.0.0
   logo_path: assets/images/icon.png
   output_name: VibeFlow
   output_path: build/windows/msix
