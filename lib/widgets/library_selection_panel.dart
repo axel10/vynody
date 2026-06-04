@@ -144,7 +144,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
                           child: _buildSelectionActionButton(
                             context: context,
                             icon: Icons.playlist_add_rounded,
-                            label: l10n.addToPlaylist,
+                            label: l10n.playlist,
                             onPressed: isEmpty
                                 ? null
                                 : () async {
@@ -274,7 +274,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10),
+              style: const TextStyle(fontSize: 12),
             ),
           ],
         ),
