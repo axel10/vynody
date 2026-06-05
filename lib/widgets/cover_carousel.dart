@@ -460,7 +460,7 @@ class _CoverItemState extends State<_CoverItem> {
                         // Deep soft ambient shadow
                         BoxShadow(
                           color: Colors.black.withValues(
-                            alpha: (0.18 + 0.12 * (1 - pageOffset.abs())),
+                            alpha: (0.07 + 0.12 * (1 - pageOffset.abs())),
                           ),
                           blurRadius: 3 * scale,
                           spreadRadius: 2 * scale,
