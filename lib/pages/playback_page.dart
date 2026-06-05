@@ -887,9 +887,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               children: [
                 if (isSmallWin) ...[
                   Positioned.fill(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 800),
-                      child: _buildBackgroundWidget(context, backgroundType, settings),
+                    child: ClipRect(
+                      child: Transform.scale(
+                        scale: 1.15,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 800),
+                          child: _buildBackgroundWidget(context, backgroundType, settings),
+                        ),
+                      ),
                     ),
                   ),
                   Positioned.fill(
@@ -931,24 +936,29 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         final double clampedStart = fadeStart.clamp(0.0, 1.0);
                         final double clampedEnd = fadeEnd.clamp(0.0, 1.0);
 
-                        return ShaderMask(
-                          shaderCallback: (rect) {
-                            return LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: const [
-                                Colors.transparent,
-                                Colors.black,
-                              ],
-                              stops: [clampedStart, clampedEnd],
-                            ).createShader(rect);
-                          },
-                          blendMode: BlendMode.dstIn,
-                          child: ImageFiltered(
-                            imageFilter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 800),
-                              child: _buildBackgroundWidget(context, backgroundType, settings),
+                        return ClipRect(
+                          child: ShaderMask(
+                            shaderCallback: (rect) {
+                              return LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: const [
+                                  Colors.transparent,
+                                  Colors.black,
+                                ],
+                                stops: [clampedStart, clampedEnd],
+                              ).createShader(rect);
+                            },
+                            blendMode: BlendMode.dstIn,
+                            child: ImageFiltered(
+                              imageFilter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                              child: Transform.scale(
+                                scale: 1.15,
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 800),
+                                  child: _buildBackgroundWidget(context, backgroundType, settings),
+                                ),
+                              ),
                             ),
                           ),
                         );

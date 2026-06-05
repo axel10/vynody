@@ -186,12 +186,15 @@ class PlaybackHeroCard extends ConsumerWidget {
   ) async {
     if (currentMusic == null) return;
 
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
     final l10n = AppLocalizations.of(context)!;
     final audioService = ref.read(audioServiceProvider);
 
-    final bytes = currentMusic.artworkBytes ?? audioService.getCachedArtwork(currentMusic.path);
+    final bytes =
+        currentMusic.artworkBytes ??
+        audioService.getCachedArtwork(currentMusic.path);
     final hasCover = bytes != null && bytes.isNotEmpty;
 
     final selected = await showMenu<String>(
@@ -351,7 +354,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                               : Colors.black87,
                           size: 24,
                           padding: const EdgeInsets.all(6.0),
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                           tooltip: isPlaying
                               ? AppLocalizations.of(context)!.pause
                               : AppLocalizations.of(context)!.play,
@@ -417,7 +421,10 @@ class PlaybackHeroCard extends ConsumerWidget {
                     (s) => s.isWaveformProgressBarEnabled,
                   ),
                 );
-                final useOverlayStyle = !effectiveIsLandscape && !effectiveIsLyricsMode && isWaveformEnabled;
+                final useOverlayStyle =
+                    !effectiveIsLandscape &&
+                    !effectiveIsLyricsMode &&
+                    isWaveformEnabled;
 
                 final layout = _buildPlaybackCardLayout(
                   context,
@@ -497,19 +504,20 @@ class PlaybackHeroCard extends ConsumerWidget {
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.center,
                               child: SizedBox(
-                                key: ValueKey('controls_sizing_box_${useOverlayStyle ? 'overlay' : 'default'}'),
-                                width:
-                                    (effectiveIsLandscape
-                                        ? lerpDouble(
-                                            PlaybackHeroCardUiTuning
-                                                .lControlsScaleBase,
-                                            PlaybackHeroCardUiTuning
-                                                .lLyricsPreferredCoverSide,
-                                            tLyrics,
-                                          )!
-                                        : width *
-                                              PlaybackHeroCardUiTuning
-                                                  .portraitControlsWidthFactor),
+                                key: ValueKey(
+                                  'controls_sizing_box_${useOverlayStyle ? 'overlay' : 'default'}',
+                                ),
+                                width: (effectiveIsLandscape
+                                    ? lerpDouble(
+                                        PlaybackHeroCardUiTuning
+                                            .lControlsScaleBase,
+                                        PlaybackHeroCardUiTuning
+                                            .lLyricsPreferredCoverSide,
+                                        tLyrics,
+                                      )!
+                                    : width *
+                                          PlaybackHeroCardUiTuning
+                                              .portraitControlsWidthFactor),
                                 child: _buildPlaybackControlsWidget(
                                   context,
                                   ref,
@@ -587,18 +595,19 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final pNormalControlsBaseIdealHeight =
         (PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
-        (isWaveformEnabled
-            ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
-            : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
-        (isWaveformEnabled
-            ? PlaybackHeroCardUiTuning.waveformOverlayHeight
-            : 48.0) + // Normal slider height is roughly 48
-        (isWaveformEnabled
-            ? 0.0
-            : (8.0 + // Time gap
-                  PlaybackHeroCardUiTuning.controlsTimeRowHeight +
-                  PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-                  PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) * scaleFactor;
+            (isWaveformEnabled
+                ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
+                : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
+            (isWaveformEnabled
+                ? PlaybackHeroCardUiTuning.waveformOverlayHeight
+                : 48.0) + // Normal slider height is roughly 48
+            (isWaveformEnabled
+                ? 0.0
+                : (8.0 + // Time gap
+                      PlaybackHeroCardUiTuning.controlsTimeRowHeight +
+                      PlaybackHeroCardUiTuning.controlsRowPortraitGap +
+                      PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) *
+        scaleFactor;
 
     final pNormalControlsWidth =
         width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
@@ -610,7 +619,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                 math.min(1.0, pNormalControlsRawScale))
             .clamp(0.0, height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
             .ceilToDouble();
-    final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * scaleFactor;
+    final pNormalInfoHeight =
+        PlaybackHeroCardUiTuning.pInfoHeight * scaleFactor;
 
     // 避让底部 Tab 栏高度 (Avoid bottom tab bar height)
     final pNormalBottomLimit =
@@ -627,14 +637,14 @@ class PlaybackHeroCard extends ConsumerWidget {
     final pNormalCoverSide = isSmallWindow
         ? 0.0
         : math
-            .min(
-              width,
-              pNormalBottomLimit -
-                  pNormalTotalContentHeight -
-                  PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap,
-            )
-            .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide)
-            .toDouble();
+              .min(
+                width,
+                pNormalBottomLimit -
+                    pNormalTotalContentHeight -
+                    PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap,
+              )
+              .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide)
+              .toDouble();
 
     final double pNormalInfoTop;
     final double pNormalControlsTop;
@@ -643,7 +653,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       // 紧贴窗口底部 (Position right up against the bottom of the window)
       // 留出 12 像素底边距 (Leave 12px padding at the bottom)
       const double bottomPadding = 12.0;
-      pNormalControlsTop = pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
+      pNormalControlsTop =
+          pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
       pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight - 4.0;
     } else {
       // 在封面底部到 Tab 栏顶部之间的剩余空间内居中放置标题和控件区
@@ -793,18 +804,23 @@ class PlaybackHeroCard extends ConsumerWidget {
     // Centering logic: cover, info and controls are centered within the column and aligned in width
     // 移除离散的 isLarge 逻辑，改用连续的百分比缩放
     // Remove discrete isLarge logic, use continuous percentage scaling
-    final currentControlsScale = _lerp2DSmooth(
-      // 竖屏：基于宽度进行缩放，稍微增加基准，让按钮在标准屏幕上保持舒适大小
-      (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15),
-      1.0,
-      // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
-      (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
-          .clamp(0.85, 1.8),
-      // 横屏歌词模式：结合宽度基准和高度缩放系数
-      (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
-      tLyrics,
-      tLand,
-    ) * scaleFactor;
+    final currentControlsScale =
+        _lerp2DSmooth(
+          // 竖屏：基于宽度进行缩放，稍微增加基准，让按钮在标准屏幕上保持舒适大小
+          (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(
+            0.9,
+            1.15,
+          ),
+          1.0,
+          // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
+          (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
+              .clamp(0.85, 1.8),
+          // 横屏歌词模式：结合宽度基准和高度缩放系数
+          (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
+          tLyrics,
+          tLand,
+        ) *
+        scaleFactor;
 
     final lLyricsCoverLeft =
         lLyricsOuterLeftPadding + (lLyricsColumnWidth - lLyricsCoverSide) / 2;
@@ -823,7 +839,6 @@ class PlaybackHeroCard extends ConsumerWidget {
       0.0,
       width - lLyricsLyricsLeft - 32.0,
     );
-
 
     // Build the Panes
     // Cover
@@ -1100,11 +1115,21 @@ class PlaybackHeroCard extends ConsumerWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onCoverTap,
       onSecondaryTapDown: (details) {
-        _showCoverContextMenu(context, ref, details.globalPosition, currentMusic);
+        _showCoverContextMenu(
+          context,
+          ref,
+          details.globalPosition,
+          currentMusic,
+        );
       },
       onLongPressStart: (details) {
         HapticFeedback.mediumImpact();
-        _showCoverContextMenu(context, ref, details.globalPosition, currentMusic);
+        _showCoverContextMenu(
+          context,
+          ref,
+          details.globalPosition,
+          currentMusic,
+        );
       },
       child: cover,
     );
@@ -1182,7 +1207,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
-                 child: Builder(
+                child: Builder(
                   builder: (context) {
                     final style = DefaultTextStyle.of(context).style;
                     return MarqueeText(
@@ -1538,12 +1563,13 @@ class PlaybackHeroCard extends ConsumerWidget {
               onPressed: onEqualizerTap,
               tooltip: l10n.equalizer,
             ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
 
-    final controlIconColor = currentThemeColorsMap['darkVibrant'] ??
+    final controlIconColor =
+        currentThemeColorsMap['darkVibrant'] ??
         currentThemeColorsMap['darkMuted'] ??
         Colors.black;
 
@@ -1598,100 +1624,102 @@ class PlaybackHeroCard extends ConsumerWidget {
             ? MainAxisAlignment.center
             : MainAxisAlignment.spaceBetween,
         children: [
-        buildSecondaryControl(
-          circleSize: (useOverlayStyle ? 42 : 40),
-          iconBuilder: (color, isWhiteBg) => Icon(
-            showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-            size: (isWhiteBg ? 22 : 24) * controlsScale,
-            color: showVisualizerToggle ? color : color.withValues(alpha: 0.6),
+          buildSecondaryControl(
+            circleSize: (useOverlayStyle ? 42 : 40),
+            iconBuilder: (color, isWhiteBg) => Icon(
+              showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
+              size: (isWhiteBg ? 22 : 24) * controlsScale,
+              color: showVisualizerToggle
+                  ? color
+                  : color.withValues(alpha: 0.6),
+            ),
+            onPressed: onToggleVisualizer,
+            tooltip: AppLocalizations.of(context)!.visualizer,
           ),
-          onPressed: onToggleVisualizer,
-          tooltip: AppLocalizations.of(context)!.visualizer,
-        ),
-        if (isLandscape) SizedBox(width: 12 * controlsScale),
-        buildSecondaryControl(
-          circleSize: (useOverlayStyle ? 56 : 60),
-          iconBuilder: (color, isWhiteBg) => Icon(
-            Icons.skip_previous_rounded,
-            size: (isWhiteBg ? 34 : 52) * controlsScale,
-            color: color,
+          if (isLandscape) SizedBox(width: 12 * controlsScale),
+          buildSecondaryControl(
+            circleSize: (useOverlayStyle ? 56 : 60),
+            iconBuilder: (color, isWhiteBg) => Icon(
+              Icons.skip_previous_rounded,
+              size: (isWhiteBg ? 34 : 52) * controlsScale,
+              color: color,
+            ),
+            onPressed: onPrevious,
+            tooltip: l10n.previous,
           ),
-          onPressed: onPrevious,
-          tooltip: l10n.previous,
-        ),
-        if (isLandscape) SizedBox(width: 18 * controlsScale),
-        useOverlayStyle
-            ? Container(
-                width: 56 * controlsScale,
-                height: 56 * controlsScale,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 10 * controlsScale,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+          if (isLandscape) SizedBox(width: 18 * controlsScale),
+          useOverlayStyle
+              ? Container(
+                  width: 56 * controlsScale,
+                  height: 56 * controlsScale,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 10 * controlsScale,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: AnimatedPlayPauseButton(
+                    isPlaying: isPlaying,
+                    onPressed: onPlayPause,
+                    color: controlIconColor,
+                    size: 34 * controlsScale,
+                    tooltip: isPlaying ? l10n.pause : l10n.play,
+                  ),
+                )
+              : SizedBox(
+                  width: 60 * controlsScale,
+                  height: 60 * controlsScale,
+                  child: AnimatedPlayPauseButton(
+                    isPlaying: isPlaying,
+                    onPressed: onPlayPause,
+                    color: Colors.white,
+                    size: 52 * controlsScale,
+                    tooltip: isPlaying ? l10n.pause : l10n.play,
+                  ),
                 ),
-                child: AnimatedPlayPauseButton(
-                  isPlaying: isPlaying,
-                  onPressed: onPlayPause,
-                  color: controlIconColor,
-                  size: 34 * controlsScale,
-                  tooltip: isPlaying ? l10n.pause : l10n.play,
-                ),
-              )
-            : SizedBox(
-                width: 60 * controlsScale,
-                height: 60 * controlsScale,
-                child: AnimatedPlayPauseButton(
-                  isPlaying: isPlaying,
-                  onPressed: onPlayPause,
-                  color: Colors.white,
-                  size: 52 * controlsScale,
-                  tooltip: isPlaying ? l10n.pause : l10n.play,
-                ),
-              ),
-        if (isLandscape) SizedBox(width: 18 * controlsScale),
-        buildSecondaryControl(
-          circleSize: (useOverlayStyle ? 56 : 60),
-          iconBuilder: (color, isWhiteBg) => Icon(
-            Icons.skip_next_rounded,
-            size: (isWhiteBg ? 34 : 48) * controlsScale,
-            color: color,
+          if (isLandscape) SizedBox(width: 18 * controlsScale),
+          buildSecondaryControl(
+            circleSize: (useOverlayStyle ? 56 : 60),
+            iconBuilder: (color, isWhiteBg) => Icon(
+              Icons.skip_next_rounded,
+              size: (isWhiteBg ? 34 : 48) * controlsScale,
+              color: color,
+            ),
+            onPressed: onNext,
+            tooltip: l10n.next,
           ),
-          onPressed: onNext,
-          tooltip: l10n.next,
-        ),
-        if (isLandscape) SizedBox(width: 12 * controlsScale),
-        buildSecondaryControl(
-          circleSize: (useOverlayStyle ? 42 : 40),
-          iconBuilder: (color, isWhiteBg) => GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onVerticalDragUpdate: (details) {
-              onVolumeDrag?.call(details.primaryDelta ?? 0);
-            },
-            child: Listener(
-              onPointerSignal: (pointerSignal) {
-                if (pointerSignal is PointerScrollEvent) {
-                  onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-                }
+          if (isLandscape) SizedBox(width: 12 * controlsScale),
+          buildSecondaryControl(
+            circleSize: (useOverlayStyle ? 42 : 40),
+            iconBuilder: (color, isWhiteBg) => GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragUpdate: (details) {
+                onVolumeDrag?.call(details.primaryDelta ?? 0);
               },
-              child: Icon(
-                getVolumeIcon(ref.watch(audioVolumeProvider)),
-                size: (isWhiteBg ? 22 : 24) * controlsScale,
-                color: color,
+              child: Listener(
+                onPointerSignal: (pointerSignal) {
+                  if (pointerSignal is PointerScrollEvent) {
+                    onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+                  }
+                },
+                child: Icon(
+                  getVolumeIcon(ref.watch(audioVolumeProvider)),
+                  size: (isWhiteBg ? 22 : 24) * controlsScale,
+                  color: color,
+                ),
               ),
             ),
+            onPressed: onVolumeTap,
+            tooltip: l10n.volume,
           ),
-          onPressed: onVolumeTap,
-          tooltip: l10n.volume,
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
 
     if (useOverlayStyle) {
       return Column(
@@ -1856,7 +1884,12 @@ class PlaybackProgressSection extends ConsumerWidget {
     final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
     final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
 
-    Widget buildStandardSlider(BuildContext context, double displayProgress, double controlsScale, {bool noPadding = false}) {
+    Widget buildStandardSlider(
+      BuildContext context,
+      double displayProgress,
+      double controlsScale, {
+      bool noPadding = false,
+    }) {
       return Padding(
         padding: EdgeInsets.symmetric(
           horizontal: noPadding
@@ -1902,14 +1935,17 @@ class PlaybackProgressSection extends ConsumerWidget {
                   duration: duration,
                   onScrubbing: onScrubbing ?? (_) {},
                   onSeek: onSeek ?? (_) {},
-                  height: (isLandscape
+                  height:
+                      (isLandscape
                           ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
-                          : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
+                          : PlaybackHeroCardUiTuning
+                                .waveformPortraitLyricsHeight) *
                       controlsScale,
                 );
                 if (!isLandscape) {
                   return Transform.scale(
-                    scaleX: PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
+                    scaleX:
+                        PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
                     child: waveformWidget,
                   );
                 }
@@ -1924,7 +1960,9 @@ class PlaybackProgressSection extends ConsumerWidget {
             },
           ),
           SizedBox(
-            height: (isLandscape ? PlaybackHeroCardUiTuning.controlsTimeGap : 8.0) * controlsScale,
+            height:
+                (isLandscape ? PlaybackHeroCardUiTuning.controlsTimeGap : 8.0) *
+                controlsScale,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1941,7 +1979,10 @@ class PlaybackProgressSection extends ConsumerWidget {
                   )
                 else
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(100),
@@ -1972,7 +2013,10 @@ class PlaybackProgressSection extends ConsumerWidget {
                   )
                 else
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(100),
@@ -2046,37 +2090,51 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
               duration: duration,
               onScrubbing: onScrubbing ?? (_) {},
               onSeek: onSeek ?? (_) {},
-              height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
+              height:
+                  PlaybackHeroCardUiTuning.waveformOverlayHeight *
+                  controlsScale,
             ),
           ),
         ),
         // 2. 时间文字单独平移，避免拉伸 (Time text translated separately to avoid stretching)
         Builder(
           builder: (context) {
-            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+            final isLandscape =
+                MediaQuery.of(context).orientation == Orientation.landscape;
             final screenWidth = MediaQuery.of(context).size.width;
-            final pagePadding = PlaybackPageUiTuning.normalPortraitHorizontalPadding;
+            final pagePadding =
+                PlaybackPageUiTuning.normalPortraitHorizontalPadding;
             const minScreenMargin = 10.0;
 
             final cardWidth = screenWidth - (pagePadding * 2);
             final fittedScale = cardWidth / totalWidth;
 
-            final rawShift = (PlaybackHeroCardUiTuning.waveformOverlayTimeSide - totalWidth / 2) *
-                (PlaybackHeroCardUiTuning.portraitWaveformOverflowScale - 1) * 0.8;
+            final rawShift =
+                (PlaybackHeroCardUiTuning.waveformOverlayTimeSide -
+                    totalWidth / 2) *
+                (PlaybackHeroCardUiTuning.portraitWaveformOverflowScale - 1) *
+                0.8;
 
-            final safeFittedScale = (fittedScale.isFinite && fittedScale > 0) ? fittedScale : 1.0;
-            final minAllowedShift = (minScreenMargin - pagePadding) / safeFittedScale -
+            final safeFittedScale = (fittedScale.isFinite && fittedScale > 0)
+                ? fittedScale
+                : 1.0;
+            final minAllowedShift =
+                (minScreenMargin - pagePadding) / safeFittedScale -
                 PlaybackHeroCardUiTuning.waveformOverlayTimeSide;
 
             final lowerBound = math.min(
               minAllowedShift.isFinite ? minAllowedShift : 0.0,
               0.0,
             );
-            final safeShift = rawShift.isFinite ? rawShift.clamp(lowerBound, 0.0) : 0.0;
+            final safeShift = rawShift.isFinite
+                ? rawShift.clamp(lowerBound, 0.0)
+                : 0.0;
 
             return SizedBox(
               width: totalWidth,
-              height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
+              height:
+                  PlaybackHeroCardUiTuning.waveformOverlayHeight *
+                  controlsScale,
               child: Stack(
                 children: [
                   Positioned(
@@ -2097,7 +2155,10 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               ),
                             )
                           : Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(100),
@@ -2138,7 +2199,10 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               ),
                             )
                           : Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(100),
