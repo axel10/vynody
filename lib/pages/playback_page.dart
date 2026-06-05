@@ -887,94 +887,125 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                if (isSmallWin) ...[
-                  Positioned.fill(
-                    child: ClipRect(
-                      child: Transform.scale(
-                        scale: 1.15,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 800),
-                          child: _buildBackgroundWidget(context, backgroundType, settings),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeInOut,
+                      opacity: isSmallWin ? 0.0 : 1.0,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 800),
+                        child: _buildBackgroundWidget(
+                          context,
+                          backgroundType,
+                          settings,
+                          forceSmallWin: false,
+                          keySuffix: 'normal',
                         ),
                       ),
                     ),
                   ),
-                  Positioned.fill(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isWaveformEnabled = settings.isWaveformProgressBarEnabled;
-                        const double scaleFactor = 0.82;
-                        
-                        final pNormalControlsBaseIdealHeight =
-                            (PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
-                            (isWaveformEnabled
-                                ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
-                                : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
-                            (isWaveformEnabled
-                                ? PlaybackHeroCardUiTuning.waveformOverlayHeight
-                                : 48.0) +
-                            (isWaveformEnabled
-                                ? 0.0
-                                : (8.0 +
-                                      PlaybackHeroCardUiTuning.controlsTimeRowHeight +
-                                      PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-                                      PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) * scaleFactor;
-
-                        final pNormalScale =
-                            (size.width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15) *
-                                scaleFactor;
-                        final pNormalControlsHeight = (pNormalControlsBaseIdealHeight * pNormalScale)
-                            .clamp(0.0, size.height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
-                            .ceilToDouble();
-                        final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * pNormalScale;
-                        final pNormalBottomLimit = size.height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
-                        
-                        const double bottomPadding = 12.0;
-                        final pNormalControlsTop = pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
-                        final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight - 4.0;
-                        
-                        final double fadeStart = (pNormalInfoTop - 48.0) / size.height;
-                        final double fadeEnd = pNormalInfoTop / size.height;
-                        final double clampedStart = fadeStart.clamp(0.0, 1.0);
-                        final double clampedEnd = fadeEnd.clamp(0.0, 1.0);
-
-                        return ClipRect(
-                          child: ShaderMask(
-                            shaderCallback: (rect) {
-                              return LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: const [
-                                  Colors.transparent,
-                                  Colors.black,
-                                ],
-                                stops: [clampedStart, clampedEnd],
-                              ).createShader(rect);
-                            },
-                            blendMode: BlendMode.dstIn,
-                            child: ImageFiltered(
-                              imageFilter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                              child: Transform.scale(
-                                scale: 1.15,
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 800),
-                                  child: _buildBackgroundWidget(context, backgroundType, settings),
+                ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    ignoring: !isSmallWin,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeInOut,
+                      opacity: isSmallWin ? 1.0 : 0.0,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned.fill(
+                            child: ClipRect(
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 800),
+                                child: _buildBackgroundWidget(
+                                  context,
+                                  backgroundType,
+                                  settings,
+                                  forceSmallWin: true,
+                                  keySuffix: 'small_clear',
                                 ),
                               ),
                             ),
                           ),
-                        );
-                      },
+                          Positioned.fill(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isWaveformEnabled = settings.isWaveformProgressBarEnabled;
+                                const double scaleFactor = 0.82;
+                                
+                                final pNormalControlsBaseIdealHeight =
+                                    (PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
+                                    (isWaveformEnabled
+                                        ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
+                                        : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
+                                    (isWaveformEnabled
+                                        ? PlaybackHeroCardUiTuning.waveformOverlayHeight
+                                        : 48.0) +
+                                    (isWaveformEnabled
+                                        ? 0.0
+                                        : (8.0 +
+                                              PlaybackHeroCardUiTuning.controlsTimeRowHeight +
+                                              PlaybackHeroCardUiTuning.controlsRowPortraitGap +
+                                              PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) * scaleFactor;
+
+                                final pNormalScale =
+                                    (size.width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15) *
+                                        scaleFactor;
+                                final pNormalControlsHeight = (pNormalControlsBaseIdealHeight * pNormalScale)
+                                    .clamp(0.0, size.height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
+                                    .ceilToDouble();
+                                final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * pNormalScale;
+                                final pNormalBottomLimit = size.height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
+                                
+                                const double bottomPadding = 12.0;
+                                final pNormalControlsTop = pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
+                                final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight - 4.0;
+                                
+                                final double fadeStart = (pNormalInfoTop - 48.0) / size.height;
+                                final double fadeEnd = pNormalInfoTop / size.height;
+                                final double clampedStart = fadeStart.clamp(0.0, 1.0);
+                                final double clampedEnd = fadeEnd.clamp(0.0, 1.0);
+
+                                return ClipRect(
+                                  child: ShaderMask(
+                                    shaderCallback: (rect) {
+                                      return LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: const [
+                                          Colors.transparent,
+                                          Colors.black,
+                                        ],
+                                        stops: [clampedStart, clampedEnd],
+                                      ).createShader(rect);
+                                    },
+                                    blendMode: BlendMode.dstIn,
+                                    child: ImageFiltered(
+                                      imageFilter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 800),
+                                        child: _buildBackgroundWidget(
+                                          context,
+                                          backgroundType,
+                                          settings,
+                                          forceSmallWin: true,
+                                          keySuffix: 'small_blurred',
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ] else ...[
-                  Positioned.fill(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 800),
-                      child: _buildBackgroundWidget(context, backgroundType, settings),
-                    ),
-                  ),
-                ],
+                ),
                 _buildBackgroundScrim(isLyricsMode, backgroundType, settings, isSmallWin),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
@@ -1020,16 +1051,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 
-  Widget _buildBackgroundWidget(BuildContext context, int backgroundType, SettingsService settings) {
+  Widget _buildBackgroundWidget(BuildContext context, int backgroundType, SettingsService settings, {bool? forceSmallWin, String? keySuffix}) {
     switch (backgroundType) {
       case 1:
-        return const RepaintBoundary(
-          key: ValueKey('fluid_bg'),
-          child: DynamicMeshBackground(),
+        return RepaintBoundary(
+          key: ValueKey('fluid_bg_${keySuffix ?? 'default'}'),
+          child: const DynamicMeshBackground(),
         );
       case 2:
         return Container(
-          key: ValueKey('solid_color_bg_${settings.playbackBackgroundColor}'),
+          key: ValueKey('solid_color_bg_${settings.playbackBackgroundColor}_${keySuffix ?? 'default'}'),
           color: Color(settings.playbackBackgroundColor),
           width: double.infinity,
           height: double.infinity,
@@ -1038,7 +1069,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         final path = settings.playbackBackgroundCustomImagePath;
         if (path.isEmpty || !File(path).existsSync()) {
           return Container(
-            key: const ValueKey('custom_image_empty'),
+            key: ValueKey('custom_image_empty_${keySuffix ?? 'default'}'),
             color: Colors.black,
             width: double.infinity,
             height: double.infinity,
@@ -1046,7 +1077,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         }
         final imageWidget = Image.file(
           File(path),
-          key: ValueKey('custom_image_bg_$path'),
+          key: ValueKey('custom_image_bg_${path}_${keySuffix ?? 'default'}'),
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
@@ -1066,39 +1097,38 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           },
         );
         final size = MediaQuery.of(context).size;
-        final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
+        final bool isSmallWinValue = forceSmallWin ?? PlaybackPageUiTuning.isSmallWindow(
           size,
           isWaveformEnabled: settings.isWaveformProgressBarEnabled,
         );
         final blur = settings.playbackCustomImageBlurSigma;
-        if (blur > 0.0 && !isSmallWin) {
+        if (blur > 0.0 && !isSmallWinValue) {
           return ImageFiltered(
-            key: ValueKey('custom_image_bg_blurred_$path'),
+            key: ValueKey('custom_image_bg_blurred_${path}_${keySuffix ?? 'default'}'),
             imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
             child: Transform.scale(scale: 1.2, child: imageWidget),
           );
         }
-        return imageWidget;
+        return Transform.scale(scale: 1.2, child: imageWidget);
       case 0:
       default:
-        return _buildBlurredBackground(context, settings);
+        return _buildBlurredBackground(context, settings, forceSmallWin: forceSmallWin, keySuffix: keySuffix);
     }
   }
 
   Widget _buildBackgroundScrim(bool isLyricsMode, int backgroundType, SettingsService settings, bool isSmallWin) {
-    if (isSmallWin) {
-      return const SizedBox.shrink();
-    }
     double opacity = 0.30;
     if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
       opacity = settings.playbackBackgroundNormalOpacity;
     }
 
+    final double targetOpacity = isSmallWin ? 0.0 : (isLyricsMode ? 0.0 : 1.0);
+
     return Positioned.fill(
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
-        opacity: isLyricsMode ? 0.0 : 1.0,
+        opacity: targetOpacity,
         child: IgnorePointer(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -1143,9 +1173,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   ///
   /// 该组件实现了当音乐切换或封面更新时，背景图的平滑过渡效果。
   /// 使用 _pendingArtworkBytes，在轮播动画完成后才更新背景。
-  Widget _buildBlurredBackground(BuildContext context, SettingsService settings) {
+  Widget _buildBlurredBackground(BuildContext context, SettingsService settings, {bool? forceSmallWin, String? keySuffix}) {
+    final String finalSuffix = keySuffix ?? (forceSmallWin == null ? 'auto' : (forceSmallWin ? 'small' : 'normal'));
     return RepaintBoundary(
-      key: const ValueKey('blurred_bg'),
+      key: ValueKey('blurred_bg_$finalSuffix'),
       child: Stack(
         children: [
           // 简化后的背景渲染逻辑：在轮播动画完成后才更新背景。
@@ -1159,7 +1190,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               if (bytes == null) {
                 // 如果封面字节尚未准备好（或不存在），则显示纯黑背景。
                 content = Container(
-                  key: const ValueKey('bg_empty'),
+                  key: ValueKey('bg_empty_$finalSuffix'),
                   color: Colors.black,
                   width: double.infinity,
                   height: double.infinity,
@@ -1180,21 +1211,21 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 );
 
                 final size = MediaQuery.of(context).size;
-                final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
+                final bool isSmallWinValue = forceSmallWin ?? PlaybackPageUiTuning.isSmallWindow(
                   size,
                   isWaveformEnabled: settings.isWaveformProgressBarEnabled,
                 );
 
                 content = ImageFiltered(
                   // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
-                  key: ValueKey(bytes.hashCode),
+                  key: ValueKey('${bytes.hashCode}_$finalSuffix'),
                   // 减小模糊强度并增加缩放以更好地覆盖边缘
                   imageFilter: ui.ImageFilter.blur(
-                    sigmaX: isSmallWin ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
-                    sigmaY: isSmallWin ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
+                    sigmaX: isSmallWinValue ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
+                    sigmaY: isSmallWinValue ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
                   ),
                   child: Transform.scale(
-                    scale: isSmallWin ? 1.0 : 1.2,
+                    scale: 1.2,
                     child: imageProvider,
                   ),
                 );
