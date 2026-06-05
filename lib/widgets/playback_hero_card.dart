@@ -1331,12 +1331,7 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     // 提取公共组件 (Extract common components)
     Widget wrapWithMaybeFitted(Widget child) {
-      if (!isLandscape) return SizedBox(width: unifiedWidth, child: child);
-      return FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.center,
-        child: child,
-      );
+      return SizedBox(width: unifiedWidth, child: child);
     }
 
     final topButtonsRow = Padding(
@@ -1345,10 +1340,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       ),
       child: wrapWithMaybeFitted(
         Row(
-          mainAxisSize: isLandscape ? MainAxisSize.min : MainAxisSize.max,
-          mainAxisAlignment: isLandscape
-              ? MainAxisAlignment.center
-              : MainAxisAlignment.spaceBetween,
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
               padding: EdgeInsets.zero,
@@ -1365,11 +1358,6 @@ class PlaybackHeroCard extends ConsumerWidget {
               onPressed: onShowMoreMenu,
               tooltip: l10n.more,
             ),
-            if (isLandscape)
-              SizedBox(
-                width:
-                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-              ),
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -1394,11 +1382,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                   ? l10n.removeFromFavorites
                   : l10n.addToFavorites,
             ),
-            if (isLandscape)
-              SizedBox(
-                width:
-                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-              ),
             GestureDetector(
               onLongPress: onShowPlaylistModeSelector,
               child: IconButton(
@@ -1418,11 +1401,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                 tooltip: getPlaylistModeName(playbackMode, l10n),
               ),
             ),
-            if (isLandscape)
-              SizedBox(
-                width:
-                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-              ),
             GestureDetector(
               onLongPress: onShowRandomModeSelector,
               child: IconButton(
@@ -1459,11 +1437,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                 tooltip: l10n.randomMode,
               ),
             ),
-            if (isLandscape)
-              SizedBox(
-                width:
-                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-              ),
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -1480,11 +1453,6 @@ class PlaybackHeroCard extends ConsumerWidget {
               onLongPress: onTagCompletionLongPress,
               tooltip: l10n.tagCompletion,
             ),
-            if (isLandscape)
-              SizedBox(
-                width:
-                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-              ),
             Tooltip(
               message: sleepTimerRemaining != null
                   ? l10n.sleepTimerRemaining(
@@ -1541,11 +1509,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                 ),
               ),
             ),
-            if (isLandscape)
-              SizedBox(
-                width:
-                    PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale,
-              ),
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -1561,10 +1524,10 @@ class PlaybackHeroCard extends ConsumerWidget {
               onPressed: onEqualizerTap,
               tooltip: l10n.equalizer,
             ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
 
     final controlIconColor = currentThemeColorsMap['darkVibrant'] ??
         currentThemeColorsMap['darkMuted'] ??
@@ -1616,105 +1579,99 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final mainControlsRow = wrapWithMaybeFitted(
       Row(
-        mainAxisSize: isLandscape ? MainAxisSize.min : MainAxisSize.max,
-        mainAxisAlignment: isLandscape
-            ? MainAxisAlignment.center
-            : MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-        buildSecondaryControl(
-          circleSize: (useOverlayStyle ? 42 : 40),
-          iconBuilder: (color, isWhiteBg) => Icon(
-            showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
-            size: (isWhiteBg ? 22 : 24) * controlsScale,
-            color: showVisualizerToggle ? color : color.withValues(alpha: 0.6),
+          buildSecondaryControl(
+            circleSize: (useOverlayStyle ? 42 : 40),
+            iconBuilder: (color, isWhiteBg) => Icon(
+              showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
+              size: (isWhiteBg ? 22 : 24) * controlsScale,
+              color: showVisualizerToggle ? color : color.withValues(alpha: 0.6),
+            ),
+            onPressed: onToggleVisualizer,
+            tooltip: AppLocalizations.of(context)!.visualizer,
           ),
-          onPressed: onToggleVisualizer,
-          tooltip: AppLocalizations.of(context)!.visualizer,
-        ),
-        if (isLandscape) SizedBox(width: 12 * controlsScale),
-        buildSecondaryControl(
-          circleSize: (useOverlayStyle ? 56 : 60),
-          iconBuilder: (color, isWhiteBg) => Icon(
-            Icons.skip_previous_rounded,
-            size: (isWhiteBg ? 34 : 52) * controlsScale,
-            color: color,
+          buildSecondaryControl(
+            circleSize: (useOverlayStyle ? 56 : 60),
+            iconBuilder: (color, isWhiteBg) => Icon(
+              Icons.skip_previous_rounded,
+              size: (isWhiteBg ? 34 : 52) * controlsScale,
+              color: color,
+            ),
+            onPressed: onPrevious,
+            tooltip: l10n.previous,
           ),
-          onPressed: onPrevious,
-          tooltip: l10n.previous,
-        ),
-        if (isLandscape) SizedBox(width: 18 * controlsScale),
-        useOverlayStyle
-            ? Container(
-                width: 72 * controlsScale,
-                height: 72 * controlsScale,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 10 * controlsScale,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+          useOverlayStyle
+              ? Container(
+                  width: 72 * controlsScale,
+                  height: 72 * controlsScale,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 10 * controlsScale,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: AnimatedPlayPauseButton(
+                    isPlaying: isPlaying,
+                    onPressed: onPlayPause,
+                    color: controlIconColor,
+                    size: 42 * controlsScale,
+                    tooltip: isPlaying ? l10n.pause : l10n.play,
+                  ),
+                )
+              : SizedBox(
+                  width: 60 * controlsScale,
+                  height: 60 * controlsScale,
+                  child: AnimatedPlayPauseButton(
+                    isPlaying: isPlaying,
+                    onPressed: onPlayPause,
+                    color: Colors.white,
+                    size: 52 * controlsScale,
+                    tooltip: isPlaying ? l10n.pause : l10n.play,
+                  ),
                 ),
-                child: AnimatedPlayPauseButton(
-                  isPlaying: isPlaying,
-                  onPressed: onPlayPause,
-                  color: controlIconColor,
-                  size: 42 * controlsScale,
-                  tooltip: isPlaying ? l10n.pause : l10n.play,
-                ),
-              )
-            : SizedBox(
-                width: 60 * controlsScale,
-                height: 60 * controlsScale,
-                child: AnimatedPlayPauseButton(
-                  isPlaying: isPlaying,
-                  onPressed: onPlayPause,
-                  color: Colors.white,
-                  size: 52 * controlsScale,
-                  tooltip: isPlaying ? l10n.pause : l10n.play,
-                ),
-              ),
-        if (isLandscape) SizedBox(width: 18 * controlsScale),
-        buildSecondaryControl(
-          circleSize: (useOverlayStyle ? 56 : 60),
-          iconBuilder: (color, isWhiteBg) => Icon(
-            Icons.skip_next_rounded,
-            size: (isWhiteBg ? 34 : 48) * controlsScale,
-            color: color,
+          buildSecondaryControl(
+            circleSize: (useOverlayStyle ? 56 : 60),
+            iconBuilder: (color, isWhiteBg) => Icon(
+              Icons.skip_next_rounded,
+              size: (isWhiteBg ? 34 : 48) * controlsScale,
+              color: color,
+            ),
+            onPressed: onNext,
+            tooltip: l10n.next,
           ),
-          onPressed: onNext,
-          tooltip: l10n.next,
-        ),
-        if (isLandscape) SizedBox(width: 12 * controlsScale),
-        buildSecondaryControl(
-          circleSize: (useOverlayStyle ? 42 : 40),
-          iconBuilder: (color, isWhiteBg) => GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onVerticalDragUpdate: (details) {
-              onVolumeDrag?.call(details.primaryDelta ?? 0);
-            },
-            child: Listener(
-              onPointerSignal: (pointerSignal) {
-                if (pointerSignal is PointerScrollEvent) {
-                  onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-                }
+          buildSecondaryControl(
+            circleSize: (useOverlayStyle ? 42 : 40),
+            iconBuilder: (color, isWhiteBg) => GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragUpdate: (details) {
+                onVolumeDrag?.call(details.primaryDelta ?? 0);
               },
-              child: Icon(
-                getVolumeIcon(ref.watch(audioVolumeProvider)),
-                size: (isWhiteBg ? 22 : 24) * controlsScale,
-                color: color,
+              child: Listener(
+                onPointerSignal: (pointerSignal) {
+                  if (pointerSignal is PointerScrollEvent) {
+                    onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+                  }
+                },
+                child: Icon(
+                  getVolumeIcon(ref.watch(audioVolumeProvider)),
+                  size: (isWhiteBg ? 22 : 24) * controlsScale,
+                  color: color,
+                ),
               ),
             ),
+            onPressed: onVolumeTap,
+            tooltip: l10n.volume,
           ),
-          onPressed: onVolumeTap,
-          tooltip: l10n.volume,
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
 
     if (useOverlayStyle) {
       return Column(
