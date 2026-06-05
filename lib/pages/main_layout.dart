@@ -26,6 +26,7 @@ import 'queue_page_riverpod.dart';
 import 'main_layout_riverpod.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
+import '../widgets/playback_ui_tuning.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/global_drop_target.dart';
 import '../widgets/library_selection_panel.dart';
@@ -656,7 +657,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     final navBgOpacityTarget = isPlayback ? 0.0 : 1.0;
 
     final Size size = MediaQuery.of(context).size;
-    final bool isSmallWin = size.width < 560 && size.height < 560;
+    final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
+      size,
+      isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+    );
     final bool isLandscape =
         !isSmallWin && (MediaQuery.of(context).orientation == Orientation.landscape);
     final bool useSidebar = isLandscape;

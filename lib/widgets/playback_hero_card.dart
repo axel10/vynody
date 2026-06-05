@@ -389,7 +389,11 @@ class PlaybackHeroCard extends ConsumerWidget {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     final size = MediaQuery.of(context).size;
-    final bool isSmallWindow = size.width < 560 && size.height < 560;
+    final settings = ref.watch(settingsServiceProvider);
+    final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
+      size,
+      isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+    );
     final bool effectiveIsLandscape = isLandscape && !isSmallWindow;
     final bool effectiveIsLyricsMode = isLyricsMode && !isSmallWindow;
 

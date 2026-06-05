@@ -715,7 +715,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       child: OrientationBuilder(
         builder: (context, orientation) {
           final size = MediaQuery.of(context).size;
-          final bool isSmallWin = size.width < 560 && size.height < 560;
+          final settings = ref.watch(settingsServiceProvider);
+          final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
+            size,
+            isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+          );
           final isLandscape = !isSmallWin && (orientation == Orientation.landscape);
 
           if (_lastOrientation != orientation) {
@@ -725,8 +729,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               audio.applyVisualizerSettings(orientation: orientation);
             });
           }
-
-          final settings = ref.watch(settingsServiceProvider);
           final bottomPadding = MediaQuery.of(context).padding.bottom;
           final isImmersiveTabBarEnabled = settings.isImmersiveTabBarEnabled;
 
@@ -1064,7 +1066,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           },
         );
         final size = MediaQuery.of(context).size;
-        final bool isSmallWin = size.width < 560 && size.height < 560;
+        final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
+          size,
+          isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+        );
         final blur = settings.playbackCustomImageBlurSigma;
         if (blur > 0.0 && !isSmallWin) {
           return ImageFiltered(
@@ -1175,7 +1180,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 );
 
                 final size = MediaQuery.of(context).size;
-                final bool isSmallWin = size.width < 560 && size.height < 560;
+                final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
+                  size,
+                  isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+                );
 
                 content = ImageFiltered(
                   // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
