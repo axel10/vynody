@@ -705,7 +705,25 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final lNormalControlsLeft =
         lNormalCoverRightEdge + (lRemainingSpace - lNormalControlsWidth) / 2;
-    final lNormalInfoLeft = lNormalControlsLeft;
+
+    final double lNormalControlsScale = (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
+        .clamp(0.85, 1.8);
+    final double lNormalSingleButtonWidth = PlaybackHeroCardUiTuning.controlsTopButtonsHeight * lNormalControlsScale;
+    final double lNormalGapWidth = PlaybackHeroCardUiTuning.topButtonsInnerGap * lNormalControlsScale;
+    final double lNormalButtonsRowWidth = 7 * lNormalSingleButtonWidth + 6 * lNormalGapWidth;
+
+    // When the gap between controls and cover is >= 80.0, the title area is at full width (lNormalControlsWidth).
+    // As the gap shrinks from 80.0 to 0.0, the title area width gradually shrinks to align with the button area (lNormalButtonsRowWidth).
+    const double gapStartShrink = 80.0;
+    const double gapEndShrink = 0.0;
+    final double gap = lNormalControlsLeft - lNormalCoverRightEdge;
+    final double lNormalInfoWidthFactor = ((gap - gapEndShrink) / (gapStartShrink - gapEndShrink))
+        .clamp(0.0, 1.0);
+    final double lNormalInfoWidthAdjusted = lNormalButtonsRowWidth +
+        (lNormalControlsWidth - lNormalButtonsRowWidth) * lNormalInfoWidthFactor;
+
+    final double lNormalInfoLeftAdjusted = lNormalControlsLeft +
+        (lNormalControlsWidth - lNormalInfoWidthAdjusted) / 2;
 
     // Snap the normal landscape panes to whole pixels to avoid 1px overflow
     // when the window is resized and the layout lands on fractional values.
@@ -884,8 +902,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       ),
       lNormal: _PlaybackPaneLayout(
         top: lNormalInfoTop,
-        left: lNormalInfoLeft,
-        width: lNormalControlsWidth,
+        left: lNormalInfoLeftAdjusted,
+        width: lNormalInfoWidthAdjusted,
         height: lNormalInfoHeight,
         opacity: 1.0,
       ),
