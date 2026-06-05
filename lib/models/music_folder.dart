@@ -15,4 +15,13 @@ class MusicFolder {
        files = List.from(files);
 
   bool get isEmpty => subFolders.isEmpty && files.isEmpty;
+
+  List<MusicFile> get allSongs {
+    final list = <MusicFile>[];
+    list.addAll(files);
+    for (final sub in subFolders) {
+      list.addAll(sub.allSongs);
+    }
+    return list;
+  }
 }

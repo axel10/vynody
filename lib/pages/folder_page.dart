@@ -19,6 +19,7 @@ import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/library_selection_panel.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
+import '../dialogs/transcode_dialog.dart';
 
 // 目录页
 class FoldersPage extends ConsumerStatefulWidget {
@@ -575,21 +576,22 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
                         unawaited(
-                          showFolderContextMenu(
+                          _showFolderBottomSheet(
                             context,
-                            details.globalPosition,
-                            folderPath: folder.path,
+                            folder,
+                            isRoot: true,
                           ),
                         );
                       },
                       onLongPress: () {
                         if (!isRootSelectionMode) {
-                          ref
-                              .read(folderRootSelectionModeProvider.notifier)
-                              .setEnabled(true);
-                          setState(() {
-                            _selectedRootPaths.add(folder.path);
-                          });
+                          unawaited(
+                            _showFolderBottomSheet(
+                              context,
+                              folder,
+                              isRoot: true,
+                            ),
+                          );
                         } else {
                           _toggleRootSelection(folder.path);
                         }
@@ -823,10 +825,19 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
                         unawaited(
-                          showFolderContextMenu(
+                          _showFolderBottomSheet(
                             context,
-                            details.globalPosition,
-                            folderPath: folder.path,
+                            folder,
+                            isRoot: false,
+                          ),
+                        );
+                      },
+                      onLongPress: () {
+                        unawaited(
+                          _showFolderBottomSheet(
+                            context,
+                            folder,
+                            isRoot: false,
                           ),
                         );
                       },
@@ -1000,6 +1011,284 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     }
 
     return SafeArea(bottom: true, child: currentBody);
+  }
+
+  Future<void> _showFolderBottomSheet(
+    BuildContext context,
+    MusicFolder folder, {
+    required bool isRoot,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final songs = folder.allSongs;
+    final audio = ref.read(audioServiceProvider);
+    final playlistService = ref.read(playlistServiceProvider);
+    final scanner = ref.read(scannerServiceProvider);
+
+    final canOpenLocation =
+        (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
+        folder.path.trim().isNotEmpty &&
+        folder.path != 'system';
+
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final selectLabel = isZh ? '选择目录' : 'Select Folders';
+    final removeLabel = isZh ? '移除目录' : 'Remove Directory';
+
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      isScrollControlled: true,
+      builder: (context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.pop(context),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: GestureDetector(
+                  onTap: () {}, // Prevent taps on the card itself from closing the sheet
+                  child: Material(
+                    elevation: 16,
+                    color: theme.colorScheme.surface,
+                    shadowColor: Colors.black26,
+                    borderRadius: BorderRadius.circular(24),
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Header showing Folder name and folder icon
+                          Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  width: 52,
+                                  height: 52,
+                                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                                  child: Icon(
+                                    isRoot ? Icons.folder_shared : Icons.folder_rounded,
+                                    size: 30,
+                                    color: Colors.amber,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      folder.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.songCount(songs.length),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(height: 1),
+                          const SizedBox(height: 8),
+                          // Actions list
+                          _buildFolderBottomSheetItem(
+                            context: context,
+                            value: 'play_all',
+                            label: l10n.playAll,
+                            icon: Icons.play_arrow_rounded,
+                            enabled: songs.isNotEmpty,
+                          ),
+                          _buildFolderBottomSheetItem(
+                            context: context,
+                            value: 'shuffle',
+                            label: l10n.shufflePlay,
+                            icon: Icons.shuffle_rounded,
+                            enabled: songs.isNotEmpty,
+                          ),
+                          _buildFolderBottomSheetItem(
+                            context: context,
+                            value: 'play_next',
+                            label: l10n.playNext,
+                            icon: Icons.queue_play_next_rounded,
+                            enabled: songs.isNotEmpty,
+                          ),
+                          _buildFolderBottomSheetItem(
+                            context: context,
+                            value: 'add_to_queue',
+                            label: l10n.addToQueue,
+                            icon: Icons.queue_music_rounded,
+                            enabled: songs.isNotEmpty,
+                          ),
+                          _buildFolderBottomSheetItem(
+                            context: context,
+                            value: 'add_to_playlist',
+                            label: l10n.addToPlaylist,
+                            icon: Icons.playlist_add_rounded,
+                            enabled: songs.isNotEmpty,
+                          ),
+                          _buildFolderBottomSheetItem(
+                            context: context,
+                            value: 'transcode',
+                            label: l10n.transcodeAction,
+                            icon: Icons.sync_rounded,
+                            enabled: songs.isNotEmpty,
+                          ),
+                          if (canOpenLocation)
+                            _buildFolderBottomSheetItem(
+                              context: context,
+                              value: 'open_folder_location',
+                              label: l10n.openFolderLocation,
+                              icon: Icons.folder_open_rounded,
+                            ),
+                          if (isRoot) ...[
+                            _buildFolderBottomSheetItem(
+                              context: context,
+                              value: 'multi_select',
+                              label: selectLabel,
+                              icon: Icons.checklist_rounded,
+                            ),
+                            _buildFolderBottomSheetItem(
+                              context: context,
+                              value: 'remove_root',
+                              label: removeLabel,
+                              icon: Icons.delete_rounded,
+                              iconColor: theme.colorScheme.error,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (!context.mounted || selected == null) return;
+
+    switch (selected) {
+      case 'play_all':
+        await audio.playPlaylist(songs);
+        break;
+      case 'shuffle':
+        await audio.playPlaylist(List.of(songs)..shuffle());
+        break;
+      case 'play_next':
+        await audio.enqueueNext(songs);
+        break;
+      case 'add_to_queue':
+        await audio.appendToQueue(songs);
+        break;
+      case 'add_to_playlist':
+        await showAddSongsToPlaylistDialog(
+          context,
+          playlistService,
+          songs,
+        );
+        break;
+      case 'transcode':
+        await showTranscodeDialog(
+          context,
+          songs: songs,
+        );
+        break;
+      case 'open_folder_location':
+        await openFolderLocation(folder.path);
+        break;
+      case 'multi_select':
+        ref.read(folderRootSelectionModeProvider.notifier).setEnabled(true);
+        setState(() {
+          _selectedRootPaths.add(folder.path);
+        });
+        break;
+      case 'remove_root':
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(removeLabel),
+            content: Text(
+              isZh
+                  ? '确定要移除根目录 "${folder.name}" 吗？此操作不会删除磁盘上的物理文件。'
+                  : 'Are you sure you want to remove the root directory "${folder.name}"? This will not delete physical files on disk.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(l10n.confirm),
+              ),
+            ],
+          ),
+        );
+        if (confirm == true && context.mounted) {
+          await scanner.removeRootPath(folder.path);
+          if (context.mounted) {
+            AppSnackBar.show(
+              context,
+              ref,
+              SnackBar(content: Text(l10n.foldersDeleted(1))),
+            );
+          }
+        }
+        break;
+    }
+  }
+
+  Widget _buildFolderBottomSheetItem({
+    required BuildContext context,
+    required String value,
+    required String label,
+    required IconData icon,
+    bool enabled = true,
+    Color? iconColor,
+  }) {
+    final theme = Theme.of(context);
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: enabled
+            ? (iconColor ?? theme.colorScheme.onSurfaceVariant)
+            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+      ),
+      title: Text(
+        label,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: enabled
+              ? (iconColor ?? theme.colorScheme.onSurface)
+              : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+        ),
+      ),
+      enabled: enabled,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      onTap: () => Navigator.pop(context, value),
+    );
   }
 
   void _showSortDialog(BuildContext context, ScannerService scanner) {
