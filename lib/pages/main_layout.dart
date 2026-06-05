@@ -655,16 +655,19 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         theme.colorScheme.secondaryContainer;
     final navBgOpacityTarget = isPlayback ? 0.0 : 1.0;
 
+    final Size size = MediaQuery.of(context).size;
+    final bool isSmallWin = size.width < 560 && size.height < 560;
     final bool isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+        !isSmallWin && (MediaQuery.of(context).orientation == Orientation.landscape);
     final bool useSidebar = isLandscape;
     final bool hideImmersiveTabBar =
         isDesktop &&
         isPlayback &&
         settings.isImmersiveTabBarEnabled &&
         !uiState.showImmersiveTabBar;
+    final bool hideBottomBar = isPlayback && isSmallWin;
     final bool useOverlayBottomNav =
-        !useSidebar && isPlayback && settings.isImmersiveTabBarEnabled;
+        !useSidebar && isPlayback && settings.isImmersiveTabBarEnabled && !hideBottomBar;
 
     return Shortcuts(
       shortcuts: _buildShortcutMap(settings),
@@ -920,7 +923,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                         ),
                     ],
                   ),
-                  bottomNavigationBar: useSidebar || useOverlayBottomNav
+                  bottomNavigationBar: hideBottomBar || useSidebar || useOverlayBottomNav
                       ? null
                       : _buildBottomNavigationBar(
                           context,

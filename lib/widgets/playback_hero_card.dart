@@ -388,6 +388,11 @@ class PlaybackHeroCard extends ConsumerWidget {
     const animCurve = Curves.fastOutSlowIn;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
+    final size = MediaQuery.of(context).size;
+    final bool isSmallWindow = size.width < 560 && size.height < 560;
+    final bool effectiveIsLandscape = isLandscape && !isSmallWindow;
+    final bool effectiveIsLyricsMode = isLyricsMode && !isSmallWindow;
+
     // 核心动画容器：使用 TweenAnimationBuilder 对 2D 平面上的多个布局变量（尺寸、位置、不透明度）进行线性插值处理。
     // 这使得点击封面切换 `isLyricsMode` 后，UI 元素能平滑移动/缩放，例如：
     // - 封面从大变小并挪到角落
@@ -396,12 +401,12 @@ class PlaybackHeroCard extends ConsumerWidget {
     return TweenAnimationBuilder<double>(
       duration: animDuration,
       curve: animCurve,
-      tween: Tween<double>(end: isLandscape ? 1.0 : 0.0),
+      tween: Tween<double>(end: effectiveIsLandscape ? 1.0 : 0.0),
       builder: (context, tLand, _) {
         return TweenAnimationBuilder<double>(
           duration: animDuration,
           curve: animCurve,
-          tween: Tween<double>(end: isLyricsMode ? 1.0 : 0.0),
+          tween: Tween<double>(end: effectiveIsLyricsMode ? 1.0 : 0.0),
           builder: (context, tLyrics, _) {
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -412,7 +417,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     (s) => s.isWaveformProgressBarEnabled,
                   ),
                 );
-                final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
+                final useOverlayStyle = !effectiveIsLandscape && !effectiveIsLyricsMode && isWaveformEnabled;
 
                 final layout = _buildPlaybackCardLayout(
                   context,
@@ -421,6 +426,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLyrics: tLyrics,
                   tLand: tLand,
                   isWaveformEnabled: isWaveformEnabled,
+                  isSmallWindow: isSmallWindow,
                 );
 
                 return SizedBox(
@@ -442,6 +448,49 @@ class PlaybackHeroCard extends ConsumerWidget {
                           ),
                         ),
                       ),
+                      if (isSmallWindow)
+                        Positioned(
+                          top: layout.info.top - 16.0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(24),
+                              topRight: Radius.circular(24),
+                            ),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.black.withValues(alpha: 0.35)
+                                      : Colors.white.withValues(alpha: 0.25),
+                                  border: Border(
+                                    top: BorderSide(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : Colors.black.withValues(alpha: 0.05),
+                                      width: 1.0,
+                                    ),
+                                    left: BorderSide(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : Colors.black.withValues(alpha: 0.05),
+                                      width: 1.0,
+                                    ),
+                                    right: BorderSide(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : Colors.black.withValues(alpha: 0.05),
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       Positioned(
                         // 控件区
                         top: layout.controls.top,
@@ -459,7 +508,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                               child: SizedBox(
                                 key: ValueKey('controls_sizing_box_${useOverlayStyle ? 'overlay' : 'default'}'),
                                 width:
-                                    (isLandscape
+                                    (effectiveIsLandscape
                                         ? lerpDouble(
                                             PlaybackHeroCardUiTuning
                                                 .lControlsScaleBase,
@@ -482,17 +531,18 @@ class PlaybackHeroCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      Positioned(
-                        top: layout.cover.top,
-                        left: layout.cover.left,
-                        width: layout.cover.width,
-                        height: layout.cover.height,
-                        child: _buildAlbumArtCore(
-                          context,
-                          ref,
-                          layout.cover.width,
+                      if (layout.cover.width > 0 && layout.cover.height > 0)
+                        Positioned(
+                          top: layout.cover.top,
+                          left: layout.cover.left,
+                          width: layout.cover.width,
+                          height: layout.cover.height,
+                          child: _buildAlbumArtCore(
+                            context,
+                            ref,
+                            layout.cover.width,
+                          ),
                         ),
-                      ),
                       Positioned(
                         top: layout.info.top,
                         left: layout.info.left,
@@ -539,10 +589,13 @@ class PlaybackHeroCard extends ConsumerWidget {
     required double tLyrics,
     required double tLand,
     required bool isWaveformEnabled,
+    required bool isSmallWindow,
   }) {
     // ---------------- Portrait Normal ----------------
+    final double scaleFactor = isSmallWindow ? 0.82 : 1.0;
+
     final pNormalControlsBaseIdealHeight =
-        PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
+        (PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
         (isWaveformEnabled
             ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
             : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
@@ -554,7 +607,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             : (8.0 + // Time gap
                   PlaybackHeroCardUiTuning.controlsTimeRowHeight +
                   PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-                  PlaybackHeroCardUiTuning.controlsMainButtonsHeight));
+                  PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) * scaleFactor;
 
     final pNormalControlsWidth =
         width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
@@ -566,7 +619,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 math.min(1.0, pNormalControlsRawScale))
             .clamp(0.0, height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
             .ceilToDouble();
-    final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight;
+    final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * scaleFactor;
 
     // 避让底部 Tab 栏高度 (Avoid bottom tab bar height)
     final pNormalBottomLimit =
@@ -580,25 +633,37 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     // 封面尺寸：在满足下方内容展示空间的情况下，尽量占满宽度
     // 留出最小间距以防重叠 (Reserved min gap to prevent overlap)
-    final pNormalCoverSide = math
-        .min(
-          width,
-          pNormalBottomLimit -
-              pNormalTotalContentHeight -
-              PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap,
-        )
-        .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide)
-        .toDouble();
+    final pNormalCoverSide = isSmallWindow
+        ? 0.0
+        : math
+            .min(
+              width,
+              pNormalBottomLimit -
+                  pNormalTotalContentHeight -
+                  PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap,
+            )
+            .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide)
+            .toDouble();
 
-    // 在封面底部到 Tab 栏顶部之间的剩余空间内居中放置标题和控件区
-    // Center title and controls between bottom of cover and top of tab bar
-    final pNormalAvailableHeight = pNormalBottomLimit - pNormalCoverSide;
-    final pNormalContentTop =
-        pNormalCoverSide +
-        (pNormalAvailableHeight - pNormalTotalContentHeight) / 2;
+    final double pNormalInfoTop;
+    final double pNormalControlsTop;
 
-    final pNormalInfoTop = pNormalContentTop;
-    final pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight;
+    if (isSmallWindow) {
+      // 紧贴窗口底部 (Position right up against the bottom of the window)
+      // 留出 12 像素底边距 (Leave 12px padding at the bottom)
+      const double bottomPadding = 12.0;
+      pNormalControlsTop = pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
+      pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight - 4.0;
+    } else {
+      // 在封面底部到 Tab 栏顶部之间的剩余空间内居中放置标题和控件区
+      final pNormalAvailableHeight = pNormalBottomLimit - pNormalCoverSide;
+      final pNormalContentTop =
+          pNormalCoverSide +
+          (pNormalAvailableHeight - pNormalTotalContentHeight) / 2;
+
+      pNormalInfoTop = pNormalContentTop;
+      pNormalControlsTop = pNormalInfoTop + pNormalInfoHeight;
+    }
 
     // ---------------- Portrait Lyrics ----------------
     final pLyricsCoverSide = 120.0;
@@ -748,7 +813,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
       tLyrics,
       tLand,
-    );
+    ) * scaleFactor;
 
     final lLyricsCoverLeft =
         lLyricsOuterLeftPadding + (lLyricsColumnWidth - lLyricsCoverSide) / 2;
@@ -1238,9 +1303,21 @@ class PlaybackHeroCard extends ConsumerWidget {
     // 竖屏模式下如果启用波形进度条，则使用叠层布局 (Overlay layout in portrait if waveform is enabled)
     final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
 
+    final widthFactor = isLandscape
+        ? (lerpDouble(
+            PlaybackHeroCardUiTuning.progressBarWidthFactor,
+            1.0,
+            tLyrics,
+          )!)
+        : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor;
+
+    final unifiedWidth = isLandscape
+        ? buttonsRowWidth
+        : math.min(width - 32.0, buttonsRowWidth * widthFactor);
+
     // 提取公共组件 (Extract common components)
     Widget wrapWithMaybeFitted(Widget child) {
-      if (!isLandscape) return SizedBox(width: double.infinity, child: child);
+      if (!isLandscape) return SizedBox(width: unifiedWidth, child: child);
       return FittedBox(
         fit: BoxFit.scaleDown,
         alignment: Alignment.center,
@@ -1631,7 +1708,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 key: const ValueKey('playback_overlay_progress_time_layer'),
                 currentMusic: currentMusic,
                 controlsScale: controlsScale,
-                totalWidth: width,
+                totalWidth: unifiedWidth,
                 overrideProgress: overrideProgress,
                 overridePosition: overridePosition,
                 overrideWaveform: overrideWaveform,
@@ -1639,10 +1716,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 onSeek: onSeek,
               ),
               // 3. 播放控制按钮叠在上面，不跟随缩放 (Playback controls on top, no scaling)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: mainControlsRow,
-              ),
+              mainControlsRow,
             ],
           ),
         ],
@@ -1669,7 +1743,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             controlsScale: controlsScale,
             tLyrics: tLyrics,
             isLandscape: isLandscape,
-            buttonsRowWidth: buttonsRowWidth,
+            buttonsRowWidth: unifiedWidth,
             overrideProgress: overrideProgress,
             overridePosition: overridePosition,
             overrideWaveform: overrideWaveform,
@@ -1704,7 +1778,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           controlsScale: controlsScale,
           tLyrics: tLyrics,
           isLandscape: isLandscape,
-          buttonsRowWidth: buttonsRowWidth,
+          buttonsRowWidth: unifiedWidth,
           overrideProgress: overrideProgress,
           overridePosition: overridePosition,
           overrideWaveform: overrideWaveform,
@@ -1779,14 +1853,6 @@ class PlaybackProgressSection extends ConsumerWidget {
     final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
     final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
 
-    final widthFactor = isLandscape
-        ? (lerpDouble(
-            PlaybackHeroCardUiTuning.progressBarWidthFactor,
-            1.0,
-            tLyrics,
-          )!)
-        : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor;
-
     Widget buildStandardSlider(BuildContext context, double displayProgress, double controlsScale, {bool noPadding = false}) {
       return Padding(
         padding: EdgeInsets.symmetric(
@@ -1820,7 +1886,7 @@ class PlaybackProgressSection extends ConsumerWidget {
     }
 
     return SizedBox(
-      width: buttonsRowWidth * widthFactor,
+      width: buttonsRowWidth,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

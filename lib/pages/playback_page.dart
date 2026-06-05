@@ -714,7 +714,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       onPointerHover: (event) => _handleInteraction(),
       child: OrientationBuilder(
         builder: (context, orientation) {
-          final isLandscape = orientation == Orientation.landscape;
+          final size = MediaQuery.of(context).size;
+          final bool isSmallWin = size.width < 560 && size.height < 560;
+          final isLandscape = !isSmallWin && (orientation == Orientation.landscape);
 
           if (_lastOrientation != orientation) {
             _lastOrientation = orientation;
@@ -728,7 +730,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           final bottomPadding = MediaQuery.of(context).padding.bottom;
           final isImmersiveTabBarEnabled = settings.isImmersiveTabBarEnabled;
 
-          final shouldReserveBottomNavSpace = !isLyricsMode && !isLandscape;
+          final shouldReserveBottomNavSpace = !isLyricsMode && !isLandscape && !isSmallWin;
 
           // When immersive tab bar is enabled, the NavigationBar in MainLayout
           // is positioned in a Stack over the content with height (60 + bottomPadding).
@@ -736,7 +738,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           final lyricsBottomSpacerHeight = 0.0;
           double lyricsBottomTabBarHeight = 0.0;
 
-          if (isImmersiveTabBarEnabled && !isLandscape) {
+          if (isImmersiveTabBarEnabled && !isLandscape && !isSmallWin) {
             // For lyrics mode, we want the background to be immersive (full screen),
             // so we don't pad the whole page. Instead, we pass the tab bar height
             // to the lyrics panel so it can add internal scrolling space.
@@ -978,8 +980,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             );
           },
         );
+        final size = MediaQuery.of(context).size;
+        final bool isSmallWin = size.width < 560 && size.height < 560;
         final blur = settings.playbackCustomImageBlurSigma;
-        if (blur > 0.0) {
+        if (blur > 0.0 && !isSmallWin) {
           return ImageFiltered(
             key: ValueKey('custom_image_bg_blurred_$path'),
             imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
@@ -1085,15 +1089,21 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   excludeFromSemantics: true,
                 );
 
+                final size = MediaQuery.of(context).size;
+                final bool isSmallWin = size.width < 560 && size.height < 560;
+
                 content = ImageFiltered(
                   // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
                   key: ValueKey(bytes.hashCode),
                   // 减小模糊强度并增加缩放以更好地覆盖边缘
                   imageFilter: ui.ImageFilter.blur(
-                    sigmaX: settings.playbackBlurredArtworkBlurSigma,
-                    sigmaY: settings.playbackBlurredArtworkBlurSigma,
+                    sigmaX: isSmallWin ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
+                    sigmaY: isSmallWin ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
                   ),
-                  child: Transform.scale(scale: 1.2, child: imageProvider),
+                  child: Transform.scale(
+                    scale: isSmallWin ? 1.0 : 1.2,
+                    child: imageProvider,
+                  ),
                 );
               }
 
