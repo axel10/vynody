@@ -1697,6 +1697,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 overrideWaveform: overrideWaveform,
                 onScrubbing: onScrubbing,
                 onSeek: onSeek,
+                isLandscape: isLandscape,
               ),
               // 3. 播放控制按钮叠在上面，不跟随缩放 (Playback controls on top, no scaling)
               mainControlsRow,
@@ -1991,12 +1992,14 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
   final List<double>? overrideWaveform;
   final ValueChanged<double>? onScrubbing;
   final ValueChanged<double>? onSeek;
+  final bool isLandscape;
 
   const PlaybackOverlayProgressTimeLayer({
     super.key,
     required this.currentMusic,
     required this.controlsScale,
     required this.totalWidth,
+    required this.isLandscape,
     this.overrideProgress,
     this.overridePosition,
     this.overrideWaveform,
@@ -2033,7 +2036,6 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
         // 2. 时间文字单独平移，避免拉伸 (Time text translated separately to avoid stretching)
         Builder(
           builder: (context) {
-            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
             final screenWidth = MediaQuery.of(context).size.width;
             final pagePadding = PlaybackPageUiTuning.normalPortraitHorizontalPadding;
             const minScreenMargin = 32.0;
