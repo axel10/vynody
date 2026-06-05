@@ -6,6 +6,7 @@ import 'albums_tab.dart';
 import 'artists_tab.dart';
 import 'most_played_tab.dart';
 import 'playlist_page_riverpod.dart';
+import '../widgets/library_selection_panel.dart';
 import 'playlist_tab.dart';
 import 'recently_added_tab.dart';
 
@@ -48,6 +49,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
         });
         if (_tabIndex != 0) {
           ref.read(playlistSelectionModeProvider.notifier).setEnabled(false);
+          ref.read(librarySelectionActiveProvider.notifier).state = false;
         }
       });
   }

@@ -28,12 +28,16 @@ class LibrarySelectionPanel extends ConsumerWidget {
     required this.allSongs,
     required this.onToggleSelectAll,
     required this.onCancel,
+    this.onDelete,
+    this.deleteLabel,
   });
 
   final List<MusicFile> selectedSongs;
   final List<MusicFile> allSongs;
   final VoidCallback onToggleSelectAll;
   final VoidCallback onCancel;
+  final VoidCallback? onDelete;
+  final String? deleteLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -210,31 +214,46 @@ class LibrarySelectionPanel extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        if (Platform.isWindows ||
-                            Platform.isMacOS ||
-                            Platform.isLinux) ...[
-                          Expanded(
-                            child: _buildSelectionActionButton(
-                              context: context,
-                              icon: Icons.folder_open_rounded,
-                              label: l10n.openFileLocation,
-                              onPressed: canOpenLocation
-                                  ? () async {
-                                      await openSongFileLocation(
-                                        selectedSongs.first.path,
-                                      );
-                                      onCancel();
-                                    }
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Expanded(child: SizedBox.shrink()),
-                        ] else ...[
-                          const Expanded(child: SizedBox.shrink()),
-                          const SizedBox(width: 8),
-                          const Expanded(child: SizedBox.shrink()),
-                        ],
+                        Expanded(
+                          child: (Platform.isWindows ||
+                                  Platform.isMacOS ||
+                                  Platform.isLinux)
+                              ? _buildSelectionActionButton(
+                                  context: context,
+                                  icon: Icons.folder_open_rounded,
+                                  label: l10n.openFileLocation,
+                                  onPressed: canOpenLocation
+                                      ? () async {
+                                          await openSongFileLocation(
+                                            selectedSongs.first.path,
+                                          );
+                                          onCancel();
+                                        }
+                                      : null,
+                                )
+                              : (onDelete != null
+                                  ? _buildSelectionActionButton(
+                                      context: context,
+                                      icon: Icons.delete_outline_rounded,
+                                      label: deleteLabel ?? l10n.delete,
+                                      onPressed: isEmpty ? null : onDelete,
+                                    )
+                                  : const SizedBox.shrink()),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ((Platform.isWindows ||
+                                      Platform.isMacOS ||
+                                      Platform.isLinux) &&
+                                  onDelete != null)
+                              ? _buildSelectionActionButton(
+                                  context: context,
+                                  icon: Icons.delete_outline_rounded,
+                                  label: deleteLabel ?? l10n.delete,
+                                  onPressed: isEmpty ? null : onDelete,
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                       ],
                     ),
                   ],

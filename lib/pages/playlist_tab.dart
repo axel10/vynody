@@ -12,6 +12,7 @@ import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 import 'playlist_page_riverpod.dart';
+import '../widgets/library_selection_panel.dart';
 
 class PlaylistTab extends ConsumerStatefulWidget {
   const PlaylistTab({super.key});
@@ -36,17 +37,30 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   void dispose() {
     Future.microtask(() {
       _playlistSelectionModeController.setEnabled(false);
+      if (mounted) {
+        ref.read(librarySelectionActiveProvider.notifier).state = false;
+      }
     });
     super.dispose();
   }
 
   void _toggleSelectionMode() {
     final isSelectionMode = ref.read(playlistSelectionModeProvider);
-    ref.read(playlistSelectionModeProvider.notifier).setEnabled(!isSelectionMode);
+    final nextMode = !isSelectionMode;
+    ref.read(playlistSelectionModeProvider.notifier).setEnabled(nextMode);
+    ref.read(librarySelectionActiveProvider.notifier).state = nextMode;
     setState(() {
       if (isSelectionMode) {
         _selectedIndices.clear();
       }
+    });
+  }
+
+  void _cancelSelection() {
+    ref.read(playlistSelectionModeProvider.notifier).setEnabled(false);
+    ref.read(librarySelectionActiveProvider.notifier).state = false;
+    setState(() {
+      _selectedIndices.clear();
     });
   }
 
@@ -600,35 +614,34 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
     }
 
     final Playlist activePlaylist = currentPlaylist;
+    final selectedSongs = _selectedIndices
+        .map((i) => activePlaylist.songs[i])
+        .toList();
+
+    void toggleSelectAll() {
+      setState(() {
+        if (_selectedIndices.length == activePlaylist.songs.length) {
+          _selectedIndices.clear();
+        } else {
+          _selectedIndices.clear();
+          _selectedIndices.addAll(List.generate(activePlaylist.songs.length, (i) => i));
+        }
+      });
+    }
 
     return Stack(
       children: [
         Column(
           children: [
             _buildHeader(context, activePlaylist),
-            if (isSelectionMode)
-              Container(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    Text(l10n.selectedSongs(_selectedIndices.length)),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: _toggleSelectionMode,
-                      child: Text(l10n.cancel),
-                    ),
-                  ],
-                ),
-              ),
             Expanded(
               child: ReorderableListView.builder(
                 buildDefaultDragHandles: false,
                 cacheExtent: 1000,
-                padding: const EdgeInsets.only(bottom: 160),
+                padding: EdgeInsets.only(
+                  bottom: (currentMusic != null ? 140.0 : 40.0) +
+                      (isSelectionMode ? 220.0 : 0.0),
+                ),
                 itemCount: activePlaylist.songs.length,
                 onReorder: (oldIndex, newIndex) {
                   if (newIndex > oldIndex) newIndex--;
@@ -732,69 +745,48 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
             ),
           ],
         ),
-        if (isSelectionMode)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Material(
-              elevation: 8,
-              child: Container(
-                color: Theme.of(context).colorScheme.surface,
-                child: SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        TextButton.icon(
-                          onPressed: _selectedIndices.isEmpty
-                              ? null
-                              : () {
-                                  final selectedSongs = _selectedIndices
-                                      .map((i) => activePlaylist.songs[i])
-                                      .toList();
-                                  _showAddToPlaylistDialog(
-                                    context,
-                                    selectedSongs,
-                                  );
-                                },
-                          icon: const Icon(Icons.playlist_add),
-                          label: Text(l10n.addToPlaylist),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            reverseDuration: const Duration(milliseconds: 200),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              final offsetAnimation = Tween<Offset>(
+                begin: const Offset(0, 1.0),
+                end: Offset.zero,
+              ).animate(animation);
+              return SlideTransition(position: offsetAnimation, child: child);
+            },
+            child: isSelectionMode
+                ? LibrarySelectionPanel(
+                    key: const ValueKey('library-selection-panel'),
+                    selectedSongs: selectedSongs,
+                    allSongs: activePlaylist.songs,
+                    onToggleSelectAll: toggleSelectAll,
+                    onCancel: _cancelSelection,
+                    onDelete: () {
+                      final indices = _selectedIndices.toList()..sort();
+                      playlistService.removeSongsFromPlaylist(
+                        activePlaylist.id,
+                        indices,
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            l10n.deletedSongs(indices.length),
+                          ),
                         ),
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: _selectedIndices.isEmpty
-                              ? null
-                              : () {
-                                  final indices = _selectedIndices.toList()
-                                    ..sort();
-                                  playlistService.removeSongsFromPlaylist(
-                                    activePlaylist.id,
-                                    indices,
-                                  );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        l10n.deletedSongs(indices.length),
-                                      ),
-                                    ),
-                                  );
-                                  _toggleSelectionMode();
-                                },
-                          icon: const Icon(Icons.delete),
-                          label: Text(l10n.delete),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+                      );
+                      _cancelSelection();
+                    },
+                  )
+                : const SizedBox.shrink(key: ValueKey('library-selection-panel-hidden')),
           ),
+        ),
       ],
     );
   }
