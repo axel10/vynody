@@ -2036,7 +2036,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
             final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
             final screenWidth = MediaQuery.of(context).size.width;
             final pagePadding = PlaybackPageUiTuning.normalPortraitHorizontalPadding;
-            const minScreenMargin = 10.0;
+            const minScreenMargin = 32.0;
 
             final cardWidth = screenWidth - (pagePadding * 2);
             final fittedScale = cardWidth / totalWidth;
