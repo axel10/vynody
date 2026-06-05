@@ -22,6 +22,14 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
   bool _showMiniVolumeSlider = false;
 
   @override
+  void dispose() {
+    Future.microtask(() {
+      ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
+    });
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final uiState = ref.watch(mainLayoutUiControllerProvider);
@@ -72,12 +80,15 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
                           },
                           onVolumeTap: () {
                             ref.read(settingsServiceProvider).resetInactivity();
+                            final nextVisible = !_showMiniVolumeSlider;
+                            ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(nextVisible);
                             setState(() {
-                              _showMiniVolumeSlider = !_showMiniVolumeSlider;
+                              _showMiniVolumeSlider = nextVisible;
                             });
                           },
                           onMiniMouseExit: () {
                             if (!_showMiniVolumeSlider) return;
+                            ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
                             setState(() {
                               _showMiniVolumeSlider = false;
                             });

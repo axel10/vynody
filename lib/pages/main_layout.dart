@@ -221,6 +221,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   @override
   void dispose() {
     _audioService.setMissingSongNoticeHandler(null);
+    Future.microtask(() {
+      ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
+    });
     super.dispose();
   }
 
@@ -912,13 +915,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                                           ref
                                               .read(settingsServiceProvider)
                                               .resetInactivity();
+                                          final nextVisible = !_showMiniVolumeSlider;
+                                          ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(nextVisible);
                                           setState(() {
                                             _showMiniVolumeSlider =
-                                                !_showMiniVolumeSlider;
+                                                nextVisible;
                                           });
                                         },
                                         onMiniMouseExit: () {
                                           if (!_showMiniVolumeSlider) return;
+                                          ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
                                           setState(() {
                                             _showMiniVolumeSlider = false;
                                           });

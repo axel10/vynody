@@ -95,6 +95,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         audio.setLyricsActive(false);
       });
     }
+    Future.microtask(() {
+      ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
+    });
     super.dispose();
   }
 
@@ -867,8 +870,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                             onNext: () => toNextMusic(audio),
                             onVolumeTap: () {
                               _handleInteraction();
+                              final nextVisible = !_showVolumeSlider;
+                              ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(nextVisible);
                               setState(() {
-                                _showVolumeSlider = !_showVolumeSlider;
+                                _showVolumeSlider = nextVisible;
                               });
                             },
                             onVolumeDrag: (delta) {
@@ -1048,8 +1053,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                           _handleInteraction();
                           audio.setVolume(val.roundToDouble());
                         },
-                        onDismiss: () =>
-                            setState(() => _showVolumeSlider = false),
+                        onDismiss: () {
+                          ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
+                          setState(() => _showVolumeSlider = false);
+                        },
                         isLandscape: isLandscape,
                         getVolumeIcon: getVolumeIcon,
                         onDrag: (delta) => _adjustVolumeFromDrag(audio, delta),
