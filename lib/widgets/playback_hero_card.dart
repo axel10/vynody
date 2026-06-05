@@ -1645,8 +1645,8 @@ class PlaybackHeroCard extends ConsumerWidget {
         if (isLandscape) SizedBox(width: 18 * controlsScale),
         useOverlayStyle
             ? Container(
-                width: 56 * controlsScale,
-                height: 56 * controlsScale,
+                width: 72 * controlsScale,
+                height: 72 * controlsScale,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white,
@@ -1662,7 +1662,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   isPlaying: isPlaying,
                   onPressed: onPlayPause,
                   color: controlIconColor,
-                  size: 34 * controlsScale,
+                  size: 42 * controlsScale,
                   tooltip: isPlaying ? l10n.pause : l10n.play,
                 ),
               )
