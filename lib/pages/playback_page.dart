@@ -694,6 +694,21 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     // Separate UI status from rendering visibility to avoid flicker
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
+    ref.listen<MusicFile?>(audioCurrentMusicProvider, (previous, next) {
+      if (!mounted) return;
+      final size = MediaQuery.of(context).size;
+      final settings = ref.read(settingsServiceProvider);
+      final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
+        size,
+        isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+        isSmallWindowMode: settings.isSmallWindowMode,
+      );
+      if (isSmallWin) {
+        setState(() {
+          _pendingArtworkBytes = next?.artworkBytes;
+        });
+      }
+    });
     final currentMetadataAsync = currentMusic != null
         ? ref.watch(songMetadataProvider(currentMusic.path))
         : null;
