@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/models/music_file.dart';
+import '../widgets/song_thumbnail.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import '../transcode/transcode_models.dart';
 import '../transcode/transcode_preset.dart';
@@ -468,7 +469,8 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                     children: [
-                      if (_capabilities != null) _buildCapabilitiesCard(l10n),
+                      _buildFilesList(l10n),
+                      const SizedBox(height: 16),
                       _buildFormatSection(l10n),
                       const SizedBox(height: 16),
                       _buildQualitySection(l10n),
@@ -548,45 +550,93 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
     );
   }
 
-  Widget _buildCapabilitiesCard(AppLocalizations l10n) {
-    final capabilities = _capabilities!;
+  Widget _buildFilesList(AppLocalizations l10n) {
     final theme = Theme.of(context);
-    final settings = ref.watch(settingsServiceProvider);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.45,
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final titleText = isZh ? '待转码文件' : 'Files to Transcode';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          titleText,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.transcodeEngine(capabilities.engine),
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
+        const SizedBox(height: 8),
+        Container(
+          constraints: const BoxConstraints(maxHeight: 160),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
             ),
           ),
-          if (capabilities.notes != null &&
-              capabilities.notes!.trim().isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(capabilities.notes!),
-          ],
-          if (capabilities.requiresExternalBinary) ...[
-            const SizedBox(height: 8),
-            Text(
-              settings.transcodeFfmpegPath.trim().isEmpty
-                  ? l10n.transcodeUsingSystemFfmpeg
-                  : l10n.transcodeUsingCustomFfmpeg(
-                      settings.transcodeFfmpegPath,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              itemCount: widget.songs.length,
+              separatorBuilder: (context, index) => Divider(
+                height: 1,
+                indent: 60,
+                endIndent: 16,
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+              ),
+              itemBuilder: (context, index) {
+                final song = widget.songs[index];
+                final ext = p.extension(song.path).replaceAll('.', '').toUpperCase();
+                return ListTile(
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  leading: SongThumbnail(
+                    path: song.path,
+                    id: song.id,
+                    size: 36,
+                  ),
+                  title: Text(
+                    song.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
-              style: theme.textTheme.bodySmall,
+                  ),
+                  subtitle: Text(
+                    song.artist ?? l10n.unknownArtist,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      ext,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-          ],
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
