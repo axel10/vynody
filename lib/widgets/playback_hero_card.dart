@@ -1629,28 +1629,40 @@ class PlaybackHeroCard extends ConsumerWidget {
           tooltip: l10n.previous,
         ),
         if (isLandscape) SizedBox(width: 18 * controlsScale),
-        Container(
-          width: 76 * controlsScale,
-          height: 76 * controlsScale,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 14 * controlsScale,
-                spreadRadius: 2 * controlsScale,
+        useOverlayStyle
+            ? Container(
+                width: 56 * controlsScale,
+                height: 56 * controlsScale,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 10 * controlsScale,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: AnimatedPlayPauseButton(
+                  isPlaying: isPlaying,
+                  onPressed: onPlayPause,
+                  color: controlIconColor,
+                  size: 34 * controlsScale,
+                  tooltip: isPlaying ? l10n.pause : l10n.play,
+                ),
+              )
+            : SizedBox(
+                width: 60 * controlsScale,
+                height: 60 * controlsScale,
+                child: AnimatedPlayPauseButton(
+                  isPlaying: isPlaying,
+                  onPressed: onPlayPause,
+                  color: Colors.white,
+                  size: 52 * controlsScale,
+                  tooltip: isPlaying ? l10n.pause : l10n.play,
+                ),
               ),
-            ],
-          ),
-          child: AnimatedPlayPauseButton(
-            isPlaying: isPlaying,
-            onPressed: onPlayPause,
-            color: controlIconColor,
-            size: 42 * controlsScale,
-            tooltip: isPlaying ? l10n.pause : l10n.play,
-          ),
-        ),
         if (isLandscape) SizedBox(width: 18 * controlsScale),
         buildSecondaryControl(
           circleSize: (useOverlayStyle ? 56 : 60),
