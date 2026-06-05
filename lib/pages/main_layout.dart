@@ -601,7 +601,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             await windowManager.setSize(PlaybackPageUiTuning.smallWindowDefaultSize);
           } else {
             // Exit small window mode
-            await windowManager.setMinimumSize(const Size(600, 600));
+            await windowManager.setMinimumSize(const Size(400, 650));
             await windowManager.setMaximumSize(Size.infinite);
             final savedSize = settings.savedRegularWindowSize ?? const Size(1280, 720);
             await windowManager.setSize(savedSize);

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -117,18 +118,26 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
       child: SizedBox(
         height: widget.height,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            _WindowButton(
-              icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
-              iconSize: isSmallWindowMode ? 16 : 18,
-              brightness: widget.brightness,
-              hoverColor: hoverColor,
-              onPressed: () {
-                settings.isSmallWindowMode = !settings.isSmallWindowMode;
-              },
-            ),
+            if (isMacOS)
+              _MacosSmallWindowButton(
+                icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
+                iconSize: isSmallWindowMode ? 16 : 18,
+                onPressed: () {
+                  settings.isSmallWindowMode = !settings.isSmallWindowMode;
+                },
+              ),
+            const Spacer(),
             if (!isMacOS) ...[
+              _WindowButton(
+                icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
+                iconSize: isSmallWindowMode ? 16 : 18,
+                brightness: widget.brightness,
+                hoverColor: hoverColor,
+                onPressed: () {
+                  settings.isSmallWindowMode = !settings.isSmallWindowMode;
+                },
+              ),
               if (!isSmallWindowMode) ...[
                 _WindowButton(
                   icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
@@ -227,6 +236,85 @@ class _WindowButton extends StatelessWidget {
           width: 46,
           height: 32,
           child: Icon(icon, color: iconColor, size: iconSize),
+        ),
+      ),
+    );
+  }
+}
+
+class _MacosSmallWindowButton extends StatefulWidget {
+  final IconData icon;
+  final double iconSize;
+  final VoidCallback onPressed;
+
+  const _MacosSmallWindowButton({
+    required this.icon,
+    required this.iconSize,
+    required this.onPressed,
+  });
+
+  @override
+  State<_MacosSmallWindowButton> createState() => _MacosSmallWindowButtonState();
+}
+
+class _MacosSmallWindowButtonState extends State<_MacosSmallWindowButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: Container(
+          width: 42,
+          height: 24,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _isHovered
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : Colors.white.withValues(alpha: 0.20),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.20),
+                    width: 0.5,
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: widget.onPressed,
+                    hoverColor: Colors.transparent,
+                    splashColor: Colors.black.withValues(alpha: 0.05),
+                    highlightColor: Colors.black.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Center(
+                      child: Icon(
+                        widget.icon,
+                        color: Colors.black,
+                        size: widget.iconSize,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
