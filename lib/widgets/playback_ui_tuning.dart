@@ -206,6 +206,8 @@ class PlaybackHeroCardUiTuning {
   static const double waveformStandardTimeRowSpacing = 0.0;
   static const double portraitWaveformOverflowScale =
       1.35; // 竖屏波形进度条溢出缩放 (仅视觉，不影响布局)
+  static const double minProgressTimeFontSize = 12.0; // 小窗模式时间文字最小尺寸
+
 
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
   // 减小此值会让按钮和文字在相同屏幕宽度下显得更大

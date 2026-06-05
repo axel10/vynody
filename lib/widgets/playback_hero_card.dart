@@ -1917,7 +1917,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                     formatDuration(overridePosition ?? position),
                     style: TextStyle(
                       color: Colors.white70,
-                      fontSize: 12 * controlsScale,
+                      fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 12 * controlsScale),
                     ),
                   )
                 else
@@ -1938,7 +1938,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                       formatDuration(overridePosition ?? position),
                       style: TextStyle(
                         color: Colors.black87,
-                        fontSize: 11 * controlsScale,
+                        fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1948,7 +1948,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                     formatDuration(duration),
                     style: TextStyle(
                       color: Colors.white70,
-                      fontSize: 12 * controlsScale,
+                      fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 12 * controlsScale),
                     ),
                   )
                 else
@@ -1969,7 +1969,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                       formatDuration(duration),
                       style: TextStyle(
                         color: Colors.black87,
-                        fontSize: 11 * controlsScale,
+                        fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -2071,7 +2071,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               formatDuration(overridePosition ?? position),
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 12 * controlsScale,
+                                fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 12 * controlsScale),
                                 fontWeight: FontWeight.bold,
                                 shadows: const [
                                   Shadow(color: Colors.black45, blurRadius: 4),
@@ -2095,7 +2095,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                                 formatDuration(overridePosition ?? position),
                                 style: TextStyle(
                                   color: Colors.black87,
-                                  fontSize: 11 * controlsScale,
+                                  fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -2112,7 +2112,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               formatDuration(duration),
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 12 * controlsScale,
+                                fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 12 * controlsScale),
                                 fontWeight: FontWeight.bold,
                                 shadows: const [
                                   Shadow(color: Colors.black45, blurRadius: 4),
@@ -2136,7 +2136,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                                 formatDuration(duration),
                                 style: TextStyle(
                                   color: Colors.black87,
-                                  fontSize: 11 * controlsScale,
+                                  fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
