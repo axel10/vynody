@@ -450,45 +450,36 @@ class PlaybackHeroCard extends ConsumerWidget {
                       ),
                       if (isSmallWindow)
                         Positioned(
-                          top: layout.info.top - 16.0,
+                          top: layout.info.top - 48.0,
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(24),
-                              topRight: Radius.circular(24),
-                            ),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.black.withValues(alpha: 0.35)
-                                      : Colors.white.withValues(alpha: 0.25),
-                                  border: Border(
-                                    top: BorderSide(
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.white.withValues(alpha: 0.08)
-                                          : Colors.black.withValues(alpha: 0.05),
-                                      width: 1.0,
-                                    ),
-                                    left: BorderSide(
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.white.withValues(alpha: 0.08)
-                                          : Colors.black.withValues(alpha: 0.05),
-                                      width: 1.0,
-                                    ),
-                                    right: BorderSide(
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.white.withValues(alpha: 0.08)
-                                          : Colors.black.withValues(alpha: 0.05),
-                                      width: 1.0,
-                                    ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final containerHeight = constraints.maxHeight;
+                              final fadeStop = containerHeight > 0
+                                  ? (48.0 / containerHeight).clamp(0.0, 1.0)
+                                  : 0.2;
+                              return ShaderMask(
+                                shaderCallback: (rect) {
+                                  return LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: const [
+                                      Colors.transparent,
+                                      Colors.black,
+                                    ],
+                                    stops: [0.0, fadeStop],
+                                  ).createShader(rect);
+                                },
+                                blendMode: BlendMode.dstIn,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.35),
                                   ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         ),
                       Positioned(

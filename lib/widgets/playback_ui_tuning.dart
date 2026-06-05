@@ -24,7 +24,11 @@ class PlaybackPageUiTuning {
     required bool isLyricsMode,
     required double bottomPadding,
     required bool reserveBottomNavSpace,
+    bool isSmallWin = false,
   }) {
+    if (isSmallWin) {
+      return EdgeInsets.zero;
+    }
     final left = isLyricsMode
         ? (isLandscape ? lyricsLandscapeLeftPadding : lyricsPortraitLeftPadding)
         : (isLandscape

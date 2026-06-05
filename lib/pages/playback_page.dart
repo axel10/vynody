@@ -761,6 +761,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 isLyricsMode: isLyricsMode,
                 bottomPadding: effectiveBottomPadding,
                 reserveBottomNavSpace: shouldReserveBottomNavSpace,
+                isSmallWin: isSmallWin,
               ),
               child: Column(
                 children: [
@@ -884,13 +885,85 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                Positioned.fill(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 800),
-                    child: _buildBackgroundWidget(context, backgroundType, settings),
+                if (isSmallWin) ...[
+                  Positioned.fill(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 800),
+                      child: _buildBackgroundWidget(context, backgroundType, settings),
+                    ),
                   ),
-                ),
-                _buildBackgroundScrim(isLyricsMode, backgroundType, settings),
+                  Positioned.fill(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWaveformEnabled = settings.isWaveformProgressBarEnabled;
+                        const double scaleFactor = 0.82;
+                        
+                        final pNormalControlsBaseIdealHeight =
+                            (PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
+                            (isWaveformEnabled
+                                ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
+                                : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
+                            (isWaveformEnabled
+                                ? PlaybackHeroCardUiTuning.waveformOverlayHeight
+                                : 48.0) +
+                            (isWaveformEnabled
+                                ? 0.0
+                                : (8.0 +
+                                      PlaybackHeroCardUiTuning.controlsTimeRowHeight +
+                                      PlaybackHeroCardUiTuning.controlsRowPortraitGap +
+                                      PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) * scaleFactor;
+
+                        final pNormalControlsWidth = size.width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
+                        final pNormalControlsRawScale = pNormalControlsWidth / PlaybackHeroCardUiTuning.pControlsScaleBase;
+                        final pNormalControlsScale = pNormalControlsRawScale < 1.0 ? pNormalControlsRawScale : 1.0;
+                        final pNormalControlsHeight = (pNormalControlsBaseIdealHeight * pNormalControlsScale)
+                            .clamp(0.0, size.height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
+                            .ceilToDouble();
+                        final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * scaleFactor;
+                        final pNormalBottomLimit = size.height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
+                        
+                        const double bottomPadding = 12.0;
+                        final pNormalControlsTop = pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
+                        final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight - 4.0;
+                        
+                        final double fadeStart = (pNormalInfoTop - 48.0) / size.height;
+                        final double fadeEnd = pNormalInfoTop / size.height;
+                        final double clampedStart = fadeStart.clamp(0.0, 1.0);
+                        final double clampedEnd = fadeEnd.clamp(0.0, 1.0);
+
+                        return ShaderMask(
+                          shaderCallback: (rect) {
+                            return LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: const [
+                                Colors.transparent,
+                                Colors.black,
+                              ],
+                              stops: [clampedStart, clampedEnd],
+                            ).createShader(rect);
+                          },
+                          blendMode: BlendMode.dstIn,
+                          child: ImageFiltered(
+                            imageFilter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 800),
+                              child: _buildBackgroundWidget(context, backgroundType, settings),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ] else ...[
+                  Positioned.fill(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 800),
+                      child: _buildBackgroundWidget(context, backgroundType, settings),
+                    ),
+                  ),
+                ],
+                _buildBackgroundScrim(isLyricsMode, backgroundType, settings, isSmallWin),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
                 _buildLyricsModeScrim(isLyricsMode, backgroundType, settings),
@@ -997,7 +1070,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     }
   }
 
-  Widget _buildBackgroundScrim(bool isLyricsMode, int backgroundType, SettingsService settings) {
+  Widget _buildBackgroundScrim(bool isLyricsMode, int backgroundType, SettingsService settings, bool isSmallWin) {
+    if (isSmallWin) {
+      return const SizedBox.shrink();
+    }
     double opacity = 0.30;
     if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
       opacity = settings.playbackBackgroundNormalOpacity;
