@@ -116,6 +116,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   late int _currentIndex;
   double? _lastVolume;
   bool _showMiniVolumeSlider = false;
+  bool _allowVolumeHUD = false;
   late final AudioService _audioService;
   DateTime? _lastBackPressedAt;
 
@@ -206,6 +207,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         _handleArgs();
       });
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (!mounted) return;
+        _allowVolumeHUD = true;
+      });
+    });
   }
 
   @override
@@ -583,7 +591,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     final isQueueSelectionMode = ref.watch(queueSelectionModeProvider);
     ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
-      if (_lastVolume != null && (_lastVolume! - next).abs() > 0.1) {
+      if (_allowVolumeHUD && _lastVolume != null && (_lastVolume! - next).abs() > 0.1) {
         _triggerHUD();
       }
       _lastVolume = next;
