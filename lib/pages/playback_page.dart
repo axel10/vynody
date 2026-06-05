@@ -918,13 +918,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                       PlaybackHeroCardUiTuning.controlsRowPortraitGap +
                                       PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) * scaleFactor;
 
-                        final pNormalControlsWidth = size.width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
-                        final pNormalControlsRawScale = pNormalControlsWidth / PlaybackHeroCardUiTuning.pControlsScaleBase;
-                        final pNormalControlsScale = pNormalControlsRawScale < 1.0 ? pNormalControlsRawScale : 1.0;
-                        final pNormalControlsHeight = (pNormalControlsBaseIdealHeight * pNormalControlsScale)
+                        final pNormalScale =
+                            (size.width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15) *
+                                scaleFactor;
+                        final pNormalControlsHeight = (pNormalControlsBaseIdealHeight * pNormalScale)
                             .clamp(0.0, size.height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
                             .ceilToDouble();
-                        final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * scaleFactor;
+                        final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * pNormalScale;
                         final pNormalBottomLimit = size.height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
                         
                         const double bottomPadding = 12.0;
