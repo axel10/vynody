@@ -591,7 +591,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     final double scaleFactor = isSmallWindow ? 0.82 : 1.0;
 
     final pNormalControlsBaseIdealHeight =
-        (PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
+        PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
         (isWaveformEnabled
             ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
             : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
@@ -603,7 +603,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             : (8.0 + // Time gap
                   PlaybackHeroCardUiTuning.controlsTimeRowHeight +
                   PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-                  PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) * scaleFactor;
+                  PlaybackHeroCardUiTuning.controlsMainButtonsHeight));
 
     final pNormalControlsWidth =
         width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
@@ -1305,6 +1305,16 @@ class PlaybackHeroCard extends ConsumerWidget {
       settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
     );
 
+    final size = MediaQuery.of(context).size;
+    final settings = ref.read(settingsServiceProvider);
+    final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
+      size,
+      isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+      isSmallWindowMode: settings.isSmallWindowMode,
+    );
+    final bool effectiveIsLandscape = isLandscape && !isSmallWindow;
+    final bool effectiveIsLyricsMode = isLyricsMode && !isSmallWindow;
+
     final topButtonsCount = 7;
     final topButtonsGaps = topButtonsCount - 1;
     final singleButtonWidth =
@@ -1315,9 +1325,9 @@ class PlaybackHeroCard extends ConsumerWidget {
         topButtonsCount * singleButtonWidth + topButtonsGaps * gapWidth;
 
     // 竖屏模式下如果启用波形进度条，则使用叠层布局 (Overlay layout in portrait if waveform is enabled)
-    final useOverlayStyle = !isLandscape && !isLyricsMode && isWaveformEnabled;
+    final useOverlayStyle = !effectiveIsLandscape && !effectiveIsLyricsMode && isWaveformEnabled;
 
-    final widthFactor = isLandscape
+    final widthFactor = effectiveIsLandscape
         ? (lerpDouble(
             PlaybackHeroCardUiTuning.progressBarWidthFactor,
             1.0,
@@ -1325,7 +1335,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           )!)
         : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor;
 
-    final unifiedWidth = isLandscape
+    final unifiedWidth = effectiveIsLandscape
         ? buttonsRowWidth
         : math.min(width - 32.0, buttonsRowWidth * widthFactor);
 
@@ -1697,7 +1707,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 overrideWaveform: overrideWaveform,
                 onScrubbing: onScrubbing,
                 onSeek: onSeek,
-                isLandscape: isLandscape,
+                isLandscape: effectiveIsLandscape,
               ),
               // 3. 播放控制按钮叠在上面，不跟随缩放 (Playback controls on top, no scaling)
               mainControlsRow,
@@ -1708,7 +1718,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     }
 
     // 默认布局 (Default layout)
-    if (isLandscape) {
+    if (effectiveIsLandscape) {
       return Column(
         key: const ValueKey('default_controls_column'),
         mainAxisSize: MainAxisSize.min,
@@ -1726,7 +1736,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             currentMusic: currentMusic,
             controlsScale: controlsScale,
             tLyrics: tLyrics,
-            isLandscape: isLandscape,
+            isLandscape: effectiveIsLandscape,
             buttonsRowWidth: unifiedWidth,
             overrideProgress: overrideProgress,
             overridePosition: overridePosition,
@@ -1761,7 +1771,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           currentMusic: currentMusic,
           controlsScale: controlsScale,
           tLyrics: tLyrics,
-          isLandscape: isLandscape,
+          isLandscape: effectiveIsLandscape,
           buttonsRowWidth: unifiedWidth,
           overrideProgress: overrideProgress,
           overridePosition: overridePosition,
