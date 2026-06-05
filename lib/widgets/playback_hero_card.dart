@@ -1691,7 +1691,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 key: const ValueKey('playback_overlay_progress_time_layer'),
                 currentMusic: currentMusic,
                 controlsScale: controlsScale,
-                totalWidth: unifiedWidth,
+                totalWidth: width,
                 overrideProgress: overrideProgress,
                 overridePosition: overridePosition,
                 overrideWaveform: overrideWaveform,
