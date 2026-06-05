@@ -30,6 +30,7 @@ import '../widgets/volume_controls.dart';
 import '../widgets/global_drop_target.dart';
 import '../widgets/library_selection_panel.dart';
 import 'package:vibe_flow/utils/deleted_song_snack.dart';
+import 'package:vibe_flow/utils/app_snack_bar.dart';
 import 'dart:async';
 
 Route<void> buildMainLayoutRoute({
@@ -579,6 +580,49 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     ref.listen<IncomingTransferRequest?>(incomingRequestProvider, (previous, next) {
       if (next != null) {
         showIncomingTransferDialog(context, next);
+      }
+    });
+
+    // Listen for transfer session completions to show SnackBar notifications
+    ref.listen<List<TransferSession>>(activeTransfersProvider, (previous, next) {
+      if (previous == null) return;
+
+      for (final session in next) {
+        // We only care about receiving files
+        if (session.isSending) continue;
+
+        // Check the previous state of this session
+        final prevList = previous.where((s) => s.id == session.id).toList();
+        final prevSession = prevList.isNotEmpty ? prevList.first : null;
+
+        // If it was already finished in the previous state, don't show the SnackBar again
+        final wasFinished = prevSession != null && (
+          prevSession.status == TransferStatus.success ||
+          prevSession.status == TransferStatus.failed ||
+          prevSession.status == TransferStatus.cancelled
+        );
+
+        if (wasFinished) continue;
+
+        // Check if the session has transitioned to a finished state
+        final isFinished = session.status == TransferStatus.success ||
+                           session.status == TransferStatus.failed ||
+                           session.status == TransferStatus.cancelled;
+
+        if (isFinished) {
+          final isSuccess = session.status == TransferStatus.success;
+          final text = isSuccess
+              ? '成功接收了 ${session.completedFilesCount ?? session.filesCount ?? 1} 首歌曲'
+              : '接收 "${session.fileName}" 失败';
+
+          AppSnackBar.show(
+            context,
+            ref,
+            SnackBar(
+              content: Text(text),
+            ),
+          );
+        }
       }
     });
 

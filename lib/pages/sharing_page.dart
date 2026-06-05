@@ -78,7 +78,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
         final newSendSession = next.firstWhere(
           (s) => s.isSending && s.deviceName == device.name && s.status == TransferStatus.pending,
           orElse: () => TransferSession(
-            id: '', fileName: '', totalBytes: 0, bytesTransferred: 0, isSending: true, deviceName: '', status: TransferStatus.failed
+            id: '', fileName: '', totalBytes: 0, bytesTransferred: 0, isSending: true, deviceName: '', status: TransferStatus.failed, filesCount: 0, completedFilesCount: 0,
           ),
         );
         if (newSendSession.id.isNotEmpty) {
@@ -135,7 +135,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
         final newSendSession = next.firstWhere(
           (s) => s.isSending && s.deviceName == device.name && s.status == TransferStatus.pending,
           orElse: () => TransferSession(
-            id: '', fileName: '', totalBytes: 0, bytesTransferred: 0, isSending: true, deviceName: '', status: TransferStatus.failed
+            id: '', fileName: '', totalBytes: 0, bytesTransferred: 0, isSending: true, deviceName: '', status: TransferStatus.failed, filesCount: 0, completedFilesCount: 0,
           ),
         );
         if (newSendSession.id.isNotEmpty) {

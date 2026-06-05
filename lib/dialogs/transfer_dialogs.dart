@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_flow/player/sharing/sharing_service.dart';
+import 'package:vibe_flow/utils/app_snack_bar.dart';
 
 void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest request) {
   final theme = Theme.of(context);
@@ -128,6 +129,8 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                 isSending: false,
                 deviceName: 'Device',
                 status: TransferStatus.failed,
+                filesCount: 0,
+                completedFilesCount: 0,
               ),
             );
 
@@ -142,10 +145,14 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                   // Show quick status toast or SnackBar
                   final isSuccess = session.status == TransferStatus.success;
                   final text = isSuccess
-                      ? '${session.isSending ? "发送" : "接收"} "${session.fileName}" 成功'
+                      ? (session.isSending 
+                          ? '"${session.fileName}" 发送完毕' 
+                          : '成功接收了 ${session.completedFilesCount ?? session.filesCount ?? 1} 首歌曲')
                       : '${session.isSending ? "发送" : "接收"} "${session.fileName}" 失败';
                   
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  AppSnackBar.show(
+                    context,
+                    ref,
                     SnackBar(
                       content: Text(text),
                     ),

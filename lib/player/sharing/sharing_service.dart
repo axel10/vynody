@@ -33,13 +33,14 @@ class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
     state = [session, ...state];
   }
 
-  void updateProgress(String id, int bytesTransferred, {TransferStatus? status}) {
+  void updateProgress(String id, int bytesTransferred, {TransferStatus? status, int? completedFilesCount}) {
     state = [
       for (final s in state)
         if (s.id == id)
           s.copyWith(
             bytesTransferred: bytesTransferred,
             status: status ?? s.status,
+            completedFilesCount: completedFilesCount ?? s.completedFilesCount,
           )
         else
           s
@@ -105,6 +106,8 @@ class TransferSession {
   final bool isSending; // true = upload/send, false = download/receive
   final String deviceName;
   final TransferStatus status;
+  final int? filesCount;
+  final int? completedFilesCount;
 
   TransferSession({
     required this.id,
@@ -114,6 +117,8 @@ class TransferSession {
     required this.isSending,
     required this.deviceName,
     required this.status,
+    this.filesCount,
+    this.completedFilesCount,
   });
 
   double get progress => totalBytes > 0 ? bytesTransferred / totalBytes : 0.0;
@@ -126,6 +131,8 @@ class TransferSession {
     bool? isSending,
     String? deviceName,
     TransferStatus? status,
+    int? filesCount,
+    int? completedFilesCount,
   }) {
     return TransferSession(
       id: id ?? this.id,
@@ -135,6 +142,8 @@ class TransferSession {
       isSending: isSending ?? this.isSending,
       deviceName: deviceName ?? this.deviceName,
       status: status ?? this.status,
+      filesCount: filesCount ?? this.filesCount,
+      completedFilesCount: completedFilesCount ?? this.completedFilesCount,
     );
   }
 }
@@ -579,6 +588,8 @@ class SharingService {
         isSending: false,
         deviceName: senderName,
         status: TransferStatus.transferring,
+        filesCount: files.length,
+        completedFilesCount: 0,
       ));
 
       request.response.statusCode = HttpStatus.ok;
@@ -704,13 +715,20 @@ class SharingService {
         _ref.read(activeTransfersProvider.notifier).updateProgress(
           sessionId, 
           metadata.totalSize, 
-          status: TransferStatus.success
+          status: TransferStatus.success,
+          completedFilesCount: metadata.completedFiles.length,
         );
         _activeTokens.remove(token);
 
         // Trigger targeted Scanner rescan
         final scanner = _ref.read(scannerServiceProvider);
         unawaited(scanner.scan(clearScannedRoots: false));
+      } else {
+        _ref.read(activeTransfersProvider.notifier).updateProgress(
+          sessionId,
+          metadata.bytesTransferredCumulative,
+          completedFilesCount: metadata.completedFiles.length,
+        );
       }
 
       request.response.statusCode = HttpStatus.ok;
@@ -857,6 +875,8 @@ class SharingService {
       isSending: true,
       deviceName: targetDevice.name,
       status: TransferStatus.pending,
+      filesCount: filesToSend.length,
+      completedFilesCount: 0,
     ));
 
     final client = HttpClient();
@@ -893,6 +913,7 @@ class SharingService {
       _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.transferring);
       
       int totalBytesSent = 0;
+      int completedFilesCount = 0;
 
       for (final fileInfo in filesToSend) {
         final uploadUri = Uri.parse('http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/upload');
@@ -908,13 +929,23 @@ class SharingService {
           await for (final chunk in fileStream) {
             uploadRequest.add(chunk);
             totalBytesSent += chunk.length;
-            _ref.read(activeTransfersProvider.notifier).updateProgress(sessionId, totalBytesSent);
+            _ref.read(activeTransfersProvider.notifier).updateProgress(
+              sessionId, 
+              totalBytesSent,
+              completedFilesCount: completedFilesCount,
+            );
           }
           final uploadResponse = await uploadRequest.close();
           if (uploadResponse.statusCode != HttpStatus.ok) {
             _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
             return false;
           }
+          completedFilesCount++;
+          _ref.read(activeTransfersProvider.notifier).updateProgress(
+            sessionId, 
+            totalBytesSent,
+            completedFilesCount: completedFilesCount,
+          );
         } catch (e) {
           debugPrint('[SharingService] Error uploading file ${fileInfo.relativeName}: $e');
           _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
@@ -922,7 +953,12 @@ class SharingService {
         }
       }
       
-      _ref.read(activeTransfersProvider.notifier).updateProgress(sessionId, totalSize, status: TransferStatus.success);
+      _ref.read(activeTransfersProvider.notifier).updateProgress(
+        sessionId, 
+        totalSize, 
+        status: TransferStatus.success,
+        completedFilesCount: filesToSend.length,
+      );
       return true;
     } catch (e) {
       debugPrint('[SharingService] Failed to send files: $e');
