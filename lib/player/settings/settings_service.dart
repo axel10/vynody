@@ -1022,4 +1022,15 @@ class SettingsService extends ChangeNotifier {
     final clamped = value.clamp(minLyricsFontScale, maxLyricsFontScale);
     return (clamped * 10).roundToDouble() / 10.0;
   }
+
+  bool _isSmallWindowMode = false;
+  bool get isSmallWindowMode => _isSmallWindowMode;
+  set isSmallWindowMode(bool value) {
+    if (_isSmallWindowMode != value) {
+      _isSmallWindowMode = value;
+      notifyListeners();
+    }
+  }
+
+  Size? savedRegularWindowSize;
 }

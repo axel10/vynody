@@ -577,6 +577,39 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for small window mode transitions
+    ref.listen<bool>(
+      settingsServiceProvider.select((s) => s.isSmallWindowMode),
+      (previous, next) async {
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+          final settings = ref.read(settingsServiceProvider);
+          if (next) {
+            // Enter small window mode
+            if (await windowManager.isFullScreen()) {
+              await windowManager.setFullScreen(false);
+            }
+            if (await windowManager.isMaximized()) {
+              await windowManager.unmaximize();
+            }
+            final currentSize = await windowManager.getSize();
+            if (currentSize.width >= PlaybackPageUiTuning.smallWindowMaxSize.width ||
+                currentSize.height >= PlaybackPageUiTuning.smallWindowMaxSize.height) {
+              settings.savedRegularWindowSize = currentSize;
+            }
+            await windowManager.setMinimumSize(PlaybackPageUiTuning.smallWindowMinSize);
+            await windowManager.setMaximumSize(PlaybackPageUiTuning.smallWindowMaxSize);
+            await windowManager.setSize(PlaybackPageUiTuning.smallWindowDefaultSize);
+          } else {
+            // Exit small window mode
+            await windowManager.setMinimumSize(const Size(600, 600));
+            await windowManager.setMaximumSize(Size.infinite);
+            final savedSize = settings.savedRegularWindowSize ?? const Size(1280, 720);
+            await windowManager.setSize(savedSize);
+          }
+        }
+      },
+    );
+
     // Listen for incoming LAN file transfers
     ref.listen<IncomingTransferRequest?>(incomingRequestProvider, (previous, next) {
       if (next != null) {
@@ -660,6 +693,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
       size,
       isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+      isSmallWindowMode: settings.isSmallWindowMode,
     );
     final bool isLandscape =
         !isSmallWin && (MediaQuery.of(context).orientation == Orientation.landscape);

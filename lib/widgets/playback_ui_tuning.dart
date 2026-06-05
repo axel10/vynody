@@ -5,7 +5,14 @@ import 'package:flutter/material.dart';
 class PlaybackPageUiTuning {
   PlaybackPageUiTuning._();
 
-  static bool isSmallWindow(Size size, {required bool isWaveformEnabled}) {
+  static bool isSmallWindow(
+    Size size, {
+    required bool isWaveformEnabled,
+    bool isSmallWindowMode = false,
+  }) {
+    if (isSmallWindowMode) {
+      return true;
+    }
     try {
       final displays = ui.PlatformDispatcher.instance.displays;
       if (displays.isNotEmpty) {
@@ -104,6 +111,10 @@ class PlaybackPageUiTuning {
     }
   }
 
+
+  static const Size smallWindowMinSize = Size(360, 360);
+  static const Size smallWindowMaxSize = Size(600, 600);
+  static const Size smallWindowDefaultSize = Size(360, 360);
 
   static const double desktopTopSpacer = 32.0;
   static const double statusBannerTop = 12.0;

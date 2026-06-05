@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
+import '../player/audio/audio_riverpod.dart';
 
-class DesktopWindowTitleBar extends StatefulWidget {
+class DesktopWindowTitleBar extends ConsumerStatefulWidget {
   const DesktopWindowTitleBar({
     super.key,
     required this.brightness,
@@ -13,10 +15,10 @@ class DesktopWindowTitleBar extends StatefulWidget {
   final double height;
 
   @override
-  State<DesktopWindowTitleBar> createState() => _DesktopWindowTitleBarState();
+  ConsumerState<DesktopWindowTitleBar> createState() => _DesktopWindowTitleBarState();
 }
 
-class _DesktopWindowTitleBarState extends State<DesktopWindowTitleBar>
+class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
     with WindowListener {
   bool _isFullScreen = false;
   bool _isMaximized = false;
@@ -95,6 +97,8 @@ class _DesktopWindowTitleBarState extends State<DesktopWindowTitleBar>
         : Colors.black.withValues(alpha: 0.05);
 
     final isMacOS = Platform.isMacOS;
+    final settings = ref.watch(settingsServiceProvider);
+    final isSmallWindowMode = settings.isSmallWindowMode;
 
     final Widget titleBarContent = GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -103,6 +107,7 @@ class _DesktopWindowTitleBarState extends State<DesktopWindowTitleBar>
       },
       onDoubleTap: () async {
         if (_isFullScreen) return;
+        if (isSmallWindowMode) return;
         if (_isMaximized) {
           await windowManager.unmaximize();
         } else {
@@ -114,39 +119,50 @@ class _DesktopWindowTitleBarState extends State<DesktopWindowTitleBar>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            _WindowButton(
+              icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
+              iconSize: isSmallWindowMode ? 16 : 18,
+              brightness: widget.brightness,
+              hoverColor: hoverColor,
+              onPressed: () {
+                settings.isSmallWindowMode = !settings.isSmallWindowMode;
+              },
+            ),
             if (!isMacOS) ...[
-              _WindowButton(
-                icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                brightness: widget.brightness,
-                hoverColor: hoverColor,
-                onPressed: () => _setFullScreen(!_isFullScreen),
-              ),
-              _WindowButton(
-                icon: Icons.remove,
-                brightness: widget.brightness,
-                hoverColor: hoverColor,
-                onPressed: () async {
-                  if (_isFullScreen) {
-                    await _setFullScreen(false);
-                  }
-                  await windowManager.minimize();
-                },
-              ),
-              _WindowButton(
-                icon: _isMaximized ? Icons.filter_none : Icons.crop_square,
-                iconSize: 14,
-                brightness: widget.brightness,
-                hoverColor: hoverColor,
-                onPressed: () async {
-                  if (_isFullScreen) {
-                    await _setFullScreen(false);
-                  } else if (_isMaximized) {
-                    await windowManager.unmaximize();
-                  } else {
-                    await windowManager.maximize();
-                  }
-                },
-              ),
+              if (!isSmallWindowMode) ...[
+                _WindowButton(
+                  icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  brightness: widget.brightness,
+                  hoverColor: hoverColor,
+                  onPressed: () => _setFullScreen(!_isFullScreen),
+                ),
+                _WindowButton(
+                  icon: Icons.remove,
+                  brightness: widget.brightness,
+                  hoverColor: hoverColor,
+                  onPressed: () async {
+                    if (_isFullScreen) {
+                      await _setFullScreen(false);
+                    }
+                    await windowManager.minimize();
+                  },
+                ),
+                _WindowButton(
+                  icon: _isMaximized ? Icons.filter_none : Icons.crop_square,
+                  iconSize: 14,
+                  brightness: widget.brightness,
+                  hoverColor: hoverColor,
+                  onPressed: () async {
+                    if (_isFullScreen) {
+                      await _setFullScreen(false);
+                    } else if (_isMaximized) {
+                      await windowManager.unmaximize();
+                    } else {
+                      await windowManager.maximize();
+                    }
+                  },
+                ),
+              ],
               _WindowButton(
                 icon: Icons.close,
                 isClose: true,

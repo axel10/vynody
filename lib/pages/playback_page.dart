@@ -719,6 +719,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
             size,
             isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+            isSmallWindowMode: settings.isSmallWindowMode,
           );
           final isLandscape = !isSmallWin && (orientation == Orientation.landscape);
 
@@ -1100,6 +1101,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         final bool isSmallWinValue = forceSmallWin ?? PlaybackPageUiTuning.isSmallWindow(
           size,
           isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+          isSmallWindowMode: settings.isSmallWindowMode,
         );
         final blur = settings.playbackCustomImageBlurSigma;
         if (blur > 0.0 && !isSmallWinValue) {
@@ -1214,6 +1216,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 final bool isSmallWinValue = forceSmallWin ?? PlaybackPageUiTuning.isSmallWindow(
                   size,
                   isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+                  isSmallWindowMode: settings.isSmallWindowMode,
                 );
 
                 content = ImageFiltered(

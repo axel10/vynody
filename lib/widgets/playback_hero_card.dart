@@ -393,6 +393,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
       size,
       isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+      isSmallWindowMode: settings.isSmallWindowMode,
     );
     final bool effectiveIsLandscape = isLandscape && !isSmallWindow;
     final bool effectiveIsLyricsMode = isLyricsMode && !isSmallWindow;
