@@ -1075,14 +1075,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 );
               } else {
                 // 使用 Image.memory 的高性能解码缩放：
-                // 通过设置 cacheWidth 或 cacheHeight (200px)，Flutter 会在解码图片时
-                // 就直接生成小尺寸的内存 Buffer，极大降低了内存占用并加速了后续的毛玻璃滤镜运算。
-                // 提高解码分辨率以减少边缘模糊导致的暗角问题
+                // 对于 Android 和 iOS，通过设置 cacheWidth (300px) 在解码阶段完成缩小，以降低内存并加速滤镜运算；
+                // 对于桌面端，使用原图（cacheWidth 为 null）以提供更清晰的背景。
                 final imageProvider = Image.memory(
                   bytes,
                   width: double.infinity,
                   height: double.infinity,
-                  cacheWidth: 300, // 提高解码分辨率以减少边缘暗角
+                  cacheWidth: (Platform.isAndroid || Platform.isIOS) ? 300 : null,
                   fit: BoxFit.cover,
                   filterQuality: FilterQuality.low,
                   gaplessPlayback: true,

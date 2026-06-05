@@ -1940,7 +1940,7 @@ class PlaybackProgressSection extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (isLandscape)
+                if (isLandscape || !isWaveformEnabled)
                   Text(
                     formatDuration(overridePosition ?? position),
                     style: TextStyle(
@@ -1971,7 +1971,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                       ),
                     ),
                   ),
-                if (isLandscape)
+                if (isLandscape || !isWaveformEnabled)
                   Text(
                     formatDuration(duration),
                     style: TextStyle(
