@@ -17,6 +17,7 @@ import 'package:vibe_flow/player/scanner/scanner_path_utils.dart';
 import 'folder_page_riverpod.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/song_tile.dart';
+import '../widgets/library_selection_panel.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 
 // 目录页
@@ -302,65 +303,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     );
   }
 
-  Future<void> _addSelectedSongsToQueue(List<MusicFile> songs) async {
-    if (songs.isEmpty) return;
-
-    await ref.read(audioServiceProvider).appendToQueue(songs);
-    if (!mounted) return;
-
-    AppSnackBar.show(
-      context,
-      ref,
-      SnackBar(content: Text(AppLocalizations.of(context)!.addedToQueue)),
-    );
-    _clearAllSelection();
-  }
-
-  Future<void> _addSelectedSongsToPlaylist(List<MusicFile> songs) async {
-    if (songs.isEmpty) return;
-
-    await showAddSongsToPlaylistDialog(
-      context,
-      ref.read(playlistServiceProvider),
-      songs,
-    );
-    if (!mounted) return;
-
-    _clearAllSelection();
-  }
-
-  Widget _buildSelectionActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback? onPressed,
-    Color? color,
-  }) {
-    final theme = Theme.of(context);
-    return Expanded(
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          foregroundColor: color ?? theme.colorScheme.onSurface,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _toggleRootSelection(String path) {
     setState(() {
@@ -773,7 +715,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
             currentFolder,
             navigationHistory,
           );
-      final selectionPanelHeight = showSelectionPanel ? 152.0 : 0.0;
+      final selectionPanelHeight = showSelectionPanel ? 220.0 : 0.0;
       currentBody = PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
@@ -1030,94 +972,23 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 return SlideTransition(position: offsetAnimation, child: child);
               },
               child: showSelectionPanel
-                  ? Padding(
+                  ? LibrarySelectionPanel(
                       key: const ValueKey('folder-selection-panel'),
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: SafeArea(
-                        top: false,
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 680),
-                            child: Material(
-                              elevation: 16,
-                              color: Theme.of(context).colorScheme.surface,
-                              shadowColor: Colors.black26,
-                              borderRadius: BorderRadius.circular(24),
-                              clipBehavior: Clip.antiAlias,
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  14,
-                                  12,
-                                  14,
-                                  14,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      AppLocalizations.of(
-                                        context,
-                                      )!.selectedSongs(selectedSongs.length),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.labelLarge,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        _buildSelectionActionButton(
-                                          icon: Icons.select_all,
-                                          label: AppLocalizations.of(
-                                            context,
-                                          )!.selectAll,
-                                          onPressed: currentFolder.files.isEmpty
-                                              ? null
-                                              : () => _selectAllVisibleSongs(
-                                                  currentFolder.files,
-                                                ),
-                                        ),
-                                        _buildSelectionActionButton(
-                                          icon: Icons.queue_music_outlined,
-                                          label: AppLocalizations.of(
-                                            context,
-                                          )!.addToQueue,
-                                          onPressed: selectedSongs.isEmpty
-                                              ? null
-                                              : () => _addSelectedSongsToQueue(
-                                                  selectedSongs,
-                                                ),
-                                        ),
-                                        _buildSelectionActionButton(
-                                          icon: Icons.playlist_add,
-                                          label: AppLocalizations.of(
-                                            context,
-                                          )!.addToPlaylist,
-                                          onPressed: selectedSongs.isEmpty
-                                              ? null
-                                              : () =>
-                                                    _addSelectedSongsToPlaylist(
-                                                      selectedSongs,
-                                                    ),
-                                        ),
-                                        _buildSelectionActionButton(
-                                          icon: Icons.close,
-                                          label: AppLocalizations.of(
-                                            context,
-                                          )!.cancel,
-                                          onPressed: _toggleSelectionMode,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                      selectedSongs: selectedSongs,
+                      allSongs: currentFolder.files,
+                      onToggleSelectAll: () {
+                        final isAllSelected =
+                            selectedSongs.length == currentFolder.files.length &&
+                            currentFolder.files.isNotEmpty;
+                        if (isAllSelected) {
+                          setState(() {
+                            _selectedSongPaths.clear();
+                          });
+                        } else {
+                          _selectAllVisibleSongs(currentFolder.files);
+                        }
+                      },
+                      onCancel: _clearAllSelection,
                     )
                   : const SizedBox.shrink(
                       key: ValueKey('folder-selection-panel-hidden'),
