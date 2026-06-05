@@ -14,6 +14,7 @@ import 'package:vibe_flow/player/ai/ai_api_key_service.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 import '../transcode/transcode_models.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../widgets/desktop_window_title_bar.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -45,6 +46,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   List<GeminiModelInfo> _geminiModels = const [];
   bool _isLoadingGeminiModels = false;
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = packageInfo.version;
+        });
+      }
+    } catch (_) {}
+  }
 
   List<GeminiModelInfo> _mergedGeminiModels(SettingsService settings) {
     final merged = <String, GeminiModelInfo>{};
@@ -743,6 +762,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: Text(
               settings.hasCustomAcoustidApiKey ? l10n.modify : l10n.fill,
             ),
+          ),
+        ),
+        const Divider(height: 40, thickness: 1, indent: 16, endIndent: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            children: [
+              Text(
+                'VibeFlow ${_appVersion.isEmpty ? "" : "v$_appVersion"}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () async {
+                  final uri = Uri.parse('https://github.com/axel10/vibe_flow');
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    'https://github.com/axel10/vibe_flow',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
