@@ -44,43 +44,6 @@ class MiniQueueView extends ConsumerWidget {
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
                   ),
                 ),
-                if (queue.isNotEmpty)
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(50, 24),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: Text(l10n.clearQueue),
-                          content: Text(l10n.confirmClearQueue),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text(l10n.cancel),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                audioService.clearPlaylist();
-                                Navigator.pop(context);
-                              },
-                              child: Text(l10n.clearQueue),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: Text(
-                      l10n.clearQueue,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.error.withValues(alpha: 0.85),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
