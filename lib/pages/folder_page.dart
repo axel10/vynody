@@ -520,38 +520,62 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 ),
               ),
               if (Platform.isAndroid)
-                ListTile(
-                  leading: const Icon(
-                    Icons.library_music,
-                    color: Colors.purple,
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                    vertical: 4,
                   ),
-                  title: Text(AppLocalizations.of(context)!.systemMediaLibrary),
-                  subtitle: hasPermission
-                      ? null
-                      : Text(
-                          AppLocalizations.of(context)!.needPermissionToScan,
-                          style: TextStyle(color: Colors.red, fontSize: 12),
-                        ),
-                  onTap: () {
-                    _navigateTo(
-                      systemMediaFolder ??
-                          MusicFolder(
-                            path: 'system',
-                            name: AppLocalizations.of(
-                              context,
-                            )!.systemMediaLibrary,
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    hoverColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.06),
+                    leading: const Icon(
+                      Icons.library_music,
+                      color: Colors.purple,
+                    ),
+                    title: Text(AppLocalizations.of(context)!.systemMediaLibrary),
+                    subtitle: hasPermission
+                        ? null
+                        : Text(
+                            AppLocalizations.of(context)!.needPermissionToScan,
+                            style: TextStyle(color: Colors.red, fontSize: 12),
                           ),
-                      scanner,
-                    );
-                  },
+                    onTap: () {
+                      _navigateTo(
+                        systemMediaFolder ??
+                            MusicFolder(
+                              path: 'system',
+                              name: AppLocalizations.of(
+                                context,
+                              )!.systemMediaLibrary,
+                            ),
+                        scanner,
+                      );
+                    },
+                  ),
                 ),
-              ListTile(
-                leading: const Icon(
-                  Icons.add_circle_outline,
-                  color: Colors.blue,
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                  vertical: 4,
                 ),
-                title: Text(AppLocalizations.of(context)!.addRootDirectory),
-                onTap: () => _pickFolder(scanner),
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  hoverColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.06),
+                  leading: const Icon(
+                    Icons.add_circle_outline,
+                    color: Colors.blue,
+                  ),
+                  title: Text(AppLocalizations.of(context)!.addRootDirectory),
+                  onTap: () => _pickFolder(scanner),
+                ),
               ),
               Expanded(
                 child: ReorderableListView.builder(
