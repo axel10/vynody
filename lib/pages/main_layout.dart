@@ -114,13 +114,14 @@ class MainLayout extends ConsumerStatefulWidget {
   ConsumerState<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends ConsumerState<MainLayout> {
+class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   late int _currentIndex;
   double? _lastVolume;
   bool _showMiniVolumeSlider = false;
   bool _allowVolumeHUD = false;
   late final AudioService _audioService;
   DateTime? _lastBackPressedAt;
+  DateTime? _ignoreResizeEventsUntil;
 
   MainLayoutUiController get _ui =>
       ref.read(mainLayoutUiControllerProvider.notifier);
@@ -204,6 +205,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     _syncDeletedSongNoticeHandler();
 
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.addListener(this);
+    }
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _handleArgs();
@@ -220,11 +225,30 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
   @override
   void dispose() {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.removeListener(this);
+    }
     _audioService.setMissingSongNoticeHandler(null);
     Future.microtask(() {
       ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
     });
     super.dispose();
+  }
+
+  @override
+  void onWindowResized() async {
+    if (_ignoreResizeEventsUntil != null && DateTime.now().isBefore(_ignoreResizeEventsUntil!)) {
+      return;
+    }
+    final settings = ref.read(settingsServiceProvider);
+    if (settings.isSmallWindowMode) {
+      final size = await windowManager.getSize();
+      if (settings.isSmallWindowQueueExpanded) {
+        settings.savedSmallWindowQueueSize = size;
+      } else {
+        settings.savedSmallWindowSize = size;
+      }
+    }
   }
 
   Future<void> _setFullScreen(bool enable) async {
@@ -592,6 +616,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           
           final nextSmallMode = next.isSmallMode;
           final prevSmallMode = previous?.isSmallMode ?? false;
+          final nextQueueExpanded = next.isQueueExpanded;
+          final prevQueueExpanded = previous?.isQueueExpanded ?? false;
+
+          if (nextSmallMode != prevSmallMode || nextQueueExpanded != prevQueueExpanded) {
+            _ignoreResizeEventsUntil = DateTime.now().add(const Duration(milliseconds: 800));
+          }
           
           if (nextSmallMode) {
             // Enter small window mode or update small window dimensions
@@ -611,7 +641,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
               }
             }
             
-            if (next.isQueueExpanded) {
+            if (nextQueueExpanded) {
               // Expanded playlist queue mode: resizable within constraints
               const minSize = Size(360.0, 450.0);
               const maxSize = Size(480.0, 99999.0);
@@ -620,9 +650,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
               await windowManager.setMaximumSize(maxSize);
               
               // Only change size if we weren't already in expanded mode or small mode
-              final wasQueueExpanded = previous?.isQueueExpanded ?? false;
-              if (!wasQueueExpanded || !prevSmallMode) {
-                await windowManager.setSize(const Size(360.0, 600.0));
+              if (!prevQueueExpanded || !prevSmallMode) {
+                final savedSize = settings.savedSmallWindowQueueSize;
+                final clampedSize = Size(
+                  savedSize.width.clamp(minSize.width, maxSize.width),
+                  savedSize.height.clamp(minSize.height, maxSize.height),
+                );
+                await windowManager.setSize(clampedSize);
               }
             } else {
               // Collapsed mode: resizable between 360x360 and 600x600
@@ -633,9 +667,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
               await windowManager.setMaximumSize(maxSize);
               
               // Only change size if transitioning from expanded mode back to collapsed, or entering small window mode
-              final wasQueueExpanded = previous?.isQueueExpanded ?? false;
-              if (wasQueueExpanded || !prevSmallMode) {
-                await windowManager.setSize(minSize);
+              if (prevQueueExpanded || !prevSmallMode) {
+                final savedSize = settings.savedSmallWindowSize;
+                final clampedSize = Size(
+                  savedSize.width.clamp(minSize.width, maxSize.width),
+                  savedSize.height.clamp(minSize.height, maxSize.height),
+                );
+                await windowManager.setSize(clampedSize);
               }
             }
           } else if (prevSmallMode && !nextSmallMode) {

@@ -215,6 +215,11 @@ class SettingsService extends ChangeNotifier {
   static const String _keyTranscodeAutoScanOutputEnabled =
       'transcode_auto_scan_output_enabled';
 
+  static const String _keySmallWindowWidth = 'small_window_width';
+  static const String _keySmallWindowHeight = 'small_window_height';
+  static const String _keySmallWindowQueueWidth = 'small_window_queue_width';
+  static const String _keySmallWindowQueueHeight = 'small_window_queue_height';
+
   final SharedPreferences _prefs;
   bool _isUserInactive = false;
   Timer? _inactivityTimer;
@@ -610,6 +615,34 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _smallWindowWidthProperty = SettingProperty<double>(
+    key: _keySmallWindowWidth,
+    defaultValue: 360.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _smallWindowHeightProperty = SettingProperty<double>(
+    key: _keySmallWindowHeight,
+    defaultValue: 360.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _smallWindowQueueWidthProperty = SettingProperty<double>(
+    key: _keySmallWindowQueueWidth,
+    defaultValue: 360.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _smallWindowQueueHeightProperty = SettingProperty<double>(
+    key: _keySmallWindowQueueHeight,
+    defaultValue: 600.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   static String _initialModelId(String? value, String defaultValue) {
     final normalized = value?.trim();
     if (normalized == null || normalized.isEmpty) {
@@ -851,6 +884,30 @@ class SettingsService extends ChangeNotifier {
 
   bool get transcodeAutoScanOutputEnabled => _transcodeAutoScanOutputEnabledProperty.value;
   set transcodeAutoScanOutputEnabled(bool value) => _transcodeAutoScanOutputEnabledProperty.value = value;
+
+  double get smallWindowWidth => _smallWindowWidthProperty.value;
+  set smallWindowWidth(double value) => _smallWindowWidthProperty.value = value;
+
+  double get smallWindowHeight => _smallWindowHeightProperty.value;
+  set smallWindowHeight(double value) => _smallWindowHeightProperty.value = value;
+
+  double get smallWindowQueueWidth => _smallWindowQueueWidthProperty.value;
+  set smallWindowQueueWidth(double value) => _smallWindowQueueWidthProperty.value = value;
+
+  double get smallWindowQueueHeight => _smallWindowQueueHeightProperty.value;
+  set smallWindowQueueHeight(double value) => _smallWindowQueueHeightProperty.value = value;
+
+  Size get savedSmallWindowSize => Size(smallWindowWidth, smallWindowHeight);
+  set savedSmallWindowSize(Size size) {
+    smallWindowWidth = size.width;
+    smallWindowHeight = size.height;
+  }
+
+  Size get savedSmallWindowQueueSize => Size(smallWindowQueueWidth, smallWindowQueueHeight);
+  set savedSmallWindowQueueSize(Size size) {
+    smallWindowQueueWidth = size.width;
+    smallWindowQueueHeight = size.height;
+  }
 
   SharedPreferences get prefs => _prefs;
 
