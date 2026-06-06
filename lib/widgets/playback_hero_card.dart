@@ -1887,24 +1887,44 @@ class PlaybackProgressSection extends ConsumerWidget {
           Builder(
             builder: (context) {
               if (isWaveformEnabled) {
-                final waveformWidget = WaveformProgressBar(
-                  waveform: waveform,
-                  progress: displayProgress,
-                  duration: duration,
-                  onScrubbing: onScrubbing ?? (_) {},
-                  onSeek: onSeek ?? (_) {},
-                  height: (isLandscape
-                          ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
-                          : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
-                      controlsScale,
+                return Builder(
+                  builder: (context) {
+                    final size = MediaQuery.of(context).size;
+                    final settings = ref.watch(settingsServiceProvider);
+                    final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
+                      size,
+                      isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+                      isSmallWindowMode: settings.isSmallWindowMode,
+                    );
+                    final double overflowScale = isLandscape
+                        ? 1.0
+                        : (isSmallWindow
+                            ? 1.0
+                            : PlaybackHeroCardUiTuning.portraitWaveformOverflowScale);
+
+                    final widget = WaveformProgressBar(
+                      waveform: waveform,
+                      progress: displayProgress,
+                      duration: duration,
+                      onScrubbing: onScrubbing ?? (_) {},
+                      onSeek: onSeek ?? (_) {},
+                      height: (isLandscape
+                              ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
+                              : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
+                          controlsScale,
+                      barWidth: 5.0 / overflowScale,
+                      barGap: 2.0 / overflowScale,
+                    );
+
+                    if (!isLandscape) {
+                      return Transform.scale(
+                        scaleX: overflowScale,
+                        child: widget,
+                      );
+                    }
+                    return widget;
+                  },
                 );
-                if (!isLandscape) {
-                  return Transform.scale(
-                    scaleX: PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
-                    child: waveformWidget,
-                  );
-                }
-                return waveformWidget;
               }
               return buildStandardSlider(
                 context,
@@ -2029,23 +2049,51 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
       alignment: Alignment.center,
       children: [
         // 1. 只有波形进度条进行缩放 (Only waveform is scaled)
-        Transform.scale(
-          scaleX: PlaybackHeroCardUiTuning.portraitWaveformOverflowScale,
-          child: SizedBox(
-            width: totalWidth,
-            child: WaveformProgressBar(
-              waveform: waveform,
-              progress: displayProgress,
-              duration: duration,
-              onScrubbing: onScrubbing ?? (_) {},
-              onSeek: onSeek ?? (_) {},
-              height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
-            ),
-          ),
+        Builder(
+          builder: (context) {
+            final size = MediaQuery.of(context).size;
+            final settings = ref.watch(settingsServiceProvider);
+            final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
+              size,
+              isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+              isSmallWindowMode: settings.isSmallWindowMode,
+            );
+            final double overflowScale = isSmallWindow
+                ? 1.0
+                : PlaybackHeroCardUiTuning.portraitWaveformOverflowScale;
+
+            return Transform.scale(
+              scaleX: overflowScale,
+              child: SizedBox(
+                width: totalWidth,
+                child: WaveformProgressBar(
+                  waveform: waveform,
+                  progress: displayProgress,
+                  duration: duration,
+                  onScrubbing: onScrubbing ?? (_) {},
+                  onSeek: onSeek ?? (_) {},
+                  height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
+                  barWidth: 5.0 / overflowScale,
+                  barGap: 2.0 / overflowScale,
+                ),
+              ),
+            );
+          },
         ),
         // 2. 时间文字单独平移，避免拉伸 (Time text translated separately to avoid stretching)
         Builder(
           builder: (context) {
+            final size = MediaQuery.of(context).size;
+            final settings = ref.watch(settingsServiceProvider);
+            final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
+              size,
+              isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+              isSmallWindowMode: settings.isSmallWindowMode,
+            );
+            final double overflowScale = isSmallWindow
+                ? 1.0
+                : PlaybackHeroCardUiTuning.portraitWaveformOverflowScale;
+
             final screenWidth = MediaQuery.of(context).size.width;
             final pagePadding = PlaybackPageUiTuning.normalPortraitHorizontalPadding;
             const minScreenMargin = 32.0;
@@ -2054,7 +2102,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
             final fittedScale = cardWidth / totalWidth;
 
             final rawShift = (PlaybackHeroCardUiTuning.waveformOverlayTimeSide - totalWidth / 2) *
-                (PlaybackHeroCardUiTuning.portraitWaveformOverflowScale - 1) * 0.8;
+                (overflowScale - 1) * 0.8;
 
             final safeFittedScale = (fittedScale.isFinite && fittedScale > 0) ? fittedScale : 1.0;
             final minAllowedShift = (minScreenMargin - pagePadding) / safeFittedScale -

@@ -14,6 +14,8 @@ class WaveformProgressBar extends StatefulWidget {
   final bool isScrolling;
   final double height;
   final bool showTooltip;
+  final double? barWidth;
+  final double? barGap;
 
   const WaveformProgressBar({
     super.key,
@@ -27,6 +29,8 @@ class WaveformProgressBar extends StatefulWidget {
     this.isScrolling = true,
     this.height = 80,
     this.showTooltip = true,
+    this.barWidth,
+    this.barGap,
   });
 
   @override
@@ -127,8 +131,10 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
         final double width = constraints.maxWidth;
         // 缩放因子：决定波形的“宽度”。这里我们让每个波形点占据一定的像素宽度
         // 如果是滚动模式，我们让波形更宽一些，超出屏幕
-        final double barWidth = widget.isScrolling ? 5.0 : (width / math.max(1, _animatedWaveform.length));
-        final double barGap = widget.isScrolling ? 2.0 : 0.0;
+        final double defaultBarWidth = widget.isScrolling ? 5.0 : (width / math.max(1, _animatedWaveform.length));
+        final double defaultBarGap = widget.isScrolling ? 2.0 : 0.0;
+        final double barWidth = widget.barWidth ?? defaultBarWidth;
+        final double barGap = widget.barGap ?? defaultBarGap;
         final double totalBarWidth = barWidth + barGap;
         final double totalWaveformWidth = _animatedWaveform.length * totalBarWidth;
 
