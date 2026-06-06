@@ -1028,6 +1028,18 @@ class SettingsService extends ChangeNotifier {
   set isSmallWindowMode(bool value) {
     if (_isSmallWindowMode != value) {
       _isSmallWindowMode = value;
+      if (!value) {
+        _isSmallWindowQueueExpanded = false;
+      }
+      notifyListeners();
+    }
+  }
+
+  bool _isSmallWindowQueueExpanded = false;
+  bool get isSmallWindowQueueExpanded => _isSmallWindowQueueExpanded;
+  set isSmallWindowQueueExpanded(bool value) {
+    if (_isSmallWindowQueueExpanded != value) {
+      _isSmallWindowQueueExpanded = value;
       notifyListeners();
     }
   }

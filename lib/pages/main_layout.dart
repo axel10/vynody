@@ -581,28 +581,43 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   @override
   Widget build(BuildContext context) {
     // Listen for small window mode transitions
-    ref.listen<bool>(
-      settingsServiceProvider.select((s) => s.isSmallWindowMode),
+    ref.listen<({bool isSmallMode, bool isQueueExpanded})>(
+      settingsServiceProvider.select((s) => (
+        isSmallMode: s.isSmallWindowMode,
+        isQueueExpanded: s.isSmallWindowQueueExpanded,
+      )),
       (previous, next) async {
         if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
           final settings = ref.read(settingsServiceProvider);
-          if (next) {
-            // Enter small window mode
+          
+          final nextSmallMode = next.isSmallMode;
+          final prevSmallMode = previous?.isSmallMode ?? false;
+          
+          if (nextSmallMode) {
+            // Enter small window mode or update small window dimensions
             if (await windowManager.isFullScreen()) {
               await windowManager.setFullScreen(false);
             }
             if (await windowManager.isMaximized()) {
               await windowManager.unmaximize();
             }
-            final currentSize = await windowManager.getSize();
-            if (currentSize.width >= PlaybackPageUiTuning.smallWindowMaxSize.width ||
-                currentSize.height >= PlaybackPageUiTuning.smallWindowMaxSize.height) {
-              settings.savedRegularWindowSize = currentSize;
+            
+            // Only save regular size if transitioning from regular mode to small window mode
+            if (!prevSmallMode) {
+              final currentSize = await windowManager.getSize();
+              if (currentSize.width >= PlaybackPageUiTuning.smallWindowMaxSize.width ||
+                  currentSize.height >= PlaybackPageUiTuning.smallWindowMaxSize.height) {
+                settings.savedRegularWindowSize = currentSize;
+              }
             }
-            await windowManager.setMinimumSize(PlaybackPageUiTuning.smallWindowMinSize);
-            await windowManager.setMaximumSize(PlaybackPageUiTuning.smallWindowMaxSize);
-            await windowManager.setSize(PlaybackPageUiTuning.smallWindowDefaultSize);
-          } else {
+            
+            final targetHeight = next.isQueueExpanded ? 600.0 : 360.0;
+            final targetSize = Size(360.0, targetHeight);
+            
+            await windowManager.setMinimumSize(targetSize);
+            await windowManager.setMaximumSize(targetSize);
+            await windowManager.setSize(targetSize);
+          } else if (prevSmallMode && !nextSmallMode) {
             // Exit small window mode
             await windowManager.setMinimumSize(const Size(400, 650));
             await windowManager.setMaximumSize(const Size(99999, 99999));

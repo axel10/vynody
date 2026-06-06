@@ -26,6 +26,7 @@ import '../dialogs/sleep_timer_sheet.dart';
 import '../widgets/equalizer_panel.dart';
 import '../widgets/lyrics_task_status_banner.dart';
 import '../widgets/playback_ui_tuning.dart';
+import '../widgets/mini_queue_view.dart';
 import 'main_layout_riverpod.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 
@@ -772,6 +773,86 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             }
           }
 
+          final showMiniQueue = isSmallWin && settings.isSmallWindowQueueExpanded;
+
+          Widget buildPlayerCard() {
+            return Builder(
+              builder: (context) {
+                final isNext = ref.watch(audioLastActionNextProvider) ?? true;
+                final currentMusic = ref.watch(audioCurrentMusicProvider);
+                final duration = ref.watch(audioDurationProvider);
+                final isVisualizerEnabled = ref.watch(audioIsVisualizerEnabledProvider);
+
+                return PlaybackHeroCard(
+                  isMini: false,
+                  isLandscape: isLandscape,
+                  isLyricsMode: isLyricsMode,
+                  isNext: isNext,
+                  lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
+                  lyricsBottomTabBarHeight: lyricsBottomTabBarHeight,
+                  overrideProgress: _isScrubbingProgress ? _scrubProgress : null,
+                  overridePosition: _isScrubbingProgress
+                      ? Duration(
+                          milliseconds: (_scrubProgress * duration.inMilliseconds).round(),
+                        )
+                      : null,
+                  showVisualizerToggle: isVisualizerEnabled,
+                  onShowMoreMenu: () => _showMoreMenu(context, audio),
+                  onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
+                  onShowPlaylistModeSelector: () => _showPlaylistModeSelector(context, audio),
+                  onShowRandomModeSelector: () => _showRandomModeSelector(context, audio),
+                  onScrubbing: (val) {
+                    _handleInteraction();
+                    setState(() {
+                      _isScrubbingProgress = true;
+                      _scrubProgress = val;
+                    });
+                  },
+                  onSeek: (val) {
+                    final target = Duration(
+                      milliseconds: (val * duration.inMilliseconds).round(),
+                    );
+                    setState(() {
+                      _isScrubbingProgress = false;
+                      _scrubProgress = val;
+                    });
+                    audio.seek(target);
+                  },
+                  onToggleVisualizer: () => _toggleVisualizer(audio),
+                  onTagCompletionTap: currentMusic == null
+                      ? null
+                      : () => _showSongTagCompletionSheet(context, audio),
+                  onTagCompletionLongPress: currentMusic == null
+                      ? null
+                      : () => _showTagSaveMenu(context, audio, isModified: isModified),
+                  onSleepTimerTap: () => _showSleepTimerSheet(context),
+                  onEqualizerTap: () => _showEqualizerPanel(context),
+                  onCoverTap: _toggleLyricsMode,
+                  onPrevious: audio.previous,
+                  onPlayPause: audio.togglePlay,
+                  onNext: () => toNextMusic(audio),
+                  onVolumeTap: () {
+                    _handleInteraction();
+                    final nextVisible = !_showVolumeSlider;
+                    ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(nextVisible);
+                    setState(() {
+                      _showVolumeSlider = nextVisible;
+                    });
+                  },
+                  onVolumeDrag: (delta) {
+                    _handleInteraction();
+                    _adjustVolumeFromDrag(audio, delta);
+                  },
+                  onVolumeScroll: (deltaY) {
+                    _handleInteraction();
+                    _adjustVolumeFromScroll(audio, deltaY);
+                  },
+                  onCarouselAnimationComplete: _onCarouselAnimationComplete,
+                );
+              },
+            );
+          }
+
           final content = SafeArea(
             bottom: false,
             child: AnimatedPadding(
@@ -792,105 +873,22 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     const SizedBox(
                       height: PlaybackPageUiTuning.desktopTopSpacer,
                     ),
-                  Expanded(
-                    child: Center(
-                      child: Builder(
-                        builder: (context) {
-                          // `audio` is cached once per build so we can use it in callbacks without repeating reads.
-                          final isNext =
-                              ref.watch(audioLastActionNextProvider) ?? true;
-                          final currentMusic = ref.watch(
-                            audioCurrentMusicProvider,
-                          );
-                          final duration = ref.watch(audioDurationProvider);
-                          final isVisualizerEnabled = ref.watch(
-                            audioIsVisualizerEnabledProvider,
-                          );
-
-                          return PlaybackHeroCard(
-                            isMini: false,
-                            isLandscape: isLandscape,
-                            isLyricsMode: isLyricsMode,
-                            isNext: isNext,
-                            lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
-                            lyricsBottomTabBarHeight: lyricsBottomTabBarHeight,
-                            overrideProgress: _isScrubbingProgress
-                                ? _scrubProgress
-                                : null,
-                            overridePosition: _isScrubbingProgress
-                                ? Duration(
-                                    milliseconds:
-                                        (_scrubProgress *
-                                                duration.inMilliseconds)
-                                            .round(),
-                                  )
-                                : null,
-                            showVisualizerToggle: isVisualizerEnabled,
-                            onShowMoreMenu: () => _showMoreMenu(context, audio),
-                            onCyclePlaylistMode: () =>
-                                _cyclePlaylistMode(audio),
-                            onShowPlaylistModeSelector: () =>
-                                _showPlaylistModeSelector(context, audio),
-                            onShowRandomModeSelector: () =>
-                                _showRandomModeSelector(context, audio),
-                            onScrubbing: (val) {
-                              _handleInteraction();
-                              setState(() {
-                                _isScrubbingProgress = true;
-                                _scrubProgress = val;
-                              });
-                            },
-                            onSeek: (val) {
-                              final target = Duration(
-                                milliseconds: (val * duration.inMilliseconds)
-                                    .round(),
-                              );
-                              setState(() {
-                                _isScrubbingProgress = false;
-                                _scrubProgress = val;
-                              });
-                              audio.seek(target);
-                            },
-                            onToggleVisualizer: () => _toggleVisualizer(audio),
-                            onTagCompletionTap: currentMusic == null
-                                ? null
-                                : () => _showSongTagCompletionSheet(
-                                    context,
-                                    audio,
-                                  ),
-                            onTagCompletionLongPress: currentMusic == null
-                                ? null
-                                : () => _showTagSaveMenu(context, audio, isModified: isModified),
-                            onSleepTimerTap: () =>
-                                _showSleepTimerSheet(context),
-                            onEqualizerTap: () => _showEqualizerPanel(context),
-                            onCoverTap: _toggleLyricsMode,
-                            onPrevious: audio.previous,
-                            onPlayPause: audio.togglePlay,
-                            onNext: () => toNextMusic(audio),
-                            onVolumeTap: () {
-                              _handleInteraction();
-                              final nextVisible = !_showVolumeSlider;
-                              ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(nextVisible);
-                              setState(() {
-                                _showVolumeSlider = nextVisible;
-                              });
-                            },
-                            onVolumeDrag: (delta) {
-                              _handleInteraction();
-                              _adjustVolumeFromDrag(audio, delta);
-                            },
-                            onVolumeScroll: (deltaY) {
-                              _handleInteraction();
-                              _adjustVolumeFromScroll(audio, deltaY);
-                            },
-                            onCarouselAnimationComplete:
-                                _onCarouselAnimationComplete,
-                          );
-                        },
+                  if (showMiniQueue) ...[
+                    SizedBox(
+                      height: 360.0 - PlaybackPageUiTuning.desktopTopSpacer,
+                      child: Center(
+                        child: buildPlayerCard(),
                       ),
                     ),
-                  ),
+                    const Expanded(
+                      child: MiniQueueView(),
+                    ),
+                  ] else
+                    Expanded(
+                      child: Center(
+                        child: buildPlayerCard(),
+                      ),
+                    ),
                   if (isLandscape &&
                       (Platform.isWindows ||
                           Platform.isMacOS ||

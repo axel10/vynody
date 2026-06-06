@@ -122,7 +122,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
         height: widget.height,
         child: Row(
           children: [
-            if (isMacOS && showMiniButton)
+            if (isMacOS && showMiniButton) ...[
               _MacosSmallWindowButton(
                 icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
                 iconSize: isSmallWindowMode ? 16 : 18,
@@ -130,9 +130,22 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                   settings.isSmallWindowMode = !settings.isSmallWindowMode;
                 },
               ),
+              if (isSmallWindowMode)
+                _MacosSmallWindowButton(
+                  icon: Icons.queue_music,
+                  iconSize: 16,
+                  color: settings.isSmallWindowQueueExpanded
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                  onPressed: () {
+                    settings.isSmallWindowQueueExpanded =
+                        !settings.isSmallWindowQueueExpanded;
+                  },
+                ),
+            ],
             const Spacer(),
             if (!isMacOS) ...[
-              if (showMiniButton)
+              if (showMiniButton) ...[
                 _WindowButton(
                   icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
                   iconSize: isSmallWindowMode ? 16 : 18,
@@ -142,6 +155,21 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                     settings.isSmallWindowMode = !settings.isSmallWindowMode;
                   },
                 ),
+                if (isSmallWindowMode)
+                  _WindowButton(
+                    icon: Icons.queue_music,
+                    iconSize: 18,
+                    brightness: widget.brightness,
+                    hoverColor: hoverColor,
+                    color: settings.isSmallWindowQueueExpanded
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    onPressed: () {
+                      settings.isSmallWindowQueueExpanded =
+                          !settings.isSmallWindowQueueExpanded;
+                    },
+                  ),
+              ],
               if (!isSmallWindowMode) ...[
                 _WindowButton(
                   icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
@@ -207,6 +235,7 @@ class _WindowButton extends StatelessWidget {
   final bool isClose;
   final double iconSize;
   final Color? hoverColor;
+  final Color? color;
 
   const _WindowButton({
     required this.icon,
@@ -215,13 +244,13 @@ class _WindowButton extends StatelessWidget {
     this.isClose = false,
     this.iconSize = 18,
     this.hoverColor,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    final Color iconColor = brightness == Brightness.dark
-        ? Colors.white
-        : Colors.black87;
+    final Color iconColor = color ??
+        (brightness == Brightness.dark ? Colors.white : Colors.black87);
 
     final Color effectiveHoverColor =
         hoverColor ??
@@ -250,11 +279,13 @@ class _MacosSmallWindowButton extends StatefulWidget {
   final IconData icon;
   final double iconSize;
   final VoidCallback onPressed;
+  final Color? color;
 
   const _MacosSmallWindowButton({
     required this.icon,
     required this.iconSize,
     required this.onPressed,
+    this.color,
   });
 
   @override
@@ -310,7 +341,7 @@ class _MacosSmallWindowButtonState extends State<_MacosSmallWindowButton> {
                     child: Center(
                       child: Icon(
                         widget.icon,
-                        color: Colors.black,
+                        color: widget.color ?? Colors.black,
                         size: widget.iconSize,
                       ),
                     ),
