@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -15,6 +14,7 @@ import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/dialogs/transcode_dialog.dart';
 import 'song_thumbnail.dart';
 import 'library_selection_panel.dart';
+import 'scroll_to_top_wrapper.dart';
 
 class LibraryRankedSongList extends ConsumerStatefulWidget {
   const LibraryRankedSongList({
@@ -44,7 +44,6 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
   final ScrollController _scrollController = ScrollController();
-  bool _showScrollToTop = false;
 
   void _toggleSelectionMode() {
     setState(() {
@@ -107,251 +106,212 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
       });
     }
 
-    Widget currentBody = NotificationListener<UserScrollNotification>(
-      onNotification: (notification) {
-        final double offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
-        if (offset > 200 && notification.direction == ScrollDirection.reverse) {
-          if (!_showScrollToTop) {
-            setState(() {
-              _showScrollToTop = true;
-            });
-          }
-        } else if (notification.direction == ScrollDirection.forward || offset <= 200) {
-          if (_showScrollToTop) {
-            setState(() {
-              _showScrollToTop = false;
-            });
-          }
-        }
-        return false;
-      },
-      child: CustomScrollView(
-        controller: _scrollController,
-        cacheExtent: 1000,
-        slivers: [
-          SliverToBoxAdapter(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 600;
-                return Container(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 12 : 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                      ),
+    Widget currentBody = CustomScrollView(
+      controller: _scrollController,
+      cacheExtent: 1000,
+      slivers: [
+        SliverToBoxAdapter(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 600;
+              return Container(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 12 : 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (isWide)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    widget.title,
-                                    style: theme.textTheme.headlineSmall?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isWide)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.title,
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    widget.subtitle,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  widget.subtitle,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            if (widget.items.isNotEmpty) ...[
-                              FilledButton.icon(
-                                onPressed: () {
-                                  audio.playPlaylist(allSongs);
-                                },
-                                icon: const Icon(Icons.play_arrow_rounded),
-                                label: Text(l10n.playAll),
-                              ),
-                              const SizedBox(width: 12),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  final songs = List<MusicFile>.from(allSongs)..shuffle();
-                                  audio.playPlaylist(songs);
-                                },
-                                icon: const Icon(Icons.shuffle_rounded),
-                                label: Text(l10n.shufflePlay),
-                              ),
-                            ],
+                          ),
+                          if (widget.items.isNotEmpty) ...[
+                            FilledButton.icon(
+                              onPressed: () {
+                                audio.playPlaylist(allSongs);
+                              },
+                              icon: const Icon(Icons.play_arrow_rounded),
+                              label: Text(l10n.playAll),
+                            ),
+                            const SizedBox(width: 12),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                final songs = List<MusicFile>.from(allSongs)..shuffle();
+                                audio.playPlaylist(songs);
+                              },
+                              icon: const Icon(Icons.shuffle_rounded),
+                              label: Text(l10n.shufflePlay),
+                            ),
                           ],
-                        )
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.title,
-                              style: theme.textTheme.headlineSmall?.copyWith(
+                        ],
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.title,
+                            style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w800,
                                 ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.subtitle,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.subtitle,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
+                          ),
+                          if (widget.items.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: () {
+                                      audio.playPlaylist(allSongs);
+                                    },
+                                    icon: const Icon(Icons.play_arrow_rounded),
+                                    label: Text(l10n.playAll),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      final songs = List<MusicFile>.from(allSongs)..shuffle();
+                                      audio.playPlaylist(songs);
+                                    },
+                                    icon: const Icon(Icons.shuffle_rounded),
+                                    label: Text(l10n.shufflePlay),
+                                  ),
+                                ),
+                              ],
                             ),
-                            if (widget.items.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: FilledButton.icon(
-                                      onPressed: () {
-                                        audio.playPlaylist(allSongs);
-                                      },
-                                      icon: const Icon(Icons.play_arrow_rounded),
-                                      label: Text(l10n.playAll),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: () {
-                                        final songs = List<MusicFile>.from(allSongs)..shuffle();
-                                        audio.playPlaylist(songs);
-                                      },
-                                      icon: const Icon(Icons.shuffle_rounded),
-                                      label: Text(l10n.shufflePlay),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
                           ],
-                        ),
-                      const SizedBox(height: 16),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        child: Row(
-                          children: [
-                            for (int i = 0; i < LibraryTimeRange.values.length; i++) ...[
-                              if (i > 0) const SizedBox(width: 8),
-                              ChoiceChip(
-                                label: Text(_timeRangeLabel(l10n, LibraryTimeRange.values[i])),
-                                selected: widget.selectedRange == LibraryTimeRange.values[i],
-                                onSelected: (_) => widget.onRangeChanged(LibraryTimeRange.values[i]),
-                              ),
-                            ],
-                          ],
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          if (widget.items.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    widget.emptyText,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 16),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          for (int i = 0; i < LibraryTimeRange.values.length; i++) ...[
+                            if (i > 0) const SizedBox(width: 8),
+                            ChoiceChip(
+                              label: Text(_timeRangeLabel(l10n, LibraryTimeRange.values[i])),
+                              selected: widget.selectedRange == LibraryTimeRange.values[i],
+                              onSelected: (_) => widget.onRangeChanged(LibraryTimeRange.values[i]),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(12, 12, 12, 140 + (_isSelectionMode ? 220.0 : 0.0)),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final entry = widget.items[index];
-                    final isSelected = _selectedSongPaths.contains(entry.song.path);
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _SongListItem(
-                        entry: entry,
-                        index: index,
-                        l10n: l10n,
-                        audio: audio,
-                        playlistService: playlistService,
-                        items: widget.items,
-                        trailingBuilder: widget.trailingBuilder,
-                        isSelectionMode: _isSelectionMode,
-                        isSelected: isSelected,
-                        onTap: () {
-                          if (_isSelectionMode) {
-                            _toggleSelection(entry.song.path);
-                          } else {
-                            audio.playPlaylist(
-                              allSongs,
-                              initialIndex: index,
-                            );
-                          }
-                        },
-                        onLongPress: () {
-                          if (!_isSelectionMode) {
-                            _toggleSelectionMode();
-                            _toggleSelection(entry.song.path);
-                          }
-                        },
-                      ),
-                    );
-                  },
-                  childCount: widget.items.length,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-
-    return Stack(
-      children: [
-        currentBody,
-        Positioned(
-          right: 16,
-          bottom: 140 + (_isSelectionMode ? 220.0 : 0.0) + 16,
-          child: AnimatedScale(
-            scale: _showScrollToTop ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            child: AnimatedOpacity(
-              opacity: _showScrollToTop ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 200),
-              child: FloatingActionButton.small(
-                heroTag: null,
-                onPressed: () {
-                  _scrollController.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeOutCubic,
-                  );
-                },
-                child: const Icon(Icons.arrow_upward_rounded),
-              ),
-            ),
+              );
+            },
           ),
         ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: AnimatedSwitcher(
+        if (widget.items.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  widget.emptyText,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(12, 12, 12, 140 + (_isSelectionMode ? 220.0 : 0.0)),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final entry = widget.items[index];
+                  final isSelected = _selectedSongPaths.contains(entry.song.path);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _SongListItem(
+                      entry: entry,
+                      index: index,
+                      l10n: l10n,
+                      audio: audio,
+                      playlistService: playlistService,
+                      items: widget.items,
+                      trailingBuilder: widget.trailingBuilder,
+                      isSelectionMode: _isSelectionMode,
+                      isSelected: isSelected,
+                      onTap: () {
+                        if (_isSelectionMode) {
+                          _toggleSelection(entry.song.path);
+                        } else {
+                          audio.playPlaylist(
+                            allSongs,
+                            initialIndex: index,
+                          );
+                        }
+                      },
+                      onLongPress: () {
+                        if (!_isSelectionMode) {
+                          _toggleSelectionMode();
+                          _toggleSelection(entry.song.path);
+                        }
+                      },
+                    ),
+                  );
+                },
+                childCount: widget.items.length,
+              ),
+            ),
+          ),
+      ],
+    );
+
+    return ScrollToTopWrapper(
+      scrollController: _scrollController,
+      bottomOffset: 140.0 + (_isSelectionMode ? 220.0 : 0.0),
+      child: Stack(
+        children: [
+          currentBody,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
             reverseDuration: const Duration(milliseconds: 200),
             switchInCurve: Curves.easeOutCubic,
@@ -375,8 +335,9 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   String _timeRangeLabel(AppLocalizations l10n, LibraryTimeRange range) {
     return switch (range) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
@@ -10,6 +9,7 @@ import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
+import '../widgets/scroll_to_top_wrapper.dart';
 
 enum _AlbumSortField { artist, title, trackCount, duration, recentAdded }
 
@@ -26,7 +26,6 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
   String _searchQuery = '';
   _AlbumSortField _sortField = _AlbumSortField.artist;
   bool _sortAscending = true;
-  bool _showScrollToTop = false;
 
   @override
   void dispose() {
@@ -89,119 +88,77 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
             final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
             final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
-            return Stack(
-              children: [
-                NotificationListener<UserScrollNotification>(
-                  onNotification: (notification) {
-                    final double offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
-                    if (offset > 200 && notification.direction == ScrollDirection.reverse) {
-                      if (!_showScrollToTop) {
+            return ScrollToTopWrapper(
+              scrollController: _scrollController,
+              bottomOffset: currentMusic != null ? 140.0 : 40.0,
+              child: CustomScrollView(
+                controller: _scrollController,
+                cacheExtent: 1000,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _AlbumsToolbar(
+                      searchController: _searchController,
+                      searchQuery: _searchQuery,
+                      sortField: _sortField,
+                      sortAscending: _sortAscending,
+                      albumCount: visibleAlbums.length,
+                      isWide: isWide,
+                      onSearchChanged: (value) {
                         setState(() {
-                          _showScrollToTop = true;
+                          _searchQuery = value.trim();
                         });
-                      }
-                    } else if (notification.direction == ScrollDirection.forward || offset <= 200) {
-                      if (_showScrollToTop) {
+                      },
+                      onSearchCleared: () {
+                        _searchController.clear();
                         setState(() {
-                          _showScrollToTop = false;
+                          _searchQuery = '';
                         });
-                      }
-                    }
-                    return false;
-                  },
-                  child: CustomScrollView(
-                    controller: _scrollController,
-                    cacheExtent: 1000,
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: _AlbumsToolbar(
-                          searchController: _searchController,
-                          searchQuery: _searchQuery,
-                          sortField: _sortField,
-                          sortAscending: _sortAscending,
-                          albumCount: visibleAlbums.length,
-                          isWide: isWide,
-                          onSearchChanged: (value) {
-                            setState(() {
-                              _searchQuery = value.trim();
-                            });
-                          },
-                          onSearchCleared: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                            });
-                          },
-                          onSortFieldSelected: (field) {
-                            setState(() {
-                              _sortField = field;
-                            });
-                          },
-                          onSortOrderToggled: () {
-                            setState(() {
-                              _sortAscending = !_sortAscending;
-                            });
-                          },
-                        ),
-                      ),
-                      if (visibleAlbums.isEmpty)
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Center(
-                            child: Text(
-                              l10n.noAlbums,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ),
-                        )
-                      else ...[
-                        if (knownAlbums.isNotEmpty) ...[
-                          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                          ..._albumSectionSlivers(
-                            title: "",
-                            albums: knownAlbums,
-                            crossAxisCount: crossAxisCount,
-                            childAspectRatio: childAspectRatio,
-                          ),
-                        ],
-                        if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
-                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                        if (unknownAlbums.isNotEmpty)
-                          ..._albumSectionSlivers(
-                            title: l10n.unknownAlbum,
-                            albums: unknownAlbums,
-                            crossAxisCount: crossAxisCount,
-                            childAspectRatio: childAspectRatio,
-                          ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                      ],
-                    ],
-                  ),
-                ),
-                Positioned(
-                  right: 16,
-                  bottom: (currentMusic != null ? 140.0 : 40.0) + 16,
-                  child: AnimatedScale(
-                    scale: _showScrollToTop ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: AnimatedOpacity(
-                      opacity: _showScrollToTop ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: FloatingActionButton.small(
-                        heroTag: null,
-                        onPressed: () {
-                          _scrollController.animateTo(
-                            0,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeOutCubic,
-                          );
-                        },
-                        child: const Icon(Icons.arrow_upward_rounded),
-                      ),
+                      },
+                      onSortFieldSelected: (field) {
+                        setState(() {
+                          _sortField = field;
+                        });
+                      },
+                      onSortOrderToggled: () {
+                        setState(() {
+                          _sortAscending = !_sortAscending;
+                        });
+                      },
                     ),
                   ),
-                ),
-              ],
+                  if (visibleAlbums.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Text(
+                          l10n.noAlbums,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                    )
+                  else ...[
+                    if (knownAlbums.isNotEmpty) ...[
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                      ..._albumSectionSlivers(
+                        title: "",
+                        albums: knownAlbums,
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: childAspectRatio,
+                      ),
+                    ],
+                    if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                    if (unknownAlbums.isNotEmpty)
+                      ..._albumSectionSlivers(
+                        title: l10n.unknownAlbum,
+                        albums: unknownAlbums,
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: childAspectRatio,
+                      ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  ],
+                ],
+              ),
             );
           },
         );

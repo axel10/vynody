@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
@@ -14,6 +13,7 @@ import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 import 'playlist_page_riverpod.dart';
 import '../widgets/library_selection_panel.dart';
+import '../widgets/scroll_to_top_wrapper.dart';
 
 class PlaylistTab extends ConsumerStatefulWidget {
   const PlaylistTab({super.key});
@@ -26,7 +26,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   final Set<int> _selectedIndices = {};
   late final PlaylistSelectionModeController _playlistSelectionModeController;
   final ScrollController _scrollController = ScrollController();
-  bool _showScrollToTop = false;
 
   @override
   void initState() {
@@ -633,27 +632,13 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
       });
     }
 
-    return Stack(
-      children: [
-        NotificationListener<UserScrollNotification>(
-          onNotification: (notification) {
-            final double offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
-            if (offset > 200 && notification.direction == ScrollDirection.reverse) {
-              if (!_showScrollToTop) {
-                setState(() {
-                  _showScrollToTop = true;
-                });
-              }
-            } else if (notification.direction == ScrollDirection.forward || offset <= 200) {
-              if (_showScrollToTop) {
-                setState(() {
-                  _showScrollToTop = false;
-                });
-              }
-            }
-            return false;
-          },
-          child: CustomScrollView(
+    return ScrollToTopWrapper(
+      scrollController: _scrollController,
+      bottomOffset: (currentMusic != null ? 140.0 : 40.0) +
+          (isSelectionMode ? 220.0 : 0.0),
+      child: Stack(
+        children: [
+          CustomScrollView(
             controller: _scrollController,
             cacheExtent: 1000,
             slivers: [
@@ -769,32 +754,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
               ),
             ],
           ),
-        ),
-        Positioned(
-          right: 16,
-          bottom: (currentMusic != null ? 140.0 : 40.0) +
-              (isSelectionMode ? 220.0 : 0.0) +
-              16,
-          child: AnimatedScale(
-            scale: _showScrollToTop ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            child: AnimatedOpacity(
-              opacity: _showScrollToTop ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 200),
-              child: FloatingActionButton.small(
-                heroTag: 'playlist-scroll-to-top',
-                onPressed: () {
-                  _scrollController.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeOutCubic,
-                  );
-                },
-                child: const Icon(Icons.arrow_upward_rounded),
-              ),
-            ),
-          ),
-        ),
         Positioned(
           left: 0,
           right: 0,
@@ -838,6 +797,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
           ),
         ),
       ],
-    );
+    ),
+  );
   }
 }
