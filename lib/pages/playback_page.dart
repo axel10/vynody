@@ -397,7 +397,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     }
 
     try {
-      final success = await MetadataHelper.saveDatabaseMetadataToFile(song.path);
+      final success = await MetadataHelper.saveDatabaseMetadataToFile(
+        song.path,
+        fallbackMediaUri: song.mediaUri,
+      );
 
       if (success) {
         final db = MetadataDatabase();
@@ -462,6 +465,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     // Filter songs that are modified and have writable format
     final modifiedSongs = <SongMetadata>[];
     final artworkBytesMap = <String, Uint8List?>{};
+    final mediaUriMap = <String, String?>{};
 
     for (final song in queue) {
       if (!isMetadataWritable(song.path)) continue;
@@ -470,6 +474,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       if (metadata != null && metadata.isModified) {
         modifiedSongs.add(metadata);
         artworkBytesMap[song.path] = song.artworkBytes;
+        mediaUriMap[song.path] = song.mediaUri;
       }
     }
 
@@ -497,12 +502,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
 
     // Start background saving task
-    _runBackgroundSaveTask(modifiedSongs, artworkBytesMap, messenger, l10n);
+    _runBackgroundSaveTask(modifiedSongs, artworkBytesMap, mediaUriMap, messenger, l10n);
   }
 
   void _runBackgroundSaveTask(
     List<SongMetadata> songs,
     Map<String, Uint8List?> artworkBytesMap,
+    Map<String, String?> mediaUriMap,
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
   ) async {
@@ -513,8 +519,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     for (int i = 0; i < songs.length; i++) {
       final song = songs[i];
       final artworkBytes = artworkBytesMap[song.path];
+      final mediaUri = mediaUriMap[song.path];
 
-      final success = await MetadataHelper.saveDatabaseMetadataToFile(song.path);
+      final success = await MetadataHelper.saveDatabaseMetadataToFile(
+        song.path,
+        fallbackMediaUri: mediaUri,
+      );
 
       if (success) {
         savedCount++;

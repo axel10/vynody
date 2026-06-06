@@ -336,7 +336,7 @@ class MetadataHelper {
 
   /// Writes current database metadata and cached artwork of the song back to the physical audio file,
   /// and resets the `isModified` flag in the database.
-  static Future<bool> saveDatabaseMetadataToFile(String filePath) async {
+  static Future<bool> saveDatabaseMetadataToFile(String filePath, {String? fallbackMediaUri}) async {
     try {
       final db = MetadataDatabase();
       final metadata = await db.getSongMetadata(filePath);
@@ -365,6 +365,7 @@ class MetadataHelper {
         filePath: filePath,
         metadata: metadata,
         artworkBytes: artworkBytes,
+        fallbackMediaUri: fallbackMediaUri,
       );
 
       if (success) {
