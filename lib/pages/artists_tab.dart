@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
@@ -26,6 +27,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
   _ArtistSortField _sortField = _ArtistSortField.artist;
   bool _sortAscending = true;
   String? _selectedArtistKey;
+  bool _showScrollToTop = false;
 
   @override
   void dispose() {
@@ -37,6 +39,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
   @override
   Widget build(BuildContext context) {
     final artistsAsync = ref.watch(artistLibraryProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
     debugPrint(
       '[ArtistsTab] build loading=${artistsAsync.isLoading} '
       'hasValue=${artistsAsync.hasValue} hasError=${artistsAsync.hasError}',
@@ -140,68 +143,124 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
               );
             }
 
-            return Column(
+            return Stack(
               children: [
-                _ArtistsToolbar(
-                  searchController: _searchController,
-                  searchQuery: _searchQuery,
-                  sortField: _sortField,
-                  sortAscending: _sortAscending,
-                  artistCount: visibleArtists.length,
-                  artistsLabel: artistsLabel,
-                  isWide: false,
-                  onSearchChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.trim();
-                    });
+                NotificationListener<UserScrollNotification>(
+                  onNotification: (notification) {
+                    final double offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+                    if (offset > 200 && notification.direction == ScrollDirection.reverse) {
+                      if (!_showScrollToTop) {
+                        setState(() {
+                          _showScrollToTop = true;
+                        });
+                      }
+                    } else if (notification.direction == ScrollDirection.forward || offset <= 200) {
+                      if (_showScrollToTop) {
+                        setState(() {
+                          _showScrollToTop = false;
+                        });
+                      }
+                    }
+                    return false;
                   },
-                  onSearchCleared: () {
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = '';
-                    });
-                  },
-                  onSortFieldSelected: (field) {
-                    setState(() {
-                      _sortField = field;
-                    });
-                  },
-                  onSortOrderToggled: () {
-                    setState(() {
-                      _sortAscending = !_sortAscending;
-                    });
-                  },
-                ),
-                Expanded(
-                  child: visibleArtists.isEmpty
-                      ? Center(
-                          child: Text(
-                            noArtistsLabel,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        )
-                      : ListView.separated(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                          itemCount: visibleArtists.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final artist = visibleArtists[index];
-                            return _ArtistListItem(
-                              artist: artist,
-                              selected: false,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) =>
-                                        ArtistDetailPage(artist: artist),
-                                  ),
-                                );
-                              },
-                            );
+                  child: CustomScrollView(
+                    controller: _scrollController,
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: _ArtistsToolbar(
+                          searchController: _searchController,
+                          searchQuery: _searchQuery,
+                          sortField: _sortField,
+                          sortAscending: _sortAscending,
+                          artistCount: visibleArtists.length,
+                          artistsLabel: artistsLabel,
+                          isWide: false,
+                          onSearchChanged: (value) {
+                            setState(() {
+                              _searchQuery = value.trim();
+                            });
+                          },
+                          onSearchCleared: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                          onSortFieldSelected: (field) {
+                            setState(() {
+                              _sortField = field;
+                            });
+                          },
+                          onSortOrderToggled: () {
+                            setState(() {
+                              _sortAscending = !_sortAscending;
+                            });
                           },
                         ),
+                      ),
+                      if (visibleArtists.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Text(
+                              noArtistsLabel,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, currentMusic != null ? 140.0 : 40.0),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                if (index.isOdd) {
+                                  return const SizedBox(height: 8);
+                                }
+                                final artistIndex = index ~/ 2;
+                                final artist = visibleArtists[artistIndex];
+                                return _ArtistListItem(
+                                  artist: artist,
+                                  selected: false,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) =>
+                                            ArtistDetailPage(artist: artist),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              childCount: visibleArtists.length * 2 - 1,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 16,
+                  bottom: (currentMusic != null ? 140.0 : 40.0) + 16,
+                  child: AnimatedScale(
+                    scale: _showScrollToTop ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: AnimatedOpacity(
+                      opacity: _showScrollToTop ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: FloatingActionButton.small(
+                        heroTag: null,
+                        onPressed: () {
+                          _scrollController.animateTo(
+                            0,
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.easeOutCubic,
+                          );
+                        },
+                        child: const Icon(Icons.arrow_upward_rounded),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             );

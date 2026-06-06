@@ -43,6 +43,8 @@ class LibraryRankedSongList extends ConsumerStatefulWidget {
 class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
+  final ScrollController _scrollController = ScrollController();
+  bool _showScrollToTop = false;
 
   void _toggleSelectionMode() {
     setState(() {
@@ -76,6 +78,7 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     Future.microtask(() {
       if (mounted) {
         ref.read(librarySelectionActiveProvider.notifier).state = false;
@@ -104,172 +107,179 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
       });
     }
 
-    Widget currentBody = Column(
-      children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 600;
-            return Container(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 12 : 16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                border: Border(
-                  bottom: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                  ),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isWide)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.title,
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                widget.subtitle,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (widget.items.isNotEmpty) ...[
-                          FilledButton.icon(
-                            onPressed: () {
-                              audio.playPlaylist(allSongs);
-                            },
-                            icon: const Icon(Icons.play_arrow_rounded),
-                            label: Text(l10n.playAll),
-                          ),
-                          const SizedBox(width: 12),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              final songs = List<MusicFile>.from(allSongs)..shuffle();
-                              audio.playPlaylist(songs);
-                            },
-                            icon: const Icon(Icons.shuffle_rounded),
-                            label: Text(l10n.shufflePlay),
-                          ),
-                        ],
-                      ],
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.title,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.subtitle,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        if (widget.items.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: FilledButton.icon(
-                                  onPressed: () {
-                                    audio.playPlaylist(allSongs);
-                                  },
-                                  icon: const Icon(Icons.play_arrow_rounded),
-                                  label: Text(l10n.playAll),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () {
-                                    final songs = List<MusicFile>.from(allSongs)..shuffle();
-                                    audio.playPlaylist(songs);
-                                  },
-                                  icon: const Icon(Icons.shuffle_rounded),
-                                  label: Text(l10n.shufflePlay),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  const SizedBox(height: 16),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: [
-                        for (int i = 0; i < LibraryTimeRange.values.length; i++) ...[
-                          if (i > 0) const SizedBox(width: 8),
-                          ChoiceChip(
-                            label: Text(_timeRangeLabel(l10n, LibraryTimeRange.values[i])),
-                            selected: widget.selectedRange == LibraryTimeRange.values[i],
-                            onSelected: (_) => widget.onRangeChanged(LibraryTimeRange.values[i]),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-        Expanded(
-          child: widget.items.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      widget.emptyText,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+    Widget currentBody = NotificationListener<UserScrollNotification>(
+      onNotification: (notification) {
+        final double offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+        if (offset > 200 && notification.direction == ScrollDirection.reverse) {
+          if (!_showScrollToTop) {
+            setState(() {
+              _showScrollToTop = true;
+            });
+          }
+        } else if (notification.direction == ScrollDirection.forward || offset <= 200) {
+          if (_showScrollToTop) {
+            setState(() {
+              _showScrollToTop = false;
+            });
+          }
+        }
+        return false;
+      },
+      child: CustomScrollView(
+        controller: _scrollController,
+        cacheExtent: 1000,
+        slivers: [
+          SliverToBoxAdapter(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 600;
+                return Container(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 12 : 16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
                       ),
                     ),
                   ),
-                )
-                : ListView.builder(
-                  padding: EdgeInsets.fromLTRB(12, 12, 12, 140 + (_isSelectionMode ? 220.0 : 0.0)),
-                  itemCount: widget.items.length,
-                  cacheExtent: 1000,
-                  prototypeItem: widget.items.isNotEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _SongListItem(
-                            entry: widget.items.first,
-                            index: 0,
-                            l10n: l10n,
-                            audio: audio,
-                            playlistService: playlistService,
-                            items: widget.items,
-                            trailingBuilder: widget.trailingBuilder,
-                            isSelectionMode: _isSelectionMode,
-                            isSelected: false,
-                            onTap: () {},
-                            onLongPress: () {},
-                          ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (isWide)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.title,
+                                    style: theme.textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.subtitle,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (widget.items.isNotEmpty) ...[
+                              FilledButton.icon(
+                                onPressed: () {
+                                  audio.playPlaylist(allSongs);
+                                },
+                                icon: const Icon(Icons.play_arrow_rounded),
+                                label: Text(l10n.playAll),
+                              ),
+                              const SizedBox(width: 12),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  final songs = List<MusicFile>.from(allSongs)..shuffle();
+                                  audio.playPlaylist(songs);
+                                },
+                                icon: const Icon(Icons.shuffle_rounded),
+                                label: Text(l10n.shufflePlay),
+                              ),
+                            ],
+                          ],
                         )
-                      : null,
-                  itemBuilder: (context, index) {
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.title,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.subtitle,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            if (widget.items.isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: () {
+                                        audio.playPlaylist(allSongs);
+                                      },
+                                      icon: const Icon(Icons.play_arrow_rounded),
+                                      label: Text(l10n.playAll),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        final songs = List<MusicFile>.from(allSongs)..shuffle();
+                                        audio.playPlaylist(songs);
+                                      },
+                                      icon: const Icon(Icons.shuffle_rounded),
+                                      label: Text(l10n.shufflePlay),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      const SizedBox(height: 16),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            for (int i = 0; i < LibraryTimeRange.values.length; i++) ...[
+                              if (i > 0) const SizedBox(width: 8),
+                              ChoiceChip(
+                                label: Text(_timeRangeLabel(l10n, LibraryTimeRange.values[i])),
+                                selected: widget.selectedRange == LibraryTimeRange.values[i],
+                                onSelected: (_) => widget.onRangeChanged(LibraryTimeRange.values[i]),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          if (widget.items.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    widget.emptyText,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(12, 12, 12, 140 + (_isSelectionMode ? 220.0 : 0.0)),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
                     final entry = widget.items[index];
                     final isSelected = _selectedSongPaths.contains(entry.song.path);
                     return Padding(
@@ -303,14 +313,40 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
                       ),
                     );
                   },
+                  childCount: widget.items.length,
                 ),
-        ),
-      ],
+              ),
+            ),
+        ],
+      ),
     );
 
     return Stack(
       children: [
         currentBody,
+        Positioned(
+          right: 16,
+          bottom: 140 + (_isSelectionMode ? 220.0 : 0.0) + 16,
+          child: AnimatedScale(
+            scale: _showScrollToTop ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: AnimatedOpacity(
+              opacity: _showScrollToTop ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: FloatingActionButton.small(
+                heroTag: null,
+                onPressed: () {
+                  _scrollController.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOutCubic,
+                  );
+                },
+                child: const Icon(Icons.arrow_upward_rounded),
+              ),
+            ),
+          ),
+        ),
         Positioned(
           left: 0,
           right: 0,

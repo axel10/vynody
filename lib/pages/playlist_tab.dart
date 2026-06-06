@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
@@ -24,6 +25,8 @@ class PlaylistTab extends ConsumerStatefulWidget {
 class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   final Set<int> _selectedIndices = {};
   late final PlaylistSelectionModeController _playlistSelectionModeController;
+  final ScrollController _scrollController = ScrollController();
+  bool _showScrollToTop = false;
 
   @override
   void initState() {
@@ -35,6 +38,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     Future.microtask(() {
       _playlistSelectionModeController.setEnabled(false);
       if (mounted) {
@@ -631,119 +635,165 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
     return Stack(
       children: [
-        Column(
-          children: [
-            _buildHeader(context, activePlaylist),
-            Expanded(
-              child: ReorderableListView.builder(
-                buildDefaultDragHandles: false,
-                cacheExtent: 1000,
+        NotificationListener<UserScrollNotification>(
+          onNotification: (notification) {
+            final double offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+            if (offset > 200 && notification.direction == ScrollDirection.reverse) {
+              if (!_showScrollToTop) {
+                setState(() {
+                  _showScrollToTop = true;
+                });
+              }
+            } else if (notification.direction == ScrollDirection.forward || offset <= 200) {
+              if (_showScrollToTop) {
+                setState(() {
+                  _showScrollToTop = false;
+                });
+              }
+            }
+            return false;
+          },
+          child: CustomScrollView(
+            controller: _scrollController,
+            cacheExtent: 1000,
+            slivers: [
+              SliverToBoxAdapter(
+                child: _buildHeader(context, activePlaylist),
+              ),
+              SliverPadding(
                 padding: EdgeInsets.only(
                   bottom: (currentMusic != null ? 140.0 : 40.0) +
                       (isSelectionMode ? 220.0 : 0.0),
                 ),
-                itemCount: activePlaylist.songs.length,
-                onReorder: (oldIndex, newIndex) {
-                  if (newIndex > oldIndex) newIndex--;
-                  setState(() {
-                    _reorderSelectedIndices(oldIndex, newIndex);
-                  });
-                  playlistService.reorderSongsInPlaylist(
-                    activePlaylist.id,
-                    oldIndex,
-                    newIndex,
+                sliver: SliverReorderableList(
+                  itemCount: activePlaylist.songs.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (newIndex > oldIndex) newIndex--;
+                    setState(() {
+                      _reorderSelectedIndices(oldIndex, newIndex);
+                    });
+                    playlistService.reorderSongsInPlaylist(
+                      activePlaylist.id,
+                      oldIndex,
+                      newIndex,
+                    );
+                  },
+                  itemBuilder: (context, index) {
+                    final song = activePlaylist.songs[index];
+                    final isMissing = song.isMissing;
+                    final isCurrent =
+                        currentIndex == index && currentMusic?.path == song.path;
+                    final isSelected = _selectedIndices.contains(index);
+
+                      void handleShowMenu(BuildContext menuContext, Offset position) {
+                        final songsToAdd = _selectedIndices.isNotEmpty
+                            ? _selectedIndices.map((i) => activePlaylist.songs[i]).toList()
+                            : <MusicFile>[song];
+
+                        showSongContextMenu(
+                          menuContext,
+                          position,
+                          song: song,
+                          songs: songsToAdd,
+                          mode: SongContextMenuMode.full,
+                          onAddToPlaylist: () async {
+                            _showAddToPlaylistDialog(
+                              menuContext,
+                              songsToAdd,
+                            );
+                          },
+                          onPlayNext: () => ref.read(audioServiceProvider).enqueueNext(songsToAdd),
+                          onAddToQueue: () => ref.read(audioServiceProvider).appendToQueue(songsToAdd),
+                          onRemoveFromPlaylist: isSelectionMode ? null : () {
+                            playlistService.removeSongsFromPlaylist(
+                              activePlaylist.id,
+                              [index],
+                            );
+                          },
+                        );
+                      }
+
+                      return Padding(
+                        key: ObjectKey(song),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                          vertical: 4,
+                        ),
+                        child: SongTile(
+                          song: song,
+                          isCurrent: isCurrent,
+                          isSelected: isSelected,
+                          isSelectionMode: isSelectionMode,
+                          dragHandle: ReorderableDragStartListener(
+                            index: index,
+                            child: const Icon(Icons.drag_handle),
+                          ),
+                          onTap: isSelectionMode
+                              ? () {
+                                  if (isMissing) {
+                                    showDeletedSongSnack(context, ref, skipped: false);
+                                    return;
+                                  }
+                                  _toggleSelection(index);
+                                }
+                              : () {
+                                  if (isMissing) {
+                                    showDeletedSongSnack(context, ref, skipped: false);
+                                    return;
+                                  }
+                                  audio.playPlaylist(
+                                    activePlaylist.songs,
+                                    initialIndex: index,
+                                  );
+                                },
+                          onLongPress: () {
+                            if (!isSelectionMode) {
+                              _toggleSelectionMode();
+                              _toggleSelection(index);
+                            }
+                          },
+                          onSecondaryTapDown: (details) {
+                            handleShowMenu(context, details.globalPosition);
+                          },
+                          onMorePressed: (buttonContext) {
+                            final renderObject = buttonContext.findRenderObject();
+                            final renderBox = renderObject is RenderBox ? renderObject : null;
+                            if (renderBox == null) return;
+                            final Offset offset = renderBox.localToGlobal(Offset.zero);
+                            handleShowMenu(buttonContext, offset);
+                          },
+                        ),
+                      );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          right: 16,
+          bottom: (currentMusic != null ? 140.0 : 40.0) +
+              (isSelectionMode ? 220.0 : 0.0) +
+              16,
+          child: AnimatedScale(
+            scale: _showScrollToTop ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: AnimatedOpacity(
+              opacity: _showScrollToTop ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: FloatingActionButton.small(
+                heroTag: 'playlist-scroll-to-top',
+                onPressed: () {
+                  _scrollController.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOutCubic,
                   );
                 },
-                itemBuilder: (context, index) {
-                  final song = activePlaylist.songs[index];
-                  final isMissing = song.isMissing;
-                  final isCurrent =
-                      currentIndex == index && currentMusic?.path == song.path;
-                  final isSelected = _selectedIndices.contains(index);
-
-                    void handleShowMenu(BuildContext menuContext, Offset position) {
-                      final songsToAdd = _selectedIndices.isNotEmpty
-                          ? _selectedIndices.map((i) => activePlaylist.songs[i]).toList()
-                          : <MusicFile>[song];
-
-                      showSongContextMenu(
-                        menuContext,
-                        position,
-                        song: song,
-                        songs: songsToAdd,
-                        mode: SongContextMenuMode.full,
-                        onAddToPlaylist: () async {
-                          _showAddToPlaylistDialog(
-                            menuContext,
-                            songsToAdd,
-                          );
-                        },
-                        onPlayNext: () => ref.read(audioServiceProvider).enqueueNext(songsToAdd),
-                        onAddToQueue: () => ref.read(audioServiceProvider).appendToQueue(songsToAdd),
-                        onRemoveFromPlaylist: isSelectionMode ? null : () {
-                          playlistService.removeSongsFromPlaylist(
-                            activePlaylist.id,
-                            [index],
-                          );
-                        },
-                      );
-                    }
-
-                    return Padding(
-                      key: ObjectKey(song),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
-                        vertical: 4,
-                      ),
-                      child: SongTile(
-                        song: song,
-                        isCurrent: isCurrent,
-                        isSelected: isSelected,
-                        isSelectionMode: isSelectionMode,
-                        dragHandle: ReorderableDragStartListener(
-                          index: index,
-                          child: const Icon(Icons.drag_handle),
-                        ),
-                        onTap: isSelectionMode
-                            ? () {
-                                if (isMissing) {
-                                  showDeletedSongSnack(context, ref, skipped: false);
-                                  return;
-                                }
-                                _toggleSelection(index);
-                              }
-                            : () {
-                                if (isMissing) {
-                                  showDeletedSongSnack(context, ref, skipped: false);
-                                  return;
-                                }
-                                audio.playPlaylist(
-                                  activePlaylist.songs,
-                                  initialIndex: index,
-                                );
-                              },
-                        onLongPress: () {
-                          if (!isSelectionMode) {
-                            _toggleSelectionMode();
-                            _toggleSelection(index);
-                          }
-                        },
-                        onSecondaryTapDown: (details) {
-                          handleShowMenu(context, details.globalPosition);
-                        },
-                        onMorePressed: (buttonContext) {
-                          final renderObject = buttonContext.findRenderObject();
-                          final renderBox = renderObject is RenderBox ? renderObject : null;
-                          if (renderBox == null) return;
-                          final Offset offset = renderBox.localToGlobal(Offset.zero);
-                          handleShowMenu(buttonContext, offset);
-                        },
-                      ),
-                    );
-                },
+                child: const Icon(Icons.arrow_upward_rounded),
               ),
             ),
-          ],
+          ),
         ),
         Positioned(
           left: 0,
