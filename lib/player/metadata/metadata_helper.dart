@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:vibe_flow/player/metadata/metadata_database.dart';
 import 'package:vibe_flow/player/settings/track_artwork_theme_service.dart';
+import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 
 Future<Uint8List?> _generateThemeColorsBlobFromImage(img.Image image) async {
   return TrackArtworkThemeService.generateThemeColorsBlobFromImage(image);
@@ -122,6 +123,9 @@ class SaveMetadataResult {
 }
 
 class MetadataHelper {
+  /// Stores the last error message during metadata saving.
+  static String? lastWriteError;
+
   static String _resolveText(String? value, String fallback) {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) return fallback;
@@ -155,7 +159,10 @@ class MetadataHelper {
     List<TrackMetadataPicture>? pictures,
     String? fallbackMediaUri,
   }) async {
+    lastWriteError = null;
     if (!isMetadataWritable(filePath)) {
+      lastWriteError = 'File format is not supported for writing metadata';
+      debugPrint('[MetadataHelper] $lastWriteError');
       return false;
     }
 
@@ -165,6 +172,7 @@ class MetadataHelper {
         await controller.initialize();
       } catch (e) {
         debugPrint('Failed to initialize audio core for metadata write: $e');
+        lastWriteError = 'Failed to initialize audio core: $e';
       }
     }
 
@@ -180,12 +188,12 @@ class MetadataHelper {
           (artworkBytes == null || artworkBytes.isEmpty
               ? const <TrackMetadataPicture>[]
               : <TrackMetadataPicture>[
-                  TrackMetadataPicture(
-                    bytes: artworkBytes,
-                    mimeType: 'image/jpeg',
-                    pictureType: 'Front Cover',
-                  ),
-                ]),
+                   TrackMetadataPicture(
+                     bytes: artworkBytes,
+                     mimeType: 'image/jpeg',
+                     pictureType: 'Front Cover',
+                   ),
+                 ]),
     );
 
     try {
@@ -196,9 +204,15 @@ class MetadataHelper {
           fallbackMediaUri: fallbackMediaUri,
         ),
       ]);
-      return results.isNotEmpty && results.first;
+      final success = results.isNotEmpty && results.first;
+      if (!success) {
+        lastWriteError = taglib.TagLibFile.lastError ?? 'Native updateMetadataBatch operation returned false';
+        debugPrint('[MetadataHelper] Save failed: $lastWriteError');
+      }
+      return success;
     } catch (e) {
       debugPrint('Failed to write selection metadata to file $filePath: $e');
+      lastWriteError = e.toString();
       return false;
     }
   }

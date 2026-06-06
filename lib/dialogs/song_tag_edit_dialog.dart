@@ -114,11 +114,12 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     if (!mounted) return;
 
     if (result == null) {
+      final reason = MetadataHelper.lastWriteError;
       setState(() {
         _isSaving = false;
         _errorMessage = writeToFile
-            ? l10n.saveToSourceFileFailed
-            : l10n.saveFailed;
+            ? (reason != null ? '${l10n.saveToSourceFileFailed}\n($reason)' : l10n.saveToSourceFileFailed)
+            : (reason != null ? '${l10n.saveFailed}\n($reason)' : l10n.saveFailed);
       });
       return;
     }
