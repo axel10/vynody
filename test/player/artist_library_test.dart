@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:vibe_flow/player/library/artist_library.dart';
@@ -43,8 +44,13 @@ void main() {
     });
 
     tearDownAll(() async {
-      if (await supportDirectory.exists()) {
-        await supportDirectory.delete(recursive: true);
+      try {
+        if (await supportDirectory.exists()) {
+          await supportDirectory.delete(recursive: true);
+        }
+      } catch (e) {
+        // Catch and ignore file lock issues on Windows
+        print('Failed to delete support directory: $e');
       }
     });
 
@@ -88,19 +94,19 @@ void main() {
       expect(aaa.songCount, 2);
       expect(
         aaa.songs.map((song) => song.path).toList(),
-        containsAll(['/music/song1.mp3', '/music/song2.mp3']),
+        containsAll([p.normalize('/music/song1.mp3'), p.normalize('/music/song2.mp3')]),
       );
 
       final bbb = summaries.singleWhere((artist) => artist.queryKey == 'bbb');
       expect(bbb.songCount, 2);
       expect(
         bbb.songs.map((song) => song.path).toList(),
-        containsAll(['/music/song1.mp3', '/music/song3.mp3']),
+        containsAll([p.normalize('/music/song1.mp3'), p.normalize('/music/song3.mp3')]),
       );
 
       final eee = summaries.singleWhere((artist) => artist.queryKey == 'eee');
       expect(eee.songCount, 1);
-      expect(eee.songs.single.path, '/music/song3.mp3');
+      expect(eee.songs.single.path, p.normalize('/music/song3.mp3'));
     });
   });
 }
