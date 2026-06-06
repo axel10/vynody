@@ -983,8 +983,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                 final pNormalControlsTop = pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
                                 final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight - 4.0;
                                 
-                                final double fadeStart = (pNormalInfoTop - 48.0) / size.height;
-                                final double fadeEnd = pNormalInfoTop / size.height;
+                                final double fadeStart;
+                                final double fadeEnd;
+                                if (showMiniQueue) {
+                                  final double playlistTop = MediaQuery.of(context).padding.top + 360.0;
+                                  fadeEnd = playlistTop / size.height;
+                                  fadeStart = (playlistTop - 48.0) / size.height;
+                                } else {
+                                  fadeStart = (pNormalInfoTop - 48.0) / size.height;
+                                  fadeEnd = pNormalInfoTop / size.height;
+                                }
                                 final double clampedStart = fadeStart.clamp(0.0, 1.0);
                                 final double clampedEnd = fadeEnd.clamp(0.0, 1.0);
 
