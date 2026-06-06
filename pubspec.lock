@@ -864,11 +864,9 @@ packages:
   mobile_storage_listener:
     dependency: "direct main"
     description:
-      path: "."
-      ref: master
-      resolved-ref: "5bf6355887ad8bbc35ea092e15d1fa381ea466d6"
-      url: "https://github.com/axel10/mobile_storage_listener"
-    source: git
+      path: mobile_storage_listener
+      relative: true
+    source: path
     version: "1.0.0"
   msix:
     dependency: "direct dev"
