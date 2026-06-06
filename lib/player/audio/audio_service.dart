@@ -529,6 +529,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         _windowsIntegration?.updateTimeline(_position, duration);
         _androidIntegration?.updateTimeline(_position, duration);
         _darwinIntegration?.updateTimeline(_position, duration);
+        unawaited(_updateCurrentMetadata(currentSong));
       } else {
         // No restored track still exists, so discard the stale session and
         // leave the player empty instead of restoring a deleted file.

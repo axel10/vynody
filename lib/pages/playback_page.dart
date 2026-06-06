@@ -1197,6 +1197,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   /// 使用 _pendingArtworkBytes，在轮播动画完成后才更新背景。
   Widget _buildBlurredBackground(BuildContext context, SettingsService settings, {bool? forceSmallWin, String? keySuffix}) {
     final String finalSuffix = keySuffix ?? (forceSmallWin == null ? 'auto' : (forceSmallWin ? 'small' : 'normal'));
+    final size = MediaQuery.of(context).size;
+    final bool isSmallWinValue = forceSmallWin ?? PlaybackPageUiTuning.isSmallWindow(
+      size,
+      isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+      isSmallWindowMode: settings.isSmallWindowMode,
+    );
+
     return RepaintBoundary(
       key: ValueKey('blurred_bg_$finalSuffix'),
       child: Stack(
@@ -1206,52 +1213,96 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           // 在解码阶段即完成缩小，从而替代之前手动生成的低清图逻辑。
           Builder(
             builder: (context) {
-              final bytes = _pendingArtworkBytes;
               final Widget content;
 
-              if (bytes == null) {
-                // 如果封面字节尚未准备好（或不存在），则显示纯黑背景。
-                content = Container(
-                  key: ValueKey('bg_empty_$finalSuffix'),
-                  color: Colors.black,
-                  width: double.infinity,
-                  height: double.infinity,
-                );
+              if (isSmallWinValue) {
+                final currentMusic = ref.watch(audioCurrentMusicProvider);
+                final originalBytes = currentMusic?.artworkBytes;
+                final originalPath = currentMusic?.artworkPath;
+
+                if (originalBytes != null && originalBytes.isNotEmpty) {
+                  content = ImageFiltered(
+                    key: ValueKey('${originalBytes.hashCode}_$finalSuffix'),
+                    imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+                    child: Transform.scale(
+                      scale: 1.2,
+                      child: Image.memory(
+                        originalBytes,
+                        width: double.infinity,
+                        height: double.infinity,
+                        cacheWidth: (Platform.isAndroid || Platform.isIOS) ? 300 : null,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.low,
+                        gaplessPlayback: true,
+                        excludeFromSemantics: true,
+                      ),
+                    ),
+                  );
+                } else if (originalPath != null && originalPath.isNotEmpty && File(originalPath).existsSync()) {
+                  content = ImageFiltered(
+                    key: ValueKey('${originalPath.hashCode}_$finalSuffix'),
+                    imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+                    child: Transform.scale(
+                      scale: 1.2,
+                      child: Image.file(
+                        File(originalPath),
+                        width: double.infinity,
+                        height: double.infinity,
+                        cacheWidth: (Platform.isAndroid || Platform.isIOS) ? 300 : null,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.low,
+                        gaplessPlayback: true,
+                        excludeFromSemantics: true,
+                      ),
+                    ),
+                  );
+                } else {
+                  content = Container(
+                    key: ValueKey('bg_empty_$finalSuffix'),
+                    color: Colors.black,
+                    width: double.infinity,
+                    height: double.infinity,
+                  );
+                }
               } else {
-                // 使用 Image.memory 的高性能解码缩放：
-                // 对于 Android 和 iOS，通过设置 cacheWidth (300px) 在解码阶段完成缩小，以降低内存并加速滤镜运算；
-                // 对于桌面端，使用原图（cacheWidth 为 null）以提供更清晰的背景。
-                final imageProvider = Image.memory(
-                  bytes,
-                  width: double.infinity,
-                  height: double.infinity,
-                  cacheWidth: (Platform.isAndroid || Platform.isIOS) ? 300 : null,
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.low,
-                  gaplessPlayback: true,
-                  excludeFromSemantics: true,
-                );
+                final bytes = _pendingArtworkBytes;
+                if (bytes == null) {
+                  // 如果封面字节尚未准备好（或不存在），则显示纯黑背景。
+                  content = Container(
+                    key: ValueKey('bg_empty_$finalSuffix'),
+                    color: Colors.black,
+                    width: double.infinity,
+                    height: double.infinity,
+                  );
+                } else {
+                  // 使用 Image.memory 的高性能解码缩放：
+                  // 对于 Android 和 iOS，通过设置 cacheWidth (300px) 在解码阶段完成缩小，以降低内存并加速滤镜运算；
+                  // 对于桌面端，使用原图（cacheWidth 为 null）以提供更清晰的背景。
+                  final imageProvider = Image.memory(
+                    bytes,
+                    width: double.infinity,
+                    height: double.infinity,
+                    cacheWidth: (Platform.isAndroid || Platform.isIOS) ? 300 : null,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
+                    gaplessPlayback: true,
+                    excludeFromSemantics: true,
+                  );
 
-                final size = MediaQuery.of(context).size;
-                final bool isSmallWinValue = forceSmallWin ?? PlaybackPageUiTuning.isSmallWindow(
-                  size,
-                  isWaveformEnabled: settings.isWaveformProgressBarEnabled,
-                  isSmallWindowMode: settings.isSmallWindowMode,
-                );
-
-                content = ImageFiltered(
-                  // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
-                  key: ValueKey('${bytes.hashCode}_$finalSuffix'),
-                  // 减小模糊强度并增加缩放以更好地覆盖边缘
-                  imageFilter: ui.ImageFilter.blur(
-                    sigmaX: isSmallWinValue ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
-                    sigmaY: isSmallWinValue ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
-                  ),
-                  child: Transform.scale(
-                    scale: 1.2,
-                    child: imageProvider,
-                  ),
-                );
+                  content = ImageFiltered(
+                    // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
+                    key: ValueKey('${bytes.hashCode}_$finalSuffix'),
+                    // 减小模糊强度并增加缩放以更好地覆盖边缘
+                    imageFilter: ui.ImageFilter.blur(
+                      sigmaX: settings.playbackBlurredArtworkBlurSigma,
+                      sigmaY: settings.playbackBlurredArtworkBlurSigma,
+                    ),
+                    child: Transform.scale(
+                      scale: 1.2,
+                      child: imageProvider,
+                    ),
+                  );
+                }
               }
 
               // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
