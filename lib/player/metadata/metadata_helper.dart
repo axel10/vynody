@@ -153,6 +153,7 @@ class MetadataHelper {
     Uint8List? artworkBytes,
     String? lyrics,
     List<TrackMetadataPicture>? pictures,
+    String? fallbackMediaUri,
   }) async {
     if (!isMetadataWritable(filePath)) {
       return false;
@@ -189,7 +190,11 @@ class MetadataHelper {
 
     try {
       final results = await controller.updateMetadataBatch([
-        TrackMetadataWriteRequest(path: filePath, metadata: update),
+        TrackMetadataWriteRequest(
+          path: filePath,
+          metadata: update,
+          fallbackMediaUri: fallbackMediaUri,
+        ),
       ]);
       return results.isNotEmpty && results.first;
     } catch (e) {
@@ -213,6 +218,7 @@ class MetadataHelper {
     int? artworkHeight,
     SongMetadata? existingMetadata,
     bool writeToFile = true,
+    String? fallbackMediaUri,
   }) async {
     try {
       final db = MetadataDatabase();
@@ -306,6 +312,7 @@ class MetadataHelper {
           filePath: filePath,
           metadata: updated,
           artworkBytes: artworkBytes,
+          fallbackMediaUri: fallbackMediaUri,
         );
 
         if (!fileUpdated) {

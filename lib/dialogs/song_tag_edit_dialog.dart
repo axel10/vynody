@@ -108,6 +108,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       artworkBytes: widget.song.artworkBytes,
       existingMetadata: null,
       writeToFile: writeToFile,
+      fallbackMediaUri: widget.song.mediaUri,
     );
 
     if (!mounted) return;
