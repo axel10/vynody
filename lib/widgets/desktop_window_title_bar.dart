@@ -10,10 +10,12 @@ class DesktopWindowTitleBar extends ConsumerStatefulWidget {
     super.key,
     required this.brightness,
     this.height = 32,
+    this.showSmallWindowButton = false,
   });
 
   final Brightness brightness;
   final double height;
+  final bool showSmallWindowButton;
 
   @override
   ConsumerState<DesktopWindowTitleBar> createState() => _DesktopWindowTitleBarState();
@@ -100,6 +102,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
     final isMacOS = Platform.isMacOS;
     final settings = ref.watch(settingsServiceProvider);
     final isSmallWindowMode = settings.isSmallWindowMode;
+    final showMiniButton = widget.showSmallWindowButton || isSmallWindowMode;
 
     final Widget titleBarContent = GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -119,7 +122,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
         height: widget.height,
         child: Row(
           children: [
-            if (isMacOS)
+            if (isMacOS && showMiniButton)
               _MacosSmallWindowButton(
                 icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
                 iconSize: isSmallWindowMode ? 16 : 18,
@@ -129,15 +132,16 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
               ),
             const Spacer(),
             if (!isMacOS) ...[
-              _WindowButton(
-                icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
-                iconSize: isSmallWindowMode ? 16 : 18,
-                brightness: widget.brightness,
-                hoverColor: hoverColor,
-                onPressed: () {
-                  settings.isSmallWindowMode = !settings.isSmallWindowMode;
-                },
-              ),
+              if (showMiniButton)
+                _WindowButton(
+                  icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
+                  iconSize: isSmallWindowMode ? 16 : 18,
+                  brightness: widget.brightness,
+                  hoverColor: hoverColor,
+                  onPressed: () {
+                    settings.isSmallWindowMode = !settings.isSmallWindowMode;
+                  },
+                ),
               if (!isSmallWindowMode) ...[
                 _WindowButton(
                   icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,

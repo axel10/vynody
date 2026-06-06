@@ -849,6 +849,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                             brightness: isPlayback
                                 ? Brightness.dark
                                 : theme.brightness,
+                            showSmallWindowButton: isPlayback,
                           ),
                         ),
                       AnimatedPositioned(
