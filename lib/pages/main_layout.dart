@@ -611,12 +611,33 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
               }
             }
             
-            final targetHeight = next.isQueueExpanded ? 600.0 : 360.0;
-            final targetSize = Size(360.0, targetHeight);
-            
-            await windowManager.setMinimumSize(targetSize);
-            await windowManager.setMaximumSize(targetSize);
-            await windowManager.setSize(targetSize);
+            if (next.isQueueExpanded) {
+              // Expanded playlist queue mode: resizable within constraints
+              const minSize = Size(360.0, 450.0);
+              const maxSize = Size(480.0, 99999.0);
+              
+              await windowManager.setMinimumSize(minSize);
+              await windowManager.setMaximumSize(maxSize);
+              
+              // Only change size if we weren't already in expanded mode or small mode
+              final wasQueueExpanded = previous?.isQueueExpanded ?? false;
+              if (!wasQueueExpanded || !prevSmallMode) {
+                await windowManager.setSize(const Size(360.0, 600.0));
+              }
+            } else {
+              // Collapsed mode: resizable between 360x360 and 600x600
+              const minSize = Size(360.0, 360.0);
+              const maxSize = Size(600.0, 600.0);
+              
+              await windowManager.setMinimumSize(minSize);
+              await windowManager.setMaximumSize(maxSize);
+              
+              // Only change size if transitioning from expanded mode back to collapsed, or entering small window mode
+              final wasQueueExpanded = previous?.isQueueExpanded ?? false;
+              if (wasQueueExpanded || !prevSmallMode) {
+                await windowManager.setSize(minSize);
+              }
+            }
           } else if (prevSmallMode && !nextSmallMode) {
             // Exit small window mode
             await windowManager.setMinimumSize(const Size(400, 650));
