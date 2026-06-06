@@ -605,7 +605,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           } else {
             // Exit small window mode
             await windowManager.setMinimumSize(const Size(400, 650));
-            await windowManager.setMaximumSize(Size.infinite);
+            await windowManager.setMaximumSize(const Size(99999, 99999));
             final savedSize = settings.savedRegularWindowSize ?? const Size(1280, 720);
             await windowManager.setSize(savedSize);
           }
