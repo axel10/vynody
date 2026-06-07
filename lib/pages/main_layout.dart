@@ -122,9 +122,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   late final AudioService _audioService;
   DateTime? _lastBackPressedAt;
   DateTime? _ignoreResizeEventsUntil;
+  late final MainLayoutUiController _uiController;
 
-  MainLayoutUiController get _ui =>
-      ref.read(mainLayoutUiControllerProvider.notifier);
+  MainLayoutUiController get _ui => _uiController;
 
   void _handleDesktopPointerActivity(PointerEvent event) {
     if (event is PointerDownEvent) {
@@ -202,6 +202,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     _currentIndex = widget.initialIndex;
     _lastVolume = ref.read(audioVolumeProvider);
     _audioService = ref.read(audioServiceProvider);
+    _uiController = ref.read(mainLayoutUiControllerProvider.notifier);
     _syncDeletedSongNoticeHandler();
 
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -230,7 +231,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     }
     _audioService.setMissingSongNoticeHandler(null);
     Future.microtask(() {
-      ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
+      _uiController.setVolumeSliderVisible(false);
     });
     super.dispose();
   }

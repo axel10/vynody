@@ -49,6 +49,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
   SettingsService? _settingsService;
   AudioService? _audioService;
+  MainLayoutUiController? _uiController;
 
   @override
   void initState() {
@@ -75,6 +76,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _settingsService ??= ref.read(settingsServiceProvider);
+    _uiController ??= ref.read(mainLayoutUiControllerProvider.notifier);
   }
 
   @override
@@ -96,9 +98,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         audio.setLyricsActive(false);
       });
     }
-    Future.microtask(() {
-      ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
-    });
+    final uiController = _uiController;
+    if (uiController != null) {
+      Future.microtask(() {
+        uiController.setVolumeSliderVisible(false);
+      });
+    }
     super.dispose();
   }
 

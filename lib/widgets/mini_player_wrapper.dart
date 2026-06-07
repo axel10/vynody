@@ -20,12 +20,22 @@ class MiniPlayerWrapper extends ConsumerStatefulWidget {
 
 class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
   bool _showMiniVolumeSlider = false;
+  MainLayoutUiController? _uiController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _uiController ??= ref.read(mainLayoutUiControllerProvider.notifier);
+  }
 
   @override
   void dispose() {
-    Future.microtask(() {
-      ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
-    });
+    final uiController = _uiController;
+    if (uiController != null) {
+      Future.microtask(() {
+        uiController.setVolumeSliderVisible(false);
+      });
+    }
     super.dispose();
   }
 
