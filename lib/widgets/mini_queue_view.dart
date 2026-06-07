@@ -147,10 +147,10 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
                 );
                 final currentIndex = widget.audioService.currentIndex;
                 if (queueIndex < 0 || currentIndex < 0) return;
-                widget.audioService.moveQueueTrack(
-                  queueIndex,
-                  currentIndex + 1,
-                );
+                final insertIndex = queueIndex < currentIndex
+                    ? currentIndex
+                    : currentIndex + 1;
+                widget.audioService.moveQueueTrack(queueIndex, insertIndex);
               },
         onRemoveFromQueue: () {
           final queueIndex = widget.audioService.playbackQueue.indexWhere(

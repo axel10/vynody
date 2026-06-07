@@ -113,15 +113,15 @@ class _QueuePageState extends ConsumerState<QueuePage> {
               audio.clearPlaylist();
               Navigator.pop(context);
               if (context.mounted) {
-              if (context.mounted) {
-                AppSnackBar.show(
-                  context,
-                  ref,
-                  SnackBar(
-                    content: Text(AppLocalizations.of(context)!.queueCleared),
-                  ),
-                );
-              }
+                if (context.mounted) {
+                  AppSnackBar.show(
+                    context,
+                    ref,
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.queueCleared),
+                    ),
+                  );
+                }
               }
             },
             child: Text(AppLocalizations.of(context)!.clearQueue),
@@ -314,7 +314,10 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         ? _selectedSongsFromDisplay(displayQueue)
                         : <MusicFile>[song];
 
-                    void handleShowMenu(BuildContext menuContext, Offset position) {
+                    void handleShowMenu(
+                      BuildContext menuContext,
+                      Offset position,
+                    ) {
                       showSongContextMenu(
                         menuContext,
                         position,
@@ -326,18 +329,34 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                           ref.read(playlistServiceProvider),
                           songsToAdd,
                         ),
-                        onPlayNext: (isCurrent || isSelectionMode || isHistoryView || isRandomQueueView)
+                        onPlayNext:
+                            (isCurrent ||
+                                isSelectionMode ||
+                                isHistoryView ||
+                                isRandomQueueView)
                             ? null
                             : () {
-                                final curIdx = ref.read(audioCurrentIndexProvider);
+                                final curIdx = ref.read(
+                                  audioCurrentIndexProvider,
+                                );
                                 if (curIdx >= 0) {
-                                  ref.read(audioServiceProvider).moveQueueTrack(index, curIdx + 1);
+                                  final insertIndex = index < curIdx
+                                      ? curIdx
+                                      : curIdx + 1;
+                                  ref
+                                      .read(audioServiceProvider)
+                                      .moveQueueTrack(index, insertIndex);
                                 }
                               },
-                        onRemoveFromQueue: (isSelectionMode || isHistoryView || isRandomQueueView)
+                        onRemoveFromQueue:
+                            (isSelectionMode ||
+                                isHistoryView ||
+                                isRandomQueueView)
                             ? null
                             : () {
-                                ref.read(audioServiceProvider).removeFromPlaylist(index);
+                                ref
+                                    .read(audioServiceProvider)
+                                    .removeFromPlaylist(index);
                               },
                       );
                     }
@@ -345,7 +364,11 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                     return Padding(
                       key: ObjectKey(song),
                       padding: EdgeInsets.symmetric(
-                        horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                        horizontal:
+                            MediaQuery.of(context).orientation ==
+                                Orientation.portrait
+                            ? 8
+                            : 16,
                         vertical: 4,
                       ),
                       child: SongTile(
@@ -404,9 +427,13 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         },
                         onMorePressed: (buttonContext) {
                           final renderObject = buttonContext.findRenderObject();
-                          final renderBox = renderObject is RenderBox ? renderObject : null;
+                          final renderBox = renderObject is RenderBox
+                              ? renderObject
+                              : null;
                           if (renderBox == null) return;
-                          final Offset offset = renderBox.localToGlobal(Offset.zero);
+                          final Offset offset = renderBox.localToGlobal(
+                            Offset.zero,
+                          );
                           handleShowMenu(buttonContext, offset);
                         },
                       ),
