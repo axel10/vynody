@@ -44,9 +44,11 @@ packages:
   audio_core:
     dependency: "direct main"
     description:
-      path: audio_core
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: "60317729ecfe636df28d882afb28cd47aecc4137"
+      url: "https://github.com/axel10/audio_core"
+    source: git
     version: "0.0.1"
   audio_metadata_reader:
     dependency: "direct main"
@@ -598,9 +600,11 @@ packages:
   flutter_taglib:
     dependency: "direct main"
     description:
-      path: "audio_core/flutter_taglib"
-      relative: true
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: e0836cf11209613fea77bbc026940d1e3aa7fcb6
+      url: "https://github.com/axel10/flutter_taglib"
+    source: git
     version: "1.2.0"
   flutter_test:
     dependency: "direct dev"
@@ -864,9 +868,11 @@ packages:
   mobile_storage_listener:
     dependency: "direct main"
     description:
-      path: mobile_storage_listener
-      relative: true
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: "1295562c8939af224ad2c81b43019d7606f4e927"
+      url: "https://github.com/axel10/mobile_storage_listener"
+    source: git
     version: "1.0.0"
   msix:
     dependency: "direct dev"

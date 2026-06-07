@@ -983,8 +983,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                 final pNormalScale =
                                     (size.width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15) *
                                         scaleFactor;
+                                final double maxControlsHeightFactor = isSmallWin
+                                    ? 0.85
+                                    : PlaybackHeroCardUiTuning.pControlsHeightFactor;
                                 final pNormalControlsHeight = (pNormalControlsBaseIdealHeight * pNormalScale)
-                                    .clamp(0.0, size.height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
+                                    .clamp(0.0, size.height * maxControlsHeightFactor)
                                     .ceilToDouble();
                                 final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * pNormalScale;
                                 final pNormalBottomLimit = size.height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
