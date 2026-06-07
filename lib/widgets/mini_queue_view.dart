@@ -6,12 +6,27 @@ import 'package:vibe_flow/models/music_file.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/player/library/playlist_service.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
+import 'package:vibe_flow/widgets/queue_file_drop_target.dart';
 
-class MiniQueueView extends ConsumerWidget {
+class MiniQueueView extends ConsumerStatefulWidget {
   const MiniQueueView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MiniQueueView> createState() => _MiniQueueViewState();
+}
+
+class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
+  final Map<String, GlobalKey> _itemKeys = {};
+
+  GlobalKey _itemKeyForSong(MusicFile song) {
+    return _itemKeys.putIfAbsent(
+      song.path,
+      () => GlobalKey(debugLabel: 'mini-queue-${song.path}'),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final queue = ref.watch(audioPlaybackQueueProvider);
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     final audioService = ref.read(audioServiceProvider);
@@ -19,79 +34,91 @@ class MiniQueueView extends ConsumerWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.brightness == Brightness.dark
-            ? Colors.black.withValues(alpha: 0.35)
-            : Colors.white.withValues(alpha: 0.35),
-        border: Border(
-          top: BorderSide(
-            color: theme.brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.05),
-            width: 1.0,
+    return QueueFileDropTarget(
+      enabled: true,
+      displayQueue: queue,
+      queueSongs: queue,
+      itemKeyBuilder: (index, song) => _itemKeyForSong(song),
+      showPreview: true,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.brightness == Brightness.dark
+              ? Colors.black.withValues(alpha: 0.35)
+              : Colors.white.withValues(alpha: 0.35),
+          border: Border(
+            top: BorderSide(
+              color: theme.brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05),
+              width: 1.0,
+            ),
           ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(
-              left: 16.0,
-              right: 16.0,
-              top: 12.0,
-              bottom: 6.0,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${l10n.queue} (${queue.length})',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.5),
-          Expanded(
-            child: queue.isEmpty
-                ? Center(
-                    child: Text(
-                      l10n.queueEmpty,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.5,
-                        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                top: 12.0,
+                bottom: 6.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${l10n.queue} (${queue.length})',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.85,
                       ),
                     ),
-                  )
-                : ListView.builder(
-                    itemCount: queue.length,
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    itemBuilder: (context, index) {
-                      final song = queue[index];
-                      final isCurrent = index == currentIndex;
-
-                      return _MiniQueueTile(
-                        song: song,
-                        isCurrent: isCurrent,
-                        playlistService: playlistService,
-                        audioService: audioService,
-                        onTap: () {
-                          audioService.playAtIndex(index);
-                        },
-                        onRemove: () {
-                          audioService.removeFromPlaylist(index);
-                        },
-                      );
-                    },
                   ),
-          ),
-        ],
+                ],
+              ),
+            ),
+            const Divider(height: 1, thickness: 0.5),
+            Expanded(
+              child: queue.isEmpty
+                  ? Center(
+                      child: Text(
+                        l10n.queueEmpty,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: queue.length,
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      itemBuilder: (context, index) {
+                        final song = queue[index];
+                        final isCurrent = index == currentIndex;
+
+                        return KeyedSubtree(
+                          key: _itemKeyForSong(song),
+                          child: _MiniQueueTile(
+                            song: song,
+                            isCurrent: isCurrent,
+                            playlistService: playlistService,
+                            audioService: audioService,
+                            onTap: () {
+                              audioService.playAtIndex(index);
+                            },
+                            onRemove: () {
+                              audioService.removeFromPlaylist(index);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

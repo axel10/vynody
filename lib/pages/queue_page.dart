@@ -1,18 +1,14 @@
 import 'dart:async';
-import 'dart:io';
-
-import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/library/music_file_utils.dart';
 import '../widgets/song_tile.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
+import 'package:vibe_flow/widgets/queue_file_drop_target.dart';
 import 'queue_page_riverpod.dart';
 
 // 队列页面
@@ -25,14 +21,9 @@ class QueuePage extends ConsumerStatefulWidget {
 
 class _QueuePageState extends ConsumerState<QueuePage> {
   final Set<int> _selectedIndices = {};
-  final GlobalKey _dropSurfaceKey = GlobalKey(debugLabel: 'queue-drop-surface');
-  final GlobalKey _queueViewportKey = GlobalKey(debugLabel: 'queue-viewport');
   final Map<String, GlobalKey> _songTileKeys = {};
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
   late final QueueSelectionModeController _queueSelectionModeController;
-  bool _isDraggingFiles = false;
-  double? _dropIndicatorTop;
-  int? _dropInsertIndex;
 
   @override
   void initState() {
@@ -113,217 +104,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     );
   }
 
-  void _clearDropPreview() {
-    if (!_isDraggingFiles &&
-        _dropIndicatorTop == null &&
-        _dropInsertIndex == null) {
-      return;
-    }
-    if (!mounted) return;
-    setState(() {
-      _isDraggingFiles = false;
-      _dropIndicatorTop = null;
-      _dropInsertIndex = null;
-    });
-  }
-
-  Future<List<MusicFile>> _getFilesFromPath(String path) async {
-    final results = <MusicFile>[];
-    final entityType = FileSystemEntity.typeSync(path);
-
-    if (entityType == FileSystemEntityType.file) {
-      if (MusicFileUtils.isMusicFilePath(path)) {
-        results.add(MusicFile(path: path, name: p.basename(path)));
-      }
-    } else if (entityType == FileSystemEntityType.directory) {
-      final dir = Directory(path);
-      try {
-        await for (final item in dir.list(
-          recursive: true,
-          followLinks: false,
-        )) {
-          if (item is File && MusicFileUtils.isMusicFilePath(item.path)) {
-            results.add(
-              MusicFile(path: item.path, name: p.basename(item.path)),
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('Error scanning directory $path: $e');
-      }
-    }
-
-    return results;
-  }
-
-  List<MusicFile> _dedupeDroppedFiles(List<MusicFile> files) {
-    final uniqueFiles = <MusicFile>[];
-    final seenPaths = <String>{};
-    for (final song in files) {
-      if (seenPaths.add(song.path)) {
-        uniqueFiles.add(song);
-      }
-    }
-    return uniqueFiles;
-  }
-
-  ({int insertIndex, double indicatorTop})? _calculateDropPreview(
-    Offset localPosition,
-    List<MusicFile> displayQueue,
-  ) {
-    final surfaceBox =
-        _dropSurfaceKey.currentContext?.findRenderObject() as RenderBox?;
-    final viewportBox =
-        _queueViewportKey.currentContext?.findRenderObject() as RenderBox?;
-    if (surfaceBox == null || viewportBox == null) {
-      return null;
-    }
-
-    final globalPosition = surfaceBox.localToGlobal(localPosition);
-    final viewportPosition = viewportBox.globalToLocal(globalPosition);
-
-    final visibleItems = <({int index, double top, double bottom})>[];
-    for (var i = 0; i < displayQueue.length; i++) {
-      final key = _songTileKeys[displayQueue[i].path];
-      final renderObject = key?.currentContext?.findRenderObject();
-      final itemBox = renderObject is RenderBox ? renderObject : null;
-      if (itemBox == null) continue;
-
-      final topLeft = viewportBox.globalToLocal(
-        itemBox.localToGlobal(Offset.zero),
-      );
-      visibleItems.add((
-        index: i,
-        top: topLeft.dy,
-        bottom: topLeft.dy + itemBox.size.height,
-      ));
-    }
-
-    if (visibleItems.isEmpty) {
-      return (insertIndex: 0, indicatorTop: 0);
-    }
-
-    visibleItems.sort((a, b) => a.index.compareTo(b.index));
-
-    final firstItem = visibleItems.first;
-    final lastItem = visibleItems.last;
-    var insertIndex = lastItem.index + 1;
-    var indicatorTop = lastItem.bottom;
-
-    if (viewportPosition.dy <= firstItem.top) {
-      return (insertIndex: firstItem.index, indicatorTop: firstItem.top);
-    }
-
-    for (final item in visibleItems) {
-      final itemMid = item.top + ((item.bottom - item.top) / 2);
-      if (viewportPosition.dy < itemMid) {
-        insertIndex = item.index;
-        indicatorTop = item.top;
-        break;
-      }
-    }
-
-    return (insertIndex: insertIndex, indicatorTop: indicatorTop);
-  }
-
-  void _updateDropPreview(
-    DropEventDetails details,
-    List<MusicFile> displayQueue, {
-    required bool showPreview,
-  }) {
-    if (!mounted) return;
-
-    if (!showPreview) {
-      if (!_isDraggingFiles) {
-        setState(() {
-          _isDraggingFiles = true;
-        });
-      }
-      return;
-    }
-
-    final preview = _calculateDropPreview(details.localPosition, displayQueue);
-    if (preview == null) return;
-
-    if (_isDraggingFiles &&
-        _dropInsertIndex == preview.insertIndex &&
-        _dropIndicatorTop == preview.indicatorTop) {
-      return;
-    }
-
-    setState(() {
-      _isDraggingFiles = true;
-      _dropInsertIndex = preview.insertIndex;
-      _dropIndicatorTop = preview.indicatorTop;
-    });
-  }
-
-  Future<void> _handleDroppedFiles(
-    List<DropItem> droppedItems,
-    List<MusicFile> displayQueue, {
-    required bool showPreview,
-    Offset? dropLocalPosition,
-  }) async {
-    final audio = ref.read(audioServiceProvider);
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final List<MusicFile> allFiles = [];
-
-    for (final item in droppedItems) {
-      final files = await _getFilesFromPath(item.path);
-      allFiles.addAll(files);
-    }
-
-    if (!mounted) return;
-
-    final uniqueFiles = _dedupeDroppedFiles(allFiles);
-    if (uniqueFiles.isEmpty) {
-      _clearDropPreview();
-      return;
-    }
-
-    final existingQueuePaths = audio.playbackQueue
-        .map((song) => song.path)
-        .toSet();
-    final newSongs = <MusicFile>[];
-    var existingCount = 0;
-
-    for (final song in uniqueFiles) {
-      if (existingQueuePaths.contains(song.path)) {
-        existingCount++;
-        continue;
-      }
-      newSongs.add(song);
-    }
-
-    if (newSongs.isEmpty) {
-      _clearDropPreview();
-      return;
-    }
-
-    if (showPreview) {
-      var insertIndex = _dropInsertIndex;
-      if (dropLocalPosition != null) {
-        final preview = _calculateDropPreview(dropLocalPosition, displayQueue);
-        insertIndex = preview?.insertIndex ?? insertIndex;
-      }
-      insertIndex ??= displayQueue.length;
-      insertIndex = insertIndex.clamp(0, audio.playbackQueue.length);
-      await audio.insertIntoQueueAt(insertIndex, newSongs);
-    } else {
-      await audio.appendToQueue(newSongs);
-    }
-
-    if (!mounted) return;
-
-    _clearDropPreview();
-    final message = existingCount > 0
-        ? l10n.dropAddedSongsWithExisting(newSongs.length, existingCount)
-        : l10n.dropAddedSongs(newSongs.length);
-
-    messenger.showSnackBar(SnackBar(content: Text(message)));
-  }
-
   void _showClearQueueDialog(BuildContext context) {
     final audio = ref.read(audioServiceProvider);
     showDialog(
@@ -356,57 +136,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildDropInsertionIndicator(BuildContext context) {
-    final theme = Theme.of(context);
-    return IgnorePointer(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          height: 3,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary,
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: 0.45),
-                blurRadius: 8,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQueueDropTarget({
-    required Widget child,
-    required List<MusicFile> displayQueue,
-    required bool showPreview,
-  }) {
-    return DropTarget(
-      enable: true,
-      onDragEntered: (details) {
-        _updateDropPreview(details, displayQueue, showPreview: showPreview);
-      },
-      onDragUpdated: (details) {
-        _updateDropPreview(details, displayQueue, showPreview: showPreview);
-      },
-      onDragExited: (_) {
-        _clearDropPreview();
-      },
-      onDragDone: (details) async {
-        await _handleDroppedFiles(
-          details.files,
-          displayQueue,
-          showPreview: showPreview,
-          dropLocalPosition: details.localPosition,
-        );
-      },
-      child: Container(key: _dropSurfaceKey, child: child),
     );
   }
 
@@ -458,8 +187,11 @@ class _QueuePageState extends ConsumerState<QueuePage> {
             ),
           ],
         ),
-        body: _buildQueueDropTarget(
+        body: QueueFileDropTarget(
+          enabled: true,
           displayQueue: displayQueue,
+          queueSongs: queue,
+          itemKeyBuilder: (index, song) => _songTileKeyFor(song),
           showPreview: showPreview,
           child: Center(
             child: Column(
@@ -516,7 +248,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                   ],
                   onChanged: (val) {
                     if (val != null) {
-                      _clearDropPreview();
                       setState(() {
                         _viewIndex = val;
                       });
@@ -534,8 +265,11 @@ class _QueuePageState extends ConsumerState<QueuePage> {
           ),
         ],
       ),
-      body: _buildQueueDropTarget(
+      body: QueueFileDropTarget(
+        enabled: true,
         displayQueue: displayQueue,
+        queueSongs: queue,
+        itemKeyBuilder: (index, song) => _songTileKeyFor(song),
         showPreview: showPreview,
         child: Stack(
           children: [
@@ -565,7 +299,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                   ),
                 Expanded(
                   child: Stack(
-                    key: _queueViewportKey,
                     children: [
                       Positioned.fill(
                         child: ReorderableListView.builder(
@@ -736,13 +469,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                           },
                         ),
                       ),
-                      if (showPreview && _dropIndicatorTop != null)
-                        Positioned(
-                          top: _dropIndicatorTop! - 1.5,
-                          left: 0,
-                          right: 0,
-                          child: _buildDropInsertionIndicator(context),
-                        ),
                     ],
                   ),
                 ),
