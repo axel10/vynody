@@ -219,6 +219,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keySmallWindowHeight = 'small_window_height';
   static const String _keySmallWindowQueueWidth = 'small_window_queue_width';
   static const String _keySmallWindowQueueHeight = 'small_window_queue_height';
+  static const String _keyWasSmallWindowQueueExpanded = 'was_small_window_queue_expanded';
 
   final SharedPreferences _prefs;
   bool _isUserInactive = false;
@@ -643,6 +644,13 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _wasSmallWindowQueueExpandedProperty = SettingProperty<bool>(
+    key: _keyWasSmallWindowQueueExpanded,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   static String _initialModelId(String? value, String defaultValue) {
     final normalized = value?.trim();
     if (normalized == null || normalized.isEmpty) {
@@ -897,6 +905,9 @@ class SettingsService extends ChangeNotifier {
   double get smallWindowQueueHeight => _smallWindowQueueHeightProperty.value;
   set smallWindowQueueHeight(double value) => _smallWindowQueueHeightProperty.value = value;
 
+  bool get wasSmallWindowQueueExpanded => _wasSmallWindowQueueExpandedProperty.value;
+  set wasSmallWindowQueueExpanded(bool value) => _wasSmallWindowQueueExpandedProperty.value = value;
+
   Size get savedSmallWindowSize => Size(smallWindowWidth, smallWindowHeight);
   set savedSmallWindowSize(Size size) {
     smallWindowWidth = size.width;
@@ -1087,6 +1098,8 @@ class SettingsService extends ChangeNotifier {
       _isSmallWindowMode = value;
       if (!value) {
         _isSmallWindowQueueExpanded = false;
+      } else {
+        _isSmallWindowQueueExpanded = wasSmallWindowQueueExpanded;
       }
       notifyListeners();
     }
@@ -1097,6 +1110,7 @@ class SettingsService extends ChangeNotifier {
   set isSmallWindowQueueExpanded(bool value) {
     if (_isSmallWindowQueueExpanded != value) {
       _isSmallWindowQueueExpanded = value;
+      wasSmallWindowQueueExpanded = value;
       notifyListeners();
     }
   }
