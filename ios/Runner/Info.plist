@@ -76,5 +76,20 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>此应用需要访问局域网以发现和与其他设备传输音乐文件。</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Audio Files</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.audio</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
