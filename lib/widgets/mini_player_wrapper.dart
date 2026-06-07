@@ -97,6 +97,14 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
                             ref.read(settingsServiceProvider).resetInactivity();
                             audio.setVolume(value.roundToDouble());
                           },
+                          onVolumeScroll: (deltaY) {
+                            ref.read(settingsServiceProvider).resetInactivity();
+                            audio.setVolume(
+                              (audio.volume - deltaY * 0.1)
+                                  .clamp(0.0, 100.0)
+                                  .roundToDouble(),
+                            );
+                          },
                         ),
                       );
                     },

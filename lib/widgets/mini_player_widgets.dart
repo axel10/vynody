@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
@@ -88,6 +89,7 @@ class MiniInlineVolumeControl extends StatelessWidget {
     required this.showSlider,
     required this.onTap,
     required this.onChanged,
+    this.onScroll,
     this.tooltip,
   });
 
@@ -95,19 +97,26 @@ class MiniInlineVolumeControl extends StatelessWidget {
   final bool showSlider;
   final VoidCallback? onTap;
   final ValueChanged<double>? onChanged;
+  final ValueChanged<double>? onScroll;
   final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        MiniControlButton(
-          icon: getVolumeIcon(volume),
-          onPressed: onTap,
-          tooltip: tooltip,
-          iconSize: 18.0,
-        ),
+    return Listener(
+      onPointerSignal: (pointerSignal) {
+        if (pointerSignal is PointerScrollEvent && onScroll != null) {
+          onScroll!(pointerSignal.scrollDelta.dy);
+        }
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MiniControlButton(
+            icon: getVolumeIcon(volume),
+            onPressed: onTap,
+            tooltip: tooltip,
+            iconSize: 18.0,
+          ),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 180),
           switchInCurve: Curves.easeOutCubic,
@@ -163,8 +172,9 @@ class MiniInlineVolumeControl extends StatelessWidget {
                 ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 }
 
 class MiniSpectrumBackground extends ConsumerWidget {

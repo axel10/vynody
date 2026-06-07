@@ -369,6 +369,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                             showSlider: showMiniVolumeSlider,
                             onTap: onVolumeTap,
                             onChanged: onVolumeChanged,
+                            onScroll: onVolumeScroll,
                             tooltip: AppLocalizations.of(context)!.volume,
                           ),
                       ],
