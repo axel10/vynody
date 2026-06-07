@@ -1485,4 +1485,55 @@ class AppLocalizationsZh extends AppLocalizations {
   String associationFailed(Object error) {
     return '关联失败：$error';
   }
+
+  @override
+  String get onboardingTitle => '欢迎使用 VibeFlow';
+
+  @override
+  String get onboardingSubtitle => '只需几个简单步骤，即可开启你的音乐之旅。';
+
+  @override
+  String get onboardingStepFileAssociation => '关联文件打开方式';
+
+  @override
+  String get onboardingFileAssociationDesc =>
+      '将常见的音乐格式（mp3, flac, wav 等）与 VibeFlow 关联，在文件管理器中双击即可直接播放。';
+
+  @override
+  String get onboardingFileAssociationTip =>
+      '关联后，系统可能会弹出选择默认打开程序的对话框。请务必在列表中选择「VibeFlow」并设为始终使用。';
+
+  @override
+  String get onboardingStepRootDirectory => '添加音乐根目录';
+
+  @override
+  String get onboardingRootDirectoryDesc =>
+      '选择存储音乐文件的文件夹。VibeFlow 会自动扫描并建立你的本地音乐库。';
+
+  @override
+  String get onboardingSelectDirectory => '选择文件夹';
+
+  @override
+  String get onboardingSuccessTitle => '一切准备就绪！';
+
+  @override
+  String get onboardingSuccessDesc => '已成功添加媒体库。让我们开始享受音乐吧！';
+
+  @override
+  String get onboardingStartButton => '进入 VibeFlow';
+
+  @override
+  String get onboardingSkip => '稍后设置';
+
+  @override
+  String get onboardingNext => '下一步';
+
+  @override
+  String get onboardingBack => '上一步';
+
+  @override
+  String get resetOnboarding => '重置新手引导';
+
+  @override
+  String get resetOnboardingDesc => '清除首次启动引导状态，下次启动应用时重新显示新手引导。';
 }

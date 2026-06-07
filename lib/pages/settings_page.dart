@@ -621,6 +621,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             settings.showDeveloperOptions = value;
           },
         ),
+        ListTile(
+          leading: const Icon(Icons.help_outline),
+          title: Text(l10n.resetOnboarding),
+          subtitle: Text(l10n.resetOnboardingDesc),
+          trailing: FilledButton.tonal(
+            onPressed: () {
+              settings.hasShownOnboarding = false;
+              final isZh = Localizations.localeOf(context).languageCode == 'zh';
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    isZh
+                        ? '已重置新手引导状态，下次启动时生效。'
+                        : 'Onboarding has been reset. It will take effect on next startup.',
+                  ),
+                ),
+              );
+            },
+            child: Text(l10n.reset),
+          ),
+        ),
         if (settings.showDeveloperOptions) ...[
           ListTile(
             title: Text(l10n.waveformSegments),

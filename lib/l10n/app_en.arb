@@ -631,5 +631,21 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "onboardingTitle": "Welcome to VibeFlow",
+  "onboardingSubtitle": "Just a few simple steps to start your music journey.",
+  "onboardingStepFileAssociation": "Associate File Types",
+  "onboardingFileAssociationDesc": "Associate common music formats (mp3, flac, wav, etc.) with VibeFlow to play music by double-clicking them in file explorer.",
+  "onboardingFileAssociationTip": "After associating, the system may pop up an 'Open with' selection menu. Please make sure to choose 'VibeFlow' from the list and select 'Always use this app'.",
+  "onboardingStepRootDirectory": "Add Music Root Directory",
+  "onboardingRootDirectoryDesc": "Select the folder where your music files are stored. VibeFlow will scan and build your personal music library automatically.",
+  "onboardingSelectDirectory": "Select Folder",
+  "onboardingSuccessTitle": "All Set!",
+  "onboardingSuccessDesc": "Successfully added your media library. Let's start enjoying music!",
+  "onboardingStartButton": "Get Started",
+  "onboardingSkip": "Set Up Later",
+  "onboardingNext": "Next",
+  "onboardingBack": "Back",
+  "resetOnboarding": "Reset Onboarding",
+  "resetOnboardingDesc": "Clear the onboarding status. The welcome guide will be shown again on next startup."
 }

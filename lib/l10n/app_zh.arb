@@ -1073,5 +1073,21 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "onboardingTitle": "欢迎使用 VibeFlow",
+  "onboardingSubtitle": "只需几个简单步骤，即可开启你的音乐之旅。",
+  "onboardingStepFileAssociation": "关联文件打开方式",
+  "onboardingFileAssociationDesc": "将常见的音乐格式（mp3, flac, wav 等）与 VibeFlow 关联，在文件管理器中双击即可直接播放。",
+  "onboardingFileAssociationTip": "关联后，系统可能会弹出选择默认打开程序的对话框。请务必在列表中选择「VibeFlow」并设为始终使用。",
+  "onboardingStepRootDirectory": "添加音乐根目录",
+  "onboardingRootDirectoryDesc": "选择存储音乐文件的文件夹。VibeFlow 会自动扫描并建立你的本地音乐库。",
+  "onboardingSelectDirectory": "选择文件夹",
+  "onboardingSuccessTitle": "一切准备就绪！",
+  "onboardingSuccessDesc": "已成功添加媒体库。让我们开始享受音乐吧！",
+  "onboardingStartButton": "进入 VibeFlow",
+  "onboardingSkip": "稍后设置",
+  "onboardingNext": "下一步",
+  "onboardingBack": "上一步",
+  "resetOnboarding": "重置新手引导",
+  "resetOnboardingDesc": "清除首次启动引导状态，下次启动应用时重新显示新手引导。"
 }

@@ -2881,6 +2881,102 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'关联失败：{error}'**
   String associationFailed(Object error);
+
+  /// No description provided for @onboardingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'欢迎使用 VibeFlow'**
+  String get onboardingTitle;
+
+  /// No description provided for @onboardingSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'只需几个简单步骤，即可开启你的音乐之旅。'**
+  String get onboardingSubtitle;
+
+  /// No description provided for @onboardingStepFileAssociation.
+  ///
+  /// In zh, this message translates to:
+  /// **'关联文件打开方式'**
+  String get onboardingStepFileAssociation;
+
+  /// No description provided for @onboardingFileAssociationDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'将常见的音乐格式（mp3, flac, wav 等）与 VibeFlow 关联，在文件管理器中双击即可直接播放。'**
+  String get onboardingFileAssociationDesc;
+
+  /// No description provided for @onboardingFileAssociationTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'关联后，系统可能会弹出选择默认打开程序的对话框。请务必在列表中选择「VibeFlow」并设为始终使用。'**
+  String get onboardingFileAssociationTip;
+
+  /// No description provided for @onboardingStepRootDirectory.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加音乐根目录'**
+  String get onboardingStepRootDirectory;
+
+  /// No description provided for @onboardingRootDirectoryDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择存储音乐文件的文件夹。VibeFlow 会自动扫描并建立你的本地音乐库。'**
+  String get onboardingRootDirectoryDesc;
+
+  /// No description provided for @onboardingSelectDirectory.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择文件夹'**
+  String get onboardingSelectDirectory;
+
+  /// No description provided for @onboardingSuccessTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'一切准备就绪！'**
+  String get onboardingSuccessTitle;
+
+  /// No description provided for @onboardingSuccessDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'已成功添加媒体库。让我们开始享受音乐吧！'**
+  String get onboardingSuccessDesc;
+
+  /// No description provided for @onboardingStartButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'进入 VibeFlow'**
+  String get onboardingStartButton;
+
+  /// No description provided for @onboardingSkip.
+  ///
+  /// In zh, this message translates to:
+  /// **'稍后设置'**
+  String get onboardingSkip;
+
+  /// No description provided for @onboardingNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一步'**
+  String get onboardingNext;
+
+  /// No description provided for @onboardingBack.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一步'**
+  String get onboardingBack;
+
+  /// No description provided for @resetOnboarding.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置新手引导'**
+  String get resetOnboarding;
+
+  /// No description provided for @resetOnboardingDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除首次启动引导状态，下次启动应用时重新显示新手引导。'**
+  String get resetOnboardingDesc;
 }
 
 class _AppLocalizationsDelegate

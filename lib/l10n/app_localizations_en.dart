@@ -1529,4 +1529,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String associationFailed(Object error) {
     return 'Failed to associate: $error';
   }
+
+  @override
+  String get onboardingTitle => 'Welcome to VibeFlow';
+
+  @override
+  String get onboardingSubtitle =>
+      'Just a few simple steps to start your music journey.';
+
+  @override
+  String get onboardingStepFileAssociation => 'Associate File Types';
+
+  @override
+  String get onboardingFileAssociationDesc =>
+      'Associate common music formats (mp3, flac, wav, etc.) with VibeFlow to play music by double-clicking them in file explorer.';
+
+  @override
+  String get onboardingFileAssociationTip =>
+      'After associating, the system may pop up an \'Open with\' selection menu. Please make sure to choose \'VibeFlow\' from the list and select \'Always use this app\'.';
+
+  @override
+  String get onboardingStepRootDirectory => 'Add Music Root Directory';
+
+  @override
+  String get onboardingRootDirectoryDesc =>
+      'Select the folder where your music files are stored. VibeFlow will scan and build your personal music library automatically.';
+
+  @override
+  String get onboardingSelectDirectory => 'Select Folder';
+
+  @override
+  String get onboardingSuccessTitle => 'All Set!';
+
+  @override
+  String get onboardingSuccessDesc =>
+      'Successfully added your media library. Let\'s start enjoying music!';
+
+  @override
+  String get onboardingStartButton => 'Get Started';
+
+  @override
+  String get onboardingSkip => 'Set Up Later';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingBack => 'Back';
+
+  @override
+  String get resetOnboarding => 'Reset Onboarding';
+
+  @override
+  String get resetOnboardingDesc =>
+      'Clear the onboarding status. The welcome guide will be shown again on next startup.';
 }

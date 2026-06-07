@@ -24,6 +24,7 @@ import 'folder_page_riverpod.dart';
 import 'playlist_page_riverpod.dart';
 import 'queue_page_riverpod.dart';
 import 'main_layout_riverpod.dart';
+import 'onboarding_page.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/playback_ui_tuning.dart';
@@ -784,6 +785,32 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     final bool hideBottomBar = isPlayback && isSmallWin;
     final bool useOverlayBottomNav =
         !useSidebar && isPlayback && settings.isImmersiveTabBarEnabled && !hideBottomBar;
+
+    if (!settings.hasShownOnboarding) {
+      return Scaffold(
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: OnboardingScreen(
+                onComplete: () {
+                  settings.hasShownOnboarding = true;
+                },
+              ),
+            ),
+            if (showCustomTitleBar)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: DesktopWindowTitleBar(
+                  brightness: theme.brightness,
+                  showSmallWindowButton: false,
+                ),
+              ),
+          ],
+        ),
+      );
+    }
 
     return Shortcuts(
       shortcuts: _buildShortcutMap(settings),
