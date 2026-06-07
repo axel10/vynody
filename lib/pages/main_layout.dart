@@ -239,7 +239,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
 
   @override
   void onWindowResized() async {
-    if (_ignoreResizeEventsUntil != null && DateTime.now().isBefore(_ignoreResizeEventsUntil!)) {
+    if (_ignoreResizeEventsUntil != null &&
+        DateTime.now().isBefore(_ignoreResizeEventsUntil!)) {
       return;
     }
     final settings = ref.read(settingsServiceProvider);
@@ -608,23 +609,28 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   Widget build(BuildContext context) {
     // Listen for small window mode transitions
     ref.listen<({bool isSmallMode, bool isQueueExpanded})>(
-      settingsServiceProvider.select((s) => (
-        isSmallMode: s.isSmallWindowMode,
-        isQueueExpanded: s.isSmallWindowQueueExpanded,
-      )),
+      settingsServiceProvider.select(
+        (s) => (
+          isSmallMode: s.isSmallWindowMode,
+          isQueueExpanded: s.isSmallWindowQueueExpanded,
+        ),
+      ),
       (previous, next) async {
         if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
           final settings = ref.read(settingsServiceProvider);
-          
+
           final nextSmallMode = next.isSmallMode;
           final prevSmallMode = previous?.isSmallMode ?? false;
           final nextQueueExpanded = next.isQueueExpanded;
           final prevQueueExpanded = previous?.isQueueExpanded ?? false;
 
-          if (nextSmallMode != prevSmallMode || nextQueueExpanded != prevQueueExpanded) {
-            _ignoreResizeEventsUntil = DateTime.now().add(const Duration(milliseconds: 800));
+          if (nextSmallMode != prevSmallMode ||
+              nextQueueExpanded != prevQueueExpanded) {
+            _ignoreResizeEventsUntil = DateTime.now().add(
+              const Duration(milliseconds: 800),
+            );
           }
-          
+
           if (nextSmallMode) {
             // Enter small window mode or update small window dimensions
             if (await windowManager.isFullScreen()) {
@@ -633,24 +639,26 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
             if (await windowManager.isMaximized()) {
               await windowManager.unmaximize();
             }
-            
+
             // Only save regular size if transitioning from regular mode to small window mode
             if (!prevSmallMode) {
               final currentSize = await windowManager.getSize();
-              if (currentSize.width >= PlaybackPageUiTuning.smallWindowMaxSize.width ||
-                  currentSize.height >= PlaybackPageUiTuning.smallWindowMaxSize.height) {
+              if (currentSize.width >=
+                      PlaybackPageUiTuning.smallWindowMaxSize.width ||
+                  currentSize.height >=
+                      PlaybackPageUiTuning.smallWindowMaxSize.height) {
                 settings.savedRegularWindowSize = currentSize;
               }
             }
-            
+
             if (nextQueueExpanded) {
               // Expanded playlist queue mode: resizable within constraints
               const minSize = Size(360.0, 450.0);
               const maxSize = Size(480.0, 99999.0);
-              
+
               await windowManager.setMinimumSize(minSize);
               await windowManager.setMaximumSize(maxSize);
-              
+
               // Only change size if we weren't already in expanded mode or small mode
               if (!prevQueueExpanded || !prevSmallMode) {
                 final savedSize = settings.savedSmallWindowQueueSize;
@@ -664,10 +672,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
               // Collapsed mode: resizable between 360x360 and 600x600
               const minSize = Size(360.0, 360.0);
               const maxSize = Size(600.0, 600.0);
-              
+
               await windowManager.setMinimumSize(minSize);
               await windowManager.setMaximumSize(maxSize);
-              
+
               // Only change size if transitioning from expanded mode back to collapsed, or entering small window mode
               if (prevQueueExpanded || !prevSmallMode) {
                 final savedSize = settings.savedSmallWindowSize;
@@ -682,7 +690,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
             // Exit small window mode
             await windowManager.setMinimumSize(const Size(400, 650));
             await windowManager.setMaximumSize(const Size(99999, 99999));
-            final savedSize = settings.savedRegularWindowSize ?? const Size(1280, 720);
+            final savedSize =
+                settings.savedRegularWindowSize ?? const Size(1280, 720);
             await windowManager.setSize(savedSize);
           }
         }
@@ -690,14 +699,20 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     );
 
     // Listen for incoming LAN file transfers
-    ref.listen<IncomingTransferRequest?>(incomingRequestProvider, (previous, next) {
+    ref.listen<IncomingTransferRequest?>(incomingRequestProvider, (
+      previous,
+      next,
+    ) {
       if (next != null) {
         showIncomingTransferDialog(context, next);
       }
     });
 
     // Listen for transfer session completions to show SnackBar notifications
-    ref.listen<List<TransferSession>>(activeTransfersProvider, (previous, next) {
+    ref.listen<List<TransferSession>>(activeTransfersProvider, (
+      previous,
+      next,
+    ) {
       if (previous == null) return;
 
       for (final session in next) {
@@ -709,18 +724,19 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
         final prevSession = prevList.isNotEmpty ? prevList.first : null;
 
         // If it was already finished in the previous state, don't show the SnackBar again
-        final wasFinished = prevSession != null && (
-          prevSession.status == TransferStatus.success ||
-          prevSession.status == TransferStatus.failed ||
-          prevSession.status == TransferStatus.cancelled
-        );
+        final wasFinished =
+            prevSession != null &&
+            (prevSession.status == TransferStatus.success ||
+                prevSession.status == TransferStatus.failed ||
+                prevSession.status == TransferStatus.cancelled);
 
         if (wasFinished) continue;
 
         // Check if the session has transitioned to a finished state
-        final isFinished = session.status == TransferStatus.success ||
-                           session.status == TransferStatus.failed ||
-                           session.status == TransferStatus.cancelled;
+        final isFinished =
+            session.status == TransferStatus.success ||
+            session.status == TransferStatus.failed ||
+            session.status == TransferStatus.cancelled;
 
         if (isFinished) {
           final isSuccess = session.status == TransferStatus.success;
@@ -728,13 +744,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
               ? '成功接收了 ${session.completedFilesCount ?? session.filesCount ?? 1} 首歌曲'
               : '接收 "${session.fileName}" 失败';
 
-          AppSnackBar.show(
-            context,
-            ref,
-            SnackBar(
-              content: Text(text),
-            ),
-          );
+          AppSnackBar.show(context, ref, SnackBar(content: Text(text)));
         }
       }
     });
@@ -742,13 +752,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     final uiState = ref.watch(mainLayoutUiControllerProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isLibrarySelectionActive = ref.watch(librarySelectionActiveProvider);
-    final hideMiniPlayerForSelection = ref.watch(folderSelectionModeProvider) || isLibrarySelectionActive;
+    final hideMiniPlayerForSelection =
+        ref.watch(folderSelectionModeProvider) || isLibrarySelectionActive;
     final isRootSelectionMode = ref.watch(folderRootSelectionModeProvider);
     final isPlaylistSelectionMode = ref.watch(playlistSelectionModeProvider);
     final isQueueSelectionMode = ref.watch(queueSelectionModeProvider);
     ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
-      if (_allowVolumeHUD && _lastVolume != null && (_lastVolume! - next).abs() > 0.1) {
+      if (_allowVolumeHUD &&
+          _lastVolume != null &&
+          (_lastVolume! - next).abs() > 0.1) {
         _triggerHUD();
       }
       _lastVolume = next;
@@ -775,7 +788,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       isSmallWindowMode: settings.isSmallWindowMode,
     );
     final bool isLandscape =
-        !isSmallWin && (MediaQuery.of(context).orientation == Orientation.landscape);
+        !isSmallWin &&
+        (MediaQuery.of(context).orientation == Orientation.landscape);
     final bool useSidebar = isLandscape;
     final bool hideImmersiveTabBar =
         isDesktop &&
@@ -784,7 +798,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
         !uiState.showImmersiveTabBar;
     final bool hideBottomBar = isPlayback && isSmallWin;
     final bool useOverlayBottomNav =
-        !useSidebar && isPlayback && settings.isImmersiveTabBarEnabled && !hideBottomBar;
+        !useSidebar &&
+        isPlayback &&
+        settings.isImmersiveTabBarEnabled &&
+        !hideBottomBar;
 
     if (!settings.hasShownOnboarding) {
       return Scaffold(
@@ -805,6 +822,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                 child: DesktopWindowTitleBar(
                   brightness: theme.brightness,
                   showSmallWindowButton: false,
+                  showButtonGroupBackground: isPlayback,
                 ),
               ),
           ],
@@ -952,27 +970,32 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                                 ? Brightness.dark
                                 : theme.brightness,
                             showSmallWindowButton: isPlayback,
+                            showButtonGroupBackground: isPlayback,
                           ),
                         ),
                       AnimatedPositioned(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutCubic,
-                        bottom: (!isPlayback && currentMusic != null && !hideMiniPlayerForSelection)
+                        bottom:
+                            (!isPlayback &&
+                                currentMusic != null &&
+                                !hideMiniPlayerForSelection)
                             ? ((useSidebar ? 20 : 80) +
-                                MediaQuery.of(context).padding.bottom +
-                                uiState.snackBarOffset +
-                                (((isRootSelectionMode && _currentIndex == 0) ||
-                                        (isPlaylistSelectionMode && _currentIndex == 2) ||
-                                        (isQueueSelectionMode && _currentIndex == 3))
-                                    ? 80.0
-                                    : 0.0))
+                                  MediaQuery.of(context).padding.bottom +
+                                  uiState.snackBarOffset +
+                                  (((isRootSelectionMode &&
+                                              _currentIndex == 0) ||
+                                          (isPlaylistSelectionMode &&
+                                              _currentIndex == 2) ||
+                                          (isQueueSelectionMode &&
+                                              _currentIndex == 3))
+                                      ? 80.0
+                                      : 0.0))
                             : -120.0,
                         left: 0,
                         right: 0,
                         child: Center(
-                          child:
-                              !isPlayback &&
-                                  currentMusic != null
+                          child: !isPlayback && currentMusic != null
                               ? Builder(
                                   builder: (context) {
                                     final audio = ref.read(
@@ -1018,16 +1041,28 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                                           ref
                                               .read(settingsServiceProvider)
                                               .resetInactivity();
-                                          final nextVisible = !_showMiniVolumeSlider;
-                                          ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(nextVisible);
+                                          final nextVisible =
+                                              !_showMiniVolumeSlider;
+                                          ref
+                                              .read(
+                                                mainLayoutUiControllerProvider
+                                                    .notifier,
+                                              )
+                                              .setVolumeSliderVisible(
+                                                nextVisible,
+                                              );
                                           setState(() {
-                                            _showMiniVolumeSlider =
-                                                nextVisible;
+                                            _showMiniVolumeSlider = nextVisible;
                                           });
                                         },
                                         onMiniMouseExit: () {
                                           if (!_showMiniVolumeSlider) return;
-                                          ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
+                                          ref
+                                              .read(
+                                                mainLayoutUiControllerProvider
+                                                    .notifier,
+                                              )
+                                              .setVolumeSliderVisible(false);
                                           setState(() {
                                             _showMiniVolumeSlider = false;
                                           });
@@ -1080,7 +1115,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                         ),
                     ],
                   ),
-                  bottomNavigationBar: hideBottomBar || useSidebar || useOverlayBottomNav
+                  bottomNavigationBar:
+                      hideBottomBar || useSidebar || useOverlayBottomNav
                       ? null
                       : _buildBottomNavigationBar(
                           context,

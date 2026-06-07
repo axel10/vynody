@@ -11,14 +11,17 @@ class DesktopWindowTitleBar extends ConsumerStatefulWidget {
     required this.brightness,
     this.height = 32,
     this.showSmallWindowButton = false,
+    this.showButtonGroupBackground = false,
   });
 
   final Brightness brightness;
   final double height;
   final bool showSmallWindowButton;
+  final bool showButtonGroupBackground;
 
   @override
-  ConsumerState<DesktopWindowTitleBar> createState() => _DesktopWindowTitleBarState();
+  ConsumerState<DesktopWindowTitleBar> createState() =>
+      _DesktopWindowTitleBarState();
 }
 
 class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
@@ -94,12 +97,8 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
 
   @override
   Widget build(BuildContext context) {
-    Color? hoverColor;
-    hoverColor = widget.brightness == Brightness.dark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.05);
-
     final isMacOS = Platform.isMacOS;
+    final isWindowsOrLinux = Platform.isWindows || Platform.isLinux;
     final settings = ref.watch(settingsServiceProvider);
     final isSmallWindowMode = settings.isSmallWindowMode;
     final showMiniButton = widget.showSmallWindowButton || isSmallWindowMode;
@@ -124,7 +123,9 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
           children: [
             if (isMacOS && showMiniButton) ...[
               _MacosSmallWindowButton(
-                icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
+                icon: isSmallWindowMode
+                    ? Icons.open_in_full
+                    : Icons.picture_in_picture_alt,
                 iconSize: isSmallWindowMode ? 16 : 18,
                 onPressed: () {
                   settings.isSmallWindowMode = !settings.isSmallWindowMode;
@@ -144,74 +145,78 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                 ),
             ],
             const Spacer(),
-            if (!isMacOS) ...[
-              if (showMiniButton) ...[
-                _WindowButton(
-                  icon: isSmallWindowMode ? Icons.open_in_full : Icons.picture_in_picture_alt,
-                  iconSize: isSmallWindowMode ? 16 : 18,
-                  brightness: widget.brightness,
-                  hoverColor: hoverColor,
-                  onPressed: () {
-                    settings.isSmallWindowMode = !settings.isSmallWindowMode;
-                  },
-                ),
-                if (isSmallWindowMode)
-                  _WindowButton(
-                    icon: Icons.queue_music,
-                    iconSize: 18,
-                    brightness: widget.brightness,
-                    hoverColor: hoverColor,
-                    color: settings.isSmallWindowQueueExpanded
-                        ? Theme.of(context).colorScheme.primary
-                        : null,
-                    onPressed: () {
-                      settings.isSmallWindowQueueExpanded =
-                          !settings.isSmallWindowQueueExpanded;
-                    },
+            if (isWindowsOrLinux)
+              _WindowsCapsuleButtons(
+                buttons: [
+                  if (showMiniButton) ...[
+                    _CapsuleButtonData(
+                      icon: isSmallWindowMode
+                          ? Icons.open_in_full
+                          : Icons.picture_in_picture_alt,
+                      iconSize: isSmallWindowMode ? 14 : 16,
+                      onPressed: () {
+                        settings.isSmallWindowMode =
+                            !settings.isSmallWindowMode;
+                      },
+                    ),
+                    if (isSmallWindowMode)
+                      _CapsuleButtonData(
+                        icon: Icons.queue_music,
+                        iconSize: 14,
+                        color: settings.isSmallWindowQueueExpanded
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () {
+                          settings.isSmallWindowQueueExpanded =
+                              !settings.isSmallWindowQueueExpanded;
+                        },
+                      ),
+                  ],
+                  if (!isSmallWindowMode) ...[
+                    _CapsuleButtonData(
+                      icon: _isFullScreen
+                          ? Icons.fullscreen_exit
+                          : Icons.fullscreen,
+                      iconSize: 16,
+                      onPressed: () => _setFullScreen(!_isFullScreen),
+                    ),
+                    _CapsuleButtonData(
+                      icon: Icons.remove,
+                      iconSize: 16,
+                      onPressed: () async {
+                        if (_isFullScreen) {
+                          await _setFullScreen(false);
+                        }
+                        await windowManager.minimize();
+                      },
+                    ),
+                    _CapsuleButtonData(
+                      icon: _isMaximized
+                          ? Icons.filter_none
+                          : Icons.crop_square,
+                      iconSize: 12,
+                      onPressed: () async {
+                        if (_isFullScreen) {
+                          await _setFullScreen(false);
+                        } else if (_isMaximized) {
+                          await windowManager.unmaximize();
+                        } else {
+                          await windowManager.maximize();
+                        }
+                      },
+                    ),
+                  ],
+                  _CapsuleButtonData(
+                    icon: Icons.close,
+                    iconSize: 16,
+                    isClose: true,
+                    onPressed: windowManager.close,
                   ),
-              ],
-              if (!isSmallWindowMode) ...[
-                _WindowButton(
-                  icon: _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                  brightness: widget.brightness,
-                  hoverColor: hoverColor,
-                  onPressed: () => _setFullScreen(!_isFullScreen),
-                ),
-                _WindowButton(
-                  icon: Icons.remove,
-                  brightness: widget.brightness,
-                  hoverColor: hoverColor,
-                  onPressed: () async {
-                    if (_isFullScreen) {
-                      await _setFullScreen(false);
-                    }
-                    await windowManager.minimize();
-                  },
-                ),
-                _WindowButton(
-                  icon: _isMaximized ? Icons.filter_none : Icons.crop_square,
-                  iconSize: 14,
-                  brightness: widget.brightness,
-                  hoverColor: hoverColor,
-                  onPressed: () async {
-                    if (_isFullScreen) {
-                      await _setFullScreen(false);
-                    } else if (_isMaximized) {
-                      await windowManager.unmaximize();
-                    } else {
-                      await windowManager.maximize();
-                    }
-                  },
-                ),
-              ],
-              _WindowButton(
-                icon: Icons.close,
-                isClose: true,
+                ],
                 brightness: widget.brightness,
-                hoverColor: hoverColor,
-                onPressed: windowManager.close,
+                height: widget.height,
+                showBackground: widget.showButtonGroupBackground,
               ),
-            ],
           ],
         ),
       ),
@@ -225,53 +230,6 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
     }
 
     return titleBarContent;
-  }
-}
-
-class _WindowButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-  final Brightness brightness;
-  final bool isClose;
-  final double iconSize;
-  final Color? hoverColor;
-  final Color? color;
-
-  const _WindowButton({
-    required this.icon,
-    required this.onPressed,
-    required this.brightness,
-    this.isClose = false,
-    this.iconSize = 18,
-    this.hoverColor,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Color iconColor = color ??
-        (brightness == Brightness.dark ? Colors.white : Colors.black87);
-
-    final Color effectiveHoverColor =
-        hoverColor ??
-        (isClose
-            ? Colors.red.withValues(alpha: 0.8)
-            : (brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.05)));
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        hoverColor: effectiveHoverColor,
-        child: SizedBox(
-          width: 46,
-          height: 32,
-          child: Icon(icon, color: iconColor, size: iconSize),
-        ),
-      ),
-    );
   }
 }
 
@@ -289,7 +247,8 @@ class _MacosSmallWindowButton extends StatefulWidget {
   });
 
   @override
-  State<_MacosSmallWindowButton> createState() => _MacosSmallWindowButtonState();
+  State<_MacosSmallWindowButton> createState() =>
+      _MacosSmallWindowButtonState();
 }
 
 class _MacosSmallWindowButtonState extends State<_MacosSmallWindowButton> {
@@ -348,6 +307,198 @@ class _MacosSmallWindowButtonState extends State<_MacosSmallWindowButton> {
                   ),
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CapsuleButtonData {
+  final IconData icon;
+  final VoidCallback onPressed;
+  final double iconSize;
+  final Color? color;
+  final bool isClose;
+
+  _CapsuleButtonData({
+    required this.icon,
+    required this.onPressed,
+    this.iconSize = 16,
+    this.color,
+    this.isClose = false,
+  });
+}
+
+class _WindowsCapsuleButtons extends StatelessWidget {
+  final List<_CapsuleButtonData> buttons;
+  final Brightness brightness;
+  final double height;
+  final bool showBackground;
+
+  const _WindowsCapsuleButtons({
+    required this.buttons,
+    required this.brightness,
+    required this.height,
+    required this.showBackground,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (buttons.isEmpty) return const SizedBox.shrink();
+
+    final isDark = brightness == Brightness.dark;
+
+    final Color capsuleBg = isDark
+        ? Colors.black.withValues(alpha: 0.12)
+        : Colors.black.withValues(alpha: 0.12);
+
+    final Color capsuleBorderColor = isDark
+        ? Colors.white.withValues(alpha: 0.15)
+        : Colors.black.withValues(alpha: 0.16);
+
+    if (!showBackground) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: SizedBox(
+          height: height,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: List.generate(buttons.length, (index) {
+              return _WindowsCapsuleButton(
+                data: buttons[index],
+                brightness: brightness,
+                height: height,
+              );
+            }),
+          ),
+        ),
+      );
+    }
+
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(13),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(13),
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              height: height,
+              padding: const EdgeInsets.only(left: 2),
+              decoration: BoxDecoration(
+                color: capsuleBg,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(13),
+                ),
+                border: Border.all(color: capsuleBorderColor, width: 0.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: List.generate(buttons.length, (index) {
+                  return _WindowsCapsuleButton(
+                    data: buttons[index],
+                    brightness: brightness,
+                    height: height,
+                  );
+                }),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WindowsCapsuleButton extends StatefulWidget {
+  final _CapsuleButtonData data;
+  final Brightness brightness;
+  final double height;
+
+  const _WindowsCapsuleButton({
+    required this.data,
+    required this.brightness,
+    required this.height,
+  });
+
+  @override
+  State<_WindowsCapsuleButton> createState() => _WindowsCapsuleButtonState();
+}
+
+class _WindowsCapsuleButtonState extends State<_WindowsCapsuleButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.brightness == Brightness.dark;
+    final buttonRadius = BorderRadius.only(
+      bottomLeft: const Radius.circular(6),
+      bottomRight: const Radius.circular(6),
+      topLeft: Radius.circular(widget.height / 8),
+      topRight: Radius.circular(widget.height / 8),
+    );
+
+    Color iconColor =
+        widget.data.color ?? (isDark ? Colors.white70 : Colors.black87);
+
+    if (_isHovered) {
+      if (widget.data.isClose) {
+        iconColor = Colors.white;
+      } else if (widget.data.color == null) {
+        iconColor = isDark ? Colors.white : Colors.black;
+      }
+    }
+
+    Color hoverBg;
+    if (widget.data.isClose) {
+      hoverBg = Colors.redAccent.withValues(alpha: 0.85);
+    } else {
+      hoverBg = isDark
+          ? Colors.white.withValues(alpha: 0.12)
+          : Colors.black.withValues(alpha: 0.10);
+    }
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.data.onPressed,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 36,
+          height: widget.height,
+          alignment: Alignment.center,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 32,
+            height: widget.height - 10,
+            decoration: BoxDecoration(
+              color: _isHovered ? hoverBg : Colors.transparent,
+              borderRadius: buttonRadius,
+            ),
+            child: Icon(
+              widget.data.icon,
+              size: widget.data.iconSize,
+              color: iconColor,
             ),
           ),
         ),
