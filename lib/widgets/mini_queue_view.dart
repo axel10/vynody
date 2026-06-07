@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/player/audio/audio_service.dart';
 import 'package:vibe_flow/models/music_file.dart';
 import '../l10n/app_localizations.dart';
+import 'package:vibe_flow/player/library/playlist_service.dart';
+import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 
 class MiniQueueView extends ConsumerWidget {
   const MiniQueueView({super.key});
@@ -12,6 +15,7 @@ class MiniQueueView extends ConsumerWidget {
     final queue = ref.watch(audioPlaybackQueueProvider);
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     final audioService = ref.read(audioServiceProvider);
+    final playlistService = ref.read(playlistServiceProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
@@ -33,7 +37,12 @@ class MiniQueueView extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 12.0, bottom: 6.0),
+            padding: const EdgeInsets.only(
+              left: 16.0,
+              right: 16.0,
+              top: 12.0,
+              bottom: 6.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -54,7 +63,9 @@ class MiniQueueView extends ConsumerWidget {
                     child: Text(
                       l10n.queueEmpty,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                   )
@@ -68,6 +79,8 @@ class MiniQueueView extends ConsumerWidget {
                       return _MiniQueueTile(
                         song: song,
                         isCurrent: isCurrent,
+                        playlistService: playlistService,
+                        audioService: audioService,
                         onTap: () {
                           audioService.playAtIndex(index);
                         },
@@ -87,12 +100,16 @@ class MiniQueueView extends ConsumerWidget {
 class _MiniQueueTile extends StatefulWidget {
   final MusicFile song;
   final bool isCurrent;
+  final PlaylistService playlistService;
+  final AudioService audioService;
   final VoidCallback onTap;
   final VoidCallback onRemove;
 
   const _MiniQueueTile({
     required this.song,
     required this.isCurrent,
+    required this.playlistService,
+    required this.audioService,
     required this.onTap,
     required this.onRemove,
   });
@@ -109,82 +126,133 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
 
+    void showMenuAt(Offset globalPosition) {
+      final songs = <MusicFile>[widget.song];
+      showSongContextMenu(
+        context,
+        globalPosition,
+        song: widget.song,
+        songs: songs,
+        mode: SongContextMenuMode.full,
+        onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+          context,
+          widget.playlistService,
+          songs,
+        ),
+        onPlayNext: widget.isCurrent
+            ? null
+            : () {
+                final queueIndex = widget.audioService.playbackQueue.indexWhere(
+                  (queuedSong) => queuedSong.path == widget.song.path,
+                );
+                final currentIndex = widget.audioService.currentIndex;
+                if (queueIndex < 0 || currentIndex < 0) return;
+                widget.audioService.moveQueueTrack(
+                  queueIndex,
+                  currentIndex + 1,
+                );
+              },
+        onRemoveFromQueue: () {
+          final queueIndex = widget.audioService.playbackQueue.indexWhere(
+            (queuedSong) => queuedSong.path == widget.song.path,
+          );
+          if (queueIndex >= 0) {
+            widget.audioService.removeFromPlaylist(queueIndex);
+          }
+        },
+      );
+    }
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: widget.onTap,
-          hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              children: [
-                if (widget.isCurrent) ...[
-                  Icon(
-                    Icons.volume_up_rounded,
-                    color: primaryColor,
-                    size: 14,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: (details) => showMenuAt(details.globalPosition),
+        onLongPressStart: (details) => showMenuAt(details.globalPosition),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: Row(
+                children: [
+                  if (widget.isCurrent) ...[
+                    Icon(
+                      Icons.volume_up_rounded,
+                      color: primaryColor,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.song.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: widget.isCurrent
+                                ? primaryColor
+                                : theme.colorScheme.onSurface,
+                            fontWeight: widget.isCurrent
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.song.artist ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: widget.isCurrent
+                                ? primaryColor.withValues(alpha: 0.7)
+                                : theme.colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
+                  if (_isHovered)
+                    IconButton(
+                      style: IconButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(28, 28),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: theme.colorScheme.error.withValues(alpha: 0.8),
+                      ),
+                      onPressed: widget.onRemove,
+                    )
+                  else
+                    Text(
+                      _formatDuration(widget.song.durationMillis),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: widget.isCurrent
+                            ? primaryColor.withValues(alpha: 0.6)
+                            : theme.colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.7,
+                              ),
+                        fontSize: 10,
+                      ),
+                    ),
                 ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.song.displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: widget.isCurrent ? primaryColor : theme.colorScheme.onSurface,
-                          fontWeight: widget.isCurrent ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.song.artist ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: widget.isCurrent
-                              ? primaryColor.withValues(alpha: 0.7)
-                              : theme.colorScheme.onSurfaceVariant,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (_isHovered)
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(28, 28),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    icon: Icon(
-                      Icons.close_rounded,
-                      size: 16,
-                      color: theme.colorScheme.error.withValues(alpha: 0.8),
-                    ),
-                    onPressed: widget.onRemove,
-                  )
-                else
-                  Text(
-                    _formatDuration(widget.song.durationMillis),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: widget.isCurrent
-                          ? primaryColor.withValues(alpha: 0.6)
-                          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      fontSize: 10,
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
         ),
