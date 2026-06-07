@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.19.0
+version: 0.20.0
 
 environment:
   sdk: ^3.11.1
@@ -188,7 +188,7 @@ flutter_launcher_icons:
   image_path: "assets/images/icon.png"
   windows:
     generate: true
-    image_path: "assets/images/icon.png"
+    image_path: "assets/images/icon-windows.png"
     icon_size: 256 # Windows 图标最大尺寸，插件会自动处理生成 .ico
   macos:
     generate: true
@@ -201,7 +201,7 @@ msix_config:
   display_name: VibeFlow
   publisher_display_name: VibeFlow
   identity_name: app.vibeflow.player
-  logo_path: assets/images/icon.png
+  logo_path: assets/images/icon-windows.png
   output_name: VibeFlow
   output_path: build/windows/msix
   install_certificate: false
