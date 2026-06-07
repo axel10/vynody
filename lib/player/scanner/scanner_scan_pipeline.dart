@@ -21,10 +21,10 @@ class ScannerScanPipeline {
   final ScannerMetadataStore _metadataStore;
 
   void _logTiming(String label, Stopwatch stopwatch) {
-    if (!kDebugMode) return;
-    debugPrint(
-      '[ScannerScanPipeline] $label took ${stopwatch.elapsedMilliseconds} ms',
-    );
+    // if (!kDebugMode) return;
+    // debugPrint(
+    //   '[ScannerScanPipeline] $label took ${stopwatch.elapsedMilliseconds} ms',
+    // );
   }
 
   Future<Map<String, int?>> loadLastModifiedTimes(
