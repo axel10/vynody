@@ -257,13 +257,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   Future<void> _setFullScreen(bool enable) async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       if (enable) {
-        await windowManager.maximize();
         await windowManager.setFullScreen(true);
       } else {
         await windowManager.setFullScreen(false);
-        // 等待原生窗口状态同步，确保 unmaximize 能够正确执行
-        // await Future.delayed(const Duration(milliseconds: 100));
-        await windowManager.unmaximize();
       }
     }
   }

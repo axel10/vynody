@@ -87,12 +87,11 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
 
   Future<void> _setFullScreen(bool enable) async {
     if (enable) {
-      await windowManager.maximize();
       await windowManager.setFullScreen(true);
     } else {
       await windowManager.setFullScreen(false);
-      await windowManager.unmaximize();
     }
+    await _syncWindowState();
   }
 
   @override
@@ -178,7 +177,9 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                           ? Icons.fullscreen_exit
                           : Icons.fullscreen,
                       iconSize: 16,
-                      onPressed: () => _setFullScreen(!_isFullScreen),
+                      onPressed: () async {
+                        await _setFullScreen(!_isFullScreen);
+                      },
                     ),
                     _CapsuleButtonData(
                       icon: Icons.remove,
