@@ -2833,6 +2833,54 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'共享'**
   String get share;
+
+  /// No description provided for @windowsSettingsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Windows 专属设置'**
+  String get windowsSettingsTitle;
+
+  /// No description provided for @fileAssociationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件打开方式关联'**
+  String get fileAssociationTitle;
+
+  /// No description provided for @fileAssociationDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'将常见的音乐格式（mp3, flac, wav 等）关联到此应用，支持双击直接打开播放。'**
+  String get fileAssociationDescription;
+
+  /// No description provided for @associateButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'一键关联'**
+  String get associateButton;
+
+  /// No description provided for @disassociateButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消关联'**
+  String get disassociateButton;
+
+  /// No description provided for @associationSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'关联成功！若双击文件未生效，请在 Windows 系统设置的【默认应用】中选择 VibeFlow。'**
+  String get associationSuccess;
+
+  /// No description provided for @disassociationSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'已成功清除文件关联。'**
+  String get disassociationSuccess;
+
+  /// No description provided for @associationFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'关联失败：{error}'**
+  String associationFailed(Object error);
 }
 
 class _AppLocalizationsDelegate

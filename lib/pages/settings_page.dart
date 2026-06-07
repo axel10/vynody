@@ -14,6 +14,7 @@ import 'package:vibe_flow/player/ai/ai_api_key_service.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 import '../transcode/transcode_models.dart';
+import 'package:vibe_flow/player/settings/windows_association_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../widgets/desktop_window_title_bar.dart';
 
@@ -47,11 +48,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   List<GeminiModelInfo> _geminiModels = const [];
   bool _isLoadingGeminiModels = false;
   String _appVersion = '';
+  bool _isAssociated = false;
 
   @override
   void initState() {
     super.initState();
     _loadVersion();
+    _checkAssociationStatus();
   }
 
   Future<void> _loadVersion() async {
@@ -63,6 +66,88 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _checkAssociationStatus() async {
+    if (Platform.isWindows) {
+      final status = await WindowsAssociationService.isAssociated();
+      if (mounted) {
+        setState(() {
+          _isAssociated = status;
+        });
+      }
+    }
+  }
+
+  Widget _buildWindowsSection(BuildContext context) {
+    if (!Platform.isWindows) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1),
+        _buildSectionHeader(
+          l10n.windowsSettingsTitle,
+          l10n.fileAssociationDescription,
+        ),
+        ListTile(
+          leading: const Icon(Icons.open_in_new_rounded),
+          title: Text(l10n.fileAssociationTitle),
+          subtitle: Text(
+            _isAssociated
+                ? '已开启关联 (Associated)'
+                : '未开启关联 (Not Associated)',
+            style: TextStyle(
+              color: _isAssociated ? Colors.green : Colors.orange,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              FilledButton.tonal(
+                onPressed: () async {
+                  try {
+                    await WindowsAssociationService.associate();
+                    await _checkAssociationStatus();
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.associationSuccess)),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.associationFailed(e.toString()))),
+                    );
+                  }
+                },
+                child: Text(l10n.associateButton),
+              ),
+              if (_isAssociated)
+                OutlinedButton(
+                  onPressed: () async {
+                    try {
+                      await WindowsAssociationService.disassociate();
+                      await _checkAssociationStatus();
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.disassociationSuccess)),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.associationFailed(e.toString()))),
+                      );
+                    }
+                  },
+                  child: Text(l10n.disassociateButton),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   List<GeminiModelInfo> _mergedGeminiModels(SettingsService settings) {
@@ -764,6 +849,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ),
+        _buildWindowsSection(context),
         const Divider(height: 40, thickness: 1, indent: 16, endIndent: 16),
         Padding(
           padding: const EdgeInsets.only(bottom: 24),

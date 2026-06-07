@@ -1457,4 +1457,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get share => '共享';
+
+  @override
+  String get windowsSettingsTitle => 'Windows 专属设置';
+
+  @override
+  String get fileAssociationTitle => '文件打开方式关联';
+
+  @override
+  String get fileAssociationDescription =>
+      '将常见的音乐格式（mp3, flac, wav 等）关联到此应用，支持双击直接打开播放。';
+
+  @override
+  String get associateButton => '一键关联';
+
+  @override
+  String get disassociateButton => '取消关联';
+
+  @override
+  String get associationSuccess =>
+      '关联成功！若双击文件未生效，请在 Windows 系统设置的【默认应用】中选择 VibeFlow。';
+
+  @override
+  String get disassociationSuccess => '已成功清除文件关联。';
+
+  @override
+  String associationFailed(Object error) {
+    return '关联失败：$error';
+  }
 }

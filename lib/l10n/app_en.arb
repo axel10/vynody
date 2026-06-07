@@ -618,5 +618,18 @@
   "share": "Share",
   "@share": {
     "description": "Share tab label"
+  },
+  "windowsSettingsTitle": "Windows Settings",
+  "fileAssociationTitle": "File Association",
+  "fileAssociationDescription": "Associate common music formats (mp3, flac, wav, etc.) with this app to open them by double-clicking.",
+  "associateButton": "Associate",
+  "disassociateButton": "Remove",
+  "associationSuccess": "Association successful! If double-clicking doesn't work, please select VibeFlow in Windows Default Apps settings.",
+  "disassociationSuccess": "File association removed successfully.",
+  "associationFailed": "Failed to associate: {error}",
+  "@associationFailed": {
+    "placeholders": {
+      "error": {}
+    }
   }
 }

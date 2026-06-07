@@ -1501,4 +1501,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get share => 'Share';
+
+  @override
+  String get windowsSettingsTitle => 'Windows Settings';
+
+  @override
+  String get fileAssociationTitle => 'File Association';
+
+  @override
+  String get fileAssociationDescription =>
+      'Associate common music formats (mp3, flac, wav, etc.) with this app to open them by double-clicking.';
+
+  @override
+  String get associateButton => 'Associate';
+
+  @override
+  String get disassociateButton => 'Remove';
+
+  @override
+  String get associationSuccess =>
+      'Association successful! If double-clicking doesn\'t work, please select VibeFlow in Windows Default Apps settings.';
+
+  @override
+  String get disassociationSuccess => 'File association removed successfully.';
+
+  @override
+  String associationFailed(Object error) {
+    return 'Failed to associate: $error';
+  }
 }
