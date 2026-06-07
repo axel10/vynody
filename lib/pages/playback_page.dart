@@ -1333,7 +1333,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 switchInCurve: Curves.easeOut,
                 switchOutCurve: Curves.easeIn,
                 transitionBuilder: (child, animation) {
-                  return FadeTransition(opacity: animation, child: child);
+                  final isIncoming = child.key == content.key;
+                  if (isIncoming) {
+                    return FadeTransition(opacity: animation, child: child);
+                  } else {
+                    return child;
+                  }
                 },
                 child: content,
               );
