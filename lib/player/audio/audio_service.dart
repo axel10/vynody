@@ -364,7 +364,8 @@ class AudioService extends Notifier<AudioSnapshot> {
   AudioSnapshot build() {
     settingsService = ref.read(settingsServiceProvider);
     _volume = settingsService.prefs.getDouble(_volumeStorageKey) ?? 100.0;
-    _previousVolume = settingsService.prefs.getDouble(_previousVolumeStorageKey) ?? 100.0;
+    _previousVolume =
+        settingsService.prefs.getDouble(_previousVolumeStorageKey) ?? 100.0;
     _isMuted = settingsService.prefs.getBool(_isMutedStorageKey) ?? false;
 
     _player = AudioCoreController(
@@ -415,7 +416,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         if (_disposed) return;
         await _restorePlaybackSession();
         if (_disposed) return;
-        
+
         final targetVolume = _isMuted ? 0.0 : _volume;
         await _player.player.setVolume(targetVolume / 100.0);
         _initialVolumeApplied = true;
@@ -2067,6 +2068,40 @@ class AudioService extends Notifier<AudioSnapshot> {
     unawaited(_persistPlaybackSession());
   }
 
+  /// Insert songs into the playback queue at a specific index.
+  ///
+  /// The current track keeps playing, and the current index is shifted forward
+  /// when the insertion happens before it.
+  Future<void> insertIntoQueueAt(int index, List<MusicFile> songs) async {
+    if (songs.isEmpty) return;
+
+    final insertAt = index.clamp(0, _queue.length).toInt();
+    if (insertAt >= _queue.length) {
+      await appendToQueue(songs);
+      return;
+    }
+
+    final shouldShiftCurrentIndex =
+        _currentIndex >= 0 && insertAt <= _currentIndex;
+
+    for (var i = 0; i < songs.length; i++) {
+      final song = songs[i];
+      _queue.insert(insertAt + i, song);
+      await _player.playlist.insertTrack(
+        insertAt + i,
+        _audioTrackForSong(song),
+      );
+    }
+
+    if (shouldShiftCurrentIndex) {
+      _currentIndex += songs.length;
+    }
+
+    _startQueueBackgroundProcessing(priorityPath: currentMusic?.path);
+    notifyListeners();
+    unawaited(_persistPlaybackSession());
+  }
+
   Future<void> enqueueNext(List<MusicFile> songs) async {
     if (songs.isEmpty) return;
 
@@ -2215,11 +2250,11 @@ class AudioService extends Notifier<AudioSnapshot> {
       _isMuted = false;
     }
     await _player.player.setVolume(_volume / 100.0);
-    
+
     final prefs = settingsService.prefs;
     unawaited(prefs.setDouble(_volumeStorageKey, _volume));
     unawaited(prefs.setBool(_isMutedStorageKey, _isMuted));
-    
+
     notifyListeners();
   }
 

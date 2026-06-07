@@ -10,8 +10,9 @@ import 'package:vibe_flow/models/music_file.dart';
 
 class GlobalDropTarget extends ConsumerStatefulWidget {
   final Widget child;
+  final bool enable;
 
-  const GlobalDropTarget({super.key, required this.child});
+  const GlobalDropTarget({super.key, required this.child, this.enable = true});
 
   @override
   ConsumerState<GlobalDropTarget> createState() => _GlobalDropTargetState();
@@ -51,8 +52,10 @@ class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
   @override
   Widget build(BuildContext context) {
     return DropTarget(
+      enable: widget.enable,
       // 处理拖放完成事件
       onDragDone: (details) async {
+        if (!widget.enable) return;
         final audio = ref.read(audioServiceProvider);
         final messenger = ScaffoldMessenger.of(context);
         final l10n = AppLocalizations.of(context)!;
@@ -115,11 +118,7 @@ class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
             ? l10n.dropAddedSongsWithExisting(newSongs.length, existingCount)
             : l10n.dropAddedSongs(newSongs.length);
 
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(message),
-          ),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(message)));
 
         // 多文件拖入只做静默入队，不改变当前播放歌曲。
       },

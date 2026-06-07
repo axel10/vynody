@@ -889,6 +889,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
               _handleBackPressed();
             },
             child: GlobalDropTarget(
+              enable: _currentIndex != 3,
               child: Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: _handleDesktopPointerActivity,
