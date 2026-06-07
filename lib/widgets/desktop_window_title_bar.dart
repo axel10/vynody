@@ -351,9 +351,7 @@ class _WindowsCapsuleButtons extends StatelessWidget {
 
     final isDark = brightness == Brightness.dark;
 
-    final Color capsuleBg = isDark
-        ? Colors.black.withValues(alpha: 0.12)
-        : Colors.black.withValues(alpha: 0.12);
+    final Color capsuleBg = Colors.black.withValues(alpha: 0.12);
 
     final Color capsuleBorderColor = isDark
         ? Colors.white.withValues(alpha: 0.15)
