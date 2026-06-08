@@ -1127,6 +1127,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'These settings only affect lyric generation and timeline generation.';
 
   @override
+  String get lyricsTranslationTargetLanguageLabel =>
+      'Translation target language';
+
+  @override
+  String get lyricsTranslationTargetLanguageDescription =>
+      'Defaults to the system language, or choose one manually.';
+
+  @override
+  String get followSystemLanguage => 'Follow system';
+
+  @override
   String get autoSwitchLyricsProvider => 'Auto-switch lyric provider';
 
   @override

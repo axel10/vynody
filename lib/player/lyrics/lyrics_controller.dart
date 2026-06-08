@@ -65,6 +65,16 @@ class LyricsController extends Notifier<LyricsControllerState> {
       cacheRepository: _lyricsCacheRepository,
     );
     _settingsService = ref.read(settingsServiceProvider);
+    ref.listen(settingsServiceProvider, (previous, next) {
+      final effectiveLanguageCode =
+          next.effectiveLyricsTranslationTargetLanguageCode;
+      if (state.lyricsTranslationLanguageCode == effectiveLanguageCode) {
+        return;
+      }
+      state = state.copyWith(
+        lyricsTranslationLanguageCode: effectiveLanguageCode,
+      );
+    });
     _lyricsAiService = ref.read(lyricsAiServiceProvider);
     _context = LyricsControllerContext(
       db: _db,
@@ -108,7 +118,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _translationCoordinator = LyricsTranslationCoordinator(_context, _support);
     return LyricsControllerState(
       lyricsTranslationLanguageCode:
-          LanguageCodeUtils.currentSystemLanguageCode(),
+          _settingsService.effectiveLyricsTranslationTargetLanguageCode,
     );
   }
 
@@ -180,11 +190,17 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   void setTranslationLanguageCode(String languageCode) {
     final normalized = LanguageCodeUtils.normalizeLanguageCode(languageCode);
-    if (normalized.isEmpty ||
-        normalized == state.lyricsTranslationLanguageCode) {
+    final effective = normalized.isEmpty
+        ? LanguageCodeUtils.currentSystemLanguageCode()
+        : normalized;
+
+    if (_settingsService.lyricsTranslationTargetLanguageCode != normalized) {
+      _settingsService.lyricsTranslationTargetLanguageCode = normalized;
+    }
+    if (state.lyricsTranslationLanguageCode == effective) {
       return;
     }
-    state = state.copyWith(lyricsTranslationLanguageCode: normalized);
+    state = state.copyWith(lyricsTranslationLanguageCode: effective);
   }
 
   void clearState({bool notify = false, bool preserveTaskState = true}) {

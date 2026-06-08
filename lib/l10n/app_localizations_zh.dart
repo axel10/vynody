@@ -1095,6 +1095,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lyricsSectionDescription => '这里的配置只影响歌词生成和时间轴生成。';
 
   @override
+  String get lyricsTranslationTargetLanguageLabel => '翻译目标语言';
+
+  @override
+  String get lyricsTranslationTargetLanguageDescription => '默认跟随系统语言，也可以单独指定。';
+
+  @override
+  String get followSystemLanguage => '跟随系统';
+
+  @override
   String get autoSwitchLyricsProvider => '自动切换歌词供应商';
 
   @override

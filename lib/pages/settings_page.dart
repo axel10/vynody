@@ -17,6 +17,7 @@ import '../transcode/transcode_models.dart';
 import 'package:vibe_flow/player/settings/windows_association_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../widgets/desktop_window_title_bar.dart';
+import 'package:vibe_flow/utils/language_code_utils.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -29,13 +30,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   static final List<GeminiModelInfo> _defaultGeminiModels = [
     GeminiModelInfo(
       id: SettingsService.defaultGeminiPrimaryModelId,
-      displayName:
-          SettingsService.geminiModelDisplayName(SettingsService.defaultGeminiPrimaryModelId),
+      displayName: SettingsService.geminiModelDisplayName(
+        SettingsService.defaultGeminiPrimaryModelId,
+      ),
     ),
     GeminiModelInfo(
       id: SettingsService.defaultGeminiFallbackModelId,
-      displayName:
-          SettingsService.geminiModelDisplayName(SettingsService.defaultGeminiFallbackModelId),
+      displayName: SettingsService.geminiModelDisplayName(
+        SettingsService.defaultGeminiFallbackModelId,
+      ),
     ),
     GeminiModelInfo(
       id: SettingsService.defaultGeminiTranslationModelId,
@@ -95,9 +98,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           leading: const Icon(Icons.open_in_new_rounded),
           title: Text(l10n.fileAssociationTitle),
           subtitle: Text(
-            _isAssociated
-                ? '已开启关联 (Associated)'
-                : '未开启关联 (Not Associated)',
+            _isAssociated ? '已开启关联 (Associated)' : '未开启关联 (Not Associated)',
             style: TextStyle(
               color: _isAssociated ? Colors.green : Colors.orange,
               fontWeight: FontWeight.w500,
@@ -118,7 +119,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   } catch (e) {
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.associationFailed(e.toString()))),
+                      SnackBar(
+                        content: Text(l10n.associationFailed(e.toString())),
+                      ),
                     );
                   }
                 },
@@ -137,7 +140,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     } catch (e) {
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.associationFailed(e.toString()))),
+                        SnackBar(
+                          content: Text(l10n.associationFailed(e.toString())),
+                        ),
                       );
                     }
                   },
@@ -506,6 +511,67 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  String _translationLanguageLabel(BuildContext context, String languageCode) {
+    final l10n = AppLocalizations.of(context)!;
+    final normalized = LanguageCodeUtils.normalizeLanguageCode(languageCode);
+    if (normalized.isEmpty) {
+      return l10n.followSystemLanguage;
+    }
+    return LanguageCodeUtils.languageDisplayName(normalized);
+  }
+
+  List<DropdownMenuItem<String>> _translationLanguageItems(
+    BuildContext context,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      DropdownMenuItem<String>(
+        value: '',
+        child: Text(l10n.followSystemLanguage),
+      ),
+      ...LanguageCodeUtils.supportedTranslationLanguageCodes.map(
+        (languageCode) => DropdownMenuItem<String>(
+          value: languageCode,
+          child: Text(_translationLanguageLabel(context, languageCode)),
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildLyricsTranslationLanguageSection(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final value = settings.lyricsTranslationTargetLanguageCode;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.lyricsTranslationTargetLanguageDescription,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: value.isEmpty ? '' : value,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.lyricsTranslationTargetLanguageLabel,
+              border: const OutlineInputBorder(),
+            ),
+            items: _translationLanguageItems(context),
+            onChanged: (newValue) {
+              if (newValue == null) return;
+              settings.lyricsTranslationTargetLanguageCode = newValue;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTranscodeSection(
     BuildContext context,
     SettingsService settings,
@@ -720,6 +786,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           l10n.lyricsSectionTitle,
           l10n.lyricsSectionDescription,
         ),
+        _buildLyricsTranslationLanguageSection(context, settings),
         SwitchListTile(
           title: Text(l10n.autoSwitchLyricsProvider),
           subtitle: Text(
@@ -881,7 +948,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
               const SizedBox(height: 8),
@@ -892,12 +961,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 },
                 borderRadius: BorderRadius.circular(4),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   child: Text(
                     'https://github.com/axel10/vibe_flow',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.8),
                       decoration: TextDecoration.underline,
                     ),
                   ),

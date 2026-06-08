@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vibe_flow/player/settings/shortcut_bindings.dart';
 import 'package:vibe_flow/transcode/transcode_models.dart';
+import 'package:vibe_flow/utils/language_code_utils.dart';
 
 enum LyricsAiProvider { googleAiStudio, openRouter }
 
@@ -64,8 +65,10 @@ class SettingProperty<T> {
   final T defaultValue;
   final SharedPreferences prefs;
   final VoidCallback? onChanged;
-  final T Function(SharedPreferences prefs, String key, T defaultValue)? customRead;
-  final void Function(SharedPreferences prefs, String key, T value)? customWrite;
+  final T Function(SharedPreferences prefs, String key, T defaultValue)?
+  customRead;
+  final void Function(SharedPreferences prefs, String key, T value)?
+  customWrite;
 
   T _value;
 
@@ -138,8 +141,7 @@ class SettingProperty<T> {
 }
 
 class SettingsService extends ChangeNotifier {
-  static const String defaultGeminiPrimaryModelId =
-      'gemini-flash-lite-latest';
+  static const String defaultGeminiPrimaryModelId = 'gemini-flash-lite-latest';
   static const String defaultGeminiFallbackModelId = 'gemini-2.5-flash';
   static const String defaultGeminiTranslationModelId = 'gemma-4-31b-it';
   static const String _keyThemeMode = 'theme_mode';
@@ -151,6 +153,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLyricsAiProvider = 'lyrics_ai_provider';
   static const String _keyLyricsAiAutoSwitchEnabled =
       'lyrics_ai_auto_switch_enabled';
+  static const String _keyLyricsTranslationTargetLanguage =
+      'lyrics_translation_target_language';
   static const String _keyLyricsFontScale = 'lyrics_font_scale';
   static const String _keyGeminiPrimaryModelId = 'gemini_primary_model_id';
   static const String _keyGeminiFallbackModelId = 'gemini_fallback_model_id';
@@ -180,13 +184,19 @@ class SettingsService extends ChangeNotifier {
   static const String _keyVisualizerDynamicEndColor =
       'visualizer_dynamic_end_color';
   static const String _keyPlaybackBackgroundType = 'playback_background_type';
-  static const String _keyPlaybackRadialGradientEnabled = 'playback_radial_gradient_enabled';
+  static const String _keyPlaybackRadialGradientEnabled =
+      'playback_radial_gradient_enabled';
   static const String _keyPlaybackBackgroundColor = 'playback_background_color';
-  static const String _keyPlaybackBackgroundCustomImagePath = 'playback_background_custom_image_path';
-  static const String _keyPlaybackBackgroundNormalOpacity = 'playback_background_normal_opacity';
-  static const String _keyPlaybackBackgroundLyricsOpacity = 'playback_background_lyrics_opacity';
-  static const String _keyPlaybackBlurredArtworkBlurSigma = 'playback_blurred_artwork_blur_sigma';
-  static const String _keyPlaybackCustomImageBlurSigma = 'playback_custom_image_blur_sigma';
+  static const String _keyPlaybackBackgroundCustomImagePath =
+      'playback_background_custom_image_path';
+  static const String _keyPlaybackBackgroundNormalOpacity =
+      'playback_background_normal_opacity';
+  static const String _keyPlaybackBackgroundLyricsOpacity =
+      'playback_background_lyrics_opacity';
+  static const String _keyPlaybackBlurredArtworkBlurSigma =
+      'playback_blurred_artwork_blur_sigma';
+  static const String _keyPlaybackCustomImageBlurSigma =
+      'playback_custom_image_blur_sigma';
   static const String _keyPlaybackMeshBackgroundSpeed =
       'playback_mesh_background_speed';
   static const String _keyIsAutoMode = 'visualizer_auto_mode';
@@ -243,7 +253,8 @@ class SettingsService extends ChangeNotifier {
     defaultValue: ThemeMode.system,
     prefs: _prefs,
     onChanged: notifyListeners,
-    customRead: (prefs, key, def) => ThemeModeX.fromStorageValue(prefs.getString(key)),
+    customRead: (prefs, key, def) =>
+        ThemeModeX.fromStorageValue(prefs.getString(key)),
     customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
   );
 
@@ -273,7 +284,8 @@ class SettingsService extends ChangeNotifier {
     defaultValue: LyricsAiProvider.googleAiStudio,
     prefs: _prefs,
     onChanged: notifyListeners,
-    customRead: (prefs, key, def) => LyricsAiProviderX.fromStorageValue(prefs.getString(key)),
+    customRead: (prefs, key, def) =>
+        LyricsAiProviderX.fromStorageValue(prefs.getString(key)),
     customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
   );
 
@@ -284,13 +296,36 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _lyricsTranslationTargetLanguageProperty = SettingProperty<String>(
+    key: _keyLyricsTranslationTargetLanguage,
+    defaultValue: '',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) {
+      final value = LanguageCodeUtils.normalizeLanguageCode(
+        prefs.getString(key),
+      );
+      return value.isEmpty ? def : value;
+    },
+    customWrite: (prefs, key, val) {
+      final normalized = LanguageCodeUtils.normalizeLanguageCode(val);
+      if (normalized.isEmpty) {
+        prefs.remove(key);
+      } else {
+        prefs.setString(key, normalized);
+      }
+    },
+  );
+
   late final _lyricsFontScaleProperty = SettingProperty<double>(
     key: _keyLyricsFontScale,
     defaultValue: defaultLyricsFontScale,
     prefs: _prefs,
     onChanged: notifyListeners,
-    customRead: (prefs, key, def) => _normalizeLyricsFontScale(prefs.getDouble(key) ?? def),
-    customWrite: (prefs, key, val) => prefs.setDouble(key, _normalizeLyricsFontScale(val)),
+    customRead: (prefs, key, def) =>
+        _normalizeLyricsFontScale(prefs.getDouble(key) ?? def),
+    customWrite: (prefs, key, val) =>
+        prefs.setDouble(key, _normalizeLyricsFontScale(val)),
   );
 
   late final _geminiPrimaryModelIdProperty = SettingProperty<String>(
@@ -451,12 +486,13 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
-  late final _playbackBackgroundCustomImagePathProperty = SettingProperty<String>(
-    key: _keyPlaybackBackgroundCustomImagePath,
-    defaultValue: '',
-    prefs: _prefs,
-    onChanged: notifyListeners,
-  );
+  late final _playbackBackgroundCustomImagePathProperty =
+      SettingProperty<String>(
+        key: _keyPlaybackBackgroundCustomImagePath,
+        defaultValue: '',
+        prefs: _prefs,
+        onChanged: notifyListeners,
+      );
 
   late final _playbackBackgroundNormalOpacityProperty = SettingProperty<double>(
     key: _keyPlaybackBackgroundNormalOpacity,
@@ -563,15 +599,16 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
-  late final _skipShortAudioScanMinimumDurationSecondsProperty = SettingProperty<int>(
-    key: skipShortAudioScanMinimumDurationSecondsStorageKey,
-    defaultValue: defaultSkipShortAudioScanMinimumDurationSeconds,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-    customWrite: (prefs, key, val) {
-      prefs.setInt(key, val.clamp(1, 3600).toInt());
-    },
-  );
+  late final _skipShortAudioScanMinimumDurationSecondsProperty =
+      SettingProperty<int>(
+        key: skipShortAudioScanMinimumDurationSecondsStorageKey,
+        defaultValue: defaultSkipShortAudioScanMinimumDurationSeconds,
+        prefs: _prefs,
+        onChanged: notifyListeners,
+        customWrite: (prefs, key, val) {
+          prefs.setInt(key, val.clamp(1, 3600).toInt());
+        },
+      );
 
   late final _randomRangeProperty = SettingProperty<int>(
     key: _keyRandomRange,
@@ -592,18 +629,22 @@ class SettingsService extends ChangeNotifier {
     defaultValue: AudioFormat.m4a,
     prefs: _prefs,
     onChanged: notifyListeners,
-    customRead: (prefs, key, def) => _audioFormatFromStorageValue(prefs.getString(key)),
+    customRead: (prefs, key, def) =>
+        _audioFormatFromStorageValue(prefs.getString(key)),
     customWrite: (prefs, key, val) => prefs.setString(key, val.value),
   );
 
-  late final _transcodeDefaultQualityTierProperty = SettingProperty<TranscodeQualityTier>(
-    key: _keyTranscodeDefaultQualityTier,
-    defaultValue: TranscodeQualityTier.medium,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-    customRead: (prefs, key, def) => TranscodeQualityTierX.fromStorageValue(prefs.getString(key)),
-    customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
-  );
+  late final _transcodeDefaultQualityTierProperty =
+      SettingProperty<TranscodeQualityTier>(
+        key: _keyTranscodeDefaultQualityTier,
+        defaultValue: TranscodeQualityTier.medium,
+        prefs: _prefs,
+        onChanged: notifyListeners,
+        customRead: (prefs, key, def) =>
+            TranscodeQualityTierX.fromStorageValue(prefs.getString(key)),
+        customWrite: (prefs, key, val) =>
+            prefs.setString(key, val.storageValue),
+      );
 
   late final _transcodeFfmpegPathProperty = SettingProperty<String>(
     key: _keyTranscodeFfmpegPath,
@@ -671,16 +712,18 @@ class SettingsService extends ChangeNotifier {
   }
 
   SettingsService(this._prefs)
-      : _shortcutBindings = _loadShortcutBindings(_prefs);
+    : _shortcutBindings = _loadShortcutBindings(_prefs);
 
   bool get hasShownOnboarding => _hasShownOnboardingProperty.value;
-  set hasShownOnboarding(bool value) => _hasShownOnboardingProperty.value = value;
+  set hasShownOnboarding(bool value) =>
+      _hasShownOnboardingProperty.value = value;
 
   ThemeMode get themeMode => _themeModeProperty.value;
   set themeMode(ThemeMode value) => _themeModeProperty.value = value;
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabledProperty.value;
-  set isImmersiveTabBarEnabled(bool value) => _isImmersiveTabBarEnabledProperty.value = value;
+  set isImmersiveTabBarEnabled(bool value) =>
+      _isImmersiveTabBarEnabledProperty.value = value;
 
   int get sampleStride => _sampleStrideProperty.value;
   set sampleStride(int value) => _sampleStrideProperty.value = value;
@@ -700,22 +743,42 @@ class SettingsService extends ChangeNotifier {
   }
 
   LyricsAiProvider get lyricsAiProvider => _lyricsAiProviderProperty.value;
-  set lyricsAiProvider(LyricsAiProvider value) => _lyricsAiProviderProperty.value = value;
+  set lyricsAiProvider(LyricsAiProvider value) =>
+      _lyricsAiProviderProperty.value = value;
 
-  bool get isLyricsAiAutoSwitchEnabled => _isLyricsAiAutoSwitchEnabledProperty.value;
-  set isLyricsAiAutoSwitchEnabled(bool value) => _isLyricsAiAutoSwitchEnabledProperty.value = value;
+  bool get isLyricsAiAutoSwitchEnabled =>
+      _isLyricsAiAutoSwitchEnabledProperty.value;
+  set isLyricsAiAutoSwitchEnabled(bool value) =>
+      _isLyricsAiAutoSwitchEnabledProperty.value = value;
+
+  String get lyricsTranslationTargetLanguageCode =>
+      _lyricsTranslationTargetLanguageProperty.value;
+  set lyricsTranslationTargetLanguageCode(String value) =>
+      _lyricsTranslationTargetLanguageProperty.value = value;
+
+  String get effectiveLyricsTranslationTargetLanguageCode {
+    final stored = lyricsTranslationTargetLanguageCode.trim();
+    if (stored.isNotEmpty) {
+      return stored;
+    }
+    return LanguageCodeUtils.currentSystemLanguageCode();
+  }
 
   double get lyricsFontScale => _lyricsFontScaleProperty.value;
   set lyricsFontScale(double value) => _lyricsFontScaleProperty.value = value;
 
   String get geminiPrimaryModelId => _geminiPrimaryModelIdProperty.value;
-  set geminiPrimaryModelId(String value) => _geminiPrimaryModelIdProperty.value = value;
+  set geminiPrimaryModelId(String value) =>
+      _geminiPrimaryModelIdProperty.value = value;
 
   String get geminiFallbackModelId => _geminiFallbackModelIdProperty.value;
-  set geminiFallbackModelId(String value) => _geminiFallbackModelIdProperty.value = value;
+  set geminiFallbackModelId(String value) =>
+      _geminiFallbackModelIdProperty.value = value;
 
-  String get geminiTranslationModelId => _geminiTranslationModelIdProperty.value;
-  set geminiTranslationModelId(String value) => _geminiTranslationModelIdProperty.value = value;
+  String get geminiTranslationModelId =>
+      _geminiTranslationModelIdProperty.value;
+  set geminiTranslationModelId(String value) =>
+      _geminiTranslationModelIdProperty.value = value;
 
   String get geminiApiKey => _geminiApiKeyProperty.value;
   set geminiApiKey(String value) => _geminiApiKeyProperty.value = value;
@@ -770,10 +833,13 @@ class SettingsService extends ChangeNotifier {
     final normalized = trimmed.startsWith('google/')
         ? trimmed.substring('google/'.length)
         : trimmed;
-    return normalized.split('-').map((word) {
-      if (word.isEmpty) return '';
-      return word[0].toUpperCase() + word.substring(1);
-    }).join(' ');
+    return normalized
+        .split('-')
+        .map((word) {
+          if (word.isEmpty) return '';
+          return word[0].toUpperCase() + word.substring(1);
+        })
+        .join(' ');
   }
 
   static String geminiModelSelectionLabel({
@@ -800,76 +866,109 @@ class SettingsService extends ChangeNotifier {
   set visualizerColor(Color value) => _visualizerColorProperty.value = value;
 
   double get visualizerOpacity => _visualizerOpacityProperty.value;
-  set visualizerOpacity(double value) => _visualizerOpacityProperty.value = value;
+  set visualizerOpacity(double value) =>
+      _visualizerOpacityProperty.value = value;
 
-  bool get isVisualizerGradientEnabled => _isVisualizerGradientEnabledProperty.value;
-  set isVisualizerGradientEnabled(bool value) => _isVisualizerGradientEnabledProperty.value = value;
+  bool get isVisualizerGradientEnabled =>
+      _isVisualizerGradientEnabledProperty.value;
+  set isVisualizerGradientEnabled(bool value) =>
+      _isVisualizerGradientEnabledProperty.value = value;
 
   Color get visualizerStartColor => _visualizerStartColorProperty.value;
-  set visualizerStartColor(Color value) => _visualizerStartColorProperty.value = value;
+  set visualizerStartColor(Color value) =>
+      _visualizerStartColorProperty.value = value;
 
   Color get visualizerEndColor => _visualizerEndColorProperty.value;
-  set visualizerEndColor(Color value) => _visualizerEndColorProperty.value = value;
+  set visualizerEndColor(Color value) =>
+      _visualizerEndColorProperty.value = value;
 
   double get visualizerGradientStop1 => _visualizerGradientStop1Property.value;
-  set visualizerGradientStop1(double value) => _visualizerGradientStop1Property.value = value;
+  set visualizerGradientStop1(double value) =>
+      _visualizerGradientStop1Property.value = value;
 
   double get visualizerGradientStop2 => _visualizerGradientStop2Property.value;
-  set visualizerGradientStop2(double value) => _visualizerGradientStop2Property.value = value;
+  set visualizerGradientStop2(double value) =>
+      _visualizerGradientStop2Property.value = value;
 
-  int get visualizerGradientTileMode => _visualizerGradientTileModeProperty.value;
-  set visualizerGradientTileMode(int value) => _visualizerGradientTileModeProperty.value = value;
+  int get visualizerGradientTileMode =>
+      _visualizerGradientTileModeProperty.value;
+  set visualizerGradientTileMode(int value) =>
+      _visualizerGradientTileModeProperty.value = value;
 
   bool get isVisualizerDynamicColor => _isVisualizerDynamicColorProperty.value;
-  set isVisualizerDynamicColor(bool value) => _isVisualizerDynamicColorProperty.value = value;
+  set isVisualizerDynamicColor(bool value) =>
+      _isVisualizerDynamicColorProperty.value = value;
 
-  bool get isVisualizerDynamicStartColor => _isVisualizerDynamicStartColorProperty.value;
-  set isVisualizerDynamicStartColor(bool value) => _isVisualizerDynamicStartColorProperty.value = value;
+  bool get isVisualizerDynamicStartColor =>
+      _isVisualizerDynamicStartColorProperty.value;
+  set isVisualizerDynamicStartColor(bool value) =>
+      _isVisualizerDynamicStartColorProperty.value = value;
 
-  bool get isVisualizerDynamicEndColor => _isVisualizerDynamicEndColorProperty.value;
-  set isVisualizerDynamicEndColor(bool value) => _isVisualizerDynamicEndColorProperty.value = value;
+  bool get isVisualizerDynamicEndColor =>
+      _isVisualizerDynamicEndColorProperty.value;
+  set isVisualizerDynamicEndColor(bool value) =>
+      _isVisualizerDynamicEndColorProperty.value = value;
 
   int get playbackBackgroundType => _playbackBackgroundTypeProperty.value;
-  set playbackBackgroundType(int value) => _playbackBackgroundTypeProperty.value = value;
+  set playbackBackgroundType(int value) =>
+      _playbackBackgroundTypeProperty.value = value;
 
-  bool get playbackRadialGradientEnabled => _playbackRadialGradientEnabledProperty.value;
-  set playbackRadialGradientEnabled(bool value) => _playbackRadialGradientEnabledProperty.value = value;
+  bool get playbackRadialGradientEnabled =>
+      _playbackRadialGradientEnabledProperty.value;
+  set playbackRadialGradientEnabled(bool value) =>
+      _playbackRadialGradientEnabledProperty.value = value;
 
   int get playbackBackgroundColor => _playbackBackgroundColorProperty.value;
-  set playbackBackgroundColor(int value) => _playbackBackgroundColorProperty.value = value;
+  set playbackBackgroundColor(int value) =>
+      _playbackBackgroundColorProperty.value = value;
 
-  String get playbackBackgroundCustomImagePath => _playbackBackgroundCustomImagePathProperty.value;
-  set playbackBackgroundCustomImagePath(String value) => _playbackBackgroundCustomImagePathProperty.value = value;
+  String get playbackBackgroundCustomImagePath =>
+      _playbackBackgroundCustomImagePathProperty.value;
+  set playbackBackgroundCustomImagePath(String value) =>
+      _playbackBackgroundCustomImagePathProperty.value = value;
 
-  double get playbackBackgroundNormalOpacity => _playbackBackgroundNormalOpacityProperty.value;
-  set playbackBackgroundNormalOpacity(double value) => _playbackBackgroundNormalOpacityProperty.value = value;
+  double get playbackBackgroundNormalOpacity =>
+      _playbackBackgroundNormalOpacityProperty.value;
+  set playbackBackgroundNormalOpacity(double value) =>
+      _playbackBackgroundNormalOpacityProperty.value = value;
 
-  double get playbackBackgroundLyricsOpacity => _playbackBackgroundLyricsOpacityProperty.value;
-  set playbackBackgroundLyricsOpacity(double value) => _playbackBackgroundLyricsOpacityProperty.value = value;
+  double get playbackBackgroundLyricsOpacity =>
+      _playbackBackgroundLyricsOpacityProperty.value;
+  set playbackBackgroundLyricsOpacity(double value) =>
+      _playbackBackgroundLyricsOpacityProperty.value = value;
 
-  double get playbackBlurredArtworkBlurSigma => _playbackBlurredArtworkBlurSigmaProperty.value;
-  set playbackBlurredArtworkBlurSigma(double value) => _playbackBlurredArtworkBlurSigmaProperty.value = value;
+  double get playbackBlurredArtworkBlurSigma =>
+      _playbackBlurredArtworkBlurSigmaProperty.value;
+  set playbackBlurredArtworkBlurSigma(double value) =>
+      _playbackBlurredArtworkBlurSigmaProperty.value = value;
 
-  double get playbackCustomImageBlurSigma => _playbackCustomImageBlurSigmaProperty.value;
-  set playbackCustomImageBlurSigma(double value) => _playbackCustomImageBlurSigmaProperty.value = value;
+  double get playbackCustomImageBlurSigma =>
+      _playbackCustomImageBlurSigmaProperty.value;
+  set playbackCustomImageBlurSigma(double value) =>
+      _playbackCustomImageBlurSigmaProperty.value = value;
 
-  double get playbackMeshBackgroundSpeed => _playbackMeshBackgroundSpeedProperty.value;
-  set playbackMeshBackgroundSpeed(double value) => _playbackMeshBackgroundSpeedProperty.value = value;
+  double get playbackMeshBackgroundSpeed =>
+      _playbackMeshBackgroundSpeedProperty.value;
+  set playbackMeshBackgroundSpeed(double value) =>
+      _playbackMeshBackgroundSpeedProperty.value = value;
 
   bool get isAutoMode => _isAutoModeProperty.value;
   set isAutoMode(bool value) => _isAutoModeProperty.value = value;
 
   String get autoSpectrumQuantity => _autoSpectrumQuantityProperty.value;
-  set autoSpectrumQuantity(String value) => _autoSpectrumQuantityProperty.value = value;
+  set autoSpectrumQuantity(String value) =>
+      _autoSpectrumQuantityProperty.value = value;
 
   String get autoSpeed => _autoSpeedProperty.value;
   set autoSpeed(String value) => _autoSpeedProperty.value = value;
 
   int get portraitFrequencyGroups => _portraitFrequencyGroupsProperty.value;
-  set portraitFrequencyGroups(int value) => _portraitFrequencyGroupsProperty.value = value;
+  set portraitFrequencyGroups(int value) =>
+      _portraitFrequencyGroupsProperty.value = value;
 
   int get landscapeFrequencyGroups => _landscapeFrequencyGroupsProperty.value;
-  set landscapeFrequencyGroups(int value) => _landscapeFrequencyGroupsProperty.value = value;
+  set landscapeFrequencyGroups(int value) =>
+      _landscapeFrequencyGroupsProperty.value = value;
 
   double get portraitGap => _portraitGapProperty.value;
   set portraitGap(double value) => _portraitGapProperty.value = value;
@@ -877,17 +976,24 @@ class SettingsService extends ChangeNotifier {
   double get landscapeGap => _landscapeGapProperty.value;
   set landscapeGap(double value) => _landscapeGapProperty.value = value;
 
-  bool get isWaveformProgressBarEnabled => _isWaveformProgressBarEnabledProperty.value;
-  set isWaveformProgressBarEnabled(bool value) => _isWaveformProgressBarEnabledProperty.value = value;
+  bool get isWaveformProgressBarEnabled =>
+      _isWaveformProgressBarEnabledProperty.value;
+  set isWaveformProgressBarEnabled(bool value) =>
+      _isWaveformProgressBarEnabledProperty.value = value;
 
   bool get showDeveloperOptions => _showDeveloperOptionsProperty.value;
-  set showDeveloperOptions(bool value) => _showDeveloperOptionsProperty.value = value;
+  set showDeveloperOptions(bool value) =>
+      _showDeveloperOptionsProperty.value = value;
 
-  bool get skipShortAudioScanEnabled => _skipShortAudioScanEnabledProperty.value;
-  set skipShortAudioScanEnabled(bool value) => _skipShortAudioScanEnabledProperty.value = value;
+  bool get skipShortAudioScanEnabled =>
+      _skipShortAudioScanEnabledProperty.value;
+  set skipShortAudioScanEnabled(bool value) =>
+      _skipShortAudioScanEnabledProperty.value = value;
 
-  int get skipShortAudioScanMinimumDurationSeconds => _skipShortAudioScanMinimumDurationSecondsProperty.value;
-  set skipShortAudioScanMinimumDurationSeconds(int value) => _skipShortAudioScanMinimumDurationSecondsProperty.value = value;
+  int get skipShortAudioScanMinimumDurationSeconds =>
+      _skipShortAudioScanMinimumDurationSecondsProperty.value;
+  set skipShortAudioScanMinimumDurationSeconds(int value) =>
+      _skipShortAudioScanMinimumDurationSecondsProperty.value = value;
 
   int get randomRange => _randomRangeProperty.value;
   set randomRange(int value) => _randomRangeProperty.value = value;
@@ -895,29 +1001,39 @@ class SettingsService extends ChangeNotifier {
   int get randomMethod => _randomMethodProperty.value;
   set randomMethod(int value) => _randomMethodProperty.value = value;
 
-  AudioFormat get transcodeDefaultFormat => _transcodeDefaultFormatProperty.value;
-  set transcodeDefaultFormat(AudioFormat value) => _transcodeDefaultFormatProperty.value = value;
+  AudioFormat get transcodeDefaultFormat =>
+      _transcodeDefaultFormatProperty.value;
+  set transcodeDefaultFormat(AudioFormat value) =>
+      _transcodeDefaultFormatProperty.value = value;
 
-  TranscodeQualityTier get transcodeDefaultQualityTier => _transcodeDefaultQualityTierProperty.value;
-  set transcodeDefaultQualityTier(TranscodeQualityTier value) => _transcodeDefaultQualityTierProperty.value = value;
+  TranscodeQualityTier get transcodeDefaultQualityTier =>
+      _transcodeDefaultQualityTierProperty.value;
+  set transcodeDefaultQualityTier(TranscodeQualityTier value) =>
+      _transcodeDefaultQualityTierProperty.value = value;
 
   String get transcodeFfmpegPath => _transcodeFfmpegPathProperty.value;
-  set transcodeFfmpegPath(String value) => _transcodeFfmpegPathProperty.value = value;
+  set transcodeFfmpegPath(String value) =>
+      _transcodeFfmpegPathProperty.value = value;
 
-  bool get transcodeAutoScanOutputEnabled => _transcodeAutoScanOutputEnabledProperty.value;
-  set transcodeAutoScanOutputEnabled(bool value) => _transcodeAutoScanOutputEnabledProperty.value = value;
+  bool get transcodeAutoScanOutputEnabled =>
+      _transcodeAutoScanOutputEnabledProperty.value;
+  set transcodeAutoScanOutputEnabled(bool value) =>
+      _transcodeAutoScanOutputEnabledProperty.value = value;
 
   double get smallWindowWidth => _smallWindowWidthProperty.value;
   set smallWindowWidth(double value) => _smallWindowWidthProperty.value = value;
 
   double get smallWindowHeight => _smallWindowHeightProperty.value;
-  set smallWindowHeight(double value) => _smallWindowHeightProperty.value = value;
+  set smallWindowHeight(double value) =>
+      _smallWindowHeightProperty.value = value;
 
   double get smallWindowQueueWidth => _smallWindowQueueWidthProperty.value;
-  set smallWindowQueueWidth(double value) => _smallWindowQueueWidthProperty.value = value;
+  set smallWindowQueueWidth(double value) =>
+      _smallWindowQueueWidthProperty.value = value;
 
   double get smallWindowQueueHeight => _smallWindowQueueHeightProperty.value;
-  set smallWindowQueueHeight(double value) => _smallWindowQueueHeightProperty.value = value;
+  set smallWindowQueueHeight(double value) =>
+      _smallWindowQueueHeightProperty.value = value;
 
   Size get savedSmallWindowSize => Size(smallWindowWidth, smallWindowHeight);
   set savedSmallWindowSize(Size size) {
@@ -925,7 +1041,8 @@ class SettingsService extends ChangeNotifier {
     smallWindowHeight = size.height;
   }
 
-  Size get savedSmallWindowQueueSize => Size(smallWindowQueueWidth, smallWindowQueueHeight);
+  Size get savedSmallWindowQueueSize =>
+      Size(smallWindowQueueWidth, smallWindowQueueHeight);
   set savedSmallWindowQueueSize(Size size) {
     smallWindowQueueWidth = size.width;
     smallWindowQueueHeight = size.height;
@@ -1040,6 +1157,10 @@ class SettingsService extends ChangeNotifier {
     _geminiTranslationModelIdProperty.reset();
   }
 
+  void resetLyricsTranslationTargetLanguage() {
+    _lyricsTranslationTargetLanguageProperty.reset();
+  }
+
   void setShortcutBinding(AppShortcutAction action, ShortcutBinding binding) {
     _shortcutBindings[action.storageKey] = binding;
     unawaited(_saveShortcutBindings());
@@ -1123,10 +1244,9 @@ class SettingsService extends ChangeNotifier {
   }
 
   void toggleSmallWindowBottomPanelMode(SmallWindowBottomPanelMode mode) {
-    smallWindowBottomPanelMode =
-        smallWindowBottomPanelMode == mode
-            ? SmallWindowBottomPanelMode.collapsed
-            : mode;
+    smallWindowBottomPanelMode = smallWindowBottomPanelMode == mode
+        ? SmallWindowBottomPanelMode.collapsed
+        : mode;
   }
 
   bool get isSmallWindowQueueExpanded =>
@@ -1144,7 +1264,8 @@ class SettingsService extends ChangeNotifier {
   set isSmallWindowLyricsExpanded(bool value) {
     if (value) {
       smallWindowBottomPanelMode = SmallWindowBottomPanelMode.lyrics;
-    } else if (smallWindowBottomPanelMode == SmallWindowBottomPanelMode.lyrics) {
+    } else if (smallWindowBottomPanelMode ==
+        SmallWindowBottomPanelMode.lyrics) {
       smallWindowBottomPanelMode = SmallWindowBottomPanelMode.collapsed;
     }
   }

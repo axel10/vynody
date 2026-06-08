@@ -2168,6 +2168,24 @@ abstract class AppLocalizations {
   /// **'这里的配置只影响歌词生成和时间轴生成。'**
   String get lyricsSectionDescription;
 
+  /// No description provided for @lyricsTranslationTargetLanguageLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻译目标语言'**
+  String get lyricsTranslationTargetLanguageLabel;
+
+  /// No description provided for @lyricsTranslationTargetLanguageDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认跟随系统语言，也可以单独指定。'**
+  String get lyricsTranslationTargetLanguageDescription;
+
+  /// No description provided for @followSystemLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随系统'**
+  String get followSystemLanguage;
+
   /// No description provided for @autoSwitchLyricsProvider.
   ///
   /// In zh, this message translates to:
