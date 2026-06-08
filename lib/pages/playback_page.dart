@@ -1155,7 +1155,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 ),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
-                _buildLyricsModeScrim(isLyricsMode, backgroundType, settings),
+                _buildLyricsModeScrim(
+                  isLyricsMode,
+                  backgroundType,
+                  settings,
+                  isSmallWin,
+                ),
                 RepaintBoundary(child: content),
                 Positioned(
                   left: 0,
@@ -1325,6 +1330,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     bool isLyricsMode,
     int backgroundType,
     SettingsService settings,
+    bool isSmallWin,
   ) {
     double opacity = 0.40;
     if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
@@ -1335,7 +1341,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
-        opacity: isLyricsMode ? 1.0 : 0.0,
+        opacity: isSmallWin || !isLyricsMode ? 0.0 : 1.0,
         child: IgnorePointer(
           child: ColoredBox(color: Colors.black.withValues(alpha: opacity)),
         ),
