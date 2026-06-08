@@ -246,7 +246,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     final settings = ref.read(settingsServiceProvider);
     if (settings.isSmallWindowMode) {
       final size = await windowManager.getSize();
-      if (settings.smallWindowBottomPanelMode == SmallWindowBottomPanelMode.queue) {
+      if (settings.smallWindowBottomPanelMode ==
+          SmallWindowBottomPanelMode.queue) {
         settings.savedSmallWindowQueueSize = size;
       } else {
         settings.savedSmallWindowSize = size;
@@ -604,7 +605,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   @override
   Widget build(BuildContext context) {
     // Listen for small window mode transitions
-    ref.listen<({bool isSmallMode, SmallWindowBottomPanelMode bottomPanelMode})>(
+    ref.listen<
+      ({bool isSmallMode, SmallWindowBottomPanelMode bottomPanelMode})
+    >(
       settingsServiceProvider.select(
         (s) => (
           isSmallMode: s.isSmallWindowMode,
@@ -617,12 +620,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
 
           final nextSmallMode = next.isSmallMode;
           final prevSmallMode = previous?.isSmallMode ?? false;
-          final nextExpanded = next.bottomPanelMode != SmallWindowBottomPanelMode.collapsed;
+          final nextExpanded =
+              next.bottomPanelMode != SmallWindowBottomPanelMode.collapsed;
           final prevExpanded =
               previous?.bottomPanelMode != SmallWindowBottomPanelMode.collapsed;
 
-          if (nextSmallMode != prevSmallMode ||
-              nextExpanded != prevExpanded) {
+          if (nextSmallMode != prevSmallMode || nextExpanded != prevExpanded) {
             _ignoreResizeEventsUntil = DateTime.now().add(
               const Duration(milliseconds: 800),
             );
@@ -756,9 +759,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     final isQueueSelectionMode = ref.watch(queueSelectionModeProvider);
     ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
-      if (_allowVolumeHUD &&
-          _lastVolume != null &&
-          (_lastVolume! - next).abs() > 0.1) {
+      final volumeChanged =
+          _lastVolume != null && (_lastVolume! - next).abs() > 0.1;
+      final suppressHudForStartupRestore =
+          volumeChanged && _audioService.consumeStartupVolumeHudSuppression();
+      if (_allowVolumeHUD && volumeChanged && !suppressHudForStartupRestore) {
         _triggerHUD();
       }
       _lastVolume = next;

@@ -321,6 +321,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _playbackSessionReady = false;
   Timer? _playbackSessionAutoSaveTimer;
   bool _initialVolumeApplied = false;
+  bool _suppressNextVolumeHud = false;
   late final VoidCallback _settingsListener;
   DateTime _lastPositionDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
   String? _trackedPlaybackSongPath;
@@ -418,6 +419,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         if (_disposed) return;
 
         final targetVolume = _isMuted ? 0.0 : _volume;
+        _suppressNextVolumeHud = true;
         await _player.player.setVolume(targetVolume / 100.0);
         _initialVolumeApplied = true;
 
@@ -427,6 +429,12 @@ class AudioService extends Notifier<AudioSnapshot> {
       }),
     );
     return snapshot;
+  }
+
+  bool consumeStartupVolumeHudSuppression() {
+    if (!_suppressNextVolumeHud) return false;
+    _suppressNextVolumeHud = false;
+    return true;
   }
 
   void notifyListeners() {
