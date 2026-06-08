@@ -147,12 +147,73 @@ void main(List<String> args) async {
   );
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   final List<String> args;
   const MyApp({super.key, required this.args});
 
+  @override
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> with WindowListener {
+  bool _isMaximized = false;
+  bool _isFullScreen = false;
+
   static const Color appPrimaryColor = Color(0xFF39C5BB);
   static const double _linuxWindowCornerRadius = 18.0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isLinux) {
+      windowManager.addListener(this);
+      _syncWindowState();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isLinux) {
+      windowManager.removeListener(this);
+    }
+    super.dispose();
+  }
+
+  Future<void> _syncWindowState() async {
+    if (!mounted) return;
+    final isMax = await windowManager.isMaximized();
+    final isFull = await windowManager.isFullScreen();
+    if (!mounted) return;
+    setState(() {
+      _isMaximized = isMax;
+      _isFullScreen = isFull;
+    });
+  }
+
+  @override
+  void onWindowMaximize() {
+    _syncWindowState();
+  }
+
+  @override
+  void onWindowUnmaximize() {
+    _syncWindowState();
+  }
+
+  @override
+  void onWindowEnterFullScreen() {
+    _syncWindowState();
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    _syncWindowState();
+  }
+
+  @override
+  void onWindowRestore() {
+    _syncWindowState();
+  }
 
   ThemeData _buildTheme(Brightness brightness) {
     final colorScheme = ColorScheme.fromSeed(
@@ -205,7 +266,7 @@ class MyApp extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsServiceProvider);
     Widget app = OKToast(
       child: MaterialApp(
@@ -227,14 +288,15 @@ class MyApp extends ConsumerWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('en'), Locale('zh')],
-        home: MainLayout(args: args),
+        home: MainLayout(args: widget.args),
         navigatorKey: navigatorKey,
       ),
     );
 
     if (Platform.isLinux) {
+      final double radius = (_isMaximized || _isFullScreen) ? 0.0 : _linuxWindowCornerRadius;
       app = ClipRRect(
-        borderRadius: BorderRadius.circular(_linuxWindowCornerRadius),
+        borderRadius: BorderRadius.circular(radius),
         child: app,
       );
     }

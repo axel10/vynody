@@ -35,11 +35,20 @@ static void my_application_activate(GApplication* application) {
   // Set up GTK CSS provider to make the window background transparent and
   // round all four corners of the client-side decoration shadow and window background,
   // matching the 18.0px corner radius defined in Dart (lib/main.dart).
+  // When maximized, tiled, or fullscreen, remove the rounded corners (set border-radius to 0).
   GtkCssProvider* provider = gtk_css_provider_new();
   gtk_css_provider_load_from_data(provider,
                                   "window, window.csd, decoration {\n"
                                   "  background-color: transparent;\n"
                                   "  border-radius: 18px;\n"
+                                  "}\n"
+                                  "window.maximized, window.fullscreen, window.tiled,\n"
+                                  "window.tiled-top, window.tiled-right, window.tiled-bottom, window.tiled-left,\n"
+                                  "window.maximized decoration, window.fullscreen decoration, window.tiled decoration,\n"
+                                  "window.tiled-top decoration, window.tiled-right decoration, window.tiled-bottom decoration, window.tiled-left decoration,\n"
+                                  "window.maximized window.csd, window.fullscreen window.csd, window.tiled window.csd,\n"
+                                  "window.tiled-top window.csd, window.tiled-right window.csd, window.tiled-bottom window.csd, window.tiled-left window.csd {\n"
+                                  "  border-radius: 0;\n"
                                   "}\n",
                                   -1, nullptr);
   gtk_style_context_add_provider_for_screen(
