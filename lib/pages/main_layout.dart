@@ -119,7 +119,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   late int _currentIndex;
   double? _lastVolume;
   bool _showMiniVolumeSlider = false;
-  bool _allowVolumeHUD = false;
   late final AudioService _audioService;
   DateTime? _lastBackPressedAt;
   DateTime? _ignoreResizeEventsUntil;
@@ -133,11 +132,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       if (event.buttons == 16) {
         // Forward button
         _audioService.setVolume((_audioService.volume + 5).roundToDouble());
-        _triggerHUD();
       } else if (event.buttons == 8) {
         // Back button
         _audioService.setVolume((_audioService.volume - 5).roundToDouble());
-        _triggerHUD();
       }
     }
 
@@ -151,11 +148,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       }
       _ui.hideImmersiveTabBarAfter(const Duration(seconds: 3));
     }
-  }
-
-  void _triggerHUD() {
-    if (!mounted) return;
-    _ui.showVolumeHud();
   }
 
   Future<void> _handleBackPressed() async {
@@ -217,12 +209,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       });
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 1000), () {
-        if (!mounted) return;
-        _allowVolumeHUD = true;
-      });
-    });
   }
 
   @override
@@ -761,10 +747,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       if (!mounted) return;
       final volumeChanged =
           _lastVolume != null && (_lastVolume! - next).abs() > 0.1;
-      final suppressHudForStartupRestore =
-          volumeChanged && _audioService.consumeStartupVolumeHudSuppression();
-      if (_allowVolumeHUD && volumeChanged && !suppressHudForStartupRestore) {
-        _triggerHUD();
+      if (volumeChanged && _audioService.shouldShowVolumeHudForLastVolumeChange) {
+        _ui.showVolumeHud();
       }
       _lastVolume = next;
     });
@@ -850,7 +834,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
               _audioService.setVolume(
                 (_audioService.volume + 5).roundToDouble(),
               );
-              _triggerHUD();
               return null;
             },
           ),
@@ -859,14 +842,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
               _audioService.setVolume(
                 (_audioService.volume - 5).roundToDouble(),
               );
-              _triggerHUD();
               return null;
             },
           ),
           MuteIntent: CallbackAction<MuteIntent>(
             onInvoke: (_) {
               _audioService.toggleMute();
-              _triggerHUD();
               return null;
             },
           ),

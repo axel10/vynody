@@ -321,7 +321,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _playbackSessionReady = false;
   Timer? _playbackSessionAutoSaveTimer;
   bool _initialVolumeApplied = false;
-  bool _suppressNextVolumeHud = false;
+  bool _showVolumeHudForLastVolumeChange = true;
   late final VoidCallback _settingsListener;
   DateTime _lastPositionDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
   String? _trackedPlaybackSongPath;
@@ -419,8 +419,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         if (_disposed) return;
 
         final targetVolume = _isMuted ? 0.0 : _volume;
-        _suppressNextVolumeHud = true;
-        await _player.player.setVolume(targetVolume / 100.0);
+        await setVolume(targetVolume, showVolumeHud: false);
         _initialVolumeApplied = true;
 
         _visualizerOptions.loadOptions().then((_) => notifyListeners());
@@ -429,12 +428,6 @@ class AudioService extends Notifier<AudioSnapshot> {
       }),
     );
     return snapshot;
-  }
-
-  bool consumeStartupVolumeHudSuppression() {
-    if (!_suppressNextVolumeHud) return false;
-    _suppressNextVolumeHud = false;
-    return true;
   }
 
   void notifyListeners() {
@@ -2254,8 +2247,15 @@ class AudioService extends Notifier<AudioSnapshot> {
     unawaited(_persistPlaybackSession());
   }
 
-  Future<void> setVolume(double volume) async {
+  bool get shouldShowVolumeHudForLastVolumeChange =>
+      _showVolumeHudForLastVolumeChange;
+
+  Future<void> setVolume(
+    double volume, {
+    bool showVolumeHud = true,
+  }) async {
     _volume = volume.clamp(0.0, 100.0);
+    _showVolumeHudForLastVolumeChange = showVolumeHud;
     if (_volume > 0) {
       _isMuted = false;
     }

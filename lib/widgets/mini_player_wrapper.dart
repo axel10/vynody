@@ -105,7 +105,10 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
                           },
                           onVolumeChanged: (value) {
                             ref.read(settingsServiceProvider).resetInactivity();
-                            audio.setVolume(value.roundToDouble());
+                            audio.setVolume(
+                              value.roundToDouble(),
+                              showVolumeHud: false,
+                            );
                           },
                           onVolumeScroll: (deltaY) {
                             ref.read(settingsServiceProvider).resetInactivity();
@@ -113,6 +116,7 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
                               (audio.volume - deltaY * 0.1)
                                   .clamp(0.0, 100.0)
                                   .roundToDouble(),
+                              showVolumeHud: false,
                             );
                           },
                         ),

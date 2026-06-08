@@ -170,13 +170,17 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   }
 
   void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
-    audio.setVolume((audio.volume - dragDelta * 0.2).roundToDouble());
-    ref.read(mainLayoutUiControllerProvider.notifier).showVolumeHud();
+    audio.setVolume(
+      (audio.volume - dragDelta * 0.2).roundToDouble(),
+      showVolumeHud: false,
+    );
   }
 
   void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY) {
-    audio.setVolume((audio.volume - scrollDeltaY * 0.1).roundToDouble());
-    ref.read(mainLayoutUiControllerProvider.notifier).showVolumeHud();
+    audio.setVolume(
+      (audio.volume - scrollDeltaY * 0.1).roundToDouble(),
+      showVolumeHud: false,
+    );
   }
 
   Future<void> _toggleVisualizer(AudioService audio) async {
@@ -1189,7 +1193,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         volume: volume,
                         onVolumeChanged: (val) {
                           _handleInteraction();
-                          audio.setVolume(val.roundToDouble());
+                          audio.setVolume(
+                            val.roundToDouble(),
+                            showVolumeHud: false,
+                          );
                         },
                         onDismiss: () {
                           ref
