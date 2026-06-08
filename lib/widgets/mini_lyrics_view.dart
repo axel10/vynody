@@ -35,8 +35,8 @@ class _MiniLyricsViewState extends ConsumerState<MiniLyricsView> {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.black.withValues(alpha: 0.35)
-            : Colors.white.withValues(alpha: 0.35),
+            ? Colors.black.withValues(alpha: 0.28)
+            : Colors.white.withValues(alpha: 0.42),
         border: Border(
           top: BorderSide(
             color: Theme.of(context).brightness == Brightness.dark

@@ -43,8 +43,8 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
       child: Container(
         decoration: BoxDecoration(
           color: theme.brightness == Brightness.dark
-              ? Colors.black.withValues(alpha: 0.35)
-              : Colors.white.withValues(alpha: 0.35),
+              ? Colors.black.withValues(alpha: 0.28)
+              : Colors.white.withValues(alpha: 0.42),
           border: Border(
             top: BorderSide(
               color: theme.brightness == Brightness.dark
