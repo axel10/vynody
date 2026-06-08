@@ -12,6 +12,11 @@ class MiniLyricsView extends ConsumerStatefulWidget {
 }
 
 class _MiniLyricsViewState extends ConsumerState<MiniLyricsView> {
+  static const Color _panelBackgroundColor = Color(0xCC000000);
+  static const Color _panelBorderColor = Color(0x14FFFFFF);
+  static const Color _lyricsTextColor = Colors.white;
+  static const Color _lyricsSecondaryTextColor = Color(0x9EFFFFFF);
+
   @override
   void initState() {
     super.initState();
@@ -30,29 +35,20 @@ class _MiniLyricsViewState extends ConsumerState<MiniLyricsView> {
     final accent =
         currentThemeColorsMap['darkVibrant'] ??
         currentThemeColorsMap['darkMuted'] ??
-        Theme.of(context).colorScheme.primary;
+        Colors.white;
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.black.withValues(alpha: 0.50)
-            : Colors.white.withValues(alpha: 0.50),
-        border: Border(
-          top: BorderSide(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.05),
-            width: 1.0,
-          ),
-        ),
+        color: _panelBackgroundColor,
+        border: Border(top: BorderSide(color: _panelBorderColor, width: 1.0)),
       ),
       child: LyricsPanel(
         key: ValueKey('mini-lyrics-${currentMusic?.path ?? 'no-track'}'),
         lyrics: currentMusic?.lyrics,
         position: position,
         accentColor: accent,
-        textColor: Colors.black,
-        secondaryTextColor: Colors.black.withValues(alpha: 0.62),
+        textColor: _lyricsTextColor,
+        secondaryTextColor: _lyricsSecondaryTextColor,
         bottomSpacerHeight: 0.0,
         bottomTabBarHeight: 0.0,
       ),

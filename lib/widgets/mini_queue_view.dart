@@ -8,6 +8,20 @@ import 'package:vibe_flow/player/library/playlist_service.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/widgets/queue_file_drop_target.dart';
 
+const Color _miniQueuePanelBackgroundColor = Color(0xCC000000);
+const Color _miniQueuePanelBorderColor = Color(0x14FFFFFF);
+const Color _miniQueueTitleColor = Colors.white;
+const Color _miniQueueEmptyTextColor = Color(0x80FFFFFF);
+const Color _miniQueuePrimaryTextColor = Colors.white;
+const Color _miniQueueSecondaryTextColor = Color(0xA6FFFFFF);
+const Color _miniQueueDurationTextColor = Color(0x99FFFFFF);
+const Color _miniQueueHoverColor = Color(0x0DFFFFFF);
+const Color _miniQueueSeparatorColor = Color(0x1FFFFFFF);
+const Color _miniQueueRemoveIconColor = Color(0xCCFF6B6B);
+const Color _miniQueueCurrentTrackColor = Colors.white;
+const Color _miniQueueCurrentTrackSecondaryColor = Color(0xB3FFFFFF);
+const Color _miniQueueCurrentTrackDurationColor = Color(0x99FFFFFF);
+
 class MiniQueueView extends ConsumerStatefulWidget {
   const MiniQueueView({super.key});
 
@@ -31,7 +45,6 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     final audioService = ref.read(audioServiceProvider);
     final playlistService = ref.read(playlistServiceProvider);
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return QueueFileDropTarget(
@@ -42,16 +55,9 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
       showPreview: true,
       child: Container(
         decoration: BoxDecoration(
-          color: theme.brightness == Brightness.dark
-              ? Colors.black.withValues(alpha: 0.50)
-              : Colors.white.withValues(alpha: 0.50),
+          color: _miniQueuePanelBackgroundColor,
           border: Border(
-            top: BorderSide(
-              color: theme.brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.05),
-              width: 1.0,
-            ),
+            top: BorderSide(color: _miniQueuePanelBorderColor, width: 1.0),
           ),
         ),
         child: Column(
@@ -69,26 +75,26 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
                 children: [
                   Text(
                     '${l10n.queue} (${queue.length})',
-                    style: theme.textTheme.titleSmall?.copyWith(
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.85,
-                      ),
+                      color: _miniQueueTitleColor,
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1, thickness: 0.5),
+            const Divider(
+              height: 1,
+              thickness: 0.5,
+              color: _miniQueueSeparatorColor,
+            ),
             Expanded(
               child: queue.isEmpty
                   ? Center(
                       child: Text(
                         l10n.queueEmpty,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.5,
-                          ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: _miniQueueEmptyTextColor,
                         ),
                       ),
                     )
@@ -150,9 +156,6 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primaryColor = theme.colorScheme.primary;
-
     void showMenuAt(Offset globalPosition) {
       final songs = <MusicFile>[widget.song];
       showSongContextMenu(
@@ -201,7 +204,7 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
           color: Colors.transparent,
           child: InkWell(
             onTap: widget.onTap,
-            hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+            hoverColor: _miniQueueHoverColor,
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 16.0,
@@ -212,7 +215,7 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
                   if (widget.isCurrent) ...[
                     Icon(
                       Icons.volume_up_rounded,
-                      color: primaryColor,
+                      color: _miniQueueCurrentTrackColor,
                       size: 14,
                     ),
                     const SizedBox(width: 6),
@@ -226,27 +229,29 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
                           widget.song.displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: widget.isCurrent
-                                ? primaryColor
-                                : theme.colorScheme.onSurface,
-                            fontWeight: widget.isCurrent
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            fontSize: 13,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: widget.isCurrent
+                                    ? _miniQueueCurrentTrackColor
+                                    : _miniQueuePrimaryTextColor,
+                                fontWeight: widget.isCurrent
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 13,
+                              ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           widget.song.artist ?? '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: widget.isCurrent
-                                ? primaryColor.withValues(alpha: 0.7)
-                                : theme.colorScheme.onSurfaceVariant,
-                            fontSize: 11,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: widget.isCurrent
+                                    ? _miniQueueCurrentTrackSecondaryColor
+                                    : _miniQueueSecondaryTextColor,
+                                fontSize: 11,
+                              ),
                         ),
                       ],
                     ),
@@ -262,19 +267,17 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
                       icon: Icon(
                         Icons.close_rounded,
                         size: 16,
-                        color: theme.colorScheme.error.withValues(alpha: 0.8),
+                        color: _miniQueueRemoveIconColor,
                       ),
                       onPressed: widget.onRemove,
                     )
                   else
                     Text(
                       _formatDuration(widget.song.durationMillis),
-                      style: theme.textTheme.bodySmall?.copyWith(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: widget.isCurrent
-                            ? primaryColor.withValues(alpha: 0.6)
-                            : theme.colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.7,
-                              ),
+                            ? _miniQueueCurrentTrackDurationColor
+                            : _miniQueueDurationTextColor,
                         fontSize: 10,
                       ),
                     ),
