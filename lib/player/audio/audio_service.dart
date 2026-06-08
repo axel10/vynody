@@ -901,6 +901,10 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<MusicFile> _resolveMetadataForPlayback(MusicFile song) async {
+    if (song.isMissing || song.path.isEmpty || !File(song.path).existsSync()) {
+      return song;
+    }
+
     if (!_needsPlaybackMetadataRefresh(song)) {
       return song;
     }
@@ -998,6 +1002,12 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> _prepareCurrentPlaybackArtwork(MusicFile song) async {
     try {
+      if (song.isMissing ||
+          song.path.isEmpty ||
+          !File(song.path).existsSync()) {
+        return;
+      }
+
       Uint8List? artworkBytes = song.artworkBytes;
       String? artworkPath = song.artworkPath;
       String? thumbnailPath = song.thumbnailPath;
@@ -1113,6 +1123,10 @@ class AudioService extends Notifier<AudioSnapshot> {
       _lastMissingCurrentTrackPathHandled = null;
       if (_currentIndex >= 0 && _currentIndex < _queue.length) {
         final song = _queue[_currentIndex];
+        if (song.path.isNotEmpty && !File(song.path).existsSync()) {
+          unawaited(_skipMissingCurrentTrack());
+          return;
+        }
         _logLyricsDebug(
           'track changed -> index=$_currentIndex title="${song.displayName}" '
           'path="${song.path}" duration=$_duration active=$isLyricsActive',
@@ -1530,7 +1544,9 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> _refreshCurrentWaveform({bool notify = true}) async {
     final path = currentMusic?.path;
-    if (path == null || !settingsService.isWaveformProgressBarEnabled) {
+    if (path == null ||
+        !settingsService.isWaveformProgressBarEnabled ||
+        !File(path).existsSync()) {
       if (notify) {
         notifyListeners();
       }
@@ -2250,10 +2266,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool get shouldShowVolumeHudForLastVolumeChange =>
       _showVolumeHudForLastVolumeChange;
 
-  Future<void> setVolume(
-    double volume, {
-    bool showVolumeHud = true,
-  }) async {
+  Future<void> setVolume(double volume, {bool showVolumeHud = true}) async {
     _volume = volume.clamp(0.0, 100.0);
     _showVolumeHudForLastVolumeChange = showVolumeHud;
     if (_volume > 0) {

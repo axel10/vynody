@@ -143,6 +143,11 @@ class PlaybackQueueProcessor {
       for (int i = 0; i < topCount; i++) {
         if (_disposed || myId != _currentProcessId) return;
         final song = sortedList[i];
+        if (song.isMissing ||
+            song.path.isEmpty ||
+            !File(song.path).existsSync()) {
+          continue;
+        }
 
         // Skip if already has artwork bytes in memory
         if (song.artworkBytes != null) continue;
@@ -220,21 +225,23 @@ class PlaybackQueueProcessor {
     await _waitUntilResumed();
 
     try {
+      if (song.isMissing ||
+          song.path.isEmpty ||
+          !File(song.path).existsSync()) {
+        return;
+      }
+
       final existing = await db.getSongMetadata(song.path);
-      final bool showWaveform =
-          settingsService.isWaveformProgressBarEnabled;
+      final bool showWaveform = settingsService.isWaveformProgressBarEnabled;
 
       // Decide what needs to be done
       final bool needsWaveform =
-          showWaveform &&
-          (existing == null || existing.waveformBlob == null);
+          showWaveform && (existing == null || existing.waveformBlob == null);
       final bool needsThemeColor =
           existing == null || existing.themeColorsBlob == null;
 
       // Heavy Processing: Thumbnails, Colors and Waveform
-      if (needsWaveform ||
-          needsThemeColor ||
-          existing.thumbnailPath == null) {
+      if (needsWaveform || needsThemeColor || existing.thumbnailPath == null) {
         if (_disposed || myId != _currentProcessId) return;
 
         debugPrint(
@@ -256,24 +263,21 @@ class PlaybackQueueProcessor {
           // Use a non-nullable reference
           SongMetadata meta = m;
 
-          final artworkTheme = await artworkThemeService
-              .getTrackArtworkTheme(
-                song.path,
-                controller: player,
-                saveLargeArtwork: !Platform.isWindows,
-                thumbnailSize: generatedArtworkThumbnailSize,
-              );
+          final artworkTheme = await artworkThemeService.getTrackArtworkTheme(
+            song.path,
+            controller: player,
+            saveLargeArtwork: !Platform.isWindows,
+            thumbnailSize: generatedArtworkThumbnailSize,
+          );
           if (_disposed || myId != _currentProcessId) return;
 
           if (artworkTheme != null &&
-              (artworkTheme.hasArtworkPath ||
-                  artworkTheme.hasThemeColors)) {
+              (artworkTheme.hasArtworkPath || artworkTheme.hasThemeColors)) {
             meta = artworkTheme.toSongMetadata(base: meta);
             await db.insertOrUpdateSong(meta);
 
             final updates = <String, dynamic>{
-              'thumbnailPath':
-                  artworkTheme.thumbnailPath ?? meta.thumbnailPath,
+              'thumbnailPath': artworkTheme.thumbnailPath ?? meta.thumbnailPath,
               'artworkPath': artworkTheme.artworkPath ?? meta.artworkPath,
               'artworkWidth': meta.artworkWidth,
               'artworkHeight': meta.artworkHeight,
@@ -314,16 +318,12 @@ class PlaybackQueueProcessor {
                 await db.insertOrUpdateSong(meta);
 
                 onUpdate(song.path, {
-                  'themeColors': ThemeColorHelper.blobToColors(
-                    themeColorsBlob,
-                  ),
+                  'themeColors': ThemeColorHelper.blobToColors(themeColorsBlob),
                   'themeColorsBlob': themeColorsBlob,
                 });
               }
             } catch (e) {
-              debugPrint(
-                'Theme color extraction error for ${song.path}: $e',
-              );
+              debugPrint('Theme color extraction error for ${song.path}: $e');
             }
           }
 
