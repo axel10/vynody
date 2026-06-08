@@ -482,12 +482,7 @@ class _WindowsCapsuleButtonState extends State<_WindowsCapsuleButton> {
   @override
   Widget build(BuildContext context) {
     final isDark = widget.brightness == Brightness.dark;
-    final buttonRadius = BorderRadius.only(
-      bottomLeft: const Radius.circular(6),
-      bottomRight: const Radius.circular(6),
-      topLeft: Radius.circular(widget.height / 8),
-      topRight: Radius.circular(widget.height / 8),
-    );
+    final buttonRadius = BorderRadius.all(const Radius.circular(6));
 
     Color iconColor =
         widget.data.color ?? (isDark ? Colors.white70 : Colors.black87);
