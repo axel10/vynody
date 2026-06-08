@@ -246,7 +246,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     final settings = ref.read(settingsServiceProvider);
     if (settings.isSmallWindowMode) {
       final size = await windowManager.getSize();
-      if (settings.isSmallWindowQueueExpanded) {
+      if (settings.smallWindowBottomPanelMode == SmallWindowBottomPanelMode.queue) {
         settings.savedSmallWindowQueueSize = size;
       } else {
         settings.savedSmallWindowSize = size;
@@ -604,11 +604,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   @override
   Widget build(BuildContext context) {
     // Listen for small window mode transitions
-    ref.listen<({bool isSmallMode, bool isQueueExpanded})>(
+    ref.listen<({bool isSmallMode, SmallWindowBottomPanelMode bottomPanelMode})>(
       settingsServiceProvider.select(
         (s) => (
           isSmallMode: s.isSmallWindowMode,
-          isQueueExpanded: s.isSmallWindowQueueExpanded,
+          bottomPanelMode: s.smallWindowBottomPanelMode,
         ),
       ),
       (previous, next) async {
@@ -617,11 +617,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
 
           final nextSmallMode = next.isSmallMode;
           final prevSmallMode = previous?.isSmallMode ?? false;
-          final nextQueueExpanded = next.isQueueExpanded;
-          final prevQueueExpanded = previous?.isQueueExpanded ?? false;
+          final nextExpanded = next.bottomPanelMode != SmallWindowBottomPanelMode.collapsed;
+          final prevExpanded =
+              previous?.bottomPanelMode != SmallWindowBottomPanelMode.collapsed;
 
           if (nextSmallMode != prevSmallMode ||
-              nextQueueExpanded != prevQueueExpanded) {
+              nextExpanded != prevExpanded) {
             _ignoreResizeEventsUntil = DateTime.now().add(
               const Duration(milliseconds: 800),
             );
@@ -647,8 +648,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
               }
             }
 
-            if (nextQueueExpanded) {
-              // Expanded playlist queue mode: resizable within constraints
+            if (nextExpanded) {
+              // Expanded small-window bottom panel mode: resizable within constraints
               const minSize = Size(360.0, 450.0);
               const maxSize = Size(480.0, 99999.0);
 
@@ -656,7 +657,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
               await windowManager.setMaximumSize(maxSize);
 
               // Only change size if we weren't already in expanded mode or small mode
-              if (!prevQueueExpanded || !prevSmallMode) {
+              if (!prevExpanded || !prevSmallMode) {
                 final savedSize = settings.savedSmallWindowQueueSize;
                 final clampedSize = Size(
                   savedSize.width.clamp(minSize.width, maxSize.width),
@@ -673,7 +674,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
               await windowManager.setMaximumSize(maxSize);
 
               // Only change size if transitioning from expanded mode back to collapsed, or entering small window mode
-              if (prevQueueExpanded || !prevSmallMode) {
+              if (prevExpanded || !prevSmallMode) {
                 final savedSize = settings.savedSmallWindowSize;
                 final clampedSize = Size(
                   savedSize.width.clamp(minSize.width, maxSize.width),
@@ -893,7 +894,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                   _currentIndex != 3 &&
                   !(_currentIndex == 1 &&
                       isSmallWin &&
-                      settings.isSmallWindowQueueExpanded),
+                      settings.smallWindowBottomPanelMode !=
+                          SmallWindowBottomPanelMode.collapsed),
               child: Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: _handleDesktopPointerActivity,

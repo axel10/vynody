@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import '../player/audio/audio_riverpod.dart';
+import '../player/settings/settings_service.dart';
 
 class DesktopWindowTitleBar extends ConsumerStatefulWidget {
   const DesktopWindowTitleBar({
@@ -131,16 +132,34 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                 },
               ),
               if (isSmallWindowMode)
-                _MacosSmallWindowButton(
-                  icon: Icons.queue_music,
-                  iconSize: 16,
-                  color: settings.isSmallWindowQueueExpanded
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                  onPressed: () {
-                    settings.isSmallWindowQueueExpanded =
-                        !settings.isSmallWindowQueueExpanded;
-                  },
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _MacosSmallWindowButton(
+                      icon: Icons.queue_music,
+                      iconSize: 16,
+                      color: settings.isSmallWindowQueueExpanded
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                      onPressed: () {
+                        settings.toggleSmallWindowBottomPanelMode(
+                          SmallWindowBottomPanelMode.queue,
+                        );
+                      },
+                    ),
+                    _MacosSmallWindowButton(
+                      icon: Icons.text_snippet_outlined,
+                      iconSize: 16,
+                      color: settings.isSmallWindowLyricsExpanded
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                      onPressed: () {
+                        settings.toggleSmallWindowBottomPanelMode(
+                          SmallWindowBottomPanelMode.lyrics,
+                        );
+                      },
+                    ),
+                  ],
                 ),
             ],
             const Spacer(),
@@ -166,8 +185,22 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             ? Theme.of(context).colorScheme.primary
                             : null,
                         onPressed: () {
-                          settings.isSmallWindowQueueExpanded =
-                              !settings.isSmallWindowQueueExpanded;
+                          settings.toggleSmallWindowBottomPanelMode(
+                            SmallWindowBottomPanelMode.queue,
+                          );
+                        },
+                      ),
+                    if (isSmallWindowMode)
+                      _CapsuleButtonData(
+                        icon: Icons.text_snippet_outlined,
+                        iconSize: 14,
+                        color: settings.isSmallWindowLyricsExpanded
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () {
+                          settings.toggleSmallWindowBottomPanelMode(
+                            SmallWindowBottomPanelMode.lyrics,
+                          );
                         },
                       ),
                   ],

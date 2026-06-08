@@ -27,6 +27,7 @@ import '../widgets/equalizer_panel.dart';
 import '../widgets/lyrics_task_status_banner.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/mini_queue_view.dart';
+import '../widgets/mini_lyrics_view.dart';
 import 'main_layout_riverpod.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 
@@ -788,7 +789,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             }
           }
 
-          final showMiniQueue = isSmallWin && settings.isSmallWindowQueueExpanded;
+          final smallWindowPanelMode = settings.smallWindowBottomPanelMode;
+          final showMiniPanel =
+              isSmallWin &&
+              smallWindowPanelMode != SmallWindowBottomPanelMode.collapsed;
 
           Widget buildPlayerCard() {
             return Builder(
@@ -888,15 +892,22 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     const SizedBox(
                       height: PlaybackPageUiTuning.desktopTopSpacer,
                     ),
-                  if (showMiniQueue) ...[
+                  if (showMiniPanel) ...[
                     SizedBox(
                       height: 360.0 - PlaybackPageUiTuning.desktopTopSpacer,
                       child: Center(
                         child: buildPlayerCard(),
                       ),
                     ),
-                    const Expanded(
-                      child: MiniQueueView(),
+                    Expanded(
+                      child: switch (smallWindowPanelMode) {
+                        SmallWindowBottomPanelMode.queue =>
+                          const MiniQueueView(),
+                        SmallWindowBottomPanelMode.lyrics =>
+                          const MiniLyricsView(),
+                        SmallWindowBottomPanelMode.collapsed =>
+                          const SizedBox.shrink(),
+                      },
                     ),
                   ] else
                     Expanded(
@@ -1003,7 +1014,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                 
                                 final double fadeStart;
                                 final double fadeEnd;
-                                if (showMiniQueue) {
+                                if (showMiniPanel) {
                                   final double playlistTop = MediaQuery.of(context).padding.top + 360.0;
                                   fadeEnd = playlistTop / size.height;
                                   fadeStart = (playlistTop - 48.0) / size.height;

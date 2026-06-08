@@ -9,6 +9,8 @@ import 'package:vibe_flow/transcode/transcode_models.dart';
 
 enum LyricsAiProvider { googleAiStudio, openRouter }
 
+enum SmallWindowBottomPanelMode { collapsed, queue, lyrics }
+
 extension ThemeModeX on ThemeMode {
   String get storageValue => switch (this) {
     ThemeMode.system => 'system',
@@ -217,9 +219,10 @@ class SettingsService extends ChangeNotifier {
 
   static const String _keySmallWindowWidth = 'small_window_width';
   static const String _keySmallWindowHeight = 'small_window_height';
+  static const String _keySmallWindowBottomPanelMode =
+      'small_window_bottom_panel_mode';
   static const String _keySmallWindowQueueWidth = 'small_window_queue_width';
   static const String _keySmallWindowQueueHeight = 'small_window_queue_height';
-  static const String _keyWasSmallWindowQueueExpanded = 'was_small_window_queue_expanded';
   static const String _keyHasShownOnboarding = 'has_shown_onboarding';
 
   final SharedPreferences _prefs;
@@ -638,6 +641,13 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _smallWindowBottomPanelModeProperty = SettingProperty<String>(
+    key: _keySmallWindowBottomPanelMode,
+    defaultValue: SmallWindowBottomPanelMode.collapsed.name,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _smallWindowQueueWidthProperty = SettingProperty<double>(
     key: _keySmallWindowQueueWidth,
     defaultValue: 360.0,
@@ -648,13 +658,6 @@ class SettingsService extends ChangeNotifier {
   late final _smallWindowQueueHeightProperty = SettingProperty<double>(
     key: _keySmallWindowQueueHeight,
     defaultValue: 600.0,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-  );
-
-  late final _wasSmallWindowQueueExpandedProperty = SettingProperty<bool>(
-    key: _keyWasSmallWindowQueueExpanded,
-    defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -916,9 +919,6 @@ class SettingsService extends ChangeNotifier {
   double get smallWindowQueueHeight => _smallWindowQueueHeightProperty.value;
   set smallWindowQueueHeight(double value) => _smallWindowQueueHeightProperty.value = value;
 
-  bool get wasSmallWindowQueueExpanded => _wasSmallWindowQueueExpandedProperty.value;
-  set wasSmallWindowQueueExpanded(bool value) => _wasSmallWindowQueueExpandedProperty.value = value;
-
   Size get savedSmallWindowSize => Size(smallWindowWidth, smallWindowHeight);
   set savedSmallWindowSize(Size size) {
     smallWindowWidth = size.width;
@@ -1107,24 +1107,50 @@ class SettingsService extends ChangeNotifier {
   set isSmallWindowMode(bool value) {
     if (_isSmallWindowMode != value) {
       _isSmallWindowMode = value;
-      if (!value) {
-        _isSmallWindowQueueExpanded = false;
-      } else {
-        _isSmallWindowQueueExpanded = wasSmallWindowQueueExpanded;
-      }
       notifyListeners();
     }
   }
 
-  bool _isSmallWindowQueueExpanded = false;
-  bool get isSmallWindowQueueExpanded => _isSmallWindowQueueExpanded;
+  SmallWindowBottomPanelMode get smallWindowBottomPanelMode {
+    return SmallWindowBottomPanelMode.values.firstWhere(
+      (mode) => mode.name == _smallWindowBottomPanelModeProperty.value,
+      orElse: () => SmallWindowBottomPanelMode.collapsed,
+    );
+  }
+
+  set smallWindowBottomPanelMode(SmallWindowBottomPanelMode value) {
+    _smallWindowBottomPanelModeProperty.value = value.name;
+  }
+
+  void toggleSmallWindowBottomPanelMode(SmallWindowBottomPanelMode mode) {
+    smallWindowBottomPanelMode =
+        smallWindowBottomPanelMode == mode
+            ? SmallWindowBottomPanelMode.collapsed
+            : mode;
+  }
+
+  bool get isSmallWindowQueueExpanded =>
+      smallWindowBottomPanelMode == SmallWindowBottomPanelMode.queue;
   set isSmallWindowQueueExpanded(bool value) {
-    if (_isSmallWindowQueueExpanded != value) {
-      _isSmallWindowQueueExpanded = value;
-      wasSmallWindowQueueExpanded = value;
-      notifyListeners();
+    if (value) {
+      smallWindowBottomPanelMode = SmallWindowBottomPanelMode.queue;
+    } else if (smallWindowBottomPanelMode == SmallWindowBottomPanelMode.queue) {
+      smallWindowBottomPanelMode = SmallWindowBottomPanelMode.collapsed;
     }
   }
+
+  bool get isSmallWindowLyricsExpanded =>
+      smallWindowBottomPanelMode == SmallWindowBottomPanelMode.lyrics;
+  set isSmallWindowLyricsExpanded(bool value) {
+    if (value) {
+      smallWindowBottomPanelMode = SmallWindowBottomPanelMode.lyrics;
+    } else if (smallWindowBottomPanelMode == SmallWindowBottomPanelMode.lyrics) {
+      smallWindowBottomPanelMode = SmallWindowBottomPanelMode.collapsed;
+    }
+  }
+
+  bool get isSmallWindowBottomPanelExpanded =>
+      smallWindowBottomPanelMode != SmallWindowBottomPanelMode.collapsed;
 
   Size? savedRegularWindowSize;
 }
