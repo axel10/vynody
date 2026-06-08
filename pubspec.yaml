@@ -207,7 +207,9 @@ msix_config:
   install_certificate: false
   capabilities: "broadFileSystemAccess, rescap:runFullTrust"
 
-# dependency_overrides:
+dependency_overrides:
+  # mobile_storage_listener:
+  #   path: ./mobile_storage_listener
 #   audio_core:
 #     path: ./audio_core
 #   flutter_taglib:

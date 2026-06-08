@@ -870,7 +870,7 @@ packages:
     description:
       path: "."
       ref: master
-      resolved-ref: "1295562c8939af224ad2c81b43019d7606f4e927"
+      resolved-ref: bf5cf54305190dacbce06a72d029f80896b3bff4
       url: "https://github.com/axel10/mobile_storage_listener"
     source: git
     version: "1.0.0"
