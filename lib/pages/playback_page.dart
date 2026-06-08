@@ -1078,20 +1078,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                     pNormalInfoHeight -
                                     4.0;
 
-                                final double fadeStart;
-                                final double fadeEnd;
-                                if (showMiniPanel) {
-                                  final double playlistTop =
-                                      MediaQuery.of(context).padding.top +
-                                      360.0;
-                                  fadeEnd = playlistTop / size.height;
-                                  fadeStart =
-                                      (playlistTop - 48.0) / size.height;
-                                } else {
-                                  fadeStart =
-                                      (pNormalInfoTop - 48.0) / size.height;
-                                  fadeEnd = pNormalInfoTop / size.height;
-                                }
+                                final double fadeStart =
+                                    (pNormalInfoTop - 48.0) / size.height;
+                                final double fadeEnd =
+                                    pNormalInfoTop / size.height;
                                 final double clampedStart = fadeStart.clamp(
                                   0.0,
                                   1.0,
@@ -1099,6 +1089,37 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                 final double clampedEnd = fadeEnd.clamp(
                                   0.0,
                                   1.0,
+                                );
+
+                                if (showMiniPanel) {
+                                  // 小窗队列 / 小窗歌词模式统一对整块小窗做模糊，
+                                  // 上下两个面板共享同一层背景，不再做分区处理。
+                                  return ClipRect(
+                                    child: BackdropFilter(
+                                      filter: ui.ImageFilter.blur(
+                                        sigmaX: 20.0,
+                                        sigmaY: 20.0,
+                                      ),
+                                      child: const SizedBox.expand(),
+                                    ),
+                                  );
+                                }
+
+                                final Widget blurredBackground = ImageFiltered(
+                                  imageFilter: ui.ImageFilter.blur(
+                                    sigmaX: 20.0,
+                                    sigmaY: 20.0,
+                                  ),
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 800),
+                                    child: _buildBackgroundWidget(
+                                      context,
+                                      backgroundType,
+                                      settings,
+                                      forceSmallWin: true,
+                                      keySuffix: 'small_blurred',
+                                    ),
+                                  ),
                                 );
 
                                 return ClipRect(
@@ -1115,24 +1136,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                       ).createShader(rect);
                                     },
                                     blendMode: BlendMode.dstIn,
-                                    child: ImageFiltered(
-                                      imageFilter: ui.ImageFilter.blur(
-                                        sigmaX: 20.0,
-                                        sigmaY: 20.0,
-                                      ),
-                                      child: AnimatedSwitcher(
-                                        duration: const Duration(
-                                          milliseconds: 800,
-                                        ),
-                                        child: _buildBackgroundWidget(
-                                          context,
-                                          backgroundType,
-                                          settings,
-                                          forceSmallWin: true,
-                                          keySuffix: 'small_blurred',
-                                        ),
-                                      ),
-                                    ),
+                                    child: blurredBackground,
                                   ),
                                 );
                               },
