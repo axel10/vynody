@@ -30,7 +30,6 @@ void handleFileOpen(List<String> args) {
   final container = ProviderScope.containerOf(context);
   final audio = container.read(audioServiceProvider);
 
-
   for (var arg in args) {
     // 处理路径中可能的双引号和两端空格
     final path = arg.replaceAll('"', '').trim();
@@ -74,75 +73,78 @@ void main(List<String> args) async {
     return false;
   };
 
-  await runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    AppLog.log('main start args=$args', mirrorToConsole: true);
+  await runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      AppLog.log('main start args=$args', mirrorToConsole: true);
 
-    if (Platform.isWindows) {
-      AppLog.log(
-        'ensuring single instance on Windows',
-        mirrorToConsole: true,
-      );
-      await WindowsSingleInstance.ensureSingleInstance(
-        args,
-        "custom_identifier",
-        onSecondWindow: (args) {
-          AppLog.log('second window args=$args', mirrorToConsole: true);
-          handleFileOpen(args);
-        },
-      );
-    }
-
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      AppLog.log('initializing window manager', mirrorToConsole: true);
-      await windowManager.ensureInitialized();
-      WindowOptions windowOptions = const WindowOptions(
-        size: Size(1280, 720),
-        minimumSize: Size(400, 650),
-        center: true,
-        backgroundColor: Colors.transparent,
-        skipTaskbar: false,
-        titleBarStyle: TitleBarStyle.hidden,
-        title: 'Pure Player',
-      );
-      windowManager.waitUntilReadyToShow(windowOptions, () async {
-        AppLog.log('window ready to show', mirrorToConsole: true);
-        await windowManager.show();
-        await windowManager.focus();
-      });
-    }
-
-    if (Platform.isWindows) {
-      AppLog.log('initializing SMTCWindows', mirrorToConsole: true);
-      await SMTCWindows.initialize();
-    }
-
-    AppLog.log('initializing settings service', mirrorToConsole: true);
-    final settingsService = await SettingsService.init();
-    AppLog.log('initializing worker manager', mirrorToConsole: true);
-    unawaited(workerManager.init(isolatesCount: 8));
-
-    AppLog.log('calling runApp', mirrorToConsole: true);
-    runApp(
-      ProviderScope(
-        overrides: [
-          settingsServiceProvider.overrideWith((ref) => settingsService),
-        ],
-        child: Consumer(
-          builder: (context, ref, _) {
-            ref.watch(audioServiceWiringProvider);
-            return MyApp(args: args);
+      if (Platform.isWindows) {
+        AppLog.log(
+          'ensuring single instance on Windows',
+          mirrorToConsole: true,
+        );
+        await WindowsSingleInstance.ensureSingleInstance(
+          args,
+          "custom_identifier",
+          onSecondWindow: (args) {
+            AppLog.log('second window args=$args', mirrorToConsole: true);
+            handleFileOpen(args);
           },
+        );
+      }
+
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        AppLog.log('initializing window manager', mirrorToConsole: true);
+        await windowManager.ensureInitialized();
+        WindowOptions windowOptions = const WindowOptions(
+          size: Size(1280, 720),
+          minimumSize: Size(400, 650),
+          center: true,
+          backgroundColor: Colors.transparent,
+          skipTaskbar: false,
+          titleBarStyle: TitleBarStyle.hidden,
+          title: 'Pure Player',
+        );
+        windowManager.waitUntilReadyToShow(windowOptions, () async {
+          AppLog.log('window ready to show', mirrorToConsole: true);
+          await windowManager.show();
+          await windowManager.focus();
+        });
+      }
+
+      if (Platform.isWindows) {
+        AppLog.log('initializing SMTCWindows', mirrorToConsole: true);
+        await SMTCWindows.initialize();
+      }
+
+      AppLog.log('initializing settings service', mirrorToConsole: true);
+      final settingsService = await SettingsService.init();
+      AppLog.log('initializing worker manager', mirrorToConsole: true);
+      unawaited(workerManager.init(isolatesCount: 8));
+
+      AppLog.log('calling runApp', mirrorToConsole: true);
+      runApp(
+        ProviderScope(
+          overrides: [
+            settingsServiceProvider.overrideWith((ref) => settingsService),
+          ],
+          child: Consumer(
+            builder: (context, ref, _) {
+              ref.watch(audioServiceWiringProvider);
+              return MyApp(args: args);
+            },
+          ),
         ),
-      ),
-    );
-  }, (error, stack) {
-    AppLog.log(
-      'Caught zone error: $error',
-      mirrorToConsole: true,
-      stackTrace: stack,
-    );
-  });
+      );
+    },
+    (error, stack) {
+      AppLog.log(
+        'Caught zone error: $error',
+        mirrorToConsole: true,
+        stackTrace: stack,
+      );
+    },
+  );
 }
 
 class MyApp extends ConsumerWidget {
@@ -150,6 +152,7 @@ class MyApp extends ConsumerWidget {
   const MyApp({super.key, required this.args});
 
   static const Color appPrimaryColor = Color(0xFF39C5BB);
+  static const double _linuxWindowCornerRadius = 18.0;
 
   ThemeData _buildTheme(Brightness brightness) {
     final colorScheme = ColorScheme.fromSeed(
@@ -187,9 +190,7 @@ class MyApp extends ConsumerWidget {
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: isDark ? null : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 6,
         surfaceTintColor: Colors.transparent,
       ),
@@ -200,19 +201,25 @@ class MyApp extends ConsumerWidget {
       // hoverColor: Colors.transparent,
       // 顺便可以处理掉点击时的水波纹按下颜色
       // highlightColor: Colors.transparent,
-
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsServiceProvider);
-    return OKToast(
+    Widget app = OKToast(
       child: MaterialApp(
         title: 'Pure Player',
         theme: _buildTheme(Brightness.light),
         darkTheme: _buildTheme(Brightness.dark),
         themeMode: settings.themeMode,
+        builder: (context, child) {
+          final theme = Theme.of(context);
+          return ColoredBox(
+            color: theme.colorScheme.surface,
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -224,5 +231,14 @@ class MyApp extends ConsumerWidget {
         navigatorKey: navigatorKey,
       ),
     );
+
+    if (Platform.isLinux) {
+      app = ClipRRect(
+        borderRadius: BorderRadius.circular(_linuxWindowCornerRadius),
+        child: app,
+      );
+    }
+
+    return app;
   }
 }

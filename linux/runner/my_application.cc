@@ -25,6 +25,29 @@ static void my_application_activate(GApplication* application) {
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
+  // Enable RGBA/transparency support for the window
+  GdkScreen* window_screen = gtk_widget_get_screen(GTK_WIDGET(window));
+  GdkVisual* visual = gdk_screen_get_rgba_visual(window_screen);
+  if (visual != nullptr && gdk_screen_is_composited(window_screen)) {
+    gtk_widget_set_visual(GTK_WIDGET(window), visual);
+  }
+
+  // Set up GTK CSS provider to make the window background transparent and
+  // round all four corners of the client-side decoration shadow and window background,
+  // matching the 18.0px corner radius defined in Dart (lib/main.dart).
+  GtkCssProvider* provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(provider,
+                                  "window, window.csd, decoration {\n"
+                                  "  background-color: transparent;\n"
+                                  "  border-radius: 18px;\n"
+                                  "}\n",
+                                  -1, nullptr);
+  gtk_style_context_add_provider_for_screen(
+      window_screen,
+      GTK_STYLE_PROVIDER(provider),
+      GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_object_unref(provider);
+
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
   // desktop).
@@ -62,7 +85,7 @@ static void my_application_activate(GApplication* application) {
   GdkRGBA background_color;
   // Background defaults to black, override it here if necessary, e.g. #00000000
   // for transparent.
-  gdk_rgba_parse(&background_color, "#000000");
+  gdk_rgba_parse(&background_color, "#00000000");
   fl_view_set_background_color(view, &background_color);
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
