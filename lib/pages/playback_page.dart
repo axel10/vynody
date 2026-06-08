@@ -8,6 +8,7 @@ import 'package:audio_core/audio_core.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/audio/audio_service.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_riverpod.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 import 'package:vibe_flow/player/metadata/musicbrainz_tag_completion_service.dart';
 import 'package:vibe_flow/player/metadata/metadata_helper.dart';
@@ -51,6 +52,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   SettingsService? _settingsService;
   AudioService? _audioService;
   MainLayoutUiController? _uiController;
+  bool? _lastIsSmallWindow;
 
   @override
   void initState() {
@@ -146,6 +148,24 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _audioService?.setLyricsActive(nextLyricsMode);
+    });
+  }
+
+  void _flushLyricsTranslationsAfterSmallWindowExit(bool isSmallWindow) {
+    final previousIsSmallWindow = _lastIsSmallWindow;
+    _lastIsSmallWindow = isSmallWindow;
+
+    if (previousIsSmallWindow != true || isSmallWindow) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        ref
+            .read(lyricsControllerProvider.notifier)
+            .flushPendingLyricsTranslationUpdates(),
+      );
     });
   }
 
@@ -276,7 +296,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     }
   }
 
-  void _showTagSaveMenu(BuildContext context, AudioService audio, {required bool isModified}) {
+  void _showTagSaveMenu(
+    BuildContext context,
+    AudioService audio, {
+    required bool isModified,
+  }) {
     final l10n = AppLocalizations.of(context)!;
     final currentSong = ref.read(audioCurrentMusicProvider);
     final queue = ref.read(audioPlaybackQueueProvider);
@@ -284,7 +308,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     final isEditEnabled = currentSong != null;
-    final isSaveEnabled = currentSong != null && isMetadataWritable(currentSong.path) && isModified;
+    final isSaveEnabled =
+        currentSong != null &&
+        isMetadataWritable(currentSong.path) &&
+        isModified;
     final isQueueEnabled = queue.isNotEmpty;
 
     showDialog(
@@ -293,7 +320,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         backgroundColor: isDark ? Colors.grey[900] : theme.colorScheme.surface,
         title: Text(
           l10n.saveTagsToFile,
-          style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
+          style: TextStyle(
+            color: isDark ? Colors.white : theme.colorScheme.onSurface,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -377,9 +406,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 
-  Future<void> _saveCurrentSongTags(
-    AudioService audio,
-  ) async {
+  Future<void> _saveCurrentSongTags(AudioService audio) async {
     final l10n = AppLocalizations.of(context)!;
     final snapshot = ref.read(audioSnapshotProvider);
     final song = snapshot.currentMusic;
@@ -508,7 +535,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
 
     // Start background saving task
-    _runBackgroundSaveTask(modifiedSongs, artworkBytesMap, mediaUriMap, messenger, l10n);
+    _runBackgroundSaveTask(
+      modifiedSongs,
+      artworkBytesMap,
+      mediaUriMap,
+      messenger,
+      l10n,
+    );
   }
 
   void _runBackgroundSaveTask(
@@ -540,10 +573,19 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           final audio = ref.read(audioServiceProvider);
           final scanner = ref.read(scannerServiceProvider);
           final playlistService = ref.read(playlistServiceProvider);
-          
-          await audio.applyUpdatedSongMetadata(updatedMetadata, artworkBytes: artworkBytes);
-          scanner.updateMetadataForPath(updatedMetadata, artworkBytes: artworkBytes);
-          await playlistService.updateSongMetadataByPath(updatedMetadata, artworkBytes: artworkBytes);
+
+          await audio.applyUpdatedSongMetadata(
+            updatedMetadata,
+            artworkBytes: artworkBytes,
+          );
+          scanner.updateMetadataForPath(
+            updatedMetadata,
+            artworkBytes: artworkBytes,
+          );
+          await playlistService.updateSongMetadataByPath(
+            updatedMetadata,
+            artworkBytes: artworkBytes,
+          );
         }
       } else {
         if (isMetadataWritable(song.path)) {
@@ -756,7 +798,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             isWaveformEnabled: settings.isWaveformProgressBarEnabled,
             isSmallWindowMode: settings.isSmallWindowMode,
           );
-          final isLandscape = !isSmallWin && (orientation == Orientation.landscape);
+          _flushLyricsTranslationsAfterSmallWindowExit(isSmallWin);
+          final isLandscape =
+              !isSmallWin && (orientation == Orientation.landscape);
 
           if (_lastOrientation != orientation) {
             _lastOrientation = orientation;
@@ -768,7 +812,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           final bottomPadding = MediaQuery.of(context).padding.bottom;
           final isImmersiveTabBarEnabled = settings.isImmersiveTabBarEnabled;
 
-          final shouldReserveBottomNavSpace = !isLyricsMode && !isLandscape && !isSmallWin;
+          final shouldReserveBottomNavSpace =
+              !isLyricsMode && !isLandscape && !isSmallWin;
 
           // When immersive tab bar is enabled, the NavigationBar in MainLayout
           // is positioned in a Stack over the content with height (60 + bottomPadding).
@@ -781,7 +826,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             // so we don't pad the whole page. Instead, we pass the tab bar height
             // to the lyrics panel so it can add internal scrolling space.
             lyricsBottomTabBarHeight = 60.0;
-            
+
             // For normal mode (controls visible), we pad the whole page to keep
             // the layout stable and avoid overlap with the tab bar.
             if (shouldReserveBottomNavSpace) {
@@ -800,7 +845,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 final isNext = ref.watch(audioLastActionNextProvider) ?? true;
                 final currentMusic = ref.watch(audioCurrentMusicProvider);
                 final duration = ref.watch(audioDurationProvider);
-                final isVisualizerEnabled = ref.watch(audioIsVisualizerEnabledProvider);
+                final isVisualizerEnabled = ref.watch(
+                  audioIsVisualizerEnabledProvider,
+                );
 
                 return PlaybackHeroCard(
                   isMini: false,
@@ -809,17 +856,23 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   isNext: isNext,
                   lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
                   lyricsBottomTabBarHeight: lyricsBottomTabBarHeight,
-                  overrideProgress: _isScrubbingProgress ? _scrubProgress : null,
+                  overrideProgress: _isScrubbingProgress
+                      ? _scrubProgress
+                      : null,
                   overridePosition: _isScrubbingProgress
                       ? Duration(
-                          milliseconds: (_scrubProgress * duration.inMilliseconds).round(),
+                          milliseconds:
+                              (_scrubProgress * duration.inMilliseconds)
+                                  .round(),
                         )
                       : null,
                   showVisualizerToggle: isVisualizerEnabled,
                   onShowMoreMenu: () => _showMoreMenu(context, audio),
                   onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
-                  onShowPlaylistModeSelector: () => _showPlaylistModeSelector(context, audio),
-                  onShowRandomModeSelector: () => _showRandomModeSelector(context, audio),
+                  onShowPlaylistModeSelector: () =>
+                      _showPlaylistModeSelector(context, audio),
+                  onShowRandomModeSelector: () =>
+                      _showRandomModeSelector(context, audio),
                   onScrubbing: (val) {
                     _handleInteraction();
                     setState(() {
@@ -843,7 +896,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       : () => _showSongTagCompletionSheet(context, audio),
                   onTagCompletionLongPress: currentMusic == null
                       ? null
-                      : () => _showTagSaveMenu(context, audio, isModified: isModified),
+                      : () => _showTagSaveMenu(
+                          context,
+                          audio,
+                          isModified: isModified,
+                        ),
                   onSleepTimerTap: () => _showSleepTimerSheet(context),
                   onEqualizerTap: () => _showEqualizerPanel(context),
                   onCoverTap: _toggleLyricsMode,
@@ -853,7 +910,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   onVolumeTap: () {
                     _handleInteraction();
                     final nextVisible = !_showVolumeSlider;
-                    ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(nextVisible);
+                    ref
+                        .read(mainLayoutUiControllerProvider.notifier)
+                        .setVolumeSliderVisible(nextVisible);
                     setState(() {
                       _showVolumeSlider = nextVisible;
                     });
@@ -895,9 +954,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   if (showMiniPanel) ...[
                     SizedBox(
                       height: 360.0 - PlaybackPageUiTuning.desktopTopSpacer,
-                      child: Center(
-                        child: buildPlayerCard(),
-                      ),
+                      child: Center(child: buildPlayerCard()),
                     ),
                     Expanded(
                       child: switch (smallWindowPanelMode) {
@@ -910,11 +967,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       },
                     ),
                   ] else
-                    Expanded(
-                      child: Center(
-                        child: buildPlayerCard(),
-                      ),
-                    ),
+                    Expanded(child: Center(child: buildPlayerCard())),
                   if (isLandscape &&
                       (Platform.isWindows ||
                           Platform.isMacOS ||
@@ -978,52 +1031,92 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                           Positioned.fill(
                             child: LayoutBuilder(
                               builder: (context, constraints) {
-                                final isWaveformEnabled = settings.isWaveformProgressBarEnabled;
+                                final isWaveformEnabled =
+                                    settings.isWaveformProgressBarEnabled;
                                 const double scaleFactor = 0.82;
-                                
+
                                 final pNormalControlsBaseIdealHeight =
-                                    (PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
-                                    (isWaveformEnabled
-                                        ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
-                                        : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
-                                    (isWaveformEnabled
-                                        ? PlaybackHeroCardUiTuning.waveformOverlayHeight
-                                        : 48.0) +
-                                    (isWaveformEnabled
-                                        ? 0.0
-                                        : (8.0 +
-                                              PlaybackHeroCardUiTuning.controlsTimeRowHeight +
-                                              PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-                                              PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) * scaleFactor;
+                                    (PlaybackHeroCardUiTuning
+                                            .controlsTopButtonsHeight +
+                                        (isWaveformEnabled
+                                            ? PlaybackHeroCardUiTuning
+                                                  .waveformStandardTimeRowSpacing
+                                            : PlaybackHeroCardUiTuning
+                                                  .controlsRowPortraitGap) +
+                                        (isWaveformEnabled
+                                            ? PlaybackHeroCardUiTuning
+                                                  .waveformOverlayHeight
+                                            : 48.0) +
+                                        (isWaveformEnabled
+                                            ? 0.0
+                                            : (8.0 +
+                                                  PlaybackHeroCardUiTuning
+                                                      .controlsTimeRowHeight +
+                                                  PlaybackHeroCardUiTuning
+                                                      .controlsRowPortraitGap +
+                                                  PlaybackHeroCardUiTuning
+                                                      .controlsMainButtonsHeight))) *
+                                    scaleFactor;
 
                                 final pNormalScale =
-                                    (size.width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15) *
-                                        scaleFactor;
-                                final double maxControlsHeightFactor = isSmallWin
+                                    (size.width /
+                                            PlaybackHeroCardUiTuning
+                                                .pControlsScaleBase)
+                                        .clamp(0.9, 1.15) *
+                                    scaleFactor;
+                                final double maxControlsHeightFactor =
+                                    isSmallWin
                                     ? 0.85
-                                    : PlaybackHeroCardUiTuning.pControlsHeightFactor;
-                                final pNormalControlsHeight = (pNormalControlsBaseIdealHeight * pNormalScale)
-                                    .clamp(0.0, size.height * maxControlsHeightFactor)
-                                    .ceilToDouble();
-                                final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * pNormalScale;
-                                final pNormalBottomLimit = size.height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
-                                
+                                    : PlaybackHeroCardUiTuning
+                                          .pControlsHeightFactor;
+                                final pNormalControlsHeight =
+                                    (pNormalControlsBaseIdealHeight *
+                                            pNormalScale)
+                                        .clamp(
+                                          0.0,
+                                          size.height * maxControlsHeightFactor,
+                                        )
+                                        .ceilToDouble();
+                                final pNormalInfoHeight =
+                                    PlaybackHeroCardUiTuning.pInfoHeight *
+                                    pNormalScale;
+                                final pNormalBottomLimit =
+                                    size.height -
+                                    PlaybackHeroCardUiTuning
+                                        .portraitBottomReservedSpace;
+
                                 const double bottomPadding = 12.0;
-                                final pNormalControlsTop = pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
-                                final pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight - 4.0;
-                                
+                                final pNormalControlsTop =
+                                    pNormalBottomLimit -
+                                    pNormalControlsHeight -
+                                    bottomPadding;
+                                final pNormalInfoTop =
+                                    pNormalControlsTop -
+                                    pNormalInfoHeight -
+                                    4.0;
+
                                 final double fadeStart;
                                 final double fadeEnd;
                                 if (showMiniPanel) {
-                                  final double playlistTop = MediaQuery.of(context).padding.top + 360.0;
+                                  final double playlistTop =
+                                      MediaQuery.of(context).padding.top +
+                                      360.0;
                                   fadeEnd = playlistTop / size.height;
-                                  fadeStart = (playlistTop - 48.0) / size.height;
+                                  fadeStart =
+                                      (playlistTop - 48.0) / size.height;
                                 } else {
-                                  fadeStart = (pNormalInfoTop - 48.0) / size.height;
+                                  fadeStart =
+                                      (pNormalInfoTop - 48.0) / size.height;
                                   fadeEnd = pNormalInfoTop / size.height;
                                 }
-                                final double clampedStart = fadeStart.clamp(0.0, 1.0);
-                                final double clampedEnd = fadeEnd.clamp(0.0, 1.0);
+                                final double clampedStart = fadeStart.clamp(
+                                  0.0,
+                                  1.0,
+                                );
+                                final double clampedEnd = fadeEnd.clamp(
+                                  0.0,
+                                  1.0,
+                                );
 
                                 return ClipRect(
                                   child: ShaderMask(
@@ -1040,9 +1133,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                     },
                                     blendMode: BlendMode.dstIn,
                                     child: ImageFiltered(
-                                      imageFilter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                                      imageFilter: ui.ImageFilter.blur(
+                                        sigmaX: 20.0,
+                                        sigmaY: 20.0,
+                                      ),
                                       child: AnimatedSwitcher(
-                                        duration: const Duration(milliseconds: 800),
+                                        duration: const Duration(
+                                          milliseconds: 800,
+                                        ),
                                         child: _buildBackgroundWidget(
                                           context,
                                           backgroundType,
@@ -1062,7 +1160,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     ),
                   ),
                 ),
-                _buildBackgroundScrim(isLyricsMode, backgroundType, settings, isSmallWin),
+                _buildBackgroundScrim(
+                  isLyricsMode,
+                  backgroundType,
+                  settings,
+                  isSmallWin,
+                ),
                 if (shouldDrawVisualizer)
                   _buildVisualizerLayer(context, orientation),
                 _buildLyricsModeScrim(isLyricsMode, backgroundType, settings),
@@ -1089,7 +1192,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                           audio.setVolume(val.roundToDouble());
                         },
                         onDismiss: () {
-                          ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
+                          ref
+                              .read(mainLayoutUiControllerProvider.notifier)
+                              .setVolumeSliderVisible(false);
                           setState(() => _showVolumeSlider = false);
                         },
                         isLandscape: isLandscape,
@@ -1109,7 +1214,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 
-  Widget _buildBackgroundWidget(BuildContext context, int backgroundType, SettingsService settings, {bool? forceSmallWin, String? keySuffix}) {
+  Widget _buildBackgroundWidget(
+    BuildContext context,
+    int backgroundType,
+    SettingsService settings, {
+    bool? forceSmallWin,
+    String? keySuffix,
+  }) {
     switch (backgroundType) {
       case 1:
         return RepaintBoundary(
@@ -1118,7 +1229,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         );
       case 2:
         return Container(
-          key: ValueKey('solid_color_bg_${settings.playbackBackgroundColor}_${keySuffix ?? 'default'}'),
+          key: ValueKey(
+            'solid_color_bg_${settings.playbackBackgroundColor}_${keySuffix ?? 'default'}',
+          ),
           color: Color(settings.playbackBackgroundColor),
           width: double.infinity,
           height: double.infinity,
@@ -1155,15 +1268,19 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           },
         );
         final size = MediaQuery.of(context).size;
-        final bool isSmallWinValue = forceSmallWin ?? PlaybackPageUiTuning.isSmallWindow(
-          size,
-          isWaveformEnabled: settings.isWaveformProgressBarEnabled,
-          isSmallWindowMode: settings.isSmallWindowMode,
-        );
+        final bool isSmallWinValue =
+            forceSmallWin ??
+            PlaybackPageUiTuning.isSmallWindow(
+              size,
+              isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+              isSmallWindowMode: settings.isSmallWindowMode,
+            );
         final blur = settings.playbackCustomImageBlurSigma;
         if (blur > 0.0 && !isSmallWinValue) {
           return ImageFiltered(
-            key: ValueKey('custom_image_bg_blurred_${path}_${keySuffix ?? 'default'}'),
+            key: ValueKey(
+              'custom_image_bg_blurred_${path}_${keySuffix ?? 'default'}',
+            ),
             imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
             child: Transform.scale(scale: 1.2, child: imageWidget),
           );
@@ -1171,11 +1288,21 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         return Transform.scale(scale: 1.2, child: imageWidget);
       case 0:
       default:
-        return _buildBlurredBackground(context, settings, forceSmallWin: forceSmallWin, keySuffix: keySuffix);
+        return _buildBlurredBackground(
+          context,
+          settings,
+          forceSmallWin: forceSmallWin,
+          keySuffix: keySuffix,
+        );
     }
   }
 
-  Widget _buildBackgroundScrim(bool isLyricsMode, int backgroundType, SettingsService settings, bool isSmallWin) {
+  Widget _buildBackgroundScrim(
+    bool isLyricsMode,
+    int backgroundType,
+    SettingsService settings,
+    bool isSmallWin,
+  ) {
     double opacity = 0.30;
     if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
       opacity = settings.playbackBackgroundNormalOpacity;
@@ -1210,7 +1337,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 
-  Widget _buildLyricsModeScrim(bool isLyricsMode, int backgroundType, SettingsService settings) {
+  Widget _buildLyricsModeScrim(
+    bool isLyricsMode,
+    int backgroundType,
+    SettingsService settings,
+  ) {
     double opacity = 0.40;
     if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
       opacity = settings.playbackBackgroundLyricsOpacity;
@@ -1232,14 +1363,23 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   ///
   /// 该组件实现了当音乐切换或封面更新时，背景图的平滑过渡效果。
   /// 使用 _pendingArtworkBytes，在轮播动画完成后才更新背景。
-  Widget _buildBlurredBackground(BuildContext context, SettingsService settings, {bool? forceSmallWin, String? keySuffix}) {
-    final String finalSuffix = keySuffix ?? (forceSmallWin == null ? 'auto' : (forceSmallWin ? 'small' : 'normal'));
+  Widget _buildBlurredBackground(
+    BuildContext context,
+    SettingsService settings, {
+    bool? forceSmallWin,
+    String? keySuffix,
+  }) {
+    final String finalSuffix =
+        keySuffix ??
+        (forceSmallWin == null ? 'auto' : (forceSmallWin ? 'small' : 'normal'));
     final size = MediaQuery.of(context).size;
-    final bool isSmallWinValue = forceSmallWin ?? PlaybackPageUiTuning.isSmallWindow(
-      size,
-      isWaveformEnabled: settings.isWaveformProgressBarEnabled,
-      isSmallWindowMode: settings.isSmallWindowMode,
-    );
+    final bool isSmallWinValue =
+        forceSmallWin ??
+        PlaybackPageUiTuning.isSmallWindow(
+          size,
+          isWaveformEnabled: settings.isWaveformProgressBarEnabled,
+          isSmallWindowMode: settings.isSmallWindowMode,
+        );
 
     return RepaintBoundary(
       key: ValueKey('blurred_bg_$finalSuffix'),
@@ -1267,7 +1407,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         originalBytes,
                         width: double.infinity,
                         height: double.infinity,
-                        cacheWidth: (Platform.isAndroid || Platform.isIOS) ? 300 : null,
+                        cacheWidth: (Platform.isAndroid || Platform.isIOS)
+                            ? 300
+                            : null,
                         fit: BoxFit.cover,
                         filterQuality: FilterQuality.low,
                         gaplessPlayback: true,
@@ -1275,7 +1417,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       ),
                     ),
                   );
-                } else if (originalPath != null && originalPath.isNotEmpty && File(originalPath).existsSync()) {
+                } else if (originalPath != null &&
+                    originalPath.isNotEmpty &&
+                    File(originalPath).existsSync()) {
                   content = ImageFiltered(
                     key: ValueKey('${originalPath.hashCode}_$finalSuffix'),
                     imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
@@ -1285,7 +1429,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         File(originalPath),
                         width: double.infinity,
                         height: double.infinity,
-                        cacheWidth: (Platform.isAndroid || Platform.isIOS) ? 300 : null,
+                        cacheWidth: (Platform.isAndroid || Platform.isIOS)
+                            ? 300
+                            : null,
                         fit: BoxFit.cover,
                         filterQuality: FilterQuality.low,
                         gaplessPlayback: true,
@@ -1319,7 +1465,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     bytes,
                     width: double.infinity,
                     height: double.infinity,
-                    cacheWidth: (Platform.isAndroid || Platform.isIOS) ? 300 : null,
+                    cacheWidth: (Platform.isAndroid || Platform.isIOS)
+                        ? 300
+                        : null,
                     fit: BoxFit.cover,
                     filterQuality: FilterQuality.low,
                     gaplessPlayback: true,
@@ -1334,10 +1482,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       sigmaX: settings.playbackBlurredArtworkBlurSigma,
                       sigmaY: settings.playbackBlurredArtworkBlurSigma,
                     ),
-                    child: Transform.scale(
-                      scale: 1.2,
-                      child: imageProvider,
-                    ),
+                    child: Transform.scale(scale: 1.2, child: imageProvider),
                   );
                 }
               }
