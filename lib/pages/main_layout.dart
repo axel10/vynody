@@ -208,7 +208,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
         _handleArgs();
       });
     }
-
   }
 
   @override
@@ -217,9 +216,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       windowManager.removeListener(this);
     }
     _audioService.setMissingSongNoticeHandler(null);
-    Future.microtask(() {
-      _uiController.setVolumeSliderVisible(false);
-    });
     super.dispose();
   }
 
@@ -747,8 +743,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
       if (!mounted) return;
       final volumeChanged =
           _lastVolume != null && (_lastVolume! - next).abs() > 0.1;
-      if (volumeChanged && _audioService.shouldShowVolumeHudForLastVolumeChange) {
-        _ui.showVolumeHud();
+      if (volumeChanged &&
+          _audioService.shouldShowVolumeHudForLastVolumeChange) {
+        _ui.setVolumeHudVisible(true);
       }
       _lastVolume = next;
     });
@@ -1032,26 +1029,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                                               .resetInactivity();
                                           final nextVisible =
                                               !_showMiniVolumeSlider;
-                                          ref
-                                              .read(
-                                                mainLayoutUiControllerProvider
-                                                    .notifier,
-                                              )
-                                              .setVolumeSliderVisible(
-                                                nextVisible,
-                                              );
                                           setState(() {
                                             _showMiniVolumeSlider = nextVisible;
                                           });
                                         },
                                         onMiniMouseExit: () {
                                           if (!_showMiniVolumeSlider) return;
-                                          ref
-                                              .read(
-                                                mainLayoutUiControllerProvider
-                                                    .notifier,
-                                              )
-                                              .setVolumeSliderVisible(false);
                                           setState(() {
                                             _showMiniVolumeSlider = false;
                                           });

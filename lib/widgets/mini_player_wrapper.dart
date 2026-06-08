@@ -7,10 +7,7 @@ import '../pages/main_layout.dart';
 import '../pages/main_layout_riverpod.dart';
 
 class MiniPlayerWrapper extends ConsumerStatefulWidget {
-  const MiniPlayerWrapper({
-    super.key,
-    required this.child,
-  });
+  const MiniPlayerWrapper({super.key, required this.child});
 
   final Widget child;
 
@@ -20,30 +17,13 @@ class MiniPlayerWrapper extends ConsumerStatefulWidget {
 
 class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
   bool _showMiniVolumeSlider = false;
-  MainLayoutUiController? _uiController;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _uiController ??= ref.read(mainLayoutUiControllerProvider.notifier);
-  }
-
-  @override
-  void dispose() {
-    final uiController = _uiController;
-    if (uiController != null) {
-      Future.microtask(() {
-        uiController.setVolumeSliderVisible(false);
-      });
-    }
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final uiState = ref.watch(mainLayoutUiControllerProvider);
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     final librarySelectionActive = ref.watch(librarySelectionActiveProvider);
     final showPlayer = currentMusic != null && !librarySelectionActive;
 
@@ -55,8 +35,8 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
           curve: Curves.easeOutCubic,
           bottom: showPlayer
               ? (20.0 +
-                  MediaQuery.of(context).padding.bottom +
-                  uiState.snackBarOffset)
+                    MediaQuery.of(context).padding.bottom +
+                    uiState.snackBarOffset)
               : -120.0,
           left: 0,
           right: 0,
@@ -84,31 +64,28 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
                           onSeek: (val) {
                             audio.seek(
                               Duration(
-                                milliseconds: (audio.duration.inMilliseconds * val).toInt(),
+                                milliseconds:
+                                    (audio.duration.inMilliseconds * val)
+                                        .toInt(),
                               ),
                             );
                           },
                           onVolumeTap: () {
                             ref.read(settingsServiceProvider).resetInactivity();
                             final nextVisible = !_showMiniVolumeSlider;
-                            ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(nextVisible);
                             setState(() {
                               _showMiniVolumeSlider = nextVisible;
                             });
                           },
                           onMiniMouseExit: () {
                             if (!_showMiniVolumeSlider) return;
-                            ref.read(mainLayoutUiControllerProvider.notifier).setVolumeSliderVisible(false);
                             setState(() {
                               _showMiniVolumeSlider = false;
                             });
                           },
                           onVolumeChanged: (value) {
                             ref.read(settingsServiceProvider).resetInactivity();
-                            audio.setVolume(
-                              value.roundToDouble(),
-                              showVolumeHud: false,
-                            );
+                            audio.setVolume(value.roundToDouble());
                           },
                           onVolumeScroll: (deltaY) {
                             ref.read(settingsServiceProvider).resetInactivity();
@@ -116,7 +93,6 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
                               (audio.volume - deltaY * 0.1)
                                   .clamp(0.0, 100.0)
                                   .roundToDouble(),
-                              showVolumeHud: false,
                             );
                           },
                         ),

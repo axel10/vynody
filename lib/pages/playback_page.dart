@@ -29,7 +29,6 @@ import '../widgets/lyrics_task_status_banner.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/mini_queue_view.dart';
 import '../widgets/mini_lyrics_view.dart';
-import 'main_layout_riverpod.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
@@ -51,7 +50,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
   SettingsService? _settingsService;
   AudioService? _audioService;
-  MainLayoutUiController? _uiController;
   bool? _lastIsSmallWindow;
 
   @override
@@ -79,7 +77,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _settingsService ??= ref.read(settingsServiceProvider);
-    _uiController ??= ref.read(mainLayoutUiControllerProvider.notifier);
   }
 
   @override
@@ -99,12 +96,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     if (audio != null) {
       Future.microtask(() {
         audio.setLyricsActive(false);
-      });
-    }
-    final uiController = _uiController;
-    if (uiController != null) {
-      Future.microtask(() {
-        uiController.setVolumeSliderVisible(false);
       });
     }
     super.dispose();
@@ -170,17 +161,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   }
 
   void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
-    audio.setVolume(
-      (audio.volume - dragDelta * 0.2).roundToDouble(),
-      showVolumeHud: false,
-    );
+    audio.setVolume((audio.volume - dragDelta * 0.2).roundToDouble());
   }
 
   void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY) {
-    audio.setVolume(
-      (audio.volume - scrollDeltaY * 0.1).roundToDouble(),
-      showVolumeHud: false,
-    );
+    audio.setVolume((audio.volume - scrollDeltaY * 0.1).roundToDouble());
   }
 
   Future<void> _toggleVisualizer(AudioService audio) async {
@@ -913,13 +898,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   onNext: () => toNextMusic(audio),
                   onVolumeTap: () {
                     _handleInteraction();
-                    final nextVisible = !_showVolumeSlider;
-                    ref
-                        .read(mainLayoutUiControllerProvider.notifier)
-                        .setVolumeSliderVisible(nextVisible);
-                    setState(() {
-                      _showVolumeSlider = nextVisible;
-                    });
+                    setState(() => _showVolumeSlider = !_showVolumeSlider);
                   },
                   onVolumeDrag: (delta) {
                     _handleInteraction();
@@ -1193,15 +1172,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         volume: volume,
                         onVolumeChanged: (val) {
                           _handleInteraction();
-                          audio.setVolume(
-                            val.roundToDouble(),
-                            showVolumeHud: false,
-                          );
+                          audio.setVolume(val.roundToDouble());
                         },
                         onDismiss: () {
-                          ref
-                              .read(mainLayoutUiControllerProvider.notifier)
-                              .setVolumeSliderVisible(false);
                           setState(() => _showVolumeSlider = false);
                         },
                         isLandscape: isLandscape,
