@@ -11,6 +11,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
   const LyricsPanelEmptyState({
     super.key,
     required this.accentColor,
+    required this.textColor,
     required this.isLoading,
     required this.isGenerating,
     required this.canGenerateLyrics,
@@ -22,6 +23,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
   });
 
   final Color accentColor;
+  final Color textColor;
   final bool isLoading;
   final bool isGenerating;
   final bool canGenerateLyrics;
@@ -67,7 +69,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
                 isLoading ? l10n.searchingLyrics : l10n.noLyrics,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: textColor.withValues(alpha: 0.7),
                   fontSize: 16,
                 ),
               ),
@@ -118,6 +120,8 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.lyricsFontScale,
     required this.scrollController,
     required this.scrollBehavior,
+    required this.textColor,
+    required this.secondaryTextColor,
     required this.onVerticalDragStart,
     required this.onVerticalDragUpdate,
     required this.onVerticalDragEnd,
@@ -136,6 +140,8 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final double lyricsFontScale;
   final ScrollController scrollController;
   final ScrollBehavior scrollBehavior;
+  final Color textColor;
+  final Color secondaryTextColor;
   final GestureDragStartCallback? onVerticalDragStart;
   final GestureDragUpdateCallback? onVerticalDragUpdate;
   final GestureDragEndCallback? onVerticalDragEnd;
@@ -203,8 +209,8 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                         final lineStyle = hasTimedLyrics
                             ? Theme.of(context).textTheme.bodyLarge!.copyWith(
                                 color: isActive
-                                    ? Colors.white
-                                    : Colors.white.withValues(
+                                    ? textColor
+                                    : textColor.withValues(
                                         alpha: isNear ? 0.72 : 0.46,
                                       ),
                                 fontSize: timedLyricFontSize,
@@ -215,7 +221,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                 leadingDistribution: TextLeadingDistribution.even,
                               )
                             : TextStyle(
-                                color: Colors.white.withValues(alpha: 0.92),
+                                color: textColor.withValues(alpha: 0.92),
                                 fontSize: plainLyricFontSize,
                                 fontWeight: FontWeight.w400,
                                 height: 1.6,
@@ -259,9 +265,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                           translated,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.62,
-                                            ),
+                                            color: secondaryTextColor,
                                             fontSize: translationFontSize,
                                             height: 1.3,
                                             leadingDistribution:

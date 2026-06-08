@@ -4,11 +4,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/widgets/lyrics_panel.dart';
 
-class MiniLyricsView extends ConsumerWidget {
+class MiniLyricsView extends ConsumerStatefulWidget {
   const MiniLyricsView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MiniLyricsView> createState() => _MiniLyricsViewState();
+}
+
+class _MiniLyricsViewState extends ConsumerState<MiniLyricsView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(audioServiceProvider).setLyricsActive(true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final position = ref.watch(audioPositionProvider);
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
@@ -36,6 +51,8 @@ class MiniLyricsView extends ConsumerWidget {
         lyrics: currentMusic?.lyrics,
         position: position,
         accentColor: accent,
+        textColor: Colors.black,
+        secondaryTextColor: Colors.black.withValues(alpha: 0.62),
         bottomSpacerHeight: 0.0,
         bottomTabBarHeight: 0.0,
       ),

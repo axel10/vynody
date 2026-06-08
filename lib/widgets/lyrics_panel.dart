@@ -55,6 +55,8 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
     required this.lyrics,
     required this.position,
     this.accentColor,
+    this.textColor,
+    this.secondaryTextColor,
     this.bottomSpacerHeight = 0.0,
     this.bottomTabBarHeight = 0.0,
     this.onActiveLyricTopChanged,
@@ -63,6 +65,8 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
   final MusicLyric? lyrics;
   final Duration position;
   final Color? accentColor;
+  final Color? textColor;
+  final Color? secondaryTextColor;
   final double bottomSpacerHeight;
   final double bottomTabBarHeight;
   final ValueChanged<double?>? onActiveLyricTopChanged;
@@ -1078,6 +1082,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
+    final textColor = widget.textColor ?? Colors.white;
+    final secondaryTextColor =
+        widget.secondaryTextColor ?? textColor.withValues(alpha: 0.62);
 
     if (!hasRenderableLyrics) {
       final canGenerateLyrics = shouldShowGenerateLyricsButton(
@@ -1085,6 +1092,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       );
       return LyricsPanelEmptyState(
         accentColor: accent,
+        textColor: textColor,
         isLoading: lyricsState.isLyricsLoading,
         isGenerating: currentSongTaskState.isGenerationBusy,
         canGenerateLyrics: canGenerateLyrics,
@@ -1225,6 +1233,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           activeIndex: focusedIndex,
           isAutoScrollPaused: _isAutoScrollPaused,
           lyricsFontScale: lyricsFontScale,
+          textColor: textColor,
+          secondaryTextColor: secondaryTextColor,
           scrollController: _scrollController,
           scrollBehavior: _lyricsScrollBehavior(context),
           onVerticalDragStart: hasTimedLyrics
