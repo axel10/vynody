@@ -8,7 +8,7 @@ import 'package:vibe_flow/player/library/playlist_service.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/widgets/queue_file_drop_target.dart';
 
-const Color _miniQueuePanelBackgroundColor = Color(0xCC000000);
+const Color _miniQueuePanelBackgroundColor = Color.fromARGB(132, 0, 0, 0);
 const Color _miniQueuePanelBorderColor = Color(0x14FFFFFF);
 const Color _miniQueueTitleColor = Colors.white;
 const Color _miniQueueEmptyTextColor = Color(0x80FFFFFF);

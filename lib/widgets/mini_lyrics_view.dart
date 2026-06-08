@@ -14,7 +14,7 @@ class MiniLyricsView extends ConsumerStatefulWidget {
 }
 
 class _MiniLyricsViewState extends ConsumerState<MiniLyricsView> {
-  static const Color _panelBackgroundColor = Color(0xCC000000);
+  static const Color _panelBackgroundColor = Color.fromARGB(132, 0, 0, 0);
   static const Color _panelBorderColor = Color(0x14FFFFFF);
   static const Color _lyricsTextColor = Colors.white;
   static const Color _lyricsSecondaryTextColor = Color(0x9EFFFFFF);
