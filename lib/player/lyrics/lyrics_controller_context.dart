@@ -13,6 +13,7 @@ import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_song_task_state.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
 import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vibe_flow/player/settings/settings_service.dart';
 
 class LyricsGenerationRuntime {
   int serial = 0;
@@ -52,6 +53,7 @@ class LyricsControllerContext {
     required this.cacheSongDuration,
     required this.lyricsCacheRepository,
     required this.lyricsService,
+    required this.settingsService,
     required this.lyricsAiService,
     required this.getState,
     required this.setState,
@@ -84,6 +86,7 @@ class LyricsControllerContext {
   final void Function(String path, int durationMillis) cacheSongDuration;
   final LyricsCacheRepository lyricsCacheRepository;
   final LyricsService lyricsService;
+  final SettingsService settingsService;
   final LyricsAiService lyricsAiService;
   final LyricsControllerState Function() getState;
   final void Function(LyricsControllerState state) setState;

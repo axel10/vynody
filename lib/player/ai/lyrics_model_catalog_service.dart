@@ -79,6 +79,10 @@ class LyricsModelCatalogService {
         purpose: purpose,
         apiKey: apiKey,
       ),
+      LyricsAiProvider.deepseek => _fetchDeepSeekModels(
+        purpose: purpose,
+        apiKey: apiKey,
+      ),
     };
   }
 
@@ -158,6 +162,51 @@ class LyricsModelCatalogService {
         options: Options(headers: {'Authorization': 'Bearer $normalizedKey'}),
       );
       final models = _extractDoubaoModels(response.data, purpose);
+      return LyricsModelCatalogResult(
+        success: true,
+        message: _isZh
+            ? '已获取 ${models.length} 个模型。'
+            : 'Fetched ${models.length} models.',
+        models: models,
+      );
+    } catch (error) {
+      return LyricsModelCatalogResult(
+        success: false,
+        message: _formatErrorMessage(error),
+      );
+    }
+  }
+
+  Future<LyricsModelCatalogResult> _fetchDeepSeekModels({
+    required LyricsAiModelPurpose purpose,
+    required String apiKey,
+  }) async {
+    final normalizedKey = apiKey.trim();
+    if (normalizedKey.isEmpty) {
+      return LyricsModelCatalogResult(
+        success: false,
+        message: _isZh
+            ? '请先填写 DeepSeek API Key。'
+            : 'Please enter a DeepSeek API key first.',
+      );
+    }
+
+    if (purpose != LyricsAiModelPurpose.translation) {
+      return LyricsModelCatalogResult(
+        success: true,
+        message: _isZh
+            ? 'DeepSeek 仅用于歌词翻译。'
+            : 'DeepSeek is only available for lyric translation.',
+        models: const [],
+      );
+    }
+
+    try {
+      final response = await _client.get(
+        'https://api.deepseek.com/models',
+        options: Options(headers: {'Authorization': 'Bearer $normalizedKey'}),
+      );
+      final models = _extractDeepSeekModels(response.data);
       return LyricsModelCatalogResult(
         success: true,
         message: _isZh
@@ -333,6 +382,41 @@ class LyricsModelCatalogService {
         .whereType<LyricsModelInfo>()
         .toList(growable: false)
       ..sort(_compareDoubaoModels);
+  }
+
+  List<LyricsModelInfo> _extractDeepSeekModels(dynamic data) {
+    if (data is! Map) {
+      return const [];
+    }
+    final models = data['data'];
+    if (models is! List) {
+      return const [];
+    }
+
+    return models
+        .whereType<Map>()
+        .map((item) {
+          final id = item['id']?.toString().trim() ?? '';
+          if (id.isEmpty) {
+            return null;
+          }
+          final name = item['name']?.toString().trim() ?? id;
+          final lowerId = id.toLowerCase();
+          final isTranslationModel =
+              lowerId.contains('chat') ||
+              lowerId.contains('reasoner') ||
+              lowerId.contains('deepseek');
+          if (!isTranslationModel) {
+            return null;
+          }
+          return LyricsModelInfo(
+            id: id,
+            displayName: name,
+            provider: LyricsAiProvider.deepseek,
+          );
+        })
+        .whereType<LyricsModelInfo>()
+        .toList(growable: false);
   }
 
   int _compareDoubaoModels(LyricsModelInfo a, LyricsModelInfo b) {

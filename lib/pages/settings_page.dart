@@ -953,9 +953,43 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ),
+        ListTile(
+          isThreeLine: true,
+          leading: const Icon(Icons.bolt),
+          title: const Text('DeepSeek API Key'),
+          subtitle: Text(
+            settings.deepseekApiKey.trim().isEmpty
+                ? '未保存 DeepSeek API Key'
+                : '已保存 DeepSeek API Key',
+          ),
+          trailing: FilledButton.tonal(
+            onPressed: () async {
+              final enteredApiKey = await showDialog<String?>(
+                context: context,
+                builder: (dialogContext) {
+                  return _SimpleApiKeyDialog(
+                    title: '输入 DeepSeek API Key',
+                    initialValue: settings.deepseekApiKey,
+                  );
+                },
+              );
+              if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+                return;
+              }
+              settings.deepseekApiKey = enteredApiKey;
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('已保存 DeepSeek API Key')),
+              );
+            },
+            child: Text(
+              settings.deepseekApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
+            ),
+          ),
+        ),
         _buildSectionHeader(
           l10n.geminiModelsSectionTitle,
-          '分别设置歌词生成和歌词翻译使用的主模型、备用模型，也可以切换到豆包。',
+          '分别设置歌词生成和歌词翻译使用的主模型、备用模型，也可以切换到豆包和 DeepSeek。',
         ),
         _buildLyricsModelSection(context, settings),
       ],
@@ -1364,7 +1398,11 @@ class _LyricsModelPickerDialogState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SegmentedButton<LyricsAiProvider>(
-              segments: _providerTabs
+              segments: [
+                ..._providerTabs,
+                if (widget.purpose == LyricsAiModelPurpose.translation)
+                  LyricsAiProvider.deepseek,
+              ]
                   .map(
                     (provider) => ButtonSegment<LyricsAiProvider>(
                       value: provider,

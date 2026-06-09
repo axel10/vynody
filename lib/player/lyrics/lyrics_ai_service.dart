@@ -32,6 +32,7 @@ final class LyricsAiRuntimeConfig {
     required this.geminiApiKey,
     required this.openRouterApiKey,
     required this.doubaoApiKey,
+    required this.deepseekApiKey,
   });
 
   final LyricsAiModelSelection generationPrimaryModel;
@@ -41,12 +42,14 @@ final class LyricsAiRuntimeConfig {
   final String geminiApiKey;
   final String openRouterApiKey;
   final String doubaoApiKey;
+  final String deepseekApiKey;
 
   String apiKeyForProvider(LyricsAiProvider provider) {
     return switch (provider) {
       LyricsAiProvider.googleAiStudio => geminiApiKey,
       LyricsAiProvider.openRouter => openRouterApiKey,
       LyricsAiProvider.doubao => doubaoApiKey,
+      LyricsAiProvider.deepseek => deepseekApiKey,
     };
   }
 
@@ -119,11 +122,16 @@ class LyricsAiService {
     return 'OpenRouter · ${SettingsService.lyricsModelDisplayName(modelId)}';
   }
 
+  String _deepSeekModelLabel(String modelId) {
+    return 'DeepSeek · ${SettingsService.lyricsModelDisplayName(modelId)}';
+  }
+
   String _modelLabel(LyricsAiModelSelection selection) {
     return switch (selection.provider) {
       LyricsAiProvider.googleAiStudio => _googleModelLabel(selection.modelId),
       LyricsAiProvider.doubao => _doubaoModelLabel(selection.modelId),
       LyricsAiProvider.openRouter => _openRouterModelLabel(selection.modelId),
+      LyricsAiProvider.deepseek => _deepSeekModelLabel(selection.modelId),
     };
   }
 
@@ -241,6 +249,16 @@ class LyricsAiService {
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
+        LyricsAiProvider.deepseek => _translateWithDeepSeek(
+          apiKey: apiKey,
+          modelId: candidate.modelId,
+          prompt: prompt,
+          sourceLines: sourceLines,
+          blankLineIndexes: blankLineIndexes,
+          targetLineCount: targetLineCount,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
+        ),
       };
       if (error == null) {
         return null;
@@ -338,6 +356,12 @@ class LyricsAiService {
           onStageChanged: onStageChanged,
           onProgress: onProgress,
           cancelToken: cancelToken,
+        ),
+        LyricsAiProvider.deepseek => LyricsGenerationResult.failure(
+          _t(
+            'DeepSeek 仅支持歌词翻译。',
+            'DeepSeek is only available for lyric translation.',
+          ),
         ),
       };
       if (result.isSuccess) {
@@ -450,6 +474,12 @@ class LyricsAiService {
             onProgress: onProgress,
             cancelToken: cancelToken,
           ),
+        LyricsAiProvider.deepseek => LyricsGenerationResult.failure(
+          _t(
+            'DeepSeek 仅支持歌词翻译。',
+            'DeepSeek is only available for lyric translation.',
+          ),
+        ),
       };
       if (result.isSuccess) {
         return _normalizeGenerationResult(result);
@@ -867,6 +897,119 @@ class LyricsAiService {
           'OpenRouter 返回了空响应。',
           'OpenRouter returned an empty response.',
         );
+      }
+      return null;
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) {
+        return 'cancelled';
+      }
+      return _formatGenerationErrorMessage(
+        error,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        ),
+      );
+    } catch (error) {
+      return _formatGenerationErrorMessage(
+        error,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        ),
+      );
+    }
+  }
+
+  Future<String?> _translateWithDeepSeek({
+    required String apiKey,
+    required String modelId,
+    required String prompt,
+    required List<String> sourceLines,
+    required List<int> blankLineIndexes,
+    required int targetLineCount,
+    void Function(List<String> translatedLines, String translatedText)?
+    onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final response = await _client.post(
+        'https://api.deepseek.com/chat/completions',
+        data: {
+          'model': modelId,
+          'messages': [
+            {
+              'role': 'user',
+              'content': prompt,
+            },
+          ],
+          'stream': true,
+        },
+        options: Options(
+          responseType: ResponseType.stream,
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': Headers.jsonContentType,
+          },
+        ),
+        cancelToken: cancelToken,
+      );
+
+      final body = response.data;
+      if (body == null || body.stream == null) {
+        return _t(
+          'DeepSeek 返回了空流响应。',
+          'DeepSeek returned an empty streaming response.',
+        );
+      }
+
+      final translatedBuffer = StringBuffer();
+      String lastSnapshot = '';
+      final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
+      await for (final line in textStream.transform(const LineSplitter())) {
+        if (cancelToken?.isCancelled == true) {
+          throw DioException(
+            requestOptions: RequestOptions(path: ''),
+            type: DioExceptionType.cancel,
+          );
+        }
+        final trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) {
+          continue;
+        }
+        final data = trimmed.substring(5).trim();
+        if (data.isEmpty || data == '[DONE]') {
+          if (data == '[DONE]') {
+            break;
+          }
+          continue;
+        }
+
+        final chunk = _streamParser.extractText(data);
+        if (chunk == null || chunk.isEmpty) {
+          continue;
+        }
+        translatedBuffer.write(chunk);
+        final cleaned = _stripTimestamps(
+          LrcUtils.cleanGeneratedLyricsText(translatedBuffer.toString()),
+        );
+        final lines = _normalizeTranslationLines(cleaned, targetLineCount);
+        final restoredLines = _restoreBlankLines(
+          lines,
+          blankLineIndexes,
+          sourceLines.length,
+        );
+        final snapshot = restoredLines
+            .map((line) => _stripTimestampPrefix(line).trimRight())
+            .join('\n');
+        if (onProgress != null && snapshot != lastSnapshot) {
+          lastSnapshot = snapshot;
+          onProgress(restoredLines, snapshot);
+        }
+      }
+
+      if (translatedBuffer.toString().trim().isEmpty) {
+        return _t('DeepSeek 返回了空响应。', 'DeepSeek returned an empty response.');
       }
       return null;
     } on DioException catch (error) {

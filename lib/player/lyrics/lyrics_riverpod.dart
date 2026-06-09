@@ -24,6 +24,7 @@ final lyricsAiRuntimeConfigProvider = Provider<LyricsAiRuntimeConfig>((ref) {
         geminiApiKey: settings.geminiApiKey,
         openRouterApiKey: settings.openRouterApiKey,
         doubaoApiKey: settings.doubaoApiKey,
+        deepseekApiKey: settings.deepseekApiKey,
       ),
     ),
   );

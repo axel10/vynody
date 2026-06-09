@@ -90,6 +90,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       cacheSongDuration: _cacheSongDuration,
       lyricsCacheRepository: _lyricsCacheRepository,
       lyricsService: _lyricsService,
+      settingsService: _settingsService,
       lyricsAiService: _lyricsAiService,
       getState: () => state,
       setState: (newState) => state = newState,

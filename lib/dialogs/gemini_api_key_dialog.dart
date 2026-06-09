@@ -305,6 +305,33 @@ Future<String?> showDoubaoApiKeyDialog(
   );
 }
 
+Future<String?> showDeepSeekApiKeyDialog(
+  BuildContext context, {
+  required String initialApiKey,
+}) async {
+  final l10n = AppLocalizations.of(context)!;
+  return _showApiKeyDialog(
+    context,
+    title: '输入 DeepSeek API Key',
+    description: '请输入 DeepSeek 的 API Key，仅用于歌词翻译。',
+    hintText: '请输入 API Key',
+    testButtonLabel: l10n.testConnection,
+    saveButtonLabel: l10n.save,
+    emptyMessage: l10n.enterApiKey,
+    dialogActionLabel: l10n.cancel,
+    fieldLabel: l10n.apiKey,
+    getKeyButtonLabel: l10n.getKey,
+    initialApiKey: initialApiKey,
+    getKeyUrl: 'https://platform.deepseek.com/api_keys',
+    testConnection: (apiKey) async {
+      return _ApiKeyDialogResult(
+        success: true,
+        message: '已输入 API Key，可直接保存。',
+      );
+    },
+  );
+}
+
 Future<String?> showGeminiApiKeyDialog(
   BuildContext context, {
   required WidgetRef ref,
@@ -353,6 +380,10 @@ Future<String?> showLyricsProviderApiKeyDialog(
       initialApiKey: initialApiKey,
     ),
     LyricsAiProvider.doubao => showDoubaoApiKeyDialog(
+      context,
+      initialApiKey: initialApiKey,
+    ),
+    LyricsAiProvider.deepseek => showDeepSeekApiKeyDialog(
       context,
       initialApiKey: initialApiKey,
     ),
@@ -423,7 +454,11 @@ Future<bool> _showLyricsApiKeyWizard(
           children: [
             const Text('请先选择要使用的服务商，然后填写对应的 API Key。'),
             const SizedBox(height: 16),
-            ...LyricsAiProvider.values.map(
+            ...LyricsAiProvider.values.where(
+              (provider) =>
+                  purpose == LyricsAiModelPurpose.translation ||
+                  provider != LyricsAiProvider.deepseek,
+            ).map(
               (item) => ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(item.displayName),
@@ -460,6 +495,9 @@ Future<bool> _showLyricsApiKeyWizard(
     case LyricsAiProvider.doubao:
       settings.doubaoApiKey = enteredApiKey;
       break;
+    case LyricsAiProvider.deepseek:
+      settings.deepseekApiKey = enteredApiKey;
+      break;
   }
 
   if (purpose == LyricsAiModelPurpose.generation) {
@@ -469,7 +507,9 @@ Future<bool> _showLyricsApiKeyWizard(
           ? SettingsService.defaultGenerationPrimaryModelId
           : provider == LyricsAiProvider.openRouter
           ? SettingsService.defaultOpenRouterGenerationModelId
-          : SettingsService.defaultDoubaoGenerationModelId,
+          : provider == LyricsAiProvider.doubao
+          ? SettingsService.defaultDoubaoGenerationModelId
+          : '',
     );
     settings.generationFallbackModel = LyricsAiModelSelection(
       provider: provider,
@@ -481,7 +521,9 @@ Future<bool> _showLyricsApiKeyWizard(
           ? SettingsService.defaultTranslationPrimaryModelId
           : provider == LyricsAiProvider.openRouter
           ? SettingsService.defaultOpenRouterTranslationModelId
-          : SettingsService.defaultDoubaoTranslationModelId,
+          : provider == LyricsAiProvider.doubao
+          ? SettingsService.defaultDoubaoTranslationModelId
+          : SettingsService.defaultDeepSeekTranslationModelId,
     );
     settings.translationFallbackModel = LyricsAiModelSelection(
       provider: provider,

@@ -428,6 +428,7 @@ class LyricsTranslationCoordinator {
   }
 
   String _translationProviderTag() {
-    return LyricsAiProvider.googleAiStudio.storageValue;
+    final provider = _context.settingsService.translationPrimaryModel.provider;
+    return provider.storageValue;
   }
 }
