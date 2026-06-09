@@ -25,12 +25,20 @@ class PlaylistTab extends ConsumerStatefulWidget {
 class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   final Set<int> _selectedIndices = {};
   final ScrollController _scrollController = ScrollController();
+  late final LibrarySelectionScopeController _librarySelectionScopeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _librarySelectionScopeController =
+        ref.read(librarySelectionScopeProvider.notifier);
+  }
 
   @override
   void dispose() {
     _scrollController.dispose();
     Future.microtask(() {
-      ref.read(librarySelectionScopeProvider.notifier).clear();
+      _librarySelectionScopeController.clear();
     });
     super.dispose();
   }
@@ -40,7 +48,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
         ref.read(librarySelectionScopeProvider) ==
         LibrarySelectionScope.playlist;
     final nextMode = !isSelectionMode;
-    ref.read(librarySelectionScopeProvider.notifier).setScope(
+    _librarySelectionScopeController.setScope(
       nextMode ? LibrarySelectionScope.playlist : LibrarySelectionScope.none,
     );
     setState(() {
@@ -51,7 +59,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   }
 
   void _cancelSelection() {
-    ref.read(librarySelectionScopeProvider.notifier).clear();
+    _librarySelectionScopeController.clear();
     setState(() {
       _selectedIndices.clear();
     });

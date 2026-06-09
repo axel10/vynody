@@ -45,17 +45,25 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
   final ScrollController _scrollController = ScrollController();
+  late final LibrarySelectionScopeController _librarySelectionScopeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _librarySelectionScopeController =
+        ref.read(librarySelectionScopeProvider.notifier);
+  }
 
   void _toggleSelectionMode() {
     setState(() {
       _isSelectionMode = !_isSelectionMode;
       if (!_isSelectionMode) {
         _selectedSongPaths.clear();
-        ref.read(librarySelectionScopeProvider.notifier).clear();
+        _librarySelectionScopeController.clear();
       } else {
-        ref
-            .read(librarySelectionScopeProvider.notifier)
-            .setScope(LibrarySelectionScope.library);
+        _librarySelectionScopeController.setScope(
+          LibrarySelectionScope.library,
+        );
       }
     });
   }
@@ -74,7 +82,7 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
     setState(() {
       _isSelectionMode = false;
       _selectedSongPaths.clear();
-      ref.read(librarySelectionScopeProvider.notifier).clear();
+      _librarySelectionScopeController.clear();
     });
   }
 
@@ -82,7 +90,7 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
   void dispose() {
     _scrollController.dispose();
     Future.microtask(() {
-      ref.read(librarySelectionScopeProvider.notifier).clear();
+      _librarySelectionScopeController.clear();
     });
     super.dispose();
   }

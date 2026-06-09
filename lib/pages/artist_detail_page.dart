@@ -65,17 +65,25 @@ class ArtistDetailContent extends ConsumerStatefulWidget {
 class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
+  late final LibrarySelectionScopeController _librarySelectionScopeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _librarySelectionScopeController =
+        ref.read(librarySelectionScopeProvider.notifier);
+  }
 
   void _toggleSelectionMode() {
     setState(() {
       _isSelectionMode = !_isSelectionMode;
       if (!_isSelectionMode) {
         _selectedSongPaths.clear();
-        ref.read(librarySelectionScopeProvider.notifier).clear();
+        _librarySelectionScopeController.clear();
       } else {
-        ref
-            .read(librarySelectionScopeProvider.notifier)
-            .setScope(LibrarySelectionScope.library);
+        _librarySelectionScopeController.setScope(
+          LibrarySelectionScope.library,
+        );
       }
     });
   }
@@ -94,14 +102,14 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent> {
     setState(() {
       _isSelectionMode = false;
       _selectedSongPaths.clear();
-      ref.read(librarySelectionScopeProvider.notifier).clear();
+      _librarySelectionScopeController.clear();
     });
   }
 
   @override
   void dispose() {
     Future.microtask(() {
-      ref.read(librarySelectionScopeProvider.notifier).clear();
+      _librarySelectionScopeController.clear();
     });
     super.dispose();
   }

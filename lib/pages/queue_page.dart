@@ -23,11 +23,19 @@ class _QueuePageState extends ConsumerState<QueuePage> {
   final Set<int> _selectedIndices = {};
   final Map<String, GlobalKey> _songTileKeys = {};
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
+  late final LibrarySelectionScopeController _librarySelectionScopeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _librarySelectionScopeController =
+        ref.read(librarySelectionScopeProvider.notifier);
+  }
 
   @override
   void dispose() {
     Future.microtask(() {
-      ref.read(librarySelectionScopeProvider.notifier).clear();
+      _librarySelectionScopeController.clear();
     });
     super.dispose();
   }
@@ -36,7 +44,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     final isSelectionMode =
         ref.read(librarySelectionScopeProvider) ==
         LibrarySelectionScope.queue;
-    ref.read(librarySelectionScopeProvider.notifier).setScope(
+    _librarySelectionScopeController.setScope(
       isSelectionMode ? LibrarySelectionScope.none : LibrarySelectionScope.queue,
     );
     setState(() {
