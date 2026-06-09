@@ -234,10 +234,6 @@ final audioCurrentVisualizerOptionsProvider =
       );
     });
 
-final audioVisualizerStreamProvider = Provider<Stream<FftFrame>?>((ref) {
-  return ref.read(audioServiceProvider).visualizerStream;
-});
-
 final songMetadataProvider = StreamProvider.family<SongMetadata?, String>((ref, path) {
   return MetadataDatabase().watchSongMetadata(path);
 });

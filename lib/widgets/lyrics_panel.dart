@@ -116,8 +116,36 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         widget.lyrics;
   }
 
-  List<LyricLine> _displayLinesForCurrentLyrics() {
-    return ref.read(lyricsDisplayLinesProvider(_lyricsForDisplay()));
+  List<LyricLine> _displayLinesForLyrics(
+    LyricsControllerState lyricsState,
+    MusicLyric? baseLyrics,
+  ) {
+    if (lyricsState.currentLyricsLines.isNotEmpty) {
+      return lyricsState.currentLyricsLines;
+    }
+    return baseLyrics?.syncedLines ?? const [];
+  }
+
+  MusicLyric? _displayLyrics(
+    LyricsControllerState lyricsState,
+    MusicLyric? baseLyrics,
+  ) {
+    final normalizedLiveText = lyricsState.currentLyricsText.trim();
+    if (normalizedLiveText.isEmpty) {
+      return baseLyrics;
+    }
+
+    return baseLyrics?.copyWith(
+      syncedLines: _displayLinesForLyrics(lyricsState, baseLyrics),
+      plainText: normalizedLiveText,
+    );
+  }
+
+  LyricsSongTaskState _taskStateForSongPath(String? songPath) {
+    if (songPath == null || songPath.isEmpty) {
+      return const LyricsSongTaskState();
+    }
+    return _lyricsControllerActions.taskStateForSong(songPath);
   }
 
   List<LyricLine> _plainLyricsLines(String plainLyrics) {
@@ -648,7 +676,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     List<LyricLine>? displayLines,
     required List<double> itemCenters,
   }) {
-    final lines = displayLines ?? _displayLinesForCurrentLyrics();
+    final lyricsState = ref.read(lyricsControllerProvider);
+    final lines =
+        displayLines ?? _displayLinesForLyrics(lyricsState, _lyricsForDisplay());
     if (lines.isEmpty ||
         !_hasTimedLyrics(lines) ||
         _isAutoScrollPaused ||
@@ -1060,14 +1090,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final lyricsState = ref.watch(lyricsControllerProvider);
-    final currentSongTaskState = ref.watch(lyricsCurrentSongTaskStateProvider);
+    final currentSong = ref.watch(audioCurrentMusicProvider);
+    final currentSongTaskState = _taskStateForSongPath(currentSong?.path);
     final lyricsFontScale = ref.watch(
       settingsServiceProvider.select((settings) => settings.lyricsFontScale),
     );
     final lyricsForDisplay = _lyricsForDisplay();
-    final displayLyrics = ref.watch(
-      lyricsDisplayLyricsProvider(lyricsForDisplay),
-    );
+    final displayLyrics = _displayLyrics(lyricsState, lyricsForDisplay);
     final displayLines = displayLyrics?.syncedLines ?? const [];
     final displayPlainLyrics = displayLyrics?.plainText ?? '';
     final layoutRevision = ref.watch(lyricsLayoutRevisionProvider);
@@ -1075,7 +1104,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         displayLyrics != null &&
         (displayLyrics.syncedLines.isNotEmpty ||
             displayLyrics.plainText.trim().isNotEmpty);
-    final hasCurrentSong = ref.watch(audioCurrentMusicProvider) != null;
+    final hasCurrentSong = currentSong != null;
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);

@@ -1504,7 +1504,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     return Positioned.fill(
       child: RepaintBoundary(
         child: StreamBuilder<FftFrame>(
-          stream: ref.watch(audioVisualizerStreamProvider),
+          stream: ref.read(audioServiceProvider).visualizerStream,
           builder: (context, snapshot) {
             final frame = snapshot.data;
             if (frame == null) return const SizedBox.shrink();
