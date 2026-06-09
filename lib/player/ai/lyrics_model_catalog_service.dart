@@ -8,13 +8,40 @@ final class LyricsModelInfo {
     required this.id,
     required this.displayName,
     required this.provider,
+    this.inputPricePerMillionTokens,
+    this.outputPricePerMillionTokens,
   });
 
   final String id;
   final String displayName;
   final LyricsAiProvider provider;
+  final double? inputPricePerMillionTokens;
+  final double? outputPricePerMillionTokens;
 
   String get label => displayName.trim().isNotEmpty ? displayName : id;
+
+  String? get pricingLabel {
+    final input = inputPricePerMillionTokens;
+    final output = outputPricePerMillionTokens;
+    if (input == null && output == null) {
+      return null;
+    }
+
+    final parts = <String>[];
+    if (input != null) {
+      parts.add('输入 ${_formatPrice(input)} / 100万 token');
+    }
+    if (output != null) {
+      parts.add('输出 ${_formatPrice(output)} / 100万 token');
+    }
+    return parts.join(' · ');
+  }
+
+  static String _formatPrice(double value) {
+    final fixed = value.toStringAsFixed(8);
+    final trimmed = fixed.replaceFirst(RegExp(r'\.?0+$'), '');
+    return '\$$trimmed';
+  }
 }
 
 final class LyricsModelCatalogResult {
@@ -128,9 +155,9 @@ class LyricsModelCatalogService {
               : rawName.contains('/')
               ? rawName.split('/').last.trim()
               : rawName;
-          final displayName =
-              item['displayName']?.toString().trim() ?? modelId;
-          final supportedMethods = (item['supportedGenerationMethods'] as List?)
+          final displayName = item['displayName']?.toString().trim() ?? modelId;
+          final supportedMethods =
+              (item['supportedGenerationMethods'] as List?)
                   ?.map((value) => value.toString().trim())
                   .where((value) => value.isNotEmpty)
                   .toList(growable: false) ??
@@ -184,22 +211,20 @@ class LyricsModelCatalogService {
           }
           final name = item['name']?.toString().trim() ?? id;
           final architecture = item['architecture'];
-          final inputModalities =
-              architecture is Map
-                  ? (architecture['input_modalities'] as List?)
+          final inputModalities = architecture is Map
+              ? (architecture['input_modalities'] as List?)
                         ?.map((value) => value.toString().trim().toLowerCase())
                         .where((value) => value.isNotEmpty)
                         .toList(growable: false) ??
                     const []
-                  : const <String>[];
-          final outputModalities =
-              architecture is Map
-                  ? (architecture['output_modalities'] as List?)
+              : const <String>[];
+          final outputModalities = architecture is Map
+              ? (architecture['output_modalities'] as List?)
                         ?.map((value) => value.toString().trim().toLowerCase())
                         .where((value) => value.isNotEmpty)
                         .toList(growable: false) ??
                     const []
-                  : const <String>[];
+              : const <String>[];
           final supportsPurpose = switch (purpose) {
             LyricsAiModelPurpose.generation =>
               inputModalities.contains('audio') &&
@@ -211,14 +236,34 @@ class LyricsModelCatalogService {
           if (!supportsPurpose) {
             return null;
           }
+          final pricing = item['pricing'];
+          final inputPrice = _parsePrice(
+            pricing is Map ? pricing['prompt'] : null,
+          );
+          final outputPrice = _parsePrice(
+            pricing is Map ? pricing['completion'] : null,
+          );
           return LyricsModelInfo(
             id: id,
             displayName: name,
             provider: LyricsAiProvider.openRouter,
+            inputPricePerMillionTokens: inputPrice,
+            outputPricePerMillionTokens: outputPrice,
           );
         })
         .whereType<LyricsModelInfo>()
         .toList(growable: false);
+  }
+
+  double? _parsePrice(dynamic value) {
+    final parsed = double.tryParse(value?.toString().trim() ?? '');
+    if (parsed == null) {
+      return null;
+    }
+    if (parsed == 0) {
+      return 0;
+    }
+    return parsed * 1000000;
   }
 
   String _formatErrorMessage(Object error) {
@@ -234,9 +279,7 @@ class LyricsModelCatalogService {
       }
       return statusCode == null
           ? (_isZh ? '请求失败，请检查网络。' : 'Request failed. Check your network.')
-          : (_isZh
-                ? '请求失败（$statusCode）。'
-                : 'Request failed ($statusCode).');
+          : (_isZh ? '请求失败（$statusCode）。' : 'Request failed ($statusCode).');
     }
 
     return _isZh ? '请求失败，请检查网络。' : 'Request failed. Check your network.';

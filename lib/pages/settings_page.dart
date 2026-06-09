@@ -404,9 +404,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: OutlinedButton.icon(
               onPressed: () {
                 settings.resetLyricsAiModels();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.restoreDefault)),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(l10n.restoreDefault)));
               },
               icon: const Icon(Icons.restart_alt),
               label: Text(l10n.restoreDefault),
@@ -471,8 +471,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: Ink(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest
-              .withValues(alpha: 0.4),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -798,9 +799,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(l10n.apiKeySaved('Google AI Studio')),
-                ),
+                SnackBar(content: Text(l10n.apiKeySaved('Google AI Studio'))),
               );
             },
             child: Text(
@@ -1037,7 +1036,9 @@ class _LyricsModelPickerDialogState
 
   @override
   Widget build(BuildContext context) {
-    final canSave = _selection.modelId.trim().isNotEmpty || _provider != _selection.provider;
+    final canSave =
+        _selection.modelId.trim().isNotEmpty ||
+        _provider != _selection.provider;
     return AlertDialog(
       title: Text(
         widget.purpose == LyricsAiModelPurpose.generation
@@ -1112,8 +1113,10 @@ class _LyricsModelPickerDialogState
                               groupValue: _selection.modelId,
                               title: Text(model.label),
                               subtitle: Text(
-                                model.id,
-                                maxLines: 1,
+                                model.pricingLabel == null
+                                    ? model.id
+                                    : '${model.id}\n${model.pricingLabel}',
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               onChanged: (value) {
