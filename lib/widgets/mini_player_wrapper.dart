@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vibe_flow/widgets/library_selection_scope.dart';
 import 'package:vibe_flow/widgets/playback_hero_card.dart';
-import 'library_selection_panel.dart';
 import '../pages/main_layout.dart';
 import '../pages/main_layout_riverpod.dart';
 
@@ -24,7 +24,9 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
     final uiState = ref.watch(mainLayoutUiControllerProvider);
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
-    final librarySelectionActive = ref.watch(librarySelectionActiveProvider);
+    final selectionScope = ref.watch(librarySelectionScopeProvider);
+    final librarySelectionActive =
+        selectionScope != LibrarySelectionScope.none;
     final showPlayer = currentMusic != null && !librarySelectionActive;
 
     return Stack(

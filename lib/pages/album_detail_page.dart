@@ -16,6 +16,7 @@ import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
+import '../widgets/library_selection_scope.dart';
 
 class AlbumDetailPage extends ConsumerStatefulWidget {
   const AlbumDetailPage({super.key, required this.album});
@@ -35,9 +36,11 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
       _isSelectionMode = !_isSelectionMode;
       if (!_isSelectionMode) {
         _selectedSongPaths.clear();
-        ref.read(librarySelectionActiveProvider.notifier).state = false;
+        ref.read(librarySelectionScopeProvider.notifier).clear();
       } else {
-        ref.read(librarySelectionActiveProvider.notifier).state = true;
+        ref
+            .read(librarySelectionScopeProvider.notifier)
+            .setScope(LibrarySelectionScope.library);
       }
     });
   }
@@ -67,16 +70,14 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
     setState(() {
       _isSelectionMode = false;
       _selectedSongPaths.clear();
-      ref.read(librarySelectionActiveProvider.notifier).state = false;
+      ref.read(librarySelectionScopeProvider.notifier).clear();
     });
   }
 
   @override
   void dispose() {
     Future.microtask(() {
-      if (mounted) {
-        ref.read(librarySelectionActiveProvider.notifier).state = false;
-      }
+      ref.read(librarySelectionScopeProvider.notifier).clear();
     });
     super.dispose();
   }

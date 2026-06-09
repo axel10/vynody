@@ -20,9 +20,6 @@ import 'package:vibe_flow/dialogs/transfer_dialogs.dart';
 import 'package:vibe_flow/player/library/music_file_utils.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 import 'package:vibe_flow/player/settings/shortcut_bindings.dart';
-import 'folder_page_riverpod.dart';
-import 'playlist_page_riverpod.dart';
-import 'queue_page_riverpod.dart';
 import 'main_layout_riverpod.dart';
 import 'onboarding_page.dart';
 import '../widgets/desktop_window_title_bar.dart';
@@ -30,7 +27,7 @@ import '../widgets/playback_hero_card.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/global_drop_target.dart';
-import '../widgets/library_selection_panel.dart';
+import '../widgets/library_selection_scope.dart';
 import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 import 'dart:async';
@@ -756,12 +753,17 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
 
     final uiState = ref.watch(mainLayoutUiControllerProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final isLibrarySelectionActive = ref.watch(librarySelectionActiveProvider);
+    final selectionScope = ref.watch(librarySelectionScopeProvider);
     final hideMiniPlayerForSelection =
-        ref.watch(folderSelectionModeProvider) || isLibrarySelectionActive;
-    final isRootSelectionMode = ref.watch(folderRootSelectionModeProvider);
-    final isPlaylistSelectionMode = ref.watch(playlistSelectionModeProvider);
-    final isQueueSelectionMode = ref.watch(queueSelectionModeProvider);
+        selectionScope == LibrarySelectionScope.folder ||
+        selectionScope == LibrarySelectionScope.folderRoot ||
+        selectionScope == LibrarySelectionScope.library ||
+        selectionScope == LibrarySelectionScope.playlist;
+    final isRootSelectionMode =
+        selectionScope == LibrarySelectionScope.folderRoot;
+    final isPlaylistSelectionMode =
+        selectionScope == LibrarySelectionScope.playlist;
+    final isQueueSelectionMode = selectionScope == LibrarySelectionScope.queue;
     ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
       final volumeChanged =

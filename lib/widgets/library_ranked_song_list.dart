@@ -14,6 +14,7 @@ import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/dialogs/transcode_dialog.dart';
 import 'song_thumbnail.dart';
 import 'library_selection_panel.dart';
+import 'library_selection_scope.dart';
 import 'scroll_to_top_wrapper.dart';
 
 class LibraryRankedSongList extends ConsumerStatefulWidget {
@@ -44,22 +45,17 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
   final ScrollController _scrollController = ScrollController();
-  LibrarySelectionActiveNotifier? _selectionActiveNotifier;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _selectionActiveNotifier ??= ref.read(librarySelectionActiveProvider.notifier);
-  }
 
   void _toggleSelectionMode() {
     setState(() {
       _isSelectionMode = !_isSelectionMode;
       if (!_isSelectionMode) {
         _selectedSongPaths.clear();
-        _selectionActiveNotifier?.state = false;
+        ref.read(librarySelectionScopeProvider.notifier).clear();
       } else {
-        _selectionActiveNotifier?.state = true;
+        ref
+            .read(librarySelectionScopeProvider.notifier)
+            .setScope(LibrarySelectionScope.library);
       }
     });
   }
@@ -78,19 +74,16 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList> {
     setState(() {
       _isSelectionMode = false;
       _selectedSongPaths.clear();
-      _selectionActiveNotifier?.state = false;
+      ref.read(librarySelectionScopeProvider.notifier).clear();
     });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    final notifier = _selectionActiveNotifier;
-    if (notifier != null) {
-      Future.microtask(() {
-        notifier.state = false;
-      });
-    }
+    Future.microtask(() {
+      ref.read(librarySelectionScopeProvider.notifier).clear();
+    });
     super.dispose();
   }
 

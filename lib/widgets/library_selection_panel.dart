@@ -8,19 +8,6 @@ import 'package:vibe_flow/dialogs/transcode_dialog.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/l10n/app_localizations.dart';
 
-class LibrarySelectionActiveNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  @override
-  set state(bool value) => super.state = value;
-}
-
-final librarySelectionActiveProvider =
-    NotifierProvider<LibrarySelectionActiveNotifier, bool>(
-      LibrarySelectionActiveNotifier.new,
-    );
-
 class LibrarySelectionPanel extends ConsumerWidget {
   const LibrarySelectionPanel({
     super.key,

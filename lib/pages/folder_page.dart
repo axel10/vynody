@@ -14,10 +14,10 @@ import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/scanner/scanner_sorting.dart';
 import 'package:vibe_flow/player/scanner/scanner_service.dart';
 import 'package:vibe_flow/player/scanner/scanner_path_utils.dart';
-import 'folder_page_riverpod.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/library_selection_panel.dart';
+import '../widgets/library_selection_scope.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 import '../dialogs/transcode_dialog.dart';
 
@@ -36,8 +36,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
   final Set<String> _selectedRootPaths = {};
-  late final FolderSelectionModeController _folderSelectionModeController;
-  late final FolderRootSelectionModeController _folderRootSelectionModeController;
   StreamSubscription<ScanProgress>? _scanProgressSubscription;
   ToastFuture? _scanToast;
   bool _wasScanning = false;
@@ -51,7 +49,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       ValueNotifier<_ScanToastState?>(null);
 
   void _setFolderSelectionMode(bool enabled) {
-    _folderSelectionModeController.setEnabled(enabled);
+    ref.read(librarySelectionScopeProvider.notifier).setScope(
+      enabled ? LibrarySelectionScope.folder : LibrarySelectionScope.none,
+    );
   }
 
   bool _isUserRootSelectionContext(
@@ -143,8 +143,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   void _toggleRootSelectionMode() {
-    final enabled = !ref.read(folderRootSelectionModeProvider);
-    ref.read(folderRootSelectionModeProvider.notifier).setEnabled(enabled);
+    final enabled =
+        ref.read(librarySelectionScopeProvider) !=
+        LibrarySelectionScope.folderRoot;
+    ref.read(librarySelectionScopeProvider.notifier).setScope(
+      enabled ? LibrarySelectionScope.folderRoot : LibrarySelectionScope.none,
+    );
     if (!enabled) {
       setState(() {
         _selectedRootPaths.clear();
@@ -155,7 +159,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   void _clearAllSelection() {
     final shouldClearSongSelection =
         _isSelectionMode || _selectedSongPaths.isNotEmpty;
-    final isRootSelectionMode = ref.read(folderRootSelectionModeProvider);
+    final isRootSelectionMode =
+        ref.read(librarySelectionScopeProvider) ==
+        LibrarySelectionScope.folderRoot;
     final shouldClearRootSelection =
         isRootSelectionMode || _selectedRootPaths.isNotEmpty;
     if (!shouldClearSongSelection && !shouldClearRootSelection) return;
@@ -166,7 +172,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       _selectedRootPaths.clear();
     });
     _setFolderSelectionMode(false);
-    ref.read(folderRootSelectionModeProvider.notifier).setEnabled(false);
+    ref.read(librarySelectionScopeProvider.notifier).clear();
   }
 
   void _ensureScanToastVisible() {
@@ -327,7 +333,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     setState(() {
       _selectedRootPaths.clear();
     });
-    ref.read(folderRootSelectionModeProvider.notifier).setEnabled(false);
+    ref.read(librarySelectionScopeProvider.notifier).clear();
 
     AppSnackBar.show(
       context,
@@ -352,12 +358,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   void initState() {
     super.initState();
     _scanner = ref.read(scannerServiceProvider);
-    _folderSelectionModeController = ref.read(
-      folderSelectionModeProvider.notifier,
-    );
-    _folderRootSelectionModeController = ref.read(
-      folderRootSelectionModeProvider.notifier,
-    );
     _wasScanning = _scanner!.isScanning;
     _scanner!.addListener(_handleScannerChanged);
     _scanProgressSubscription = _scanner!.scanProgressStream.listen(
@@ -372,7 +372,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     // "modifying a provider while building" assertion during tab switches.
     Future.microtask(() {
       _setFolderSelectionMode(false);
-      _folderRootSelectionModeController.setEnabled(false);
+      ref.read(librarySelectionScopeProvider.notifier).clear();
     });
     _scanToastUpdateTimer?.cancel();
     _scanToastAutoDismissTimer?.cancel();
@@ -453,7 +453,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   @override
   Widget build(BuildContext context) {
     final scanner = ref.read(scannerServiceProvider);
-    final isRootSelectionMode = ref.watch(folderRootSelectionModeProvider);
+    final isRootSelectionMode =
+        ref.watch(librarySelectionScopeProvider) ==
+        LibrarySelectionScope.folderRoot;
     final rootFolders = ref.watch(
       scannerServiceProvider.select((scanner) => scanner.rootFolders),
     );
@@ -1242,7 +1244,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         await openFolderLocation(folder.path);
         break;
       case 'multi_select':
-        ref.read(folderRootSelectionModeProvider.notifier).setEnabled(true);
+        ref
+            .read(librarySelectionScopeProvider.notifier)
+            .setScope(LibrarySelectionScope.folderRoot);
         setState(() {
           _selectedRootPaths.add(folder.path);
         });

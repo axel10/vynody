@@ -9,7 +9,7 @@ import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
 import 'package:vibe_flow/widgets/queue_file_drop_target.dart';
-import 'queue_page_riverpod.dart';
+import '../widgets/library_selection_scope.dart';
 
 // 队列页面
 class QueuePage extends ConsumerStatefulWidget {
@@ -23,27 +23,22 @@ class _QueuePageState extends ConsumerState<QueuePage> {
   final Set<int> _selectedIndices = {};
   final Map<String, GlobalKey> _songTileKeys = {};
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
-  late final QueueSelectionModeController _queueSelectionModeController;
-
-  @override
-  void initState() {
-    super.initState();
-    _queueSelectionModeController = ref.read(
-      queueSelectionModeProvider.notifier,
-    );
-  }
 
   @override
   void dispose() {
     Future.microtask(() {
-      _queueSelectionModeController.setEnabled(false);
+      ref.read(librarySelectionScopeProvider.notifier).clear();
     });
     super.dispose();
   }
 
   void _toggleSelectionMode() {
-    final isSelectionMode = ref.read(queueSelectionModeProvider);
-    ref.read(queueSelectionModeProvider.notifier).setEnabled(!isSelectionMode);
+    final isSelectionMode =
+        ref.read(librarySelectionScopeProvider) ==
+        LibrarySelectionScope.queue;
+    ref.read(librarySelectionScopeProvider.notifier).setScope(
+      isSelectionMode ? LibrarySelectionScope.none : LibrarySelectionScope.queue,
+    );
     setState(() {
       if (isSelectionMode) {
         _selectedIndices.clear();
@@ -158,7 +153,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isSelectionMode = ref.watch(queueSelectionModeProvider);
+    final isSelectionMode =
+        ref.watch(librarySelectionScopeProvider) ==
+        LibrarySelectionScope.queue;
     final isRandomMode = ref.watch(audioIsRandomModeProvider);
     final isShuffleRandomMode = ref.watch(audioIsShuffleRandomModeProvider);
     final queue = ref.watch(audioPlaybackQueueProvider);

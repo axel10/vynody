@@ -11,8 +11,8 @@ import '../widgets/song_tile.dart';
 import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import 'package:vibe_flow/utils/deleted_song_snack.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
-import 'playlist_page_riverpod.dart';
 import '../widgets/library_selection_panel.dart';
+import '../widgets/library_selection_scope.dart';
 import '../widgets/scroll_to_top_wrapper.dart';
 
 class PlaylistTab extends ConsumerStatefulWidget {
@@ -24,34 +24,25 @@ class PlaylistTab extends ConsumerStatefulWidget {
 
 class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   final Set<int> _selectedIndices = {};
-  late final PlaylistSelectionModeController _playlistSelectionModeController;
   final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _playlistSelectionModeController = ref.read(
-      playlistSelectionModeProvider.notifier,
-    );
-  }
 
   @override
   void dispose() {
     _scrollController.dispose();
     Future.microtask(() {
-      _playlistSelectionModeController.setEnabled(false);
-      if (mounted) {
-        ref.read(librarySelectionActiveProvider.notifier).state = false;
-      }
+      ref.read(librarySelectionScopeProvider.notifier).clear();
     });
     super.dispose();
   }
 
   void _toggleSelectionMode() {
-    final isSelectionMode = ref.read(playlistSelectionModeProvider);
+    final isSelectionMode =
+        ref.read(librarySelectionScopeProvider) ==
+        LibrarySelectionScope.playlist;
     final nextMode = !isSelectionMode;
-    ref.read(playlistSelectionModeProvider.notifier).setEnabled(nextMode);
-    ref.read(librarySelectionActiveProvider.notifier).state = nextMode;
+    ref.read(librarySelectionScopeProvider.notifier).setScope(
+      nextMode ? LibrarySelectionScope.playlist : LibrarySelectionScope.none,
+    );
     setState(() {
       if (isSelectionMode) {
         _selectedIndices.clear();
@@ -60,8 +51,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   }
 
   void _cancelSelection() {
-    ref.read(playlistSelectionModeProvider.notifier).setEnabled(false);
-    ref.read(librarySelectionActiveProvider.notifier).state = false;
+    ref.read(librarySelectionScopeProvider.notifier).clear();
     setState(() {
       _selectedIndices.clear();
     });
@@ -600,7 +590,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isSelectionMode = ref.watch(playlistSelectionModeProvider);
+    final isSelectionMode =
+        ref.watch(librarySelectionScopeProvider) ==
+        LibrarySelectionScope.playlist;
     final audio = ref.read(audioServiceProvider);
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
