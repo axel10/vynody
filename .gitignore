@@ -58,3 +58,4 @@ tmp
 **/android/key.properties
 *.jks
 *.keystore
+openrouter-model-list-example.json

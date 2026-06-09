@@ -30,6 +30,7 @@ class LyricsAiOpenRouterClient {
   Future<LyricsGenerationResult> generateLyricsFromFile({
     required String apiKey,
     required String filePath,
+    required String modelId,
     String? songTitle,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
@@ -62,6 +63,7 @@ class LyricsAiOpenRouterClient {
       final fileBytes = await file.readAsBytes();
       final audioFormat = _audioFormatForFilePath(filePath);
       final requestData = _buildAudioRequestData(
+        modelId: modelId,
         prompt: prompt,
         audioBase64: base64Encode(fileBytes),
         audioFormat: audioFormat,
@@ -133,6 +135,7 @@ class LyricsAiOpenRouterClient {
     required String apiKey,
     required String filePath,
     required String lyrics,
+    required String modelId,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -173,7 +176,7 @@ class LyricsAiOpenRouterClient {
       onStageChanged?.call('requesting');
       onUploadProgress?.call(1.0);
       final requestData = {
-        'model': textModelId,
+        'model': modelId,
         'messages': [
           {
             'role': 'user',
@@ -249,6 +252,7 @@ class LyricsAiOpenRouterClient {
   }
 
   Map<String, dynamic> _buildAudioRequestData({
+    required String modelId,
     required String prompt,
     required String audioBase64,
     required String audioFormat,
@@ -256,7 +260,7 @@ class LyricsAiOpenRouterClient {
     bool enableReasoning = true,
   }) {
     return {
-      'model': audioModelId,
+      'model': modelId,
       'messages': [
         {
           'role': 'user',

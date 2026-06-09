@@ -327,17 +327,85 @@ Future<bool> ensureLyricsGenerationApiKey(
   WidgetRef ref,
 ) async {
   final settings = ref.read(settingsServiceProvider);
-  final provider = settings.lyricsAiProvider;
-  final currentApiKey = settings.activeLyricsGenerationApiKey.trim();
-  if (currentApiKey.isNotEmpty) {
+  final providers = <LyricsAiProvider>{
+    settings.generationPrimaryModel.provider,
+    if (settings.generationFallbackModel.modelId.trim().isNotEmpty)
+      settings.generationFallbackModel.provider,
+  };
+  if (providers.every(settings.hasApiKeyForProvider)) {
     return true;
+  }
+
+  return _showLyricsApiKeyWizard(
+    context,
+    ref,
+    purpose: LyricsAiModelPurpose.generation,
+  );
+}
+
+Future<bool> ensureLyricsApiKey(BuildContext context, WidgetRef ref) async {
+  return ensureLyricsGenerationApiKey(context, ref);
+}
+
+Future<bool> ensureGeminiApiKey(BuildContext context, WidgetRef ref) async {
+  final settings = ref.read(settingsServiceProvider);
+  final providers = <LyricsAiProvider>{
+    settings.translationPrimaryModel.provider,
+    if (settings.translationFallbackModel.modelId.trim().isNotEmpty)
+      settings.translationFallbackModel.provider,
+  };
+  if (providers.every(settings.hasApiKeyForProvider)) {
+    return true;
+  }
+
+  return _showLyricsApiKeyWizard(
+    context,
+    ref,
+    purpose: LyricsAiModelPurpose.translation,
+  );
+}
+
+Future<bool> _showLyricsApiKeyWizard(
+  BuildContext context,
+  WidgetRef ref, {
+  required LyricsAiModelPurpose purpose,
+}) async {
+  final settings = ref.read(settingsServiceProvider);
+  final provider = await showDialog<LyricsAiProvider>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: Text(
+          purpose == LyricsAiModelPurpose.generation ? '启用 AI 歌词生成' : '启用 AI 歌词翻译',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('请先选择要使用的服务商，然后填写对应的 API Key。'),
+            const SizedBox(height: 16),
+            ...LyricsAiProvider.values.map(
+              (item) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(item.displayName),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(dialogContext).pop(item),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+  if (provider == null) {
+    return false;
   }
 
   final enteredApiKey = await showLyricsProviderApiKeyDialog(
     context,
     ref: ref,
     provider: provider,
-    initialApiKey: currentApiKey,
+    initialApiKey: settings.apiKeyForProvider(provider),
   );
   if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
     return false;
@@ -351,29 +419,29 @@ Future<bool> ensureLyricsGenerationApiKey(
       settings.openRouterApiKey = enteredApiKey;
       break;
   }
-  return true;
-}
 
-Future<bool> ensureLyricsApiKey(BuildContext context, WidgetRef ref) async {
-  return ensureLyricsGenerationApiKey(context, ref);
-}
-
-Future<bool> ensureGeminiApiKey(BuildContext context, WidgetRef ref) async {
-  final settings = ref.read(settingsServiceProvider);
-  final currentApiKey = settings.geminiApiKey.trim();
-  if (currentApiKey.isNotEmpty) {
-    return true;
+  if (purpose == LyricsAiModelPurpose.generation) {
+    settings.generationPrimaryModel = LyricsAiModelSelection(
+      provider: provider,
+      modelId: provider == LyricsAiProvider.googleAiStudio
+          ? SettingsService.defaultGenerationPrimaryModelId
+          : SettingsService.defaultOpenRouterGenerationModelId,
+    );
+    settings.generationFallbackModel = LyricsAiModelSelection(
+      provider: provider,
+      modelId: '',
+    );
+    settings.translationPrimaryModel = LyricsAiModelSelection(
+      provider: provider,
+      modelId: provider == LyricsAiProvider.googleAiStudio
+          ? SettingsService.defaultTranslationPrimaryModelId
+          : SettingsService.defaultOpenRouterTranslationModelId,
+    );
+    settings.translationFallbackModel = LyricsAiModelSelection(
+      provider: provider,
+      modelId: '',
+    );
   }
 
-  final enteredApiKey = await showGeminiApiKeyDialog(
-    context,
-    ref: ref,
-    initialApiKey: currentApiKey,
-  );
-  if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
-    return false;
-  }
-
-  settings.geminiApiKey = enteredApiKey;
   return true;
 }

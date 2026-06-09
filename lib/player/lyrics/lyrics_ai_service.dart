@@ -22,26 +22,15 @@ import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 
-class _LyricsAiCredentials {
-  const _LyricsAiCredentials({required this.provider, required this.apiKey});
-
-  final LyricsAiProvider provider;
-  final String apiKey;
-}
-
 class _LyricsGenerationOutcome {
   const _LyricsGenerationOutcome({
     required this.result,
-    this.shouldFallbackToOpenRouter = false,
   });
 
   final LyricsGenerationResult result;
-  final bool shouldFallbackToOpenRouter;
 }
 
 class LyricsAiService {
-  static const String defaultTranslationModelId = 'gemma-4-31b-it';
-
   LyricsAiService({
     NetworkClient? client,
     required SettingsService settingsService,
@@ -65,34 +54,32 @@ class LyricsAiService {
     r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
   );
 
-  String get _primaryGeminiModelId => _settingsService.geminiPrimaryModelId;
-  String get _fallbackGeminiModelId => _settingsService.geminiFallbackModelId;
+  LyricsAiModelSelection get _generationPrimaryModel =>
+      _settingsService.generationPrimaryModel;
+  LyricsAiModelSelection get _generationFallbackModel =>
+      _settingsService.generationFallbackModel;
+  LyricsAiModelSelection get _translationPrimaryModel =>
+      _settingsService.translationPrimaryModel;
+  LyricsAiModelSelection get _translationFallbackModel =>
+      _settingsService.translationFallbackModel;
 
   String get currentGenerationModelLabel {
-    return switch (_settingsService.lyricsAiProvider) {
-      LyricsAiProvider.googleAiStudio => _googleModelLabel(
-        _primaryGeminiModelId,
-      ),
-      LyricsAiProvider.openRouter => _openRouterModelLabel(),
-    };
+    return _modelLabel(_generationPrimaryModel);
   }
 
   String _googleModelLabel(String modelId) {
-    return 'Google AI Studio · ${SettingsService.geminiModelDisplayName(modelId)}';
+    return 'Google AI Studio · ${SettingsService.lyricsModelDisplayName(modelId)}';
   }
 
-  String _openRouterModelLabel() {
-    return 'OpenRouter · ${LyricsAiOpenRouterClient.textModelDisplayName}';
+  String _openRouterModelLabel(String modelId) {
+    return 'OpenRouter · ${SettingsService.lyricsModelDisplayName(modelId)}';
   }
 
-  Future<_LyricsAiCredentials?> _loadGenerationCredentials() async {
-    final provider = _settingsService.lyricsAiProvider;
-    final apiKey = _settingsService.activeLyricsGenerationApiKey.trim();
-    if (apiKey.isEmpty) {
-      return null;
-    }
-
-    return _LyricsAiCredentials(provider: provider, apiKey: apiKey);
+  String _modelLabel(LyricsAiModelSelection selection) {
+    return switch (selection.provider) {
+      LyricsAiProvider.googleAiStudio => _googleModelLabel(selection.modelId),
+      LyricsAiProvider.openRouter => _openRouterModelLabel(selection.modelId),
+    };
   }
 
   String _providerLabel(LyricsAiProvider provider) {
@@ -121,10 +108,6 @@ class LyricsAiService {
   );
 
   bool _shouldUseGoogleServerFlakyMessage(Object error) {
-    if (_settingsService.lyricsAiProvider != LyricsAiProvider.googleAiStudio) {
-      return false;
-    }
-
     if (error is DioException) {
       final message = error.message?.trim();
       return message == null || message.isEmpty;
@@ -142,19 +125,6 @@ class LyricsAiService {
     String? modelId,
     CancelToken? cancelToken,
   }) async {
-    final apiKey = _settingsService.geminiApiKey.trim();
-    if (apiKey.isEmpty) {
-      debugPrint('[LyricsAi] gemini API key not found, skip translation.');
-      return _missingApiKeyMessage(
-        LyricsAiProvider.googleAiStudio,
-        action: _t('翻译歌词', 'translate lyrics'),
-      );
-    }
-
-    final effectiveModelId = modelId?.trim().isNotEmpty == true
-        ? modelId!.trim()
-        : _settingsService.geminiTranslationModelId;
-
     final sourceLines = _splitLyricsLines(lyrics);
     final blankLineIndexes = <int>[];
     final compactSourceLines = <String>[];
@@ -174,175 +144,69 @@ class LyricsAiService {
     }
     final targetLanguageName = _targetLanguageName(targetLanguageCode);
     final sourceLyricsForModel = _normalizeSourceLyrics(lyrics);
-    onModelLabelChanged?.call(_googleModelLabel(effectiveModelId));
     final prompt =
         '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
         '请保留完整时间轴和原有分行顺序，不要删减、合并、重排任何一行，也不要自行补充空行、编号或解释。'
         '如果输入中带有时间轴，请在输出中原样保留对应时间轴，程序会在后处理去掉时间轴。'
         '总结整首歌的意境并结合上下文尽量意译。如果无标题不要自行生成标题。\n'
         '$sourceLyricsForModel';
-    final requestData = {
-      'contents': [
-        {
-          'role': 'user',
-          'parts': [
-            {'text': prompt},
-          ],
-        },
-      ],
-      'generationConfig': {
-        'thinkingConfig': {'thinkingLevel': 'MINIMAL'},
-      },
-      'tools': [
-        {'googleSearch': {}},
-      ],
-    };
-    debugPrint('[LyricsAi] request data: $requestData');
-    final url =
-        'https://generativelanguage.googleapis.com/v1beta/models/$effectiveModelId:streamGenerateContent';
+    final candidates = <LyricsAiModelSelection>[
+      LyricsAiModelSelection(
+        provider: _translationPrimaryModel.provider,
+        modelId: modelId?.trim().isNotEmpty == true
+            ? modelId!.trim()
+            : _translationPrimaryModel.modelId,
+      ),
+      if (_translationFallbackModel.modelId.trim().isNotEmpty)
+        _translationFallbackModel,
+    ];
 
-    try {
-      debugPrint('[LyricsAi] request start, lyrics length=${lyrics.length}');
-      final response = await _client.post(
-        url,
-        data: requestData,
-        queryParameters: {'key': apiKey},
-        options: Options(
-          responseType: ResponseType.stream,
-          contentType: Headers.jsonContentType,
+    String? lastError;
+    for (final candidate in candidates) {
+      final apiKey = _settingsService.apiKeyForProvider(candidate.provider).trim();
+      if (apiKey.isEmpty) {
+        lastError = _missingApiKeyMessage(
+          candidate.provider,
+          action: _t('翻译歌词', 'translate lyrics'),
+        );
+        continue;
+      }
+      onModelLabelChanged?.call(_modelLabel(candidate));
+      final error = await switch (candidate.provider) {
+        LyricsAiProvider.googleAiStudio => _translateWithGoogleAiStudio(
+          apiKey: apiKey,
+          modelId: candidate.modelId,
+          prompt: prompt,
+          sourceLines: sourceLines,
+          blankLineIndexes: blankLineIndexes,
+          targetLineCount: targetLineCount,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
         ),
-        cancelToken: cancelToken,
-      );
-
-      final body = response.data;
-      if (body == null || body.stream == null) {
-        debugPrint('[LyricsAi] Empty streaming body.');
-        return _t(
-          'Gemini 返回了空流响应。',
-          'Gemini returned an empty streaming response.',
-        );
-      }
-
-      debugPrint('[LyricsAi] stream connected');
-      final translatedBuffer = StringBuffer();
-      var lastPrintedLength = -1;
-      var lastProgressSnapshot = '';
-      var receivedAnyChunk = false;
-      Timer? printTimer;
-
-      void emitProgress({bool force = false}) {
-        final rawCurrent = translatedBuffer.toString();
-        final cleanedCurrent = _stripTimestamps(
-          LrcUtils.cleanGeneratedLyricsText(rawCurrent),
-        );
-        final current = _visibleTranslationText(
-          cleanedCurrent,
-          rawCurrent,
-          force: force,
-        );
-        if (current.isEmpty) return;
-        if (!force && current.length == lastPrintedLength) return;
-        lastPrintedLength = current.length;
-        final lines = _normalizeTranslationLines(current, targetLineCount);
-        final restoredLines = _restoreBlankLines(
-          lines,
-          blankLineIndexes,
-          sourceLines.length,
-        );
-        final visibleLines = restoredLines
-            .map((line) => _stripTimestampPrefix(line).trimRight())
-            .toList(growable: false);
-        final snapshot = visibleLines.join('\n');
-        if (onProgress != null && (force || snapshot != lastProgressSnapshot)) {
-          lastProgressSnapshot = snapshot;
-          onProgress(visibleLines, snapshot);
-        }
-        debugPrint('[LyricsAi] translated: $current');
-      }
-
-      printTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-        emitProgress();
-      });
-
-      final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
-      try {
-        await for (final line in textStream.transform(const LineSplitter())) {
-          if (cancelToken?.isCancelled == true) {
-            throw DioException(
-              requestOptions: RequestOptions(path: ''),
-              type: DioExceptionType.cancel,
-            );
-          }
-          final trimmed = line.trim();
-          if (trimmed.isEmpty) continue;
-
-          final data = trimmed.startsWith('data:')
-              ? trimmed.substring(5).trim()
-              : trimmed;
-          if (data.isEmpty || data == '[DONE]') {
-            if (data == '[DONE]') break;
-            continue;
-          }
-
-          final chunk = _streamParser.extractText(data);
-          if (chunk == null || chunk.isEmpty) {
-            continue;
-          }
-          receivedAnyChunk = true;
-          translatedBuffer.write(chunk);
-          emitProgress();
-        }
-      } finally {
-        printTimer.cancel();
-      }
-
-      emitProgress(force: true);
-      final rawCurrent = translatedBuffer.toString();
-      final cleanedCurrent = _stripTimestamps(
-        LrcUtils.cleanGeneratedLyricsText(rawCurrent),
-      );
-      if (!receivedAnyChunk || cleanedCurrent.trim().isEmpty) {
-        debugPrint('[LyricsAi] empty translation response.');
-        debugPrint('[LyricsAi] raw translation response: $rawCurrent');
-        return _t('Gemini 返回了空响应。', 'Gemini returned an empty response.');
-      }
-      return null;
-    } on DioException catch (e) {
-      if (CancelToken.isCancel(e)) {
-        debugPrint('[LyricsAi] translation request cancelled');
-        return 'cancelled';
-      }
-      debugPrint(
-        '[LyricsAi] request failed: type=${e.type} '
-        'status=${e.response?.statusCode} '
-        'uri=${e.requestOptions.uri} '
-        'message=${e.message} '
-        'error=${e.error} '
-        'response=${e.response?.data}',
-      );
-      if (_isServerError(e.response?.statusCode)) {
-        return _translationServerFlakyMessage;
-      }
-      if (_shouldUseGoogleServerFlakyMessage(e)) {
-        return _googleServerFlakyMessage;
-      }
-      return _formatGenerationErrorMessage(
-        e,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
+        LyricsAiProvider.openRouter => _translateWithOpenRouter(
+          apiKey: apiKey,
+          modelId: candidate.modelId,
+          prompt: prompt,
+          sourceLines: sourceLines,
+          blankLineIndexes: blankLineIndexes,
+          targetLineCount: targetLineCount,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
         ),
-      );
-    } catch (e) {
-      debugPrint('[LyricsAi] translation failed: $e');
-      return _formatGenerationErrorMessage(
-        e,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
-      );
+      };
+      if (error == null) {
+        return null;
+      }
+      if (error == 'cancelled') {
+        return error;
+      }
+      lastError = error;
     }
+    return lastError ??
+        _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        );
   }
 
   Future<LyricsGenerationResult> generateLyricsFromFile({
@@ -355,38 +219,6 @@ class LyricsAiService {
     void Function(String partialText, bool isFinal)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    final credentials = await _loadGenerationCredentials();
-    if (credentials == null) {
-      debugPrint('[LyricsAi] active API key not found, skip generation.');
-      return LyricsGenerationResult.failure(
-        _missingApiKeyMessage(
-          _settingsService.lyricsAiProvider,
-          action: _t('生成歌词', 'generate lyrics'),
-        ),
-      );
-    }
-
-    if (credentials.provider == LyricsAiProvider.openRouter) {
-      final result = await _openRouterClient.generateLyricsFromFile(
-        apiKey: credentials.apiKey,
-        filePath: filePath,
-        songTitle: songTitle,
-        onUploadProgress: onUploadProgress,
-        onStageChanged: onStageChanged,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-      return _normalizeGenerationResult(result);
-    }
-
-    final apiKey = credentials.apiKey;
-    debugPrint(
-      '[LyricsAi] generateLyricsFromFile start '
-      'platform=${Platform.operatingSystem} '
-      'provider=${credentials.provider.name} '
-      'filePath=$filePath',
-    );
-
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[LyricsAi] file not found for generation: $filePath');
@@ -397,12 +229,6 @@ class LyricsAiService {
         ),
       );
     }
-
-    final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
-    final effectiveModelId = modelId?.trim().isNotEmpty == true
-        ? modelId!.trim()
-        : _primaryGeminiModelId;
-    onModelLabelChanged?.call(_googleModelLabel(effectiveModelId));
     final normalizedTitle = songTitle?.trim();
     final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
         ? ''
@@ -411,63 +237,62 @@ class LyricsAiService {
         '$titleHint'
         '输出这首歌的完整的带时间轴的标准LRC格式歌词,每一行歌词前面都带有一个方括号包裹的时间点，格式通常为：[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。'
         '仅输出结果不输出其他内容。';
-
-    if (_settingsService.shouldAutoSwitchLyricsProvider) {
-      final googleApiKey = _settingsService.geminiApiKey.trim();
-      if (googleApiKey.isEmpty) {
-        debugPrint('[LyricsAi] google API key not found, skip generation.');
-        return LyricsGenerationResult.failure(
-          _missingApiKeyMessage(
-            LyricsAiProvider.googleAiStudio,
-            action: _t('生成歌词', 'generate lyrics'),
-          ),
+    final candidates = <LyricsAiModelSelection>[
+      LyricsAiModelSelection(
+        provider: _generationPrimaryModel.provider,
+        modelId: modelId?.trim().isNotEmpty == true
+            ? modelId!.trim()
+            : _generationPrimaryModel.modelId,
+      ),
+      if (_generationFallbackModel.modelId.trim().isNotEmpty)
+        _generationFallbackModel,
+    ];
+    String? lastError;
+    for (final candidate in candidates) {
+      final apiKey = _settingsService.apiKeyForProvider(candidate.provider).trim();
+      if (apiKey.isEmpty) {
+        lastError = _missingApiKeyMessage(
+          candidate.provider,
+          action: _t('生成歌词', 'generate lyrics'),
         );
+        continue;
       }
-
-      return _generateFromUploadedFile(
-        file: file,
-        apiKey: googleApiKey,
-        mimeType: mimeType,
-        modelId: effectiveModelId,
-        primaryModelId: _primaryGeminiModelId,
-        fallbackModelId: _fallbackGeminiModelId,
-        prompt: prompt,
-        preserveTimestamps: true,
-        onModelLabelChanged: onModelLabelChanged,
-        cancelToken: cancelToken,
-        openRouterFallbackGenerator: (apiKey) {
-          return _openRouterClient.generateLyricsFromFile(
-            apiKey: apiKey,
-            filePath: filePath,
-            songTitle: songTitle,
-            onUploadProgress: onUploadProgress,
-            onStageChanged: onStageChanged,
-            onProgress: onProgress,
-            cancelToken: cancelToken,
-          );
-        },
-        onUploadProgress: onUploadProgress,
-        onStageChanged: onStageChanged,
-        onProgress: onProgress,
-      );
+      onModelLabelChanged?.call(_modelLabel(candidate));
+      final result = switch (candidate.provider) {
+        LyricsAiProvider.googleAiStudio => await _generateWithGoogleAiStudio(
+          file: file,
+          apiKey: apiKey,
+          modelId: candidate.modelId,
+          prompt: prompt,
+          preserveTimestamps: true,
+          onStageChanged: onStageChanged,
+          onUploadProgress: onUploadProgress,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
+        ),
+        LyricsAiProvider.openRouter => await _openRouterClient.generateLyricsFromFile(
+          apiKey: apiKey,
+          modelId: candidate.modelId,
+          filePath: filePath,
+          songTitle: songTitle,
+          onUploadProgress: onUploadProgress,
+          onStageChanged: onStageChanged,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
+        ),
+      };
+      if (result.isSuccess) {
+        return _normalizeGenerationResult(result);
+      }
+      lastError = result.errorMessage;
     }
-
-    final result = await _generateFromUploadedFile(
-      file: file,
-      apiKey: apiKey,
-      mimeType: mimeType,
-      modelId: effectiveModelId,
-      primaryModelId: _primaryGeminiModelId,
-      fallbackModelId: _fallbackGeminiModelId,
-      prompt: prompt,
-      preserveTimestamps: true,
-      openRouterFallbackGenerator: null,
-      onUploadProgress: onUploadProgress,
-      onStageChanged: onStageChanged,
-      onProgress: onProgress,
-      cancelToken: cancelToken,
+    return LyricsGenerationResult.failure(
+      lastError ??
+          _t(
+            '生成歌词时发生未知错误。',
+            'An unknown error occurred while generating lyrics.',
+          ),
     );
-    return _normalizeGenerationResult(result);
   }
 
   Future<LyricsGenerationResult> generateTimelineFromLyrics({
@@ -481,38 +306,6 @@ class LyricsAiService {
     void Function(String partialText, bool isFinal)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    final credentials = await _loadGenerationCredentials();
-    if (credentials == null) {
-      debugPrint('[LyricsAi] active API key not found, skip timeline.');
-      return LyricsGenerationResult.failure(
-        _missingApiKeyMessage(
-          _settingsService.lyricsAiProvider,
-          action: _t('生成时间轴', 'generate timeline'),
-        ),
-      );
-    }
-
-    if (credentials.provider == LyricsAiProvider.openRouter) {
-      final result = await _openRouterClient.generateTimelineFromLyrics(
-        apiKey: credentials.apiKey,
-        filePath: filePath,
-        lyrics: lyrics,
-        onUploadProgress: onUploadProgress,
-        onStageChanged: onStageChanged,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-      return _normalizeGenerationResult(result);
-    }
-
-    final apiKey = credentials.apiKey;
-    debugPrint(
-      '[LyricsAi] generateTimelineFromLyrics start '
-      'platform=${Platform.operatingSystem} '
-      'provider=${credentials.provider.name} '
-      'filePath=$filePath',
-    );
-
     final file = File(filePath);
     if (!await file.exists()) {
       debugPrint('[LyricsAi] file not found for timeline: $filePath');
@@ -523,12 +316,6 @@ class LyricsAiService {
         ),
       );
     }
-
-    final mimeType = _geminiApiClient.mimeTypeForFilePath(filePath);
-    final effectiveModelId = modelId?.trim().isNotEmpty == true
-        ? modelId!.trim()
-        : _primaryGeminiModelId;
-    onModelLabelChanged?.call(_googleModelLabel(effectiveModelId));
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       debugPrint('[LyricsAi] no usable lyrics for timeline generation.');
@@ -549,63 +336,62 @@ class LyricsAiService {
         '```text\n'
         '$normalizedLyrics\n'
         '```';
-
-    if (_settingsService.shouldAutoSwitchLyricsProvider) {
-      final googleApiKey = _settingsService.geminiApiKey.trim();
-      if (googleApiKey.isEmpty) {
-        debugPrint('[LyricsAi] google API key not found, skip timeline.');
-        return LyricsGenerationResult.failure(
-          _missingApiKeyMessage(
-            LyricsAiProvider.googleAiStudio,
-            action: _t('生成时间轴', 'generate timeline'),
-          ),
+    final candidates = <LyricsAiModelSelection>[
+      LyricsAiModelSelection(
+        provider: _generationPrimaryModel.provider,
+        modelId: modelId?.trim().isNotEmpty == true
+            ? modelId!.trim()
+            : _generationPrimaryModel.modelId,
+      ),
+      if (_generationFallbackModel.modelId.trim().isNotEmpty)
+        _generationFallbackModel,
+    ];
+    String? lastError;
+    for (final candidate in candidates) {
+      final apiKey = _settingsService.apiKeyForProvider(candidate.provider).trim();
+      if (apiKey.isEmpty) {
+        lastError = _missingApiKeyMessage(
+          candidate.provider,
+          action: _t('生成时间轴', 'generate timeline'),
         );
+        continue;
       }
-
-      return _generateFromUploadedFile(
-        file: file,
-        apiKey: googleApiKey,
-        mimeType: mimeType,
-        modelId: effectiveModelId,
-        primaryModelId: _primaryGeminiModelId,
-        fallbackModelId: _fallbackGeminiModelId,
-        prompt: prompt,
-        preserveTimestamps: true,
-        onModelLabelChanged: onModelLabelChanged,
-        cancelToken: cancelToken,
-        openRouterFallbackGenerator: (apiKey) {
-          return _openRouterClient.generateTimelineFromLyrics(
-            apiKey: apiKey,
-            filePath: filePath,
-            lyrics: lyrics,
-            onUploadProgress: onUploadProgress,
-            onStageChanged: onStageChanged,
-            onProgress: onProgress,
-            cancelToken: cancelToken,
-          );
-        },
-        onUploadProgress: onUploadProgress,
-        onStageChanged: onStageChanged,
-        onProgress: onProgress,
-      );
+      onModelLabelChanged?.call(_modelLabel(candidate));
+      final result = switch (candidate.provider) {
+        LyricsAiProvider.googleAiStudio => await _generateWithGoogleAiStudio(
+          file: file,
+          apiKey: apiKey,
+          modelId: candidate.modelId,
+          prompt: prompt,
+          preserveTimestamps: true,
+          onStageChanged: onStageChanged,
+          onUploadProgress: onUploadProgress,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
+        ),
+        LyricsAiProvider.openRouter => await _openRouterClient.generateTimelineFromLyrics(
+          apiKey: apiKey,
+          modelId: candidate.modelId,
+          filePath: filePath,
+          lyrics: lyrics,
+          onUploadProgress: onUploadProgress,
+          onStageChanged: onStageChanged,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
+        ),
+      };
+      if (result.isSuccess) {
+        return _normalizeGenerationResult(result);
+      }
+      lastError = result.errorMessage;
     }
-
-    final result = await _generateFromUploadedFile(
-      file: file,
-      apiKey: apiKey,
-      mimeType: mimeType,
-      modelId: effectiveModelId,
-      primaryModelId: _primaryGeminiModelId,
-      fallbackModelId: _fallbackGeminiModelId,
-      prompt: prompt,
-      preserveTimestamps: true,
-      openRouterFallbackGenerator: null,
-      onUploadProgress: onUploadProgress,
-      onStageChanged: onStageChanged,
-      onProgress: onProgress,
-      cancelToken: cancelToken,
+    return LyricsGenerationResult.failure(
+      lastError ??
+          _t(
+            '生成时间轴时发生未知错误。',
+            'An unknown error occurred while generating the timeline.',
+          ),
     );
-    return _normalizeGenerationResult(result);
   }
 
   Future<LyricsGenerationResult> _generateFromUploadedFile({
@@ -698,20 +484,6 @@ class LyricsAiService {
         onProgress: onProgress,
         cancelToken: cancelToken,
       );
-      if (generationOutcome.shouldFallbackToOpenRouter &&
-          openRouterFallbackGenerator != null) {
-        final fallbackApiKey = _settingsService.openRouterApiKey.trim();
-        if (fallbackApiKey.isNotEmpty) {
-          debugPrint(
-            '[LyricsAi] switching to OpenRouter after Gemini 429/5xx failure.',
-          );
-          onModelLabelChanged?.call(_openRouterModelLabel());
-          final fallbackResult = await openRouterFallbackGenerator(
-            fallbackApiKey,
-          );
-          return _normalizeGenerationResult(fallbackResult);
-        }
-      }
       return _normalizeGenerationResult(generationOutcome.result);
     } catch (e) {
       if (e is DioException && CancelToken.isCancel(e)) {
@@ -734,6 +506,315 @@ class LyricsAiService {
             '生成歌词时发生未知错误。',
             'An unknown error occurred while generating lyrics.',
           ),
+        ),
+      );
+    }
+  }
+
+  Future<LyricsGenerationResult> _generateWithGoogleAiStudio({
+    required File file,
+    required String apiKey,
+    required String modelId,
+    required String prompt,
+    required bool preserveTimestamps,
+    void Function(double progress)? onUploadProgress,
+    void Function(String stage)? onStageChanged,
+    void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final mimeType = _geminiApiClient.mimeTypeForFilePath(file.path);
+    final result = await _generateFromUploadedFile(
+      file: file,
+      apiKey: apiKey,
+      mimeType: mimeType,
+      modelId: modelId,
+      primaryModelId: modelId,
+      fallbackModelId: '',
+      prompt: prompt,
+      preserveTimestamps: preserveTimestamps,
+      openRouterFallbackGenerator: null,
+      onUploadProgress: onUploadProgress,
+      onStageChanged: onStageChanged,
+      onProgress: onProgress,
+      cancelToken: cancelToken,
+    );
+    return _normalizeGenerationResult(result);
+  }
+
+  Future<String?> _translateWithGoogleAiStudio({
+    required String apiKey,
+    required String modelId,
+    required String prompt,
+    required List<String> sourceLines,
+    required List<int> blankLineIndexes,
+    required int targetLineCount,
+    void Function(List<String> translatedLines, String translatedText)?
+    onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final requestData = {
+      'contents': [
+        {
+          'role': 'user',
+          'parts': [
+            {'text': prompt},
+          ],
+        },
+      ],
+      'generationConfig': {
+        'thinkingConfig': {'thinkingLevel': 'MINIMAL'},
+      },
+      'tools': [
+        {'googleSearch': {}},
+      ],
+    };
+    final url =
+        'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent';
+
+    try {
+      final response = await _client.post(
+        url,
+        data: requestData,
+        queryParameters: {'key': apiKey},
+        options: Options(
+          responseType: ResponseType.stream,
+          contentType: Headers.jsonContentType,
+        ),
+        cancelToken: cancelToken,
+      );
+
+      final body = response.data;
+      if (body == null || body.stream == null) {
+        return _t(
+          'Gemini 返回了空流响应。',
+          'Gemini returned an empty streaming response.',
+        );
+      }
+
+      final translatedBuffer = StringBuffer();
+      var lastPrintedLength = -1;
+      var lastProgressSnapshot = '';
+      var receivedAnyChunk = false;
+      Timer? printTimer;
+
+      void emitProgress({bool force = false}) {
+        final rawCurrent = translatedBuffer.toString();
+        final cleanedCurrent = _stripTimestamps(
+          LrcUtils.cleanGeneratedLyricsText(rawCurrent),
+        );
+        final current = _visibleTranslationText(
+          cleanedCurrent,
+          rawCurrent,
+          force: force,
+        );
+        if (current.isEmpty) {
+          return;
+        }
+        if (!force && current.length == lastPrintedLength) {
+          return;
+        }
+        lastPrintedLength = current.length;
+        final lines = _normalizeTranslationLines(current, targetLineCount);
+        final restoredLines = _restoreBlankLines(
+          lines,
+          blankLineIndexes,
+          sourceLines.length,
+        );
+        final visibleLines = restoredLines
+            .map((line) => _stripTimestampPrefix(line).trimRight())
+            .toList(growable: false);
+        final snapshot = visibleLines.join('\n');
+        if (onProgress != null && (force || snapshot != lastProgressSnapshot)) {
+          lastProgressSnapshot = snapshot;
+          onProgress(visibleLines, snapshot);
+        }
+      }
+
+      printTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+        emitProgress();
+      });
+
+      final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
+      try {
+        await for (final line in textStream.transform(const LineSplitter())) {
+          if (cancelToken?.isCancelled == true) {
+            throw DioException(
+              requestOptions: RequestOptions(path: ''),
+              type: DioExceptionType.cancel,
+            );
+          }
+          final trimmed = line.trim();
+          if (trimmed.isEmpty) {
+            continue;
+          }
+
+          final data = trimmed.startsWith('data:')
+              ? trimmed.substring(5).trim()
+              : trimmed;
+          if (data.isEmpty || data == '[DONE]') {
+            if (data == '[DONE]') {
+              break;
+            }
+            continue;
+          }
+
+          final chunk = _streamParser.extractText(data);
+          if (chunk == null || chunk.isEmpty) {
+            continue;
+          }
+          receivedAnyChunk = true;
+          translatedBuffer.write(chunk);
+          emitProgress();
+        }
+      } finally {
+        printTimer.cancel();
+      }
+
+      emitProgress(force: true);
+      final rawCurrent = translatedBuffer.toString();
+      final cleanedCurrent = _stripTimestamps(
+        LrcUtils.cleanGeneratedLyricsText(rawCurrent),
+      );
+      if (!receivedAnyChunk || cleanedCurrent.trim().isEmpty) {
+        return _t('Gemini 返回了空响应。', 'Gemini returned an empty response.');
+      }
+      return null;
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) {
+        return 'cancelled';
+      }
+      if (_shouldUseGoogleServerFlakyMessage(error)) {
+        return _googleServerFlakyMessage;
+      }
+      return _formatGenerationErrorMessage(
+        error,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        ),
+      );
+    } catch (error) {
+      return _formatGenerationErrorMessage(
+        error,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        ),
+      );
+    }
+  }
+
+  Future<String?> _translateWithOpenRouter({
+    required String apiKey,
+    required String modelId,
+    required String prompt,
+    required List<String> sourceLines,
+    required List<int> blankLineIndexes,
+    required int targetLineCount,
+    void Function(List<String> translatedLines, String translatedText)?
+    onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final response = await _client.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        data: {
+          'model': modelId,
+          'messages': [
+            {
+              'role': 'user',
+              'content': [
+                {'type': 'text', 'text': prompt},
+              ],
+            },
+          ],
+          'stream': true,
+        },
+        options: Options(
+          responseType: ResponseType.stream,
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': Headers.jsonContentType,
+          },
+        ),
+        cancelToken: cancelToken,
+      );
+
+      final body = response.data;
+      if (body == null || body.stream == null) {
+        return _t(
+          'OpenRouter 返回了空流响应。',
+          'OpenRouter returned an empty streaming response.',
+        );
+      }
+
+      final translatedBuffer = StringBuffer();
+      String lastSnapshot = '';
+      final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
+      await for (final line in textStream.transform(const LineSplitter())) {
+        if (cancelToken?.isCancelled == true) {
+          throw DioException(
+            requestOptions: RequestOptions(path: ''),
+            type: DioExceptionType.cancel,
+          );
+        }
+        final trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) {
+          continue;
+        }
+        final data = trimmed.substring(5).trim();
+        if (data.isEmpty || data == '[DONE]') {
+          if (data == '[DONE]') {
+            break;
+          }
+          continue;
+        }
+        final chunk = _streamParser.extractText(data);
+        if (chunk == null || chunk.isEmpty) {
+          continue;
+        }
+        translatedBuffer.write(chunk);
+        final cleaned = _stripTimestamps(
+          LrcUtils.cleanGeneratedLyricsText(translatedBuffer.toString()),
+        );
+        final lines = _normalizeTranslationLines(cleaned, targetLineCount);
+        final restoredLines = _restoreBlankLines(
+          lines,
+          blankLineIndexes,
+          sourceLines.length,
+        );
+        final snapshot = restoredLines
+            .map((line) => _stripTimestampPrefix(line).trimRight())
+            .join('\n');
+        if (onProgress != null && snapshot != lastSnapshot) {
+          lastSnapshot = snapshot;
+          onProgress(restoredLines, snapshot);
+        }
+      }
+      if (translatedBuffer.toString().trim().isEmpty) {
+        return _t(
+          'OpenRouter 返回了空响应。',
+          'OpenRouter returned an empty response.',
+        );
+      }
+      return null;
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) {
+        return 'cancelled';
+      }
+      return _formatGenerationErrorMessage(
+        error,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        ),
+      );
+    } catch (error) {
+      return _formatGenerationErrorMessage(
+        error,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
         ),
       );
     }
@@ -971,9 +1052,6 @@ class LyricsAiService {
             if (specialMessage != null) {
               return _LyricsGenerationOutcome(
                 result: LyricsGenerationResult.failure(specialMessage),
-                shouldFallbackToOpenRouter:
-                    _settingsService.shouldAutoSwitchLyricsProvider &&
-                    _settingsService.openRouterApiKey.trim().isNotEmpty,
               );
             }
           }
@@ -1001,10 +1079,6 @@ class LyricsAiService {
     if (lastFailureShouldUseGoogleFlakyMessage) {
       return _LyricsGenerationOutcome(
         result: LyricsGenerationResult.failure(_googleServerFlakyMessage),
-        shouldFallbackToOpenRouter:
-            lastFailureEligibleForFallback &&
-            _settingsService.shouldAutoSwitchLyricsProvider &&
-            _settingsService.openRouterApiKey.trim().isNotEmpty,
       );
     }
 
@@ -1015,10 +1089,6 @@ class LyricsAiService {
           'Lyrics generation failed: $lastErrorMessage',
         ),
       ),
-      shouldFallbackToOpenRouter:
-          lastFailureEligibleForFallback &&
-          _settingsService.shouldAutoSwitchLyricsProvider &&
-          _settingsService.openRouterApiKey.trim().isNotEmpty,
     );
   }
 

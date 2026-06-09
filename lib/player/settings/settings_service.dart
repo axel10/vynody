@@ -10,6 +10,32 @@ import 'package:vibe_flow/utils/language_code_utils.dart';
 
 enum LyricsAiProvider { googleAiStudio, openRouter }
 
+enum LyricsAiModelPurpose { generation, translation }
+
+enum LyricsAiModelSlot { primary, fallback }
+
+final class LyricsAiModelSelection {
+  const LyricsAiModelSelection({
+    required this.provider,
+    required this.modelId,
+  });
+
+  final LyricsAiProvider provider;
+  final String modelId;
+
+  bool get isEmpty => modelId.trim().isEmpty;
+
+  LyricsAiModelSelection copyWith({
+    LyricsAiProvider? provider,
+    String? modelId,
+  }) {
+    return LyricsAiModelSelection(
+      provider: provider ?? this.provider,
+      modelId: modelId ?? this.modelId,
+    );
+  }
+}
+
 enum SmallWindowBottomPanelMode { collapsed, queue, lyrics }
 
 extension ThemeModeX on ThemeMode {
@@ -141,24 +167,45 @@ class SettingProperty<T> {
 }
 
 class SettingsService extends ChangeNotifier {
-  static const String defaultGeminiPrimaryModelId = 'gemini-flash-lite-latest';
-  static const String defaultGeminiFallbackModelId = 'gemini-2.5-flash';
-  static const String defaultGeminiTranslationModelId = 'gemma-4-31b-it';
+  static const String defaultGenerationPrimaryModelId =
+      'gemini-3.1-flash-lite-latest';
+  static const String defaultGenerationFallbackModelId = '';
+  static const String defaultTranslationPrimaryModelId = 'gemma-4-31b-it';
+  static const String defaultTranslationFallbackModelId = '';
+  static const String defaultOpenRouterGenerationModelId =
+      'google/gemini-3.1-flash-lite';
+  static const String defaultOpenRouterTranslationModelId =
+      'google/gemma-4-31b-it:free';
   static const String _keyThemeMode = 'theme_mode';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
   static const String geminiApiKeyStorageKey = 'gemini_api_key';
   static const String openRouterApiKeyStorageKey = 'openrouter_api_key';
-  static const String _keyLyricsAiProvider = 'lyrics_ai_provider';
-  static const String _keyLyricsAiAutoSwitchEnabled =
-      'lyrics_ai_auto_switch_enabled';
   static const String _keyLyricsTranslationTargetLanguage =
       'lyrics_translation_target_language';
   static const String _keyLyricsFontScale = 'lyrics_font_scale';
-  static const String _keyGeminiPrimaryModelId = 'gemini_primary_model_id';
-  static const String _keyGeminiFallbackModelId = 'gemini_fallback_model_id';
-  static const String _keyGeminiTranslationModelId =
+  static const String _keyGenerationPrimaryProvider =
+      'lyrics_generation_primary_provider';
+  static const String _keyGenerationPrimaryModelId =
+      'lyrics_generation_primary_model_id';
+  static const String _keyGenerationFallbackProvider =
+      'lyrics_generation_fallback_provider';
+  static const String _keyGenerationFallbackModelId =
+      'lyrics_generation_fallback_model_id';
+  static const String _keyTranslationPrimaryProvider =
+      'lyrics_translation_primary_provider';
+  static const String _keyTranslationPrimaryModelId =
+      'lyrics_translation_primary_model_id';
+  static const String _keyTranslationFallbackProvider =
+      'lyrics_translation_fallback_provider';
+  static const String _keyTranslationFallbackModelId =
+      'lyrics_translation_fallback_model_id';
+  static const String _legacyKeyLyricsAiProvider = 'lyrics_ai_provider';
+  static const String _legacyKeyGeminiPrimaryModelId = 'gemini_primary_model_id';
+  static const String _legacyKeyGeminiFallbackModelId =
+      'gemini_fallback_model_id';
+  static const String _legacyKeyGeminiTranslationModelId =
       'gemini_translation_model_id';
   static const String acoustidApiKeyStorageKey = 'acoustid_api_key';
   static const String _keyShortcutBindings = 'shortcut_bindings';
@@ -279,23 +326,6 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
-  late final _lyricsAiProviderProperty = SettingProperty<LyricsAiProvider>(
-    key: _keyLyricsAiProvider,
-    defaultValue: LyricsAiProvider.googleAiStudio,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-    customRead: (prefs, key, def) =>
-        LyricsAiProviderX.fromStorageValue(prefs.getString(key)),
-    customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
-  );
-
-  late final _isLyricsAiAutoSwitchEnabledProperty = SettingProperty<bool>(
-    key: _keyLyricsAiAutoSwitchEnabled,
-    defaultValue: false,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-  );
-
   late final _lyricsTranslationTargetLanguageProperty = SettingProperty<String>(
     key: _keyLyricsTranslationTargetLanguage,
     defaultValue: '',
@@ -328,28 +358,117 @@ class SettingsService extends ChangeNotifier {
         prefs.setDouble(key, _normalizeLyricsFontScale(val)),
   );
 
-  late final _geminiPrimaryModelIdProperty = SettingProperty<String>(
-    key: _keyGeminiPrimaryModelId,
-    defaultValue: defaultGeminiPrimaryModelId,
+  late final _generationPrimaryProviderProperty =
+      SettingProperty<LyricsAiProvider>(
+        key: _keyGenerationPrimaryProvider,
+        defaultValue: LyricsAiProvider.googleAiStudio,
+        prefs: _prefs,
+        onChanged: notifyListeners,
+        customRead: (prefs, key, def) => _initialLyricsProvider(
+          prefs,
+          key: key,
+          legacyKey: _legacyKeyLyricsAiProvider,
+          defaultValue: def,
+        ),
+        customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+      );
+
+  late final _generationPrimaryModelIdProperty = SettingProperty<String>(
+    key: _keyGenerationPrimaryModelId,
+    defaultValue: defaultGenerationPrimaryModelId,
     prefs: _prefs,
     onChanged: notifyListeners,
-    customRead: (prefs, key, def) => _initialModelId(prefs.getString(key), def),
+    customRead: (prefs, key, def) => _initialModelId(
+      prefs,
+      key: key,
+      legacyKey: _legacyKeyGeminiPrimaryModelId,
+      defaultValue: def,
+    ),
   );
 
-  late final _geminiFallbackModelIdProperty = SettingProperty<String>(
-    key: _keyGeminiFallbackModelId,
-    defaultValue: defaultGeminiFallbackModelId,
+  late final _generationFallbackProviderProperty =
+      SettingProperty<LyricsAiProvider>(
+        key: _keyGenerationFallbackProvider,
+        defaultValue: LyricsAiProvider.googleAiStudio,
+        prefs: _prefs,
+        onChanged: notifyListeners,
+        customRead: (prefs, key, def) => _initialLyricsProvider(
+          prefs,
+          key: key,
+          legacyKey: _legacyKeyLyricsAiProvider,
+          defaultValue: def,
+        ),
+        customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+      );
+
+  late final _generationFallbackModelIdProperty = SettingProperty<String>(
+    key: _keyGenerationFallbackModelId,
+    defaultValue: defaultGenerationFallbackModelId,
     prefs: _prefs,
     onChanged: notifyListeners,
-    customRead: (prefs, key, def) => _initialModelId(prefs.getString(key), def),
+    customRead: (prefs, key, def) => _initialModelId(
+      prefs,
+      key: key,
+      legacyKey: _legacyKeyGeminiFallbackModelId,
+      defaultValue: def,
+    ),
   );
 
-  late final _geminiTranslationModelIdProperty = SettingProperty<String>(
-    key: _keyGeminiTranslationModelId,
-    defaultValue: defaultGeminiTranslationModelId,
+  late final _translationPrimaryProviderProperty =
+      SettingProperty<LyricsAiProvider>(
+        key: _keyTranslationPrimaryProvider,
+        defaultValue: LyricsAiProvider.googleAiStudio,
+        prefs: _prefs,
+        onChanged: notifyListeners,
+        customRead: (prefs, key, def) => _initialLyricsProvider(
+          prefs,
+          key: key,
+          legacyKey: _legacyKeyLyricsAiProvider,
+          defaultValue: def,
+        ),
+        customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+      );
+
+  late final _translationPrimaryModelIdProperty = SettingProperty<String>(
+    key: _keyTranslationPrimaryModelId,
+    defaultValue: defaultTranslationPrimaryModelId,
     prefs: _prefs,
     onChanged: notifyListeners,
-    customRead: (prefs, key, def) => _initialModelId(prefs.getString(key), def),
+    customRead: (prefs, key, def) => _initialModelId(
+      prefs,
+      key: key,
+      legacyKey: _legacyKeyGeminiTranslationModelId,
+      defaultValue: def,
+    ),
+  );
+
+  late final _translationFallbackProviderProperty =
+      SettingProperty<LyricsAiProvider>(
+        key: _keyTranslationFallbackProvider,
+        defaultValue: LyricsAiProvider.googleAiStudio,
+        prefs: _prefs,
+        onChanged: notifyListeners,
+        customRead: (prefs, key, def) => _initialLyricsProvider(
+          prefs,
+          key: key,
+          legacyKey: _legacyKeyLyricsAiProvider,
+          defaultValue: def,
+        ),
+        customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+      );
+
+  late final _translationFallbackModelIdProperty = SettingProperty<String>(
+    key: _keyTranslationFallbackModelId,
+    defaultValue: defaultTranslationFallbackModelId,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) => _initialModelId(
+      prefs,
+      key: key,
+      legacyKey: _legacyKeyGeminiTranslationModelId,
+      defaultValue: def,
+      emptyUsesDefault: false,
+    ),
   );
 
   late final _geminiApiKeyProperty = SettingProperty<String>(
@@ -703,12 +822,42 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
-  static String _initialModelId(String? value, String defaultValue) {
-    final normalized = value?.trim();
-    if (normalized == null || normalized.isEmpty) {
-      return defaultValue;
+  static LyricsAiProvider _initialLyricsProvider(
+    SharedPreferences prefs, {
+    required String key,
+    required String legacyKey,
+    required LyricsAiProvider defaultValue,
+  }) {
+    final stored = prefs.getString(key);
+    if (stored != null && stored.trim().isNotEmpty) {
+      return LyricsAiProviderX.fromStorageValue(stored);
     }
-    return normalized;
+    return LyricsAiProviderX.fromStorageValue(prefs.getString(legacyKey));
+  }
+
+  static String _initialModelId(
+    SharedPreferences prefs, {
+    required String key,
+    required String legacyKey,
+    required String defaultValue,
+    bool emptyUsesDefault = true,
+  }) {
+    final normalized = prefs.getString(key)?.trim();
+    if (normalized != null) {
+      if (normalized.isEmpty && !emptyUsesDefault) {
+        return '';
+      }
+      if (normalized.isNotEmpty) {
+        return normalized;
+      }
+    }
+
+    final legacy = prefs.getString(legacyKey)?.trim();
+    if (legacy != null && legacy.isNotEmpty) {
+      return legacy;
+    }
+
+    return emptyUsesDefault ? defaultValue : '';
   }
 
   SettingsService(this._prefs)
@@ -742,15 +891,6 @@ class SettingsService extends ChangeNotifier {
     }
   }
 
-  LyricsAiProvider get lyricsAiProvider => _lyricsAiProviderProperty.value;
-  set lyricsAiProvider(LyricsAiProvider value) =>
-      _lyricsAiProviderProperty.value = value;
-
-  bool get isLyricsAiAutoSwitchEnabled =>
-      _isLyricsAiAutoSwitchEnabledProperty.value;
-  set isLyricsAiAutoSwitchEnabled(bool value) =>
-      _isLyricsAiAutoSwitchEnabledProperty.value = value;
-
   String get lyricsTranslationTargetLanguageCode =>
       _lyricsTranslationTargetLanguageProperty.value;
   set lyricsTranslationTargetLanguageCode(String value) =>
@@ -767,18 +907,53 @@ class SettingsService extends ChangeNotifier {
   double get lyricsFontScale => _lyricsFontScaleProperty.value;
   set lyricsFontScale(double value) => _lyricsFontScaleProperty.value = value;
 
-  String get geminiPrimaryModelId => _geminiPrimaryModelIdProperty.value;
-  set geminiPrimaryModelId(String value) =>
-      _geminiPrimaryModelIdProperty.value = value;
+  LyricsAiProvider get lyricsAiProvider => generationPrimaryModel.provider;
+  set lyricsAiProvider(LyricsAiProvider value) {
+    generationPrimaryModel = generationPrimaryModel.copyWith(provider: value);
+  }
 
-  String get geminiFallbackModelId => _geminiFallbackModelIdProperty.value;
-  set geminiFallbackModelId(String value) =>
-      _geminiFallbackModelIdProperty.value = value;
+  bool get isLyricsAiAutoSwitchEnabled => false;
+  set isLyricsAiAutoSwitchEnabled(bool value) {}
 
-  String get geminiTranslationModelId =>
-      _geminiTranslationModelIdProperty.value;
-  set geminiTranslationModelId(String value) =>
-      _geminiTranslationModelIdProperty.value = value;
+  LyricsAiModelSelection get generationPrimaryModel =>
+      LyricsAiModelSelection(
+        provider: _generationPrimaryProviderProperty.value,
+        modelId: _generationPrimaryModelIdProperty.value,
+      );
+  set generationPrimaryModel(LyricsAiModelSelection value) {
+    _generationPrimaryProviderProperty.value = value.provider;
+    _generationPrimaryModelIdProperty.value = value.modelId.trim();
+  }
+
+  LyricsAiModelSelection get generationFallbackModel =>
+      LyricsAiModelSelection(
+        provider: _generationFallbackProviderProperty.value,
+        modelId: _generationFallbackModelIdProperty.value,
+      );
+  set generationFallbackModel(LyricsAiModelSelection value) {
+    _generationFallbackProviderProperty.value = value.provider;
+    _generationFallbackModelIdProperty.value = value.modelId.trim();
+  }
+
+  LyricsAiModelSelection get translationPrimaryModel =>
+      LyricsAiModelSelection(
+        provider: _translationPrimaryProviderProperty.value,
+        modelId: _translationPrimaryModelIdProperty.value,
+      );
+  set translationPrimaryModel(LyricsAiModelSelection value) {
+    _translationPrimaryProviderProperty.value = value.provider;
+    _translationPrimaryModelIdProperty.value = value.modelId.trim();
+  }
+
+  LyricsAiModelSelection get translationFallbackModel =>
+      LyricsAiModelSelection(
+        provider: _translationFallbackProviderProperty.value,
+        modelId: _translationFallbackModelIdProperty.value,
+      );
+  set translationFallbackModel(LyricsAiModelSelection value) {
+    _translationFallbackProviderProperty.value = value.provider;
+    _translationFallbackModelIdProperty.value = value.modelId.trim();
+  }
 
   String get geminiApiKey => _geminiApiKeyProperty.value;
   set geminiApiKey(String value) => _geminiApiKeyProperty.value = value;
@@ -792,23 +967,42 @@ class SettingsService extends ChangeNotifier {
       _prefs.containsKey(openRouterApiKeyStorageKey);
   bool get hasBothLyricsGenerationApiKeys =>
       geminiApiKey.trim().isNotEmpty && openRouterApiKey.trim().isNotEmpty;
-  bool get canAutoSwitchLyricsProvider => hasBothLyricsGenerationApiKeys;
-  bool get shouldAutoSwitchLyricsProvider =>
-      isLyricsAiAutoSwitchEnabled && hasBothLyricsGenerationApiKeys;
-  String get activeLyricsGenerationApiKey {
-    return switch (lyricsAiProvider) {
-      LyricsAiProvider.googleAiStudio => geminiApiKey,
-      LyricsAiProvider.openRouter => openRouterApiKey,
-    };
-  }
-
+  bool get canAutoSwitchLyricsProvider => false;
+  bool get shouldAutoSwitchLyricsProvider => false;
+  String get activeLyricsGenerationApiKey =>
+      apiKeyForProvider(generationPrimaryModel.provider);
   String get activeLyricsApiKey => activeLyricsGenerationApiKey;
-
   bool get hasActiveLyricsGenerationApiKey =>
       activeLyricsGenerationApiKey.trim().isNotEmpty;
   bool get hasActiveLyricsApiKey => hasActiveLyricsGenerationApiKey;
   String get activeGeminiTranslationApiKey => geminiApiKey;
   bool get hasGeminiTranslationApiKey => geminiApiKey.trim().isNotEmpty;
+
+  String get geminiPrimaryModelId => generationPrimaryModel.modelId;
+  set geminiPrimaryModelId(String value) {
+    generationPrimaryModel = generationPrimaryModel.copyWith(modelId: value);
+  }
+
+  String get geminiFallbackModelId => generationFallbackModel.modelId;
+  set geminiFallbackModelId(String value) {
+    generationFallbackModel = generationFallbackModel.copyWith(modelId: value);
+  }
+
+  String get geminiTranslationModelId => translationPrimaryModel.modelId;
+  set geminiTranslationModelId(String value) {
+    translationPrimaryModel =
+        translationPrimaryModel.copyWith(modelId: value);
+  }
+  String apiKeyForProvider(LyricsAiProvider provider) {
+    return switch (provider) {
+      LyricsAiProvider.googleAiStudio => geminiApiKey,
+      LyricsAiProvider.openRouter => openRouterApiKey,
+    };
+  }
+
+  bool hasApiKeyForProvider(LyricsAiProvider provider) {
+    return apiKeyForProvider(provider).trim().isNotEmpty;
+  }
   bool get hasCustomAcoustidApiKey =>
       _prefs.containsKey(acoustidApiKeyStorageKey);
   ShortcutBinding shortcutBinding(AppShortcutAction action) {
@@ -822,7 +1016,7 @@ class SettingsService extends ChangeNotifier {
     };
   }
 
-  static String geminiModelDisplayName(String modelId) {
+  static String lyricsModelDisplayName(String modelId) {
     final isZh =
         WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
     final trimmed = modelId.trim();
@@ -842,16 +1036,12 @@ class SettingsService extends ChangeNotifier {
         .join(' ');
   }
 
-  static String geminiModelSelectionLabel({
-    required String primaryModelId,
-    required String fallbackModelId,
-  }) {
-    final primaryLabel = geminiModelDisplayName(primaryModelId);
-    final fallbackLabel = geminiModelDisplayName(fallbackModelId);
-    if (primaryLabel == fallbackLabel) {
-      return primaryLabel;
-    }
-    return '$primaryLabel / $fallbackLabel';
+  static String lyricsModelSelectionLabel(
+    LyricsAiModelSelection selection,
+  ) {
+    final providerName = selection.provider.displayName;
+    final modelName = lyricsModelDisplayName(selection.modelId);
+    return '$providerName · $modelName';
   }
 
   String get acoustidApiKey {
@@ -1151,10 +1341,49 @@ class SettingsService extends ChangeNotifier {
     _lyricsFontScaleProperty.reset();
   }
 
-  void resetGeminiModels() {
-    _geminiPrimaryModelIdProperty.reset();
-    _geminiFallbackModelIdProperty.reset();
-    _geminiTranslationModelIdProperty.reset();
+  void resetLyricsAiModels() {
+    generationPrimaryModel = const LyricsAiModelSelection(
+      provider: LyricsAiProvider.googleAiStudio,
+      modelId: defaultGenerationPrimaryModelId,
+    );
+    generationFallbackModel = const LyricsAiModelSelection(
+      provider: LyricsAiProvider.googleAiStudio,
+      modelId: defaultGenerationFallbackModelId,
+    );
+    translationPrimaryModel = const LyricsAiModelSelection(
+      provider: LyricsAiProvider.googleAiStudio,
+      modelId: defaultTranslationPrimaryModelId,
+    );
+    translationFallbackModel = const LyricsAiModelSelection(
+      provider: LyricsAiProvider.googleAiStudio,
+      modelId: defaultTranslationFallbackModelId,
+    );
+  }
+
+  void applyProviderDefaults(LyricsAiProvider provider) {
+    switch (provider) {
+      case LyricsAiProvider.googleAiStudio:
+        resetLyricsAiModels();
+        break;
+      case LyricsAiProvider.openRouter:
+        generationPrimaryModel = const LyricsAiModelSelection(
+          provider: LyricsAiProvider.openRouter,
+          modelId: defaultOpenRouterGenerationModelId,
+        );
+        generationFallbackModel = const LyricsAiModelSelection(
+          provider: LyricsAiProvider.openRouter,
+          modelId: '',
+        );
+        translationPrimaryModel = const LyricsAiModelSelection(
+          provider: LyricsAiProvider.openRouter,
+          modelId: defaultOpenRouterTranslationModelId,
+        );
+        translationFallbackModel = const LyricsAiModelSelection(
+          provider: LyricsAiProvider.openRouter,
+          modelId: '',
+        );
+        break;
+    }
   }
 
   void resetLyricsTranslationTargetLanguage() {

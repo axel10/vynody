@@ -8,6 +8,7 @@ import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/player/metadata/acoustid_service.dart';
 import 'package:vibe_flow/player/metadata/metadata_database.dart';
 import 'package:vibe_flow/player/ai/ai_api_key_service.dart';
+import 'package:vibe_flow/player/ai/lyrics_model_catalog_service.dart';
 import 'package:vibe_flow/player/ai/openrouter_api_key_service.dart';
 import 'package:vibe_flow/player/library/playlist_service.dart';
 import 'package:vibe_flow/player/scanner/scanner_service.dart';
@@ -43,6 +44,12 @@ final openRouterApiKeyServiceProvider = Provider<OpenRouterApiKeyService>((
   ref,
 ) {
   return OpenRouterApiKeyService();
+});
+
+final lyricsModelCatalogServiceProvider = Provider<LyricsModelCatalogService>((
+  ref,
+) {
+  return LyricsModelCatalogService();
 });
 
 final acoustidServiceProvider = Provider<AcoustIDService>((ref) {

@@ -10,7 +10,7 @@ import '../dialogs/acoustid_api_key_dialog.dart';
 import '../dialogs/gemini_api_key_dialog.dart';
 import '../dialogs/shortcut_settings_dialog.dart';
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/player/ai/ai_api_key_service.dart';
+import 'package:vibe_flow/player/ai/lyrics_model_catalog_service.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 import '../transcode/transcode_models.dart';
@@ -27,29 +27,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  static final List<GeminiModelInfo> _defaultGeminiModels = [
-    GeminiModelInfo(
-      id: SettingsService.defaultGeminiPrimaryModelId,
-      displayName: SettingsService.geminiModelDisplayName(
-        SettingsService.defaultGeminiPrimaryModelId,
-      ),
-    ),
-    GeminiModelInfo(
-      id: SettingsService.defaultGeminiFallbackModelId,
-      displayName: SettingsService.geminiModelDisplayName(
-        SettingsService.defaultGeminiFallbackModelId,
-      ),
-    ),
-    GeminiModelInfo(
-      id: SettingsService.defaultGeminiTranslationModelId,
-      displayName: SettingsService.geminiModelDisplayName(
-        SettingsService.defaultGeminiTranslationModelId,
-      ),
-    ),
-  ];
-
-  List<GeminiModelInfo> _geminiModels = const [];
-  bool _isLoadingGeminiModels = false;
   String _appVersion = '';
   bool _isAssociated = false;
 
@@ -155,83 +132,61 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  List<GeminiModelInfo> _mergedGeminiModels(SettingsService settings) {
-    final merged = <String, GeminiModelInfo>{};
-    for (final model in _defaultGeminiModels) {
-      merged[model.id] = model;
-    }
-    for (final model in _geminiModels) {
-      merged[model.id] = model;
-    }
-
-    final primaryId = settings.geminiPrimaryModelId.trim();
-    final fallbackId = settings.geminiFallbackModelId.trim();
-    final translationId = settings.geminiTranslationModelId.trim();
-    if (primaryId.isNotEmpty && !merged.containsKey(primaryId)) {
-      merged[primaryId] = GeminiModelInfo(
-        id: primaryId,
-        displayName: SettingsService.geminiModelDisplayName(primaryId),
-      );
-    }
-    if (fallbackId.isNotEmpty && !merged.containsKey(fallbackId)) {
-      merged[fallbackId] = GeminiModelInfo(
-        id: fallbackId,
-        displayName: SettingsService.geminiModelDisplayName(fallbackId),
-      );
-    }
-    if (translationId.isNotEmpty && !merged.containsKey(translationId)) {
-      merged[translationId] = GeminiModelInfo(
-        id: translationId,
-        displayName: SettingsService.geminiModelDisplayName(translationId),
-      );
-    }
-
-    return merged.values.toList(growable: false);
-  }
-
-  Future<void> _fetchGeminiModelList() async {
-    final settings = ref.read(settingsServiceProvider);
-    final apiKey = settings.geminiApiKey.trim();
-    if (apiKey.isEmpty) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.enterApiKey)));
+  Future<void> _selectLyricsModel({
+    required SettingsService settings,
+    required LyricsAiModelPurpose purpose,
+    required LyricsAiModelSlot slot,
+  }) async {
+    final currentSelection = _selectionFor(settings, purpose, slot);
+    final selected = await showDialog<LyricsAiModelSelection>(
+      context: context,
+      builder: (dialogContext) {
+        return _LyricsModelPickerDialog(
+          ref: ref,
+          purpose: purpose,
+          initialSelection: currentSelection,
+        );
+      },
+    );
+    if (selected == null) {
       return;
     }
-
-    setState(() {
-      _isLoadingGeminiModels = true;
-    });
-
-    final result = await ref
-        .read(geminiApiKeyServiceProvider)
-        .testConnection(apiKey);
-    if (!mounted) return;
-
-    setState(() {
-      _isLoadingGeminiModels = false;
-      if (result.success) {
-        _geminiModels = result.models;
-      }
-    });
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(result.message)));
+    _saveSelection(settings, purpose, slot, selected);
   }
 
-  void _restoreDefaultGeminiModels() {
-    final settings = ref.read(settingsServiceProvider);
-    settings.resetGeminiModels();
-    setState(() {
-      _geminiModels = const [];
-    });
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.restoreDefault)));
+  LyricsAiModelSelection _selectionFor(
+    SettingsService settings,
+    LyricsAiModelPurpose purpose,
+    LyricsAiModelSlot slot,
+  ) {
+    return switch ((purpose, slot)) {
+      (LyricsAiModelPurpose.generation, LyricsAiModelSlot.primary) =>
+        settings.generationPrimaryModel,
+      (LyricsAiModelPurpose.generation, LyricsAiModelSlot.fallback) =>
+        settings.generationFallbackModel,
+      (LyricsAiModelPurpose.translation, LyricsAiModelSlot.primary) =>
+        settings.translationPrimaryModel,
+      (LyricsAiModelPurpose.translation, LyricsAiModelSlot.fallback) =>
+        settings.translationFallbackModel,
+    };
+  }
+
+  void _saveSelection(
+    SettingsService settings,
+    LyricsAiModelPurpose purpose,
+    LyricsAiModelSlot slot,
+    LyricsAiModelSelection selection,
+  ) {
+    switch ((purpose, slot)) {
+      case (LyricsAiModelPurpose.generation, LyricsAiModelSlot.primary):
+        settings.generationPrimaryModel = selection;
+      case (LyricsAiModelPurpose.generation, LyricsAiModelSlot.fallback):
+        settings.generationFallbackModel = selection;
+      case (LyricsAiModelPurpose.translation, LyricsAiModelSlot.primary):
+        settings.translationPrimaryModel = selection;
+      case (LyricsAiModelPurpose.translation, LyricsAiModelSlot.fallback):
+        settings.translationFallbackModel = selection;
+    }
   }
 
   Widget _buildSectionHeader(String title, [String? description]) {
@@ -397,116 +352,149 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildGeminiModelSection(
+  Widget _buildLyricsModelSection(
     BuildContext context,
     SettingsService settings,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final options = _mergedGeminiModels(settings);
-    final primaryValue = settings.geminiPrimaryModelId;
-    final fallbackValue = settings.geminiFallbackModelId;
-    final translationValue = settings.geminiTranslationModelId;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.geminiModelsSectionDescription,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: primaryValue.isEmpty ? null : primaryValue,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: l10n.primaryModelLabel,
-              border: const OutlineInputBorder(),
+          _buildModelGroupCard(
+            context,
+            title: '歌词生成模型',
+            description: '用于 AI 听歌生成歌词，以及给现有歌词生成/修正时间轴。',
+            primarySelection: settings.generationPrimaryModel,
+            fallbackSelection: settings.generationFallbackModel,
+            onPrimaryTap: () => _selectLyricsModel(
+              settings: settings,
+              purpose: LyricsAiModelPurpose.generation,
+              slot: LyricsAiModelSlot.primary,
             ),
-            items: options
-                .map(
-                  (model) => DropdownMenuItem<String>(
-                    value: model.id,
-                    child: Text(model.label, overflow: TextOverflow.ellipsis),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: (value) {
-              if (value == null) return;
-              settings.geminiPrimaryModelId = value;
-            },
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: fallbackValue.isEmpty ? null : fallbackValue,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: l10n.backupModelLabel,
-              border: const OutlineInputBorder(),
+            onFallbackTap: () => _selectLyricsModel(
+              settings: settings,
+              purpose: LyricsAiModelPurpose.generation,
+              slot: LyricsAiModelSlot.fallback,
             ),
-            items: options
-                .map(
-                  (model) => DropdownMenuItem<String>(
-                    value: model.id,
-                    child: Text(model.label, overflow: TextOverflow.ellipsis),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: (value) {
-              if (value == null) return;
-              settings.geminiFallbackModelId = value;
-            },
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: translationValue.isEmpty ? null : translationValue,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: l10n.translationModelLabel,
-              border: const OutlineInputBorder(),
-            ),
-            items: options
-                .map(
-                  (model) => DropdownMenuItem<String>(
-                    value: model.id,
-                    child: Text(model.label, overflow: TextOverflow.ellipsis),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: (value) {
-              if (value == null) return;
-              settings.geminiTranslationModelId = value;
-            },
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              FilledButton.tonalIcon(
-                onPressed: _isLoadingGeminiModels
-                    ? null
-                    : _fetchGeminiModelList,
-                icon: _isLoadingGeminiModels
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.download),
-                label: Text(
-                  _isLoadingGeminiModels ? l10n.fetching : l10n.fetchModelList,
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: _restoreDefaultGeminiModels,
-                icon: const Icon(Icons.restart_alt),
-                label: Text(l10n.restoreDefault),
-              ),
-            ],
+          _buildModelGroupCard(
+            context,
+            title: '歌词翻译模型',
+            description: '用于把歌词翻译到目标语言。',
+            primarySelection: settings.translationPrimaryModel,
+            fallbackSelection: settings.translationFallbackModel,
+            onPrimaryTap: () => _selectLyricsModel(
+              settings: settings,
+              purpose: LyricsAiModelPurpose.translation,
+              slot: LyricsAiModelSlot.primary,
+            ),
+            onFallbackTap: () => _selectLyricsModel(
+              settings: settings,
+              purpose: LyricsAiModelPurpose.translation,
+              slot: LyricsAiModelSlot.fallback,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                settings.resetLyricsAiModels();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.restoreDefault)),
+                );
+              },
+              icon: const Icon(Icons.restart_alt),
+              label: Text(l10n.restoreDefault),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModelGroupCard(
+    BuildContext context, {
+    required String title,
+    required String description,
+    required LyricsAiModelSelection primarySelection,
+    required LyricsAiModelSelection fallbackSelection,
+    required VoidCallback onPrimaryTap,
+    required VoidCallback onFallbackTap,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(description, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 16),
+          _buildModelTile(
+            context,
+            title: AppLocalizations.of(context)!.primaryModelLabel,
+            selection: primarySelection,
+            onTap: onPrimaryTap,
+          ),
+          const SizedBox(height: 12),
+          _buildModelTile(
+            context,
+            title: AppLocalizations.of(context)!.backupModelLabel,
+            selection: fallbackSelection,
+            onTap: onFallbackTap,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModelTile(
+    BuildContext context, {
+    required String title,
+    required LyricsAiModelSelection selection,
+    required VoidCallback onTap,
+  }) {
+    final modelLabel = SettingsService.lyricsModelSelectionLabel(selection);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest
+              .withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 4),
+                  Text(
+                    modelLabel,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
       ),
     );
   }
@@ -787,104 +775,76 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           l10n.lyricsSectionDescription,
         ),
         _buildLyricsTranslationLanguageSection(context, settings),
-        SwitchListTile(
-          title: Text(l10n.autoSwitchLyricsProvider),
-          subtitle: Text(
-            settings.canAutoSwitchLyricsProvider
-                ? l10n.autoSwitchLyricsProviderEnabledDesc
-                : l10n.autoSwitchLyricsProviderDisabledDesc,
-          ),
-          value: settings.isLyricsAiAutoSwitchEnabled,
-          onChanged: settings.canAutoSwitchLyricsProvider
-              ? (value) {
-                  settings.isLyricsAiAutoSwitchEnabled = value;
-                }
-              : null,
-        ),
         ListTile(
-          title: Text(l10n.lyricsAiProviderTitle),
-          subtitle: Text(l10n.lyricsAiProviderDescription),
-          trailing: DropdownButtonHideUnderline(
-            child: DropdownButton<LyricsAiProvider>(
-              value: settings.lyricsAiProvider,
-              onChanged: (value) {
-                if (value == null) return;
-                settings.lyricsAiProvider = value;
-              },
-              items: LyricsAiProvider.values
-                  .map(
-                    (provider) => DropdownMenuItem<LyricsAiProvider>(
-                      value: provider,
-                      child: Text(provider.displayName),
-                    ),
-                  )
-                  .toList(growable: false),
+          isThreeLine: true,
+          leading: const Icon(Icons.key),
+          title: const Text('Google AI Studio API Key'),
+          subtitle: Text(
+            settings.geminiApiKey.trim().isEmpty
+                ? l10n.googleAiStudioApiKeyMissing
+                : l10n.googleAiStudioApiKeySaved,
+          ),
+          trailing: FilledButton.tonal(
+            onPressed: () async {
+              final enteredApiKey = await showGoogleAiStudioApiKeyDialog(
+                context,
+                ref: ref,
+                initialApiKey: settings.geminiApiKey,
+              );
+              if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+                return;
+              }
+              settings.geminiApiKey = enteredApiKey;
+
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.apiKeySaved('Google AI Studio')),
+                ),
+              );
+            },
+            child: Text(
+              settings.geminiApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
             ),
           ),
         ),
         ListTile(
           isThreeLine: true,
-          leading: const Icon(Icons.key),
-          title: Text('${settings.lyricsAiProvider.displayName} API Key'),
+          leading: const Icon(Icons.vpn_key_outlined),
+          title: const Text('OpenRouter API Key'),
           subtitle: Text(
-            settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio
-                ? (settings.geminiApiKey.trim().isEmpty
-                      ? l10n.googleAiStudioApiKeyMissing
-                      : l10n.googleAiStudioApiKeySaved)
-                : (settings.openRouterApiKey.trim().isEmpty
-                      ? l10n.openRouterApiKeyMissing
-                      : l10n.openRouterApiKeySaved),
+            settings.openRouterApiKey.trim().isEmpty
+                ? l10n.openRouterApiKeyMissing
+                : l10n.openRouterApiKeySaved,
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
-              final enteredApiKey = await showLyricsProviderApiKeyDialog(
+              final enteredApiKey = await showOpenRouterApiKeyDialog(
                 context,
                 ref: ref,
-                provider: settings.lyricsAiProvider,
-                initialApiKey: switch (settings.lyricsAiProvider) {
-                  LyricsAiProvider.googleAiStudio => settings.geminiApiKey,
-                  LyricsAiProvider.openRouter => settings.openRouterApiKey,
-                },
+                initialApiKey: settings.openRouterApiKey,
               );
               if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
                 return;
               }
-
-              switch (settings.lyricsAiProvider) {
-                case LyricsAiProvider.googleAiStudio:
-                  settings.geminiApiKey = enteredApiKey;
-                  break;
-                case LyricsAiProvider.openRouter:
-                  settings.openRouterApiKey = enteredApiKey;
-                  break;
-              }
-
+              settings.openRouterApiKey = enteredApiKey;
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    l10n.apiKeySaved(settings.lyricsAiProvider.displayName),
-                  ),
-                ),
+                SnackBar(content: Text(l10n.apiKeySaved('OpenRouter'))),
               );
             },
-            child: Text(switch (settings.lyricsAiProvider) {
-              LyricsAiProvider.googleAiStudio =>
-                settings.geminiApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
-              LyricsAiProvider.openRouter =>
-                settings.openRouterApiKey.trim().isEmpty
-                    ? l10n.fill
-                    : l10n.modify,
-            }),
+            child: Text(
+              settings.openRouterApiKey.trim().isEmpty
+                  ? l10n.fill
+                  : l10n.modify,
+            ),
           ),
         ),
-        if (settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio)
-          _buildSectionHeader(
-            l10n.geminiModelsSectionTitle,
-            l10n.geminiModelsSectionDescription,
-          ),
-        if (settings.lyricsAiProvider == LyricsAiProvider.googleAiStudio)
-          _buildGeminiModelSection(context, settings),
+        _buildSectionHeader(
+          l10n.geminiModelsSectionTitle,
+          '分别设置歌词生成和歌词翻译使用的主模型、备用模型。',
+        ),
+        _buildLyricsModelSection(context, settings),
         _buildSectionHeader(l10n.acoustidSectionTitle, l10n.acoustidApiKeyHelp),
         ListTile(
           isThreeLine: true,
@@ -1013,5 +973,177 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
 
     return content;
+  }
+}
+
+class _LyricsModelPickerDialog extends ConsumerStatefulWidget {
+  const _LyricsModelPickerDialog({
+    required this.ref,
+    required this.purpose,
+    required this.initialSelection,
+  });
+
+  final WidgetRef ref;
+  final LyricsAiModelPurpose purpose;
+  final LyricsAiModelSelection initialSelection;
+
+  @override
+  ConsumerState<_LyricsModelPickerDialog> createState() =>
+      _LyricsModelPickerDialogState();
+}
+
+class _LyricsModelPickerDialogState
+    extends ConsumerState<_LyricsModelPickerDialog> {
+  late LyricsAiProvider _provider;
+  late LyricsAiModelSelection _selection;
+  List<LyricsModelInfo> _models = const [];
+  bool _isLoading = false;
+  String _statusText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = widget.initialSelection.provider;
+    _selection = widget.initialSelection;
+    _fetchModels();
+  }
+
+  Future<void> _fetchModels() async {
+    final settings = ref.read(settingsServiceProvider);
+    setState(() {
+      _isLoading = true;
+      _statusText = '';
+    });
+    final result = await ref
+        .read(lyricsModelCatalogServiceProvider)
+        .fetchModels(
+          provider: _provider,
+          purpose: widget.purpose,
+          apiKey: settings.apiKeyForProvider(_provider),
+        );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isLoading = false;
+      _statusText = result.message;
+      _models = result.models;
+      final hasCurrent = _models.any((item) => item.id == _selection.modelId);
+      if (!hasCurrent) {
+        _selection = _selection.copyWith(modelId: '');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSave = _selection.modelId.trim().isNotEmpty || _provider != _selection.provider;
+    return AlertDialog(
+      title: Text(
+        widget.purpose == LyricsAiModelPurpose.generation
+            ? '选择歌词生成模型'
+            : '选择歌词翻译模型',
+      ),
+      content: SizedBox(
+        width: 560,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedButton<LyricsAiProvider>(
+              segments: LyricsAiProvider.values
+                  .map(
+                    (provider) => ButtonSegment<LyricsAiProvider>(
+                      value: provider,
+                      label: Text(provider.displayName),
+                    ),
+                  )
+                  .toList(growable: false),
+              selected: {_provider},
+              onSelectionChanged: (selection) {
+                final provider = selection.first;
+                setState(() {
+                  _provider = provider;
+                  _selection = LyricsAiModelSelection(
+                    provider: provider,
+                    modelId: '',
+                  );
+                });
+                _fetchModels();
+              },
+            ),
+            const SizedBox(height: 16),
+            if (_statusText.isNotEmpty) Text(_statusText),
+            const SizedBox(height: 8),
+            Flexible(
+              child: Container(
+                constraints: const BoxConstraints(maxHeight: 360),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Theme.of(context).dividerColor),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: _isLoading
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : ListView(
+                        shrinkWrap: true,
+                        children: [
+                          RadioListTile<String>(
+                            value: '',
+                            groupValue: _selection.modelId,
+                            title: const Text('留空'),
+                            subtitle: const Text('不设置备用模型时可选择此项。'),
+                            onChanged: (value) {
+                              setState(() {
+                                _selection = LyricsAiModelSelection(
+                                  provider: _provider,
+                                  modelId: value ?? '',
+                                );
+                              });
+                            },
+                          ),
+                          for (final model in _models)
+                            RadioListTile<String>(
+                              value: model.id,
+                              groupValue: _selection.modelId,
+                              title: Text(model.label),
+                              subtitle: Text(
+                                model.id,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selection = LyricsAiModelSelection(
+                                    provider: _provider,
+                                    modelId: value ?? '',
+                                  );
+                                });
+                              },
+                            ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(AppLocalizations.of(context)!.cancel),
+        ),
+        FilledButton(
+          onPressed: canSave
+              ? () => Navigator.of(context).pop(_selection)
+              : null,
+          child: Text(AppLocalizations.of(context)!.save),
+        ),
+      ],
+    );
   }
 }
