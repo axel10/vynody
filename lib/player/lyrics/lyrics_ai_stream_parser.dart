@@ -17,6 +17,12 @@ class LyricsAiStreamTextParser {
     'reasoning_details',
     'refusal',
   };
+  static const Set<String> _preferredTextKeys = <String>{
+    'text',
+    'content',
+    'output_text',
+    'delta',
+  };
 
   String? extractText(dynamic raw) {
     if (raw is Map || raw is List) {
@@ -81,8 +87,7 @@ class LyricsAiStreamTextParser {
           continue;
         }
 
-        if ((entry.key == 'text' || entry.key == 'content') &&
-            entry.value is String) {
+        if (_preferredTextKeys.contains(entry.key) && entry.value is String) {
           final text = entry.value as String;
           if (text.isNotEmpty) return text;
         }

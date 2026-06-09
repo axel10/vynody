@@ -75,6 +75,10 @@ class LyricsModelCatalogService {
         apiKey: apiKey,
       ),
       LyricsAiProvider.openRouter => _fetchOpenRouterModels(purpose: purpose),
+      LyricsAiProvider.doubao => _fetchDoubaoModels(
+        purpose: purpose,
+        apiKey: apiKey,
+      ),
     };
   }
 
@@ -119,6 +123,41 @@ class LyricsModelCatalogService {
     try {
       final response = await _client.get('https://openrouter.ai/api/v1/models');
       final models = _extractOpenRouterModels(response.data, purpose);
+      return LyricsModelCatalogResult(
+        success: true,
+        message: _isZh
+            ? '已获取 ${models.length} 个模型。'
+            : 'Fetched ${models.length} models.',
+        models: models,
+      );
+    } catch (error) {
+      return LyricsModelCatalogResult(
+        success: false,
+        message: _formatErrorMessage(error),
+      );
+    }
+  }
+
+  Future<LyricsModelCatalogResult> _fetchDoubaoModels({
+    required LyricsAiModelPurpose purpose,
+    required String apiKey,
+  }) async {
+    final normalizedKey = apiKey.trim();
+    if (normalizedKey.isEmpty) {
+      return LyricsModelCatalogResult(
+        success: false,
+        message: _isZh
+            ? '请先填写豆包 API Key。'
+            : 'Please enter a Doubao API key first.',
+      );
+    }
+
+    try {
+      final response = await _client.get(
+        'https://ark.cn-beijing.volces.com/api/v3/models',
+        options: Options(headers: {'Authorization': 'Bearer $normalizedKey'}),
+      );
+      final models = _extractDoubaoModels(response.data, purpose);
       return LyricsModelCatalogResult(
         success: true,
         message: _isZh
@@ -253,6 +292,70 @@ class LyricsModelCatalogService {
         })
         .whereType<LyricsModelInfo>()
         .toList(growable: false);
+  }
+
+  List<LyricsModelInfo> _extractDoubaoModels(
+    dynamic data,
+    LyricsAiModelPurpose purpose,
+  ) {
+    if (data is! Map) {
+      return const [];
+    }
+    final models = data['data'];
+    if (models is! List) {
+      return const [];
+    }
+
+    return models
+        .whereType<Map>()
+        .map((item) {
+          final id = item['id']?.toString().trim() ?? '';
+          if (id.isEmpty) {
+            return null;
+          }
+          final name = item['name']?.toString().trim() ?? id;
+          final lowerId = id.toLowerCase();
+          final supportsPurpose = switch (purpose) {
+            LyricsAiModelPurpose.generation =>
+              lowerId.contains('seed') || lowerId.contains('doubao'),
+            LyricsAiModelPurpose.translation =>
+              lowerId.contains('seed') || lowerId.contains('doubao'),
+          };
+          if (!supportsPurpose) {
+            return null;
+          }
+          return LyricsModelInfo(
+            id: id,
+            displayName: name,
+            provider: LyricsAiProvider.doubao,
+          );
+        })
+        .whereType<LyricsModelInfo>()
+        .toList(growable: false)
+      ..sort(_compareDoubaoModels);
+  }
+
+  int _compareDoubaoModels(LyricsModelInfo a, LyricsModelInfo b) {
+    final aSuffix = _extractTrailingNumber(a.id);
+    final bSuffix = _extractTrailingNumber(b.id);
+    if (aSuffix != null && bSuffix != null) {
+      final byNumber = bSuffix.compareTo(aSuffix);
+      if (byNumber != 0) return byNumber;
+    } else if (aSuffix != null) {
+      return -1;
+    } else if (bSuffix != null) {
+      return 1;
+    }
+
+    return a.id.compareTo(b.id);
+  }
+
+  int? _extractTrailingNumber(String modelId) {
+    final match = RegExp(r'(\d+)$').firstMatch(modelId.trim());
+    if (match == null) {
+      return null;
+    }
+    return int.tryParse(match.group(1)!);
   }
 
   double? _parsePrice(dynamic value) {

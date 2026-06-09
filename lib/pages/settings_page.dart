@@ -19,6 +19,18 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import 'package:vibe_flow/utils/language_code_utils.dart';
 
+enum _SettingsSection {
+  home,
+  general,
+  scanning,
+  transcode,
+  lyrics,
+  acoustid,
+  shortcuts,
+  windows,
+  about,
+}
+
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
@@ -29,6 +41,7 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _appVersion = '';
   bool _isAssociated = false;
+  _SettingsSection _currentSection = _SettingsSection.home;
 
   @override
   void initState() {
@@ -59,76 +72,92 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  void _openSection(_SettingsSection section) {
+    setState(() {
+      _currentSection = section;
+    });
+  }
+
+  void _goHome() {
+    setState(() {
+      _currentSection = _SettingsSection.home;
+    });
+  }
+
+  String _sectionTitle(BuildContext context, _SettingsSection section) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (section) {
+      _SettingsSection.home => l10n.settings,
+      _SettingsSection.general => l10n.generalSectionTitle,
+      _SettingsSection.scanning => l10n.scanSectionTitle,
+      _SettingsSection.transcode => l10n.transcodeSectionTitle,
+      _SettingsSection.lyrics => l10n.lyricsSectionTitle,
+      _SettingsSection.acoustid => l10n.acoustidSectionTitle,
+      _SettingsSection.shortcuts => l10n.shortcutSettingsTitle,
+      _SettingsSection.windows => l10n.windowsSettingsTitle,
+      _SettingsSection.about =>
+        Localizations.localeOf(context).languageCode == 'zh' ? '关于' : 'About',
+    };
+  }
+
   Widget _buildWindowsSection(BuildContext context) {
     if (!Platform.isWindows) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Divider(height: 1),
-        _buildSectionHeader(
-          l10n.windowsSettingsTitle,
-          l10n.fileAssociationDescription,
+    return ListTile(
+      leading: const Icon(Icons.open_in_new_rounded),
+      title: Text(l10n.fileAssociationTitle),
+      subtitle: Text(
+        _isAssociated ? '已开启关联 (Associated)' : '未开启关联 (Not Associated)',
+        style: TextStyle(
+          color: _isAssociated ? Colors.green : Colors.orange,
+          fontWeight: FontWeight.w500,
         ),
-        ListTile(
-          leading: const Icon(Icons.open_in_new_rounded),
-          title: Text(l10n.fileAssociationTitle),
-          subtitle: Text(
-            _isAssociated ? '已开启关联 (Associated)' : '未开启关联 (Not Associated)',
-            style: TextStyle(
-              color: _isAssociated ? Colors.green : Colors.orange,
-              fontWeight: FontWeight.w500,
+      ),
+      trailing: Wrap(
+        spacing: 8,
+        children: [
+          FilledButton.tonal(
+            onPressed: () async {
+              try {
+                await WindowsAssociationService.associate();
+                await _checkAssociationStatus();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.associationSuccess)),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.associationFailed(e.toString()))),
+                );
+              }
+            },
+            child: Text(l10n.associateButton),
+          ),
+          if (_isAssociated)
+            OutlinedButton(
+              onPressed: () async {
+                try {
+                  await WindowsAssociationService.disassociate();
+                  await _checkAssociationStatus();
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.disassociationSuccess)),
+                  );
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.associationFailed(e.toString())),
+                    ),
+                  );
+                }
+              },
+              child: Text(l10n.disassociateButton),
             ),
-          ),
-          trailing: Wrap(
-            spacing: 8,
-            children: [
-              FilledButton.tonal(
-                onPressed: () async {
-                  try {
-                    await WindowsAssociationService.associate();
-                    await _checkAssociationStatus();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.associationSuccess)),
-                    );
-                  } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(l10n.associationFailed(e.toString())),
-                      ),
-                    );
-                  }
-                },
-                child: Text(l10n.associateButton),
-              ),
-              if (_isAssociated)
-                OutlinedButton(
-                  onPressed: () async {
-                    try {
-                      await WindowsAssociationService.disassociate();
-                      await _checkAssociationStatus();
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.disassociationSuccess)),
-                      );
-                    } catch (e) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.associationFailed(e.toString())),
-                        ),
-                      );
-                    }
-                  },
-                  child: Text(l10n.disassociateButton),
-                ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -588,7 +617,85 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildBody(BuildContext context, SettingsService settings) {
+  Widget _buildHomeSectionTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      minTileHeight: 60,
+      leading: Icon(icon),
+      title: Text(title, style: theme.textTheme.titleMedium),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildHomeBody(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: [
+        _buildHomeSectionTile(
+          context,
+          icon: Icons.tune_rounded,
+          title: l10n.generalSectionTitle,
+          onTap: () => _openSection(_SettingsSection.general),
+        ),
+        _buildHomeSectionTile(
+          context,
+          icon: Icons.search_rounded,
+          title: l10n.scanSectionTitle,
+          onTap: () => _openSection(_SettingsSection.scanning),
+        ),
+        _buildHomeSectionTile(
+          context,
+          icon: Icons.swap_horiz_rounded,
+          title: l10n.transcodeSectionTitle,
+          onTap: () => _openSection(_SettingsSection.transcode),
+        ),
+        _buildHomeSectionTile(
+          context,
+          icon: Icons.auto_awesome_rounded,
+          title: l10n.lyricsSectionTitle,
+          onTap: () => _openSection(_SettingsSection.lyrics),
+        ),
+        _buildHomeSectionTile(
+          context,
+          icon: Icons.fingerprint_rounded,
+          title: l10n.acoustidSectionTitle,
+          onTap: () => _openSection(_SettingsSection.acoustid),
+        ),
+        _buildHomeSectionTile(
+          context,
+          icon: Icons.keyboard_rounded,
+          title: l10n.shortcutSettingsTitle,
+          onTap: () => _openSection(_SettingsSection.shortcuts),
+        ),
+        if (Platform.isWindows)
+          _buildHomeSectionTile(
+            context,
+            icon: Icons.open_in_new_rounded,
+            title: l10n.windowsSettingsTitle,
+            onTap: () => _openSection(_SettingsSection.windows),
+          ),
+        _buildHomeSectionTile(
+          context,
+          icon: Icons.info_outline_rounded,
+          title: Localizations.localeOf(context).languageCode == 'zh'
+              ? '关于'
+              : 'About',
+          onTap: () => _openSection(_SettingsSection.about),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGeneralPage(BuildContext context, SettingsService settings) {
     final l10n = AppLocalizations.of(context)!;
 
     return ListView(
@@ -617,6 +724,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         SwitchListTile(
           title: Text(l10n.showDeveloperOptions),
+          subtitle: Text(
+            Localizations.localeOf(context).languageCode == 'zh'
+                ? '显示更多偏调试用途的高级项。'
+                : 'Show advanced options intended for debugging.',
+          ),
           value: settings.showDeveloperOptions,
           onChanged: (value) {
             settings.showDeveloperOptions = value;
@@ -644,6 +756,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         ),
         if (settings.showDeveloperOptions) ...[
+          const SizedBox(height: 8),
+          _buildSectionHeader(
+            Localizations.localeOf(context).languageCode == 'zh'
+                ? '高级'
+                : 'Advanced',
+            Localizations.localeOf(context).languageCode == 'zh'
+                ? '更偏调试和行为控制的选项。'
+                : 'Options for debugging and behavior tuning.',
+          ),
           ListTile(
             title: Text(l10n.waveformSegments),
             subtitle: Text(l10n.waveformSegmentsDescription),
@@ -695,28 +816,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ],
-        const Divider(height: 1),
+      ],
+    );
+  }
+
+  Widget _buildScanningPage(BuildContext context, SettingsService settings) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
         _buildSectionHeader(l10n.scanSectionTitle, l10n.scanSectionDescription),
         _buildScanSection(context, settings),
-        const Divider(height: 1),
+      ],
+    );
+  }
+
+  Widget _buildTranscodePage(BuildContext context, SettingsService settings) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
         _buildSectionHeader(
           l10n.transcodeSectionTitle,
           l10n.transcodeSectionDescription,
         ),
         _buildTranscodeSection(context, settings),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.keyboard),
-          title: Text(l10n.shortcutSettingsTitle),
-          subtitle: Text(l10n.shortcutSettingsDescription),
-          trailing: FilledButton.tonal(
-            onPressed: () {
-              showShortcutSettingsDialog(context);
-            },
-            child: Text(l10n.edit),
-          ),
-        ),
-        const Divider(height: 1),
+      ],
+    );
+  }
+
+  Widget _buildLyricsPage(BuildContext context, SettingsService settings) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
         _buildSectionHeader(
           l10n.lyricsSectionTitle,
           l10n.lyricsSectionDescription,
@@ -785,11 +919,55 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ),
+        ListTile(
+          isThreeLine: true,
+          leading: const Icon(Icons.auto_awesome),
+          title: const Text('豆包 API Key'),
+          subtitle: Text(
+            settings.doubaoApiKey.trim().isEmpty
+                ? '未保存豆包 API Key'
+                : '已保存豆包 API Key',
+          ),
+          trailing: FilledButton.tonal(
+            onPressed: () async {
+              final enteredApiKey = await showDialog<String?>(
+                context: context,
+                builder: (dialogContext) {
+                  return _SimpleApiKeyDialog(
+                    title: '输入豆包 API Key',
+                    initialValue: settings.doubaoApiKey,
+                  );
+                },
+              );
+              if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+                return;
+              }
+              settings.doubaoApiKey = enteredApiKey;
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('已保存豆包 API Key')));
+            },
+            child: Text(
+              settings.doubaoApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
+            ),
+          ),
+        ),
         _buildSectionHeader(
           l10n.geminiModelsSectionTitle,
-          '分别设置歌词生成和歌词翻译使用的主模型、备用模型。',
+          '分别设置歌词生成和歌词翻译使用的主模型、备用模型，也可以切换到豆包。',
         ),
         _buildLyricsModelSection(context, settings),
+      ],
+    );
+  }
+
+  Widget _buildAcoustidPage(BuildContext context, SettingsService settings) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
         _buildSectionHeader(l10n.acoustidSectionTitle, l10n.acoustidApiKeyHelp),
         ListTile(
           isThreeLine: true,
@@ -842,50 +1020,141 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ),
-        _buildWindowsSection(context),
-        const Divider(height: 40, thickness: 1, indent: 16, endIndent: 16),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 24),
-          child: Column(
-            children: [
-              Text(
-                'VibeFlow ${_appVersion.isEmpty ? "" : "v$_appVersion"}',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () async {
-                  final uri = Uri.parse('https://github.com/axel10/vibe_flow');
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                },
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: Text(
-                    'https://github.com/axel10/vibe_flow',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.8),
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+      ],
+    );
+  }
+
+  Widget _buildShortcutsPage(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
+        _buildSectionHeader(
+          l10n.shortcutSettingsTitle,
+          l10n.shortcutSettingsDescription,
+        ),
+        ListTile(
+          leading: const Icon(Icons.keyboard),
+          title: Text(l10n.shortcutSettingsTitle),
+          subtitle: Text(l10n.shortcutSettingsDescription),
+          trailing: FilledButton.tonal(
+            onPressed: () {
+              showShortcutSettingsDialog(context);
+            },
+            child: Text(l10n.edit),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildWindowsPage(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
+        _buildSectionHeader(
+          l10n.windowsSettingsTitle,
+          l10n.fileAssociationDescription,
+        ),
+        _buildWindowsSection(context),
+      ],
+    );
+  }
+
+  Widget _buildAboutPage(BuildContext context) {
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
+        _buildSectionHeader(
+          isZh ? '关于' : 'About',
+          isZh
+              ? '版本信息、项目链接和相关资料。'
+              : 'Version info, project links, and related info.',
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Theme.of(context).dividerColor),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'VibeFlow ${_appVersion.isEmpty ? "" : "v$_appVersion"}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () async {
+                    final uri = Uri.parse(
+                      'https://github.com/axel10/vibe_flow',
+                    );
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  },
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      'https://github.com/axel10/vibe_flow',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.8),
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBody(BuildContext context, SettingsService settings) {
+    final currentBody = switch (_currentSection) {
+      _SettingsSection.home => _buildHomeBody(context),
+      _SettingsSection.general => _buildGeneralPage(context, settings),
+      _SettingsSection.scanning => _buildScanningPage(context, settings),
+      _SettingsSection.transcode => _buildTranscodePage(context, settings),
+      _SettingsSection.lyrics => _buildLyricsPage(context, settings),
+      _SettingsSection.acoustid => _buildAcoustidPage(context, settings),
+      _SettingsSection.shortcuts => _buildShortcutsPage(context),
+      _SettingsSection.windows => _buildWindowsPage(context),
+      _SettingsSection.about => _buildAboutPage(context),
+    };
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 180),
+      child: KeyedSubtree(key: ValueKey(_currentSection), child: currentBody),
+    );
+  }
+
+  Widget _buildRootScaffold(BuildContext context, SettingsService settings) {
+    final title = _sectionTitle(context, _currentSection);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        leading: _currentSection == _SettingsSection.home
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _goHome,
+              ),
+      ),
+      body: _buildBody(context, settings),
     );
   }
 
@@ -897,10 +1166,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final showCustomTitleBar =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
-    Widget content = Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
-      body: _buildBody(context, settings),
-    );
+    Widget content = _buildRootScaffold(context, settings);
 
     if (showCustomTitleBar || isMacOS) {
       content = Material(
@@ -918,6 +1184,61 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
 
     return content;
+  }
+}
+
+class _SimpleApiKeyDialog extends StatefulWidget {
+  const _SimpleApiKeyDialog({required this.title, required this.initialValue});
+
+  final String title;
+  final String initialValue;
+
+  @override
+  State<_SimpleApiKeyDialog> createState() => _SimpleApiKeyDialogState();
+}
+
+class _SimpleApiKeyDialogState extends State<_SimpleApiKeyDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSave = _controller.text.trim().isNotEmpty;
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        obscureText: true,
+        decoration: const InputDecoration(
+          labelText: 'API Key',
+          border: OutlineInputBorder(),
+        ),
+        onChanged: (_) => setState(() {}),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: canSave
+              ? () => Navigator.of(context).pop(_controller.text.trim())
+              : null,
+          child: const Text('保存'),
+        ),
+      ],
+    );
   }
 }
 
@@ -939,6 +1260,12 @@ class _LyricsModelPickerDialog extends ConsumerStatefulWidget {
 
 class _LyricsModelPickerDialogState
     extends ConsumerState<_LyricsModelPickerDialog> {
+  static const List<LyricsAiProvider> _providerTabs = [
+    LyricsAiProvider.googleAiStudio,
+    LyricsAiProvider.openRouter,
+    LyricsAiProvider.doubao,
+  ];
+
   late LyricsAiProvider _provider;
   late LyricsAiModelSelection _selection;
   final TextEditingController _searchController = TextEditingController();
@@ -1037,7 +1364,7 @@ class _LyricsModelPickerDialogState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SegmentedButton<LyricsAiProvider>(
-              segments: LyricsAiProvider.values
+              segments: _providerTabs
                   .map(
                     (provider) => ButtonSegment<LyricsAiProvider>(
                       value: provider,

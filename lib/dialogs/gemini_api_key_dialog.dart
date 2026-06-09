@@ -135,13 +135,15 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
     final theme = Theme.of(context);
 
     final statusColor = switch (_statusType) {
-      _StatusType.warning => theme.brightness == Brightness.dark
-          ? Colors.orangeAccent
-          : Colors.orange.shade800,
+      _StatusType.warning =>
+        theme.brightness == Brightness.dark
+            ? Colors.orangeAccent
+            : Colors.orange.shade800,
       _StatusType.loading => theme.colorScheme.onSurface.withValues(alpha: 0.7),
-      _StatusType.success => theme.brightness == Brightness.dark
-          ? Colors.greenAccent
-          : Colors.green.shade800,
+      _StatusType.success =>
+        theme.brightness == Brightness.dark
+            ? Colors.greenAccent
+            : Colors.green.shade800,
       _StatusType.error => theme.colorScheme.error,
       _StatusType.none => Colors.transparent,
     };
@@ -272,6 +274,37 @@ Future<String?> showOpenRouterApiKeyDialog(
   );
 }
 
+Future<String?> showDoubaoApiKeyDialog(
+  BuildContext context, {
+  required String initialApiKey,
+}) async {
+  final l10n = AppLocalizations.of(context)!;
+  return showDialog<String?>(
+    context: context,
+    builder: (dialogContext) {
+      return _ApiKeyDialog(
+        title: '输入豆包 API Key',
+        description: '请输入火山方舟 / 豆包的 API Key，用于歌词生成和翻译。',
+        hintText: '请输入 API Key',
+        testButtonLabel: l10n.testConnection,
+        saveButtonLabel: l10n.save,
+        emptyMessage: l10n.enterApiKey,
+        dialogActionLabel: l10n.cancel,
+        fieldLabel: l10n.apiKey,
+        getKeyButtonLabel: l10n.getKey,
+        initialApiKey: initialApiKey,
+        getKeyUrl: 'https://console.volcengine.com/ark',
+        testConnection: (apiKey) async {
+          return _ApiKeyDialogResult(
+            success: true,
+            message: '已输入 API Key，可直接保存。',
+          );
+        },
+      );
+    },
+  );
+}
+
 Future<String?> showGeminiApiKeyDialog(
   BuildContext context, {
   required WidgetRef ref,
@@ -317,6 +350,10 @@ Future<String?> showLyricsProviderApiKeyDialog(
     LyricsAiProvider.openRouter => showOpenRouterApiKeyDialog(
       context,
       ref: ref,
+      initialApiKey: initialApiKey,
+    ),
+    LyricsAiProvider.doubao => showDoubaoApiKeyDialog(
+      context,
       initialApiKey: initialApiKey,
     ),
   };
@@ -376,7 +413,9 @@ Future<bool> _showLyricsApiKeyWizard(
     builder: (dialogContext) {
       return AlertDialog(
         title: Text(
-          purpose == LyricsAiModelPurpose.generation ? '启用 AI 歌词生成' : '启用 AI 歌词翻译',
+          purpose == LyricsAiModelPurpose.generation
+              ? '启用 AI 歌词生成'
+              : '启用 AI 歌词翻译',
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -418,6 +457,9 @@ Future<bool> _showLyricsApiKeyWizard(
     case LyricsAiProvider.openRouter:
       settings.openRouterApiKey = enteredApiKey;
       break;
+    case LyricsAiProvider.doubao:
+      settings.doubaoApiKey = enteredApiKey;
+      break;
   }
 
   if (purpose == LyricsAiModelPurpose.generation) {
@@ -425,7 +467,9 @@ Future<bool> _showLyricsApiKeyWizard(
       provider: provider,
       modelId: provider == LyricsAiProvider.googleAiStudio
           ? SettingsService.defaultGenerationPrimaryModelId
-          : SettingsService.defaultOpenRouterGenerationModelId,
+          : provider == LyricsAiProvider.openRouter
+          ? SettingsService.defaultOpenRouterGenerationModelId
+          : SettingsService.defaultDoubaoGenerationModelId,
     );
     settings.generationFallbackModel = LyricsAiModelSelection(
       provider: provider,
@@ -435,7 +479,9 @@ Future<bool> _showLyricsApiKeyWizard(
       provider: provider,
       modelId: provider == LyricsAiProvider.googleAiStudio
           ? SettingsService.defaultTranslationPrimaryModelId
-          : SettingsService.defaultOpenRouterTranslationModelId,
+          : provider == LyricsAiProvider.openRouter
+          ? SettingsService.defaultOpenRouterTranslationModelId
+          : SettingsService.defaultDoubaoTranslationModelId,
     );
     settings.translationFallbackModel = LyricsAiModelSelection(
       provider: provider,

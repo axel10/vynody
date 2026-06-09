@@ -17,6 +17,7 @@ import 'package:vibe_flow/utils/lrc_utils.dart';
 import 'package:vibe_flow/utils/localized_text.dart';
 import 'package:vibe_flow/utils/network_client.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_ai_api_client.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_ai_doubao.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_ai_openrouter.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
@@ -30,6 +31,7 @@ final class LyricsAiRuntimeConfig {
     required this.translationFallbackModel,
     required this.geminiApiKey,
     required this.openRouterApiKey,
+    required this.doubaoApiKey,
   });
 
   final LyricsAiModelSelection generationPrimaryModel;
@@ -38,11 +40,13 @@ final class LyricsAiRuntimeConfig {
   final LyricsAiModelSelection translationFallbackModel;
   final String geminiApiKey;
   final String openRouterApiKey;
+  final String doubaoApiKey;
 
   String apiKeyForProvider(LyricsAiProvider provider) {
     return switch (provider) {
       LyricsAiProvider.googleAiStudio => geminiApiKey,
       LyricsAiProvider.openRouter => openRouterApiKey,
+      LyricsAiProvider.doubao => doubaoApiKey,
     };
   }
 
@@ -51,9 +55,7 @@ final class LyricsAiRuntimeConfig {
 }
 
 class _LyricsGenerationOutcome {
-  const _LyricsGenerationOutcome({
-    required this.result,
-  });
+  const _LyricsGenerationOutcome({required this.result});
 
   final LyricsGenerationResult result;
 }
@@ -65,6 +67,10 @@ class LyricsAiService {
   }) : _client = client ?? NetworkClient.instance,
        _readConfig = readConfig,
        _geminiApiClient = GeminiLyricsApiClient(client: client),
+       _doubaoClient = LyricsAiDoubaoClient(
+         client: client,
+         streamParser: LyricsAiStreamTextParser(),
+       ),
        _openRouterClient = LyricsAiOpenRouterClient(
          client: client,
          streamParser: LyricsAiStreamTextParser(),
@@ -73,6 +79,7 @@ class LyricsAiService {
   final NetworkClient _client;
   final LyricsAiRuntimeConfig Function() _readConfig;
   final GeminiLyricsApiClient _geminiApiClient;
+  final LyricsAiDoubaoClient _doubaoClient;
   final LyricsAiOpenRouterClient _openRouterClient;
   final LyricsAiStreamTextParser _streamParser = LyricsAiStreamTextParser();
   static const int maxGenerationRetries = 2;
@@ -97,10 +104,15 @@ class LyricsAiService {
     return _modelLabel(_generationPrimaryModel);
   }
 
-  String get currentGenerationProviderTag => _config.activeGenerationProviderTag;
+  String get currentGenerationProviderTag =>
+      _config.activeGenerationProviderTag;
 
   String _googleModelLabel(String modelId) {
     return 'Google AI Studio · ${SettingsService.lyricsModelDisplayName(modelId)}';
+  }
+
+  String _doubaoModelLabel(String modelId) {
+    return '豆包 · ${SettingsService.lyricsModelDisplayName(modelId)}';
   }
 
   String _openRouterModelLabel(String modelId) {
@@ -110,6 +122,7 @@ class LyricsAiService {
   String _modelLabel(LyricsAiModelSelection selection) {
     return switch (selection.provider) {
       LyricsAiProvider.googleAiStudio => _googleModelLabel(selection.modelId),
+      LyricsAiProvider.doubao => _doubaoModelLabel(selection.modelId),
       LyricsAiProvider.openRouter => _openRouterModelLabel(selection.modelId),
     };
   }
@@ -132,11 +145,6 @@ class LyricsAiService {
   static String get _googleServerFlakyMessage => localizedText(
     'Google服务器开小差了，重试一下或许会成功哦',
     'Google is having a rough moment. Please try again and it may succeed.',
-  );
-
-  static String get _translationServerFlakyMessage => localizedText(
-    '谷歌服务器开小差了，请等一会儿后重试',
-    'Google is having a rough moment. Please try again later.',
   );
 
   bool _shouldUseGoogleServerFlakyMessage(Object error) {
@@ -225,6 +233,14 @@ class LyricsAiService {
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
+        LyricsAiProvider.doubao => _doubaoClient.translateLyricsStream(
+          apiKey: apiKey,
+          lyrics: lyrics,
+          modelId: candidate.modelId,
+          targetLanguageCode: targetLanguageCode,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
+        ),
       };
       if (error == null) {
         return null;
@@ -302,7 +318,18 @@ class LyricsAiService {
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
-        LyricsAiProvider.openRouter => await _openRouterClient.generateLyricsFromFile(
+        LyricsAiProvider.openRouter =>
+          await _openRouterClient.generateLyricsFromFile(
+            apiKey: apiKey,
+            modelId: candidate.modelId,
+            filePath: filePath,
+            songTitle: songTitle,
+            onUploadProgress: onUploadProgress,
+            onStageChanged: onStageChanged,
+            onProgress: onProgress,
+            cancelToken: cancelToken,
+          ),
+        LyricsAiProvider.doubao => await _doubaoClient.generateLyricsFromFile(
           apiKey: apiKey,
           modelId: candidate.modelId,
           filePath: filePath,
@@ -401,16 +428,28 @@ class LyricsAiService {
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
-        LyricsAiProvider.openRouter => await _openRouterClient.generateTimelineFromLyrics(
-          apiKey: apiKey,
-          modelId: candidate.modelId,
-          filePath: filePath,
-          lyrics: lyrics,
-          onUploadProgress: onUploadProgress,
-          onStageChanged: onStageChanged,
-          onProgress: onProgress,
-          cancelToken: cancelToken,
-        ),
+        LyricsAiProvider.openRouter =>
+          await _openRouterClient.generateTimelineFromLyrics(
+            apiKey: apiKey,
+            modelId: candidate.modelId,
+            filePath: filePath,
+            lyrics: lyrics,
+            onUploadProgress: onUploadProgress,
+            onStageChanged: onStageChanged,
+            onProgress: onProgress,
+            cancelToken: cancelToken,
+          ),
+        LyricsAiProvider.doubao =>
+          await _doubaoClient.generateTimelineFromLyrics(
+            apiKey: apiKey,
+            modelId: candidate.modelId,
+            filePath: filePath,
+            lyrics: lyrics,
+            onUploadProgress: onUploadProgress,
+            onStageChanged: onStageChanged,
+            onProgress: onProgress,
+            cancelToken: cancelToken,
+          ),
       };
       if (result.isSuccess) {
         return _normalizeGenerationResult(result);
@@ -870,7 +909,6 @@ class LyricsAiService {
   }) async {
     String? lastErrorMessage;
     bool lastFailureShouldUseGoogleFlakyMessage = false;
-    var lastFailureEligibleForFallback = false;
     final modelCandidates = <String>[
       modelId,
       if (modelId == primaryModelId) fallbackModelId,
@@ -1038,9 +1076,6 @@ class LyricsAiService {
           lastErrorMessage = lastFailureShouldUseGoogleFlakyMessage
               ? _googleServerFlakyMessage
               : _formatGenerationErrorMessage(e);
-          lastFailureEligibleForFallback = _shouldUseFallbackModel(
-            e.response?.statusCode,
-          );
           debugPrint(
             '[LyricsAi] generation failed: type=${e.type} '
             'status=${e.response?.statusCode} '

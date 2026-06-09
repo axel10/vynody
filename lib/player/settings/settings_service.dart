@@ -8,7 +8,7 @@ import 'package:vibe_flow/player/settings/shortcut_bindings.dart';
 import 'package:vibe_flow/transcode/transcode_models.dart';
 import 'package:vibe_flow/utils/language_code_utils.dart';
 
-enum LyricsAiProvider { googleAiStudio, openRouter }
+enum LyricsAiProvider { googleAiStudio, openRouter, doubao }
 
 enum LyricsAiModelPurpose { generation, translation }
 
@@ -73,18 +73,22 @@ extension LyricsAiProviderX on LyricsAiProvider {
   String get storageValue => switch (this) {
     LyricsAiProvider.googleAiStudio => 'google_ai_studio',
     LyricsAiProvider.openRouter => 'openrouter',
+    LyricsAiProvider.doubao => 'doubao',
   };
 
   String get displayName => switch (this) {
     LyricsAiProvider.googleAiStudio =>
       _isZhLocale ? 'Google AI Studio' : 'Google AI Studio',
     LyricsAiProvider.openRouter => _isZhLocale ? 'OpenRouter' : 'OpenRouter',
+    LyricsAiProvider.doubao => _isZhLocale ? '豆包' : 'Doubao',
   };
 
   static LyricsAiProvider fromStorageValue(String? value) {
     switch (value?.trim().toLowerCase()) {
       case 'openrouter':
         return LyricsAiProvider.openRouter;
+      case 'doubao':
+        return LyricsAiProvider.doubao;
       case 'google_ai_studio':
       case 'google':
       case 'gemini':
@@ -184,12 +188,17 @@ class SettingsService extends ChangeNotifier {
       'google/gemini-3.1-flash-lite';
   static const String defaultOpenRouterTranslationModelId =
       'google/gemma-4-31b-it:free';
+  static const String defaultDoubaoGenerationModelId =
+      'doubao-seed-2-0-lite-260428';
+  static const String defaultDoubaoTranslationModelId =
+      'doubao-seed-2-0-lite-260428';
   static const String _keyThemeMode = 'theme_mode';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
   static const String geminiApiKeyStorageKey = 'gemini_api_key';
   static const String openRouterApiKeyStorageKey = 'openrouter_api_key';
+  static const String doubaoApiKeyStorageKey = 'doubao_api_key';
   static const String _keyLyricsTranslationTargetLanguage =
       'lyrics_translation_target_language';
   static const String _keyLyricsFontScale = 'lyrics_font_scale';
@@ -500,6 +509,21 @@ class SettingsService extends ChangeNotifier {
 
   late final _openRouterApiKeyProperty = SettingProperty<String>(
     key: openRouterApiKeyStorageKey,
+    defaultValue: '',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customWrite: (prefs, key, val) {
+      final normalized = val.trim();
+      if (normalized.isEmpty) {
+        prefs.remove(key);
+      } else {
+        prefs.setString(key, normalized);
+      }
+    },
+  );
+
+  late final _doubaoApiKeyProperty = SettingProperty<String>(
+    key: doubaoApiKeyStorageKey,
     defaultValue: '',
     prefs: _prefs,
     onChanged: notifyListeners,
@@ -954,12 +978,18 @@ class SettingsService extends ChangeNotifier {
   String get openRouterApiKey => _openRouterApiKeyProperty.value;
   set openRouterApiKey(String value) => _openRouterApiKeyProperty.value = value;
 
+  String get doubaoApiKey => _doubaoApiKeyProperty.value;
+  set doubaoApiKey(String value) => _doubaoApiKeyProperty.value = value;
+
   bool get hasCustomGoogleAiStudioApiKey =>
       _prefs.containsKey(geminiApiKeyStorageKey);
   bool get hasCustomOpenRouterApiKey =>
       _prefs.containsKey(openRouterApiKeyStorageKey);
+  bool get hasCustomDoubaoApiKey => _prefs.containsKey(doubaoApiKeyStorageKey);
   bool get hasBothLyricsGenerationApiKeys =>
-      geminiApiKey.trim().isNotEmpty && openRouterApiKey.trim().isNotEmpty;
+      geminiApiKey.trim().isNotEmpty &&
+      openRouterApiKey.trim().isNotEmpty &&
+      doubaoApiKey.trim().isNotEmpty;
   bool get canAutoSwitchLyricsProvider => false;
   bool get shouldAutoSwitchLyricsProvider => false;
   String get activeLyricsGenerationApiKey =>
@@ -990,6 +1020,7 @@ class SettingsService extends ChangeNotifier {
     return switch (provider) {
       LyricsAiProvider.googleAiStudio => geminiApiKey,
       LyricsAiProvider.openRouter => openRouterApiKey,
+      LyricsAiProvider.doubao => doubaoApiKey,
     };
   }
 
@@ -1371,6 +1402,24 @@ class SettingsService extends ChangeNotifier {
         );
         translationFallbackModel = const LyricsAiModelSelection(
           provider: LyricsAiProvider.openRouter,
+          modelId: '',
+        );
+        break;
+      case LyricsAiProvider.doubao:
+        generationPrimaryModel = const LyricsAiModelSelection(
+          provider: LyricsAiProvider.doubao,
+          modelId: defaultDoubaoGenerationModelId,
+        );
+        generationFallbackModel = const LyricsAiModelSelection(
+          provider: LyricsAiProvider.doubao,
+          modelId: '',
+        );
+        translationPrimaryModel = const LyricsAiModelSelection(
+          provider: LyricsAiProvider.doubao,
+          modelId: defaultDoubaoTranslationModelId,
+        );
+        translationFallbackModel = const LyricsAiModelSelection(
+          provider: LyricsAiProvider.doubao,
           modelId: '',
         );
         break;

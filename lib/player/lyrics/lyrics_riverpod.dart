@@ -23,6 +23,7 @@ final lyricsAiRuntimeConfigProvider = Provider<LyricsAiRuntimeConfig>((ref) {
         translationFallbackModel: settings.translationFallbackModel,
         geminiApiKey: settings.geminiApiKey,
         openRouterApiKey: settings.openRouterApiKey,
+        doubaoApiKey: settings.doubaoApiKey,
       ),
     ),
   );
