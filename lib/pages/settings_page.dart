@@ -942,7 +942,9 @@ class _LyricsModelPickerDialogState
   late LyricsAiProvider _provider;
   late LyricsAiModelSelection _selection;
   final TextEditingController _searchController = TextEditingController();
-  List<LyricsModelInfo> _models = const [];
+  final Map<LyricsAiProvider, List<LyricsModelInfo>> _modelsByProvider = {};
+  final Map<LyricsAiProvider, String> _statusTextByProvider = {};
+  final Set<LyricsAiProvider> _loadedProviders = {};
   bool _isLoading = false;
   String _statusText = '';
   String _searchQuery = '';
@@ -962,6 +964,15 @@ class _LyricsModelPickerDialogState
   }
 
   Future<void> _fetchModels() async {
+    if (_loadedProviders.contains(_provider)) {
+      setState(() {
+        _modelsByProvider[_provider] ??= const [];
+        _statusText = _statusTextByProvider[_provider] ?? '';
+        _isLoading = false;
+      });
+      return;
+    }
+
     final settings = ref.read(settingsServiceProvider);
     setState(() {
       _isLoading = true;
@@ -980,8 +991,12 @@ class _LyricsModelPickerDialogState
     setState(() {
       _isLoading = false;
       _statusText = result.message;
-      _models = result.models;
-      final hasCurrent = _models.any((item) => item.id == _selection.modelId);
+      _modelsByProvider[_provider] = result.models;
+      _statusTextByProvider[_provider] = result.message;
+      _loadedProviders.add(_provider);
+      final hasCurrent = result.models.any(
+        (item) => item.id == _selection.modelId,
+      );
       if (!hasCurrent) {
         _selection = _selection.copyWith(modelId: '');
       }
@@ -989,12 +1004,13 @@ class _LyricsModelPickerDialogState
   }
 
   List<LyricsModelInfo> get _filteredModels {
+    final models = _modelsByProvider[_provider] ?? const [];
     final query = _searchQuery.trim().toLowerCase();
     if (query.isEmpty) {
-      return _models;
+      return models;
     }
 
-    return _models
+    return models
         .where((model) {
           final label = model.label.toLowerCase();
           final id = model.id.toLowerCase();
@@ -1040,6 +1056,8 @@ class _LyricsModelPickerDialogState
                   );
                   _searchQuery = '';
                   _searchController.clear();
+                  _statusText = _statusTextByProvider[provider] ?? '';
+                  _isLoading = false;
                 });
                 _fetchModels();
               },
