@@ -168,7 +168,7 @@ class SettingProperty<T> {
 
 class SettingsService extends ChangeNotifier {
   static const String defaultGenerationPrimaryModelId =
-      'gemini-3.1-flash-lite-latest';
+      'gemini-flash-lite-latest';
   static const String defaultGenerationFallbackModelId = '';
   static const String defaultTranslationPrimaryModelId = 'gemma-4-31b-it';
   static const String defaultTranslationFallbackModelId = '';
