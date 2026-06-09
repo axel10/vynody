@@ -223,17 +223,23 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   void onWindowResized() async {
     if (_ignoreResizeEventsUntil != null &&
         DateTime.now().isBefore(_ignoreResizeEventsUntil!)) {
+      debugPrint('[vibe_flow] onWindowResized: IGNORED because within ignore period');
       return;
     }
     final settings = ref.read(settingsServiceProvider);
     if (settings.isSmallWindowMode) {
       final size = await windowManager.getSize();
-      if (settings.smallWindowBottomPanelMode ==
-          SmallWindowBottomPanelMode.queue) {
+      debugPrint('[vibe_flow] onWindowResized: size=$size, mode=${settings.smallWindowBottomPanelMode}');
+      if (settings.smallWindowBottomPanelMode !=
+          SmallWindowBottomPanelMode.collapsed) {
         settings.savedSmallWindowQueueSize = size;
+        debugPrint('[vibe_flow] savedSmallWindowQueueSize updated to $size');
       } else {
         settings.savedSmallWindowSize = size;
+        debugPrint('[vibe_flow] savedSmallWindowSize updated to $size');
       }
+    } else {
+      debugPrint('[vibe_flow] onWindowResized: ignored because isSmallWindowMode is false');
     }
   }
 
@@ -613,6 +619,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
             );
           }
 
+          debugPrint('[vibe_flow] transition listener: prevSmall=$prevSmallMode, nextSmall=$nextSmallMode, prevExpanded=$prevExpanded, nextExpanded=$nextExpanded');
           if (nextSmallMode) {
             // Enter small window mode or update small window dimensions
             if (await windowManager.isFullScreen()) {
@@ -625,11 +632,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
             // Only save regular size if transitioning from regular mode to small window mode
             if (!prevSmallMode) {
               final currentSize = await windowManager.getSize();
+              debugPrint('[vibe_flow] transitioning from regular to small. currentSize=$currentSize');
               if (currentSize.width >=
                       PlaybackPageUiTuning.smallWindowMaxSize.width ||
                   currentSize.height >=
                       PlaybackPageUiTuning.smallWindowMaxSize.height) {
                 settings.savedRegularWindowSize = currentSize;
+                debugPrint('[vibe_flow] savedRegularWindowSize set to $currentSize');
               }
             }
 
@@ -648,6 +657,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                   savedSize.width.clamp(minSize.width, maxSize.width),
                   savedSize.height.clamp(minSize.height, maxSize.height),
                 );
+                debugPrint('[vibe_flow] setting size for expanded small mode: clampedSize=$clampedSize (savedSize=$savedSize)');
                 await windowManager.setSize(clampedSize);
               }
             } else {
@@ -665,15 +675,28 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
                   savedSize.width.clamp(minSize.width, maxSize.width),
                   savedSize.height.clamp(minSize.height, maxSize.height),
                 );
+                debugPrint('[vibe_flow] setting size for collapsed small mode: clampedSize=$clampedSize (savedSize=$savedSize)');
                 await windowManager.setSize(clampedSize);
               }
             }
           } else if (prevSmallMode && !nextSmallMode) {
             // Exit small window mode
+            // Save the last small window size right before we exit
+            final currentSmallSize = await windowManager.getSize();
+            debugPrint('[vibe_flow] exiting small window mode. currentSmallSize=$currentSmallSize');
+            if (previous?.bottomPanelMode != SmallWindowBottomPanelMode.collapsed) {
+              settings.savedSmallWindowQueueSize = currentSmallSize;
+              debugPrint('[vibe_flow] exiting: savedSmallWindowQueueSize saved as $currentSmallSize');
+            } else {
+              settings.savedSmallWindowSize = currentSmallSize;
+              debugPrint('[vibe_flow] exiting: savedSmallWindowSize saved as $currentSmallSize');
+            }
+
             await windowManager.setMinimumSize(const Size(400, 650));
             await windowManager.setMaximumSize(const Size(99999, 99999));
             final savedSize =
                 settings.savedRegularWindowSize ?? const Size(1280, 720);
+            debugPrint('[vibe_flow] restoring regular window size: savedSize=$savedSize');
             await windowManager.setSize(savedSize);
           }
         }
