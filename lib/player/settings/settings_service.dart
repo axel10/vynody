@@ -1033,6 +1033,9 @@ class SettingsService extends ChangeNotifier {
   static String lyricsModelSelectionLabel(LyricsAiModelSelection selection) {
     final providerName = selection.provider.displayName;
     final modelName = lyricsModelDisplayName(selection.modelId);
+    if (selection.modelId.trim().isEmpty) {
+      return modelName;
+    }
     return '$providerName · $modelName';
   }
 
