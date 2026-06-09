@@ -1065,19 +1065,16 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       settingsServiceProvider.select((settings) => settings.lyricsFontScale),
     );
     final lyricsForDisplay = _lyricsForDisplay();
-    final displayLines = ref.watch(
-      lyricsDisplayLinesProvider(lyricsForDisplay),
-    );
-    final displayPlainLyrics = ref.watch(
-      lyricsDisplayPlainTextProvider(lyricsForDisplay),
-    );
     final displayLyrics = ref.watch(
       lyricsDisplayLyricsProvider(lyricsForDisplay),
     );
+    final displayLines = displayLyrics?.syncedLines ?? const [];
+    final displayPlainLyrics = displayLyrics?.plainText ?? '';
     final layoutRevision = ref.watch(lyricsLayoutRevisionProvider);
-    final hasRenderableLyrics = ref.watch(
-      lyricsHasRenderableContentProvider(lyricsForDisplay),
-    );
+    final hasRenderableLyrics = lyricsState.hasLyrics &&
+        displayLyrics != null &&
+        (displayLyrics.syncedLines.isNotEmpty ||
+            displayLyrics.plainText.trim().isNotEmpty);
     final hasCurrentSong = ref.watch(audioCurrentMusicProvider) != null;
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
