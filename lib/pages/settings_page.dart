@@ -941,9 +941,11 @@ class _LyricsModelPickerDialogState
     extends ConsumerState<_LyricsModelPickerDialog> {
   late LyricsAiProvider _provider;
   late LyricsAiModelSelection _selection;
+  final TextEditingController _searchController = TextEditingController();
   List<LyricsModelInfo> _models = const [];
   bool _isLoading = false;
   String _statusText = '';
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -951,6 +953,12 @@ class _LyricsModelPickerDialogState
     _provider = widget.initialSelection.provider;
     _selection = widget.initialSelection;
     _fetchModels();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchModels() async {
@@ -978,6 +986,21 @@ class _LyricsModelPickerDialogState
         _selection = _selection.copyWith(modelId: '');
       }
     });
+  }
+
+  List<LyricsModelInfo> get _filteredModels {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) {
+      return _models;
+    }
+
+    return _models
+        .where((model) {
+          final label = model.label.toLowerCase();
+          final id = model.id.toLowerCase();
+          return label.contains(query) || id.contains(query);
+        })
+        .toList(growable: false);
   }
 
   @override
@@ -1015,11 +1038,40 @@ class _LyricsModelPickerDialogState
                     provider: provider,
                     modelId: '',
                   );
+                  _searchQuery = '';
+                  _searchController.clear();
                 });
                 _fetchModels();
               },
             ),
             const SizedBox(height: 16),
+            TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+              decoration: InputDecoration(
+                labelText: '搜索模型',
+                hintText: '输入模型名、ID 或定价信息',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: '清除搜索',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (_statusText.isNotEmpty) Text(_statusText),
             const SizedBox(height: 8),
             Flexible(
@@ -1034,6 +1086,13 @@ class _LyricsModelPickerDialogState
                         child: Padding(
                           padding: EdgeInsets.all(24),
                           child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : _filteredModels.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text('没有找到匹配的模型'),
                         ),
                       )
                     : ListView(
@@ -1053,7 +1112,7 @@ class _LyricsModelPickerDialogState
                               });
                             },
                           ),
-                          for (final model in _models)
+                          for (final model in _filteredModels)
                             RadioListTile<String>(
                               value: model.id,
                               groupValue: _selection.modelId,
