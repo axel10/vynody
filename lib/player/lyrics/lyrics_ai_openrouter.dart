@@ -3,7 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart'
-    show CancelToken, DioException, DioExceptionType, Headers, Options, RequestOptions, ResponseType;
+    show
+        CancelToken,
+        DioException,
+        DioExceptionType,
+        Headers,
+        Options,
+        RequestOptions,
+        ResponseType;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
@@ -83,16 +90,22 @@ class LyricsAiOpenRouterClient {
 
       final generatedBuffer = StringBuffer();
       String lastEmitted = '';
+      var sawRefusalLikeText = false;
       await _streamTextResponse(
         apiKey: apiKey,
         requestData: requestData,
         onStageChanged: onStageChanged,
         cancelToken: cancelToken,
         onChunk: (chunk) {
+          if (_streamParser.looksLikeRefusalText(chunk)) {
+            sawRefusalLikeText = true;
+          }
           generatedBuffer.write(chunk);
-          final current = LrcUtils.cleanGeneratedLyricsText(
-            generatedBuffer.toString(),
-          );
+          final current = _currentLyricsSnapshot(generatedBuffer.toString());
+          if (_looksLikeRefusalResponse(current)) {
+            sawRefusalLikeText = true;
+            return;
+          }
           if (current.isEmpty || current == lastEmitted) {
             return;
           }
@@ -108,6 +121,11 @@ class LyricsAiOpenRouterClient {
         generatedText ?? generatedBuffer.toString(),
       );
       final normalizedText = LrcUtils.normalizeGeneratedLyricsText(cleanedText);
+      if (sawRefusalLikeText || _looksLikeRefusalResponse(normalizedText)) {
+        return LyricsGenerationResult.failure(
+          _t('模型拒绝生成歌词。', 'The model refused to generate lyrics.'),
+        );
+      }
       if (normalizedText.trim().isEmpty) {
         return LyricsGenerationResult.failure(
           _t('OpenRouter 返回了空响应。', 'OpenRouter returned an empty response.'),
@@ -200,6 +218,7 @@ class LyricsAiOpenRouterClient {
 
       final generatedBuffer = StringBuffer();
       String lastEmitted = '';
+      var sawRefusalLikeText = false;
       await _streamTextResponse(
         apiKey: apiKey,
         requestData: requestData,
@@ -207,10 +226,15 @@ class LyricsAiOpenRouterClient {
         cancelToken: cancelToken,
         onChunk: (chunk) {
           _logChunk('generate_timeline', chunk);
+          if (_streamParser.looksLikeRefusalText(chunk)) {
+            sawRefusalLikeText = true;
+          }
           generatedBuffer.write(chunk);
-          final current = LrcUtils.cleanGeneratedLyricsText(
-            generatedBuffer.toString(),
-          );
+          final current = _currentLyricsSnapshot(generatedBuffer.toString());
+          if (_looksLikeRefusalResponse(current)) {
+            sawRefusalLikeText = true;
+            return;
+          }
           if (current.isEmpty || current == lastEmitted) {
             return;
           }
@@ -226,6 +250,11 @@ class LyricsAiOpenRouterClient {
         generatedText ?? generatedBuffer.toString(),
       );
       final normalizedText = LrcUtils.normalizeGeneratedLyricsText(cleanedText);
+      if (sawRefusalLikeText || _looksLikeRefusalResponse(normalizedText)) {
+        return LyricsGenerationResult.failure(
+          _t('模型拒绝生成时间轴。', 'The model refused to generate the timeline.'),
+        );
+      }
       debugPrint(
         '[OpenRouterLyrics] timeline completed -> '
         'rawLength=${generatedBuffer.length} cleanedLength=${normalizedText.length}',
@@ -384,6 +413,52 @@ class LyricsAiOpenRouterClient {
     final text = value.trim();
     if (text.length <= maxLength) return text;
     return '${text.substring(0, maxLength)}...';
+  }
+
+  String _currentLyricsSnapshot(String rawText) {
+    final cleaned = LrcUtils.cleanGeneratedLyricsText(rawText);
+    if (cleaned.isEmpty) {
+      return '';
+    }
+    if (!_containsTimestampedLyrics(cleaned) &&
+        !_streamParser.looksLikeRefusalText(cleaned)) {
+      return '';
+    }
+    return LrcUtils.normalizeGeneratedLyricsText(cleaned);
+  }
+
+  bool _containsTimestampedLyrics(String text) {
+    return RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]').hasMatch(text);
+  }
+
+  bool _looksLikeRefusalResponse(String text) {
+    final normalized = text.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+
+    if (_streamParser.looksLikeRefusalText(normalized)) {
+      return true;
+    }
+
+    final refusalMarkers = <String>[
+      '版权',
+      'copyright',
+      'cannot provide',
+      'can’t provide',
+      "can't provide",
+      'unable to provide',
+      'refuse',
+      'decline',
+      '抱歉',
+      '无法提供',
+      '不提供',
+      '不能提供',
+      '不能帮助',
+      '无法帮助',
+    ];
+    final lower = normalized.toLowerCase();
+    return refusalMarkers.any((marker) => lower.contains(marker));
   }
 
   Map<String, dynamic> _sanitizeRequestData(Map<String, dynamic> requestData) {
