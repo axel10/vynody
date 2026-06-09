@@ -45,11 +45,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   DateTime? _lastScanToastUpdateAt;
   AppLocalizations? _l10n;
   ScannerService? _scanner;
+  late final LibrarySelectionScopeController _librarySelectionScopeController;
   final ValueNotifier<_ScanToastState?> _scanToastState =
       ValueNotifier<_ScanToastState?>(null);
 
   void _setFolderSelectionMode(bool enabled) {
-    ref.read(librarySelectionScopeProvider.notifier).setScope(
+    _librarySelectionScopeController.setScope(
       enabled ? LibrarySelectionScope.folder : LibrarySelectionScope.none,
     );
   }
@@ -146,7 +147,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     final enabled =
         ref.read(librarySelectionScopeProvider) !=
         LibrarySelectionScope.folderRoot;
-    ref.read(librarySelectionScopeProvider.notifier).setScope(
+    _librarySelectionScopeController.setScope(
       enabled ? LibrarySelectionScope.folderRoot : LibrarySelectionScope.none,
     );
     if (!enabled) {
@@ -172,7 +173,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       _selectedRootPaths.clear();
     });
     _setFolderSelectionMode(false);
-    ref.read(librarySelectionScopeProvider.notifier).clear();
+    _librarySelectionScopeController.clear();
   }
 
   void _ensureScanToastVisible() {
@@ -333,7 +334,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     setState(() {
       _selectedRootPaths.clear();
     });
-    ref.read(librarySelectionScopeProvider.notifier).clear();
+    _librarySelectionScopeController.clear();
 
     AppSnackBar.show(
       context,
@@ -357,6 +358,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   @override
   void initState() {
     super.initState();
+    _librarySelectionScopeController =
+        ref.read(librarySelectionScopeProvider.notifier);
     _scanner = ref.read(scannerServiceProvider);
     _wasScanning = _scanner!.isScanning;
     _scanner!.addListener(_handleScannerChanged);
@@ -372,7 +375,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     // "modifying a provider while building" assertion during tab switches.
     Future.microtask(() {
       _setFolderSelectionMode(false);
-      ref.read(librarySelectionScopeProvider.notifier).clear();
+      _librarySelectionScopeController.clear();
     });
     _scanToastUpdateTimer?.cancel();
     _scanToastAutoDismissTimer?.cancel();
