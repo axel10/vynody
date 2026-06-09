@@ -400,8 +400,11 @@ class LyricsAiDoubaoClient {
           translatedBuffer.toString(),
         );
         final lines = _splitLines(cleaned);
+        final visibleLines = lines
+            .map((line) => _stripTimestampPrefix(line).trimRight())
+            .toList(growable: false);
         final restoredLines = _restoreBlankLines(
-          lines,
+          visibleLines,
           blankLineIndexes,
           sourceLines.length,
         );
@@ -415,7 +418,8 @@ class LyricsAiDoubaoClient {
       final translatedText = LrcUtils.cleanGeneratedLyricsText(
         translatedBuffer.toString(),
       );
-      if (translatedText.trim().isEmpty) {
+      final visibleTranslatedText = _stripTimestamps(translatedText).trim();
+      if (visibleTranslatedText.isEmpty) {
         return _t('豆包返回了空响应。', 'Doubao returned an empty response.');
       }
 
@@ -617,6 +621,21 @@ class LyricsAiDoubaoClient {
 
   bool _hasTimestampedLyrics(String lyrics) {
     return RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]').hasMatch(lyrics);
+  }
+
+  String _stripTimestampPrefix(String line) {
+    return line.replaceAll(
+      RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]'),
+      '',
+    );
+  }
+
+  String _stripTimestamps(String lyrics) {
+    return lyrics
+        .split(RegExp(r'\r?\n'))
+        .map((line) => _stripTimestampPrefix(line).trimRight())
+        .join('\n')
+        .trim();
   }
 
   List<String> _restoreBlankLines(
