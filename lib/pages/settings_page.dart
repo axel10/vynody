@@ -221,46 +221,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     };
   }
 
-  Future<void> _editTranscodeFfmpegPath(
-    BuildContext context,
-    SettingsService settings,
-  ) async {
-    final controller = TextEditingController(
-      text: settings.transcodeFfmpegPath,
-    );
-    final l10n = AppLocalizations.of(context)!;
-    final value = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.transcodeFfmpegPath),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: 'ffmpeg',
-            labelText: l10n.transcodeFfmpegPathHint,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(''),
-            child: Text(l10n.restoreDefault),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
-    );
-    if (value == null) return;
-    settings.transcodeFfmpegPath = value;
-  }
-
   Widget _buildThemeModeSection(
     BuildContext context,
     SettingsService settings,
@@ -624,20 +584,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             settings.transcodeAutoScanOutputEnabled = value;
           },
         ),
-        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
-          ListTile(
-            leading: const Icon(Icons.terminal_rounded),
-            title: Text(l10n.transcodeFfmpegPath),
-            subtitle: Text(
-              settings.transcodeFfmpegPath.trim().isEmpty
-                  ? l10n.transcodeFfmpegPathDefault
-                  : settings.transcodeFfmpegPath,
-            ),
-            trailing: FilledButton.tonal(
-              onPressed: () => _editTranscodeFfmpegPath(context, settings),
-              child: Text(l10n.edit),
-            ),
-          ),
       ],
     );
   }

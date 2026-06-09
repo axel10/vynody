@@ -334,16 +334,18 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         inputPaths: songPaths,
         draft: draft,
         androidOutputDirectory: _androidOutputDirectory,
-        ffmpegPath: settings.transcodeFfmpegPath,
         metadataSourcePaths: metadataPaths,
         onProgress: (progress) {
           if (!mounted) return;
-          final currentNumber =
-              (progress.completedFiles + 1).clamp(1, progress.totalFiles);
+          final currentNumber = (progress.completedFiles + 1).clamp(
+            1,
+            progress.totalFiles,
+          );
           setState(() {
             _currentFileProgress = progress.currentFileProgress;
             _overallProgress = progress.overallProgress;
-            _submitLabel = progress.message ??
+            _submitLabel =
+                progress.message ??
                 l10n.transcodeProgress(currentNumber, progress.totalFiles);
             _currentFileLabel = p.basename(progress.currentFilePath);
           });
@@ -359,7 +361,8 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         } else {
           failureCount += 1;
           lastErrorMessage =
-              executionResult.result.errorMessage ?? l10n.transcodeFailedGeneric;
+              executionResult.result.errorMessage ??
+              l10n.transcodeFailedGeneric;
           debugPrint(lastErrorMessage);
         }
       }
@@ -591,7 +594,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
               ),
               itemBuilder: (context, index) {
                 final song = widget.songs[index];
-                final ext = p.extension(song.path).replaceAll('.', '').toUpperCase();
+                final ext = p
+                    .extension(song.path)
+                    .replaceAll('.', '')
+                    .toUpperCase();
                 return ListTile(
                   dense: true,
                   visualDensity: VisualDensity.compact,
@@ -618,7 +624,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                     ),
                   ),
                   trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(6),
@@ -735,7 +744,8 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   }
 
   Widget _buildAdvancedSection(AppLocalizations l10n) {
-    final hasAacEncoder = _supportsBitRateControls &&
+    final hasAacEncoder =
+        _supportsBitRateControls &&
         !_draft.useSystemEncoder &&
         !(Platform.isIOS || Platform.isMacOS);
 
@@ -765,7 +775,8 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
           if (_supportsBitRateControls) ...[
             const SizedBox(height: 10),
             DropdownButtonFormField<int>(
-              initialValue: [128000, 192000, 256000, 320000].contains(_draft.bitRate)
+              initialValue:
+                  [128000, 192000, 256000, 320000].contains(_draft.bitRate)
                   ? _draft.bitRate
                   : 192000,
               isExpanded: true,
@@ -809,7 +820,8 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                       _markCustomized(bitRateMode: value);
                     },
             ),
-            if (Platform.isAndroid && _draft.outputFormat == AudioFormat.m4a) ...[
+            if (Platform.isAndroid &&
+                _draft.outputFormat == AudioFormat.m4a) ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<bool>(
                 initialValue: _draft.useSystemEncoder,

@@ -1391,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @transcodeSectionDescription.
   ///
   /// In zh, this message translates to:
-  /// **'设置默认输出格式、质量预设以及 ffmpeg 路径。'**
+  /// **'设置默认输出格式和质量预设。'**
   String get transcodeSectionDescription;
 
   /// No description provided for @transcodeDefaultFormat.
@@ -1417,24 +1417,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'转码成功后自动刷新媒体库。'**
   String get transcodeAutoScanOutputDescription;
-
-  /// No description provided for @transcodeFfmpegPath.
-  ///
-  /// In zh, this message translates to:
-  /// **'ffmpeg 路径'**
-  String get transcodeFfmpegPath;
-
-  /// No description provided for @transcodeFfmpegPathHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'留空则使用 PATH 中的 ffmpeg'**
-  String get transcodeFfmpegPathHint;
-
-  /// No description provided for @transcodeFfmpegPathDefault.
-  ///
-  /// In zh, this message translates to:
-  /// **'使用 PATH 中的 ffmpeg'**
-  String get transcodeFfmpegPathDefault;
 
   /// No description provided for @transcodeTitle.
   ///

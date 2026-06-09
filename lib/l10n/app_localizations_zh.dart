@@ -683,7 +683,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcodeSectionTitle => '音频转码';
 
   @override
-  String get transcodeSectionDescription => '设置默认输出格式、质量预设以及 ffmpeg 路径。';
+  String get transcodeSectionDescription => '设置默认输出格式和质量预设。';
 
   @override
   String get transcodeDefaultFormat => '默认输出格式';
@@ -696,15 +696,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transcodeAutoScanOutputDescription => '转码成功后自动刷新媒体库。';
-
-  @override
-  String get transcodeFfmpegPath => 'ffmpeg 路径';
-
-  @override
-  String get transcodeFfmpegPathHint => '留空则使用 PATH 中的 ffmpeg';
-
-  @override
-  String get transcodeFfmpegPathDefault => '使用 PATH 中的 ffmpeg';
 
   @override
   String get transcodeTitle => '音频转码';

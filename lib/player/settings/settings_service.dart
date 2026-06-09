@@ -15,10 +15,7 @@ enum LyricsAiModelPurpose { generation, translation }
 enum LyricsAiModelSlot { primary, fallback }
 
 final class LyricsAiModelSelection {
-  const LyricsAiModelSelection({
-    required this.provider,
-    required this.modelId,
-  });
+  const LyricsAiModelSelection({required this.provider, required this.modelId});
 
   final LyricsAiProvider provider;
   final String modelId;
@@ -213,7 +210,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyTranslationFallbackModelId =
       'lyrics_translation_fallback_model_id';
   static const String _legacyKeyLyricsAiProvider = 'lyrics_ai_provider';
-  static const String _legacyKeyGeminiPrimaryModelId = 'gemini_primary_model_id';
+  static const String _legacyKeyGeminiPrimaryModelId =
+      'gemini_primary_model_id';
   static const String _legacyKeyGeminiFallbackModelId =
       'gemini_fallback_model_id';
   static const String _legacyKeyGeminiTranslationModelId =
@@ -281,7 +279,6 @@ class SettingsService extends ChangeNotifier {
       'transcode_default_output_format';
   static const String _keyTranscodeDefaultQualityTier =
       'transcode_default_quality_tier';
-  static const String _keyTranscodeFfmpegPath = 'transcode_ffmpeg_path';
   static const String _keyTranscodeAutoScanOutputEnabled =
       'transcode_auto_scan_output_enabled';
 
@@ -381,7 +378,8 @@ class SettingsService extends ChangeNotifier {
           legacyKey: _legacyKeyLyricsAiProvider,
           defaultValue: def,
         ),
-        customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+        customWrite: (prefs, key, val) =>
+            prefs.setString(key, val.storageValue),
       );
 
   late final _generationPrimaryModelIdProperty = SettingProperty<String>(
@@ -409,7 +407,8 @@ class SettingsService extends ChangeNotifier {
           legacyKey: _legacyKeyLyricsAiProvider,
           defaultValue: def,
         ),
-        customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+        customWrite: (prefs, key, val) =>
+            prefs.setString(key, val.storageValue),
       );
 
   late final _generationFallbackModelIdProperty = SettingProperty<String>(
@@ -437,7 +436,8 @@ class SettingsService extends ChangeNotifier {
           legacyKey: _legacyKeyLyricsAiProvider,
           defaultValue: def,
         ),
-        customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+        customWrite: (prefs, key, val) =>
+            prefs.setString(key, val.storageValue),
       );
 
   late final _translationPrimaryModelIdProperty = SettingProperty<String>(
@@ -465,7 +465,8 @@ class SettingsService extends ChangeNotifier {
           legacyKey: _legacyKeyLyricsAiProvider,
           defaultValue: def,
         ),
-        customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+        customWrite: (prefs, key, val) =>
+            prefs.setString(key, val.storageValue),
       );
 
   late final _translationFallbackModelIdProperty = SettingProperty<String>(
@@ -776,21 +777,6 @@ class SettingsService extends ChangeNotifier {
             prefs.setString(key, val.storageValue),
       );
 
-  late final _transcodeFfmpegPathProperty = SettingProperty<String>(
-    key: _keyTranscodeFfmpegPath,
-    defaultValue: '',
-    prefs: _prefs,
-    onChanged: notifyListeners,
-    customWrite: (prefs, key, val) {
-      final normalized = val.trim();
-      if (normalized.isEmpty) {
-        prefs.remove(key);
-      } else {
-        prefs.setString(key, normalized);
-      }
-    },
-  );
-
   late final _transcodeAutoScanOutputEnabledProperty = SettingProperty<bool>(
     key: _keyTranscodeAutoScanOutputEnabled,
     defaultValue: true,
@@ -926,41 +912,37 @@ class SettingsService extends ChangeNotifier {
   bool get isLyricsAiAutoSwitchEnabled => false;
   set isLyricsAiAutoSwitchEnabled(bool value) {}
 
-  LyricsAiModelSelection get generationPrimaryModel =>
-      LyricsAiModelSelection(
-        provider: _generationPrimaryProviderProperty.value,
-        modelId: _generationPrimaryModelIdProperty.value,
-      );
+  LyricsAiModelSelection get generationPrimaryModel => LyricsAiModelSelection(
+    provider: _generationPrimaryProviderProperty.value,
+    modelId: _generationPrimaryModelIdProperty.value,
+  );
   set generationPrimaryModel(LyricsAiModelSelection value) {
     _generationPrimaryProviderProperty.value = value.provider;
     _generationPrimaryModelIdProperty.value = value.modelId.trim();
   }
 
-  LyricsAiModelSelection get generationFallbackModel =>
-      LyricsAiModelSelection(
-        provider: _generationFallbackProviderProperty.value,
-        modelId: _generationFallbackModelIdProperty.value,
-      );
+  LyricsAiModelSelection get generationFallbackModel => LyricsAiModelSelection(
+    provider: _generationFallbackProviderProperty.value,
+    modelId: _generationFallbackModelIdProperty.value,
+  );
   set generationFallbackModel(LyricsAiModelSelection value) {
     _generationFallbackProviderProperty.value = value.provider;
     _generationFallbackModelIdProperty.value = value.modelId.trim();
   }
 
-  LyricsAiModelSelection get translationPrimaryModel =>
-      LyricsAiModelSelection(
-        provider: _translationPrimaryProviderProperty.value,
-        modelId: _translationPrimaryModelIdProperty.value,
-      );
+  LyricsAiModelSelection get translationPrimaryModel => LyricsAiModelSelection(
+    provider: _translationPrimaryProviderProperty.value,
+    modelId: _translationPrimaryModelIdProperty.value,
+  );
   set translationPrimaryModel(LyricsAiModelSelection value) {
     _translationPrimaryProviderProperty.value = value.provider;
     _translationPrimaryModelIdProperty.value = value.modelId.trim();
   }
 
-  LyricsAiModelSelection get translationFallbackModel =>
-      LyricsAiModelSelection(
-        provider: _translationFallbackProviderProperty.value,
-        modelId: _translationFallbackModelIdProperty.value,
-      );
+  LyricsAiModelSelection get translationFallbackModel => LyricsAiModelSelection(
+    provider: _translationFallbackProviderProperty.value,
+    modelId: _translationFallbackModelIdProperty.value,
+  );
   set translationFallbackModel(LyricsAiModelSelection value) {
     _translationFallbackProviderProperty.value = value.provider;
     _translationFallbackModelIdProperty.value = value.modelId.trim();
@@ -1001,9 +983,9 @@ class SettingsService extends ChangeNotifier {
 
   String get geminiTranslationModelId => translationPrimaryModel.modelId;
   set geminiTranslationModelId(String value) {
-    translationPrimaryModel =
-        translationPrimaryModel.copyWith(modelId: value);
+    translationPrimaryModel = translationPrimaryModel.copyWith(modelId: value);
   }
+
   String apiKeyForProvider(LyricsAiProvider provider) {
     return switch (provider) {
       LyricsAiProvider.googleAiStudio => geminiApiKey,
@@ -1014,6 +996,7 @@ class SettingsService extends ChangeNotifier {
   bool hasApiKeyForProvider(LyricsAiProvider provider) {
     return apiKeyForProvider(provider).trim().isNotEmpty;
   }
+
   bool get hasCustomAcoustidApiKey =>
       _prefs.containsKey(acoustidApiKeyStorageKey);
   ShortcutBinding shortcutBinding(AppShortcutAction action) {
@@ -1047,9 +1030,7 @@ class SettingsService extends ChangeNotifier {
         .join(' ');
   }
 
-  static String lyricsModelSelectionLabel(
-    LyricsAiModelSelection selection,
-  ) {
+  static String lyricsModelSelectionLabel(LyricsAiModelSelection selection) {
     final providerName = selection.provider.displayName;
     final modelName = lyricsModelDisplayName(selection.modelId);
     return '$providerName · $modelName';
@@ -1211,10 +1192,6 @@ class SettingsService extends ChangeNotifier {
       _transcodeDefaultQualityTierProperty.value;
   set transcodeDefaultQualityTier(TranscodeQualityTier value) =>
       _transcodeDefaultQualityTierProperty.value = value;
-
-  String get transcodeFfmpegPath => _transcodeFfmpegPathProperty.value;
-  set transcodeFfmpegPath(String value) =>
-      _transcodeFfmpegPathProperty.value = value;
 
   bool get transcodeAutoScanOutputEnabled =>
       _transcodeAutoScanOutputEnabledProperty.value;

@@ -692,7 +692,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transcodeSectionDescription =>
-      'Set default output format, quality preset, and ffmpeg path for audio conversion.';
+      'Set default output format and quality preset for audio conversion.';
 
   @override
   String get transcodeDefaultFormat => 'Default Output Format';
@@ -706,15 +706,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get transcodeAutoScanOutputDescription =>
       'Refresh the music library after a successful transcode.';
-
-  @override
-  String get transcodeFfmpegPath => 'ffmpeg Path';
-
-  @override
-  String get transcodeFfmpegPathHint => 'Leave empty to use ffmpeg from PATH';
-
-  @override
-  String get transcodeFfmpegPathDefault => 'Use ffmpeg from PATH';
 
   @override
   String get transcodeTitle => 'Audio Transcode';

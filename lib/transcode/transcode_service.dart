@@ -54,7 +54,6 @@ class TranscodeService {
     required String inputPath,
     required TranscodeDraft draft,
     AndroidOutputDirectory? androidOutputDirectory,
-    String? ffmpegPath,
     String? metadataSourcePath,
     AudioConverterProgressCallback? onProgress,
   }) async {
@@ -67,7 +66,8 @@ class TranscodeService {
     );
 
     final supportsBitRate = draft.outputFormat.supportsBitRateControls;
-    final hasAacEncoder = supportsBitRate &&
+    final hasAacEncoder =
+        supportsBitRate &&
         !draft.useSystemEncoder &&
         !(Platform.isIOS || Platform.isMacOS);
 
@@ -83,7 +83,6 @@ class TranscodeService {
               bitRateMode: supportsBitRate ? draft.bitRateMode : null,
               useSystemEncoder: draft.useSystemEncoder,
               aacEncoder: hasAacEncoder ? draft.aacEncoder : null,
-              ffmpegPath: _normalizeOptional(ffmpegPath),
             ),
             androidOutputDirectory,
             onProgress: onProgress,
@@ -99,7 +98,6 @@ class TranscodeService {
               bitRateMode: supportsBitRate ? draft.bitRateMode : null,
               useSystemEncoder: draft.useSystemEncoder,
               aacEncoder: hasAacEncoder ? draft.aacEncoder : null,
-              ffmpegPath: _normalizeOptional(ffmpegPath),
               onProgress: onProgress,
             ),
           );
@@ -125,7 +123,6 @@ class TranscodeService {
     required List<String> inputPaths,
     required TranscodeDraft draft,
     AndroidOutputDirectory? androidOutputDirectory,
-    String? ffmpegPath,
     List<String>? metadataSourcePaths,
     AudioConverterProgressCallback? onProgress,
   }) async {
@@ -134,7 +131,8 @@ class TranscodeService {
         (inputPaths.isNotEmpty ? File(inputPaths.first).parent.path : '');
 
     final supportsBitRate = draft.outputFormat.supportsBitRateControls;
-    final hasAacEncoder = supportsBitRate &&
+    final hasAacEncoder =
+        supportsBitRate &&
         !draft.useSystemEncoder &&
         !(Platform.isIOS || Platform.isMacOS);
 
@@ -148,7 +146,6 @@ class TranscodeService {
       bitRateMode: supportsBitRate ? draft.bitRateMode : null,
       useSystemEncoder: draft.useSystemEncoder,
       aacEncoder: hasAacEncoder ? draft.aacEncoder : null,
-      ffmpegPath: _normalizeOptional(ffmpegPath),
       androidOutputDirectory: androidOutputDirectory,
       onProgress: onProgress,
       copyMetadata: true,
