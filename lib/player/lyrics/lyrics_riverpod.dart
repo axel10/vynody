@@ -2,14 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vibe_flow/models/lyric_line.dart';
 import 'package:vibe_flow/models/music_lyric.dart';
-import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_controller_dependencies.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_controller.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_display_state.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_controller_state.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_song_task_state.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_task_queue_summary.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_ai_service.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
 
@@ -19,12 +16,37 @@ final lyricsControllerDependenciesProvider =
       return audioService.lyricsControllerDependencies;
     });
 
+final lyricsAiRuntimeConfigProvider = Provider<LyricsAiRuntimeConfig>((ref) {
+  return ref.watch(
+    settingsServiceProvider.select(
+      (settings) => LyricsAiRuntimeConfig(
+        generationPrimaryModel: settings.generationPrimaryModel,
+        generationFallbackModel: settings.generationFallbackModel,
+        translationPrimaryModel: settings.translationPrimaryModel,
+        translationFallbackModel: settings.translationFallbackModel,
+        geminiApiKey: settings.geminiApiKey,
+        openRouterApiKey: settings.openRouterApiKey,
+      ),
+    ),
+  );
+});
+
 final lyricsAiServiceProvider = Provider<LyricsAiService>((ref) {
-  return LyricsAiService(settingsService: ref.read(settingsServiceProvider));
+  return LyricsAiService(
+    readConfig: () => ref.read(lyricsAiRuntimeConfigProvider),
+  );
 });
 
 final lyricsServiceProvider = Provider<LyricsService>((ref) {
   return LyricsService();
+});
+
+final lyricsTranslationLanguageCodeProvider = Provider<String>((ref) {
+  return ref.watch(
+    settingsServiceProvider.select(
+      (settings) => settings.effectiveLyricsTranslationTargetLanguageCode,
+    ),
+  );
 });
 
 final lyricsControllerProvider =
@@ -77,48 +99,6 @@ final lyricsCurrentSongTaskStateProvider = Provider<LyricsSongTaskState>((ref) {
 
   return ref.watch(lyricsSongTaskStateProvider(songPath));
 });
-
-final lyricsTaskQueueSummaryProvider = Provider<LyricsTaskQueueSummary>((ref) {
-  ref.watch(lyricsControllerProvider.select((state) => state.revision));
-  final queue = ref.watch(audioPlaybackQueueProvider);
-  final controller = ref.read(lyricsControllerProvider.notifier);
-
-  var taskCount = 0;
-  MusicFile? activeSong;
-  String activeStatusLabel = '';
-
-  for (final song in queue) {
-    final taskState = controller.taskStateForSong(song.path);
-    final songTaskCount =
-        (taskState.isGenerationQueued ? 1 : 0) +
-        (taskState.isGenerationRunning ? 1 : 0) +
-        (taskState.isTranslationQueued ? 1 : 0) +
-        (taskState.isTranslationRunning ? 1 : 0);
-    if (songTaskCount == 0) continue;
-
-    taskCount += songTaskCount;
-    if (activeSong == null ||
-        taskState.isGenerationRunning ||
-        taskState.isTranslationRunning) {
-      activeSong = song;
-      activeStatusLabel = taskState.activeStatusLabel;
-    }
-  }
-
-  return LyricsTaskQueueSummary(
-    taskCount: taskCount,
-    activeSong: activeSong,
-    activeStatusLabel: activeStatusLabel,
-  );
-});
-
-final lyricsGenerationDisplayStateProvider =
-    Provider<LyricsGenerationDisplayState>((ref) {
-      ref.watch(lyricsControllerProvider.select((state) => state.revision));
-      return ref
-          .read(lyricsControllerProvider.notifier)
-          .activeLyricsGenerationDisplayState;
-    });
 
 final lyricsDisplayLinesProvider =
     Provider.family<List<LyricLine>, MusicLyric?>((ref, baseLyrics) {

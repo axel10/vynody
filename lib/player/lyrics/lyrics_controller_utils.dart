@@ -12,7 +12,6 @@ import 'package:vibe_flow/player/lyrics/lyrics_controller_context.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
 import 'package:vibe_flow/player/metadata/metadata_helper.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
 
 class LyricsControllerSupport {
   LyricsControllerSupport(this._context);
@@ -20,7 +19,7 @@ class LyricsControllerSupport {
   final LyricsControllerContext _context;
 
   String lyricsProviderTag() {
-    return _context.settingsService.lyricsAiProvider.storageValue;
+    return _context.lyricsAiService.currentGenerationProviderTag;
   }
 
   void cancelOngoingLyricsFetch({String? reason}) {

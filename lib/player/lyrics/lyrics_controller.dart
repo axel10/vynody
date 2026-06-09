@@ -65,14 +65,18 @@ class LyricsController extends Notifier<LyricsControllerState> {
       cacheRepository: _lyricsCacheRepository,
     );
     _settingsService = ref.read(settingsServiceProvider);
-    ref.listen(settingsServiceProvider, (previous, next) {
-      final effectiveLanguageCode =
-          next.effectiveLyricsTranslationTargetLanguageCode;
-      if (state.lyricsTranslationLanguageCode == effectiveLanguageCode) {
+    final effectiveLanguageCode = ref.watch(
+      lyricsTranslationLanguageCodeProvider,
+    );
+    ref.listen<String>(lyricsTranslationLanguageCodeProvider, (
+      previous,
+      next,
+    ) {
+      if (state.lyricsTranslationLanguageCode == next) {
         return;
       }
       state = state.copyWith(
-        lyricsTranslationLanguageCode: effectiveLanguageCode,
+        lyricsTranslationLanguageCode: next,
       );
     });
     _lyricsAiService = ref.read(lyricsAiServiceProvider);
@@ -87,7 +91,6 @@ class LyricsController extends Notifier<LyricsControllerState> {
       lyricsCacheRepository: _lyricsCacheRepository,
       lyricsService: _lyricsService,
       lyricsAiService: _lyricsAiService,
-      settingsService: _settingsService,
       getState: () => state,
       setState: (newState) => state = newState,
       clearState: ({bool notify = false, bool preserveTaskState = true}) =>
@@ -117,8 +120,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _generationCoordinator = LyricsGenerationCoordinator(_context, _support);
     _translationCoordinator = LyricsTranslationCoordinator(_context, _support);
     return LyricsControllerState(
-      lyricsTranslationLanguageCode:
-          _settingsService.effectiveLyricsTranslationTargetLanguageCode,
+      lyricsTranslationLanguageCode: effectiveLanguageCode,
     );
   }
 

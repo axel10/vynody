@@ -22,6 +22,34 @@ import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 
+final class LyricsAiRuntimeConfig {
+  const LyricsAiRuntimeConfig({
+    required this.generationPrimaryModel,
+    required this.generationFallbackModel,
+    required this.translationPrimaryModel,
+    required this.translationFallbackModel,
+    required this.geminiApiKey,
+    required this.openRouterApiKey,
+  });
+
+  final LyricsAiModelSelection generationPrimaryModel;
+  final LyricsAiModelSelection generationFallbackModel;
+  final LyricsAiModelSelection translationPrimaryModel;
+  final LyricsAiModelSelection translationFallbackModel;
+  final String geminiApiKey;
+  final String openRouterApiKey;
+
+  String apiKeyForProvider(LyricsAiProvider provider) {
+    return switch (provider) {
+      LyricsAiProvider.googleAiStudio => geminiApiKey,
+      LyricsAiProvider.openRouter => openRouterApiKey,
+    };
+  }
+
+  String get activeGenerationProviderTag =>
+      generationPrimaryModel.provider.storageValue;
+}
+
 class _LyricsGenerationOutcome {
   const _LyricsGenerationOutcome({
     required this.result,
@@ -33,9 +61,9 @@ class _LyricsGenerationOutcome {
 class LyricsAiService {
   LyricsAiService({
     NetworkClient? client,
-    required SettingsService settingsService,
+    required LyricsAiRuntimeConfig Function() readConfig,
   }) : _client = client ?? NetworkClient.instance,
-       _settingsService = settingsService,
+       _readConfig = readConfig,
        _geminiApiClient = GeminiLyricsApiClient(client: client),
        _openRouterClient = LyricsAiOpenRouterClient(
          client: client,
@@ -43,7 +71,7 @@ class LyricsAiService {
        );
 
   final NetworkClient _client;
-  final SettingsService _settingsService;
+  final LyricsAiRuntimeConfig Function() _readConfig;
   final GeminiLyricsApiClient _geminiApiClient;
   final LyricsAiOpenRouterClient _openRouterClient;
   final LyricsAiStreamTextParser _streamParser = LyricsAiStreamTextParser();
@@ -55,17 +83,21 @@ class LyricsAiService {
   );
 
   LyricsAiModelSelection get _generationPrimaryModel =>
-      _settingsService.generationPrimaryModel;
+      _readConfig().generationPrimaryModel;
   LyricsAiModelSelection get _generationFallbackModel =>
-      _settingsService.generationFallbackModel;
+      _readConfig().generationFallbackModel;
   LyricsAiModelSelection get _translationPrimaryModel =>
-      _settingsService.translationPrimaryModel;
+      _readConfig().translationPrimaryModel;
   LyricsAiModelSelection get _translationFallbackModel =>
-      _settingsService.translationFallbackModel;
+      _readConfig().translationFallbackModel;
+
+  LyricsAiRuntimeConfig get _config => _readConfig();
 
   String get currentGenerationModelLabel {
     return _modelLabel(_generationPrimaryModel);
   }
+
+  String get currentGenerationProviderTag => _config.activeGenerationProviderTag;
 
   String _googleModelLabel(String modelId) {
     return 'Google AI Studio · ${SettingsService.lyricsModelDisplayName(modelId)}';
@@ -163,7 +195,7 @@ class LyricsAiService {
 
     String? lastError;
     for (final candidate in candidates) {
-      final apiKey = _settingsService.apiKeyForProvider(candidate.provider).trim();
+      final apiKey = _config.apiKeyForProvider(candidate.provider).trim();
       if (apiKey.isEmpty) {
         lastError = _missingApiKeyMessage(
           candidate.provider,
@@ -249,7 +281,7 @@ class LyricsAiService {
     ];
     String? lastError;
     for (final candidate in candidates) {
-      final apiKey = _settingsService.apiKeyForProvider(candidate.provider).trim();
+      final apiKey = _config.apiKeyForProvider(candidate.provider).trim();
       if (apiKey.isEmpty) {
         lastError = _missingApiKeyMessage(
           candidate.provider,
@@ -348,7 +380,7 @@ class LyricsAiService {
     ];
     String? lastError;
     for (final candidate in candidates) {
-      final apiKey = _settingsService.apiKeyForProvider(candidate.provider).trim();
+      final apiKey = _config.apiKeyForProvider(candidate.provider).trim();
       if (apiKey.isEmpty) {
         lastError = _missingApiKeyMessage(
           candidate.provider,
@@ -1231,7 +1263,7 @@ class LyricsAiService {
       return null;
     }
 
-    final fallbackApiKey = _settingsService.openRouterApiKey.trim();
+    final fallbackApiKey = _config.openRouterApiKey.trim();
     if (fallbackApiKey.isEmpty) {
       return null;
     }

@@ -34,6 +34,17 @@ final class LyricsAiModelSelection {
       modelId: modelId ?? this.modelId,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is LyricsAiModelSelection &&
+            other.provider == provider &&
+            other.modelId == modelId;
+  }
+
+  @override
+  int get hashCode => Object.hash(provider, modelId);
 }
 
 enum SmallWindowBottomPanelMode { collapsed, queue, lyrics }

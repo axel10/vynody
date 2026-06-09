@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../l10n/app_localizations.dart';
+import 'package:vibe_flow/models/music_file.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_generation_display_state.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_riverpod.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_task_queue_summary.dart';
 
@@ -26,10 +29,51 @@ class LyricsTaskStatusBanner extends ConsumerStatefulWidget {
 class _LyricsTaskStatusBannerState extends ConsumerState<LyricsTaskStatusBanner> {
   bool _isHovered = false;
 
+  LyricsTaskQueueSummary _readSummary() {
+    final queue = ref.read(audioPlaybackQueueProvider);
+    final controller = ref.read(lyricsControllerProvider.notifier);
+
+    var taskCount = 0;
+    var activeStatusLabel = '';
+    MusicFile? activeSong;
+
+    for (final song in queue) {
+      final taskState = controller.taskStateForSong(song.path);
+      final songTaskCount =
+          (taskState.isGenerationQueued ? 1 : 0) +
+          (taskState.isGenerationRunning ? 1 : 0) +
+          (taskState.isTranslationQueued ? 1 : 0) +
+          (taskState.isTranslationRunning ? 1 : 0);
+      if (songTaskCount == 0) {
+        continue;
+      }
+
+      taskCount += songTaskCount;
+      if (activeSong == null ||
+          taskState.isGenerationRunning ||
+          taskState.isTranslationRunning) {
+        activeSong = song;
+        activeStatusLabel = taskState.activeStatusLabel;
+      }
+    }
+
+    return LyricsTaskQueueSummary(
+      taskCount: taskCount,
+      activeSong: activeSong,
+      activeStatusLabel: activeStatusLabel,
+    );
+  }
+
+  LyricsGenerationDisplayState _readGenerationState() {
+    return ref
+        .read(lyricsControllerProvider.notifier)
+        .activeLyricsGenerationDisplayState;
+  }
+
   @override
   void didUpdateWidget(covariant LyricsTaskStatusBanner oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final summary = ref.read(lyricsTaskQueueSummaryProvider);
+    final summary = _readSummary();
     if (!summary.isBusy) {
       _isHovered = false;
     }
@@ -37,9 +81,11 @@ class _LyricsTaskStatusBannerState extends ConsumerState<LyricsTaskStatusBanner>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(audioPlaybackQueueProvider);
+    ref.watch(lyricsControllerProvider.select((state) => state.revision));
     final l10n = AppLocalizations.of(context)!;
-    final summary = ref.watch(lyricsTaskQueueSummaryProvider);
-    final generationState = ref.watch(lyricsGenerationDisplayStateProvider);
+    final summary = _readSummary();
+    final generationState = _readGenerationState();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final accent = colorScheme.primary;
