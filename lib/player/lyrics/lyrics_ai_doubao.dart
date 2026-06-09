@@ -15,12 +15,16 @@ import 'package:dio/dio.dart'
         ResponseType;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:audio_core/audio_core.dart';
 
 import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
 import 'package:vibe_flow/utils/lrc_utils.dart';
 import 'package:vibe_flow/utils/localized_text.dart';
 import 'package:vibe_flow/utils/network_client.dart';
+import 'package:vibe_flow/transcode/transcode_models.dart';
+import 'package:vibe_flow/transcode/transcode_service.dart';
 
 final class DoubaoFileUploadResult {
   const DoubaoFileUploadResult({
@@ -38,16 +42,18 @@ class LyricsAiDoubaoClient {
   LyricsAiDoubaoClient({
     NetworkClient? client,
     LyricsAiStreamTextParser? streamParser,
+    TranscodeService? transcodeService,
   }) : _client = client ?? NetworkClient.instance,
-       _streamParser = streamParser ?? LyricsAiStreamTextParser();
+       _streamParser = streamParser ?? LyricsAiStreamTextParser(),
+       _transcodeService = transcodeService ?? TranscodeService();
 
   final NetworkClient _client;
   final LyricsAiStreamTextParser _streamParser;
+  final TranscodeService _transcodeService;
 
   Future<DoubaoFileUploadResult?> uploadFile({
     required File file,
     required String apiKey,
-    required String mimeType,
     void Function(double progress)? onUploadProgress,
     CancelToken? cancelToken,
   }) async {
@@ -177,17 +183,26 @@ class LyricsAiDoubaoClient {
         '输出这首歌的完整的带时间轴的标准LRC格式歌词,每一行歌词前面都带有一个方括号包裹的时间点，格式通常为：[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。'
         '仅输出结果不输出其他内容。';
 
-    return _generateFromAudioFile(
-      apiKey: apiKey,
-      file: file,
-      modelId: modelId,
-      prompt: prompt,
-      onUploadProgress: onUploadProgress,
-      onStageChanged: onStageChanged,
-      onProgress: onProgress,
-      cancelToken: cancelToken,
-      preserveTimestamps: true,
-    );
+    _PreparedUploadAudio? preparedUpload;
+    try {
+      preparedUpload = await _prepareDoubaoUploadFile(
+        inputFile: file,
+        onStageChanged: onStageChanged,
+      );
+      return await _generateFromAudioFile(
+        apiKey: apiKey,
+        file: preparedUpload.file,
+        modelId: modelId,
+        prompt: prompt,
+        onUploadProgress: onUploadProgress,
+        onStageChanged: onStageChanged,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+        preserveTimestamps: true,
+      );
+    } finally {
+      await _deleteIfExists(preparedUpload?.tempFile);
+    }
   }
 
   Future<LyricsGenerationResult> generateTimelineFromLyrics({
@@ -242,6 +257,62 @@ class LyricsAiDoubaoClient {
       cancelToken: cancelToken,
       preserveTimestamps: true,
     );
+  }
+
+  Future<_PreparedUploadAudio> _prepareDoubaoUploadFile({
+    required File inputFile,
+    void Function(String stage)? onStageChanged,
+  }) async {
+    if (_isMp3File(inputFile.path)) {
+      return _PreparedUploadAudio(file: inputFile);
+    }
+
+    onStageChanged?.call('transcoding');
+    final tempDir = await getTemporaryDirectory();
+    final draft = TranscodeDraft(
+      outputFormat: AudioFormat.mp3,
+      qualityTier: TranscodeQualityTier.high,
+      bitRate: 320000,
+      bitRateMode: BitRateMode.cbr,
+      valueOrigin: TranscodeValueOrigin.customized,
+      outputDirectory: tempDir.path,
+      useSystemEncoder: false,
+      aacEncoder: AacEncoder.ffmpeg,
+    );
+    final result = await _transcodeService.convertToOutputDirectory(
+      inputPath: inputFile.path,
+      draft: draft,
+    );
+    if (!result.result.success || result.result.outputPath == null) {
+      throw Exception(
+        _t('豆包上传前音频转码失败。', 'Audio transcoding failed before Doubao upload.'),
+      );
+    }
+
+    final outputPath = result.result.outputPath!;
+    final outputFile = File(outputPath);
+    if (!outputFile.path.startsWith(tempDir.path)) {
+      throw Exception(
+        _t(
+          '豆包临时转码文件未生成在临时目录。',
+          'The temporary transcoded file was not created in the temp directory.',
+        ),
+      );
+    }
+    return _PreparedUploadAudio(file: outputFile, tempFile: outputFile);
+  }
+
+  bool _isMp3File(String filePath) {
+    return p.extension(filePath).toLowerCase() == '.mp3';
+  }
+
+  Future<void> _deleteIfExists(File? file) async {
+    if (file == null) return;
+    try {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
   }
 
   Future<String?> translateLyricsStream({
@@ -388,11 +459,9 @@ class LyricsAiDoubaoClient {
     try {
       onStageChanged?.call('uploading');
       debugPrint('[DoubaoLyrics] uploading file: ${file.path}');
-      final mimeType = _mimeTypeForFilePath(file.path);
       final uploadedFile = await uploadFile(
         file: file,
         apiKey: apiKey,
-        mimeType: mimeType,
         onUploadProgress: onUploadProgress,
         cancelToken: cancelToken,
       );
@@ -545,33 +614,6 @@ class LyricsAiDoubaoClient {
     );
   }
 
-  String _mimeTypeForFilePath(String filePath) {
-    switch (p.extension(filePath).toLowerCase()) {
-      case '.mp3':
-        return 'audio/mpeg';
-      case '.m4a':
-      case '.mp4':
-      case '.m4b':
-        return 'audio/mp4';
-      case '.flac':
-        return 'audio/flac';
-      case '.wav':
-        return 'audio/wav';
-      case '.aac':
-        return 'audio/aac';
-      case '.ogg':
-        return 'audio/ogg';
-      case '.opus':
-        return 'audio/opus';
-      case '.webm':
-        return 'audio/webm';
-      case '.wma':
-        return 'audio/x-ms-wma';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
   List<String> _splitLines(String text) {
     return text.split(RegExp(r'\r?\n'));
   }
@@ -668,4 +710,11 @@ class LyricsAiDoubaoClient {
   }
 
   String _t(String zh, String en) => localizedText(zh, en);
+}
+
+class _PreparedUploadAudio {
+  const _PreparedUploadAudio({required this.file, this.tempFile});
+
+  final File file;
+  final File? tempFile;
 }
