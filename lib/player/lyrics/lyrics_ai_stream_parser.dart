@@ -70,6 +70,24 @@ class LyricsAiStreamTextParser {
     return null;
   }
 
+  String? extractDoubaoDeltaText(dynamic raw) {
+    final decoded = _decodeRaw(raw);
+    if (decoded is! Map) {
+      return null;
+    }
+
+    final type = decoded['type']?.toString().trim();
+    if (type != 'response.output_text.delta') {
+      return null;
+    }
+
+    final delta = decoded['delta'];
+    if (delta is String && delta.isNotEmpty) {
+      return delta;
+    }
+    return null;
+  }
+
   bool looksLikeRefusalText(String text) {
     return _refusalPattern.hasMatch(text.trim());
   }
@@ -78,6 +96,20 @@ class LyricsAiStreamTextParser {
     return raw.contains('"reasoning"') ||
         raw.contains('"reasoning_details"') ||
         raw.contains('"refusal"');
+  }
+
+  dynamic _decodeRaw(dynamic raw) {
+    if (raw is Map || raw is List) {
+      return raw;
+    }
+    if (raw is! String) {
+      return null;
+    }
+    try {
+      return jsonDecode(raw);
+    } catch (_) {
+      return null;
+    }
   }
 
   String? _extractTextFromDecoded(dynamic decoded) {
