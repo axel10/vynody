@@ -221,6 +221,37 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  Widget _buildProviderIcon(LyricsAiProvider provider) {
+    final String iconPath = switch (provider) {
+      LyricsAiProvider.googleAiStudio => 'assets/icons/lyrics/google.png',
+      LyricsAiProvider.openRouter => 'assets/icons/lyrics/openrouter.png',
+      LyricsAiProvider.doubao => 'assets/icons/lyrics/doubao.png',
+      LyricsAiProvider.deepseek => 'assets/icons/lyrics/deepseek.png',
+    };
+
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.all(5),
+      child: Image.asset(
+        iconPath,
+        fit: BoxFit.contain,
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title, [String? description]) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
@@ -871,8 +902,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         _buildLyricsTranslationLanguageSection(context, settings),
         ListTile(
-          isThreeLine: true,
-          leading: const Icon(Icons.key),
+          leading: _buildProviderIcon(LyricsAiProvider.googleAiStudio),
           title: const Text('Google AI Studio API Key'),
           subtitle: Text(
             settings.geminiApiKey.trim().isEmpty
@@ -908,8 +938,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         ),
         ListTile(
-          isThreeLine: true,
-          leading: const Icon(Icons.vpn_key_outlined),
+          leading: _buildProviderIcon(LyricsAiProvider.openRouter),
           title: const Text('OpenRouter API Key'),
           subtitle: Text(
             settings.openRouterApiKey.trim().isEmpty
@@ -946,8 +975,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         ),
         ListTile(
-          isThreeLine: true,
-          leading: const Icon(Icons.auto_awesome),
+          leading: _buildProviderIcon(LyricsAiProvider.doubao),
           title: const Text('豆包 API Key'),
           subtitle: Text(
             settings.doubaoApiKey.trim().isEmpty
@@ -982,8 +1010,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         ),
         ListTile(
-          isThreeLine: true,
-          leading: const Icon(Icons.bolt),
+          leading: _buildProviderIcon(LyricsAiProvider.deepseek),
           title: const Text('DeepSeek API Key'),
           subtitle: Text(
             settings.deepseekApiKey.trim().isEmpty
