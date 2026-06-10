@@ -1061,7 +1061,32 @@ class _LyricsApiKeyWizardDialogState
         FilledButton(
           onPressed: _selectedProvider == null
               ? null
-              : () {
+              : () async {
+                  if (_selectedProvider == LyricsAiProvider.deepseek) {
+                    final proceed = await showDialog<bool>(
+                      context: context,
+                      builder: (dialogContext) {
+                        return AlertDialog(
+                          title: const Text('提示'),
+                          content: const Text(
+                            'DeepSeek 不支持歌词/时间轴生成，后续如果需要用到歌词/时间轴生成功能则需另外填入其他平台 API Key。',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(dialogContext).pop(false),
+                              child: const Text('取消'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(dialogContext).pop(true),
+                              child: const Text('继续'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                    if (proceed != true) return;
+                  }
+                  if (!mounted) return;
                   setState(() {
                     _currentPage = 3;
                   });
