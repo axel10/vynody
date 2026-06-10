@@ -765,7 +765,8 @@ class _LyricsApiKeyWizardDialogState
                     child: Padding(
                       padding: EdgeInsets.only(right: colIndex < rowItems.length - 1 ? 10.0 : 0.0),
                       child: Card(
-                        elevation: isSelected ? 2 : 0,
+                        elevation: 0,
+                        surfaceTintColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                           side: BorderSide(
