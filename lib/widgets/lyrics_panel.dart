@@ -10,7 +10,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:vibe_flow/models/lyric_line.dart';
 import 'package:vibe_flow/models/music_lyric.dart';
 import '../l10n/app_localizations.dart';
-import '../dialogs/gemini_api_key_dialog.dart';
+import '../dialogs/ai_guide_dialog.dart';
 import '../dialogs/manual_lyrics_dialog.dart';
 import '../dialogs/online_lyrics_search_dialog.dart';
 import '../dialogs/timeline_adjustment_dialog.dart';

@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../dialogs/acoustid_api_key_dialog.dart';
-import '../dialogs/gemini_api_key_dialog.dart';
+import '../dialogs/ai_guide_dialog.dart';
 import '../dialogs/shortcut_settings_dialog.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/player/ai/lyrics_model_catalog_service.dart';
