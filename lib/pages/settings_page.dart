@@ -424,20 +424,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               slot: LyricsAiModelSlot.fallback,
             ),
           ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                settings.resetLyricsAiModels();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l10n.restoreDefault)));
-              },
-              icon: const Icon(Icons.restart_alt),
-              label: Text(l10n.restoreDefault),
-            ),
-          ),
         ],
       ),
     );
