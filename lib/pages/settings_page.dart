@@ -176,6 +176,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         return _LyricsModelPickerDialog(
           ref: ref,
           purpose: purpose,
+          slot: slot,
           initialSelection: currentSelection,
         );
       },
@@ -1290,11 +1291,13 @@ class _LyricsModelPickerDialog extends ConsumerStatefulWidget {
   const _LyricsModelPickerDialog({
     required this.ref,
     required this.purpose,
+    required this.slot,
     required this.initialSelection,
   });
 
   final WidgetRef ref;
   final LyricsAiModelPurpose purpose;
+  final LyricsAiModelSlot slot;
   final LyricsAiModelSelection initialSelection;
 
   @override
@@ -1395,9 +1398,8 @@ class _LyricsModelPickerDialogState
       if (widget.purpose == LyricsAiModelPurpose.translation)
         LyricsAiProvider.deepseek,
     ].where(availableProviders.contains).toList(growable: false);
-    final canSave =
-        _selection.modelId.trim().isNotEmpty ||
-        _provider != _selection.provider;
+    final canSave = widget.slot == LyricsAiModelSlot.fallback ||
+        _selection.modelId.trim().isNotEmpty;
     final effectiveProvider = availableTabs.contains(_provider)
         ? _provider
         : (availableTabs.isNotEmpty
@@ -1508,20 +1510,21 @@ class _LyricsModelPickerDialogState
                     : ListView(
                         shrinkWrap: true,
                         children: [
-                          RadioListTile<String>(
-                            value: '',
-                            groupValue: _selection.modelId,
-                            title: const Text('留空'),
-                            subtitle: const Text('不设置备用模型时可选择此项。'),
-                            onChanged: (value) {
-                              setState(() {
-                                _selection = LyricsAiModelSelection(
-                                  provider: _provider,
-                                  modelId: value ?? '',
-                                );
-                              });
-                            },
-                          ),
+                          if (widget.slot == LyricsAiModelSlot.fallback)
+                            RadioListTile<String>(
+                              value: '',
+                              groupValue: _selection.modelId,
+                              title: const Text('留空'),
+                              subtitle: const Text('不设置备用模型时可选择此项。'),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selection = LyricsAiModelSelection(
+                                    provider: _provider,
+                                    modelId: value ?? '',
+                                  );
+                                });
+                              },
+                            ),
                           for (final model in _filteredModels)
                             RadioListTile<String>(
                               value: model.id,
