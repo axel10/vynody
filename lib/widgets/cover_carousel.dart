@@ -25,7 +25,7 @@ class CoverCarousel extends StatefulWidget {
   final int currentIndex;
   final AudioService audioService;
   final Function(int)? onPageChanged;
-  final ValueChanged<Uint8List?>? onAnimationComplete;
+  final void Function(Uint8List? artworkBytes, String? sourcePath)? onAnimationComplete;
   final bool isLandscape;
   final bool? isNext;
   final double? displaySize;
@@ -139,12 +139,12 @@ class _CoverCarouselState extends State<CoverCarousel>
     final loadedBytes = _loadedCovers[page]?.bytes ?? currentSong.artworkBytes;
 
     if (loadedBytes != null) {
-      widget.onAnimationComplete?.call(loadedBytes);
+      widget.onAnimationComplete?.call(loadedBytes, currentSong.path);
       return;
     }
 
     if (currentSong.artworkBytes == null && currentSong.artworkPath == null) {
-      widget.onAnimationComplete?.call(null);
+      widget.onAnimationComplete?.call(null, currentSong.path);
     }
   }
 
@@ -258,7 +258,7 @@ class _CoverCarouselState extends State<CoverCarousel>
               _loadedCovers[index] = (bytes: bytes, path: path);
               // 如果是当前播放曲目的封面加载完成，通知背景更新
               if (actualIndex == widget.currentIndex && bytes != null) {
-                widget.onAnimationComplete?.call(bytes);
+                widget.onAnimationComplete?.call(bytes, widget.playlist[actualIndex].path);
               }
             },
           );
@@ -426,16 +426,17 @@ class _CoverItemState extends State<_CoverItem> {
         final double opacity = (1 - pageOffset.abs() * 1.2).clamp(0.0, 1.0);
         final double scale = (1 - (pageOffset.abs() * 0.3)).clamp(0.8, 1.0);
         final double rotationY = pageOffset * -0.3;
-        
+
         // Round translation to nearest physical pixel to avoid blurriness
         final double rawTranslateX = pageOffset * -widget.width;
-        final double translateX = (rawTranslateX * devicePixelRatio).round() / devicePixelRatio;
+        final double translateX =
+            (rawTranslateX * devicePixelRatio).round() / devicePixelRatio;
 
         // Snapping scale to 1.0 and rotation to 0.0 when very close to 0 to ensure pixel-perfect rendering
         final bool isCentered = pageOffset.abs() < 0.001;
         final double effectiveScale = isCentered ? 1.0 : scale;
         final double effectiveRotationY = isCentered ? 0.0 : rotationY;
-        
+
         // Only apply perspective if there is actual rotation
         final double perspective = effectiveRotationY != 0 ? 0.001 : 0.0;
 
@@ -448,7 +449,12 @@ class _CoverItemState extends State<_CoverItem> {
                 ..setEntry(3, 2, perspective)
                 ..translateByDouble(translateX, 0, 0, 1.0)
                 ..rotateY(effectiveRotationY)
-                ..scaleByDouble(effectiveScale, effectiveScale, effectiveScale, 1.0),
+                ..scaleByDouble(
+                  effectiveScale,
+                  effectiveScale,
+                  effectiveScale,
+                  1.0,
+                ),
               child: Center(
                 child: AspectRatio(
                   aspectRatio: 1,
@@ -501,8 +507,10 @@ class _CoverItemState extends State<_CoverItem> {
     final int cacheSize = isAnimating
         ? (rawSize / 20).round() * 20
         : rawSize.round();
-    
-    final int? finalCacheWidth = cacheSize >= 40 ? math.min(cacheSize, limit) : null;
+
+    final int? finalCacheWidth = cacheSize >= 40
+        ? math.min(cacheSize, limit)
+        : null;
 
     final cachedBytes = widget.audioService.getCachedArtwork(
       widget.musicFile.path,
@@ -554,7 +562,9 @@ class _CoverItemState extends State<_CoverItem> {
             height: double.infinity,
             gaplessPlayback: true,
             cacheWidth: finalCacheWidth,
-            filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
+            filterQuality: isCentered
+                ? FilterQuality.low
+                : FilterQuality.medium,
           );
         }
       }
@@ -570,7 +580,9 @@ class _CoverItemState extends State<_CoverItem> {
             height: double.infinity,
             gaplessPlayback: true,
             cacheWidth: finalCacheWidth,
-            filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
+            filterQuality: isCentered
+                ? FilterQuality.low
+                : FilterQuality.medium,
           );
         }
       }

@@ -46,6 +46,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   double _scrubProgress = 0.0; // Added missing declaration
   Orientation? _lastOrientation;
   Uint8List? _pendingArtworkBytes;
+  String? _pendingArtworkPath;
   Timer? _heroWarmupTimer;
 
   SettingsService? _settingsService;
@@ -59,6 +60,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _pendingArtworkBytes = ref.read(audioCurrentMusicProvider)?.artworkBytes;
+      _pendingArtworkPath = ref.read(audioCurrentMusicProvider)?.path;
       ref.read(settingsServiceProvider).resetInactivity();
       if (mounted) {
         setState(() {});
@@ -113,13 +115,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     _startInactivityTimer();
   }
 
-  void _onCarouselAnimationComplete(Uint8List? artworkBytes) {
+  void _onCarouselAnimationComplete(Uint8List? artworkBytes, String? sourcePath) {
     if (!mounted) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
         _pendingArtworkBytes = artworkBytes;
+        _pendingArtworkPath = sourcePath;
       });
     });
   }
@@ -757,6 +760,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       if (isSmallWin) {
         setState(() {
           _pendingArtworkBytes = next?.artworkBytes;
+          _pendingArtworkPath = next?.path;
         });
       }
     });
@@ -1442,15 +1446,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 if (bytes == null) {
                   // 如果封面字节尚未准备好（或不存在），则显示纯黑背景。
                   content = Container(
-                    key: ValueKey('bg_empty_$finalSuffix'),
+                    key: ValueKey('bg_empty_${_pendingArtworkPath}_$finalSuffix'),
                     color: Colors.black,
-                    width: double.infinity,
-                    height: double.infinity,
                   );
                 } else {
                   // 使用 Image.memory 的高性能解码缩放：
                   // 对于 Android 和 iOS，通过设置 cacheWidth (300px) 在解码阶段完成缩小，以降低内存并加速滤镜运算；
                   // 对于桌面端，使用原图（cacheWidth 为 null）以提供更清晰的背景。
+                  final currentMusic = ref.watch(audioCurrentMusicProvider);
+                  final String songKey = _pendingArtworkPath ?? currentMusic?.path ?? bytes.hashCode.toString();
                   final imageProvider = Image.memory(
                     bytes,
                     width: double.infinity,
@@ -1465,8 +1469,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   );
 
                   content = ImageFiltered(
-                    // 使用字节流的哈希值作为 Key，确保切歌或更换封面时能正确触发平滑过渡动画。
-                    key: ValueKey('${bytes.hashCode}_$finalSuffix'),
+                    // 使用歌曲路径或哈希值作为 Key，确保切歌时触发过渡动画，但封面精度提升时不触发
+                    key: ValueKey('${songKey}_$finalSuffix'),
                     // 减小模糊强度并增加缩放以更好地覆盖边缘
                     imageFilter: ui.ImageFilter.blur(
                       sigmaX: settings.playbackBlurredArtworkBlurSigma,
