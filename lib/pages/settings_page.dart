@@ -1313,10 +1313,12 @@ class _LyricsModelPickerDialogState
   final Map<LyricsAiProvider, List<LyricsModelInfo>> _modelsByProvider = {};
   final Map<LyricsAiProvider, String> _statusTextByProvider = {};
   final Set<LyricsAiProvider> _loadedProviders = {};
-  bool _isLoading = false;
+  final Set<LyricsAiProvider> _loadingProviders = {};
   String _statusText = '';
   String _searchQuery = '';
   bool _showRecommendedOnly = true;
+
+  bool get _isLoading => _loadingProviders.contains(_provider);
 
   @override
   void initState() {
@@ -1333,43 +1335,64 @@ class _LyricsModelPickerDialogState
   }
 
   Future<void> _fetchModels() async {
-    if (_loadedProviders.contains(_provider)) {
+    final targetProvider = _provider;
+    if (_loadedProviders.contains(targetProvider)) {
       setState(() {
-        _modelsByProvider[_provider] ??= const [];
-        _statusText = _statusTextByProvider[_provider] ?? '';
-        _isLoading = false;
+        _statusText = _statusTextByProvider[targetProvider] ?? '';
       });
+      return;
+    }
+    if (_loadingProviders.contains(targetProvider)) {
       return;
     }
 
     final settings = ref.read(settingsServiceProvider);
     setState(() {
-      _isLoading = true;
-      _statusText = '';
-    });
-    final result = await ref
-        .read(lyricsModelCatalogServiceProvider)
-        .fetchModels(
-          provider: _provider,
-          purpose: widget.purpose,
-          apiKey: settings.apiKeyForProvider(_provider),
-        );
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _isLoading = false;
-      _statusText = result.message;
-      _modelsByProvider[_provider] = result.models;
-      _statusTextByProvider[_provider] = result.message;
-      _loadedProviders.add(_provider);
-      final hasCurrent = result.models.any(
-        (item) => item.id == _selection.modelId,
-      );
-      if (!hasCurrent) {
-        _selection = _selection.copyWith(modelId: '');
+      _loadingProviders.add(targetProvider);
+      if (_provider == targetProvider) {
+        _statusText = '';
       }
     });
+
+    try {
+      final result = await ref
+          .read(lyricsModelCatalogServiceProvider)
+          .fetchModels(
+            provider: targetProvider,
+            purpose: widget.purpose,
+            apiKey: settings.apiKeyForProvider(targetProvider),
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _loadingProviders.remove(targetProvider);
+        _modelsByProvider[targetProvider] = result.models;
+        _statusTextByProvider[targetProvider] = result.message;
+        _loadedProviders.add(targetProvider);
+
+        if (_provider == targetProvider) {
+          _statusText = result.message;
+          final hasCurrent = result.models.any(
+            (item) => item.id == _selection.modelId,
+          );
+          if (!hasCurrent) {
+            _selection = _selection.copyWith(modelId: '');
+          }
+        }
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _loadingProviders.remove(targetProvider);
+        _statusTextByProvider[targetProvider] = e.toString();
+        if (_provider == targetProvider) {
+          _statusText = e.toString();
+        }
+      });
+    }
   }
 
   bool _isModelRecommended(LyricsModelInfo model) {
@@ -1455,7 +1478,6 @@ class _LyricsModelPickerDialogState
                     _searchQuery = '';
                     _searchController.clear();
                     _statusText = _statusTextByProvider[provider] ?? '';
-                    _isLoading = false;
                   });
                   _fetchModels();
                 },
