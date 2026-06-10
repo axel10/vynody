@@ -1161,13 +1161,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'No OpenRouter API key is saved yet. Lyric generation and timeline generation will prompt you first.';
 
   @override
+  String get apiKeySavedStatus => 'Saved';
+
+  @override
+  String get apiKeyMissingStatus => 'Not filled';
+
+  @override
+  String get platformApiKeysSectionTitle => 'Platform API Keys';
+
+  @override
   String get fill => 'Fill in';
 
   @override
   String get modify => 'Modify';
 
   @override
-  String get geminiModelsSectionTitle => 'Gemini Models';
+  String get geminiModelsSectionTitle => 'Select Model';
 
   @override
   String get geminiModelsSectionDescription =>

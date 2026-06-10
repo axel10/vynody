@@ -2222,6 +2222,24 @@ abstract class AppLocalizations {
   /// **'当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。'**
   String get openRouterApiKeyMissing;
 
+  /// No description provided for @apiKeySavedStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'已保存'**
+  String get apiKeySavedStatus;
+
+  /// No description provided for @apiKeyMissingStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'未填写'**
+  String get apiKeyMissingStatus;
+
+  /// No description provided for @platformApiKeysSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'平台 API Key'**
+  String get platformApiKeysSectionTitle;
+
   /// No description provided for @fill.
   ///
   /// In zh, this message translates to:
@@ -2237,7 +2255,7 @@ abstract class AppLocalizations {
   /// No description provided for @geminiModelsSectionTitle.
   ///
   /// In zh, this message translates to:
-  /// **'Gemini 模型'**
+  /// **'选择模型'**
   String get geminiModelsSectionTitle;
 
   /// No description provided for @geminiModelsSectionDescription.

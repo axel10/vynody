@@ -902,13 +902,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           l10n.lyricsSectionDescription,
         ),
         _buildLyricsTranslationLanguageSection(context, settings),
+        _buildSectionHeader(l10n.platformApiKeysSectionTitle),
         ListTile(
           leading: _buildProviderIcon(LyricsAiProvider.googleAiStudio),
           title: const Text('Google AI Studio API Key'),
           subtitle: Text(
             settings.geminiApiKey.trim().isEmpty
-                ? l10n.googleAiStudioApiKeyMissing
-                : l10n.googleAiStudioApiKeySaved,
+                ? l10n.apiKeyMissingStatus
+                : l10n.apiKeySavedStatus,
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
@@ -943,8 +944,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           title: const Text('OpenRouter API Key'),
           subtitle: Text(
             settings.openRouterApiKey.trim().isEmpty
-                ? l10n.openRouterApiKeyMissing
-                : l10n.openRouterApiKeySaved,
+                ? l10n.apiKeyMissingStatus
+                : l10n.apiKeySavedStatus,
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
@@ -980,8 +981,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           title: const Text('豆包 API Key'),
           subtitle: Text(
             settings.doubaoApiKey.trim().isEmpty
-                ? '未保存豆包 API Key'
-                : '已保存豆包 API Key',
+                ? l10n.apiKeyMissingStatus
+                : l10n.apiKeySavedStatus,
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
@@ -1015,8 +1016,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           title: const Text('DeepSeek API Key'),
           subtitle: Text(
             settings.deepseekApiKey.trim().isEmpty
-                ? '未保存 DeepSeek API Key'
-                : '已保存 DeepSeek API Key',
+                ? l10n.apiKeyMissingStatus
+                : l10n.apiKeySavedStatus,
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
@@ -1047,7 +1048,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         _buildSectionHeader(
           l10n.geminiModelsSectionTitle,
-          '分别设置歌词生成和歌词翻译使用的主模型、备用模型，也可以切换到豆包和 DeepSeek。',
         ),
         if (!hasAnyProvider)
           Padding(

@@ -1127,13 +1127,22 @@ class AppLocalizationsZh extends AppLocalizations {
       '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。';
 
   @override
+  String get apiKeySavedStatus => '已保存';
+
+  @override
+  String get apiKeyMissingStatus => '未填写';
+
+  @override
+  String get platformApiKeysSectionTitle => '平台 API Key';
+
+  @override
   String get fill => '填写';
 
   @override
   String get modify => '修改';
 
   @override
-  String get geminiModelsSectionTitle => 'Gemini 模型';
+  String get geminiModelsSectionTitle => '选择模型';
 
   @override
   String get geminiModelsSectionDescription =>
