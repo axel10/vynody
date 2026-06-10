@@ -332,23 +332,33 @@ class LyricsAiDoubaoClient {
       lyrics: LyricsAiTranslationTextHelper.normalizeSourceLyrics(lyrics),
       targetLanguageCode: targetLanguageCode,
     );
+    debugPrint(
+      '[DoubaoLyrics] translation request modelId=$modelId '
+      'targetLanguageCode=$targetLanguageCode '
+      'sourceLineCount=${preparedLyrics.sourceLines.length} '
+      'targetLineCount=${preparedLyrics.targetLineCount}',
+    );
+    debugPrint('[DoubaoLyrics] translation request prompt:');
+    debugPrint(prompt);
 
     try {
+      final requestData = {
+        'model': modelId,
+        'top_p': 0.95,
+        'input': [
+          {
+            'role': 'user',
+            'content': [
+              {'type': 'input_text', 'text': prompt},
+            ],
+          },
+        ],
+        'stream': true,
+      };
+      debugPrint('[DoubaoLyrics] translation request payload: ${jsonEncode(requestData)}');
       final response = await _client.post(
         'https://ark.cn-beijing.volces.com/api/v3/responses',
-        data: {
-          'model': modelId,
-          'top_p': 0.95,
-          'input': [
-            {
-              'role': 'user',
-              'content': [
-                {'type': 'input_text', 'text': prompt},
-              ],
-            },
-          ],
-          'stream': true,
-        },
+        data: requestData,
         options: Options(
           responseType: ResponseType.stream,
           contentType: Headers.jsonContentType,
@@ -394,6 +404,8 @@ class LyricsAiDoubaoClient {
         return _t('豆包返回了空响应。', 'Doubao returned an empty response.');
       }
 
+      debugPrint('[DoubaoLyrics] translation result:');
+      debugPrint(processor.finalVisibleText);
       return null;
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) {

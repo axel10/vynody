@@ -184,6 +184,14 @@ class LyricsAiService {
       lyrics: LyricsAiTranslationTextHelper.normalizeSourceLyrics(lyrics),
       targetLanguageCode: targetLanguageCode,
     );
+    _logTranslationRequest(
+      providerLabel: 'LyricsAiService',
+      modelId: modelId?.trim().isNotEmpty == true
+          ? modelId!.trim()
+          : _translationPrimaryModel.modelId,
+      targetLanguageCode: targetLanguageCode,
+      prompt: prompt,
+    );
     final candidates = <LyricsAiModelSelection>[
       LyricsAiModelSelection(
         provider: _translationPrimaryModel.provider,
@@ -660,6 +668,13 @@ class LyricsAiService {
         'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent';
 
     try {
+      debugPrint(
+        '[LyricsAi] translation request provider=GoogleAIStudio '
+        'modelId=$modelId',
+      );
+      debugPrint(
+        '[LyricsAi] translation request payload: ${jsonEncode(requestData)}',
+      );
       final response = await _client.post(
         url,
         data: requestData,
@@ -736,6 +751,10 @@ class LyricsAiService {
           processor.finalVisibleText.trim().isEmpty) {
         return _t('Gemini 返回了空响应。', 'Gemini returned an empty response.');
       }
+      _logTranslationResult(
+        providerLabel: 'GoogleAIStudio',
+        translatedText: processor.finalVisibleText,
+      );
       return null;
     } on DioException catch (error) {
       if (CancelToken.isCancel(error)) {
@@ -781,20 +800,27 @@ class LyricsAiService {
       ),
     );
     try {
+      final requestData = {
+        'model': modelId,
+        'messages': [
+          {
+            'role': 'user',
+            'content': [
+              {'type': 'text', 'text': prompt},
+            ],
+          },
+        ],
+        'stream': true,
+      };
+      debugPrint(
+        '[LyricsAi] translation request provider=OpenRouter modelId=$modelId',
+      );
+      debugPrint(
+        '[LyricsAi] translation request payload: ${jsonEncode(requestData)}',
+      );
       final response = await _client.post(
         'https://openrouter.ai/api/v1/chat/completions',
-        data: {
-          'model': modelId,
-          'messages': [
-            {
-              'role': 'user',
-              'content': [
-                {'type': 'text', 'text': prompt},
-              ],
-            },
-          ],
-          'stream': true,
-        },
+        data: requestData,
         options: Options(
           responseType: ResponseType.stream,
           headers: {
@@ -849,6 +875,10 @@ class LyricsAiService {
           'OpenRouter returned an empty response.',
         );
       }
+      _logTranslationResult(
+        providerLabel: 'OpenRouter',
+        translatedText: processor.finalVisibleText,
+      );
       return null;
     } on DioException catch (error) {
       if (CancelToken.isCancel(error)) {
@@ -891,15 +921,22 @@ class LyricsAiService {
       ),
     );
     try {
+      final requestData = {
+        'model': modelId,
+        'messages': [
+          {'role': 'user', 'content': prompt},
+        ],
+        'stream': true,
+      };
+      debugPrint(
+        '[LyricsAi] translation request provider=DeepSeek modelId=$modelId',
+      );
+      debugPrint(
+        '[LyricsAi] translation request payload: ${jsonEncode(requestData)}',
+      );
       final response = await _client.post(
         'https://api.deepseek.com/chat/completions',
-        data: {
-          'model': modelId,
-          'messages': [
-            {'role': 'user', 'content': prompt},
-          ],
-          'stream': true,
-        },
+        data: requestData,
         options: Options(
           responseType: ResponseType.stream,
           headers: {
@@ -953,6 +990,10 @@ class LyricsAiService {
           processor.finalVisibleText.trim().isEmpty) {
         return _t('DeepSeek 返回了空响应。', 'DeepSeek returned an empty response.');
       }
+      _logTranslationResult(
+        providerLabel: 'DeepSeek',
+        translatedText: processor.finalVisibleText,
+      );
       return null;
     } on DioException catch (error) {
       if (CancelToken.isCancel(error)) {
@@ -1286,6 +1327,28 @@ class LyricsAiService {
     }
 
     return fallback ?? _t('未知错误', 'Unknown error');
+  }
+
+  void _logTranslationRequest({
+    required String providerLabel,
+    required String modelId,
+    required String targetLanguageCode,
+    required String prompt,
+  }) {
+    debugPrint(
+      '[LyricsAi] translation request provider=$providerLabel '
+      'modelId=$modelId targetLanguageCode=$targetLanguageCode',
+    );
+    debugPrint('[LyricsAi] translation request prompt:');
+    debugPrint(prompt);
+  }
+
+  void _logTranslationResult({
+    required String providerLabel,
+    required String translatedText,
+  }) {
+    debugPrint('[LyricsAi] translation result provider=$providerLabel:');
+    debugPrint(translatedText);
   }
 
   bool _isNetworkUnavailableError(DioException error) {
