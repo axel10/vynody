@@ -956,14 +956,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
-              final enteredApiKey = await showDialog<String?>(
-                context: context,
-                builder: (dialogContext) {
-                  return _SimpleApiKeyDialog(
-                    title: '输入豆包 API Key',
-                    initialValue: settings.doubaoApiKey,
-                  );
-                },
+              final enteredApiKey = await showDoubaoApiKeyDialog(
+                context,
+                ref: ref,
+                initialApiKey: settings.doubaoApiKey,
               );
               if (enteredApiKey == null) {
                 return;
@@ -996,14 +992,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
-              final enteredApiKey = await showDialog<String?>(
-                context: context,
-                builder: (dialogContext) {
-                  return _SimpleApiKeyDialog(
-                    title: '输入 DeepSeek API Key',
-                    initialValue: settings.deepseekApiKey,
-                  );
-                },
+              final enteredApiKey = await showDeepSeekApiKeyDialog(
+                context,
+                ref: ref,
+                initialApiKey: settings.deepseekApiKey,
               );
               if (enteredApiKey == null) {
                 return;
@@ -1264,65 +1256,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
 
     return content;
-  }
-}
-
-class _SimpleApiKeyDialog extends StatefulWidget {
-  const _SimpleApiKeyDialog({required this.title, required this.initialValue});
-
-  final String title;
-  final String initialValue;
-
-  @override
-  State<_SimpleApiKeyDialog> createState() => _SimpleApiKeyDialogState();
-}
-
-class _SimpleApiKeyDialogState extends State<_SimpleApiKeyDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final canSave = _controller.text.trim().isNotEmpty;
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        controller: _controller,
-        obscureText: true,
-        decoration: const InputDecoration(
-          labelText: 'API Key',
-          border: OutlineInputBorder(),
-        ),
-        onChanged: (_) => setState(() {}),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(''),
-          child: const Text('清空'),
-        ),
-        FilledButton(
-          onPressed: canSave
-              ? () => Navigator.of(context).pop(_controller.text.trim())
-              : null,
-          child: const Text('保存'),
-        ),
-      ],
-    );
   }
 }
 

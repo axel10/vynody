@@ -289,39 +289,53 @@ Future<String?> showOpenRouterApiKeyDialog(
 
 Future<String?> showDoubaoApiKeyDialog(
   BuildContext context, {
+  required WidgetRef ref,
   required String initialApiKey,
 }) async {
+  final service = ref.read(lyricsModelCatalogServiceProvider);
   final l10n = AppLocalizations.of(context)!;
-  return showDialog<String?>(
-    context: context,
-    builder: (dialogContext) {
-      return _ApiKeyDialog(
-        title: '输入豆包 API Key',
-        description: '请输入火山方舟 / 豆包的 API Key，用于歌词生成和翻译。',
-        hintText: '请输入 API Key',
-        testButtonLabel: l10n.testConnection,
-        saveButtonLabel: l10n.save,
-        emptyMessage: l10n.enterApiKey,
-        dialogActionLabel: l10n.cancel,
-        fieldLabel: l10n.apiKey,
-        getKeyButtonLabel: l10n.getKey,
-        initialApiKey: initialApiKey,
-        getKeyUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
-        testConnection: (apiKey) async {
-          return _ApiKeyDialogResult(
-            success: true,
-            message: '已输入 API Key，可直接保存。',
-          );
-        },
-      );
+  return _showApiKeyDialog(
+    context,
+    title: '输入豆包 API Key',
+    description: '请输入火山方舟 / 豆包的 API Key，用于歌词生成和翻译。',
+    hintText: '请输入 API Key',
+    testButtonLabel: l10n.testConnection,
+    saveButtonLabel: l10n.save,
+    emptyMessage: l10n.enterApiKey,
+    dialogActionLabel: l10n.cancel,
+    fieldLabel: l10n.apiKey,
+    getKeyButtonLabel: l10n.getKey,
+    initialApiKey: initialApiKey,
+    getKeyUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
+    testConnection: (apiKey) async {
+      try {
+        final result = await service.fetchModels(
+          provider: LyricsAiProvider.doubao,
+          purpose: LyricsAiModelPurpose.generation,
+          apiKey: apiKey,
+        );
+        return _ApiKeyDialogResult(
+          success: result.success,
+          message: result.success
+              ? '连接成功，检测到 ${result.models.length} 个模型。'
+              : result.message,
+        );
+      } catch (e) {
+        return _ApiKeyDialogResult(
+          success: false,
+          message: '连接测试异常：$e',
+        );
+      }
     },
   );
 }
 
 Future<String?> showDeepSeekApiKeyDialog(
   BuildContext context, {
+  required WidgetRef ref,
   required String initialApiKey,
 }) async {
+  final service = ref.read(lyricsModelCatalogServiceProvider);
   final l10n = AppLocalizations.of(context)!;
   return _showApiKeyDialog(
     context,
@@ -337,10 +351,24 @@ Future<String?> showDeepSeekApiKeyDialog(
     initialApiKey: initialApiKey,
     getKeyUrl: 'https://platform.deepseek.com/api_keys',
     testConnection: (apiKey) async {
-      return _ApiKeyDialogResult(
-        success: true,
-        message: '已输入 API Key，可直接保存。',
-      );
+      try {
+        final result = await service.fetchModels(
+          provider: LyricsAiProvider.deepseek,
+          purpose: LyricsAiModelPurpose.translation,
+          apiKey: apiKey,
+        );
+        return _ApiKeyDialogResult(
+          success: result.success,
+          message: result.success
+              ? '连接成功，检测到 ${result.models.length} 个模型。'
+              : result.message,
+        );
+      } catch (e) {
+        return _ApiKeyDialogResult(
+          success: false,
+          message: '连接测试异常：$e',
+        );
+      }
     },
   );
 }
@@ -394,10 +422,12 @@ Future<String?> showLyricsProviderApiKeyDialog(
     ),
     LyricsAiProvider.doubao => showDoubaoApiKeyDialog(
       context,
+      ref: ref,
       initialApiKey: initialApiKey,
     ),
     LyricsAiProvider.deepseek => showDeepSeekApiKeyDialog(
       context,
+      ref: ref,
       initialApiKey: initialApiKey,
     ),
   };
