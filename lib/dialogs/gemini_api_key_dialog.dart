@@ -128,6 +128,14 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
     });
   }
 
+  void _saveCurrentValue() {
+    Navigator.of(context).pop(_controller.text.trim());
+  }
+
+  void _clearAndSave() {
+    Navigator.of(context).pop('');
+  }
+
   @override
   Widget build(BuildContext context) {
     final apiKey = _controller.text.trim();
@@ -193,6 +201,10 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
           child: Text(widget.dialogActionLabel),
         ),
         TextButton(
+          onPressed: _isTesting ? null : _clearAndSave,
+          child: const Text('清空'),
+        ),
+        TextButton(
           onPressed: _isTesting ? null : _runTest,
           child: Text(
             _isTesting
@@ -204,9 +216,9 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
           TextButton(
             onPressed: () => launchUrlString(widget.getKeyUrl!),
             child: Text(widget.getKeyButtonLabel),
-          ),
+        ),
         FilledButton(
-          onPressed: canSave ? () => Navigator.of(context).pop(apiKey) : null,
+          onPressed: canSave ? _saveCurrentValue : null,
           child: Text(widget.saveButtonLabel),
         ),
       ],
@@ -472,6 +484,9 @@ Future<bool> _showLyricsApiKeyWizard(
     },
   );
   if (provider == null) {
+    return false;
+  }
+  if (!context.mounted) {
     return false;
   }
 

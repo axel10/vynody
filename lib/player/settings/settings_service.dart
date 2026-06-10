@@ -540,7 +540,7 @@ class SettingsService extends ChangeNotifier {
       } else {
         prefs.setString(key, normalized);
       }
-      },
+    },
   );
 
   late final _deepseekApiKeyProperty = SettingProperty<String>(
@@ -1054,6 +1054,15 @@ class SettingsService extends ChangeNotifier {
   bool hasApiKeyForProvider(LyricsAiProvider provider) {
     return apiKeyForProvider(provider).trim().isNotEmpty;
   }
+
+  List<LyricsAiProvider> get availableLyricsModelProviders {
+    return LyricsAiProvider.values
+        .where(hasApiKeyForProvider)
+        .toList(growable: false);
+  }
+
+  bool get hasAnyLyricsModelProvider =>
+      availableLyricsModelProviders.isNotEmpty;
 
   bool get hasCustomAcoustidApiKey =>
       _prefs.containsKey(acoustidApiKeyStorageKey);

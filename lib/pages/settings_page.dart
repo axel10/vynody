@@ -166,6 +166,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     required LyricsAiModelPurpose purpose,
     required LyricsAiModelSlot slot,
   }) async {
+    if (!settings.hasAnyLyricsModelProvider) {
+      return;
+    }
     final currentSelection = _selectionFor(settings, purpose, slot);
     final selected = await showDialog<LyricsAiModelSelection>(
       context: context,
@@ -358,6 +361,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             description: '用于 AI 听歌生成歌词，以及给现有歌词生成/修正时间轴。',
             primarySelection: settings.generationPrimaryModel,
             fallbackSelection: settings.generationFallbackModel,
+            enabled: settings.hasAnyLyricsModelProvider,
             onPrimaryTap: () => _selectLyricsModel(
               settings: settings,
               purpose: LyricsAiModelPurpose.generation,
@@ -376,6 +380,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             description: '用于把歌词翻译到目标语言。',
             primarySelection: settings.translationPrimaryModel,
             fallbackSelection: settings.translationFallbackModel,
+            enabled: settings.hasAnyLyricsModelProvider,
             onPrimaryTap: () => _selectLyricsModel(
               settings: settings,
               purpose: LyricsAiModelPurpose.translation,
@@ -412,38 +417,46 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     required String description,
     required LyricsAiModelSelection primarySelection,
     required LyricsAiModelSelection fallbackSelection,
+    required bool enabled,
     required VoidCallback onPrimaryTap,
     required VoidCallback onFallbackTap,
   }) {
     final theme = Theme.of(context);
+    final content = Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: IgnorePointer(
+        ignoring: !enabled,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(description, style: theme.textTheme.bodySmall),
+            const SizedBox(height: 16),
+            _buildModelTile(
+              context,
+              title: AppLocalizations.of(context)!.primaryModelLabel,
+              selection: primarySelection,
+              onTap: onPrimaryTap,
+            ),
+            const SizedBox(height: 12),
+            _buildModelTile(
+              context,
+              title: AppLocalizations.of(context)!.backupModelLabel,
+              selection: fallbackSelection,
+              onTap: onFallbackTap,
+            ),
+          ],
+        ),
+      ),
+    );
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(description, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 16),
-          _buildModelTile(
-            context,
-            title: AppLocalizations.of(context)!.primaryModelLabel,
-            selection: primarySelection,
-            onTap: onPrimaryTap,
-          ),
-          const SizedBox(height: 12),
-          _buildModelTile(
-            context,
-            title: AppLocalizations.of(context)!.backupModelLabel,
-            selection: fallbackSelection,
-            onTap: onFallbackTap,
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 
@@ -847,6 +860,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Widget _buildLyricsPage(BuildContext context, SettingsService settings) {
     final l10n = AppLocalizations.of(context)!;
+    final hasAnyProvider = settings.hasAnyLyricsModelProvider;
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 100),
@@ -872,14 +886,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ref: ref,
                 initialApiKey: settings.geminiApiKey,
               );
-              if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+              if (enteredApiKey == null) {
                 return;
               }
               settings.geminiApiKey = enteredApiKey;
 
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.apiKeySaved('Google AI Studio'))),
+                SnackBar(
+                  content: Text(
+                    enteredApiKey.trim().isEmpty
+                        ? '已清空 Google AI Studio API Key'
+                        : l10n.apiKeySaved('Google AI Studio'),
+                  ),
+                ),
               );
             },
             child: Text(
@@ -903,13 +923,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ref: ref,
                 initialApiKey: settings.openRouterApiKey,
               );
-              if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+              if (enteredApiKey == null) {
                 return;
               }
               settings.openRouterApiKey = enteredApiKey;
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.apiKeySaved('OpenRouter'))),
+                SnackBar(
+                  content: Text(
+                    enteredApiKey.trim().isEmpty
+                        ? '已清空 OpenRouter API Key'
+                        : l10n.apiKeySaved('OpenRouter'),
+                  ),
+                ),
               );
             },
             child: Text(
@@ -939,14 +965,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   );
                 },
               );
-              if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+              if (enteredApiKey == null) {
                 return;
               }
               settings.doubaoApiKey = enteredApiKey;
               if (!context.mounted) return;
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('已保存豆包 API Key')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    enteredApiKey.trim().isEmpty
+                        ? '已清空豆包 API Key'
+                        : '已保存豆包 API Key',
+                  ),
+                ),
+              );
             },
             child: Text(
               settings.doubaoApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
@@ -973,13 +1005,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   );
                 },
               );
-              if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
+              if (enteredApiKey == null) {
                 return;
               }
               settings.deepseekApiKey = enteredApiKey;
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已保存 DeepSeek API Key')),
+                SnackBar(
+                  content: Text(
+                    enteredApiKey.trim().isEmpty
+                        ? '已清空 DeepSeek API Key'
+                        : '已保存 DeepSeek API Key',
+                  ),
+                ),
               );
             },
             child: Text(
@@ -991,6 +1029,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           l10n.geminiModelsSectionTitle,
           '分别设置歌词生成和歌词翻译使用的主模型、备用模型，也可以切换到豆包和 DeepSeek。',
         ),
+        if (!hasAnyProvider)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Text(
+              '请先填写至少一个 API Key，模型选择才会启用。',
+              style: TextStyle(color: Theme.of(context).hintColor),
+            ),
+          ),
         _buildLyricsModelSection(context, settings),
       ],
     );
@@ -1265,6 +1311,10 @@ class _SimpleApiKeyDialogState extends State<_SimpleApiKeyDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(''),
+          child: const Text('清空'),
+        ),
         FilledButton(
           onPressed: canSave
               ? () => Navigator.of(context).pop(_controller.text.trim())
@@ -1294,12 +1344,6 @@ class _LyricsModelPickerDialog extends ConsumerStatefulWidget {
 
 class _LyricsModelPickerDialogState
     extends ConsumerState<_LyricsModelPickerDialog> {
-  static const List<LyricsAiProvider> _providerTabs = [
-    LyricsAiProvider.googleAiStudio,
-    LyricsAiProvider.openRouter,
-    LyricsAiProvider.doubao,
-  ];
-
   late LyricsAiProvider _provider;
   late LyricsAiModelSelection _selection;
   final TextEditingController _searchController = TextEditingController();
@@ -1382,9 +1426,23 @@ class _LyricsModelPickerDialogState
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsServiceProvider);
+    final availableProviders = settings.availableLyricsModelProviders;
+    final availableTabs = [
+      LyricsAiProvider.googleAiStudio,
+      LyricsAiProvider.openRouter,
+      LyricsAiProvider.doubao,
+      if (widget.purpose == LyricsAiModelPurpose.translation)
+        LyricsAiProvider.deepseek,
+    ].where(availableProviders.contains).toList(growable: false);
     final canSave =
         _selection.modelId.trim().isNotEmpty ||
         _provider != _selection.provider;
+    final effectiveProvider = availableTabs.contains(_provider)
+        ? _provider
+        : (availableTabs.isNotEmpty
+            ? availableTabs.first
+            : _provider);
     return AlertDialog(
       title: Text(
         widget.purpose == LyricsAiModelPurpose.generation
@@ -1397,36 +1455,38 @@ class _LyricsModelPickerDialogState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SegmentedButton<LyricsAiProvider>(
-              segments: [
-                ..._providerTabs,
-                if (widget.purpose == LyricsAiModelPurpose.translation)
-                  LyricsAiProvider.deepseek,
-              ]
-                  .map(
-                    (provider) => ButtonSegment<LyricsAiProvider>(
-                      value: provider,
-                      label: Text(provider.displayName),
-                    ),
-                  )
-                  .toList(growable: false),
-              selected: {_provider},
-              onSelectionChanged: (selection) {
-                final provider = selection.first;
-                setState(() {
-                  _provider = provider;
-                  _selection = LyricsAiModelSelection(
-                    provider: provider,
-                    modelId: '',
-                  );
-                  _searchQuery = '';
-                  _searchController.clear();
-                  _statusText = _statusTextByProvider[provider] ?? '';
-                  _isLoading = false;
-                });
-                _fetchModels();
-              },
-            ),
+            if (availableTabs.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: Text('请先填写 API Key，才能查看可用模型。'),
+              )
+            else
+              SegmentedButton<LyricsAiProvider>(
+                segments: availableTabs
+                    .map(
+                      (provider) => ButtonSegment<LyricsAiProvider>(
+                        value: provider,
+                        label: Text(provider.displayName),
+                      ),
+                    )
+                    .toList(growable: false),
+                selected: {effectiveProvider},
+                onSelectionChanged: (selection) {
+                  final provider = selection.first;
+                  setState(() {
+                    _provider = provider;
+                    _selection = LyricsAiModelSelection(
+                      provider: provider,
+                      modelId: '',
+                    );
+                    _searchQuery = '';
+                    _searchController.clear();
+                    _statusText = _statusTextByProvider[provider] ?? '';
+                    _isLoading = false;
+                  });
+                  _fetchModels();
+                },
+              ),
             const SizedBox(height: 16),
             TextField(
               controller: _searchController,
@@ -1464,7 +1524,14 @@ class _LyricsModelPickerDialogState
                   border: Border.all(color: Theme.of(context).dividerColor),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: _isLoading
+                child: availableTabs.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text('暂无可用渠道'),
+                        ),
+                      )
+                    : _isLoading
                     ? const Center(
                         child: Padding(
                           padding: EdgeInsets.all(24),
