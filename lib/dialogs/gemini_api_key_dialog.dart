@@ -655,6 +655,19 @@ class _LyricsApiKeyWizardDialogState
     }
   }
 
+  String _providerIconPath(LyricsAiProvider provider) {
+    switch (provider) {
+      case LyricsAiProvider.googleAiStudio:
+        return 'assets/icons/lyrics/google.png';
+      case LyricsAiProvider.openRouter:
+        return 'assets/icons/lyrics/openrouter.png';
+      case LyricsAiProvider.doubao:
+        return 'assets/icons/lyrics/doubao.png';
+      case LyricsAiProvider.deepseek:
+        return 'assets/icons/lyrics/deepseek.png';
+    }
+  }
+
   Widget _buildIntroPage(BuildContext context) {
     final isGeneration = widget.purpose == LyricsAiModelPurpose.generation;
     final theme = Theme.of(context);
@@ -729,45 +742,91 @@ class _LyricsApiKeyWizardDialogState
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 12),
-        ...filteredProviders.map((provider) {
-          final isSelected = _selectedProvider == provider;
-          return Card(
-            elevation: isSelected ? 2 : 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: BorderSide(
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : theme.dividerColor.withValues(alpha: 0.1),
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            color: isSelected
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
-                : Colors.transparent,
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            child: ListTile(
-              title: Text(
-                provider.displayName,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 2.5,
+          children: filteredProviders.map((provider) {
+            final isSelected = _selectedProvider == provider;
+            return Card(
+              elevation: isSelected ? 2 : 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(
+                  color: isSelected
+                      ? theme.colorScheme.primary
+                      : theme.dividerColor.withValues(alpha: 0.1),
+                  width: isSelected ? 2 : 1,
                 ),
               ),
-              trailing: isSelected
-                  ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
-                  : const Icon(Icons.circle_outlined),
-              onTap: () {
-                setState(() {
-                  _selectedProvider = provider;
-                  final settings = ref.read(settingsServiceProvider);
-                  _keyController.text = settings.apiKeyForProvider(provider);
-                  _statusText = '';
-                  _statusType = _StatusType.none;
-                });
-              },
-            ),
-          );
-        }),
+              color: isSelected
+                  ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
+                  : theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
+              margin: EdgeInsets.zero,
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedProvider = provider;
+                    final settings = ref.read(settingsServiceProvider);
+                    _keyController.text = settings.apiKeyForProvider(provider);
+                    _statusText = '';
+                    _statusType = _StatusType.none;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        padding: const EdgeInsets.all(5),
+                        child: Image.asset(
+                          _providerIconPath(provider),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          provider.displayName,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isSelected)
+                        Icon(
+                          Icons.check_circle,
+                          color: theme.colorScheme.primary,
+                          size: 18,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
         if (_selectedProvider != null) ...[
           const SizedBox(height: 16),
           Container(

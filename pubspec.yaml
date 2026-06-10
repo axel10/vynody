@@ -152,6 +152,7 @@ flutter:
     - assets/icons/pause.ico
     - assets/icons/skip_previous.ico
     - assets/icons/skip_next.ico
+    - assets/icons/lyrics/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
