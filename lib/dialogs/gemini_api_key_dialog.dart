@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:vibe_flow/player/ai/lyrics_model_catalog_service.dart';
 
 class _ApiKeyDialogResult {
   const _ApiKeyDialogResult({required this.success, required this.message});
@@ -305,7 +306,7 @@ Future<String?> showDoubaoApiKeyDialog(
         fieldLabel: l10n.apiKey,
         getKeyButtonLabel: l10n.getKey,
         initialApiKey: initialApiKey,
-        getKeyUrl: 'https://console.volcengine.com/ark',
+        getKeyUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
         testConnection: (apiKey) async {
           return _ApiKeyDialogResult(
             success: true,
@@ -450,101 +451,574 @@ Future<bool> _showLyricsApiKeyWizard(
   WidgetRef ref, {
   required LyricsAiModelPurpose purpose,
 }) async {
-  final settings = ref.read(settingsServiceProvider);
-  final provider = await showDialog<LyricsAiProvider>(
+  final result = await showDialog<bool>(
     context: context,
     builder: (dialogContext) {
-      return AlertDialog(
-        title: Text(
-          purpose == LyricsAiModelPurpose.generation
-              ? '启用 AI 歌词生成'
-              : '启用 AI 歌词翻译',
+      return _LyricsApiKeyWizardDialog(purpose: purpose);
+    },
+  );
+  return result ?? false;
+}
+
+class _LyricsApiKeyWizardDialog extends ConsumerStatefulWidget {
+  const _LyricsApiKeyWizardDialog({
+    required this.purpose,
+  });
+
+  final LyricsAiModelPurpose purpose;
+
+  @override
+  ConsumerState<_LyricsApiKeyWizardDialog> createState() =>
+      _LyricsApiKeyWizardDialogState();
+}
+
+class _LyricsApiKeyWizardDialogState
+    extends ConsumerState<_LyricsApiKeyWizardDialog> {
+  int _currentPage = 1;
+  LyricsAiProvider? _selectedProvider;
+  late final TextEditingController _keyController;
+  bool _isTesting = false;
+  String _statusText = '';
+  _StatusType _statusType = _StatusType.none;
+  bool _obscureText = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _keyController = TextEditingController();
+    final settings = ref.read(settingsServiceProvider);
+    // 智能跳转逻辑：如果有任何一个渠道的 Key 已经填了，直接进入第二页
+    if (settings.hasAnyLyricsModelProvider) {
+      _currentPage = 2;
+    }
+  }
+
+  @override
+  void dispose() {
+    _keyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _runTestConnection() async {
+    final apiKey = _keyController.text.trim();
+    if (apiKey.isEmpty) {
+      setState(() {
+        _statusText = '请输入 API Key。';
+        _statusType = _StatusType.warning;
+      });
+      return;
+    }
+
+    setState(() {
+      _isTesting = true;
+      _statusText = '正在测试连接...';
+      _statusType = _StatusType.loading;
+    });
+
+    try {
+      final provider = _selectedProvider!;
+      if (provider == LyricsAiProvider.googleAiStudio) {
+        final service = ref.read(geminiApiKeyServiceProvider);
+        final result = await service.testConnection(apiKey);
+        setState(() {
+          _isTesting = false;
+          _statusText = result.message;
+          _statusType = result.success ? _StatusType.success : _StatusType.error;
+        });
+      } else if (provider == LyricsAiProvider.openRouter) {
+        final service = ref.read(openRouterApiKeyServiceProvider);
+        final result = await service.testConnection(apiKey);
+        setState(() {
+          _isTesting = false;
+          _statusText = result.message;
+          _statusType = result.success ? _StatusType.success : _StatusType.error;
+        });
+      } else {
+        // 豆包 & DeepSeek
+        final LyricsModelCatalogService service =
+            ref.read(lyricsModelCatalogServiceProvider);
+        final result = await service.fetchModels(
+          provider: provider,
+          purpose: widget.purpose,
+          apiKey: apiKey,
+        );
+        setState(() {
+          _isTesting = false;
+          _statusText = result.success
+              ? '连接成功，检测到 ${result.models.length} 个模型。'
+              : result.message;
+          _statusType = result.success ? _StatusType.success : _StatusType.error;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isTesting = false;
+        _statusText = '连接测试异常：$e';
+        _statusType = _StatusType.error;
+      });
+    }
+  }
+
+  void _saveAndFinish() {
+    final provider = _selectedProvider!;
+    final apiKey = _keyController.text.trim();
+    final settings = ref.read(settingsServiceProvider);
+
+    // 1. 保存对应的 API Key
+    switch (provider) {
+      case LyricsAiProvider.googleAiStudio:
+        settings.geminiApiKey = apiKey;
+        break;
+      case LyricsAiProvider.openRouter:
+        settings.openRouterApiKey = apiKey;
+        break;
+      case LyricsAiProvider.doubao:
+        settings.doubaoApiKey = apiKey;
+        break;
+      case LyricsAiProvider.deepseek:
+        settings.deepseekApiKey = apiKey;
+        break;
+    }
+
+    // 2. 自动配置对应的默认模型
+    if (widget.purpose == LyricsAiModelPurpose.generation) {
+      settings.generationPrimaryModel = LyricsAiModelSelection(
+        provider: provider,
+        modelId: provider == LyricsAiProvider.googleAiStudio
+            ? SettingsService.defaultGenerationPrimaryModelId
+            : provider == LyricsAiProvider.openRouter
+            ? SettingsService.defaultOpenRouterGenerationModelId
+            : provider == LyricsAiProvider.doubao
+            ? SettingsService.defaultDoubaoGenerationModelId
+            : '',
+      );
+      settings.generationFallbackModel = LyricsAiModelSelection(
+        provider: provider,
+        modelId: '',
+      );
+      settings.translationPrimaryModel = LyricsAiModelSelection(
+        provider: provider,
+        modelId: provider == LyricsAiProvider.googleAiStudio
+            ? SettingsService.defaultTranslationPrimaryModelId
+            : provider == LyricsAiProvider.openRouter
+            ? SettingsService.defaultOpenRouterTranslationModelId
+            : provider == LyricsAiProvider.doubao
+            ? SettingsService.defaultDoubaoTranslationModelId
+            : SettingsService.defaultDeepSeekTranslationModelId,
+      );
+      settings.translationFallbackModel = LyricsAiModelSelection(
+        provider: provider,
+        modelId: '',
+      );
+    } else if (widget.purpose == LyricsAiModelPurpose.translation) {
+      settings.translationPrimaryModel = LyricsAiModelSelection(
+        provider: provider,
+        modelId: provider == LyricsAiProvider.googleAiStudio
+            ? SettingsService.defaultTranslationPrimaryModelId
+            : provider == LyricsAiProvider.openRouter
+            ? SettingsService.defaultOpenRouterTranslationModelId
+            : provider == LyricsAiProvider.doubao
+            ? SettingsService.defaultDoubaoTranslationModelId
+            : SettingsService.defaultDeepSeekTranslationModelId,
+      );
+      settings.translationFallbackModel = LyricsAiModelSelection(
+        provider: provider,
+        modelId: '',
+      );
+    }
+
+    Navigator.of(context).pop(true);
+  }
+
+  _ProviderDetail _getProviderDetail(LyricsAiProvider provider) {
+    switch (provider) {
+      case LyricsAiProvider.googleAiStudio:
+        return const _ProviderDetail(
+          pros: '官方通道，Gemini 模型（如 Flash Lite）性能强劲，提供大额度免费配额。',
+          cons: '在中国大陆直连受限，需要稳定的网络代理 (VPN/Proxy)。',
+        );
+      case LyricsAiProvider.openRouter:
+        return const _ProviderDetail(
+          pros: '海外大模型聚合平台。支持免代理直连，且有免费的 Gemini 等模型额度。',
+          cons: '注册或高并发时可能需要绑定，部分模型响应速度受海外节点影响。',
+        );
+      case LyricsAiProvider.doubao:
+        return const _ProviderDetail(
+          pros: '字节跳动出品。国内直连极速，无需代理，中文歌词创作与润色效果极佳。',
+          cons: '需要注册火山引擎，创建接入点 (Endpoint) 的步骤相对繁琐。',
+        );
+      case LyricsAiProvider.deepseek:
+        return const _ProviderDetail(
+          pros: '国内高性价比模型，中文理解出色，价格极便宜。',
+          cons: '本项目目前仅支持使用 DeepSeek 进行歌词翻译，不支持歌词生成。',
+        );
+    }
+  }
+
+  Widget _buildIntroPage(BuildContext context) {
+    final isGeneration = widget.purpose == LyricsAiModelPurpose.generation;
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          isGeneration ? '什么是 AI 歌词？' : '什么是 AI 歌词翻译？',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('请先选择要使用的服务商，然后填写对应的 API Key。'),
-            const SizedBox(height: 16),
-            ...LyricsAiProvider.values.where(
-              (provider) =>
-                  purpose == LyricsAiModelPurpose.translation ||
-                  provider != LyricsAiProvider.deepseek,
-            ).map(
-              (item) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(item.displayName),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => Navigator.of(dialogContext).pop(item),
+        const SizedBox(height: 8),
+        Text(
+          isGeneration
+              ? 'AI 歌词功能可以利用大语言模型，自动为您的歌曲生成精密的同步歌词及时间轴。'
+              : 'AI 歌词翻译功能可以利用大语言模型，将歌词翻译为您的目标语言，让您更好地理解歌曲意境。',
+          style: const TextStyle(fontSize: 14, height: 1.4),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          '为什么需要 API Key？',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          '此功能完全运行在您的本地设备上，不经过第三方中间服务器。因此，您需要填写对应大模型服务商的 API Key 来直接调用其接口。',
+          style: TextStyle(fontSize: 14, height: 1.4),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.15),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.security_rounded, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  '您的 API Key 会以加密形式妥善保存在本地，绝不会上传至 vibe_flow 开发者服务器，请放心使用。',
+                  style: TextStyle(fontSize: 13, height: 1.3),
+                ),
               ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProviderSelectionPage(BuildContext context) {
+    final filteredProviders = LyricsAiProvider.values.where((p) {
+      if (widget.purpose == LyricsAiModelPurpose.generation) {
+        return p != LyricsAiProvider.deepseek;
+      }
+      return true;
+    }).toList();
+
+    final theme = Theme.of(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          '请选择要使用的 AI 服务商：',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        ),
+        const SizedBox(height: 12),
+        ...filteredProviders.map((provider) {
+          final isSelected = _selectedProvider == provider;
+          return Card(
+            elevation: isSelected ? 2 : 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(
+                color: isSelected
+                    ? theme.colorScheme.primary
+                    : theme.dividerColor.withValues(alpha: 0.1),
+                width: isSelected ? 1.5 : 1,
+              ),
+            ),
+            color: isSelected
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
+                : Colors.transparent,
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            child: ListTile(
+              title: Text(
+                provider.displayName,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              trailing: isSelected
+                  ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
+                  : const Icon(Icons.circle_outlined),
+              onTap: () {
+                setState(() {
+                  _selectedProvider = provider;
+                  final settings = ref.read(settingsServiceProvider);
+                  _keyController.text = settings.apiKeyForProvider(provider);
+                  _statusText = '';
+                  _statusType = _StatusType.none;
+                });
+              },
+            ),
+          );
+        }),
+        if (_selectedProvider != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.08)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '【特点】',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _getProviderDetail(_selectedProvider!).pros,
+                  style: const TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '【注意事项】',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.error,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _getProviderDetail(_selectedProvider!).cons,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildApiKeyInputPage(BuildContext context) {
+    final provider = _selectedProvider!;
+    final theme = Theme.of(context);
+
+    String getKeyUrl = '';
+    switch (provider) {
+      case LyricsAiProvider.googleAiStudio:
+        getKeyUrl = 'https://aistudio.google.com/app/api-keys';
+        break;
+      case LyricsAiProvider.openRouter:
+        getKeyUrl = 'https://openrouter.ai/settings/keys';
+        break;
+      case LyricsAiProvider.doubao:
+        getKeyUrl = 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey';
+        break;
+      case LyricsAiProvider.deepseek:
+        getKeyUrl = 'https://platform.deepseek.com/api_keys';
+        break;
+    }
+
+    final statusColor = switch (_statusType) {
+      _StatusType.warning =>
+        theme.brightness == Brightness.dark
+            ? Colors.orangeAccent
+            : Colors.orange.shade800,
+      _StatusType.loading => theme.colorScheme.onSurface.withValues(alpha: 0.7),
+      _StatusType.success =>
+        theme.brightness == Brightness.dark
+            ? Colors.greenAccent
+            : Colors.green.shade800,
+      _StatusType.error => theme.colorScheme.error,
+      _StatusType.none => Colors.transparent,
+    };
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '请输入 ${provider.displayName} 的 API Key：',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _keyController,
+          autofocus: true,
+          obscureText: _obscureText,
+          enableSuggestions: false,
+          autocorrect: false,
+          decoration: InputDecoration(
+            labelText: 'API Key',
+            hintText: '在此粘贴您的 API Key',
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscureText = !_obscureText;
+                });
+              },
+            ),
+          ),
+          onChanged: (_) {
+            setState(() {
+              _statusText = '';
+              _statusType = _StatusType.none;
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton.icon(
+              onPressed: () => launchUrlString(getKeyUrl),
+              icon: const Icon(Icons.open_in_new_rounded, size: 16),
+              label: const Text('获取 API Key'),
+            ),
+            ElevatedButton.icon(
+              onPressed: _isTesting ? null : _runTestConnection,
+              icon: _isTesting
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.network_check_rounded, size: 16),
+              label: Text(_isTesting ? '正在测试...' : '测试连接'),
             ),
           ],
         ),
-      );
-    },
-  );
-  if (provider == null) {
-    return false;
-  }
-  if (!context.mounted) {
-    return false;
-  }
-
-  final enteredApiKey = await showLyricsProviderApiKeyDialog(
-    context,
-    ref: ref,
-    provider: provider,
-    initialApiKey: settings.apiKeyForProvider(provider),
-  );
-  if (enteredApiKey == null || enteredApiKey.trim().isEmpty) {
-    return false;
-  }
-
-  switch (provider) {
-    case LyricsAiProvider.googleAiStudio:
-      settings.geminiApiKey = enteredApiKey;
-      break;
-    case LyricsAiProvider.openRouter:
-      settings.openRouterApiKey = enteredApiKey;
-      break;
-    case LyricsAiProvider.doubao:
-      settings.doubaoApiKey = enteredApiKey;
-      break;
-    case LyricsAiProvider.deepseek:
-      settings.deepseekApiKey = enteredApiKey;
-      break;
-  }
-
-  if (purpose == LyricsAiModelPurpose.generation) {
-    settings.generationPrimaryModel = LyricsAiModelSelection(
-      provider: provider,
-      modelId: provider == LyricsAiProvider.googleAiStudio
-          ? SettingsService.defaultGenerationPrimaryModelId
-          : provider == LyricsAiProvider.openRouter
-          ? SettingsService.defaultOpenRouterGenerationModelId
-          : provider == LyricsAiProvider.doubao
-          ? SettingsService.defaultDoubaoGenerationModelId
-          : '',
-    );
-    settings.generationFallbackModel = LyricsAiModelSelection(
-      provider: provider,
-      modelId: '',
-    );
-    settings.translationPrimaryModel = LyricsAiModelSelection(
-      provider: provider,
-      modelId: provider == LyricsAiProvider.googleAiStudio
-          ? SettingsService.defaultTranslationPrimaryModelId
-          : provider == LyricsAiProvider.openRouter
-          ? SettingsService.defaultOpenRouterTranslationModelId
-          : provider == LyricsAiProvider.doubao
-          ? SettingsService.defaultDoubaoTranslationModelId
-          : SettingsService.defaultDeepSeekTranslationModelId,
-    );
-    settings.translationFallbackModel = LyricsAiModelSelection(
-      provider: provider,
-      modelId: '',
+        if (_statusText.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: statusColor.withValues(alpha: 0.2)),
+            ),
+            child: Text(
+              _statusText,
+              style: TextStyle(color: statusColor, fontSize: 13),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
-  return true;
+  @override
+  Widget build(BuildContext context) {
+    final isPage3Valid = _selectedProvider != null && _keyController.text.trim().isNotEmpty;
+    final settings = ref.read(settingsServiceProvider);
+
+    Widget content;
+    String title;
+    List<Widget> actions;
+
+    if (_currentPage == 1) {
+      title = widget.purpose == LyricsAiModelPurpose.generation
+          ? '启用 AI 歌词生成'
+          : '启用 AI 歌词翻译';
+      content = _buildIntroPage(context);
+      actions = [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('暂不启用'),
+        ),
+        FilledButton(
+          onPressed: () {
+            setState(() {
+              _currentPage = 2;
+            });
+          },
+          child: const Text('开始配置'),
+        ),
+      ];
+    } else if (_currentPage == 2) {
+      title = '选择 AI 服务商';
+      content = _buildProviderSelectionPage(context);
+      actions = [
+        TextButton(
+          onPressed: () {
+            if (settings.hasAnyLyricsModelProvider) {
+              Navigator.of(context).pop(false);
+            } else {
+              setState(() {
+                _currentPage = 1;
+              });
+            }
+          },
+          child: Text(
+            settings.hasAnyLyricsModelProvider ? '取消' : '上一步',
+          ),
+        ),
+        FilledButton(
+          onPressed: _selectedProvider == null
+              ? null
+              : () {
+                  setState(() {
+                    _currentPage = 3;
+                  });
+                },
+          child: const Text('下一步'),
+        ),
+      ];
+    } else {
+      title = '配置 API Key';
+      content = _buildApiKeyInputPage(context);
+      actions = [
+        TextButton(
+          onPressed: () {
+            setState(() {
+              _currentPage = 2;
+              _statusText = '';
+              _statusType = _StatusType.none;
+            });
+          },
+          child: const Text('上一步'),
+        ),
+        FilledButton(
+          onPressed: isPage3Valid && !_isTesting ? _saveAndFinish : null,
+          child: const Text('保存并完成'),
+        ),
+      ];
+    }
+
+    return AlertDialog(
+      title: Text(title),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: content,
+        ),
+      ),
+      actions: actions,
+    );
+  }
+}
+
+class _ProviderDetail {
+  const _ProviderDetail({required this.pros, required this.cons});
+  final String pros;
+  final String cons;
 }

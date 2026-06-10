@@ -191,12 +191,12 @@ class SettingsService extends ChangeNotifier {
   static const String defaultOpenRouterGenerationModelId =
       'google/gemini-3.1-flash-lite';
   static const String defaultOpenRouterTranslationModelId =
-      'google/gemma-4-31b-it:free';
+      'google/gemini-3.1-flash-lite';
   static const String defaultDoubaoGenerationModelId =
       'doubao-seed-2-0-lite-260428';
   static const String defaultDoubaoTranslationModelId =
       'doubao-seed-2-0-lite-260428';
-  static const String defaultDeepSeekTranslationModelId = 'deepseek-chat';
+  static const String defaultDeepSeekTranslationModelId = 'deepseek-v4-flash';
   static const String _keyThemeMode = 'theme_mode';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
