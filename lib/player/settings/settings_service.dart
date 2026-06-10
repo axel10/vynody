@@ -994,16 +994,71 @@ class SettingsService extends ChangeNotifier {
   }
 
   String get geminiApiKey => _geminiApiKeyProperty.value;
-  set geminiApiKey(String value) => _geminiApiKeyProperty.value = value;
+  set geminiApiKey(String value) {
+    _geminiApiKeyProperty.value = value;
+    if (value.trim().isEmpty) {
+      _cleanupModelSelectionsForProvider(LyricsAiProvider.googleAiStudio);
+    }
+  }
 
   String get openRouterApiKey => _openRouterApiKeyProperty.value;
-  set openRouterApiKey(String value) => _openRouterApiKeyProperty.value = value;
+  set openRouterApiKey(String value) {
+    _openRouterApiKeyProperty.value = value;
+    if (value.trim().isEmpty) {
+      _cleanupModelSelectionsForProvider(LyricsAiProvider.openRouter);
+    }
+  }
 
   String get doubaoApiKey => _doubaoApiKeyProperty.value;
-  set doubaoApiKey(String value) => _doubaoApiKeyProperty.value = value;
+  set doubaoApiKey(String value) {
+    _doubaoApiKeyProperty.value = value;
+    if (value.trim().isEmpty) {
+      _cleanupModelSelectionsForProvider(LyricsAiProvider.doubao);
+    }
+  }
 
   String get deepseekApiKey => _deepseekApiKeyProperty.value;
-  set deepseekApiKey(String value) => _deepseekApiKeyProperty.value = value;
+  set deepseekApiKey(String value) {
+    _deepseekApiKeyProperty.value = value;
+    if (value.trim().isEmpty) {
+      _cleanupModelSelectionsForProvider(LyricsAiProvider.deepseek);
+    }
+  }
+
+  void _cleanupModelSelectionsForProvider(LyricsAiProvider provider) {
+    final remainingProviders = LyricsAiProvider.values
+        .where((p) => p != provider && apiKeyForProvider(p).trim().isNotEmpty)
+        .toList();
+
+    final fallbackProvider = remainingProviders.isNotEmpty
+        ? remainingProviders.first
+        : LyricsAiProvider.googleAiStudio;
+
+    if (generationPrimaryModel.provider == provider) {
+      generationPrimaryModel = LyricsAiModelSelection(
+        provider: fallbackProvider,
+        modelId: '',
+      );
+    }
+    if (generationFallbackModel.provider == provider) {
+      generationFallbackModel = LyricsAiModelSelection(
+        provider: fallbackProvider,
+        modelId: '',
+      );
+    }
+    if (translationPrimaryModel.provider == provider) {
+      translationPrimaryModel = LyricsAiModelSelection(
+        provider: fallbackProvider,
+        modelId: '',
+      );
+    }
+    if (translationFallbackModel.provider == provider) {
+      translationFallbackModel = LyricsAiModelSelection(
+        provider: fallbackProvider,
+        modelId: '',
+      );
+    }
+  }
 
   bool get hasCustomGoogleAiStudioApiKey =>
       _prefs.containsKey(geminiApiKeyStorageKey);
