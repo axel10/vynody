@@ -19,6 +19,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:audio_core/audio_core.dart';
 
 import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_ai_shared.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
 import 'package:vibe_flow/utils/lrc_utils.dart';
 import 'package:vibe_flow/utils/localized_text.dart';
@@ -234,14 +235,10 @@ class LyricsAiDoubaoClient {
     }
 
     final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
-    final promptPrefix = hasOriginalTimestamps
-        ? '这是这首歌的歌词和源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
-        : '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
-    final prompt =
-        '$promptPrefix\n'
-        '```text\n'
-        '$normalizedLyrics\n'
-        '```';
+    final prompt = LyricsAiPromptBuilder.buildGenerateTimelinePrompt(
+      lyrics: normalizedLyrics,
+      hasOriginalTimestamps: hasOriginalTimestamps,
+    );
 
     return _generateFromAudioFile(
       apiKey: apiKey,
@@ -321,28 +318,20 @@ class LyricsAiDoubaoClient {
     onProgress,
     CancelToken? cancelToken,
   }) async {
-    final sourceLines = lyrics.split(RegExp(r'\r?\n'));
-    final blankLineIndexes = <int>[];
-    final compactSourceLines = <String>[];
-    for (var i = 0; i < sourceLines.length; i++) {
-      final line = sourceLines[i].trim();
-      if (line.isEmpty) {
-        blankLineIndexes.add(i);
-      } else {
-        compactSourceLines.add(line);
-      }
-    }
-    if (compactSourceLines.isEmpty) {
+    final preparedLyrics = LyricsAiTranslationTextHelper.prepareSourceLyrics(
+      lyrics,
+    );
+    final processor = LyricsAiTranslationStreamProcessor(
+      preparation: preparedLyrics,
+    );
+    if (preparedLyrics.targetLineCount == 0) {
       return _t('没有可用于翻译的歌词。', 'No lyrics are available for translation.');
     }
 
-    final targetLanguageName = _targetLanguageName(targetLanguageCode);
-    final prompt =
-        '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
-        '请保留完整时间轴和原有分行顺序，不要删减、合并、重排任何一行，也不要自行补充空行、编号或解释。'
-        '如果输入中带有时间轴，请在输出中原样保留对应时间轴，程序会在后处理去掉时间轴。'
-        '总结整首歌的意境并结合上下文尽量意译。如果无标题不要自行生成标题。\n'
-        '${lyrics.trim()}';
+    final prompt = LyricsAiPromptBuilder.buildTranslateLyricsPrompt(
+      lyrics: LyricsAiTranslationTextHelper.normalizeSourceLyrics(lyrics),
+      targetLanguageCode: targetLanguageCode,
+    );
 
     try {
       final response = await _client.post(
@@ -376,8 +365,6 @@ class LyricsAiDoubaoClient {
         return _t('豆包返回了空流响应。', 'Doubao returned an empty streaming response.');
       }
 
-      final translatedBuffer = StringBuffer();
-      String lastSnapshot = '';
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
       await for (final line in textStream.transform(const LineSplitter())) {
         if (cancelToken?.isCancelled == true) {
@@ -395,31 +382,15 @@ class LyricsAiDoubaoClient {
         }
         final chunk = _streamParser.extractDoubaoDeltaText(data);
         if (chunk == null || chunk.isEmpty) continue;
-        translatedBuffer.write(chunk);
-        final cleaned = LrcUtils.cleanGeneratedLyricsText(
-          translatedBuffer.toString(),
-        );
-        final lines = _splitLines(cleaned);
-        final visibleLines = lines
-            .map((line) => _stripTimestampPrefix(line).trimRight())
-            .toList(growable: false);
-        final restoredLines = _restoreBlankLines(
-          visibleLines,
-          blankLineIndexes,
-          sourceLines.length,
-        );
-        final snapshot = restoredLines.join('\n');
-        if (onProgress != null && snapshot != lastSnapshot) {
-          lastSnapshot = snapshot;
-          onProgress(restoredLines, snapshot);
+        processor.addChunk(LrcUtils.cleanGeneratedLyricsText(chunk));
+        final snapshot = processor.buildProgressSnapshot();
+        if (onProgress != null && snapshot != null) {
+          onProgress(snapshot.visibleLines, snapshot.visibleText);
         }
       }
 
-      final translatedText = LrcUtils.cleanGeneratedLyricsText(
-        translatedBuffer.toString(),
-      );
-      final visibleTranslatedText = _stripTimestamps(translatedText).trim();
-      if (visibleTranslatedText.isEmpty) {
+      if (!processor.hasReceivedAnyChunk ||
+          processor.finalVisibleText.trim().isEmpty) {
         return _t('豆包返回了空响应。', 'Doubao returned an empty response.');
       }
 
@@ -615,84 +586,8 @@ class LyricsAiDoubaoClient {
     );
   }
 
-  List<String> _splitLines(String text) {
-    return text.split(RegExp(r'\r?\n'));
-  }
-
   bool _hasTimestampedLyrics(String lyrics) {
     return RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]').hasMatch(lyrics);
-  }
-
-  String _stripTimestampPrefix(String line) {
-    return line.replaceAll(
-      RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]'),
-      '',
-    );
-  }
-
-  String _stripTimestamps(String lyrics) {
-    return lyrics
-        .split(RegExp(r'\r?\n'))
-        .map((line) => _stripTimestampPrefix(line).trimRight())
-        .join('\n')
-        .trim();
-  }
-
-  List<String> _restoreBlankLines(
-    List<String> translatedLines,
-    List<int> blankLineIndexes,
-    int originalLineCount,
-  ) {
-    if (originalLineCount <= 0) return const [];
-    if (translatedLines.isEmpty && blankLineIndexes.isEmpty) {
-      return List<String>.filled(originalLineCount, '', growable: false);
-    }
-
-    final blankLineIndexSet = blankLineIndexes.toSet();
-    final restoredLines = List<String>.filled(
-      originalLineCount,
-      '',
-      growable: false,
-    );
-    var translatedIndex = 0;
-    for (var i = 0; i < originalLineCount; i++) {
-      if (blankLineIndexSet.contains(i)) continue;
-      if (translatedIndex >= translatedLines.length) break;
-      restoredLines[i] = translatedLines[translatedIndex++];
-    }
-    return restoredLines;
-  }
-
-  String _targetLanguageName(String languageCode) {
-    switch (languageCode.toLowerCase().trim()) {
-      case 'zh':
-      case 'zh-cn':
-      case 'zh-hans':
-        return _t('中文', 'Chinese');
-      case 'zh-tw':
-      case 'zh-hant':
-        return _t('繁体中文', 'Traditional Chinese');
-      case 'en':
-        return _t('英文', 'English');
-      case 'ja':
-        return _t('日文', 'Japanese');
-      case 'ko':
-        return _t('韩文', 'Korean');
-      case 'fr':
-        return _t('法文', 'French');
-      case 'de':
-        return _t('德文', 'German');
-      case 'es':
-        return _t('西班牙文', 'Spanish');
-      case 'pt':
-        return _t('葡萄牙文', 'Portuguese');
-      case 'ru':
-        return _t('俄文', 'Russian');
-      default:
-        return languageCode.trim().isEmpty
-            ? _t('目标语言', 'Target language')
-            : languageCode;
-    }
   }
 
   String _formatErrorMessage(Object error, {String? fallback}) {

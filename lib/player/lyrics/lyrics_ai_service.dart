@@ -19,6 +19,7 @@ import 'package:vibe_flow/utils/network_client.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_ai_api_client.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_ai_doubao.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_ai_openrouter.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_ai_shared.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
@@ -87,10 +88,6 @@ class LyricsAiService {
   final LyricsAiStreamTextParser _streamParser = LyricsAiStreamTextParser();
   static const int maxGenerationRetries = 2;
   static const int maxGenerationAttempts = maxGenerationRetries + 1;
-  static final RegExp _lineSplitPattern = RegExp(r'\r?\n');
-  static final RegExp _timestampLinePattern = RegExp(
-    r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
-  );
 
   LyricsAiModelSelection get _generationPrimaryModel =>
       _readConfig().generationPrimaryModel;
@@ -173,31 +170,20 @@ class LyricsAiService {
     String? modelId,
     CancelToken? cancelToken,
   }) async {
-    final sourceLines = _splitLyricsLines(lyrics);
-    final blankLineIndexes = <int>[];
-    final compactSourceLines = <String>[];
-    for (var i = 0; i < sourceLines.length; i++) {
-      final line = _stripTimestampPrefix(sourceLines[i]).trim();
-      if (line.isEmpty) {
-        blankLineIndexes.add(i);
-      } else {
-        compactSourceLines.add(line);
-      }
-    }
-
-    final targetLineCount = compactSourceLines.length;
+    final preparedLyrics = LyricsAiTranslationTextHelper.prepareSourceLyrics(
+      lyrics,
+    );
+    final sourceLines = preparedLyrics.sourceLines;
+    final blankLineIndexes = preparedLyrics.blankLineIndexes;
+    final targetLineCount = preparedLyrics.targetLineCount;
     if (targetLineCount == 0) {
       debugPrint('[LyricsAi] no usable lyrics after stripping timestamps.');
       return _t('没有可用于翻译的歌词。', 'No lyrics are available for translation.');
     }
-    final targetLanguageName = _targetLanguageName(targetLanguageCode);
-    final sourceLyricsForModel = _normalizeSourceLyrics(lyrics);
-    final prompt =
-        '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
-        '请保留完整时间轴和原有分行顺序，不要删减、合并、重排任何一行，也不要自行补充空行、编号或解释。'
-        '如果输入中带有时间轴，请在输出中原样保留对应时间轴，程序会在后处理去掉时间轴。'
-        '总结整首歌的意境并结合上下文尽量意译。如果无标题不要自行生成标题。\n'
-        '$sourceLyricsForModel';
+    final prompt = LyricsAiPromptBuilder.buildTranslateLyricsPrompt(
+      lyrics: LyricsAiTranslationTextHelper.normalizeSourceLyrics(lyrics),
+      targetLanguageCode: targetLanguageCode,
+    );
     final candidates = <LyricsAiModelSelection>[
       LyricsAiModelSelection(
         provider: _translationPrimaryModel.provider,
@@ -296,13 +282,9 @@ class LyricsAiService {
       );
     }
     final normalizedTitle = songTitle?.trim();
-    final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
-        ? ''
-        : '这首歌的标题是《$normalizedTitle》。';
-    final prompt =
-        '$titleHint'
-        '输出这首歌的完整的带时间轴的标准LRC格式歌词,每一行歌词前面都带有一个方括号包裹的时间点，格式通常为：[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。'
-        '仅输出结果不输出其他内容。';
+    final prompt = LyricsAiPromptBuilder.buildGenerateLyricsPrompt(
+      songTitle: normalizedTitle,
+    );
     final candidates = <LyricsAiModelSelection>[
       LyricsAiModelSelection(
         provider: _generationPrimaryModel.provider,
@@ -411,14 +393,10 @@ class LyricsAiService {
     }
 
     final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
-    final promptPrefix = hasOriginalTimestamps
-        ? '这是这首歌的歌词和源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
-        : '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
-    final prompt =
-        '$promptPrefix\n'
-        '```text\n'
-        '$normalizedLyrics\n'
-        '```';
+    final prompt = LyricsAiPromptBuilder.buildGenerateTimelinePrompt(
+      lyrics: normalizedLyrics,
+      hasOriginalTimestamps: hasOriginalTimestamps,
+    );
     final candidates = <LyricsAiModelSelection>[
       LyricsAiModelSelection(
         provider: _generationPrimaryModel.provider,
@@ -653,6 +631,15 @@ class LyricsAiService {
     onProgress,
     CancelToken? cancelToken,
   }) async {
+    final preparation = LyricsAiTranslationPreparation(
+      sourceLines: sourceLines,
+      blankLineIndexes: blankLineIndexes,
+      compactSourceLines: List<String>.filled(targetLineCount, ''),
+    );
+    final processor = LyricsAiTranslationStreamProcessor(
+      preparation: preparation,
+      emitPartialLineForStreaming: false,
+    );
     final requestData = {
       'contents': [
         {
@@ -692,43 +679,17 @@ class LyricsAiService {
         );
       }
 
-      final translatedBuffer = StringBuffer();
-      var lastPrintedLength = -1;
-      var lastProgressSnapshot = '';
-      var receivedAnyChunk = false;
       Timer? printTimer;
 
       void emitProgress({bool force = false}) {
-        final rawCurrent = translatedBuffer.toString();
-        final cleanedCurrent = _stripTimestamps(
-          LrcUtils.cleanGeneratedLyricsText(rawCurrent),
-        );
-        final current = _visibleTranslationText(
-          cleanedCurrent,
-          rawCurrent,
+        final snapshot = processor.buildProgressSnapshot(
           force: force,
+          dedupeByLength: true,
         );
-        if (current.isEmpty) {
+        if (snapshot == null || onProgress == null) {
           return;
         }
-        if (!force && current.length == lastPrintedLength) {
-          return;
-        }
-        lastPrintedLength = current.length;
-        final lines = _normalizeTranslationLines(current, targetLineCount);
-        final restoredLines = _restoreBlankLines(
-          lines,
-          blankLineIndexes,
-          sourceLines.length,
-        );
-        final visibleLines = restoredLines
-            .map((line) => _stripTimestampPrefix(line).trimRight())
-            .toList(growable: false);
-        final snapshot = visibleLines.join('\n');
-        if (onProgress != null && (force || snapshot != lastProgressSnapshot)) {
-          lastProgressSnapshot = snapshot;
-          onProgress(visibleLines, snapshot);
-        }
+        onProgress(snapshot.visibleLines, snapshot.visibleText);
       }
 
       printTimer = Timer.periodic(const Duration(seconds: 2), (_) {
@@ -763,8 +724,7 @@ class LyricsAiService {
           if (chunk == null || chunk.isEmpty) {
             continue;
           }
-          receivedAnyChunk = true;
-          translatedBuffer.write(chunk);
+          processor.addChunk(LrcUtils.cleanGeneratedLyricsText(chunk));
           emitProgress();
         }
       } finally {
@@ -772,11 +732,8 @@ class LyricsAiService {
       }
 
       emitProgress(force: true);
-      final rawCurrent = translatedBuffer.toString();
-      final cleanedCurrent = _stripTimestamps(
-        LrcUtils.cleanGeneratedLyricsText(rawCurrent),
-      );
-      if (!receivedAnyChunk || cleanedCurrent.trim().isEmpty) {
+      if (!processor.hasReceivedAnyChunk ||
+          processor.finalVisibleText.trim().isEmpty) {
         return _t('Gemini 返回了空响应。', 'Gemini returned an empty response.');
       }
       return null;
@@ -816,6 +773,13 @@ class LyricsAiService {
     onProgress,
     CancelToken? cancelToken,
   }) async {
+    final processor = LyricsAiTranslationStreamProcessor(
+      preparation: LyricsAiTranslationPreparation(
+        sourceLines: sourceLines,
+        blankLineIndexes: blankLineIndexes,
+        compactSourceLines: List<String>.filled(targetLineCount, ''),
+      ),
+    );
     try {
       final response = await _client.post(
         'https://openrouter.ai/api/v1/chat/completions',
@@ -849,8 +813,6 @@ class LyricsAiService {
         );
       }
 
-      final translatedBuffer = StringBuffer();
-      String lastSnapshot = '';
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
       await for (final line in textStream.transform(const LineSplitter())) {
         if (cancelToken?.isCancelled == true) {
@@ -874,25 +836,14 @@ class LyricsAiService {
         if (chunk == null || chunk.isEmpty) {
           continue;
         }
-        translatedBuffer.write(chunk);
-        final cleaned = _stripTimestamps(
-          LrcUtils.cleanGeneratedLyricsText(translatedBuffer.toString()),
-        );
-        final lines = _normalizeTranslationLines(cleaned, targetLineCount);
-        final restoredLines = _restoreBlankLines(
-          lines,
-          blankLineIndexes,
-          sourceLines.length,
-        );
-        final snapshot = restoredLines
-            .map((line) => _stripTimestampPrefix(line).trimRight())
-            .join('\n');
-        if (onProgress != null && snapshot != lastSnapshot) {
-          lastSnapshot = snapshot;
-          onProgress(restoredLines, snapshot);
+        processor.addChunk(LrcUtils.cleanGeneratedLyricsText(chunk));
+        final snapshot = processor.buildProgressSnapshot();
+        if (onProgress != null && snapshot != null) {
+          onProgress(snapshot.visibleLines, snapshot.visibleText);
         }
       }
-      if (translatedBuffer.toString().trim().isEmpty) {
+      if (!processor.hasReceivedAnyChunk ||
+          processor.finalVisibleText.trim().isEmpty) {
         return _t(
           'OpenRouter 返回了空响应。',
           'OpenRouter returned an empty response.',
@@ -932,16 +883,20 @@ class LyricsAiService {
     onProgress,
     CancelToken? cancelToken,
   }) async {
+    final processor = LyricsAiTranslationStreamProcessor(
+      preparation: LyricsAiTranslationPreparation(
+        sourceLines: sourceLines,
+        blankLineIndexes: blankLineIndexes,
+        compactSourceLines: List<String>.filled(targetLineCount, ''),
+      ),
+    );
     try {
       final response = await _client.post(
         'https://api.deepseek.com/chat/completions',
         data: {
           'model': modelId,
           'messages': [
-            {
-              'role': 'user',
-              'content': prompt,
-            },
+            {'role': 'user', 'content': prompt},
           ],
           'stream': true,
         },
@@ -963,8 +918,6 @@ class LyricsAiService {
         );
       }
 
-      final translatedBuffer = StringBuffer();
-      String lastSnapshot = '';
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
       await for (final line in textStream.transform(const LineSplitter())) {
         if (cancelToken?.isCancelled == true) {
@@ -989,26 +942,15 @@ class LyricsAiService {
         if (chunk == null || chunk.isEmpty) {
           continue;
         }
-        translatedBuffer.write(chunk);
-        final cleaned = _stripTimestamps(
-          LrcUtils.cleanGeneratedLyricsText(translatedBuffer.toString()),
-        );
-        final lines = _normalizeTranslationLines(cleaned, targetLineCount);
-        final restoredLines = _restoreBlankLines(
-          lines,
-          blankLineIndexes,
-          sourceLines.length,
-        );
-        final snapshot = restoredLines
-            .map((line) => _stripTimestampPrefix(line).trimRight())
-            .join('\n');
-        if (onProgress != null && snapshot != lastSnapshot) {
-          lastSnapshot = snapshot;
-          onProgress(restoredLines, snapshot);
+        processor.addChunk(LrcUtils.cleanGeneratedLyricsText(chunk));
+        final snapshot = processor.buildProgressSnapshot();
+        if (onProgress != null && snapshot != null) {
+          onProgress(snapshot.visibleLines, snapshot.visibleText);
         }
       }
 
-      if (translatedBuffer.toString().trim().isEmpty) {
+      if (!processor.hasReceivedAnyChunk ||
+          processor.finalVisibleText.trim().isEmpty) {
         return _t('DeepSeek 返回了空响应。', 'DeepSeek returned an empty response.');
       }
       return null;
@@ -1302,20 +1244,8 @@ class LyricsAiService {
     );
   }
 
-  List<String> _splitLyricsLines(String lyrics) {
-    return lyrics.split(_lineSplitPattern);
-  }
-
-  String _normalizeSourceLyrics(String lyrics) {
-    return _splitLyricsLines(lyrics).join('\n').trim();
-  }
-
-  String _stripTimestampPrefix(String line) {
-    return line.replaceAll(_timestampLinePattern, '');
-  }
-
   bool _hasTimestampedLyrics(String lyrics) {
-    return _timestampLinePattern.hasMatch(lyrics);
+    return RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]').hasMatch(lyrics);
   }
 
   String _formatGenerationErrorMessage(Object error, {String? fallback}) {
@@ -1413,7 +1343,7 @@ class LyricsAiService {
   }
 
   String _stripTimestamps(String text) {
-    return LrcUtils.stripTimestamps(text);
+    return LyricsAiTranslationTextHelper.stripTimestamps(text);
   }
 
   LyricsGenerationResult _normalizeGenerationResult(
@@ -1450,95 +1380,7 @@ class LyricsAiService {
     return openRouterFallbackGenerator(fallbackApiKey);
   }
 
-  String _visibleTranslationText(
-    String cleanedText,
-    String rawText, {
-    required bool force,
-  }) {
-    if (cleanedText.isEmpty) return '';
-    if (force || rawText.endsWith('\n') || rawText.endsWith('\r')) {
-      return cleanedText;
-    }
-
-    final lines = _splitTranslationLines(cleanedText);
-    if (lines.length <= 1) return '';
-    return lines.take(lines.length - 1).join('\n').trim();
-  }
-
-  String _targetLanguageName(String languageCode) {
-    switch (languageCode.toLowerCase().trim()) {
-      case 'zh':
-      case 'zh-cn':
-      case 'zh-hans':
-        return _t('中文', 'Chinese');
-      case 'zh-tw':
-      case 'zh-hant':
-        return _t('繁体中文', 'Traditional Chinese');
-      case 'en':
-        return _t('英文', 'English');
-      case 'ja':
-        return _t('日文', 'Japanese');
-      case 'ko':
-        return _t('韩文', 'Korean');
-      case 'fr':
-        return _t('法文', 'French');
-      case 'de':
-        return _t('德文', 'German');
-      case 'es':
-        return _t('西班牙文', 'Spanish');
-      case 'pt':
-        return _t('葡萄牙文', 'Portuguese');
-      case 'ru':
-        return _t('俄文', 'Russian');
-      default:
-        return languageCode.trim().isEmpty
-            ? _t('目标语言', 'Target language')
-            : languageCode;
-    }
-  }
-
-  List<String> _splitTranslationLines(String text) {
-    return text.split(_lineSplitPattern);
-  }
-
   String _t(String zh, String en) {
     return localizedText(zh, en);
-  }
-
-  List<String> _normalizeTranslationLines(String text, int targetLineCount) {
-    final lines = _splitTranslationLines(text)
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList(growable: false);
-    if (targetLineCount <= 0) return lines;
-    if (lines.length <= targetLineCount) return lines;
-    return lines.take(targetLineCount).toList(growable: false);
-  }
-
-  List<String> _restoreBlankLines(
-    List<String> translatedLines,
-    List<int> blankLineIndexes,
-    int originalLineCount,
-  ) {
-    if (originalLineCount <= 0) return const [];
-    if (translatedLines.isEmpty && blankLineIndexes.isEmpty) {
-      return List<String>.filled(originalLineCount, '', growable: false);
-    }
-
-    final blankLineIndexSet = blankLineIndexes.toSet();
-    final restoredLines = List<String>.filled(
-      originalLineCount,
-      '',
-      growable: false,
-    );
-    var translatedIndex = 0;
-
-    for (var i = 0; i < originalLineCount; i++) {
-      if (blankLineIndexSet.contains(i)) continue;
-      if (translatedIndex >= translatedLines.length) break;
-      restoredLines[i] = translatedLines[translatedIndex++];
-    }
-
-    return restoredLines;
   }
 }

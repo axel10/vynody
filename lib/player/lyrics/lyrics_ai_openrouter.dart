@@ -17,6 +17,7 @@ import 'package:path/path.dart' as p;
 import 'package:vibe_flow/utils/lrc_utils.dart';
 import 'package:vibe_flow/utils/network_client.dart';
 import 'package:vibe_flow/utils/localized_text.dart';
+import 'package:vibe_flow/player/lyrics/lyrics_ai_shared.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
 
@@ -55,14 +56,9 @@ class LyricsAiOpenRouterClient {
       );
     }
 
-    final normalizedTitle = songTitle?.trim();
-    final titleHint = normalizedTitle == null || normalizedTitle.isEmpty
-        ? ''
-        : '这首歌的标题是《$normalizedTitle》。';
-    final prompt =
-        '$titleHint'
-        '输出这首歌的完整的带时间轴的标准LRC格式歌词,每一行歌词前面都带有一个方括号包裹的时间点，格式通常为：[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。'
-        '仅输出结果不输出其他内容。';
+    final prompt = LyricsAiPromptBuilder.buildGenerateLyricsPrompt(
+      songTitle: songTitle,
+    );
 
     try {
       onStageChanged?.call('requesting');
@@ -181,29 +177,24 @@ class LyricsAiOpenRouterClient {
     }
 
     final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
-    final promptPrefix = hasOriginalTimestamps
-        ? '这是这首歌的歌词 and 源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
-        : '这是这首歌的歌词 and 原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
-    final prompt =
-        '$promptPrefix\n'
-        '```text\n'
-        '$normalizedLyrics\n'
-        '```';
+    final prompt = LyricsAiPromptBuilder.buildGenerateTimelinePrompt(
+      lyrics: normalizedLyrics,
+      hasOriginalTimestamps: hasOriginalTimestamps,
+    );
 
     try {
       onStageChanged?.call('requesting');
       onUploadProgress?.call(1.0);
+      final fileBytes = await file.readAsBytes();
+      final audioFormat = _audioFormatForFilePath(filePath);
       final requestData = {
-        'model': modelId,
-        'messages': [
-          {
-            'role': 'user',
-            'content': [
-              {'type': 'input_text', 'text': prompt},
-            ],
-          },
-        ],
-        'stream': true,
+        ..._buildAudioRequestData(
+          modelId: modelId,
+          prompt: prompt,
+          audioBase64: base64Encode(fileBytes),
+          audioFormat: audioFormat,
+          stream: true,
+        ),
       };
       _logRequest(
         action: 'generate_timeline',
@@ -211,6 +202,8 @@ class LyricsAiOpenRouterClient {
         prompt: prompt,
         extra: {
           'filePath': filePath,
+          'fileSizeBytes': fileBytes.length,
+          'audioFormat': audioFormat,
           'sourceLength': normalizedLyrics.length,
           'hasOriginalTimestamps': hasOriginalTimestamps,
         },
