@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
@@ -52,6 +52,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   SettingsService? _settingsService;
   AudioService? _audioService;
   bool? _lastIsSmallWindow;
+
+  void _logPlaybackPageTrace(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[PlaybackPage][Trace] $message');
+  }
 
   @override
   void initState() {
@@ -115,8 +120,20 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     _startInactivityTimer();
   }
 
-  void _onCarouselAnimationComplete(Uint8List? artworkBytes, String? sourcePath) {
+  void _onCarouselAnimationComplete(
+    Uint8List? artworkBytes,
+    String? sourcePath,
+  ) {
     if (!mounted) return;
+    if (sourcePath == _pendingArtworkPath &&
+        artworkBytes?.length == _pendingArtworkBytes?.length) {
+      return;
+    }
+    _logPlaybackPageTrace(
+      'carousel animation complete | source=$sourcePath '
+      'bytes=${artworkBytes?.length ?? 0} '
+      'pendingBefore=${_pendingArtworkPath ?? '-'}',
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -124,6 +141,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         _pendingArtworkBytes = artworkBytes;
         _pendingArtworkPath = sourcePath;
       });
+      _logPlaybackPageTrace(
+        'pending artwork updated from carousel | source=$sourcePath '
+        'bytes=${artworkBytes?.length ?? 0}',
+      );
     });
   }
 
@@ -758,10 +779,25 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         isSmallWindowMode: settings.isSmallWindowMode,
       );
       if (isSmallWin) {
+        if (next?.path == _pendingArtworkPath &&
+            next?.artworkBytes?.length == _pendingArtworkBytes?.length) {
+          return;
+        }
+        _logPlaybackPageTrace(
+          'currentMusic listener | prev=${previous?.path ?? '-'} '
+          'next=${next?.path ?? '-'} '
+          'prevBytes=${previous?.artworkBytes?.length ?? 0} '
+          'nextBytes=${next?.artworkBytes?.length ?? 0} '
+          'pendingBefore=${_pendingArtworkPath ?? '-'}',
+        );
         setState(() {
           _pendingArtworkBytes = next?.artworkBytes;
           _pendingArtworkPath = next?.path;
         });
+        _logPlaybackPageTrace(
+          'currentMusic listener applied pending | pendingAfter=${_pendingArtworkPath ?? '-'} '
+          'bytes=${_pendingArtworkBytes?.length ?? 0}',
+        );
       }
     });
     final currentMetadataAsync = currentMusic != null
@@ -1390,10 +1426,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 final currentMusic = ref.watch(audioCurrentMusicProvider);
                 final originalBytes = currentMusic?.artworkBytes;
                 final originalPath = currentMusic?.artworkPath;
+                final songKey = currentMusic?.path ?? 'empty';
 
                 if (originalBytes != null && originalBytes.isNotEmpty) {
                   content = ImageFiltered(
-                    key: ValueKey('${originalBytes.hashCode}_$finalSuffix'),
+                    key: ValueKey('${songKey}_$finalSuffix'),
                     imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
                     child: Transform.scale(
                       scale: 1.2,
@@ -1415,7 +1452,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     originalPath.isNotEmpty &&
                     File(originalPath).existsSync()) {
                   content = ImageFiltered(
-                    key: ValueKey('${originalPath.hashCode}_$finalSuffix'),
+                    key: ValueKey('${songKey}_$finalSuffix'),
                     imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
                     child: Transform.scale(
                       scale: 1.2,
@@ -1446,7 +1483,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 if (bytes == null) {
                   // 如果封面字节尚未准备好（或不存在），则显示纯黑背景。
                   content = Container(
-                    key: ValueKey('bg_empty_${_pendingArtworkPath}_$finalSuffix'),
+                    key: ValueKey(
+                      'bg_empty_${_pendingArtworkPath}_$finalSuffix',
+                    ),
                     color: Colors.black,
                   );
                 } else {
@@ -1454,7 +1493,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   // 对于 Android 和 iOS，通过设置 cacheWidth (300px) 在解码阶段完成缩小，以降低内存并加速滤镜运算；
                   // 对于桌面端，使用原图（cacheWidth 为 null）以提供更清晰的背景。
                   final currentMusic = ref.watch(audioCurrentMusicProvider);
-                  final String songKey = _pendingArtworkPath ?? currentMusic?.path ?? bytes.hashCode.toString();
+                  final String songKey =
+                      _pendingArtworkPath ??
+                      currentMusic?.path ??
+                      bytes.hashCode.toString();
                   final imageProvider = Image.memory(
                     bytes,
                     width: double.infinity,

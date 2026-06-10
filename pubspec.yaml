@@ -211,8 +211,8 @@ msix_config:
 dependency_overrides:
   # mobile_storage_listener:
   #   path: ./mobile_storage_listener
-  # audio_core:
-  #   path: ./audio_core
+  audio_core:
+    path: ./audio_core
 #   flutter_taglib:
 #     path: ./audio_core/flutter_taglib
 #   mobile_storage_listener:

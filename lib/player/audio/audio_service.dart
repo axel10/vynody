@@ -934,11 +934,19 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> _syncCurrentPlaybackSong(MusicFile song) async {
+    _logPlaybackTrace(
+      '_syncCurrentPlaybackSong start -> ${_debugSongLabel(song)} '
+      'currentBefore=${_debugSongLabel(currentMusic)}',
+    );
     if (_trackedPlaybackSongPath != song.path) {
       _resetPlaybackTrackingForSong(song);
     }
     await _updateCurrentMetadata(song);
     await _refreshCurrentWaveform(notify: false);
+    _logPlaybackTrace(
+      '_syncCurrentPlaybackSong end -> current=${_debugSongLabel(currentMusic)} '
+      'queueIndex=$_currentIndex',
+    );
   }
 
   void _resetPlaybackTrackingForSong(MusicFile? song) {
@@ -1002,6 +1010,10 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> _prepareCurrentPlaybackArtwork(MusicFile song) async {
     try {
+      _logPlaybackTrace(
+        '_prepareCurrentPlaybackArtwork start -> ${_debugSongLabel(song)} '
+        'currentBefore=${_debugSongLabel(currentMusic)}',
+      );
       if (song.isMissing ||
           song.path.isEmpty ||
           !File(song.path).existsSync()) {
@@ -1063,6 +1075,10 @@ class AudioService extends Notifier<AudioSnapshot> {
               themeColorsBlob: themeColorsBlob ?? currentSong.themeColorsBlob,
             );
             notifyListeners();
+            _logPlaybackTrace(
+              '_prepareCurrentPlaybackArtwork applied -> '
+              'current=${_debugSongLabel(currentMusic)}',
+            );
           }
         }
 
@@ -1754,6 +1770,10 @@ class AudioService extends Notifier<AudioSnapshot> {
   /// In short: this is the "apply current song metadata to the player/UI" step
   /// that runs after a track becomes current.
   Future<void> _updateCurrentMetadata(MusicFile inputSong) async {
+    _logPlaybackTrace(
+      '_updateCurrentMetadata start -> input=${_debugSongLabel(inputSong)} '
+      'currentBefore=${_debugSongLabel(currentMusic)}',
+    );
     final song = await _resolveMetadataForPlayback(inputSong);
     final path = song.path;
     final isCurrentSong =
@@ -1769,6 +1789,10 @@ class AudioService extends Notifier<AudioSnapshot> {
       final existingLyrics = _queue[_currentIndex].lyrics;
       _queue[_currentIndex] = song.copyWith(
         lyrics: song.lyrics ?? existingLyrics,
+      );
+      _logPlaybackTrace(
+        '_updateCurrentMetadata queue replace -> currentIndex=$_currentIndex '
+        'song=${_debugSongLabel(_queue[_currentIndex])}',
       );
     } else {
       _logLyricsDebug(
@@ -1790,6 +1814,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     // prefer the higher-quality file saved in the metadata database, then fall
     // back to embedded artwork inside the audio file.
     unawaited(() async {
+      _logPlaybackTrace(
+        '_updateCurrentMetadata artwork hydrate scheduled -> '
+        'song=${_debugSongLabel(song)}',
+      );
       Uint8List? highResBytes;
       String? highResPath;
 
@@ -1812,6 +1840,10 @@ class AudioService extends Notifier<AudioSnapshot> {
         );
 
         notifyListeners();
+        _logPlaybackTrace(
+          '_updateCurrentMetadata artwork hydrate applied -> '
+          'current=${_debugSongLabel(currentMusic)}',
+        );
         // If we already have cached theme colors from the database, keep them
         // as the final source of truth to avoid a second visual color change.
         if (!hasCachedThemeColors) {
@@ -1845,6 +1877,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
 
     notifyListeners();
+    _logPlaybackTrace(
+      '_updateCurrentMetadata end -> current=${_debugSongLabel(currentMusic)} '
+      'queueIndex=$_currentIndex',
+    );
 
     // Fallback palette refresh:
     // if artwork bytes/path are still missing here, keep the UI color state in
@@ -1896,6 +1932,19 @@ class AudioService extends Notifier<AudioSnapshot> {
   void _logLyricsDebug(String message) {
     if (!kDebugMode) return;
     // debugPrint('[AudioService][Lyrics] $message');
+  }
+
+  String _debugSongLabel(MusicFile? song) {
+    if (song == null) return 'null';
+    return '${song.displayName} | path=${song.path} | idx=$_currentIndex | '
+        'artBytes=${song.artworkBytes?.length ?? 0} | '
+        'artPath=${song.artworkPath ?? '-'} | '
+        'thumb=${song.thumbnailPath ?? '-'}';
+  }
+
+  void _logPlaybackTrace(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[AudioService][Trace] $message');
   }
 
   Future<MusicFile> _buildMusicFileFromPath(
@@ -2187,18 +2236,31 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (_isTransitioning) return;
     _isTransitioning = true;
     _lastActionNext = true;
+    _logPlaybackTrace(
+      'next() start | current=${_debugSongLabel(currentMusic)} '
+      'transitioning=$_isTransitioning',
+    );
     try {
       final success = await _player.playlist.playNext();
+      _logPlaybackTrace(
+        'next() playlist.playNext() -> success=$success '
+        'playlistIndex=${_player.playlist.currentIndex}',
+      );
       if (success) {
         final newIndex = _player.playlist.currentIndex ?? -1;
         if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
           final song = _queue[_currentIndex];
+          _logPlaybackTrace('next() sync target -> ${_debugSongLabel(song)}');
           await _syncCurrentPlaybackSong(song);
         }
       }
     } finally {
       _isTransitioning = false;
+      _logPlaybackTrace(
+        'next() end | current=${_debugSongLabel(currentMusic)} '
+        'transitioning=$_isTransitioning',
+      );
       notifyListeners();
       unawaited(_persistPlaybackSession());
     }
@@ -2216,8 +2278,15 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _isTransitioning = true;
     _lastActionNext = (index > _currentIndex);
+    _logPlaybackTrace(
+      'playAtIndex($index) start | current=${_debugSongLabel(currentMusic)} '
+      'transitioning=$_isTransitioning',
+    );
     try {
       final song = _queue[index];
+      _logPlaybackTrace(
+        'playAtIndex($index) target -> ${_debugSongLabel(song)}',
+      );
       await _player.playTrack(
         _audioTrackForSong(song),
         preferredPlaylistId:
@@ -2228,6 +2297,10 @@ class AudioService extends Notifier<AudioSnapshot> {
       await _syncCurrentPlaybackSong(song);
     } finally {
       _isTransitioning = false;
+      _logPlaybackTrace(
+        'playAtIndex($index) end | current=${_debugSongLabel(currentMusic)} '
+        'transitioning=$_isTransitioning',
+      );
       notifyListeners();
       unawaited(_persistPlaybackSession());
     }
@@ -2237,18 +2310,33 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (_isTransitioning) return;
     _isTransitioning = true;
     _lastActionNext = false;
+    _logPlaybackTrace(
+      'previous() start | current=${_debugSongLabel(currentMusic)} '
+      'transitioning=$_isTransitioning',
+    );
     try {
       final success = await _player.playlist.playPrevious();
+      _logPlaybackTrace(
+        'previous() playlist.playPrevious() -> success=$success '
+        'playlistIndex=${_player.playlist.currentIndex}',
+      );
       if (success) {
         final newIndex = _player.playlist.currentIndex ?? -1;
         if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
           final song = _queue[_currentIndex];
+          _logPlaybackTrace(
+            'previous() sync target -> ${_debugSongLabel(song)}',
+          );
           await _syncCurrentPlaybackSong(song);
         }
       }
     } finally {
       _isTransitioning = false;
+      _logPlaybackTrace(
+        'previous() end | current=${_debugSongLabel(currentMusic)} '
+        'transitioning=$_isTransitioning',
+      );
       notifyListeners();
       unawaited(_persistPlaybackSession());
     }
@@ -2379,12 +2467,20 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void _startQueueBackgroundProcessing({String? priorityPath}) {
     if (_queue.isEmpty) return;
+    _logPlaybackTrace(
+      '_startQueueBackgroundProcessing priority=${priorityPath ?? currentMusic?.path ?? '-'} '
+      'current=${_debugSongLabel(currentMusic)}',
+    );
 
     unawaited(
       _queueProcessor.processQueue(
         playlist: List.from(_queue),
         currentFilePath: priorityPath ?? currentMusic?.path,
         onUpdate: (path, updates) {
+          _logPlaybackTrace(
+            '_queueProcessor onUpdate path=$path keys=${updates.keys.toList()} '
+            'current=${_debugSongLabel(currentMusic)}',
+          );
           // 1. 同步更新播放队列中的 MusicFile 对象
           for (int i = 0; i < _queue.length; i++) {
             if (_queue[i].path == path) {
@@ -2420,6 +2516,10 @@ class AudioService extends Notifier<AudioSnapshot> {
         },
 
         onHdArtworkLoaded: (path, bytes) {
+          _logPlaybackTrace(
+            '_queueProcessor onHdArtworkLoaded path=$path bytes=${bytes.length} '
+            'current=${_debugSongLabel(currentMusic)}',
+          );
           // 1. 同步到队列记录中：由于 MusicFile 是不可变的，我们通过 copyWith 更新对应项的字节
           // 这样当滑动播放列表或重新加载该项 UI 时，可以直接从内存读取封面字节
           for (int i = 0; i < _queue.length; i++) {

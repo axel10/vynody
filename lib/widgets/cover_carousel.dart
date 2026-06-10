@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:vibe_flow/player/audio/audio_service.dart';
@@ -25,7 +25,8 @@ class CoverCarousel extends StatefulWidget {
   final int currentIndex;
   final AudioService audioService;
   final Function(int)? onPageChanged;
-  final void Function(Uint8List? artworkBytes, String? sourcePath)? onAnimationComplete;
+  final void Function(Uint8List? artworkBytes, String? sourcePath)?
+  onAnimationComplete;
   final bool isLandscape;
   final bool? isNext;
   final double? displaySize;
@@ -45,6 +46,11 @@ class _CoverCarouselState extends State<CoverCarousel>
   static const double _swipeThreshold = 0.2;
   static const double _resistanceFactor = 0.2;
 
+  void _logCarouselTrace(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[CoverCarousel][Trace] $message');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +67,10 @@ class _CoverCarouselState extends State<CoverCarousel>
   @override
   void didUpdateWidget(CoverCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _logCarouselTrace(
+      'didUpdateWidget currentIndex ${oldWidget.currentIndex} -> ${widget.currentIndex} '
+      'currentPage=$_currentPage animValue=${_animationController.value}',
+    );
     if (widget.currentIndex != oldWidget.currentIndex &&
         widget.currentIndex != _currentPage) {
       _currentPage = widget.currentIndex;
@@ -73,6 +83,11 @@ class _CoverCarouselState extends State<CoverCarousel>
     double? velocity,
     bool forceStepDirection = false,
   }) {
+    _logCarouselTrace(
+      '_animateToPage page=$page forceStepDirection=$forceStepDirection '
+      'velocity=$velocity currentVal=${_animationController.value} '
+      'currentPage=$_currentPage isNext=${widget.isNext}',
+    );
     final double currentVal = _animationController.value;
     final int targetPage = page;
     final double diff = targetPage - currentVal;
@@ -98,6 +113,10 @@ class _CoverCarouselState extends State<CoverCarousel>
           )
           .then((_) {
             if (mounted) {
+              _logCarouselTrace(
+                '_animateToPage virtual complete -> targetPage=$targetPage '
+                'virtualTarget=$virtualTarget currentVal=${_animationController.value}',
+              );
               _animationController.value = targetPage.toDouble();
               _indexOverrides.clear();
               if (_currentPage != targetPage) {
@@ -122,6 +141,10 @@ class _CoverCarouselState extends State<CoverCarousel>
           )
           .then((_) {
             if (mounted) {
+              _logCarouselTrace(
+                '_animateToPage complete -> page=$page '
+                'currentVal=${_animationController.value}',
+              );
               if (_currentPage != page) {
                 setState(() {
                   _currentPage = page;
@@ -137,6 +160,12 @@ class _CoverCarouselState extends State<CoverCarousel>
   void _notifyAnimationComplete(int page) {
     final currentSong = widget.playlist[page];
     final loadedBytes = _loadedCovers[page]?.bytes ?? currentSong.artworkBytes;
+    _logCarouselTrace(
+      '_notifyAnimationComplete page=$page song=${currentSong.path} '
+      'loadedBytes=${loadedBytes?.length ?? 0} '
+      'artBytes=${currentSong.artworkBytes?.length ?? 0} '
+      'artPath=${currentSong.artworkPath ?? '-'}',
+    );
 
     if (loadedBytes != null) {
       widget.onAnimationComplete?.call(loadedBytes, currentSong.path);
@@ -256,9 +285,22 @@ class _CoverCarouselState extends State<CoverCarousel>
             displaySize: widget.displaySize,
             onArtworkLoaded: (bytes, path) {
               _loadedCovers[index] = (bytes: bytes, path: path);
-              // 如果是当前播放曲目的封面加载完成，通知背景更新
-              if (actualIndex == widget.currentIndex && bytes != null) {
-                widget.onAnimationComplete?.call(bytes, widget.playlist[actualIndex].path);
+              _logCarouselTrace(
+                'onArtworkLoaded slot=$index actual=$actualIndex '
+                'path=${widget.playlist[actualIndex].path} '
+                'bytes=${bytes?.length ?? 0} sourcePath=${path ?? '-'} '
+                'currentIndex=${widget.currentIndex}',
+              );
+              // 如果是当前播放曲目的封面加载完成，且轮播动画已静止，通知背景更新
+              // 否则，由 _notifyAnimationComplete 在动画结束时统一通知，以维持背景延迟切换效果
+              final isSettled = (_animationController.value - index).abs() < 0.01 &&
+                  !_animationController.isAnimating &&
+                  !_isDragging;
+              if (actualIndex == widget.currentIndex && bytes != null && isSettled) {
+                widget.onAnimationComplete?.call(
+                  bytes,
+                  widget.playlist[actualIndex].path,
+                );
               }
             },
           );
@@ -295,6 +337,11 @@ class _CoverItemState extends State<_CoverItem> {
   Uint8List? _artworkBytes;
   bool _isLoaded = false;
 
+  void _logCarouselTrace(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[CoverCarousel][Trace] $message');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -321,6 +368,12 @@ class _CoverItemState extends State<_CoverItem> {
 
   Future<void> _loadArtwork() async {
     _isLoaded = true;
+    if (kDebugMode) {
+      debugPrint(
+        '[CoverCarousel][Trace] _loadArtwork start path=${widget.musicFile.path} '
+        'currentMusic=${widget.audioService.currentMusic?.path ?? '-'}',
+      );
+    }
 
     // If we have original HD bytes in cache, use them.
     final cachedBytes = widget.audioService.getCachedArtwork(
@@ -330,6 +383,10 @@ class _CoverItemState extends State<_CoverItem> {
       if (!mounted) return;
       setState(() => _artworkBytes = cachedBytes);
       widget.onArtworkLoaded?.call(cachedBytes, null);
+      _logCarouselTrace(
+        '_loadArtwork used cached bytes path=${widget.musicFile.path} '
+        'bytes=${cachedBytes.length}',
+      );
       return;
     }
 
@@ -342,6 +399,10 @@ class _CoverItemState extends State<_CoverItem> {
       widget.onArtworkLoaded?.call(
         widget.audioService.currentMusic!.artworkBytes,
         null,
+      );
+      _logCarouselTrace(
+        '_loadArtwork used currentMusic bytes path=${widget.musicFile.path} '
+        'bytes=${widget.audioService.currentMusic!.artworkBytes!.length}',
       );
       return;
     }
@@ -358,6 +419,10 @@ class _CoverItemState extends State<_CoverItem> {
             _artworkBytes = bytes;
           });
           widget.onArtworkLoaded?.call(bytes, null);
+          _logCarouselTrace(
+            '_loadArtwork used highResPath path=${widget.musicFile.path} '
+            'bytes=${bytes.length}',
+          );
           return;
         }
       } catch (e) {
@@ -378,6 +443,10 @@ class _CoverItemState extends State<_CoverItem> {
             _artworkBytes = bytes;
           });
           widget.onArtworkLoaded?.call(bytes, thumbnailPath);
+          _logCarouselTrace(
+            '_loadArtwork used thumbnailPath path=${widget.musicFile.path} '
+            'bytes=${bytes.length} thumb=$thumbnailPath',
+          );
           return;
         }
       } catch (e) {
@@ -398,6 +467,10 @@ class _CoverItemState extends State<_CoverItem> {
           _artworkBytes = bytes;
         });
         widget.onArtworkLoaded?.call(bytes, null);
+        _logCarouselTrace(
+          '_loadArtwork used on_audio_query path=${widget.musicFile.path} '
+          'bytes=${bytes.length}',
+        );
         return;
       }
     }
@@ -412,6 +485,10 @@ class _CoverItemState extends State<_CoverItem> {
         _artworkBytes = embeddedBytes;
       });
       widget.onArtworkLoaded?.call(embeddedBytes, null);
+      _logCarouselTrace(
+        '_loadArtwork used embedded path=${widget.musicFile.path} '
+        'bytes=${embeddedBytes.length}',
+      );
       return;
     }
   }
