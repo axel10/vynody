@@ -1645,3 +1645,83 @@ class SettingsService extends ChangeNotifier {
 
   Size? savedRegularWindowSize;
 }
+
+abstract final class LyricsModelRecommendation {
+  static bool isGoogleRecommended(String modelId) {
+    final lowerId = modelId.toLowerCase();
+    var baseId = lowerId;
+    if (baseId.contains(':')) {
+      baseId = baseId.split(':').first;
+    }
+
+    if (baseId.contains('image') || baseId.contains('tts')) {
+      return false;
+    }
+
+    if (baseId == 'gemini-flash-latest' || baseId == 'gemini-flash-lite-latest') {
+      return true;
+    }
+
+    if (baseId.startsWith('gemma-')) {
+      final match = RegExp(r'^gemma-(\d+(?:\.\d+)?)-').firstMatch(baseId);
+      if (match != null) {
+        final ver = double.tryParse(match.group(1) ?? '');
+        return ver != null && ver >= 4.0;
+      }
+    }
+
+    if (baseId.contains('-flash-lite')) {
+      final match = RegExp(r'gemini-(\d+(?:\.\d+)?)-flash-lite').firstMatch(baseId);
+      if (match != null) {
+        final ver = double.tryParse(match.group(1) ?? '');
+        return ver != null && ver >= 3.1;
+      }
+    } else if (baseId.contains('-flash')) {
+      final match = RegExp(r'gemini-(\d+(?:\.\d+)?)-flash').firstMatch(baseId);
+      if (match != null) {
+        final ver = double.tryParse(match.group(1) ?? '');
+        return ver != null && ver >= 2.5;
+      }
+    }
+
+    return false;
+  }
+
+  static bool isOpenRouterRecommended(String modelId) {
+    var id = modelId.toLowerCase();
+    if (id.startsWith('google/')) {
+      id = id.substring('google/'.length);
+    } else if (id.startsWith('~google/')) {
+      id = id.substring('~google/'.length);
+    } else {
+      return false;
+    }
+    return isGoogleRecommended(id);
+  }
+
+  static bool isDoubaoRecommended(String modelId) {
+    final lowerId = modelId.toLowerCase();
+    final regExp = RegExp(r'^doubao-seed-([0-9]+[\.-][0-9]+)-(lite|mini|pro)(?:-.*)?$');
+    final match = regExp.firstMatch(lowerId);
+    if (match == null) {
+      return false;
+    }
+
+    final versionStr = match.group(1)!.replaceAll('-', '.');
+    final version = double.tryParse(versionStr);
+    if (version == null) {
+      return false;
+    }
+
+    return version >= 2.0;
+  }
+
+  static bool isRecommended(String modelId, LyricsAiProvider provider) {
+    return switch (provider) {
+      LyricsAiProvider.googleAiStudio => isGoogleRecommended(modelId),
+      LyricsAiProvider.openRouter => isOpenRouterRecommended(modelId),
+      LyricsAiProvider.doubao => isDoubaoRecommended(modelId),
+      LyricsAiProvider.deepseek => true,
+    };
+  }
+}

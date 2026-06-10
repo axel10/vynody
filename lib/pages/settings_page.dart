@@ -1316,6 +1316,7 @@ class _LyricsModelPickerDialogState
   bool _isLoading = false;
   String _statusText = '';
   String _searchQuery = '';
+  bool _showRecommendedOnly = true;
 
   @override
   void initState() {
@@ -1371,14 +1372,24 @@ class _LyricsModelPickerDialogState
     });
   }
 
+  bool _isModelRecommended(LyricsModelInfo model) {
+    if (model.id == _selection.modelId) {
+      return true;
+    }
+    return LyricsModelRecommendation.isRecommended(model.id, model.provider);
+  }
+
   List<LyricsModelInfo> get _filteredModels {
     final models = _modelsByProvider[_provider] ?? const [];
+    final baseModels = _showRecommendedOnly
+        ? models.where(_isModelRecommended).toList()
+        : models;
     final query = _searchQuery.trim().toLowerCase();
     if (query.isEmpty) {
-      return models;
+      return baseModels;
     }
 
-    return models
+    return baseModels
         .where((model) {
           final label = model.label.toLowerCase();
           final id = model.id.toLowerCase();
@@ -1477,7 +1488,45 @@ class _LyricsModelPickerDialogState
               ),
             ),
             const SizedBox(height: 12),
-            if (_statusText.isNotEmpty) Text(_statusText),
+            if (_statusText.isNotEmpty)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      _statusText,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  if (_provider != LyricsAiProvider.deepseek)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: Checkbox(
+                            value: _showRecommendedOnly,
+                            onChanged: (value) {
+                              setState(() {
+                                _showRecommendedOnly = value ?? true;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _showRecommendedOnly = !_showRecommendedOnly;
+                            });
+                          },
+                          child: const Text('仅显示推荐模型'),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             const SizedBox(height: 8),
             Flexible(
               child: Container(
