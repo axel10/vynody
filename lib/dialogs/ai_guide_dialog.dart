@@ -733,6 +733,15 @@ class _LyricsApiKeyWizardDialogState
 
     final theme = Theme.of(context);
 
+    final chunkSize = filteredProviders.length == 3 ? 3 : 2;
+    final List<List<LyricsAiProvider>> rows = [];
+    for (var i = 0; i < filteredProviders.length; i += chunkSize) {
+      final end = (i + chunkSize < filteredProviders.length)
+          ? i + chunkSize
+          : filteredProviders.length;
+      rows.add(filteredProviders.sublist(i, end));
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -742,90 +751,107 @@ class _LyricsApiKeyWizardDialogState
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 2.5,
-          children: filteredProviders.map((provider) {
-            final isSelected = _selectedProvider == provider;
-            return Card(
-              elevation: isSelected ? 2 : 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: BorderSide(
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : theme.dividerColor.withValues(alpha: 0.1),
-                  width: isSelected ? 2 : 1,
-                ),
-              ),
-              color: isSelected
-                  ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
-                  : theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
-              margin: EdgeInsets.zero,
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    _selectedProvider = provider;
-                    final settings = ref.read(settingsServiceProvider);
-                    _keyController.text = settings.apiKeyForProvider(provider);
-                    _statusText = '';
-                    _statusType = _StatusType.none;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 3,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        padding: const EdgeInsets.all(5),
-                        child: Image.asset(
-                          _providerIconPath(provider),
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          provider.displayName,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(rows.length, (rowIndex) {
+            final rowItems = rows[rowIndex];
+            return Padding(
+              padding: EdgeInsets.only(bottom: rowIndex < rows.length - 1 ? 10.0 : 0.0),
+              child: Row(
+                children: List.generate(rowItems.length, (colIndex) {
+                  final provider = rowItems[colIndex];
+                  final isSelected = _selectedProvider == provider;
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: colIndex < rowItems.length - 1 ? 10.0 : 0.0),
+                      child: Card(
+                        elevation: isSelected ? 2 : 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : theme.dividerColor.withValues(alpha: 0.1),
+                            width: isSelected ? 2 : 1,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        ),
+                        color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
+                        margin: EdgeInsets.zero,
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedProvider = provider;
+                              final settings = ref.read(settingsServiceProvider);
+                              _keyController.text = settings.apiKeyForProvider(provider);
+                              _statusText = '';
+                              _statusType = _StatusType.none;
+                            });
+                          },
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.05),
+                                              blurRadius: 3,
+                                              offset: const Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
+                                        clipBehavior: Clip.antiAlias,
+                                        padding: const EdgeInsets.all(5),
+                                        child: Image.asset(
+                                          _providerIconPath(provider),
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        provider.displayName,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                Positioned(
+                                  top: 6,
+                                  right: 6,
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: theme.colorScheme.primary,
+                                    size: 16,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                      if (isSelected)
-                        Icon(
-                          Icons.check_circle,
-                          color: theme.colorScheme.primary,
-                          size: 18,
-                        ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                }),
               ),
             );
-          }).toList(),
+          }),
         ),
         if (_selectedProvider != null) ...[
           const SizedBox(height: 16),
