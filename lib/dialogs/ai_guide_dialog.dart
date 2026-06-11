@@ -6,6 +6,7 @@ import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/settings/settings_service.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:vibe_flow/player/ai/lyrics_model_catalog_service.dart';
+import 'package:vibe_flow/widgets/lyrics_provider_icon.dart';
 
 class _ApiKeyDialogResult {
   const _ApiKeyDialogResult({required this.success, required this.message});
@@ -685,18 +686,7 @@ class _LyricsApiKeyWizardDialogState
     }
   }
 
-  String _providerIconPath(LyricsAiProvider provider) {
-    switch (provider) {
-      case LyricsAiProvider.googleAiStudio:
-        return 'assets/icons/lyrics/google.png';
-      case LyricsAiProvider.openRouter:
-        return 'assets/icons/lyrics/openrouter.png';
-      case LyricsAiProvider.doubao:
-        return 'assets/icons/lyrics/doubao.png';
-      case LyricsAiProvider.deepseek:
-        return 'assets/icons/lyrics/deepseek.png';
-    }
-  }
+
 
   Widget _buildIntroPage(BuildContext context) {
     final isGeneration = widget.purpose == LyricsAiModelPurpose.generation;
@@ -828,26 +818,9 @@ class _LyricsApiKeyWizardDialogState
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Container(
-                                        width: 36,
-                                        height: 36,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.05),
-                                              blurRadius: 3,
-                                              offset: const Offset(0, 1),
-                                            ),
-                                          ],
-                                        ),
-                                        clipBehavior: Clip.antiAlias,
-                                        padding: const EdgeInsets.all(5),
-                                        child: Image.asset(
-                                          _providerIconPath(provider),
-                                          fit: BoxFit.contain,
-                                        ),
+                                      LyricsProviderIcon(
+                                        provider: provider,
+                                        size: 36,
                                       ),
                                       const SizedBox(height: 8),
                                       Text(

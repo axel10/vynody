@@ -18,6 +18,7 @@ import 'package:vibe_flow/player/settings/windows_association_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import 'package:vibe_flow/utils/language_code_utils.dart';
+import 'package:vibe_flow/widgets/lyrics_provider_icon.dart';
 
 enum _SettingsSection {
   home,
@@ -223,34 +224,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildProviderIcon(LyricsAiProvider provider) {
-    final String iconPath = switch (provider) {
-      LyricsAiProvider.googleAiStudio => 'assets/icons/lyrics/google.png',
-      LyricsAiProvider.openRouter => 'assets/icons/lyrics/openrouter.png',
-      LyricsAiProvider.doubao => 'assets/icons/lyrics/doubao.png',
-      LyricsAiProvider.deepseek => 'assets/icons/lyrics/deepseek.png',
-    };
-
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      padding: const EdgeInsets.all(5),
-      child: Image.asset(
-        iconPath,
-        fit: BoxFit.contain,
-      ),
-    );
+    return LyricsProviderIcon(provider: provider, size: 36);
   }
 
   Widget _buildSectionHeader(String title, [String? description]) {
@@ -1306,6 +1280,10 @@ class _LyricsModelPickerDialogState
 
   bool get _isLoading => _loadingProviders.contains(_provider);
 
+  Widget _buildProviderIcon(LyricsAiProvider provider) {
+    return LyricsProviderIcon(provider: provider, size: 24);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1409,6 +1387,7 @@ class _LyricsModelPickerDialogState
 
   @override
   Widget build(BuildContext context) {
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final settings = ref.watch(settingsServiceProvider);
     final availableProviders = settings.availableLyricsModelProviders;
     final availableTabs = [
@@ -1443,18 +1422,37 @@ class _LyricsModelPickerDialogState
                 child: Text('请先填写 API Key，才能查看可用模型。'),
               )
             else
-              SegmentedButton<LyricsAiProvider>(
-                segments: availableTabs
+              DropdownButtonFormField<LyricsAiProvider>(
+                value: effectiveProvider,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: isZh ? '平台' : 'Platform',
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+                items: availableTabs
                     .map(
-                      (provider) => ButtonSegment<LyricsAiProvider>(
+                      (provider) => DropdownMenuItem<LyricsAiProvider>(
                         value: provider,
-                        label: Text(provider.displayName),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _buildProviderIcon(provider),
+                            const SizedBox(width: 12),
+                            Text(
+                              provider.displayName,
+                              style: const TextStyle(fontSize: 15),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                     .toList(growable: false),
-                selected: {effectiveProvider},
-                onSelectionChanged: (selection) {
-                  final provider = selection.first;
+                onChanged: (provider) {
+                  if (provider == null) return;
                   setState(() {
                     _provider = provider;
                     _selection = LyricsAiModelSelection(
