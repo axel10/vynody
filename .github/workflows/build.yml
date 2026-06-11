@@ -271,6 +271,33 @@ jobs:
           compgen -G "build/linux/packages/vibeflow-linux-*.deb" > /dev/null
           compgen -G "build/linux/packages/vibeflow-linux-*.rpm" > /dev/null
 
+      - name: Validate deb install on clean Ubuntu
+        run: |
+          docker run --rm \
+            -v "$PWD/build/linux/packages:/packages:ro" \
+            ubuntu:22.04 \
+            bash -lc '
+              set -euo pipefail
+              apt-get update
+              apt-get install -y /packages/vibeflow-linux-*.deb
+              test -x /opt/vibeflow/VibeFlow
+              test -x /usr/bin/vibeflow
+              dpkg -s vibeflow
+            '
+
+      - name: Validate rpm install on clean Fedora
+        run: |
+          docker run --rm \
+            -v "$PWD/build/linux/packages:/packages:ro" \
+            fedora:40 \
+            bash -lc '
+              set -euo pipefail
+              dnf install -y /packages/vibeflow-linux-*.rpm
+              test -x /opt/vibeflow/VibeFlow
+              test -x /usr/bin/vibeflow
+              rpm -q vibeflow
+            '
+
       - name: Upload Linux package
         uses: actions/upload-artifact@v4
         with:
