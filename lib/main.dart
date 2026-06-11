@@ -40,8 +40,8 @@ void handleFileOpen(List<String> args) {
       // 如果是支持的音频文件
       if (MusicFileUtils.isMusicFilePath(path)) {
         // 将文件添加到播放队列并开始播放
-        // append: true 表示将其添加到队列末尾并切换到该歌曲播放
-        audio.playFile(path, p.basename(path), append: true);
+        // append: false 表示清空队列并将此歌曲设为唯一歌曲播放
+        audio.playFile(path, p.basename(path), append: false);
 
         // 自动跳转到播放详情界面（索引为1的 Tab）
         navigateToMainTab(context, index: 1);

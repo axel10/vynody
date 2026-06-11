@@ -269,8 +269,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
         // 匹配后缀
         if (MusicFileUtils.isMusicFilePath(path)) {
           // 调用播放服务读取音频并播放
-          // append: true 确保该文件插入到底部立刻切歌
-          await audio.playFile(path, p.basename(path), append: true);
+          // append: false 确保清空队列并将此歌曲设为唯一歌曲播放
+          await audio.playFile(path, p.basename(path), append: false);
 
           if (!mounted) return;
 
