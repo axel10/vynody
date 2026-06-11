@@ -254,34 +254,55 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   Future<void> _handleArgs() async {
     // 无参数直接返回
     if (!mounted || widget.args.isEmpty) {
+      debugPrint('[external-open] _handleArgs skipped mounted=$mounted args=${widget.args}');
       return;
     }
 
     final audio = ref.read(audioServiceProvider);
+    debugPrint('[external-open] _handleArgs start args=${widget.args}');
 
     for (var arg in widget.args) {
       // 预处理路径字符串
       final path = arg.replaceAll('"', '').trim();
-      if (path.isEmpty) continue;
+      if (path.isEmpty) {
+        debugPrint('[external-open] _handleArgs skip empty arg="$arg"');
+        continue;
+      }
 
       // 文件存在性校验
-      if (File(path).existsSync()) {
-        // 匹配后缀
-        if (MusicFileUtils.isMusicFilePath(path)) {
-          // 调用播放服务读取音频并播放
-          // append: false 确保清空队列并将此歌曲设为唯一歌曲播放
-          await audio.playFile(path, p.basename(path), append: false);
+      final exists = File(path).existsSync();
+      final isMusic = MusicFileUtils.isMusicFilePath(path);
+      debugPrint(
+        '[external-open] _handleArgs inspect path=$path exists=$exists isMusic=$isMusic',
+      );
+      if (!exists) {
+        continue;
+      }
 
-          if (!mounted) return;
+      // 匹配后缀
+      if (isMusic) {
+        debugPrint('[external-open] _handleArgs playFile begin path=$path');
+        // 调用播放服务读取音频并播放
+        // append: false 确保清空队列并将此歌曲设为唯一歌曲播放
+        await audio.playFile(path, p.basename(path), append: false);
+        debugPrint('[external-open] _handleArgs playFile done path=$path');
 
-          // 切换到播放详情视图 (索引 1)
-          await navigateToMainTab(context, index: 1);
-
-          // 处理完一个核心音频文件后停止（通常双击只打开一个文件）
-          break;
+        if (!mounted) {
+          debugPrint('[external-open] _handleArgs abort after playFile, widget unmounted');
+          return;
         }
+
+        // 切换到播放详情视图 (索引 1)
+        debugPrint('[external-open] _handleArgs navigateToMainTab begin path=$path');
+        await navigateToMainTab(context, index: 1);
+        debugPrint('[external-open] _handleArgs navigateToMainTab done path=$path');
+
+        // 处理完一个核心音频文件后停止（通常双击只打开一个文件）
+        break;
       }
     }
+
+    debugPrint('[external-open] _handleArgs end');
   }
 
   Future<void> _onDestinationSelected(int index) async {

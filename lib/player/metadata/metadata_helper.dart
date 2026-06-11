@@ -406,6 +406,7 @@ class MetadataHelper {
     int? songId,
     bool generateThumbnail = true,
     bool forceRefresh = false,
+    int? sourceFlags,
   }) async {
     final db = MetadataDatabase();
     final file = File(filePath);
@@ -516,6 +517,7 @@ class MetadataHelper {
             ? lastModified
             : existing?.metadataImgScanned,
         createdAt: createdAt,
+        sourceFlags: sourceFlags ?? existing?.sourceFlags ?? SongSourceFlags.external,
       );
 
       // 5. 将解析结果存入数据库
@@ -694,7 +696,11 @@ class MetadataHelper {
       return (cached, null);
     }
 
-    return processMetadata(filePath, generateThumbnail: generateThumbnail);
+    return processMetadata(
+      filePath,
+      generateThumbnail: generateThumbnail,
+      sourceFlags: SongSourceFlags.external,
+    );
   }
 
   /// 解码文件内嵌封面，分辨率限制在 [maxWidth] * [maxHeight]

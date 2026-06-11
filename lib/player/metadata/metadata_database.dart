@@ -19,6 +19,7 @@ part 'metadata_drift_database.dart';
 class SongSourceFlags {
   static const int rootScan = 1 << 0;
   static const int systemMedia = 1 << 1;
+  static const int external = 1 << 2;
 
   const SongSourceFlags._();
 }

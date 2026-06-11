@@ -19,38 +19,117 @@ import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final List<String> _pendingFileOpenArgs = <String>[];
+Timer? _pendingFileOpenRetryTimer;
 
 /// 处理从外部（如双击、命令行）打开的文件列表
 /// [args] 是外部传入的路径参数列表
-void handleFileOpen(List<String> args) {
+void queueFileOpen(List<String> args) {
   if (args.isEmpty) return;
-  final context = navigatorKey.currentContext; // 获取全局导航上下文以访问 Provider
-  if (context == null) return;
+  AppLog.log(
+    '[external-open] queueFileOpen args=$args pendingBefore=${_pendingFileOpenArgs.length}',
+    mirrorToConsole: true,
+  );
+  _pendingFileOpenArgs.addAll(args);
+  _tryDrainPendingFileOpenArgs();
+}
 
+void _tryDrainPendingFileOpenArgs() {
+  if (_pendingFileOpenArgs.isEmpty) return;
+
+  final context = navigatorKey.currentContext; // 获取全局导航上下文以访问 Provider
+  if (context == null) {
+    AppLog.log(
+      '[external-open] navigator context not ready, will retry; pending=${_pendingFileOpenArgs.length}',
+      mirrorToConsole: true,
+    );
+    _pendingFileOpenRetryTimer ??= Timer(const Duration(milliseconds: 100), () {
+      _pendingFileOpenRetryTimer = null;
+      _tryDrainPendingFileOpenArgs();
+    });
+    return;
+  }
+
+  final args = List<String>.from(_pendingFileOpenArgs);
+  _pendingFileOpenArgs.clear();
+  _pendingFileOpenRetryTimer?.cancel();
+  _pendingFileOpenRetryTimer = null;
+
+  AppLog.log(
+    '[external-open] draining args=$args',
+    mirrorToConsole: true,
+  );
+
+  unawaited(_handleFileOpenArgs(context, args));
+}
+
+Future<void> _handleFileOpenArgs(
+  BuildContext context,
+  List<String> args,
+) async {
   final container = ProviderScope.containerOf(context);
   final audio = container.read(audioServiceProvider);
+
+  AppLog.log(
+    '[external-open] handleFileOpenArgs start args=$args',
+    mirrorToConsole: true,
+  );
 
   for (var arg in args) {
     // 处理路径中可能的双引号和两端空格
     final path = arg.replaceAll('"', '').trim();
-    if (path.isEmpty) continue;
+    if (path.isEmpty) {
+      AppLog.log(
+        '[external-open] skip empty arg: "$arg"',
+        mirrorToConsole: true,
+      );
+      continue;
+    }
 
     // 检查文件是否存在
-    if (File(path).existsSync()) {
-      // 如果是支持的音频文件
-      if (MusicFileUtils.isMusicFilePath(path)) {
-        // 将文件添加到播放队列并开始播放
-        // append: false 表示清空队列并将此歌曲设为唯一歌曲播放
-        audio.playFile(path, p.basename(path), append: false);
+    final exists = File(path).existsSync();
+    AppLog.log(
+      '[external-open] inspect path=$path exists=$exists isMusic=${MusicFileUtils.isMusicFilePath(path)}',
+      mirrorToConsole: true,
+    );
+    if (!exists) {
+      continue;
+    }
 
-        // 自动跳转到播放详情界面（索引为1的 Tab）
-        navigateToMainTab(context, index: 1);
+    // 如果是支持的音频文件
+    if (MusicFileUtils.isMusicFilePath(path)) {
+      AppLog.log(
+        '[external-open] playFile begin path=$path',
+        mirrorToConsole: true,
+      );
+      // 将文件添加到播放队列并开始播放
+      // append: false 表示清空队列并将此歌曲设为唯一歌曲播放
+      await audio.playFile(path, p.basename(path), append: false);
+      AppLog.log(
+        '[external-open] playFile done path=$path',
+        mirrorToConsole: true,
+      );
 
-        // 逻辑：匹配到第一个支持的文件即处理并跳出，避免一次打开大量文件导致界面混乱
-        break;
-      }
+      // 自动跳转到播放详情界面（索引为1的 Tab）
+      AppLog.log(
+        '[external-open] navigateToMainTab(1) begin path=$path',
+        mirrorToConsole: true,
+      );
+      await navigateToMainTab(context, index: 1);
+      AppLog.log(
+        '[external-open] navigateToMainTab(1) done path=$path',
+        mirrorToConsole: true,
+      );
+
+      // 逻辑：匹配到第一个支持的文件即处理并跳出，避免一次打开大量文件导致界面混乱
+      break;
     }
   }
+
+  AppLog.log(
+    '[external-open] handleFileOpenArgs end',
+    mirrorToConsole: true,
+  );
 }
 
 void main(List<String> args) async {
@@ -87,8 +166,11 @@ void main(List<String> args) async {
           args,
           "custom_identifier",
           onSecondWindow: (args) {
-            AppLog.log('second window args=$args', mirrorToConsole: true);
-            handleFileOpen(args);
+            AppLog.log(
+              'second window args=$args count=${args.length}',
+              mirrorToConsole: true,
+            );
+            queueFileOpen(args);
           },
         );
       }
