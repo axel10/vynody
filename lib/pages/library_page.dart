@@ -46,9 +46,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
             _artistsTabLoaded = true;
           }
         });
-        if (_tabIndex != 0) {
-          ref.read(librarySelectionScopeProvider.notifier).clear();
-        }
+        ref.read(librarySelectionScopeProvider.notifier).clear();
       });
   }
 

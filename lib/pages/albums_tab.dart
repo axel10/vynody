@@ -10,6 +10,9 @@ import 'package:vibe_flow/utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
 import '../widgets/scroll_to_top_wrapper.dart';
+import '../widgets/library_selection_scope.dart';
+import '../widgets/library_selection_panel.dart';
+import '../models/music_file.dart';
 
 enum _AlbumSortField { artist, title, trackCount, duration, recentAdded }
 
@@ -26,12 +29,39 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
   String _searchQuery = '';
   _AlbumSortField _sortField = _AlbumSortField.artist;
   bool _sortAscending = true;
+  final Set<String> _selectedAlbumIds = {};
 
   @override
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    Future.microtask(() {
+      if (ref.read(librarySelectionScopeProvider) == LibrarySelectionScope.album) {
+        ref.read(librarySelectionScopeProvider.notifier).clear();
+      }
+    });
     super.dispose();
+  }
+
+  void _toggleAlbumSelection(String albumId) {
+    setState(() {
+      if (_selectedAlbumIds.contains(albumId)) {
+        _selectedAlbumIds.remove(albumId);
+        if (_selectedAlbumIds.isEmpty) {
+          ref.read(librarySelectionScopeProvider.notifier).clear();
+        }
+      } else {
+        _selectedAlbumIds.add(albumId);
+      }
+    });
+  }
+
+  void _enterAlbumSelectionMode(String albumId) {
+    ref.read(librarySelectionScopeProvider.notifier).setScope(LibrarySelectionScope.album);
+    setState(() {
+      _selectedAlbumIds.clear();
+      _selectedAlbumIds.add(albumId);
+    });
   }
 
   @override
@@ -39,6 +69,19 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
     final albumsAsync = ref.watch(albumLibraryProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final l10n = AppLocalizations.of(context)!;
+    final selectionScope = ref.watch(librarySelectionScopeProvider);
+    final isSelectionMode = selectionScope == LibrarySelectionScope.album;
+
+    if (!isSelectionMode && _selectedAlbumIds.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _selectedAlbumIds.clear();
+          });
+        }
+      });
+    }
+
     return albumsAsync.when(
       loading: () => Center(
         child: Column(
@@ -50,7 +93,6 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
               child: CircularProgressIndicator(strokeWidth: 3),
             ),
             const SizedBox(height: 12),
-            // Text(l10n.albums, style: Theme.of(context).textTheme.titleMedium),
           ],
         ),
       ),
@@ -73,6 +115,28 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
             .where((album) => album.isUnknownAlbum)
             .toList(growable: false);
 
+        final selectedSongs = <MusicFile>[];
+        final seenSelectedPaths = <String>{};
+        for (final album in visibleAlbums) {
+          if (_selectedAlbumIds.contains(album.id)) {
+            for (final song in album.songs) {
+              if (seenSelectedPaths.add(song.path)) {
+                selectedSongs.add(song);
+              }
+            }
+          }
+        }
+
+        final allSongs = <MusicFile>[];
+        final seenAllPaths = <String>{};
+        for (final album in visibleAlbums) {
+          for (final song in album.songs) {
+            if (seenAllPaths.add(song.path)) {
+              allSongs.add(song);
+            }
+          }
+        }
+
         return LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 780;
@@ -88,9 +152,12 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
             final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
             final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
-            return ScrollToTopWrapper(
+            final bottomPadding = 120.0 + (isSelectionMode ? 220.0 : 0.0);
+            final bottomOffset = (currentMusic != null ? 140.0 : 40.0) + (isSelectionMode ? 220.0 : 0.0);
+
+            final mainContent = ScrollToTopWrapper(
               scrollController: _scrollController,
-              bottomOffset: currentMusic != null ? 140.0 : 40.0,
+              bottomOffset: bottomOffset,
               child: CustomScrollView(
                 controller: _scrollController,
                 cacheExtent: 1000,
@@ -144,6 +211,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
                         albums: knownAlbums,
                         crossAxisCount: crossAxisCount,
                         childAspectRatio: childAspectRatio,
+                        isSelectionMode: isSelectionMode,
                       ),
                     ],
                     if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
@@ -154,11 +222,64 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
                         albums: unknownAlbums,
                         crossAxisCount: crossAxisCount,
                         childAspectRatio: childAspectRatio,
+                        isSelectionMode: isSelectionMode,
                       ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                    SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
                   ],
                 ],
               ),
+            );
+
+            return Stack(
+              children: [
+                Positioned.fill(child: mainContent),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    reverseDuration: const Duration(milliseconds: 200),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      final offsetAnimation = Tween<Offset>(
+                        begin: const Offset(0, 1.0),
+                        end: Offset.zero,
+                      ).animate(animation);
+                      return SlideTransition(position: offsetAnimation, child: child);
+                    },
+                    child: isSelectionMode
+                        ? LibrarySelectionPanel(
+                            key: const ValueKey('album-selection-panel'),
+                            selectedSongs: selectedSongs,
+                            allSongs: allSongs,
+                            title: Localizations.localeOf(context).languageCode == 'zh'
+                                ? '已选择 ${_selectedAlbumIds.length} 张专辑'
+                                : 'Selected ${_selectedAlbumIds.length} albums',
+                            onToggleSelectAll: () {
+                              final isAllSelected = _selectedAlbumIds.length == visibleAlbums.length && visibleAlbums.isNotEmpty;
+                              setState(() {
+                                if (isAllSelected) {
+                                  _selectedAlbumIds.clear();
+                                  ref.read(librarySelectionScopeProvider.notifier).clear();
+                                } else {
+                                  _selectedAlbumIds.clear();
+                                  _selectedAlbumIds.addAll(visibleAlbums.map((a) => a.id));
+                                }
+                              });
+                            },
+                            onCancel: () {
+                              setState(() {
+                                _selectedAlbumIds.clear();
+                              });
+                              ref.read(librarySelectionScopeProvider.notifier).clear();
+                            },
+                          )
+                        : const SizedBox.shrink(key: ValueKey('album-selection-panel-hidden')),
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -204,9 +325,9 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
     required List<AlbumSummary> albums,
     required int crossAxisCount,
     required double childAspectRatio,
+    required bool isSelectionMode,
   }) {
     return [
-
       SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         sliver: SliverGrid(
@@ -217,7 +338,31 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
             childAspectRatio: childAspectRatio,
           ),
           delegate: SliverChildBuilderDelegate(
-            (context, index) => _AlbumCard(album: albums[index]),
+            (context, index) {
+              final album = albums[index];
+              final isSelected = _selectedAlbumIds.contains(album.id);
+              return _AlbumCard(
+                album: album,
+                isSelectionMode: isSelectionMode,
+                isSelected: isSelected,
+                onTap: () {
+                  if (isSelectionMode) {
+                    _toggleAlbumSelection(album.id);
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => AlbumDetailPage(album: album)),
+                    );
+                  }
+                },
+                onLongPress: () {
+                  if (isSelectionMode) {
+                    _toggleAlbumSelection(album.id);
+                  } else {
+                    _enterAlbumSelectionMode(album.id);
+                  }
+                },
+              );
+            },
             childCount: albums.length,
           ),
         ),
@@ -227,9 +372,19 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
 }
 
 class _AlbumCard extends ConsumerWidget {
-  const _AlbumCard({required this.album});
+  const _AlbumCard({
+    required this.album,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onTap,
+    this.onLongPress,
+  });
 
   final AlbumSummary album;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -243,14 +398,20 @@ class _AlbumCard extends ConsumerWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onSecondaryTapDown: (details) {
-          _showAlbumContextMenu(context, ref);
+          if (!isSelectionMode) {
+            _showAlbumContextMenu(context, ref);
+          }
         },
         onLongPress: () {
-          _showAlbumContextMenu(context, ref);
+          if (onLongPress != null) {
+            onLongPress!();
+          } else if (!isSelectionMode) {
+            _showAlbumContextMenu(context, ref);
+          }
         },
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
-          onTap: () => _openAlbumDetail(context),
+          onTap: onTap ?? () => _openAlbumDetail(context),
           child: Ink(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
@@ -280,12 +441,43 @@ class _AlbumCard extends ConsumerWidget {
                     ),
                     child: AspectRatio(
                       aspectRatio: 1,
-                      child: SongThumbnail(
-                        path: album.representativeSong.path,
-                        id: album.representativeSong.id,
-                        size: 250,
-                        width: double.infinity,
-                        height: double.infinity,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          SongThumbnail(
+                            path: album.representativeSong.path,
+                            id: album.representativeSong.id,
+                            size: 250,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
+                          if (isSelectionMode)
+                            Positioned.fill(
+                              child: Container(
+                                color: isSelected
+                                    ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+                                    : Colors.black26,
+                              ),
+                            ),
+                          if (isSelectionMode)
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: Checkbox(
+                                  value: isSelected,
+                                  onChanged: (_) => onTap?.call(),
+                                  fillColor: WidgetStateProperty.all(Colors.white),
+                                  checkColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -341,18 +533,19 @@ class _AlbumCard extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              tooltip: l10n.playAll,
-                              onPressed: () => audio.playPlaylist(album.songs),
-                              icon: Icon(
-                                Icons.play_circle_filled,
-                                size: isPortrait ? 22 : 26,
-                                color: theme.colorScheme.primary,
+                            if (!isSelectionMode)
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                tooltip: l10n.playAll,
+                                onPressed: () => audio.playPlaylist(album.songs),
+                                icon: Icon(
+                                  Icons.play_circle_filled,
+                                  size: isPortrait ? 22 : 26,
+                                  color: theme.colorScheme.primary,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ],
