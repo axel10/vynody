@@ -5,7 +5,41 @@
 #include <stdio.h>
 #include <windows.h>
 
+#include <filesystem>
 #include <iostream>
+#include <string>
+#include <vector>
+
+namespace {
+
+std::wstring GetRunnerLogPath() {
+  wchar_t* local_app_data = nullptr;
+  size_t len = 0;
+  if (_wdupenv_s(&local_app_data, &len, L"LOCALAPPDATA") != 0 ||
+      local_app_data == nullptr) {
+    return L".\\VibeFlow\\logs\\runner-launch.log";
+  }
+
+  std::wstring path(local_app_data);
+  free(local_app_data);
+  path += L"\\VibeFlow\\logs\\runner-launch.log";
+  return path;
+}
+
+void EnsureParentDirectoryExists(const std::wstring& path) {
+  const auto parent = std::filesystem::path(path).parent_path();
+  if (parent.empty()) {
+    return;
+  }
+
+  std::filesystem::path current;
+  for (const auto& part : parent) {
+    current /= part;
+    ::CreateDirectoryW(current.c_str(), nullptr);
+  }
+}
+
+}  // namespace
 
 void CreateAndAttachConsole() {
   if (::AllocConsole()) {
@@ -62,4 +96,18 @@ std::string Utf8FromUtf16(const wchar_t* utf16_string) {
     return std::string();
   }
   return utf8_string;
+}
+
+void AppendRunnerLog(const std::string& message) {
+  const std::wstring log_path = GetRunnerLogPath();
+  EnsureParentDirectoryExists(log_path);
+
+  FILE* file = nullptr;
+  if (_wfopen_s(&file, log_path.c_str(), L"ab") != 0 || file == nullptr) {
+    return;
+  }
+
+  const std::string line = message + "\r\n";
+  fwrite(line.data(), 1, line.size(), file);
+  fclose(file);
 }

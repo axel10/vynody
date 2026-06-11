@@ -1704,14 +1704,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.5.1"
-  windows_single_instance:
-    dependency: "direct main"
-    description:
-      name: windows_single_instance
-      sha256: "27ac7ef70a2930a42431d94263941c76884036f797c6d749d1ce5d9d386e66d9"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "1.1.0"
   windows_taskbar:
     dependency: "direct main"
     description:

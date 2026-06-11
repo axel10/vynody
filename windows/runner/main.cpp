@@ -1,16 +1,75 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
+#include <vector>
+#include <string>
 
 #include "flutter_window.h"
 #include "utils.h"
 
+// Struct to store hwnd during EnumWindows search
+struct FindWindowData {
+  HWND hwnd = nullptr;
+};
+
+// Callback to find the existing window by checking for VibeFlowInstanceProp property
+BOOL CALLBACK FindVibeFlowWindowProc(HWND hwnd, LPARAM lParam) {
+  wchar_t class_name[256];
+  if (::GetClassNameW(hwnd, class_name, 256) && wcscmp(class_name, L"FLUTTER_RUNNER_WIN32_WINDOW") == 0) {
+    if (::GetPropW(hwnd, L"VibeFlowInstanceProp") == (HANDLE)1) {
+      auto data = reinterpret_cast<FindWindowData*>(lParam);
+      data->hwnd = hwnd;
+      return FALSE; // Stop enumerating
+    }
+  }
+  return TRUE;
+}
+
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  
+  // Single Instance Mutex Check (Local namespace prevents session collision)
+  HANDLE mutex = ::CreateMutexW(nullptr, TRUE, L"Local\\VibeFlow_SingleInstance_Mutex");
+  if (mutex == nullptr || ::GetLastError() == ERROR_ALREADY_EXISTS) {
+    // Another instance is already running
+    FindWindowData data;
+    ::EnumWindows(FindVibeFlowWindowProc, reinterpret_cast<LPARAM>(&data));
+
+    if (data.hwnd != nullptr) {
+      std::vector<std::string> args = GetCommandLineArguments();
+      std::string payload;
+      for (size_t i = 0; i < args.size(); ++i) {
+        payload += args[i];
+        if (i < args.size() - 1) payload += "\n";
+      }
+
+      COPYDATASTRUCT cds;
+      cds.dwData = 1;
+      cds.cbData = static_cast<DWORD>(payload.size());
+      cds.lpData = const_cast<char*>(payload.c_str());
+
+      ::SendMessageW(data.hwnd, WM_COPYDATA, reinterpret_cast<WPARAM>(data.hwnd), reinterpret_cast<LPARAM>(&cds));
+    }
+
+    if (mutex != nullptr) {
+      ::CloseHandle(mutex);
+    }
+    return EXIT_SUCCESS; // Quit the second instance
+  }
+
+  AppendRunnerLog("=== wWinMain start ===");
+  AppendRunnerLog(std::string("raw command line: ") + Utf8FromUtf16(command_line));
+
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
-  if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
+  const bool attached_console = ::AttachConsole(ATTACH_PARENT_PROCESS);
+  if (!attached_console && ::IsDebuggerPresent()) {
     CreateAndAttachConsole();
+    AppendRunnerLog("console attached via debugger");
+  } else if (attached_console) {
+    AppendRunnerLog("console attached to parent process");
+  } else {
+    AppendRunnerLog("no console attached");
   }
 
   // Initialize COM, so that it is available for use in the library and/or
@@ -21,6 +80,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
+  AppendRunnerLog(
+      std::string("parsed args count=") + std::to_string(command_line_arguments.size()) +
+      " args=" + [&]() {
+        std::string joined;
+        for (size_t i = 0; i < command_line_arguments.size(); ++i) {
+          if (i > 0) joined += " | ";
+          joined += command_line_arguments[i];
+        }
+        return joined;
+      }());
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
@@ -28,8 +97,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
   if (!window.Create(L"VibeFlow", origin, size)) {
+    AppendRunnerLog("window.Create failed");
+    if (mutex != nullptr) {
+      ::ReleaseMutex(mutex);
+      ::CloseHandle(mutex);
+    }
     return EXIT_FAILURE;
   }
+  AppendRunnerLog("window.Create succeeded");
   window.SetQuitOnClose(true);
 
   ::MSG msg;
@@ -38,6 +113,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     ::DispatchMessage(&msg);
   }
 
+  // Release mutex before exit
+  if (mutex != nullptr) {
+    ::ReleaseMutex(mutex);
+    ::CloseHandle(mutex);
+  }
+
+  AppendRunnerLog("message loop exited");
   ::CoUninitialize();
+  AppendRunnerLog("=== wWinMain end ===");
   return EXIT_SUCCESS;
 }

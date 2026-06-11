@@ -62,7 +62,7 @@ dependencies:
 
 
   flutter_colorpicker: ^1.1.0
-  windows_single_instance: ^1.1.0
+
   intl: ^0.20.2
   mesh_gradient: 
     git:

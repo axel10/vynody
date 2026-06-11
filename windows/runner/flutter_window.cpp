@@ -27,6 +27,14 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
+  // Set unique window property to identify this VibeFlow instance
+  ::SetPropW(GetHandle(), L"VibeFlowInstanceProp", (HANDLE)1);
+
+  // Initialize communication channel
+  channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "vibe_flow/single_instance",
+      &flutter::StandardMethodCodec::GetInstance());
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -40,6 +48,9 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  // Clean up the window property
+  ::RemovePropW(GetHandle(), L"VibeFlowInstanceProp");
+
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -62,6 +73,44 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   switch (message) {
+    case WM_COPYDATA: {
+      COPYDATASTRUCT* cds = reinterpret_cast<COPYDATASTRUCT*>(lparam);
+      if (cds && cds->dwData == 1) {
+        std::string payload(reinterpret_cast<char*>(cds->lpData), cds->cbData);
+        
+        // Split newline-separated arguments
+        std::vector<std::string> args;
+        size_t start = 0;
+        size_t end = payload.find('\n');
+        while (end != std::string::npos) {
+          args.push_back(payload.substr(start, end - start));
+          start = end + 1;
+          end = payload.find('\n', start);
+        }
+        if (start < payload.size()) {
+          args.push_back(payload.substr(start));
+        }
+
+        // Pass arguments list to Flutter
+        flutter::EncodableList encodable_args;
+        for (const auto& arg : args) {
+          encodable_args.push_back(flutter::EncodableValue(arg));
+        }
+        if (channel_) {
+          channel_->InvokeMethod("onSecondInstance", std::make_unique<flutter::EncodableValue>(encodable_args));
+        }
+
+        // Focus and activate the main window
+        HWND main_hwnd = GetHandle();
+        if (::IsIconic(main_hwnd)) {
+          ::ShowWindow(main_hwnd, SW_RESTORE);
+        }
+        ::SetForegroundWindow(main_hwnd);
+        ::SetFocus(main_hwnd);
+        ::SetActiveWindow(main_hwnd);
+      }
+      return 0;
+    }
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;

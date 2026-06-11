@@ -9,7 +9,7 @@ import 'package:worker_manager/worker_manager.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:windows_single_instance/windows_single_instance.dart';
+import 'package:flutter/services.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
@@ -159,20 +159,21 @@ void main(List<String> args) async {
 
       if (Platform.isWindows) {
         AppLog.log(
-          'ensuring single instance on Windows',
+          'registering single instance handler',
           mirrorToConsole: true,
         );
-        await WindowsSingleInstance.ensureSingleInstance(
-          args,
-          "custom_identifier",
-          onSecondWindow: (args) {
+        const singleInstanceChannel = MethodChannel('vibe_flow/single_instance');
+        singleInstanceChannel.setMethodCallHandler((call) async {
+          if (call.method == 'onSecondInstance') {
+            final List<dynamic> rawArgs = call.arguments;
+            final argsList = rawArgs.cast<String>();
             AppLog.log(
-              'second window args=$args count=${args.length}',
+              'second window args=$argsList count=${argsList.length}',
               mirrorToConsole: true,
             );
-            queueFileOpen(args);
-          },
-        );
+            queueFileOpen(argsList);
+          }
+        });
       }
 
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
