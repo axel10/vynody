@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:audio_core/audio_core.dart';
 
 import 'transcode_models.dart';
@@ -32,10 +30,9 @@ class TranscodePresetResolver {
 
   BitRateMode _bitRateModeForFormat(AudioFormat format) {
     return switch (format) {
+      AudioFormat.aac || AudioFormat.m4a || AudioFormat.m4b => BitRateMode.vbr,
       AudioFormat.opus => BitRateMode.vbr,
       AudioFormat.mp3 => BitRateMode.cbr,
-      AudioFormat.m4a when Platform.isMacOS || Platform.isIOS =>
-        BitRateMode.vbr,
       _ => BitRateMode.cbr,
     };
   }

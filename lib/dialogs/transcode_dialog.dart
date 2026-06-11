@@ -135,6 +135,9 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       outputFormat: settings.transcodeDefaultFormat,
       qualityTier: settings.transcodeDefaultQualityTier,
     );
+    final defaultAacEncoder = (Platform.isWindows || Platform.isLinux)
+        ? AacEncoder.fdkaac
+        : AacEncoder.ffmpeg;
     _draft = TranscodeDraft(
       outputFormat: preset.outputFormat,
       qualityTier: preset.qualityTier,
@@ -145,7 +148,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       valueOrigin: TranscodeValueOrigin.presetDerived,
       outputDirectory: _initialOutputDirectory(),
       useSystemEncoder: false,
-      aacEncoder: AacEncoder.ffmpeg,
+      aacEncoder: defaultAacEncoder,
     );
     unawaited(_loadCapabilities());
   }
@@ -203,6 +206,9 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       outputFormat: nextFormat,
       qualityTier: nextTier,
     );
+    final defaultAacEncoder = (Platform.isWindows || Platform.isLinux)
+        ? AacEncoder.fdkaac
+        : AacEncoder.ffmpeg;
     setState(() {
       _draft = _draft.copyWith(
         outputFormat: nextFormat,
@@ -213,7 +219,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         channels: resolved.channels,
         valueOrigin: TranscodeValueOrigin.presetDerived,
         useSystemEncoder: false,
-        aacEncoder: AacEncoder.ffmpeg,
+        aacEncoder: defaultAacEncoder,
       );
       _errorText = null;
     });
