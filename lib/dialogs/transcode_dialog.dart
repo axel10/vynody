@@ -108,17 +108,6 @@ class TranscodeDialog extends ConsumerStatefulWidget {
 }
 
 class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
-  static const List<int?> _sampleRateOptions = <int?>[
-    null,
-    22050,
-    32000,
-    44100,
-    48000,
-    88200,
-    96000,
-  ];
-  static const List<int?> _channelOptions = <int?>[null, 1, 2];
-
   final TranscodePresetResolver _presetResolver =
       const TranscodePresetResolver();
 
@@ -233,8 +222,6 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   void _markCustomized({
     int? bitRate,
     BitRateMode? bitRateMode,
-    int? sampleRate,
-    int? channels,
     bool? useSystemEncoder,
     AacEncoder? aacEncoder,
   }) {
@@ -242,8 +229,6 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       _draft = _draft.copyWith(
         bitRate: bitRate,
         bitRateMode: bitRateMode,
-        sampleRate: sampleRate,
-        channels: channels,
         useSystemEncoder: useSystemEncoder,
         aacEncoder: aacEncoder,
         valueOrigin: TranscodeValueOrigin.customized,
@@ -396,21 +381,6 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
     };
   }
 
-  String _sampleRateLabel(AppLocalizations l10n, int? value) {
-    if (value == null) {
-      return l10n.transcodeKeepSource;
-    }
-    return '$value Hz';
-  }
-
-  String _channelsLabel(AppLocalizations l10n, int? value) {
-    return switch (value) {
-      null => l10n.transcodeKeepSource,
-      1 => l10n.transcodeMono,
-      2 => l10n.transcodeStereo,
-      _ => '$value',
-    };
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -879,50 +849,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
             ],
             const SizedBox(height: 12),
           ],
-          DropdownButtonFormField<int?>(
-            initialValue: _draft.sampleRate,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: l10n.transcodeSampleRate,
-              border: const OutlineInputBorder(),
-            ),
-            items: _sampleRateOptions
-                .map(
-                  (value) => DropdownMenuItem<int?>(
-                    value: value,
-                    child: Text(_sampleRateLabel(l10n, value)),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: _isSubmitting
-                ? null
-                : (value) {
-                    _markCustomized(sampleRate: value);
-                  },
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<int?>(
-            initialValue: _draft.channels,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: l10n.transcodeChannels,
-              border: const OutlineInputBorder(),
-            ),
-            items: _channelOptions
-                .map(
-                  (value) => DropdownMenuItem<int?>(
-                    value: value,
-                    child: Text(_channelsLabel(l10n, value)),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: _isSubmitting
-                ? null
-                : (value) {
-                    _markCustomized(channels: value);
-                  },
-          ),
-          const SizedBox(height: 12),
+
           Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
