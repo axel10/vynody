@@ -17,6 +17,9 @@ class LibrarySelectionPanel extends ConsumerWidget {
     required this.onCancel,
     this.onDelete,
     this.deleteLabel,
+    this.title,
+    this.onOpenLocation,
+    this.openLocationLabel,
   });
 
   final List<MusicFile> selectedSongs;
@@ -25,6 +28,9 @@ class LibrarySelectionPanel extends ConsumerWidget {
   final VoidCallback onCancel;
   final VoidCallback? onDelete;
   final String? deleteLabel;
+  final String? title;
+  final VoidCallback? onOpenLocation;
+  final String? openLocationLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,7 +48,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
         isSingleSelected && selectedSongs.first.path.trim().isNotEmpty;
     final canOpenLocation =
         (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
-        hasFilePath;
+        (onOpenLocation != null || hasFilePath);
 
     final selectAllText = isAllSelected
         ? (Localizations.localeOf(context).languageCode == 'zh'
@@ -76,7 +82,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
                       children: [
                         const SizedBox(width: 8),
                         Text(
-                          l10n.selectedSongs(selectedSongs.length),
+                          title ?? l10n.selectedSongs(selectedSongs.length),
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -208,12 +214,16 @@ class LibrarySelectionPanel extends ConsumerWidget {
                               ? _buildSelectionActionButton(
                                   context: context,
                                   icon: Icons.folder_open_rounded,
-                                  label: l10n.openFileLocation,
+                                  label: openLocationLabel ?? l10n.openFileLocation,
                                   onPressed: canOpenLocation
                                       ? () async {
-                                          await openSongFileLocation(
-                                            selectedSongs.first.path,
-                                          );
+                                          if (onOpenLocation != null) {
+                                            onOpenLocation!();
+                                          } else {
+                                            await openSongFileLocation(
+                                              selectedSongs.first.path,
+                                            );
+                                          }
                                           onCancel();
                                         }
                                       : null,

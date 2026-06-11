@@ -35,6 +35,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
+  final Set<String> _selectedFolderPaths = {};
   final Set<String> _selectedRootPaths = {};
   StreamSubscription<ScanProgress>? _scanProgressSubscription;
   ToastFuture? _scanToast;
@@ -127,6 +128,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       _isSelectionMode = !_isSelectionMode;
       if (!_isSelectionMode) {
         _selectedSongPaths.clear();
+        _selectedFolderPaths.clear();
       }
     });
 
@@ -159,7 +161,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   void _clearAllSelection() {
     final shouldClearSongSelection =
-        _isSelectionMode || _selectedSongPaths.isNotEmpty;
+        _isSelectionMode ||
+        _selectedSongPaths.isNotEmpty ||
+        _selectedFolderPaths.isNotEmpty;
     final isRootSelectionMode =
         ref.read(librarySelectionScopeProvider) ==
         LibrarySelectionScope.folderRoot;
@@ -170,6 +174,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     setState(() {
       _isSelectionMode = false;
       _selectedSongPaths.clear();
+      _selectedFolderPaths.clear();
       _selectedRootPaths.clear();
     });
     _setFolderSelectionMode(false);
@@ -291,11 +296,24 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     });
   }
 
-  void _selectAllVisibleSongs(List<MusicFile> files) {
+  void _toggleFolderSelection(String path) {
+    setState(() {
+      if (_selectedFolderPaths.contains(path)) {
+        _selectedFolderPaths.remove(path);
+      } else {
+        _selectedFolderPaths.add(path);
+      }
+    });
+  }
+
+  void _selectAllVisible(MusicFolder currentFolder) {
     setState(() {
       _selectedSongPaths
         ..clear()
-        ..addAll(files.map((file) => file.path));
+        ..addAll(currentFolder.files.map((file) => file.path));
+      _selectedFolderPaths
+        ..clear()
+        ..addAll(currentFolder.subFolders.map((folder) => folder.path));
       _isSelectionMode = true;
     });
 
@@ -310,6 +328,22 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       ),
     );
   }
+
+  List<MusicFile> _getSelectedSongs(MusicFolder currentFolder) {
+    final songs = <MusicFile>[];
+    songs.addAll(
+      currentFolder.files.where((file) => _selectedSongPaths.contains(file.path)),
+    );
+    for (final folder in currentFolder.subFolders) {
+      if (_selectedFolderPaths.contains(folder.path)) {
+        songs.addAll(folder.allSongs);
+      }
+    }
+    final seen = <String>{};
+    return songs.where((song) => seen.add(song.path)).toList(growable: false);
+  }
+
+
 
 
   void _toggleRootSelection(String path) {
@@ -343,11 +377,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     );
   }
 
-  List<MusicFile> _selectedSongsFromFolder(List<MusicFile> files) {
-    return files
-        .where((file) => _selectedSongPaths.contains(file.path))
-        .toList(growable: false);
-  }
+
 
   @override
   void didChangeDependencies() {
@@ -456,6 +486,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   @override
   Widget build(BuildContext context) {
     final scanner = ref.read(scannerServiceProvider);
+    final l10n = AppLocalizations.of(context)!;
+    Widget currentBody;
     final isRootSelectionMode =
         ref.watch(librarySelectionScopeProvider) ==
         LibrarySelectionScope.folderRoot;
@@ -494,11 +526,29 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       });
     }
 
-    Widget currentBody;
     if (currentFolder == null) {
-      final l10n = AppLocalizations.of(context)!;
       final selectionLabel = l10n.selectedFolders(_selectedRootPaths.length);
       final rootListBottomPadding = isRootSelectionMode ? 224.0 : 160.0;
+      final selectedRootSongs = <MusicFile>[];
+      final seenSelected = <String>{};
+      for (final folder in rootFolders) {
+        if (_selectedRootPaths.contains(folder.path)) {
+          for (final song in folder.allSongs) {
+            if (seenSelected.add(song.path)) {
+              selectedRootSongs.add(song);
+            }
+          }
+        }
+      }
+      final allRootSongs = <MusicFile>[];
+      final seenAll = <String>{};
+      for (final folder in rootFolders) {
+        for (final song in folder.allSongs) {
+          if (seenAll.add(song.path)) {
+            allRootSongs.add(song);
+          }
+        }
+      }
       currentBody = Stack(
         children: [
           Column(
@@ -517,8 +567,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.sort),
-                      onPressed: () => _showSortDialog(context, scanner),
+                      icon: Icon(
+                        Icons.sort,
+                        color: isRootSelectionMode
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      onPressed: _toggleRootSelectionMode,
                       tooltip: AppLocalizations.of(context)!.sort,
                     ),
                   ],
@@ -695,45 +750,36 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 return SlideTransition(position: offsetAnimation, child: child);
               },
               child: isRootSelectionMode
-                  ? Material(
-                      key: const ValueKey('root-selection-bar'),
-                      elevation: 8,
-                      child: Container(
-                        color: Theme.of(context).colorScheme.surface,
-                        child: SafeArea(
-                          top: false,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                Text(selectionLabel),
-                                const Spacer(),
-                                TextButton.icon(
-                                  onPressed: _selectedRootPaths.isEmpty
-                                      ? null
-                                      : () =>
-                                            _deleteSelectedRootFolders(scanner),
-                                  icon: const Icon(Icons.delete),
-                                  label: Text(
-                                    AppLocalizations.of(context)!.delete,
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: _toggleRootSelectionMode,
-                                  child: Text(
-                                    AppLocalizations.of(context)!.cancel,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                  ? LibrarySelectionPanel(
+                      key: const ValueKey('root-selection-panel'),
+                      selectedSongs: selectedRootSongs,
+                      allSongs: allRootSongs,
+                      title: selectionLabel,
+                      onToggleSelectAll: () {
+                        final isAllSelected = _selectedRootPaths.length == rootFolders.length;
+                        if (isAllSelected) {
+                          setState(() {
+                            _selectedRootPaths.clear();
+                          });
+                        } else {
+                          setState(() {
+                            _selectedRootPaths
+                              ..clear()
+                              ..addAll(rootFolders.map((f) => f.path));
+                          });
+                        }
+                      },
+                      onCancel: _toggleRootSelectionMode,
+                      onDelete: _selectedRootPaths.isEmpty
+                          ? null
+                          : () => _deleteSelectedRootFolders(scanner),
+                      deleteLabel: l10n.delete,
+                      onOpenLocation: _selectedRootPaths.length == 1
+                          ? () => openFolderLocation(_selectedRootPaths.first)
+                          : null,
+                      openLocationLabel: l10n.openFolderLocation,
                     )
-                  : const SizedBox.shrink(key: ValueKey('root-selection-none')),
+                  : const SizedBox.shrink(key: ValueKey('root-selection-panel-hidden')),
             ),
           ),
         ],
@@ -768,7 +814,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                     Text(
                       AppLocalizations.of(
                         context,
-                      )!.selectedSongs(_selectedSongPaths.length),
+                      )!.selectedSongs(_getSelectedSongs(currentFolder).length),
                     ),
                     const Spacer(),
                     TextButton(
@@ -850,25 +896,27 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   if (folderIndex >= 0 &&
                       folderIndex < currentFolder.subFolders.length) {
                     final folder = currentFolder.subFolders[folderIndex];
+                    final isSelected = _selectedFolderPaths.contains(folder.path);
                     return GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
-                        unawaited(
-                          _showFolderBottomSheet(
-                            context,
-                            folder,
-                            isRoot: false,
-                          ),
-                        );
+                        if (!_isSelectionMode) {
+                          unawaited(
+                            _showFolderBottomSheet(
+                              context,
+                              folder,
+                              isRoot: false,
+                            ),
+                          );
+                        }
                       },
                       onLongPress: () {
-                        unawaited(
-                          _showFolderBottomSheet(
-                            context,
-                            folder,
-                            isRoot: false,
-                          ),
-                        );
+                        if (!_isSelectionMode) {
+                          _toggleSelectionMode();
+                          _toggleFolderSelection(folder.path);
+                        } else {
+                          _toggleFolderSelection(folder.path);
+                        }
                       },
                       child: Padding(
                         padding: EdgeInsets.symmetric(
@@ -882,12 +930,24 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           hoverColor: Theme.of(
                             context,
                           ).colorScheme.onSurface.withValues(alpha: 0.06),
-                          leading: const Icon(
-                            Icons.folder_rounded,
-                            color: Colors.amber,
-                          ),
+                          selected: _isSelectionMode && isSelected,
+                          selectedTileColor: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer
+                              .withValues(alpha: 0.45),
+                          leading: _isSelectionMode
+                              ? Checkbox(
+                                  value: isSelected,
+                                  onChanged: (_) => _toggleFolderSelection(folder.path),
+                                )
+                              : const Icon(
+                                  Icons.folder_rounded,
+                                  color: Colors.amber,
+                                ),
                           title: Text(folder.name),
-                          onTap: () => _navigateTo(folder, scanner),
+                          onTap: _isSelectionMode
+                              ? () => _toggleFolderSelection(folder.path)
+                              : () => _navigateTo(folder, scanner),
                         ),
                       ),
                     );
@@ -900,8 +960,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                     final file = currentFolder.files[fileIndex];
                     final isCurrent = currentMusic?.path == file.path;
                     final isSelected = _selectedSongPaths.contains(file.path);
-                    final songsToAdd = _selectedSongPaths.isNotEmpty
-                        ? _selectedSongsFromFolder(currentFolder.files)
+                    final songsToAdd = (_selectedSongPaths.isNotEmpty || _selectedFolderPaths.isNotEmpty)
+                        ? _getSelectedSongs(currentFolder)
                         : <MusicFile>[file];
 
                     void handleShowMenu(BuildContext menuContext, Offset position) {
@@ -990,7 +1050,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       );
 
       final selectedSongs = showSelectionPanel
-          ? _selectedSongsFromFolder(currentFolder.files)
+          ? _getSelectedSongs(currentFolder)
           : <MusicFile>[];
       currentBody = Stack(
         children: [
@@ -1015,20 +1075,27 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   ? LibrarySelectionPanel(
                       key: const ValueKey('folder-selection-panel'),
                       selectedSongs: selectedSongs,
-                      allSongs: currentFolder.files,
+                      allSongs: currentFolder.allSongs,
                       onToggleSelectAll: () {
                         final isAllSelected =
-                            selectedSongs.length == currentFolder.files.length &&
-                            currentFolder.files.isNotEmpty;
+                            selectedSongs.length == currentFolder.allSongs.length &&
+                            currentFolder.allSongs.isNotEmpty;
                         if (isAllSelected) {
                           setState(() {
                             _selectedSongPaths.clear();
+                            _selectedFolderPaths.clear();
                           });
                         } else {
-                          _selectAllVisibleSongs(currentFolder.files);
+                          _selectAllVisible(currentFolder);
                         }
                       },
                       onCancel: _clearAllSelection,
+                      onOpenLocation: (_selectedFolderPaths.length == 1 && _selectedSongPaths.isEmpty)
+                          ? () => openFolderLocation(_selectedFolderPaths.first)
+                          : null,
+                      openLocationLabel: (_selectedFolderPaths.length == 1 && _selectedSongPaths.isEmpty)
+                          ? l10n.openFolderLocation
+                          : null,
                     )
                   : const SizedBox.shrink(
                       key: ValueKey('folder-selection-panel-hidden'),
