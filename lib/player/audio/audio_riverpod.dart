@@ -1,4 +1,5 @@
 import 'package:audio_core/audio_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:vibe_flow/player/audio/audio_service.dart';
 import 'package:vibe_flow/player/audio/audio_snapshot.dart';
@@ -81,11 +82,23 @@ final audioCurrentMusicProvider = Provider<MusicFile?>((ref) {
   );
 });
 
-final audioPlaybackQueueProvider = Provider<List<MusicFile>>((ref) {
-  return ref.watch(
-    audioSnapshotProvider.select((snapshot) => snapshot.playbackQueue),
-  );
-});
+class AudioPlaybackQueueNotifier extends Notifier<List<MusicFile>> {
+  @override
+  List<MusicFile> build() {
+    ref.listen<AudioSnapshot>(audioSnapshotProvider, (previous, next) {
+      if (previous == null ||
+          !listEquals(previous.playbackQueue, next.playbackQueue)) {
+        state = next.playbackQueue;
+      }
+    });
+    return ref.read(audioSnapshotProvider).playbackQueue;
+  }
+}
+
+final audioPlaybackQueueProvider =
+    NotifierProvider<AudioPlaybackQueueNotifier, List<MusicFile>>(
+  AudioPlaybackQueueNotifier.new,
+);
 
 final audioRandomHistoryProvider = Provider<List<MusicFile>>((ref) {
   return ref.watch(
