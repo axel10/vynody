@@ -405,6 +405,7 @@ class MetadataHelper {
     String filePath, {
     int? songId,
     bool generateThumbnail = true,
+    bool forceRefresh = false,
   }) async {
     final db = MetadataDatabase();
     final file = File(filePath);
@@ -416,10 +417,12 @@ class MetadataHelper {
 
     // 1. 如果数据库已有记录且已被修改尚未保存，或者修改时间相同，直接返回
     final existing = await db.getSongMetadata(filePath);
-    if (existing != null && existing.isModified) {
+    if (!forceRefresh && existing != null && existing.isModified) {
       return (existing, null);
     }
-    if (existing != null && existing.lastModifiedTime == lastModified) {
+    if (!forceRefresh &&
+        existing != null &&
+        existing.lastModifiedTime == lastModified) {
       final hasArtwork =
           (existing.artworkPath?.isNotEmpty ?? false) ||
           (existing.thumbnailPath?.isNotEmpty ?? false);

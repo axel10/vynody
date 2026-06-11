@@ -2773,6 +2773,58 @@ class ScannerService extends ChangeNotifier {
     await _metadataStore.loadMetadataForPath(path);
   }
 
+  /// Forces a full metadata re-read for the given paths and writes the
+  /// refreshed records back into the database and in-memory cache.
+  Future<void> refreshMetadataForPaths(Iterable<String> paths) async {
+    for (final path in paths) {
+      await refreshMetadataForPath(path);
+    }
+  }
+
+  /// Forces a full metadata re-read for one path.
+  Future<void> refreshMetadataForPath(String path) async {
+    final normalizedPath = _normalizePath(path);
+    if (normalizedPath.isEmpty) {
+      return;
+    }
+
+    final file = File(normalizedPath);
+    if (!await file.exists()) {
+      debugPrint(
+        '[ScannerService] refreshMetadataForPath skipped missing file '
+        'path=$normalizedPath',
+      );
+      return;
+    }
+
+    try {
+      final processed = await MetadataHelper.processMetadata(
+        normalizedPath,
+        generateThumbnail: true,
+        forceRefresh: true,
+      );
+      if (processed == null) {
+        debugPrint(
+          '[ScannerService] refreshMetadataForPath failed to process '
+          'path=$normalizedPath',
+        );
+        return;
+      }
+
+      final metadata = processed.$1;
+      final artworkBytes = processed.$2;
+      _metadataStore.updateMetadataForPath(
+        metadata,
+        artworkBytes: artworkBytes,
+      );
+    } catch (e) {
+      debugPrint(
+        '[ScannerService] refreshMetadataForPath error path=$normalizedPath: '
+        '$e',
+      );
+    }
+  }
+
   Future<void> loadThumbnailForPath(String path) async {
     await _metadataStore.loadThumbnailForPath(path);
     final cached =

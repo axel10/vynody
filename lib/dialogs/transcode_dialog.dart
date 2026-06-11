@@ -21,12 +21,14 @@ class TranscodeSubmitSummary {
   const TranscodeSubmitSummary({
     required this.successCount,
     required this.failureCount,
+    required this.outputPaths,
     this.firstOutputPath,
     this.lastErrorMessage,
   });
 
   final int successCount;
   final int failureCount;
+  final List<String> outputPaths;
   final String? firstOutputPath;
   final String? lastErrorMessage;
 }
@@ -51,6 +53,21 @@ Future<void> showTranscodeDialog(
   }
 
   final l10n = AppLocalizations.of(context)!;
+  final scanner = ProviderScope.containerOf(context, listen: false)
+      .read(scannerServiceProvider);
+
+  if (summary.successCount > 0 && summary.outputPaths.isNotEmpty) {
+    try {
+      await Future<void>.delayed(const Duration(seconds: 1));
+      await scanner.refreshMetadataForPaths(summary.outputPaths);
+    } catch (error) {
+      debugPrint('[Transcode] Failed to refresh transcoded outputs: $error');
+    }
+  }
+
+  if (!context.mounted) {
+    return;
+  }
 
   final total = summary.successCount + summary.failureCount;
   final message = summary.failureCount == 0
@@ -293,7 +310,6 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
     }
 
     final service = ref.read(transcodeServiceProvider);
-    final settings = ref.read(settingsServiceProvider);
     final draft = _draft;
 
     setState(() {
@@ -314,6 +330,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
     var failureCount = 0;
     String? firstOutputPath;
     String? lastErrorMessage;
+    final outputPaths = <String>[];
 
     try {
       final results = await service.convertMultipleToOutputDirectory(
@@ -341,9 +358,11 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       for (final executionResult in results) {
         if (executionResult.result.success) {
           successCount += 1;
-          firstOutputPath ??=
+          final outputPath =
               executionResult.result.outputPath ??
               executionResult.plannedOutputPath;
+          firstOutputPath ??= outputPath;
+          outputPaths.add(outputPath);
         } else {
           failureCount += 1;
           lastErrorMessage =
@@ -367,6 +386,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
       TranscodeSubmitSummary(
         successCount: successCount,
         failureCount: failureCount,
+        outputPaths: outputPaths,
         firstOutputPath: firstOutputPath,
         lastErrorMessage: lastErrorMessage,
       ),
