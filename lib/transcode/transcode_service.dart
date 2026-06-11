@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 
@@ -107,6 +109,9 @@ class TranscodeService {
         sourcePath: _normalizeOptional(metadataSourcePath) ?? inputPath,
         outputPath: result.outputPath ?? plannedOutputPath,
       );
+      await _logTranscodedFileMetadata(
+        result.outputPath ?? plannedOutputPath,
+      );
     }
 
     return TranscodeExecutionResult(
@@ -169,9 +174,51 @@ class TranscodeService {
           result: rawResult,
         ),
       );
+
+      if (rawResult.success) {
+        unawaited(
+          _logTranscodedFileMetadata(
+            rawResult.outputPath ?? plannedOutputPath,
+          ),
+        );
+      }
     }
 
     return results;
+  }
+
+  Future<void> _logTranscodedFileMetadata(String outputPath) async {
+    final normalizedPath = outputPath.trim();
+    if (normalizedPath.isEmpty) {
+      return;
+    }
+
+    try {
+      final file = File(normalizedPath);
+      if (!await file.exists()) {
+        debugPrint(
+          '[Transcode] Metadata probe skipped because output file is missing: '
+          '$normalizedPath',
+        );
+        return;
+      }
+
+      final metadata = readMetadata(file, getImage: false);
+      debugPrint(
+        '[Transcode] Output metadata path=$normalizedPath '
+        'title="${metadata.title ?? ''}" '
+        'artist="${metadata.artist ?? ''}" '
+        'album="${metadata.album ?? ''}" '
+        'durationMs=${metadata.duration?.inMilliseconds ?? 'null'} '
+        'trackNumber=${metadata.trackNumber ?? 'null'} '
+        'hasArtwork=${metadata.hasArtwork}',
+      );
+    } catch (error) {
+      debugPrint(
+        '[Transcode] Failed to read output metadata for $normalizedPath: '
+        '$error',
+      );
+    }
   }
 
   Future<void> _copyMetadataFromSourceToOutput({

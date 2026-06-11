@@ -51,11 +51,6 @@ Future<void> showTranscodeDialog(
   }
 
   final l10n = AppLocalizations.of(context)!;
-  final container = ProviderScope.containerOf(context, listen: false);
-  final settings = container.read(settingsServiceProvider);
-  if (summary.successCount > 0 && settings.transcodeAutoScanOutputEnabled) {
-    unawaited(container.read(scannerServiceProvider).scan());
-  }
 
   final total = summary.successCount + summary.failureCount;
   final message = summary.failureCount == 0
