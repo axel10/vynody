@@ -450,7 +450,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                           opacity: layout.lyrics.opacity.clamp(0.0, 1.0),
                           child: IgnorePointer(
                             ignoring: layout.lyrics.opacity < 0.5,
-                            child: _buildLyricsPanelWidget(context, ref),
+                            child: Consumer(
+                              builder: (context, ref, child) {
+                                return _buildLyricsPanelWidget(context, ref);
+                              },
+                            ),
                           ),
                         ),
                       ),
@@ -502,27 +506,31 @@ class PlaybackHeroCard extends ConsumerWidget {
                               // 控件区
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.center,
-                              child: SizedBox(
-                                key: ValueKey('controls_sizing_box_${useOverlayStyle ? 'overlay' : 'default'}'),
-                                width:
-                                    (effectiveIsLandscape
-                                        ? lerpDouble(
-                                            PlaybackHeroCardUiTuning
-                                                .lControlsScaleBase,
-                                            PlaybackHeroCardUiTuning
-                                                .lLyricsPreferredCoverSide,
-                                            tLyrics,
-                                          )!
-                                        : width *
-                                              PlaybackHeroCardUiTuning
-                                                  .portraitControlsWidthFactor),
-                                child: _buildPlaybackControlsWidget(
-                                  context,
-                                  ref,
-                                  width: width,
-                                  controlsScale: layout.controlsScale,
-                                  tLyrics: tLyrics,
-                                ),
+                              child: Consumer(
+                                builder: (context, ref, child) {
+                                  return SizedBox(
+                                    key: ValueKey('controls_sizing_box_${useOverlayStyle ? 'overlay' : 'default'}'),
+                                    width:
+                                        (effectiveIsLandscape
+                                            ? lerpDouble(
+                                                PlaybackHeroCardUiTuning
+                                                    .lControlsScaleBase,
+                                                PlaybackHeroCardUiTuning
+                                                    .lLyricsPreferredCoverSide,
+                                                tLyrics,
+                                              )!
+                                            : width *
+                                                  PlaybackHeroCardUiTuning
+                                                      .portraitControlsWidthFactor),
+                                    child: _buildPlaybackControlsWidget(
+                                      context,
+                                      ref,
+                                      width: width,
+                                      controlsScale: layout.controlsScale,
+                                      tLyrics: tLyrics,
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ),
@@ -534,10 +542,14 @@ class PlaybackHeroCard extends ConsumerWidget {
                           left: layout.cover.left,
                           width: layout.cover.width,
                           height: layout.cover.height,
-                          child: _buildAlbumArtCore(
-                            context,
-                            ref,
-                            layout.cover.width,
+                          child: Consumer(
+                            builder: (context, ref, child) {
+                              return _buildAlbumArtCore(
+                                context,
+                                ref,
+                                layout.cover.width,
+                              );
+                            },
                           ),
                         ),
                       Positioned(
