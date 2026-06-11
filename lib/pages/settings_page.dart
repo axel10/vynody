@@ -354,8 +354,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     BuildContext context,
     SettingsService settings,
   ) {
-    final l10n = AppLocalizations.of(context)!;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: Column(
@@ -608,15 +606,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               settings.transcodeDefaultQualityTier = value;
             },
           ),
-        ),
-        const SizedBox(height: 8),
-        SwitchListTile(
-          title: Text(l10n.transcodeAutoScanOutput),
-          subtitle: Text(l10n.transcodeAutoScanOutputDescription),
-          value: settings.transcodeAutoScanOutputEnabled,
-          onChanged: (value) {
-            settings.transcodeAutoScanOutputEnabled = value;
-          },
         ),
       ],
     );

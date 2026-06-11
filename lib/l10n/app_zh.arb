@@ -674,8 +674,6 @@
   "transcodeSectionDescription": "设置默认输出格式和质量预设。",
   "transcodeDefaultFormat": "默认输出格式",
   "transcodeDefaultQuality": "默认质量预设",
-  "transcodeAutoScanOutput": "自动扫描转码结果",
-  "transcodeAutoScanOutputDescription": "转码成功后自动刷新媒体库。",
   "transcodeTitle": "音频转码",
   "transcodeSongCount": "{count} 首歌曲",
   "@transcodeSongCount": {

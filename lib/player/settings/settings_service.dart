@@ -294,8 +294,6 @@ class SettingsService extends ChangeNotifier {
       'transcode_default_output_format';
   static const String _keyTranscodeDefaultQualityTier =
       'transcode_default_quality_tier';
-  static const String _keyTranscodeAutoScanOutputEnabled =
-      'transcode_auto_scan_output_enabled';
 
   static const String _keySmallWindowWidth = 'small_window_width';
   static const String _keySmallWindowHeight = 'small_window_height';
@@ -822,13 +820,6 @@ class SettingsService extends ChangeNotifier {
             prefs.setString(key, val.storageValue),
       );
 
-  late final _transcodeAutoScanOutputEnabledProperty = SettingProperty<bool>(
-    key: _keyTranscodeAutoScanOutputEnabled,
-    defaultValue: true,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-  );
-
   late final _smallWindowWidthProperty = SettingProperty<double>(
     key: _keySmallWindowWidth,
     defaultValue: 360.0,
@@ -1317,11 +1308,6 @@ class SettingsService extends ChangeNotifier {
       _transcodeDefaultQualityTierProperty.value;
   set transcodeDefaultQualityTier(TranscodeQualityTier value) =>
       _transcodeDefaultQualityTierProperty.value = value;
-
-  bool get transcodeAutoScanOutputEnabled =>
-      _transcodeAutoScanOutputEnabledProperty.value;
-  set transcodeAutoScanOutputEnabled(bool value) =>
-      _transcodeAutoScanOutputEnabledProperty.value = value;
 
   double get smallWindowWidth => _smallWindowWidthProperty.value;
   set smallWindowWidth(double value) => _smallWindowWidthProperty.value = value;

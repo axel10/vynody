@@ -701,13 +701,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcodeDefaultQuality => 'Default Quality Preset';
 
   @override
-  String get transcodeAutoScanOutput => 'Auto-scan converted files';
-
-  @override
-  String get transcodeAutoScanOutputDescription =>
-      'Refresh the music library after a successful transcode.';
-
-  @override
   String get transcodeTitle => 'Audio Transcode';
 
   @override

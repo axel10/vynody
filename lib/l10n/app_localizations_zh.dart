@@ -692,12 +692,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transcodeDefaultQuality => '默认质量预设';
 
   @override
-  String get transcodeAutoScanOutput => '自动扫描转码结果';
-
-  @override
-  String get transcodeAutoScanOutputDescription => '转码成功后自动刷新媒体库。';
-
-  @override
   String get transcodeTitle => '音频转码';
 
   @override

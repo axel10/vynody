@@ -1406,18 +1406,6 @@ abstract class AppLocalizations {
   /// **'默认质量预设'**
   String get transcodeDefaultQuality;
 
-  /// No description provided for @transcodeAutoScanOutput.
-  ///
-  /// In zh, this message translates to:
-  /// **'自动扫描转码结果'**
-  String get transcodeAutoScanOutput;
-
-  /// No description provided for @transcodeAutoScanOutputDescription.
-  ///
-  /// In zh, this message translates to:
-  /// **'转码成功后自动刷新媒体库。'**
-  String get transcodeAutoScanOutputDescription;
-
   /// No description provided for @transcodeTitle.
   ///
   /// In zh, this message translates to:
