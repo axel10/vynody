@@ -1476,7 +1476,7 @@ class _LyricsModelPickerDialogState
               },
               decoration: InputDecoration(
                 labelText: '搜索模型',
-                hintText: '输入模型名、ID 或定价信息',
+                hintText: '输入模型名、ID',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchQuery.isEmpty
                     ? null
