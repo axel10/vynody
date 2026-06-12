@@ -515,8 +515,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                             ? lerpDouble(
                                                 PlaybackHeroCardUiTuning
                                                     .lControlsScaleBase,
-                                                PlaybackHeroCardUiTuning
-                                                    .lLyricsPreferredCoverSide,
+                                                layout.controls.width,
                                                 tLyrics,
                                               )!
                                             : width *
@@ -526,6 +525,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                       context,
                                       ref,
                                       width: width,
+                                      layoutWidth: layout.controls.width,
                                       controlsScale: layout.controlsScale,
                                       tLyrics: tLyrics,
                                     ),
@@ -1304,6 +1304,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     required double width,
+    required double layoutWidth,
     double controlsScale = 1.0,
     double tLyrics = 0.0,
   }) {
@@ -1353,7 +1354,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor;
 
     final unifiedWidth = effectiveIsLandscape
-        ? buttonsRowWidth
+        ? lerpDouble(buttonsRowWidth, layoutWidth, tLyrics)!
         : math.min(width - 32.0, buttonsRowWidth * widthFactor);
 
     // 提取公共组件 (Extract common components)
