@@ -407,7 +407,7 @@ class LyricsAiDoubaoClient {
         }
         final chunk = _streamParser.extractDoubaoDeltaText(data);
         if (chunk == null || chunk.isEmpty) continue;
-        processor.addChunk(LrcUtils.cleanGeneratedLyricsText(chunk));
+        processor.addChunk(chunk);
         final snapshot = processor.buildProgressSnapshot();
         if (onProgress != null && snapshot != null) {
           onProgress(snapshot.visibleLines, snapshot.visibleText);

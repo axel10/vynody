@@ -739,7 +739,7 @@ class LyricsAiService {
           if (chunk == null || chunk.isEmpty) {
             continue;
           }
-          processor.addChunk(LrcUtils.cleanGeneratedLyricsText(chunk));
+          processor.addChunk(chunk);
           emitProgress();
         }
       } finally {
@@ -862,7 +862,7 @@ class LyricsAiService {
         if (chunk == null || chunk.isEmpty) {
           continue;
         }
-        processor.addChunk(LrcUtils.cleanGeneratedLyricsText(chunk));
+        processor.addChunk(chunk);
         final snapshot = processor.buildProgressSnapshot();
         if (onProgress != null && snapshot != null) {
           onProgress(snapshot.visibleLines, snapshot.visibleText);
@@ -979,7 +979,7 @@ class LyricsAiService {
         if (chunk == null || chunk.isEmpty) {
           continue;
         }
-        processor.addChunk(LrcUtils.cleanGeneratedLyricsText(chunk));
+        processor.addChunk(chunk);
         final snapshot = processor.buildProgressSnapshot();
         if (onProgress != null && snapshot != null) {
           onProgress(snapshot.visibleLines, snapshot.visibleText);
