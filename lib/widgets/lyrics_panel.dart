@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
 import 'package:oktoast/oktoast.dart';
 
 import 'package:vibe_flow/models/lyric_line.dart';
+import 'package:vibe_flow/models/music_file.dart';
 import 'package:vibe_flow/models/music_lyric.dart';
 import '../l10n/app_localizations.dart';
 import '../dialogs/ai_guide_dialog.dart';
@@ -108,6 +110,18 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   int _lastLayoutRevision = 0;
   List<double>? _oldItemCenters;
   List<double>? _oldLineHeights;
+
+  Widget? _cachedLyricsView;
+  int? _lastBuiltActiveIndex;
+  List<LyricLine>? _lastBuiltDisplayLines;
+  double? _lastBuiltMaxWidth;
+  double? _lastBuiltMaxHeight;
+  double? _lastBuiltFontScale;
+  bool? _lastBuiltAutoScrollPaused;
+  Color? _lastBuiltTextColor;
+  Color? _lastBuiltSecondaryTextColor;
+  LyricsControllerState? _lastBuiltLyricsState;
+  MusicFile? _lastBuiltCurrentSong;
 
   LyricsController get _lyricsControllerActions =>
       ref.read(lyricsControllerProvider.notifier);
@@ -294,9 +308,19 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     );
   }
 
+  void _writeLog(String message) {
+    // debugPrint('[LYRICS_DEBUG] $message');
+  }
+
   @override
   void initState() {
     super.initState();
+    try {
+      final file = File('/Volumes/Untitled/projects/vibe_flow/lyrics_debug.log');
+      if (file.existsSync()) {
+        file.deleteSync();
+      }
+    } catch (_) {}
     _timelineOffsetSeconds = _timelineOffsetToSeconds(
       widget.lyrics?.timelineOffset,
     );
@@ -702,11 +726,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     final activeIndex = _activeLineIndex(lines);
+    _writeLog('_scheduleScrollIfNeeded: activeIndex=$activeIndex _lastActiveIndex=$_lastActiveIndex force=$force');
     if (!force && activeIndex == _lastActiveIndex) return;
     _lastActiveIndex = activeIndex;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
+      _writeLog('PostFrameCallback: activeIndex=$activeIndex, scheduling to...');
       if (kDebugMode) {
         final currentOffset = _scrollController.offset;
         final viewportHeight = _scrollController.position.viewportDimension;
@@ -995,6 +1021,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       0.0,
       math.min(targetCenter - visibleCenter, maxExtent),
     );
+
+    final currentOffset = _scrollController.offset;
+    _writeLog('_scrollToLineIndex: index=$index target=$target currentOffset=$currentOffset difference=${(target - currentOffset).abs()} animate=$animate');
+    if ((target - currentOffset).abs() < 1.0) {
+      _writeLog('_scrollToLineIndex: difference is less than 1.0, early exit');
+      return;
+    }
     if (kDebugMode) {
       // debugPrint(
       //   '[LyricsPanel] scrollToLine '
@@ -1108,6 +1141,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    _writeLog('build: position=${widget.position.inMilliseconds}ms');
     final l10n = AppLocalizations.of(context)!;
     final lyricsState = ref.watch(lyricsControllerProvider);
     final currentSong = ref.watch(audioCurrentMusicProvider);
@@ -1181,6 +1215,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        _writeLog('LayoutBuilder: maxWidth=${constraints.maxWidth} maxHeight=${constraints.maxHeight}');
         final lineMetrics = _measureLineMetrics(
           lines: renderedLines,
           lyrics: lyrics,
@@ -1204,9 +1239,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             final oldTop = _oldItemCenters![k] - _oldLineHeights![k] / 2;
             final newTop = itemCenters[k] - lineHeights[k] / 2;
             final delta = newTop - oldTop;
+            _writeLog('JitterMitigation: k=$k, oldTop=$oldTop, newTop=$newTop, delta=$delta');
             if (delta.abs() > 0.01) {
               final newOffset = currentOffset + delta;
               _scrollController.position.correctPixels(newOffset);
+              _writeLog('JitterMitigation: corrected scroll pixels to $newOffset');
               if (kDebugMode) {
                 debugPrint(
                   '[LyricsPanel] Anti-jitter scroll correction: '
@@ -1273,50 +1310,77 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           );
         });
 
-        return LyricsPanelTimedLyricsView(
-          lyrics: lyrics,
-          lyricsState: lyricsState,
-          displayLines: renderedLines,
-          hasTimedLyrics: hasTimedLyrics,
-          activeIndex: focusedIndex,
-          isAutoScrollPaused: _isAutoScrollPaused,
-          lyricsFontScale: lyricsFontScale,
-          textColor: textColor,
-          secondaryTextColor: secondaryTextColor,
-          scrollController: _scrollController,
-          scrollBehavior: _lyricsScrollBehavior(context),
-          onVerticalDragStart: hasTimedLyrics
-              ? (_) => _beginLyricsDrag(displayLines)
-              : null,
-          onVerticalDragUpdate: hasTimedLyrics
-              ? (details) =>
-                    _updateLyricsDrag(details, displayLines, itemCenters)
-              : null,
-          onVerticalDragEnd: hasTimedLyrics
-              ? (_) {
-                  unawaited(_endLyricsDrag(displayLines));
-                }
-              : null,
-          onVerticalDragCancel: hasTimedLyrics
-              ? () {
-                  unawaited(_endLyricsDrag(displayLines));
-                }
-              : null,
-          onContextMenu: (position) {
-            _showContextMenu(
-              context,
-              position,
-              lyricsState: lyricsState,
-              taskState: currentSongTaskState,
-              displayLines: displayLines,
-              displayPlainLyrics: displayPlainLyrics,
-              hasCurrentSong: hasCurrentSong,
-              lyricsFontScale: lyricsFontScale,
-            );
-          },
-          bottomSpacerHeight: widget.bottomSpacerHeight,
-          bottomTabBarHeight: widget.bottomTabBarHeight,
-        );
+        final bool needsRebuild = _cachedLyricsView == null ||
+            focusedIndex != _lastBuiltActiveIndex ||
+            displayLines != _lastBuiltDisplayLines ||
+            constraints.maxWidth != _lastBuiltMaxWidth ||
+            constraints.maxHeight != _lastBuiltMaxHeight ||
+            lyricsFontScale != _lastBuiltFontScale ||
+            _isAutoScrollPaused != _lastBuiltAutoScrollPaused ||
+            textColor != _lastBuiltTextColor ||
+            secondaryTextColor != _lastBuiltSecondaryTextColor ||
+            lyricsState != _lastBuiltLyricsState ||
+            currentSong != _lastBuiltCurrentSong;
+
+        if (needsRebuild) {
+          _lastBuiltActiveIndex = focusedIndex;
+          _lastBuiltDisplayLines = displayLines;
+          _lastBuiltMaxWidth = constraints.maxWidth;
+          _lastBuiltMaxHeight = constraints.maxHeight;
+          _lastBuiltFontScale = lyricsFontScale;
+          _lastBuiltAutoScrollPaused = _isAutoScrollPaused;
+          _lastBuiltTextColor = textColor;
+          _lastBuiltSecondaryTextColor = secondaryTextColor;
+          _lastBuiltLyricsState = lyricsState;
+          _lastBuiltCurrentSong = currentSong;
+
+          _cachedLyricsView = LyricsPanelTimedLyricsView(
+            lyrics: lyrics,
+            lyricsState: lyricsState,
+            displayLines: renderedLines,
+            hasTimedLyrics: hasTimedLyrics,
+            activeIndex: focusedIndex,
+            isAutoScrollPaused: _isAutoScrollPaused,
+            lyricsFontScale: lyricsFontScale,
+            textColor: textColor,
+            secondaryTextColor: secondaryTextColor,
+            scrollController: _scrollController,
+            scrollBehavior: _lyricsScrollBehavior(context),
+            onVerticalDragStart: hasTimedLyrics
+                ? (_) => _beginLyricsDrag(displayLines)
+                : null,
+            onVerticalDragUpdate: hasTimedLyrics
+                ? (details) =>
+                      _updateLyricsDrag(details, displayLines, itemCenters)
+                : null,
+            onVerticalDragEnd: hasTimedLyrics
+                ? (_) {
+                    unawaited(_endLyricsDrag(displayLines));
+                  }
+                : null,
+            onVerticalDragCancel: hasTimedLyrics
+                ? () {
+                    unawaited(_endLyricsDrag(displayLines));
+                  }
+                : null,
+            onContextMenu: (position) {
+              _showContextMenu(
+                context,
+                position,
+                lyricsState: lyricsState,
+                taskState: currentSongTaskState,
+                displayLines: displayLines,
+                displayPlainLyrics: displayPlainLyrics,
+                hasCurrentSong: hasCurrentSong,
+                lyricsFontScale: lyricsFontScale,
+              );
+            },
+            bottomSpacerHeight: widget.bottomSpacerHeight,
+            bottomTabBarHeight: widget.bottomTabBarHeight,
+          );
+        }
+
+        return _cachedLyricsView!;
       },
     );
   }
