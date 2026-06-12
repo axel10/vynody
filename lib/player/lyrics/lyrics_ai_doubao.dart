@@ -285,7 +285,22 @@ class LyricsAiDoubaoClient {
 
     final outputPath = result.result.outputPath!;
     final outputFile = File(outputPath);
-    if (!outputFile.path.startsWith(tempDir.path)) {
+
+    String resolvedOutputPath = outputFile.path;
+    String resolvedTempPath = tempDir.path;
+    String resolvedSystemTempPath = Directory.systemTemp.path;
+    try {
+      resolvedOutputPath = outputFile.resolveSymbolicLinksSync();
+    } catch (_) {}
+    try {
+      resolvedTempPath = tempDir.resolveSymbolicLinksSync();
+    } catch (_) {}
+    try {
+      resolvedSystemTempPath = Directory.systemTemp.resolveSymbolicLinksSync();
+    } catch (_) {}
+
+    if (!p.isWithin(resolvedTempPath, resolvedOutputPath) &&
+        !p.isWithin(resolvedSystemTempPath, resolvedOutputPath)) {
       throw Exception(
         _t(
           '豆包临时转码文件未生成在临时目录。',
