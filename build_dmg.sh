@@ -49,6 +49,7 @@ echo -e "${BLUE}==> 6. Preparing DMG staging directory...${NC}"
 rm -rf vibeflow-dmg
 mkdir -p vibeflow-dmg
 cp -R build/macos/Build/Products/Release/VibeFlow.app vibeflow-dmg/
+codesign --force --deep --sign - vibeflow-dmg/VibeFlow.app
 ln -s /Applications vibeflow-dmg/Applications
 
 echo -e "${BLUE}==> 7. Creating DMG package...${NC}"
