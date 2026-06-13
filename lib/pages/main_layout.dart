@@ -112,7 +112,7 @@ class MainLayout extends ConsumerStatefulWidget {
   ConsumerState<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
+class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, TickerProviderStateMixin {
   late int _currentIndex;
   double? _lastVolume;
   bool _showMiniVolumeSlider = false;
@@ -120,6 +120,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
   DateTime? _lastBackPressedAt;
   DateTime? _ignoreResizeEventsUntil;
   late final MainLayoutUiController _uiController;
+
+  AnimationController? _onboardingAnimController;
+  bool _isOnboardingAnimatingOut = false;
 
   MainLayoutUiController get _ui => _uiController;
 
@@ -209,6 +212,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
 
   @override
   void dispose() {
+    _onboardingAnimController?.dispose();
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       windowManager.removeListener(this);
     }
@@ -608,6 +612,22 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
     ];
   }
 
+  void _completeOnboarding() {
+    if (_isOnboardingAnimatingOut) return;
+    setState(() {
+      _isOnboardingAnimatingOut = true;
+    });
+    _onboardingAnimController?.forward().then((_) {
+      final settings = ref.read(settingsServiceProvider);
+      settings.hasShownOnboarding = true;
+      if (mounted) {
+        setState(() {
+          _isOnboardingAnimatingOut = false;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Listen for small window mode transitions
@@ -834,34 +854,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
         settings.isImmersiveTabBarEnabled &&
         !hideBottomBar;
 
-    if (!settings.hasShownOnboarding) {
-      return Scaffold(
-        body: Stack(
-          children: [
-            Positioned.fill(
-              child: OnboardingScreen(
-                onComplete: () {
-                  settings.hasShownOnboarding = true;
-                },
-              ),
-            ),
-            if (showCustomTitleBar)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: DesktopWindowTitleBar(
-                  brightness: theme.brightness,
-                  showSmallWindowButton: false,
-                  showButtonGroupBackground: isPlayback,
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-
-    return Shortcuts(
+    final mainAppWidget = Shortcuts(
       shortcuts: _buildShortcutMap(settings),
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -1157,6 +1150,87 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener {
         ),
       ),
     );
+
+    final showOnboarding = !settings.hasShownOnboarding || _isOnboardingAnimatingOut;
+
+    if (showOnboarding) {
+      _onboardingAnimController ??= AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 500),
+      );
+      if (!_isOnboardingAnimatingOut && _onboardingAnimController!.value != 0.0) {
+        _onboardingAnimController!.value = 0.0;
+      }
+
+      final onboardingOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+        CurvedAnimation(
+          parent: _onboardingAnimController!,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+
+      final onboardingOffset = Tween<Offset>(
+        begin: Offset.zero,
+        end: const Offset(-1.0, 0.0), // Slide left off screen
+      ).animate(
+        CurvedAnimation(
+          parent: _onboardingAnimController!,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: true,
+              child: Focus(
+                canRequestFocus: false,
+                child: mainAppWidget,
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: FadeTransition(
+              opacity: onboardingOpacity,
+              child: SlideTransition(
+                position: onboardingOffset,
+                child: Scaffold(
+                  body: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          ignoring: _isOnboardingAnimatingOut,
+                          child: OnboardingScreen(
+                            onComplete: _completeOnboarding,
+                          ),
+                        ),
+                      ),
+                      if (showCustomTitleBar)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: IgnorePointer(
+                            ignoring: _isOnboardingAnimatingOut,
+                            child: DesktopWindowTitleBar(
+                              brightness: theme.brightness,
+                              showSmallWindowButton: false,
+                              showButtonGroupBackground: isPlayback,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return mainAppWidget;
   }
 
   Widget _buildBottomNavigationBar(
