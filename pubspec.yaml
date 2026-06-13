@@ -187,6 +187,7 @@ flutter_launcher_icons:
   ios: true
   remove_alpha_ios: true
   image_path: "assets/images/icon.png"
+  image_path_ios: "assets/images/icon-ios.png"
   web:
     generate: true
     image_path: "assets/images/icon.png"
@@ -220,5 +221,4 @@ dependency_overrides:
 #     path: ./audio_core/flutter_taglib
 #   mobile_storage_listener:
 #     path: ./mobile_storage_listener
-
 
