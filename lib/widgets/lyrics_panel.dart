@@ -736,9 +736,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       if (kDebugMode) {
         final currentOffset = _scrollController.offset;
         final viewportHeight = _scrollController.position.viewportDimension;
+        final bottomPadding = MediaQuery.of(context).padding.bottom;
         final bottomSpacers =
-            widget.bottomSpacerHeight + widget.bottomTabBarHeight;
-        final visibleCenter = (viewportHeight - bottomSpacers) / 2;
+            widget.bottomSpacerHeight + widget.bottomTabBarHeight + bottomPadding;
+        final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+        final fadeAsymmetryShift = isPortrait ? 15.0 : 0.0;
+        final visibleCenter = (viewportHeight - bottomSpacers) / 2 - fadeAsymmetryShift;
         final targetCenter =
             activeIndex >= 0 && activeIndex < itemCenters.length
             ? itemCenters[activeIndex]
@@ -1012,9 +1015,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (!viewportHeight.isFinite || viewportHeight <= 0) return;
 
     final maxExtent = _scrollController.position.maxScrollExtent;
-    final bottomSpacers = widget.bottomSpacerHeight + widget.bottomTabBarHeight;
-    // 计算可见区域的中心（避开底部遮挡/渐变区）
-    final visibleCenter = (viewportHeight - bottomSpacers) / 2;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomSpacers = widget.bottomSpacerHeight + widget.bottomTabBarHeight + bottomPadding;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    // 考虑上下渐变区域不对称带来的视觉中心偏移 (15.0) 以及安全区域遮挡
+    final fadeAsymmetryShift = isPortrait ? 15.0 : 0.0;
+    // 计算可见区域的中心（避开底部遮挡/渐变区/安全区）
+    final visibleCenter = (viewportHeight - bottomSpacers) / 2 - fadeAsymmetryShift;
 
     final targetCenter = itemCenters[index];
     final target = math.max(
