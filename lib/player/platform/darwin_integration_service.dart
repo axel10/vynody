@@ -11,6 +11,7 @@ class DarwinIntegrationService {
   late MyAudioHandler _handler;
   bool _initialized = false;
   String? _lastMetadataKey;
+  Duration _lastTimelineDuration = Duration.zero;
 
   DarwinIntegrationService(this.audioService) {
     if (!Platform.isIOS && !Platform.isMacOS) return;
@@ -116,6 +117,13 @@ class DarwinIntegrationService {
 
   void updateTimeline(Duration position, Duration duration) {
     if ((!Platform.isIOS && !Platform.isMacOS) || !_initialized) return;
+
+    final durationChanged = duration != _lastTimelineDuration;
+    if (durationChanged) {
+      _lastTimelineDuration = duration;
+      updateMetadata(null);
+    }
+
     _handler.onPositionChanged(position, duration);
   }
 }
