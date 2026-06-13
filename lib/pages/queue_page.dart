@@ -182,6 +182,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     if (queue.isEmpty) {
       return Scaffold(
         appBar: AppBar(
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          notificationPredicate: (_) => false,
           title: Text(AppLocalizations.of(context)!.queue),
           centerTitle: true,
           actions: [
@@ -221,6 +224,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        notificationPredicate: (_) => false,
         title: isRandomMode
             ? DropdownButtonHideUnderline(
                 child: DropdownButton<int>(

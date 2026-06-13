@@ -1195,6 +1195,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        notificationPredicate: (_) => false,
         title: Text(title),
         leading: _currentSection == _SettingsSection.home
             ? null

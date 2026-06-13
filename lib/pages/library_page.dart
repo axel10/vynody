@@ -63,6 +63,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        notificationPredicate: (_) => false,
         title:TabBar(
           controller: _tabController,
           isScrollable: isPortrait,
