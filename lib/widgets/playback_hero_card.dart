@@ -1358,7 +1358,20 @@ class PlaybackHeroCard extends ConsumerWidget {
         : math.min(width - 32.0, buttonsRowWidth * widthFactor);
 
     // 提取公共组件 (Extract common components)
-    Widget wrapWithMaybeFitted(Widget child) {
+    Widget wrapWithMaybeFitted(Widget child, {bool fit = false}) {
+      if (fit) {
+        return SizedBox(
+          width: unifiedWidth,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: SizedBox(
+              width: buttonsRowWidth,
+              child: child,
+            ),
+          ),
+        );
+      }
       return SizedBox(width: unifiedWidth, child: child);
     }
 
@@ -1367,6 +1380,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         horizontal: PlaybackHeroCardUiTuning.topButtonsHorizontalPadding,
       ),
       child: wrapWithMaybeFitted(
+        fit: true,
         Row(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1376,6 +1390,9 @@ class PlaybackHeroCard extends ConsumerWidget {
               constraints: BoxConstraints.tightFor(
                 width: singleButtonWidth,
                 height: singleButtonWidth,
+              ),
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               icon: Icon(
                 Icons.more_horiz,
@@ -1391,6 +1408,9 @@ class PlaybackHeroCard extends ConsumerWidget {
               constraints: BoxConstraints.tightFor(
                 width: singleButtonWidth,
                 height: singleButtonWidth,
+              ),
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               icon: Icon(
                 isFavorite
@@ -1418,6 +1438,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                   width: singleButtonWidth,
                   height: singleButtonWidth,
                 ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 icon: Icon(
                   getPlaylistModeIcon(playbackMode),
                   size:
@@ -1436,6 +1459,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                 constraints: BoxConstraints.tightFor(
                   width: singleButtonWidth,
                   height: singleButtonWidth,
+                ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 icon: Icon(
                   Icons.shuffle_rounded,
@@ -1470,6 +1496,9 @@ class PlaybackHeroCard extends ConsumerWidget {
               constraints: BoxConstraints.tightFor(
                 width: singleButtonWidth,
                 height: singleButtonWidth,
+              ),
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               icon: Icon(
                 Icons.auto_fix_high_rounded,
@@ -1543,6 +1572,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                 width: singleButtonWidth,
                 height: singleButtonWidth,
               ),
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
               icon: Icon(
                 Icons.tune_rounded,
                 size:
@@ -1585,6 +1617,10 @@ class PlaybackHeroCard extends ConsumerWidget {
           ),
           child: IconButton(
             padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
             icon: iconBuilder(controlIconColor, true),
             onPressed: onPressed,
             tooltip: tooltip,
@@ -1598,6 +1634,9 @@ class PlaybackHeroCard extends ConsumerWidget {
             height: circleSize * controlsScale,
           ),
           padding: EdgeInsets.zero,
+          style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
           icon: iconBuilder(Colors.white, false),
           onPressed: onPressed,
           tooltip: tooltip,
@@ -1650,6 +1689,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     onPressed: onPlayPause,
                     color: controlIconColor,
                     size: 42 * controlsScale,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     tooltip: isPlaying ? l10n.pause : l10n.play,
                   ),
                 )
@@ -1661,6 +1701,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     onPressed: onPlayPause,
                     color: Colors.white,
                     size: 52 * controlsScale,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     tooltip: isPlaying ? l10n.pause : l10n.play,
                   ),
                 ),
