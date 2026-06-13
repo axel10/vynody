@@ -1930,8 +1930,8 @@ class PlaybackProgressSection extends ConsumerWidget {
                               ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
                               : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
                           controlsScale,
-                      barWidth: 5.0 / overflowScale,
-                      barGap: 2.0 / overflowScale,
+                      barWidth: PlaybackHeroCardUiTuning.waveformBarWidth / overflowScale,
+                      barGap: PlaybackHeroCardUiTuning.waveformBarGap / overflowScale,
                     );
 
                     if (!isLandscape) {
@@ -2091,8 +2091,8 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                   onScrubbing: onScrubbing ?? (_) {},
                   onSeek: onSeek ?? (_) {},
                   height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
-                  barWidth: 5.0 / overflowScale,
-                  barGap: 2.0 / overflowScale,
+                  barWidth: PlaybackHeroCardUiTuning.waveformBarWidth / overflowScale,
+                  barGap: PlaybackHeroCardUiTuning.waveformBarGap / overflowScale,
                 ),
               ),
             );

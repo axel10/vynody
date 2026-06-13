@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -265,8 +267,13 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                           translated,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            color: secondaryTextColor,
+                                            color: isActive
+                                                ? secondaryTextColor.withValues(alpha: 1.0)
+                                                : secondaryTextColor,
                                             fontSize: translationFontSize,
+                                            fontWeight: isActive
+                                                ? FontWeight.w700
+                                                : FontWeight.w400,
                                             height: 1.3,
                                             leadingDistribution:
                                                 TextLeadingDistribution.even,
@@ -336,20 +343,37 @@ class _LyricsFadeShaderMask extends StatelessWidget {
           const topFadeHeight = 30.0;
           final topFadeEnd = (topFadeHeight / height).clamp(0.0, 1.0);
 
-          // If bottomSpacerHeight is 0, we still want the top fade,
-          // so we set bottomFadeStart to 1.0.
-          final bottomFadeStart = bottomSpacerHeight > 0
-              ? ((bounds.height - bottomSpacerHeight) / bounds.height).clamp(
-                  0.0,
-                  1.0,
-                )
-              : 1.0;
+          final isPortrait =
+              MediaQuery.of(context).orientation == Orientation.portrait;
+
+          final double bottomFadeEndHeight;
+          final double bottomFadeStartHeight;
+
+          if (isPortrait) {
+            bottomFadeEndHeight =  20.0;
+            bottomFadeStartHeight = 60.0;
+          } else {
+            bottomFadeEndHeight = 0.0;
+            bottomFadeStartHeight = math.max(30.0, bottomSpacerHeight);
+          }
+
+          final bottomFadeStart =
+              ((bounds.height - bottomFadeStartHeight) / bounds.height)
+                  .clamp(0.0, 1.0);
+          final bottomFadeEnd =
+              ((bounds.height - bottomFadeEndHeight) / bounds.height)
+                  .clamp(0.0, 1.0);
+
+          final tEnd = topFadeEnd;
+          final bStart = bottomFadeStart.clamp(tEnd, 1.0);
+          final bEnd = bottomFadeEnd.clamp(bStart, 1.0);
 
           // Ensure stops are in increasing order
           final stops = [
             0.0,
-            topFadeEnd,
-            bottomFadeStart.clamp(topFadeEnd, 1.0),
+            tEnd,
+            bStart,
+            bEnd,
             1.0,
           ];
 
@@ -360,6 +384,7 @@ class _LyricsFadeShaderMask extends StatelessWidget {
               Colors.transparent,
               Colors.white,
               Colors.white,
+              Colors.transparent,
               Colors.transparent,
             ],
             stops: stops,
