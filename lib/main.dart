@@ -186,7 +186,7 @@ void main(List<String> args) async {
           backgroundColor: Colors.transparent,
           skipTaskbar: false,
           titleBarStyle: TitleBarStyle.hidden,
-          title: 'Pure Player',
+          title: 'VibeFlow',
         );
         windowManager.waitUntilReadyToShow(windowOptions, () async {
           AppLog.log('window ready to show', mirrorToConsole: true);
@@ -353,7 +353,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     final settings = ref.watch(settingsServiceProvider);
     Widget app = OKToast(
       child: MaterialApp(
-        title: 'Pure Player',
+        title: 'VibeFlow',
         theme: _buildTheme(Brightness.light),
         darkTheme: _buildTheme(Brightness.dark),
         themeMode: settings.themeMode,

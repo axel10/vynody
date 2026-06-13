@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Pure Player';
+  String get appTitle => 'VibeFlow';
 
   @override
   String get systemMediaLibrary => 'System Media Library';

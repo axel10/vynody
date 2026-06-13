@@ -1,6 +1,6 @@
 {
-    "name": "pure_player",
-    "short_name": "pure_player",
+    "name": "VibeFlow",
+    "short_name": "VibeFlow",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

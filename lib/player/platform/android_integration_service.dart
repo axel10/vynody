@@ -31,7 +31,7 @@ class AndroidIntegrationService {
         builder: () => MyAudioHandler(audioService),
         config: AudioServiceConfig(
           androidNotificationChannelId:
-              'com.pure_player.vibe_flow.channel.audio',
+              'app.vibeflow.player.channel.audio',
           androidNotificationChannelName: 'Vibe Flow Playback',
           androidNotificationOngoing: false,
           androidShowNotificationBadge: false,

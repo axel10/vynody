@@ -60,7 +60,7 @@ class DarwinIntegrationService {
       _handler = await AudioService.init(
         builder: () => MyAudioHandler(audioService),
         config: const AudioServiceConfig(
-          androidNotificationChannelId: 'com.pure_player.vibe_flow.channel.audio',
+          androidNotificationChannelId: 'app.vibeflow.player.channel.audio',
           androidNotificationChannelName: 'Vibe Flow Playback',
         ),
       );

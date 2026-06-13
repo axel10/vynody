@@ -1,10 +1,10 @@
-# VibeFlow (Pure Player)
+# VibeFlow
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Rust](https://img.shields.io/badge/Rust-Core-000000?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 
-VibeFlow（代码中也称为 Pure Player）是一款以本地音乐播放为核心的跨平台播放器，使用 Flutter 构建界面，并根据不同平台接入对应的原生音频内核，兼顾统一体验与底层能力。
+VibeFlow 是一款以本地音乐播放为核心的跨平台播放器，使用 Flutter 构建界面，并根据不同平台接入对应的原生音频内核，兼顾统一体验与底层能力。
 
 项目当前面向以下平台：
 

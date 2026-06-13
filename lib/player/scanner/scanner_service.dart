@@ -476,7 +476,7 @@ class ScannerService extends ChangeNotifier {
   void _setupMediaObserver() {
     if (Platform.isAndroid) {
       const mediaObserverChannel = EventChannel(
-        'com.example.pure_player/media_observer',
+        'app.vibeflow.player/media_observer',
       );
       _mediaObserverSubscription = mediaObserverChannel
           .receiveBroadcastStream()

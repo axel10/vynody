@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'Pure Player';
+  String get appTitle => 'VibeFlow';
 
   @override
   String get systemMediaLibrary => '系统媒体库';

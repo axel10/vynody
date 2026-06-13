@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// The title of the application
   ///
   /// In zh, this message translates to:
-  /// **'Pure Player'**
+  /// **'VibeFlow'**
   String get appTitle;
 
   /// System media library
