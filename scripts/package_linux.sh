@@ -13,7 +13,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUNDLE_DIR="${BUNDLE_DIR:-$ROOT_DIR/build/linux/x64/release/bundle}"
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT_DIR/build/linux/packages}"
 STAGE_DIR="$OUTPUT_DIR/stage"
-ICON_SOURCE="${ICON_SOURCE:-$ROOT_DIR/assets/images/icon.png}"
+ICON_SOURCE="${ICON_SOURCE:-$ROOT_DIR/assets/images/icon-windows-and-linux.png}"
 RAW_VERSION="${VERSION:-$(sed -n 's/^version:[[:space:]]*//p' "$ROOT_DIR/pubspec.yaml" | head -n 1)}"
 VERSION="${RAW_VERSION//+/-}"
 
