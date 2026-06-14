@@ -657,7 +657,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _playbackRadialGradientEnabledProperty = SettingProperty<bool>(
     key: _keyPlaybackRadialGradientEnabled,
-    defaultValue: true,
+    defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
