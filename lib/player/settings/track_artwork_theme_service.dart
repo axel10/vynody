@@ -118,7 +118,7 @@ class TrackArtworkThemeService {
     String path, {
     AudioCoreController? controller,
     String? cacheRootPath,
-    bool saveLargeArtwork = true,
+    bool saveLargeArtwork = false,
     int thumbnailSize = generatedArtworkThumbnailSize,
   }) async {
     final normalizedPath = path.trim();

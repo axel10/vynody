@@ -1054,7 +1054,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           song.path,
           controller: _player,
           cacheRootPath: supportDir.path,
-          saveLargeArtwork: !Platform.isWindows,
+          saveLargeArtwork: false,
         );
         if (artworkTheme != null) {
           artworkPath ??=

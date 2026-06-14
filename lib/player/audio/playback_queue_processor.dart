@@ -266,7 +266,7 @@ class PlaybackQueueProcessor {
           final artworkTheme = await artworkThemeService.getTrackArtworkTheme(
             song.path,
             controller: player,
-            saveLargeArtwork: !Platform.isWindows,
+            saveLargeArtwork: false,
             thumbnailSize: generatedArtworkThumbnailSize,
           );
           if (_disposed || myId != _currentProcessId) return;

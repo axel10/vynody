@@ -2500,7 +2500,7 @@ class ScannerService extends ChangeNotifier {
         filePath,
         controller: controller,
         cacheRootPath: supportDirPath,
-        saveLargeArtwork: !Platform.isWindows,
+        saveLargeArtwork: false,
         thumbnailSize: generatedArtworkThumbnailSize,
       );
       nativeStopwatch.stop();
@@ -2872,7 +2872,7 @@ class ScannerService extends ChangeNotifier {
           .getTrackArtworkTheme(
             path,
             controller: controller,
-            saveLargeArtwork: !Platform.isWindows,
+            saveLargeArtwork: false,
             thumbnailSize: generatedArtworkThumbnailSize,
           );
 

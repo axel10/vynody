@@ -479,7 +479,7 @@ class MetadataHelper {
         final artworkInfo = await saveArtworkAndThumbnail(
           filePath,
           artworkData,
-          saveLarge: !Platform.isWindows,
+          saveLarge: false,
         );
 
         artworkPath = artworkInfo?['artworkPath'] as String?;
@@ -532,7 +532,7 @@ class MetadataHelper {
   static Future<Map<String, dynamic>?> saveArtworkAndThumbnail(
     String songPath,
     Uint8List data, {
-    bool saveLarge = true,
+    bool saveLarge = false,
   }) async {
     try {
       final supportDir = await getApplicationSupportDirectory();
