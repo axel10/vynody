@@ -531,6 +531,7 @@ class MusicBrainzTagCompletionService {
       final artworkInfo = await MetadataHelper.saveArtworkAndThumbnail(
         resolved.id, // Using resolving ID as part of name
         bytes,
+        saveLarge: true,
       );
 
       if (artworkInfo == null) return null;
