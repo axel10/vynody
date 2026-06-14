@@ -218,7 +218,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
           TextButton(
             onPressed: () => launchUrlString(widget.getKeyUrl!),
             child: Text(widget.getKeyButtonLabel),
-        ),
+          ),
         FilledButton(
           onPressed: canSave ? _saveCurrentValue : null,
           child: Text(widget.saveButtonLabel),
@@ -307,7 +307,8 @@ Future<String?> showDoubaoApiKeyDialog(
     fieldLabel: l10n.apiKey,
     getKeyButtonLabel: l10n.getKey,
     initialApiKey: initialApiKey,
-    getKeyUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
+    getKeyUrl:
+        'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
     testConnection: (apiKey) async {
       try {
         final result = await service.fetchModels(
@@ -322,10 +323,7 @@ Future<String?> showDoubaoApiKeyDialog(
               : result.message,
         );
       } catch (e) {
-        return _ApiKeyDialogResult(
-          success: false,
-          message: '连接测试异常：$e',
-        );
+        return _ApiKeyDialogResult(success: false, message: '连接测试异常：$e');
       }
     },
   );
@@ -365,10 +363,7 @@ Future<String?> showDeepSeekApiKeyDialog(
               : result.message,
         );
       } catch (e) {
-        return _ApiKeyDialogResult(
-          success: false,
-          message: '连接测试异常：$e',
-        );
+        return _ApiKeyDialogResult(success: false, message: '连接测试异常：$e');
       }
     },
   );
@@ -492,9 +487,7 @@ Future<bool> _showLyricsApiKeyWizard(
 }
 
 class _LyricsApiKeyWizardDialog extends ConsumerStatefulWidget {
-  const _LyricsApiKeyWizardDialog({
-    required this.purpose,
-  });
+  const _LyricsApiKeyWizardDialog({required this.purpose});
 
   final LyricsAiModelPurpose purpose;
 
@@ -554,7 +547,9 @@ class _LyricsApiKeyWizardDialogState
         setState(() {
           _isTesting = false;
           _statusText = result.message;
-          _statusType = result.success ? _StatusType.success : _StatusType.error;
+          _statusType = result.success
+              ? _StatusType.success
+              : _StatusType.error;
         });
       } else if (provider == LyricsAiProvider.openRouter) {
         final service = ref.read(openRouterApiKeyServiceProvider);
@@ -562,12 +557,15 @@ class _LyricsApiKeyWizardDialogState
         setState(() {
           _isTesting = false;
           _statusText = result.message;
-          _statusType = result.success ? _StatusType.success : _StatusType.error;
+          _statusType = result.success
+              ? _StatusType.success
+              : _StatusType.error;
         });
       } else {
         // 豆包 & DeepSeek
-        final LyricsModelCatalogService service =
-            ref.read(lyricsModelCatalogServiceProvider);
+        final LyricsModelCatalogService service = ref.read(
+          lyricsModelCatalogServiceProvider,
+        );
         final result = await service.fetchModels(
           provider: provider,
           purpose: widget.purpose,
@@ -578,7 +576,9 @@ class _LyricsApiKeyWizardDialogState
           _statusText = result.success
               ? '连接成功，检测到 ${result.models.length} 个模型。'
               : result.message;
-          _statusType = result.success ? _StatusType.success : _StatusType.error;
+          _statusType = result.success
+              ? _StatusType.success
+              : _StatusType.error;
         });
       }
     } catch (e) {
@@ -661,60 +661,92 @@ class _LyricsApiKeyWizardDialogState
     Navigator.of(context).pop(true);
   }
 
+  bool _isZhLocale(BuildContext context) {
+    return Localizations.localeOf(context).languageCode.toLowerCase() == 'zh';
+  }
+
   _ProviderDetail _getProviderDetail(LyricsAiProvider provider) {
+    final isZh = _isZhLocale(context);
     switch (provider) {
       case LyricsAiProvider.googleAiStudio:
-        return const _ProviderDetail(
-          pros: '官方通道，Gemini 模型（如 Flash Lite）性能强劲，提供大额度免费配额。',
-          cons: '在中国大陆直连受限，需要稳定的网络代理 (VPN/Proxy)。',
+        return _ProviderDetail(
+          pros: isZh
+              ? 'Google 官方通道，Gemini 模型能力强，免费额度较多。'
+              : 'Official Google channel with strong Gemini models and generous free quotas.',
+          cons: isZh
+              ? '中国大陆直连受限，需要稳定的 VPN/代理。请求人数较多时可能报 429，遇到 429 请切换到其他渠道。'
+              : 'High traffic can occasionally cause 429 errors. If that happens, switch to another provider.',
         );
       case LyricsAiProvider.openRouter:
-        return const _ProviderDetail(
-          pros: '海外大模型聚合平台。支持免代理直连，且有免费的 Gemini 等模型额度。',
-          cons: '注册或高并发时可能需要绑定，部分模型响应速度受海外节点影响。',
+        return _ProviderDetail(
+          pros: isZh
+              ? '海外大模型聚合平台，可使用多个模型，也有部分免费模型。'
+              : 'A model aggregator with access to many providers and some free models.',
+          cons: isZh
+              ? '充值需要支付手续费，网页只有英文。'
+              : 'Top-ups may include processing fees, and the website is English-only.',
         );
       case LyricsAiProvider.doubao:
-        return const _ProviderDetail(
-          pros: '字节跳动出品。国内直连极速，无需代理，中文歌词创作与润色效果极佳。',
-          cons: '需要注册火山引擎，创建接入点 (Endpoint) 的步骤相对繁琐。',
+        return _ProviderDetail(
+          pros: isZh
+              ? '字节跳动出品，国内访问快，中文效果好。新用户每个模型有 50 万免费 token。'
+              : 'Built by ByteDance, strong for Chinese text. New users get 500k free tokens per model.',
+          cons: isZh
+              ? '注册步骤相对繁琐，需要实名认证。'
+              : 'Registration is relatively involved and requires real-name verification.',
         );
       case LyricsAiProvider.deepseek:
-        return const _ProviderDetail(
-          pros: '国内高性价比模型，中文理解出色，价格极便宜。',
-          cons: '本项目目前仅支持使用 DeepSeek 进行歌词翻译，不支持歌词生成。',
+        return _ProviderDetail(
+          pros: isZh
+              ? '中文理解好，价格便宜，适合歌词翻译。'
+              : 'Good Chinese understanding, low pricing, and well suited for lyric translation.',
+          cons: isZh
+              ? '仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。'
+              : 'Text input only. Lyric generation and timeline adjustment require an API key from another provider.',
         );
     }
   }
 
-
-
   Widget _buildIntroPage(BuildContext context) {
     final isGeneration = widget.purpose == LyricsAiModelPurpose.generation;
+    final isZh = _isZhLocale(context);
     final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          isGeneration ? '什么是 AI 歌词？' : '什么是 AI 歌词翻译？',
+          isZh
+              ? isGeneration
+                    ? '什么是 AI 歌词？'
+                    : '什么是 AI 歌词翻译？'
+              : isGeneration
+              ? 'What are AI lyrics?'
+              : 'What is AI lyric translation?',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 8),
         Text(
-          isGeneration
-              ? 'AI 歌词功能可以利用大语言模型，自动为您的歌曲生成精密的同步歌词及时间轴。'
-              : 'AI 歌词翻译功能可以利用大语言模型，将歌词翻译为您的目标语言，让您更好地理解歌曲意境。',
+          isZh
+              ? isGeneration
+                    ? 'AI 可以根据歌曲内容生成歌词，并自动匹配时间轴。'
+                    : 'AI 可以把歌词翻译成你熟悉的语言，方便理解歌曲内容。'
+              : isGeneration
+              ? 'AI can generate lyrics from the song and align them to a timeline.'
+              : 'AI can translate lyrics into your preferred language so the song is easier to understand.',
           style: const TextStyle(fontSize: 14, height: 1.4),
         ),
         const SizedBox(height: 16),
-        const Text(
-          '为什么需要 API Key？',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        Text(
+          isZh ? '为什么需要 API Key？' : 'Why do I need an API key?',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 8),
-        const Text(
-          '此功能完全运行在您的本地设备上，不经过第三方中间服务器。因此，您需要填写对应大模型服务商的 API Key 来直接调用其接口。',
-          style: TextStyle(fontSize: 14, height: 1.4),
+        Text(
+          isZh
+              ? 'API Key 相当于你在 AI 服务商那里的访问凭证。应用会用它直接向服务商发起请求，完成歌词生成、时间轴调整或翻译。'
+              : 'An API key is your access credential for an AI provider. The app uses it to send requests directly for lyric generation, timeline adjustment, or translation.',
+          style: const TextStyle(fontSize: 14, height: 1.4),
         ),
         const SizedBox(height: 16),
         Container(
@@ -730,10 +762,12 @@ class _LyricsApiKeyWizardDialogState
             children: [
               Icon(Icons.security_rounded, color: theme.colorScheme.primary),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  '您的 API Key 会以加密形式妥善保存在本地，绝不会上传至 vibe_flow 开发者服务器，请放心使用。',
-                  style: TextStyle(fontSize: 13, height: 1.3),
+                  isZh
+                      ? 'API Key 只保存在你的本地设备，不会上传到 VibeFlow 开发者服务器。'
+                      : 'Your API key is stored only on this device and is never uploaded to VibeFlow developer servers.',
+                  style: const TextStyle(fontSize: 13, height: 1.3),
                 ),
               ),
             ],
@@ -744,6 +778,7 @@ class _LyricsApiKeyWizardDialogState
   }
 
   Widget _buildProviderSelectionPage(BuildContext context) {
+    final isZh = _isZhLocale(context);
     final filteredProviders = LyricsAiProvider.values.where((p) {
       if (widget.purpose == LyricsAiModelPurpose.generation) {
         return p != LyricsAiProvider.deepseek;
@@ -753,98 +788,106 @@ class _LyricsApiKeyWizardDialogState
 
     final theme = Theme.of(context);
 
-    final chunkSize = filteredProviders.length == 3 ? 3 : 2;
-    final List<List<LyricsAiProvider>> rows = [];
-    for (var i = 0; i < filteredProviders.length; i += chunkSize) {
-      final end = (i + chunkSize < filteredProviders.length)
-          ? i + chunkSize
-          : filteredProviders.length;
-      rows.add(filteredProviders.sublist(i, end));
-    }
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          '请选择要使用的 AI 服务商：',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        Text(
+          isZh ? '选择一个 AI 服务商：' : 'Choose an AI provider:',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 12),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(rows.length, (rowIndex) {
-            final rowItems = rows[rowIndex];
-            return Padding(
-              padding: EdgeInsets.only(bottom: rowIndex < rows.length - 1 ? 10.0 : 0.0),
-              child: Row(
-                children: List.generate(rowItems.length, (colIndex) {
-                  final provider = rowItems[colIndex];
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            final chunkSize = filteredProviders.length == 3 ? 3 : 2;
+            final cardWidth = (maxWidth - (chunkSize - 1) * 10.0) / chunkSize;
+
+            // Check if any provider's displayName cannot fit in the cardWidth with horizontal padding (8 * 2 = 16)
+            const textStyle = TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.bold,
+            );
+
+            bool useListLayout = false;
+            for (final provider in filteredProviders) {
+              final textPainter = TextPainter(
+                text: TextSpan(text: provider.displayName, style: textStyle),
+                maxLines: 1,
+                textDirection: TextDirection.ltr,
+              )..layout();
+              if (textPainter.width > cardWidth - 16) {
+                useListLayout = true;
+                break;
+              }
+            }
+
+            if (useListLayout) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(filteredProviders.length, (index) {
+                  final provider = filteredProviders[index];
                   final isSelected = _selectedProvider == provider;
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(right: colIndex < rowItems.length - 1 ? 10.0 : 0.0),
-                      child: Card(
-                        elevation: 0,
-                        surfaceTintColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(
-                            color: isSelected
-                                ? theme.colorScheme.primary
-                                : theme.dividerColor.withValues(alpha: 0.1),
-                            width: isSelected ? 2 : 1,
-                          ),
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index < filteredProviders.length - 1 ? 8.0 : 0.0,
+                    ),
+                    child: Card(
+                      elevation: 0,
+                      surfaceTintColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.dividerColor.withValues(alpha: 0.1),
+                          width: isSelected ? 2 : 1,
                         ),
-                        color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
-                        margin: EdgeInsets.zero,
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              _selectedProvider = provider;
-                              final settings = ref.read(settingsServiceProvider);
-                              _keyController.text = settings.apiKeyForProvider(provider);
-                              _statusText = '';
-                              _statusType = _StatusType.none;
-                            });
-                          },
-                          child: Stack(
+                      ),
+                      color: theme.colorScheme.surfaceContainerLow.withValues(
+                        alpha: 0.5,
+                      ),
+                      margin: EdgeInsets.zero,
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedProvider = provider;
+                            final settings = ref.read(settingsServiceProvider);
+                            _keyController.text = settings.apiKeyForProvider(
+                              provider,
+                            );
+                            _statusText = '';
+                            _statusType = _StatusType.none;
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          child: Row(
                             children: [
-                              Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      LyricsProviderIcon(
-                                        provider: provider,
-                                        size: 36,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        provider.displayName,
-                                        style: TextStyle(
-                                          fontSize: 13.5,
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
+                              LyricsProviderIcon(provider: provider, size: 28),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  provider.displayName,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               if (isSelected)
-                                Positioned(
-                                  top: 6,
-                                  right: 6,
-                                  child: Icon(
-                                    Icons.check_circle,
-                                    color: theme.colorScheme.primary,
-                                    size: 16,
-                                  ),
+                                Icon(
+                                  Icons.check_circle,
+                                  color: theme.colorScheme.primary,
+                                  size: 18,
                                 ),
                             ],
                           ),
@@ -853,9 +896,118 @@ class _LyricsApiKeyWizardDialogState
                     ),
                   );
                 }),
-              ),
+              );
+            }
+
+            final List<List<LyricsAiProvider>> rows = [];
+            for (var i = 0; i < filteredProviders.length; i += chunkSize) {
+              final end = (i + chunkSize < filteredProviders.length)
+                  ? i + chunkSize
+                  : filteredProviders.length;
+              rows.add(filteredProviders.sublist(i, end));
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(rows.length, (rowIndex) {
+                final rowItems = rows[rowIndex];
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: rowIndex < rows.length - 1 ? 10.0 : 0.0,
+                  ),
+                  child: Row(
+                    children: List.generate(rowItems.length, (colIndex) {
+                      final provider = rowItems[colIndex];
+                      final isSelected = _selectedProvider == provider;
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: colIndex < rowItems.length - 1 ? 10.0 : 0.0,
+                          ),
+                          child: Card(
+                            elevation: 0,
+                            surfaceTintColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : theme.dividerColor.withValues(alpha: 0.1),
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            color: theme.colorScheme.surfaceContainerLow
+                                .withValues(alpha: 0.5),
+                            margin: EdgeInsets.zero,
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _selectedProvider = provider;
+                                  final settings = ref.read(
+                                    settingsServiceProvider,
+                                  );
+                                  _keyController.text = settings
+                                      .apiKeyForProvider(provider);
+                                  _statusText = '';
+                                  _statusType = _StatusType.none;
+                                });
+                              },
+                              child: Stack(
+                                children: [
+                                  Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 12,
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          LyricsProviderIcon(
+                                            provider: provider,
+                                            size: 36,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            provider.displayName,
+                                            style: TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Positioned(
+                                      top: 6,
+                                      right: 6,
+                                      child: Icon(
+                                        Icons.check_circle,
+                                        color: theme.colorScheme.primary,
+                                        size: 16,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                );
+              }),
             );
-          }),
+          },
         ),
         if (_selectedProvider != null) ...[
           const SizedBox(height: 16),
@@ -864,13 +1016,15 @@ class _LyricsApiKeyWizardDialogState
             decoration: BoxDecoration(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.08)),
+              border: Border.all(
+                color: theme.dividerColor.withValues(alpha: 0.08),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '【特点】',
+                  isZh ? '【特点】' : 'Highlights',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.primary,
@@ -884,7 +1038,7 @@ class _LyricsApiKeyWizardDialogState
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '【注意事项】',
+                  isZh ? '【注意事项】' : 'Notes',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.error,
@@ -906,6 +1060,7 @@ class _LyricsApiKeyWizardDialogState
 
   Widget _buildApiKeyInputPage(BuildContext context) {
     final provider = _selectedProvider!;
+    final isZh = _isZhLocale(context);
     final theme = Theme.of(context);
 
     String getKeyUrl = '';
@@ -917,7 +1072,8 @@ class _LyricsApiKeyWizardDialogState
         getKeyUrl = 'https://openrouter.ai/settings/keys';
         break;
       case LyricsAiProvider.doubao:
-        getKeyUrl = 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey';
+        getKeyUrl =
+            'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey';
         break;
       case LyricsAiProvider.deepseek:
         getKeyUrl = 'https://platform.deepseek.com/api_keys';
@@ -943,7 +1099,9 @@ class _LyricsApiKeyWizardDialogState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '请输入 ${provider.displayName} 的 API Key：',
+          isZh
+              ? '请输入 ${provider.displayName} 的 API Key：'
+              : 'Enter your ${provider.displayName} API key:',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 12),
@@ -955,10 +1113,12 @@ class _LyricsApiKeyWizardDialogState
           autocorrect: false,
           decoration: InputDecoration(
             labelText: 'API Key',
-            hintText: '在此粘贴您的 API Key',
+            hintText: isZh ? '在此粘贴你的 API Key' : 'Paste your API key here',
             suffixIcon: IconButton(
               icon: Icon(
-                _obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                _obscureText
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
               ),
               onPressed: () {
                 setState(() {
@@ -981,7 +1141,7 @@ class _LyricsApiKeyWizardDialogState
             TextButton.icon(
               onPressed: () => launchUrlString(getKeyUrl),
               icon: const Icon(Icons.open_in_new_rounded, size: 16),
-              label: const Text('获取 API Key'),
+              label: Text(isZh ? '获取 API Key' : 'Get API key'),
             ),
             ElevatedButton.icon(
               onPressed: _isTesting ? null : _runTestConnection,
@@ -992,7 +1152,15 @@ class _LyricsApiKeyWizardDialogState
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.network_check_rounded, size: 16),
-              label: Text(_isTesting ? '正在测试...' : '测试连接'),
+              label: Text(
+                _isTesting
+                    ? isZh
+                          ? '正在测试...'
+                          : 'Testing...'
+                    : isZh
+                    ? '测试连接'
+                    : 'Test connection',
+              ),
             ),
           ],
         ),
@@ -1017,7 +1185,9 @@ class _LyricsApiKeyWizardDialogState
 
   @override
   Widget build(BuildContext context) {
-    final isPage3Valid = _selectedProvider != null && _keyController.text.trim().isNotEmpty;
+    final isPage3Valid =
+        _selectedProvider != null && _keyController.text.trim().isNotEmpty;
+    final isZh = _isZhLocale(context);
     final settings = ref.read(settingsServiceProvider);
 
     Widget content;
@@ -1025,14 +1195,18 @@ class _LyricsApiKeyWizardDialogState
     List<Widget> actions;
 
     if (_currentPage == 1) {
-      title = widget.purpose == LyricsAiModelPurpose.generation
-          ? '启用 AI 歌词生成'
-          : '启用 AI 歌词翻译';
+      title = isZh
+          ? widget.purpose == LyricsAiModelPurpose.generation
+                ? '启用 AI 歌词生成'
+                : '启用 AI 歌词翻译'
+          : widget.purpose == LyricsAiModelPurpose.generation
+          ? 'Enable AI Lyric Generation'
+          : 'Enable AI Lyric Translation';
       content = _buildIntroPage(context);
       actions = [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('暂不启用'),
+          child: Text(isZh ? '暂不启用' : 'Not now'),
         ),
         FilledButton(
           onPressed: () {
@@ -1040,11 +1214,11 @@ class _LyricsApiKeyWizardDialogState
               _currentPage = 2;
             });
           },
-          child: const Text('开始配置'),
+          child: Text(isZh ? '开始配置' : 'Start setup'),
         ),
       ];
     } else if (_currentPage == 2) {
-      title = '选择 AI 服务商';
+      title = isZh ? '选择 AI 服务商' : 'Choose AI Provider';
       content = _buildProviderSelectionPage(context);
       actions = [
         TextButton(
@@ -1058,7 +1232,13 @@ class _LyricsApiKeyWizardDialogState
             }
           },
           child: Text(
-            settings.hasAnyLyricsModelProvider ? '取消' : '上一步',
+            isZh
+                ? settings.hasAnyLyricsModelProvider
+                      ? '取消'
+                      : '上一步'
+                : settings.hasAnyLyricsModelProvider
+                ? 'Cancel'
+                : 'Back',
           ),
         ),
         FilledButton(
@@ -1070,18 +1250,22 @@ class _LyricsApiKeyWizardDialogState
                       context: context,
                       builder: (dialogContext) {
                         return AlertDialog(
-                          title: const Text('提示'),
-                          content: const Text(
-                            'DeepSeek 不支持歌词/时间轴生成，后续如果需要用到歌词/时间轴生成功能则需另外填入其他平台 API Key。',
+                          title: Text(isZh ? '提示' : 'Note'),
+                          content: Text(
+                            isZh
+                                ? 'DeepSeek 仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。'
+                                : 'DeepSeek supports text input only. Lyric generation and timeline adjustment require an API key from another provider.',
                           ),
                           actions: [
                             TextButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(false),
-                              child: const Text('取消'),
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(false),
+                              child: Text(isZh ? '取消' : 'Cancel'),
                             ),
                             TextButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(true),
-                              child: const Text('继续'),
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(true),
+                              child: Text(isZh ? '继续' : 'Continue'),
                             ),
                           ],
                         );
@@ -1094,11 +1278,11 @@ class _LyricsApiKeyWizardDialogState
                     _currentPage = 3;
                   });
                 },
-          child: const Text('下一步'),
+          child: Text(isZh ? '下一步' : 'Next'),
         ),
       ];
     } else {
-      title = '配置 API Key';
+      title = isZh ? '配置 API Key' : 'Configure API Key';
       content = _buildApiKeyInputPage(context);
       actions = [
         TextButton(
@@ -1109,11 +1293,11 @@ class _LyricsApiKeyWizardDialogState
               _statusType = _StatusType.none;
             });
           },
-          child: const Text('上一步'),
+          child: Text(isZh ? '上一步' : 'Back'),
         ),
         FilledButton(
           onPressed: isPage3Valid && !_isTesting ? _saveAndFinish : null,
-          child: const Text('保存并完成'),
+          child: Text(isZh ? '保存并完成' : 'Save and finish'),
         ),
       ];
     }
@@ -1122,9 +1306,7 @@ class _LyricsApiKeyWizardDialogState
       title: Text(title),
       content: SizedBox(
         width: 520,
-        child: SingleChildScrollView(
-          child: content,
-        ),
+        child: SingleChildScrollView(child: content),
       ),
       actions: actions,
     );
