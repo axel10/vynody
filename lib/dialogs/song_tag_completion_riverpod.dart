@@ -146,6 +146,7 @@ class SongTagCompletionController extends ChangeNotifier {
     String? country,
     String? releaseDate,
     SongMetadata? existingMetadata,
+    bool writeToFile = false,
   }) async {
     if (_disposed || isApplying) return null;
 
@@ -168,7 +169,7 @@ class SongTagCompletionController extends ChangeNotifier {
         duration: durationMillis,
         artworkBytes: coverArtBytes,
         existingMetadata: existingMetadata,
-        writeToFile: false,
+        writeToFile: writeToFile,
       );
 
       if (saved == null) {
@@ -222,6 +223,7 @@ class SongTagCompletionController extends ChangeNotifier {
     required MusicBrainzReleaseMatch release,
     required int? fallbackDurationMillis,
     SongMetadata? existingMetadata,
+    bool writeToFile = false,
   }) async {
     if (_disposed || isApplying) return null;
 
@@ -236,7 +238,7 @@ class SongTagCompletionController extends ChangeNotifier {
         selectedRelease: release,
         fallbackDurationMillis: fallbackDurationMillis,
         existingMetadata: existingMetadata,
-        writeToFile: false,
+        writeToFile: writeToFile,
       );
 
       if (_disposed) return null;

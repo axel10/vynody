@@ -232,7 +232,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     final messenger = ScaffoldMessenger.of(context);
 
     final l10n = AppLocalizations.of(context)!;
-    final result = await showModalBottomSheet<MusicBrainzTagSelectionResult>(
+    final popped = await showModalBottomSheet<(MusicBrainzTagSelectionResult, bool)>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -245,16 +245,20 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       ),
     );
 
-    if (result == null || !mounted) return;
+    if (popped == null || !mounted) return;
+    final result = popped.$1;
+    final savedToSourceFile = popped.$2;
 
     await _applySongMetadataResult(
       messenger,
       audio: audio,
       metadata: result.metadata,
       artworkBytes: result.artworkBytes,
-      successMessage: result.artworkBytes != null
-          ? l10n.tagCompletionSuccessWithCover
-          : l10n.tagCompletionSuccess,
+      successMessage: savedToSourceFile
+          ? l10n.songTagsSavedToSourceFileAndApp
+          : (result.artworkBytes != null
+              ? l10n.tagCompletionSuccessWithCover
+              : l10n.tagCompletionSuccess),
     );
   }
 

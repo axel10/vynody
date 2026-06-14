@@ -24,6 +24,7 @@ enum _SettingsSection {
   home,
   general,
   scanning,
+  tags,
   transcode,
   lyrics,
   acoustid,
@@ -91,6 +92,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _SettingsSection.home => l10n.settings,
       _SettingsSection.general => l10n.generalSectionTitle,
       _SettingsSection.scanning => l10n.scanSectionTitle,
+      _SettingsSection.tags =>
+        Localizations.localeOf(context).languageCode == 'zh' ? '标签' : 'Tags',
       _SettingsSection.transcode => l10n.transcodeSectionTitle,
       _SettingsSection.lyrics => l10n.lyricsSectionTitle,
       _SettingsSection.acoustid => l10n.acoustidSectionTitle,
@@ -648,6 +651,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         _buildHomeSectionTile(
           context,
+          icon: Icons.label_outline_rounded,
+          title: Localizations.localeOf(context).languageCode == 'zh' ? '标签' : 'Tags',
+          onTap: () => _openSection(_SettingsSection.tags),
+        ),
+        _buildHomeSectionTile(
+          context,
           icon: Icons.swap_horiz_rounded,
           title: l10n.transcodeSectionTitle,
           onTap: () => _openSection(_SettingsSection.transcode),
@@ -821,6 +830,33 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       children: [
         _buildSectionHeader(l10n.scanSectionTitle, l10n.scanSectionDescription),
         _buildScanSection(context, settings),
+      ],
+    );
+  }
+
+  Widget _buildTagsPage(BuildContext context, SettingsService settings) {
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
+        _buildSectionHeader(
+          isZh ? '标签' : 'Tags',
+          isZh
+              ? '关于音频文件元数据和自动补全的配置。'
+              : 'Configure audio file metadata and auto-completion.',
+        ),
+        SwitchListTile(
+          title: Text(isZh ? '自动写入源文件' : 'Auto-save to Source File'),
+          subtitle: Text(
+            isZh
+                ? '补全或更新歌曲标签时，默认同步写入物理音频文件。'
+                : 'Automatically write tags back to the physical audio file when completed.',
+          ),
+          value: settings.tagCompletionSaveToSourceFile,
+          onChanged: (value) {
+            settings.tagCompletionSaveToSourceFile = value;
+          },
+        ),
       ],
     );
   }
@@ -1176,6 +1212,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _SettingsSection.home => _buildHomeBody(context),
       _SettingsSection.general => _buildGeneralPage(context, settings),
       _SettingsSection.scanning => _buildScanningPage(context, settings),
+      _SettingsSection.tags => _buildTagsPage(context, settings),
       _SettingsSection.transcode => _buildTranscodePage(context, settings),
       _SettingsSection.lyrics => _buildLyricsPage(context, settings),
       _SettingsSection.acoustid => _buildAcoustidPage(context, settings),

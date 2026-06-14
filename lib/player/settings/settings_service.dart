@@ -302,6 +302,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keySmallWindowQueueWidth = 'small_window_queue_width';
   static const String _keySmallWindowQueueHeight = 'small_window_queue_height';
   static const String _keyHasShownOnboarding = 'has_shown_onboarding';
+  static const String _keyTagCompletionSaveToSourceFile =
+      'tag_completion_save_to_source_file';
 
   final SharedPreferences _prefs;
   bool _isUserInactive = false;
@@ -312,6 +314,13 @@ class SettingsService extends ChangeNotifier {
   late final _hasShownOnboardingProperty = SettingProperty<bool>(
     key: _keyHasShownOnboarding,
     defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _tagCompletionSaveToSourceFileProperty = SettingProperty<bool>(
+    key: _keyTagCompletionSaveToSourceFile,
+    defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -899,6 +908,11 @@ class SettingsService extends ChangeNotifier {
   bool get hasShownOnboarding => _hasShownOnboardingProperty.value;
   set hasShownOnboarding(bool value) =>
       _hasShownOnboardingProperty.value = value;
+
+  bool get tagCompletionSaveToSourceFile =>
+      _tagCompletionSaveToSourceFileProperty.value;
+  set tagCompletionSaveToSourceFile(bool value) =>
+      _tagCompletionSaveToSourceFileProperty.value = value;
 
   ThemeMode get themeMode => _themeModeProperty.value;
   set themeMode(ThemeMode value) => _themeModeProperty.value = value;

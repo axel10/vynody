@@ -14,6 +14,9 @@ import 'song_tag_musicbrainz_cards.dart';
 import 'song_tag_acoustid_cards.dart';
 import 'song_tag_completion_riverpod.dart';
 import 'package:vibe_flow/utils/app_snack_bar.dart';
+import 'package:vibe_flow/utils/localized_text.dart';
+import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 
 enum _SummaryCondition { title, artist, album, duration }
 
@@ -377,6 +380,7 @@ class _SongTagCompletionSheetState
     String? country,
     String? releaseDate,
   }) async {
+    final shouldSaveToSource = ref.read(settingsServiceProvider).tagCompletionSaveToSourceFile && isMetadataWritable(widget.songPath);
     final result = await _controller.applyAcoustIDSelection(
       trackResult: trackResult,
       recording: recording,
@@ -392,9 +396,10 @@ class _SongTagCompletionSheetState
       country: country,
       releaseDate: releaseDate,
       existingMetadata: _fileMetadata,
+      writeToFile: shouldSaveToSource,
     );
     if (!mounted || result == null) return;
-    Navigator.of(context).pop(result);
+    Navigator.of(context).pop((result, shouldSaveToSource));
   }
 
   Future<void> _applyAcoustIDReleaseGroup(
@@ -452,15 +457,17 @@ class _SongTagCompletionSheetState
     MusicBrainzTrackMatch match,
     MusicBrainzReleaseMatch release,
   ) async {
+    final shouldSaveToSource = ref.read(settingsServiceProvider).tagCompletionSaveToSourceFile && isMetadataWritable(widget.songPath);
     final result = await _controller.applyMusicBrainzRelease(
       match: match,
       release: release,
       fallbackDurationMillis: _fileMetadata?.duration ?? widget.durationMillis,
       existingMetadata: _fileMetadata,
+      writeToFile: shouldSaveToSource,
     );
 
     if (!mounted || result == null) return;
-    Navigator.of(context).pop(result);
+    Navigator.of(context).pop((result, shouldSaveToSource));
   }
 
   Widget _buildHeader(
