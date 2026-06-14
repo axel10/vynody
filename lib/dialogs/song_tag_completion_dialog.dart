@@ -656,6 +656,26 @@ class _SongTagCompletionSheetState
         ),
     ];
 
+    final rows = <Widget>[];
+    for (int i = 0; i < summaryItems.length; i += 2) {
+      final item1 = summaryItems[i];
+      final item2 = i + 1 < summaryItems.length ? summaryItems[i + 1] : null;
+      if (i > 0) {
+        rows.add(const SizedBox(height: 8));
+      }
+      rows.add(
+        Row(
+          children: [
+            Flexible(child: item1),
+            if (item2 != null) ...[
+              const SizedBox(width: 8),
+              Flexible(child: item2),
+            ],
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -671,7 +691,7 @@ class _SongTagCompletionSheetState
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(spacing: 8, runSpacing: 8, children: summaryItems),
+          ...rows,
         ],
       ),
     );
