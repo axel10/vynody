@@ -254,13 +254,24 @@ class MetadataHelper {
           artworkWidth == null &&
           artworkHeight == null;
 
-      if (needsArtworkSave) {
+       if (needsArtworkSave) {
+        if (existing?.artworkPath != null && existing!.artworkPath!.isNotEmpty) {
+          final oldArtworkFile = File(existing.artworkPath!);
+          if (oldArtworkFile.existsSync()) {
+            try {
+              oldArtworkFile.deleteSync();
+            } catch (e) {
+              debugPrint('Error deleting old artwork file: $e');
+            }
+          }
+        }
+
         final supportDir = await getApplicationSupportDirectory();
         final artworkInfo = await _buildArtworkFiles(
           songPath: filePath,
           data: artworkBytes,
           supportDirPath: supportDir.path,
-          saveLarge: !Platform.isWindows,
+          saveLarge: !writeToFile,
         );
 
         if (artworkInfo != null) {
@@ -384,10 +395,23 @@ class MetadataHelper {
 
       if (success) {
         final mtime = File(filePath).lastModifiedSync().millisecondsSinceEpoch;
-        final updated = metadata.copyWith(
+        var updated = metadata.copyWith(
           lastModifiedTime: mtime,
           createdAt: mtime,
         );
+
+        if (metadata.artworkPath != null && metadata.artworkPath!.isNotEmpty) {
+          final artworkFile = File(metadata.artworkPath!);
+          if (await artworkFile.exists()) {
+            try {
+              await artworkFile.delete();
+              updated = updated.copyWith(artworkPath: null);
+            } catch (e) {
+              debugPrint('[MetadataHelper] Error deleting old artwork file: $e');
+            }
+          }
+        }
+
         await db.insertOrUpdateSong(updated);
         return true;
       }

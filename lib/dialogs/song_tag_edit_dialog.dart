@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
@@ -49,6 +51,9 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
 
   bool _isSaving = false;
   String? _errorMessage;
+  Uint8List? _artworkBytes;
+  bool _isArtworkModified = false;
+  bool _isLoadingArtwork = false;
 
   @override
   void initState() {
@@ -67,6 +72,62 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     _trackNumberController = TextEditingController(
       text: widget.song.trackNumber?.toString() ?? '',
     );
+    _loadArtwork();
+  }
+
+  Future<void> _loadArtwork() async {
+    setState(() {
+      _isLoadingArtwork = true;
+    });
+    Uint8List? bytes = widget.song.artworkBytes;
+    if (bytes == null) {
+      if (widget.song.artworkPath != null && widget.song.artworkPath!.isNotEmpty) {
+        final file = File(widget.song.artworkPath!);
+        if (await file.exists()) {
+          try {
+            bytes = await file.readAsBytes();
+          } catch (e) {
+            debugPrint('Error loading artwork path: $e');
+          }
+        }
+      }
+      if (bytes == null && widget.song.thumbnailPath != null && widget.song.thumbnailPath!.isNotEmpty) {
+        final file = File(widget.song.thumbnailPath!);
+        if (await file.exists()) {
+          try {
+            bytes = await file.readAsBytes();
+          } catch (e) {
+            debugPrint('Error loading thumbnail path: $e');
+          }
+        }
+      }
+      bytes ??= await MetadataHelper.decodeEmbeddedArtwork(widget.song.path);
+    }
+    if (mounted) {
+      setState(() {
+        _artworkBytes = bytes;
+        _isLoadingArtwork = false;
+      });
+    }
+  }
+
+  Future<void> _pickArtwork() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final bytes = await file.readAsBytes();
+        setState(() {
+          _artworkBytes = bytes;
+          _isArtworkModified = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking artwork: $e');
+    }
   }
 
   @override
@@ -105,7 +166,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       artist: _artistController.text.trim(),
       album: _albumController.text.trim(),
       trackNumber: trackNumber,
-      artworkBytes: widget.song.artworkBytes,
+      artworkBytes: _isArtworkModified ? _artworkBytes : null,
       existingMetadata: null,
       writeToFile: writeToFile,
       fallbackMediaUri: widget.song.mediaUri,
@@ -127,7 +188,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     Navigator.of(context).pop(
       SongTagEditResult(
         metadata: result.$1,
-        artworkBytes: result.$2,
+        artworkBytes: result.$2 ?? (_isArtworkModified ? _artworkBytes : widget.song.artworkBytes),
         savedToSourceFile: writeToFile,
       ),
     );
@@ -207,6 +268,73 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                       children: [
+                        Center(
+                          child: GestureDetector(
+                            onTap: _isSaving ? null : _pickArtwork,
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(15),
+                                    child: _isLoadingArtwork
+                                        ? const Center(
+                                            child: SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                            ),
+                                          )
+                                        : _artworkBytes != null
+                                            ? Image.memory(
+                                                _artworkBytes!,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Icon(
+                                                Icons.music_note_rounded,
+                                                size: 48,
+                                                color: isDark ? Colors.white.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.3),
+                                              ),
+                                  ),
+                                ),
+                                if (!_isSaving)
+                                  Positioned(
+                                    right: 4,
+                                    bottom: 4,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.25),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          )
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit_rounded,
+                                        size: 14,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                         _buildField(
                           context: context,
                           controller: _titleController,
