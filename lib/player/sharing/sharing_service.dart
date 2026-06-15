@@ -12,6 +12,7 @@ import 'package:vibe_flow/player/scanner/scanner_repository.dart';
 import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/metadata/metadata_database.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'lan_device.dart';
 import 'web_share_html.dart';
 
@@ -202,6 +203,18 @@ class SharingService {
         _deviceName = Platform.localHostname.replaceAll('.local', '');
       } else if (Platform.isWindows) {
         _deviceName = Platform.environment['COMPUTERNAME'] ?? Platform.localHostname;
+      } else if (Platform.isAndroid) {
+        final deviceInfo = DeviceInfoPlugin();
+        final androidInfo = await deviceInfo.androidInfo;
+        if (androidInfo.brand.isNotEmpty && !androidInfo.model.toLowerCase().startsWith(androidInfo.brand.toLowerCase())) {
+          _deviceName = '${androidInfo.brand} ${androidInfo.model}';
+        } else {
+          _deviceName = androidInfo.model;
+        }
+      } else if (Platform.isIOS) {
+        final deviceInfo = DeviceInfoPlugin();
+        final iosInfo = await deviceInfo.iosInfo;
+        _deviceName = iosInfo.name;
       }
     } catch (_) {}
 
