@@ -223,10 +223,12 @@ dependency_overrides:
       url: https://github.com/axel10/Bonsoir
       path: packages/bonsoir_windows
       ref: main
-  # mobile_storage_listener:
-  #   path: ./mobile_storage_listener
-  audio_core:
-    path: ./audio_core
+  # bonsoir:
+  #   path: ./Bonsoir/packages/bonsoir
+  # bonsoir_windows:
+  #   path: ./Bonsoir/packages/bonsoir_windows
+  # audio_core:
+  #   path: ./audio_core
 #   flutter_taglib:
 #     path: ./audio_core/flutter_taglib
 #   mobile_storage_listener:

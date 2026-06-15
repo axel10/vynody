@@ -92,11 +92,9 @@ packages:
   bonsoir:
     dependency: "direct main"
     description:
-      path: "packages/bonsoir"
-      ref: main
-      resolved-ref: "28f8a121fd4ede87c96badfc9355b73ebcf4f9f8"
-      url: "https://github.com/axel10/Bonsoir"
-    source: git
+      path: "Bonsoir/packages/bonsoir"
+      relative: true
+    source: path
     version: "7.1.2"
   bonsoir_android:
     dependency: transitive
@@ -133,11 +131,9 @@ packages:
   bonsoir_windows:
     dependency: "direct overridden"
     description:
-      path: "packages/bonsoir_windows"
-      ref: main
-      resolved-ref: "28f8a121fd4ede87c96badfc9355b73ebcf4f9f8"
-      url: "https://github.com/axel10/Bonsoir"
-    source: git
+      path: "Bonsoir/packages/bonsoir_windows"
+      relative: true
+    source: path
     version: "7.1.1"
   boolean_selector:
     dependency: transitive
