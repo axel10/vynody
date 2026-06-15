@@ -96,7 +96,7 @@ packages:
     description:
       path: "packages/bonsoir"
       ref: main
-      resolved-ref: ed2de4be9f062c40677cf8adbb9205459b3c9ee8
+      resolved-ref: b9b600ff1fd40a270f935f477804a3f743b2faad
       url: "https://github.com/axel10/Bonsoir"
     source: git
     version: "7.1.2"
@@ -137,7 +137,7 @@ packages:
     description:
       path: "packages/bonsoir_windows"
       ref: main
-      resolved-ref: ed2de4be9f062c40677cf8adbb9205459b3c9ee8
+      resolved-ref: b9b600ff1fd40a270f935f477804a3f743b2faad
       url: "https://github.com/axel10/Bonsoir"
     source: git
     version: "7.1.1"
