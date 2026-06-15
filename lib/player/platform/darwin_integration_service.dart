@@ -106,11 +106,15 @@ class DarwinIntegrationService {
     _handler.onPlaybackStatusChanged(isPlaying);
 
     if (Platform.isIOS) {
-      // Activate/deactivate session based on playback state to cooperate with other apps
+      final player = audioService.playbackController.player;
+      player.isAudioSessionTransitioning = true;
       AudioSession.instance.then((session) {
-        session.setActive(isPlaying);
+        return session.setActive(isPlaying);
+      }).then((_) {
+        player.isAudioSessionTransitioning = false;
       }).catchError((Object error) {
         debugPrint('Failed to update iOS audio session active state: $error');
+        player.isAudioSessionTransitioning = false;
       });
     }
   }

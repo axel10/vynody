@@ -831,7 +831,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         final success = await _player.playlist.playNext();
         final newIndex = _player.playlist.currentIndex ?? -1;
         if (!success || newIndex < 0 || newIndex >= _queue.length) {
-          await _player.player.pause();
+          await _player.player.pause(bypassGuard: true);
           _isPlaying = false;
           _currentIndex = -1;
           _duration = Duration.zero;
@@ -1340,7 +1340,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> _stopPlaybackForSleepTimer() async {
     if (_isPlaying) {
-      await _player.player.pause();
+      await _player.player.pause(bypassGuard: true);
     }
   }
 
