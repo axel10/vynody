@@ -209,6 +209,8 @@ class PlaybackHeroCardUiTuning {
   static const double minProgressTimeFontSize = 11.0; // 小窗模式时间文字最小尺寸
   static const double waveformBarWidth = 7.0; // 波形柱子宽度
   static const double waveformBarGap = 2.0; // 波形柱子间隙
+  static const double waveformBarWidthLandscape = 4.5; // 横屏下波形柱子宽度
+  static const double waveformBarGapLandscape = 2; // 横屏下波形柱子间隙
 
 
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
