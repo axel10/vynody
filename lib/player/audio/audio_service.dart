@@ -329,6 +329,10 @@ class AudioService extends Notifier<AudioSnapshot> {
   Duration _lastPlaybackObservedPosition = Duration.zero;
   String? _lastMissingCurrentTrackPathHandled;
 
+  Duration? _seekTargetPosition;
+  bool _isSeeking = false;
+  DateTime? _lastSeekTime;
+
   // 独立的 FFT 输出流（用于迷你播放器）
   VisualizerOutputStream? _miniPlayerFftStream;
 
@@ -1122,8 +1126,27 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void _handlePlayerChanges() {
     _isPlaying = _player.player.isPlaying;
-    _position = _player.player.position;
     _duration = _player.player.duration;
+    
+    final realPosition = _player.player.position;
+    if (_isSeeking) {
+      final target = _seekTargetPosition ?? Duration.zero;
+      final difference = (realPosition - target).abs();
+      final timeSinceSeek = _lastSeekTime != null
+          ? DateTime.now().difference(_lastSeekTime!)
+          : Duration.zero;
+
+      if (difference < const Duration(seconds: 1) || timeSinceSeek > const Duration(milliseconds: 1000)) {
+        _isSeeking = false;
+        _seekTargetPosition = null;
+        _position = realPosition;
+      } else {
+        _position = target;
+      }
+    } else {
+      _position = realPosition;
+    }
+
     if (_initialVolumeApplied) {
       _volume = (_player.player.volume * 100.0).roundToDouble();
     }
@@ -2347,6 +2370,12 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> seek(Duration position) async {
+    _seekTargetPosition = position;
+    _isSeeking = true;
+    _lastSeekTime = DateTime.now();
+    _position = position;
+    notifyListeners();
+
     await _player.player.seek(position);
     unawaited(_persistPlaybackSession());
   }
