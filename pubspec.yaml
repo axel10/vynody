@@ -116,7 +116,6 @@ dependencies:
   package_info_plus: ^9.0.1
   bonsoir: ^7.1.2
 
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -214,6 +213,16 @@ msix_config:
   capabilities: "broadFileSystemAccess, rescap:runFullTrust"
 
 dependency_overrides:
+  bonsoir:
+    git:
+      url: https://github.com/axel10/Bonsoir
+      path: packages/bonsoir
+      ref: main
+  bonsoir_windows:
+    git:
+      url: https://github.com/axel10/Bonsoir
+      path: packages/bonsoir_windows
+      ref: main
   # mobile_storage_listener:
   #   path: ./mobile_storage_listener
   audio_core:

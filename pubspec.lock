@@ -92,10 +92,11 @@ packages:
   bonsoir:
     dependency: "direct main"
     description:
-      name: bonsoir
-      sha256: fd9439fbc353f2b9758c89177237404851db326ac65a01222ce8c4f43c874642
-      url: "https://pub.flutter-io.cn"
-    source: hosted
+      path: "packages/bonsoir"
+      ref: main
+      resolved-ref: "28f8a121fd4ede87c96badfc9355b73ebcf4f9f8"
+      url: "https://github.com/axel10/Bonsoir"
+    source: git
     version: "7.1.2"
   bonsoir_android:
     dependency: transitive
@@ -130,12 +131,13 @@ packages:
     source: hosted
     version: "7.0.0"
   bonsoir_windows:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: bonsoir_windows
-      sha256: "632cc6ff5dbcbcc41e191ea1bb4e71d2a472bd4710718a18cd0371d7a4ce669c"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
+      path: "packages/bonsoir_windows"
+      ref: main
+      resolved-ref: "28f8a121fd4ede87c96badfc9355b73ebcf4f9f8"
+      url: "https://github.com/axel10/Bonsoir"
+    source: git
     version: "7.1.1"
   boolean_selector:
     dependency: transitive
