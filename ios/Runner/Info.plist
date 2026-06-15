@@ -76,6 +76,10 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>此应用需要访问局域网以发现和与其他设备传输音乐文件。</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_vibeflow-share._tcp</string>
+	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

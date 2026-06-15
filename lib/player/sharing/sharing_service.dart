@@ -13,6 +13,7 @@ import 'package:vibe_flow/player/audio/audio_riverpod.dart';
 import 'package:vibe_flow/player/metadata/metadata_database.dart';
 import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:bonsoir/bonsoir.dart';
 import 'lan_device.dart';
 import 'web_share_html.dart';
 
@@ -155,8 +156,8 @@ class SharingService {
   final Ref _ref;
   
   HttpServer? _httpServer;
-  RawDatagramSocket? _udpSocket;
-  Timer? _udpBroadcastTimer;
+  BonsoirBroadcast? _bonsoirBroadcast;
+  BonsoirDiscovery? _bonsoirDiscovery;
   
   String? _localIp;
   int? _httpPort;
@@ -170,7 +171,6 @@ class SharingService {
   // Discovered devices list managed locally, updated to UI via Riverpod
   final StreamController<List<LanDevice>> _devicesController = StreamController<List<LanDevice>>.broadcast();
   final Map<String, LanDevice> _discoveredDevicesMap = {};
-  Timer? _deviceCleanupTimer;
 
   SharingService(this._ref);
 
@@ -307,40 +307,117 @@ class SharingService {
 
     _httpServer!.listen(_handleHttpRequest);
 
-    // 3. Bind UDP Socket
+    // 3. Start Bonsoir Broadcast
+    final service = BonsoirService(
+      name: 'VibeFlow_${_deviceId}',
+      type: '_vibeflow-share._tcp',
+      port: _httpPort!,
+      attributes: {
+        'id': _deviceId,
+        'name': _deviceName,
+        'deviceType': _deviceType,
+        'version': '0.11.0',
+      },
+    );
+    _bonsoirBroadcast = BonsoirBroadcast(service: service);
     try {
-      _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 53535);
-      _udpSocket!.broadcastEnabled = true;
-      _udpSocket!.listen(
-        _handleUdpEvent,
-        onError: (e) {
-          debugPrint('[SharingService] UDP Socket error: $e');
-        },
-      );
-      debugPrint('[SharingService] UDP Discovery listening on port 53535');
+      await _bonsoirBroadcast!.initialize();
+      await _bonsoirBroadcast!.start();
+      debugPrint('[SharingService] Bonsoir broadcast started: VibeFlow_${_deviceId} on port $_httpPort');
     } catch (e) {
-      debugPrint('[SharingService] UDP Socket binding failed: $e');
+      debugPrint('[SharingService] Bonsoir broadcast starting failed: $e');
     }
 
-    // 4. Start UDP Broadcast Timer (Every 3 seconds)
-    _udpBroadcastTimer = Timer.periodic(const Duration(seconds: 3), (_) => _broadcastDiscoveryPing());
-    
-    // 5. Start Device Cleanup Timer (Every 5 seconds)
-    _deviceCleanupTimer = Timer.periodic(const Duration(seconds: 5), (_) => _cleanupOfflineDevices());
+    // 4. Start Bonsoir Discovery
+    _bonsoirDiscovery = BonsoirDiscovery(type: '_vibeflow-share._tcp');
+    try {
+      await _bonsoirDiscovery!.initialize();
+      _bonsoirDiscovery!.eventStream!.listen((event) {
+        if (_bonsoirDiscovery == null) return;
+        
+        if (event is BonsoirDiscoveryServiceFoundEvent) {
+          debugPrint('[SharingService] mDNS Service found: ${event.service.name}');
+          event.service.resolve(_bonsoirDiscovery!.serviceResolver);
+        } else if (event is BonsoirDiscoveryServiceResolvedEvent) {
+          debugPrint('[SharingService] mDNS Service resolved: ${event.service.name}');
+          final resolvedService = event.service;
+          final attrs = resolvedService.attributes;
+          
+          final id = attrs['id'] ?? resolvedService.name.replaceFirst('VibeFlow_', '');
+          if (id == _deviceId) {
+            // Ignore self
+            return;
+          }
+          
+          final name = attrs['name'] ?? 'Unknown Device';
+          final deviceType = attrs['deviceType'] ?? 'unknown';
+          final httpPort = resolvedService.port;
+          
+          String? resolvedIp;
+          for (final addressStr in resolvedService.hostAddresses) {
+            final addr = InternetAddress.tryParse(addressStr);
+            if (addr != null && addr.type == InternetAddressType.IPv4) {
+              resolvedIp = addressStr;
+              break;
+            }
+          }
+          
+          if (resolvedIp != null) {
+            final device = LanDevice(
+              id: id,
+              name: name,
+              deviceType: deviceType,
+              httpPort: httpPort,
+              ip: resolvedIp,
+              lastSeen: DateTime.now(),
+            );
+            debugPrint('[SharingService] Discovered/Updated device: ${device.name} ($resolvedIp) isOnline=${device.isOnline}');
+            _discoveredDevicesMap[id] = device;
+            _devicesController.add(_discoveredDevicesMap.values.toList());
+          }
+        } else if (event is BonsoirDiscoveryServiceLostEvent) {
+          debugPrint('[SharingService] mDNS Service lost: ${event.service.name}');
+          final lostService = event.service;
+          final id = lostService.name.replaceFirst('VibeFlow_', '');
+          if (_discoveredDevicesMap.containsKey(id)) {
+            final device = _discoveredDevicesMap[id]!;
+            if (device.isOnline) {
+              _discoveredDevicesMap[id] = device.copyWith(
+                lastSeen: DateTime.now().subtract(const Duration(seconds: 15)),
+              );
+              _devicesController.add(_discoveredDevicesMap.values.toList());
+            }
+          }
+        }
+      });
+      await _bonsoirDiscovery!.start();
+      debugPrint('[SharingService] Bonsoir discovery started');
+    } catch (e) {
+      debugPrint('[SharingService] Bonsoir discovery starting failed: $e');
+    }
   }
 
   Future<void> stop() async {
-    _udpBroadcastTimer?.cancel();
-    _udpBroadcastTimer = null;
+    if (_bonsoirBroadcast != null) {
+      try {
+        await _bonsoirBroadcast!.stop();
+      } catch (e) {
+        debugPrint('[SharingService] Error stopping Bonsoir broadcast: $e');
+      }
+      _bonsoirBroadcast = null;
+    }
 
-    _deviceCleanupTimer?.cancel();
-    _deviceCleanupTimer = null;
+    if (_bonsoirDiscovery != null) {
+      try {
+        await _bonsoirDiscovery!.stop();
+      } catch (e) {
+        debugPrint('[SharingService] Error stopping Bonsoir discovery: $e');
+      }
+      _bonsoirDiscovery = null;
+    }
 
     await _httpServer?.close(force: true);
     _httpServer = null;
-
-    _udpSocket?.close();
-    _udpSocket = null;
 
     _discoveredDevicesMap.clear();
     _devicesController.add([]);
@@ -351,18 +428,68 @@ class SharingService {
   Future<String?> _getLocalIpAddress() async {
     try {
       final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
-      for (final interface in interfaces) {
-        // Skip VPNs, virtual interfaces, loopbacks
+      
+      // Filter out unwanted interfaces (cellular, virtual, VPN, loopback, AWDL)
+      final filteredInterfaces = interfaces.where((interface) {
         final name = interface.name.toLowerCase();
-        if (name.contains('lo') || name.contains('tun') || name.contains('ppp') || name.contains('docker')) {
-          continue;
+        
+        // Skip loopback, VPNs, tunnels, virtual machines
+        if (name.contains('lo') || 
+            name.contains('tun') || 
+            name.contains('ppp') || 
+            name.contains('docker') || 
+            name.contains('vbox') || 
+            name.contains('vmnet')) {
+          return false;
         }
+        
+        // Skip cellular interfaces
+        if (name.contains('pdp_ip') || 
+            name.contains('rmnet') || 
+            name.contains('ccmni') || 
+            name.contains('cellular') || 
+            name.contains('mobile')) {
+          return false;
+        }
+        
+        // Skip Apple Wireless Direct Link (AirDrop, etc.)
+        if (name.contains('awdl')) {
+          return false;
+        }
+        
+        return true;
+      }).toList();
+
+      // Prioritize Wi-Fi and Ethernet interfaces
+      filteredInterfaces.sort((a, b) {
+        final nameA = a.name.toLowerCase();
+        final nameB = b.name.toLowerCase();
+        
+        final isWifiOrEthA = nameA.contains('en') || 
+                             nameA.contains('wlan') || 
+                             nameA.contains('eth') || 
+                             nameA.contains('wifi') || 
+                             nameA.contains('ethernet');
+                            
+        final isWifiOrEthB = nameB.contains('en') || 
+                             nameB.contains('wlan') || 
+                             nameB.contains('eth') || 
+                             nameB.contains('wifi') || 
+                             nameB.contains('ethernet');
+        
+        if (isWifiOrEthA && !isWifiOrEthB) return -1;
+        if (!isWifiOrEthA && isWifiOrEthB) return 1;
+        return 0;
+      });
+
+      for (final interface in filteredInterfaces) {
         for (final addr in interface.addresses) {
           if (!addr.isLoopback) {
             return addr.address;
           }
         }
       }
+      
       // Fallback
       for (final interface in interfaces) {
         for (final addr in interface.addresses) {
@@ -377,105 +504,7 @@ class SharingService {
     return null;
   }
 
-  // --- UDP Discovery Broadcast & Listening ---
-
-  void _broadcastDiscoveryPing() {
-    if (_udpSocket == null || _localIp == null || _httpPort == null) return;
-    
-    final payload = {
-      'app': 'VibeFlow',
-      'version': '0.11.0',
-      'action': 'ping',
-      'id': _deviceId,
-      'name': _deviceName,
-      'deviceType': _deviceType,
-      'httpPort': _httpPort,
-    };
-    
-    final bytes = utf8.encode(jsonEncode(payload));
-    try {
-      final bytesSent = _udpSocket!.send(bytes, InternetAddress('255.255.255.255'), 53535);
-      debugPrint('[SharingService] _broadcastDiscoveryPing sent bytesSent=$bytesSent to 255.255.255.255:53535');
-    } catch (e) {
-      debugPrint('[SharingService] _broadcastDiscoveryPing send error: $e');
-    }
-  }
-
-  void _sendUnicastPing(String targetIp, String action) {
-    if (_udpSocket == null || _localIp == null || _httpPort == null) return;
-    
-    final payload = {
-      'app': 'VibeFlow',
-      'version': '0.11.0',
-      'action': action,
-      'id': _deviceId,
-      'name': _deviceName,
-      'deviceType': _deviceType,
-      'httpPort': _httpPort,
-    };
-    
-    final bytes = utf8.encode(jsonEncode(payload));
-    try {
-      final bytesSent = _udpSocket!.send(bytes, InternetAddress(targetIp), 53535);
-      debugPrint('[SharingService] Sent unicast $action ($bytesSent bytes) to $targetIp:53535');
-    } catch (e) {
-      debugPrint('[SharingService] Failed to send unicast $action to $targetIp: $e');
-    }
-  }
-
-  void _handleUdpEvent(RawSocketEvent event) {
-    if (event != RawSocketEvent.read || _udpSocket == null) return;
-    
-    final datagram = _udpSocket!.receive();
-    if (datagram == null) return;
-    
-    try {
-      final text = utf8.decode(datagram.data);
-      debugPrint('[SharingService] Received UDP packet from ${datagram.address.address}:${datagram.port}: $text');
-      final json = jsonDecode(text) as Map<String, dynamic>;
-      
-      if (json['app'] == 'VibeFlow' && json['id'] != _deviceId) {
-        final id = json['id'] as String;
-        final senderIp = datagram.address.address;
-        
-        final device = LanDevice.fromJson(json, senderIp, DateTime.now());
-        debugPrint('[SharingService] Discovered/Updated device: ${device.name} ($senderIp) isOnline=${device.isOnline}');
-        
-        _discoveredDevicesMap[id] = device;
-        _devicesController.add(_discoveredDevicesMap.values.toList());
-
-        // If we received a broadcast ping, reply with a unicast pong to the sender
-        final action = json['action'] as String? ?? 'ping';
-        if (action == 'ping') {
-          _sendUnicastPing(senderIp, 'pong');
-        }
-      } else if (json['id'] == _deviceId) {
-        // Ignored self ping
-      } else {
-        debugPrint('[SharingService] Ignored packet: app=${json['app']}, id=${json['id']}');
-      }
-    } catch (e) {
-      debugPrint('[SharingService] Error parsing UDP packet: $e');
-    }
-  }
-
-  void _cleanupOfflineDevices() {
-    final now = DateTime.now();
-    bool changed = false;
-    
-    _discoveredDevicesMap.forEach((id, device) {
-      final diff = now.difference(device.lastSeen).inSeconds;
-      if (diff >= 10 && device.isOnline) {
-        // Change state to disconnected in the UI
-        _discoveredDevicesMap[id] = device.copyWith(lastSeen: now.subtract(const Duration(seconds: 15)));
-        changed = true;
-      }
-    });
-
-    if (changed) {
-      _devicesController.add(_discoveredDevicesMap.values.toList());
-    }
-  }
+  // --- mDNS Discovery (Bonsoir) Helper methods ---
 
   // --- HTTP Request Handler ---
 

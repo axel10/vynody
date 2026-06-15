@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  bonsoir_windows
   dart_chromaprint
   desktop_drop
   file_selector_windows

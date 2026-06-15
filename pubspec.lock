@@ -89,6 +89,54 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.2.3"
+  bonsoir:
+    dependency: "direct main"
+    description:
+      name: bonsoir
+      sha256: fd9439fbc353f2b9758c89177237404851db326ac65a01222ce8c4f43c874642
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "7.1.2"
+  bonsoir_android:
+    dependency: transitive
+    description:
+      name: bonsoir_android
+      sha256: c6413e82150074d56e71ffe2e54bb1dfe66a59310affc4486d33e9eee6b362e6
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "7.1.2"
+  bonsoir_darwin:
+    dependency: transitive
+    description:
+      name: bonsoir_darwin
+      sha256: "04425a8657e3131683c7966689d4e65e114cb5181de94aac89d2fba84cfaaca4"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "7.1.0"
+  bonsoir_linux:
+    dependency: transitive
+    description:
+      name: bonsoir_linux
+      sha256: "9afae7bb9509c5bd20a0ea2ca02a0f2b1ef09cca1ceb2ea288ed58a0f03d1e11"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "7.1.0"
+  bonsoir_platform_interface:
+    dependency: transitive
+    description:
+      name: bonsoir_platform_interface
+      sha256: "6c55c786b01ad279f675ae72cea3a885aa746e416d2e8c1f0c46e9d2c06420b0"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "7.0.0"
+  bonsoir_windows:
+    dependency: transitive
+    description:
+      name: bonsoir_windows
+      sha256: "632cc6ff5dbcbcc41e191ea1bb4e71d2a472bd4710718a18cd0371d7a4ce669c"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "7.1.1"
   boolean_selector:
     dependency: transitive
     description:
