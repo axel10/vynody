@@ -5,6 +5,7 @@ class LanDevice {
   final int httpPort;
   final String ip;
   final DateTime lastSeen;
+  final bool isOnline;
 
   LanDevice({
     required this.id,
@@ -13,11 +14,8 @@ class LanDevice {
     required this.httpPort,
     required this.ip,
     required this.lastSeen,
+    required this.isOnline,
   });
-
-  bool get isOnline {
-    return DateTime.now().difference(lastSeen).inSeconds < 10;
-  }
 
   LanDevice copyWith({
     String? id,
@@ -26,6 +24,7 @@ class LanDevice {
     int? httpPort,
     String? ip,
     DateTime? lastSeen,
+    bool? isOnline,
   }) {
     return LanDevice(
       id: id ?? this.id,
@@ -34,6 +33,7 @@ class LanDevice {
       httpPort: httpPort ?? this.httpPort,
       ip: ip ?? this.ip,
       lastSeen: lastSeen ?? this.lastSeen,
+      isOnline: isOnline ?? this.isOnline,
     );
   }
 
@@ -44,6 +44,7 @@ class LanDevice {
       'deviceType': deviceType,
       'httpPort': httpPort,
       'ip': ip,
+      'isOnline': isOnline,
     };
   }
 
@@ -55,6 +56,7 @@ class LanDevice {
       httpPort: json['httpPort'] as int? ?? 53536,
       ip: ipAddress,
       lastSeen: timestamp,
+      isOnline: json['isOnline'] as bool? ?? true,
     );
   }
 
@@ -68,6 +70,6 @@ class LanDevice {
 
   @override
   String toString() {
-    return 'LanDevice{id: $id, name: $name, deviceType: $deviceType, httpPort: $httpPort, ip: $ip, lastSeen: $lastSeen}';
+    return 'LanDevice{id: $id, name: $name, deviceType: $deviceType, httpPort: $httpPort, ip: $ip, lastSeen: $lastSeen, isOnline: $isOnline}';
   }
 }

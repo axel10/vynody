@@ -309,7 +309,7 @@ class SharingService {
 
     // 3. Start Bonsoir Broadcast
     final service = BonsoirService(
-      name: 'VibeFlow_${_deviceId}',
+      name: 'VibeFlow_$_deviceId',
       type: '_vibeflow-share._tcp',
       port: _httpPort!,
       attributes: {
@@ -323,7 +323,7 @@ class SharingService {
     try {
       await _bonsoirBroadcast!.initialize();
       await _bonsoirBroadcast!.start();
-      debugPrint('[SharingService] Bonsoir broadcast started: VibeFlow_${_deviceId} on port $_httpPort');
+      debugPrint('[SharingService] Bonsoir broadcast started: VibeFlow_$_deviceId on port $_httpPort');
     } catch (e) {
       debugPrint('[SharingService] Bonsoir broadcast starting failed: $e');
     }
@@ -370,6 +370,7 @@ class SharingService {
               httpPort: httpPort,
               ip: resolvedIp,
               lastSeen: DateTime.now(),
+              isOnline: true,
             );
             debugPrint('[SharingService] Discovered/Updated device: ${device.name} ($resolvedIp) isOnline=${device.isOnline}');
             _discoveredDevicesMap[id] = device;
@@ -383,7 +384,7 @@ class SharingService {
             final device = _discoveredDevicesMap[id]!;
             if (device.isOnline) {
               _discoveredDevicesMap[id] = device.copyWith(
-                lastSeen: DateTime.now().subtract(const Duration(seconds: 15)),
+                isOnline: false,
               );
               _devicesController.add(_discoveredDevicesMap.values.toList());
             }
