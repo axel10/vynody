@@ -158,12 +158,12 @@ jobs:
             "/DMyAppVersion=$appVersion" `
             "/DSourceDir=$sourceDir" `
             "/DOutputDir=$outputDir" `
-            "windows\\installer\\VibeFlow.iss"
+            "windows\\installer\\Vynody.iss"
 
       - name: Verify Windows artifacts
         shell: pwsh
         run: |
-          if (-not (Test-Path "build/windows/x64/runner/Release/VibeFlow.exe")) {
+          if (-not (Test-Path "build/windows/x64/runner/Release/Vynody.exe")) {
             Write-Error "Windows runner executable not found."
             exit 1
           }
@@ -268,8 +268,8 @@ jobs:
       - name: Verify Linux package artifacts
         run: |
           ls -l build/linux/packages
-          compgen -G "build/linux/packages/vibeflow-linux-*.deb" > /dev/null
-          compgen -G "build/linux/packages/vibeflow-linux-*.rpm" > /dev/null
+          compgen -G "build/linux/packages/vynody-linux-*.deb" > /dev/null
+          compgen -G "build/linux/packages/vynody-linux-*.rpm" > /dev/null
 
       - name: Validate deb install on clean Ubuntu
         run: |
@@ -279,10 +279,10 @@ jobs:
             bash -lc '
               set -euo pipefail
               apt-get update
-              apt-get install -y /packages/vibeflow-linux-*.deb
-              test -x /opt/vibeflow/VibeFlow
-              test -x /usr/bin/vibeflow
-              dpkg -s vibeflow
+              apt-get install -y /packages/vynody-linux-*.deb
+              test -x /opt/vynody/Vynody
+              test -x /usr/bin/vynody
+              dpkg -s vynody
             '
 
       - name: Validate rpm install on clean Fedora
@@ -292,10 +292,10 @@ jobs:
             fedora:40 \
             bash -lc '
               set -euo pipefail
-              dnf install -y /packages/vibeflow-linux-*.rpm
-              test -x /opt/vibeflow/VibeFlow
-              test -x /usr/bin/vibeflow
-              rpm -q vibeflow
+              dnf install -y /packages/vynody-linux-*.rpm
+              test -x /opt/vynody/Vynody
+              test -x /usr/bin/vynody
+              rpm -q vynody
             '
 
       - name: Upload Linux package
@@ -304,8 +304,8 @@ jobs:
           name: linux-package
           path: |
             vibeflow-linux-*.tar.gz
-            build/linux/packages/*.deb
-            build/linux/packages/*.rpm
+            build/linux/packages/vynody-linux-*.deb
+            build/linux/packages/vynody-linux-*.rpm
 
   macos:
     name: Build macOS Package (Xcode ${{ matrix.xcode }})
@@ -430,7 +430,7 @@ jobs:
 
       - name: Verify universal binary
         run: |
-          APP_BINARY="build/macos/Build/Products/Release/VibeFlow.app/Contents/MacOS/VibeFlow"
+          APP_BINARY="build/macos/Build/Products/Release/Vynody.app/Contents/MacOS/Vynody"
           ARCHS="$(lipo -archs "$APP_BINARY")"
           echo "$ARCHS"
           if [[ "$ARCHS" != *"arm64"* || "$ARCHS" != *"x86_64"* ]]; then
@@ -442,15 +442,15 @@ jobs:
         run: |
           rm -rf vibeflow-dmg
           mkdir -p vibeflow-dmg
-          cp -R build/macos/Build/Products/Release/VibeFlow.app vibeflow-dmg/
-          codesign --force --deep --sign - --preserve-metadata=entitlements,identifier,flags vibeflow-dmg/VibeFlow.app
+          cp -R build/macos/Build/Products/Release/Vynody.app vibeflow-dmg/
+          codesign --force --deep --sign - --preserve-metadata=entitlements,identifier,flags vibeflow-dmg/Vynody.app
           ln -s /Applications vibeflow-dmg/Applications
 
       - name: Package macOS DMG
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
           hdiutil create \
-            -volname "VibeFlow" \
+            -volname "Vynody" \
             -srcfolder vibeflow-dmg \
             -ov \
             -format UDZO \
@@ -561,8 +561,8 @@ jobs:
       - name: Prepare Assets
         run: |
           mkdir -p release_assets
-          # Copy all versioned artifacts starting with vibeflow- to release_assets
-          find artifacts -type f -name "vibeflow-*" -exec cp {} release_assets/ \;
+          # Copy all versioned artifacts starting with vibeflow- or vynody- to release_assets
+          find artifacts -type f \( -name "vibeflow-*" -o -name "vynody-*" \) -exec cp {} release_assets/ \;
           ls -l release_assets
 
       - name: Create Release and Upload Assets
