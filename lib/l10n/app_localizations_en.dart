@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'VibeFlow';
 
   @override
+  String get alwaysOnTop => 'Always on Top';
+
+  @override
   String get systemMediaLibrary => 'System Media Library';
 
   @override

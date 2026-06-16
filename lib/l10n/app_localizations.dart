@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'VibeFlow'**
   String get appTitle;
 
+  /// Tooltip for always on top / pin button in window title bar
+  ///
+  /// In zh, this message translates to:
+  /// **'置顶'**
+  String get alwaysOnTop;
+
   /// System media library
   ///
   /// In zh, this message translates to:

@@ -299,6 +299,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keySmallWindowHeight = 'small_window_height';
   static const String _keySmallWindowBottomPanelMode =
       'small_window_bottom_panel_mode';
+  static const String _keySmallWindowAlwaysOnTop = 'small_window_always_on_top';
   static const String _keySmallWindowQueueWidth = 'small_window_queue_width';
   static const String _keySmallWindowQueueHeight = 'small_window_queue_height';
   static const String _keyHasShownOnboarding = 'has_shown_onboarding';
@@ -846,6 +847,13 @@ class SettingsService extends ChangeNotifier {
   late final _smallWindowBottomPanelModeProperty = SettingProperty<String>(
     key: _keySmallWindowBottomPanelMode,
     defaultValue: SmallWindowBottomPanelMode.collapsed.name,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _smallWindowAlwaysOnTopProperty = SettingProperty<bool>(
+    key: _keySmallWindowAlwaysOnTop,
+    defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -1600,6 +1608,11 @@ class SettingsService extends ChangeNotifier {
       _isSmallWindowMode = value;
       notifyListeners();
     }
+  }
+
+  bool get isSmallWindowAlwaysOnTop => _smallWindowAlwaysOnTopProperty.value;
+  set isSmallWindowAlwaysOnTop(bool value) {
+    _smallWindowAlwaysOnTopProperty.value = value;
   }
 
   SmallWindowBottomPanelMode get smallWindowBottomPanelMode {

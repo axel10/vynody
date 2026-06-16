@@ -1,6 +1,10 @@
 {
   "@@locale": "en",
   "appTitle": "VibeFlow",
+  "alwaysOnTop": "Always on Top",
+  "@alwaysOnTop": {
+    "description": "Tooltip for always on top / pin button in window title bar"
+  },
   "systemMediaLibrary": "System Media Library",
   "scanningDirectory": "Scanning directory...",
   "filesPreprocessed": "Preprocessed {count}",

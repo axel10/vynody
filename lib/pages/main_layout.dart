@@ -666,6 +666,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
             if (await windowManager.isMaximized()) {
               await windowManager.unmaximize();
             }
+            await windowManager.setAlwaysOnTop(settings.isSmallWindowAlwaysOnTop);
 
             // Only save regular size if transitioning from regular mode to small window mode
             if (!prevSmallMode) {
@@ -736,6 +737,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
                 settings.savedRegularWindowSize ?? const Size(1280, 720);
             debugPrint('[vibe_flow] restoring regular window size: savedSize=$savedSize');
             await windowManager.setSize(savedSize);
+            await windowManager.setAlwaysOnTop(false);
           }
         }
       },

@@ -4,6 +4,10 @@
   "@appTitle": {
     "description": "The title of the application"
   },
+  "alwaysOnTop": "置顶",
+  "@alwaysOnTop": {
+    "description": "Tooltip for always on top / pin button in window title bar"
+  },
   "systemMediaLibrary": "系统媒体库",
   "@systemMediaLibrary": {
     "description": "System media library"

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import '../player/audio/audio_riverpod.dart';
 import '../player/settings/settings_service.dart';
+import '../l10n/app_localizations.dart';
 
 class DesktopWindowTitleBar extends ConsumerStatefulWidget {
   const DesktopWindowTitleBar({
@@ -135,6 +136,24 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Tooltip(
+                      message: AppLocalizations.of(context)?.alwaysOnTop ??
+                          'Always on Top',
+                      child: _MacosSmallWindowButton(
+                        icon: settings.isSmallWindowAlwaysOnTop
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        iconSize: 16,
+                        color: settings.isSmallWindowAlwaysOnTop
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () async {
+                          final nextVal = !settings.isSmallWindowAlwaysOnTop;
+                          settings.isSmallWindowAlwaysOnTop = nextVal;
+                          await windowManager.setAlwaysOnTop(nextVal);
+                        },
+                      ),
+                    ),
                     _MacosSmallWindowButton(
                       icon: Icons.queue_music,
                       iconSize: 16,
@@ -177,6 +196,23 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             !settings.isSmallWindowMode;
                       },
                     ),
+                    if (isSmallWindowMode)
+                      _CapsuleButtonData(
+                        icon: settings.isSmallWindowAlwaysOnTop
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        iconSize: 14,
+                        tooltip: AppLocalizations.of(context)?.alwaysOnTop ??
+                            'Always on Top',
+                        color: settings.isSmallWindowAlwaysOnTop
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () async {
+                          final nextVal = !settings.isSmallWindowAlwaysOnTop;
+                          settings.isSmallWindowAlwaysOnTop = nextVal;
+                          await windowManager.setAlwaysOnTop(nextVal);
+                        },
+                      ),
                     if (isSmallWindowMode)
                       _CapsuleButtonData(
                         icon: Icons.queue_music,
@@ -355,6 +391,7 @@ class _CapsuleButtonData {
   final double iconSize;
   final Color? color;
   final bool isClose;
+  final String? tooltip;
 
   _CapsuleButtonData({
     required this.icon,
@@ -362,6 +399,7 @@ class _CapsuleButtonData {
     this.iconSize = 16,
     this.color,
     this.isClose = false,
+    this.tooltip,
   });
 }
 
@@ -504,7 +542,7 @@ class _WindowsCapsuleButtonState extends State<_WindowsCapsuleButton> {
           : Colors.black.withValues(alpha: 0.10);
     }
 
-    return MouseRegion(
+    Widget buttonWidget = MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
@@ -531,5 +569,14 @@ class _WindowsCapsuleButtonState extends State<_WindowsCapsuleButton> {
         ),
       ),
     );
+
+    if (widget.data.tooltip != null) {
+      buttonWidget = Tooltip(
+        message: widget.data.tooltip!,
+        child: buttonWidget,
+      );
+    }
+
+    return buttonWidget;
   }
 }

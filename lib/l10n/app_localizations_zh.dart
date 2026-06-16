@@ -12,6 +12,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'VibeFlow';
 
   @override
+  String get alwaysOnTop => '置顶';
+
+  @override
   String get systemMediaLibrary => '系统媒体库';
 
   @override
