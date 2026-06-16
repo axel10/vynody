@@ -14,12 +14,12 @@ import 'package:dio/dio.dart'
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:vibe_flow/utils/lrc_utils.dart';
-import 'package:vibe_flow/utils/network_client.dart';
-import 'package:vibe_flow/utils/localized_text.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_shared.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
+import 'package:vynody/utils/lrc_utils.dart';
+import 'package:vynody/utils/network_client.dart';
+import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_shared.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_stream_parser.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
 
 class LyricsAiOpenRouterClient {
   LyricsAiOpenRouterClient({

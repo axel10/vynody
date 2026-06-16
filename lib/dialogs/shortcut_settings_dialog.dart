@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/settings/shortcut_bindings.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/settings/shortcut_bindings.dart';
 
 Future<void> showShortcutSettingsDialog(BuildContext context) {
   return showDialog<void>(

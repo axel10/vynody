@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
-import 'package:vibe_flow/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
-import 'package:vibe_flow/player/audio/audio_handler.dart';
-import 'package:vibe_flow/models/music_file.dart';
+import 'package:vynody/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
+import 'package:vynody/player/audio/audio_handler.dart';
+import 'package:vynody/models/music_file.dart';
 
 class DarwinIntegrationService {
   final app.AudioService audioService;
@@ -61,8 +61,8 @@ class DarwinIntegrationService {
       _handler = await AudioService.init(
         builder: () => MyAudioHandler(audioService),
         config: const AudioServiceConfig(
-          androidNotificationChannelId: 'app.vibeflow.player.channel.audio',
-          androidNotificationChannelName: 'Vibe Flow Playback',
+          androidNotificationChannelId: 'app.vynody.player.channel.audio',
+          androidNotificationChannelName: 'Vynody Playback',
         ),
       );
       _initialized = true;

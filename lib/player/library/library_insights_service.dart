@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
 enum LibraryTimeRange { allTime, last7Days, last30Days, last90Days }
 

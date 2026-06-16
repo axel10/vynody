@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_stream_parser.dart';
 
 void main() {
   group('LyricsAiStreamTextParser', () {

@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:windows_taskbar/windows_taskbar.dart';
 import 'package:smtc_windows/smtc_windows.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/audio/audio_service.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/audio_service.dart';
 
 class WindowsIntegrationService {
   final AudioService audioService;

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_riverpod.dart';
-import 'package:vibe_flow/widgets/lyrics_panel.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
+import 'package:vynody/widgets/lyrics_panel.dart';
 
 class MiniLyricsView extends ConsumerStatefulWidget {
   const MiniLyricsView({super.key});

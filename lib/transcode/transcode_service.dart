@@ -5,7 +5,7 @@ import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:vibe_flow/models/music_file.dart';
+import 'package:vynody/models/music_file.dart';
 import 'transcode_models.dart';
 
 class TranscodeExecutionResult {

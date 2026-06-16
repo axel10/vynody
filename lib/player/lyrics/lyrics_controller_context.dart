@@ -2,18 +2,18 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
-import 'package:vibe_flow/models/lyric_line.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_service.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_task_queue.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_cache_repository.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_display_state.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_state.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_song_task_state.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/models/lyric_line.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_service.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_task_queue.dart';
+import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_display_state.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
+import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
+import 'package:vynody/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 class LyricsGenerationRuntime {
   int serial = 0;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/player/library/library_insights_service.dart';
+import 'package:vynody/player/library/library_insights_service.dart';
 import '../widgets/library_ranked_song_list.dart';
 
 class MostPlayedTab extends ConsumerStatefulWidget {

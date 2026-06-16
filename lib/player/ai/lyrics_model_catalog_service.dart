@@ -1,7 +1,7 @@
 import 'dart:ui';
 
-import 'package:vibe_flow/player/settings/settings_service.dart';
-import 'package:vibe_flow/utils/network_client.dart';
+import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/network_client.dart';
 
 final class LyricsModelInfo {
   const LyricsModelInfo({

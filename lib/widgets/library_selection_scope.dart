@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vibe_flow/models/music_file.dart';
+import 'package:vynody/models/music_file.dart';
 
 enum LibrarySelectionScope {
   none,

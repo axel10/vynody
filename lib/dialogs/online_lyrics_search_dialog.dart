@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/lyrics/lyrics_service.dart';
 
 typedef OnlineLyricsSearch =
     Future<List<LyricTrack>> Function({

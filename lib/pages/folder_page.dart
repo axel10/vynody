@@ -8,17 +8,17 @@ import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/models/music_folder.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/scanner/scanner_sorting.dart';
-import 'package:vibe_flow/player/scanner/scanner_service.dart';
-import 'package:vibe_flow/player/scanner/scanner_path_utils.dart';
-import 'package:vibe_flow/utils/song_context_menu_utils.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/scanner/scanner_sorting.dart';
+import 'package:vynody/player/scanner/scanner_service.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
-import 'package:vibe_flow/utils/app_snack_bar.dart';
+import 'package:vynody/utils/app_snack_bar.dart';
 import '../dialogs/transcode_dialog.dart';
 
 // 目录页

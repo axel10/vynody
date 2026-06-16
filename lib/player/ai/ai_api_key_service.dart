@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:vibe_flow/utils/network_client.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/utils/network_client.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 class AIApiKeyService {
   AIApiKeyService({NetworkClient? client})

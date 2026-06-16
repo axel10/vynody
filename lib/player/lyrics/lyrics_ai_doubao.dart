@@ -18,14 +18,14 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:audio_core/audio_core.dart';
 
-import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_shared.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
-import 'package:vibe_flow/utils/lrc_utils.dart';
-import 'package:vibe_flow/utils/localized_text.dart';
-import 'package:vibe_flow/utils/network_client.dart';
-import 'package:vibe_flow/transcode/transcode_models.dart';
-import 'package:vibe_flow/transcode/transcode_service.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_stream_parser.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_shared.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
+import 'package:vynody/utils/lrc_utils.dart';
+import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/utils/network_client.dart';
+import 'package:vynody/transcode/transcode_models.dart';
+import 'package:vynody/transcode/transcode_service.dart';
 
 final class DoubaoFileUploadResult {
   const DoubaoFileUploadResult({

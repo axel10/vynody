@@ -1,8 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'package:vibe_flow/models/lyric_line.dart';
-import 'package:vibe_flow/utils/language_code_utils.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
+import 'package:vynody/models/lyric_line.dart';
+import 'package:vynody/utils/language_code_utils.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 
 part 'lyrics_controller_state.freezed.dart';
 

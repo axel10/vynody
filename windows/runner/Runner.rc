@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "VibeFlow" "\0"
-            VALUE "FileDescription", "VibeFlow" "\0"
+            VALUE "CompanyName", "Vynody" "\0"
+            VALUE "FileDescription", "Vynody" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "VibeFlow" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 VibeFlow. All rights reserved." "\0"
-            VALUE "OriginalFilename", "VibeFlow.exe" "\0"
-            VALUE "ProductName", "VibeFlow" "\0"
+            VALUE "InternalName", "Vynody" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Vynody. All rights reserved." "\0"
+            VALUE "OriginalFilename", "Vynody.exe" "\0"
+            VALUE "ProductName", "Vynody" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

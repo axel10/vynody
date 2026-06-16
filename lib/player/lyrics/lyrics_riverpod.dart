@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:vibe_flow/player/lyrics/lyrics_controller_dependencies.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_state.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_service.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_dependencies.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/lyrics/lyrics_controller.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_service.dart';
+import 'package:vynody/player/lyrics/lyrics_service.dart';
 
 final lyricsControllerDependenciesProvider =
     Provider<LyricsControllerDependencies>((ref) {

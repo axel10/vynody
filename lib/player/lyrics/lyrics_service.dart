@@ -4,13 +4,13 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'package:vibe_flow/utils/network_client.dart';
-import 'package:vibe_flow/utils/clean_helper.dart';
-import 'package:vibe_flow/utils/lyrics_id_utils.dart';
-import 'package:vibe_flow/utils/lrc_utils.dart';
-import 'package:vibe_flow/models/lyric_line.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_cache_repository.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vynody/utils/network_client.dart';
+import 'package:vynody/utils/clean_helper.dart';
+import 'package:vynody/utils/lyrics_id_utils.dart';
+import 'package:vynody/utils/lrc_utils.dart';
+import 'package:vynody/models/lyric_line.dart';
+import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
 part 'lyrics_service.freezed.dart';
 

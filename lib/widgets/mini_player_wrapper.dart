@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/widgets/library_selection_scope.dart';
-import 'package:vibe_flow/widgets/playback_hero_card.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/widgets/library_selection_scope.dart';
+import 'package:vynody/widgets/playback_hero_card.dart';
 import '../pages/main_layout.dart';
 import '../pages/main_layout_riverpod.dart';
 

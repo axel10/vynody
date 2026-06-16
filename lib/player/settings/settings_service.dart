@@ -4,9 +4,9 @@ import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:vibe_flow/player/settings/shortcut_bindings.dart';
-import 'package:vibe_flow/transcode/transcode_models.dart';
-import 'package:vibe_flow/utils/language_code_utils.dart';
+import 'package:vynody/player/settings/shortcut_bindings.dart';
+import 'package:vynody/transcode/transcode_models.dart';
+import 'package:vynody/utils/language_code_utils.dart';
 
 enum LyricsAiProvider { googleAiStudio, openRouter, doubao, deepseek }
 

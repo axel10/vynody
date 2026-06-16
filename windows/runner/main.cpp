@@ -12,11 +12,11 @@ struct FindWindowData {
   HWND hwnd = nullptr;
 };
 
-// Callback to find the existing window by checking for VibeFlowInstanceProp property
-BOOL CALLBACK FindVibeFlowWindowProc(HWND hwnd, LPARAM lParam) {
+// Callback to find the existing window by checking for VynodyInstanceProp property
+BOOL CALLBACK FindVynodyWindowProc(HWND hwnd, LPARAM lParam) {
   wchar_t class_name[256];
   if (::GetClassNameW(hwnd, class_name, 256) && wcscmp(class_name, L"FLUTTER_RUNNER_WIN32_WINDOW") == 0) {
-    if (::GetPropW(hwnd, L"VibeFlowInstanceProp") == (HANDLE)1) {
+    if (::GetPropW(hwnd, L"VynodyInstanceProp") == (HANDLE)1) {
       auto data = reinterpret_cast<FindWindowData*>(lParam);
       data->hwnd = hwnd;
       return FALSE; // Stop enumerating
@@ -29,11 +29,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
   
   // Single Instance Mutex Check (Local namespace prevents session collision)
-  HANDLE mutex = ::CreateMutexW(nullptr, TRUE, L"Local\\VibeFlow_SingleInstance_Mutex");
+  HANDLE mutex = ::CreateMutexW(nullptr, TRUE, L"Local\\Vynody_SingleInstance_Mutex");
   if (mutex == nullptr || ::GetLastError() == ERROR_ALREADY_EXISTS) {
     // Another instance is already running
     FindWindowData data;
-    ::EnumWindows(FindVibeFlowWindowProc, reinterpret_cast<LPARAM>(&data));
+    ::EnumWindows(FindVynodyWindowProc, reinterpret_cast<LPARAM>(&data));
 
     if (data.hwnd != nullptr) {
       std::vector<std::string> args = GetCommandLineArguments();
@@ -96,7 +96,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"VibeFlow", origin, size)) {
+  if (!window.Create(L"Vynody", origin, size)) {
     AppendRunnerLog("window.Create failed");
     if (mutex != nullptr) {
       ::ReleaseMutex(mutex);

@@ -7,8 +7,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/settings/track_artwork_theme_service.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 
 Future<Uint8List?> _generateThemeColorsBlobFromImage(img.Image image) async {

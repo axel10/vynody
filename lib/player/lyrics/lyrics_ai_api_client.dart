@@ -4,7 +4,7 @@ import 'package:dio/dio.dart' show CancelToken, DioException, DioExceptionType, 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:vibe_flow/utils/network_client.dart';
+import 'package:vynody/utils/network_client.dart';
 
 class GeminiFileUploadResult {
   final String name;

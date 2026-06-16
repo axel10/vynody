@@ -3,20 +3,20 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/utils/clean_helper.dart';
-import 'package:vibe_flow/player/metadata/acoustid_service.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/metadata/musicbrainz_tag_completion_service.dart';
+import 'package:vynody/utils/clean_helper.dart';
+import 'package:vynody/player/metadata/acoustid_service.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/musicbrainz_tag_completion_service.dart';
 import '../pages/main_layout.dart';
 import 'song_tag_completion_widgets.dart';
 import 'song_tag_musicbrainz_cards.dart';
 import 'song_tag_acoustid_cards.dart';
 import 'song_tag_completion_riverpod.dart';
-import 'package:vibe_flow/utils/app_snack_bar.dart';
-import 'package:vibe_flow/utils/localized_text.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vynody/utils/app_snack_bar.dart';
+import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
 
 enum _SummaryCondition { title, artist, album, duration }
 

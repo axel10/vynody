@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
 /// 播放列表模型
 class Playlist {

@@ -7,19 +7,19 @@ import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/audio/audio_service.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/audio_service.dart';
 import '../pages/folder_page.dart';
 import '../pages/playback_page.dart';
 import '../pages/library_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
 import '../pages/sharing_page.dart';
-import 'package:vibe_flow/player/sharing/sharing_service.dart';
-import 'package:vibe_flow/dialogs/transfer_dialogs.dart';
-import 'package:vibe_flow/player/library/music_file_utils.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
-import 'package:vibe_flow/player/settings/shortcut_bindings.dart';
+import 'package:vynody/player/sharing/sharing_service.dart';
+import 'package:vynody/dialogs/transfer_dialogs.dart';
+import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'main_layout_riverpod.dart';
 import 'onboarding_page.dart';
 import '../widgets/desktop_window_title_bar.dart';
@@ -28,8 +28,8 @@ import '../widgets/playback_ui_tuning.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/global_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
-import 'package:vibe_flow/utils/deleted_song_snack.dart';
-import 'package:vibe_flow/utils/app_snack_bar.dart';
+import 'package:vynody/utils/deleted_song_snack.dart';
+import 'package:vynody/utils/app_snack_bar.dart';
 import 'dart:async';
 
 Route<void> buildMainLayoutRoute({
@@ -224,23 +224,23 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
   void onWindowResized() async {
     if (_ignoreResizeEventsUntil != null &&
         DateTime.now().isBefore(_ignoreResizeEventsUntil!)) {
-      debugPrint('[vibe_flow] onWindowResized: IGNORED because within ignore period');
+      debugPrint('[vynody] onWindowResized: IGNORED because within ignore period');
       return;
     }
     final settings = ref.read(settingsServiceProvider);
     if (settings.isSmallWindowMode) {
       final size = await windowManager.getSize();
-      debugPrint('[vibe_flow] onWindowResized: size=$size, mode=${settings.smallWindowBottomPanelMode}');
+      debugPrint('[vynody] onWindowResized: size=$size, mode=${settings.smallWindowBottomPanelMode}');
       if (settings.smallWindowBottomPanelMode !=
           SmallWindowBottomPanelMode.collapsed) {
         settings.savedSmallWindowQueueSize = size;
-        debugPrint('[vibe_flow] savedSmallWindowQueueSize updated to $size');
+        debugPrint('[vynody] savedSmallWindowQueueSize updated to $size');
       } else {
         settings.savedSmallWindowSize = size;
-        debugPrint('[vibe_flow] savedSmallWindowSize updated to $size');
+        debugPrint('[vynody] savedSmallWindowSize updated to $size');
       }
     } else {
-      debugPrint('[vibe_flow] onWindowResized: ignored because isSmallWindowMode is false');
+      debugPrint('[vynody] onWindowResized: ignored because isSmallWindowMode is false');
     }
   }
 
@@ -657,7 +657,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
             );
           }
 
-          debugPrint('[vibe_flow] transition listener: prevSmall=$prevSmallMode, nextSmall=$nextSmallMode, prevExpanded=$prevExpanded, nextExpanded=$nextExpanded');
+          debugPrint('[vynody] transition listener: prevSmall=$prevSmallMode, nextSmall=$nextSmallMode, prevExpanded=$prevExpanded, nextExpanded=$nextExpanded');
           if (nextSmallMode) {
             // Enter small window mode or update small window dimensions
             if (await windowManager.isFullScreen()) {
@@ -671,13 +671,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
             // Only save regular size if transitioning from regular mode to small window mode
             if (!prevSmallMode) {
               final currentSize = await windowManager.getSize();
-              debugPrint('[vibe_flow] transitioning from regular to small. currentSize=$currentSize');
+              debugPrint('[vynody] transitioning from regular to small. currentSize=$currentSize');
               if (currentSize.width >=
                       PlaybackPageUiTuning.smallWindowMaxSize.width ||
                   currentSize.height >=
                       PlaybackPageUiTuning.smallWindowMaxSize.height) {
                 settings.savedRegularWindowSize = currentSize;
-                debugPrint('[vibe_flow] savedRegularWindowSize set to $currentSize');
+                debugPrint('[vynody] savedRegularWindowSize set to $currentSize');
               }
             }
 
@@ -696,7 +696,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
                   savedSize.width.clamp(minSize.width, maxSize.width),
                   savedSize.height.clamp(minSize.height, maxSize.height),
                 );
-                debugPrint('[vibe_flow] setting size for expanded small mode: clampedSize=$clampedSize (savedSize=$savedSize)');
+                debugPrint('[vynody] setting size for expanded small mode: clampedSize=$clampedSize (savedSize=$savedSize)');
                 await windowManager.setSize(clampedSize);
               }
             } else {
@@ -714,7 +714,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
                   savedSize.width.clamp(minSize.width, maxSize.width),
                   savedSize.height.clamp(minSize.height, maxSize.height),
                 );
-                debugPrint('[vibe_flow] setting size for collapsed small mode: clampedSize=$clampedSize (savedSize=$savedSize)');
+                debugPrint('[vynody] setting size for collapsed small mode: clampedSize=$clampedSize (savedSize=$savedSize)');
                 await windowManager.setSize(clampedSize);
               }
             }
@@ -722,20 +722,20 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
             // Exit small window mode
             // Save the last small window size right before we exit
             final currentSmallSize = await windowManager.getSize();
-            debugPrint('[vibe_flow] exiting small window mode. currentSmallSize=$currentSmallSize');
+            debugPrint('[vynody] exiting small window mode. currentSmallSize=$currentSmallSize');
             if (previous?.bottomPanelMode != SmallWindowBottomPanelMode.collapsed) {
               settings.savedSmallWindowQueueSize = currentSmallSize;
-              debugPrint('[vibe_flow] exiting: savedSmallWindowQueueSize saved as $currentSmallSize');
+              debugPrint('[vynody] exiting: savedSmallWindowQueueSize saved as $currentSmallSize');
             } else {
               settings.savedSmallWindowSize = currentSmallSize;
-              debugPrint('[vibe_flow] exiting: savedSmallWindowSize saved as $currentSmallSize');
+              debugPrint('[vynody] exiting: savedSmallWindowSize saved as $currentSmallSize');
             }
 
             await windowManager.setMinimumSize(const Size(400, 650));
             await windowManager.setMaximumSize(const Size(99999, 99999));
             final savedSize =
                 settings.savedRegularWindowSize ?? const Size(1280, 720);
-            debugPrint('[vibe_flow] restoring regular window size: savedSize=$savedSize');
+            debugPrint('[vynody] restoring regular window size: savedSize=$savedSize');
             await windowManager.setSize(savedSize);
             await windowManager.setAlwaysOnTop(false);
           }

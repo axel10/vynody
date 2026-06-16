@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/metadata/acoustid_service.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/metadata/musicbrainz_tag_completion_service.dart';
-import 'package:vibe_flow/utils/localized_text.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/metadata/acoustid_service.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/musicbrainz_tag_completion_service.dart';
+import 'package:vynody/utils/localized_text.dart';
 
 final songTagCompletionControllerProvider = ChangeNotifierProvider.autoDispose
     .family<SongTagCompletionController, String>((ref, songPath) {

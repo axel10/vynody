@@ -70,7 +70,7 @@ function Get-ExistingGitlinks {
     return $paths
 }
 
-Write-Log "正在检查 vibe_flow 的子模块状态..." 'Cyan'
+Write-Log "正在检查 Vynody 的子模块状态..." 'Cyan'
 
 foreach ($path in $submodules.Keys) {
     $url = $submodules[$path]

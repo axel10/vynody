@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:vibe_flow/models/music_folder.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
+import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 
 class ScannerMetadataStore {
   ScannerMetadataStore({

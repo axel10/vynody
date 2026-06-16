@@ -3,10 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:vibe_flow/models/lyric_line.dart';
-import 'package:vibe_flow/models/music_lyric.dart';
+import 'package:vynody/models/lyric_line.dart';
+import 'package:vynody/models/music_lyric.dart';
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_state.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'playback_ui_tuning.dart';
 
 class LyricsPanelEmptyState extends StatelessWidget {

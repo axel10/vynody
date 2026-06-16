@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
 class ScanProgress {
   final String filePath;

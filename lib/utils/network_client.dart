@@ -20,7 +20,7 @@ class NetworkClient {
           sendTimeout: null,
           headers: const {
             'Accept': 'application/json',
-            'User-Agent': 'VibeFlow/1.0 (zgmf300@outlook.com)',
+            'User-Agent': 'Vynody/1.0 (zgmf300@outlook.com)',
           },
         ),
       ) {

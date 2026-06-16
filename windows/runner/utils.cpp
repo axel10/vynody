@@ -17,12 +17,12 @@ std::wstring GetRunnerLogPath() {
   size_t len = 0;
   if (_wdupenv_s(&local_app_data, &len, L"LOCALAPPDATA") != 0 ||
       local_app_data == nullptr) {
-    return L".\\VibeFlow\\logs\\runner-launch.log";
+    return L".\\Vynody\\logs\\runner-launch.log";
   }
 
   std::wstring path(local_app_data);
   free(local_app_data);
-  path += L"\\VibeFlow\\logs\\runner-launch.log";
+  path += L"\\Vynody\\logs\\runner-launch.log";
   return path;
 }
 

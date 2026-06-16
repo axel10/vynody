@@ -1,10 +1,10 @@
-#define MyAppName "VibeFlow"
+#define MyAppName "Vynody"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "VibeFlow"
+#define MyAppPublisher "Vynody"
 #define MyAppURL "https://github.com"
-#define MyAppExeName "VibeFlow.exe"
-#define MyAppId "app.vibeflow.player"
-#define MyAppDataDirName "VibeFlow"
+#define MyAppExeName "Vynody.exe"
+#define MyAppId "app.vynody.player"
+#define MyAppDataDirName "Vynody"
 #define MyAppLegacyDataDirName "vibe_flow"
 
 #ifndef SourceDir
@@ -29,7 +29,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 OutputDir={#OutputDir}
-OutputBaseFilename=vibeflow-windows-setup
+OutputBaseFilename=vynody-windows-setup
 SetupIconFile=..\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma
@@ -68,7 +68,7 @@ begin
   if CurUninstallStep = usUninstall then
   begin
     if MsgBox(
-      'Remove VibeFlow user data as well?' + #13#10 + #13#10 +
+      'Remove Vynody user data as well?' + #13#10 + #13#10 +
       'This will delete local settings, caches, logs, and databases stored in AppData.',
       mbConfirmation, MB_YESNO) = IDYES then
     begin

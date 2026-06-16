@@ -7,11 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/models/album_summary.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/utils/song_context_menu_utils.dart';
-import 'package:vibe_flow/dialogs/transcode_dialog.dart';
+import 'package:vynody/models/album_summary.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/utils/song_context_menu_utils.dart';
+import 'package:vynody/dialogs/transcode_dialog.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/mini_player_wrapper.dart';

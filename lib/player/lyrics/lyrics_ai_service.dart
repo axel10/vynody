@@ -13,16 +13,16 @@ import 'package:dio/dio.dart'
         ResponseType;
 import 'package:flutter/foundation.dart';
 
-import 'package:vibe_flow/utils/lrc_utils.dart';
-import 'package:vibe_flow/utils/localized_text.dart';
-import 'package:vibe_flow/utils/network_client.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_api_client.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_doubao.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_openrouter.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_shared.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_ai_stream_parser.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_result.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/utils/lrc_utils.dart';
+import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/utils/network_client.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_api_client.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_doubao.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_openrouter.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_shared.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_stream_parser.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 final class LyricsAiRuntimeConfig {
   const LyricsAiRuntimeConfig({

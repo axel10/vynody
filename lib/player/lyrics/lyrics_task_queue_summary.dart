@@ -1,4 +1,4 @@
-import 'package:vibe_flow/models/music_file.dart';
+import 'package:vynody/models/music_file.dart';
 
 class LyricsTaskQueueSummary {
   const LyricsTaskQueueSummary({

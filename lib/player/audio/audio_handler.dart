@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:audio_service/audio_service.dart';
-import 'package:vibe_flow/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
+import 'package:vynody/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
 
 class MyAudioHandler extends BaseAudioHandler with SeekHandler {
   final app.AudioService appAudio;

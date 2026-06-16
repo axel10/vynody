@@ -16,7 +16,7 @@
 
 
     <application
-        android:label="VibeFlow"
+        android:label="Vynody"
         android:name="${applicationName}"
         android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/launcher_icon">

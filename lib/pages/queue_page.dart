@@ -2,13 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
 import '../widgets/song_tile.dart';
-import 'package:vibe_flow/utils/song_context_menu_utils.dart';
-import 'package:vibe_flow/utils/deleted_song_snack.dart';
-import 'package:vibe_flow/utils/app_snack_bar.dart';
-import 'package:vibe_flow/widgets/queue_file_drop_target.dart';
+import 'package:vynody/utils/song_context_menu_utils.dart';
+import 'package:vynody/utils/deleted_song_snack.dart';
+import 'package:vynody/utils/app_snack_bar.dart';
+import 'package:vynody/widgets/queue_file_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 
 // 队列页面

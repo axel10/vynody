@@ -8,21 +8,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
 import 'package:oktoast/oktoast.dart';
 
-import 'package:vibe_flow/models/lyric_line.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/models/music_lyric.dart';
+import 'package:vynody/models/lyric_line.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/music_lyric.dart';
 import '../l10n/app_localizations.dart';
 import '../dialogs/ai_guide_dialog.dart';
 import '../dialogs/manual_lyrics_dialog.dart';
 import '../dialogs/online_lyrics_search_dialog.dart';
 import '../dialogs/timeline_adjustment_dialog.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_cache_models.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_state.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_riverpod.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_song_task_state.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
+import 'package:vynody/player/lyrics/lyrics_controller.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
+import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
+import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
@@ -316,7 +316,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   void initState() {
     super.initState();
     try {
-      final file = File('/Volumes/Untitled/projects/vibe_flow/lyrics_debug.log');
+      final file = File('/Volumes/Untitled/projects/vynody/lyrics_debug.log');
       if (file.existsSync()) {
         file.deleteSync();
       }

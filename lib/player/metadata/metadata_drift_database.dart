@@ -1384,14 +1384,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       final currentSandbox = p.dirname(docDir.path);
       
       // Ensure the sharing directory is created so it's never grayed out in the files app!
-      final sharingFolderPath = p.join(docDir.path, 'VibeFlow Music');
+      final sharingFolderPath = p.join(docDir.path, 'Vynody Music');
       final dir = Directory(sharingFolderPath);
       if (!dir.existsSync()) {
         try {
           dir.createSync(recursive: true);
-          debugPrint('[PathMigration] Created VibeFlow Music directory at: $sharingFolderPath');
+          debugPrint('[PathMigration] Created Vynody Music directory at: $sharingFolderPath');
         } catch (e) {
-          debugPrint('[PathMigration] Failed to create VibeFlow Music directory: $e');
+          debugPrint('[PathMigration] Failed to create Vynody Music directory: $e');
         }
       }
 

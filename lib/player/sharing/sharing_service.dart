@@ -7,11 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vibe_flow/player/library/music_file_utils.dart';
-import 'package:vibe_flow/player/scanner/scanner_repository.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/scanner/scanner_repository.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:bonsoir/bonsoir.dart';
 import 'lan_device.dart';
@@ -226,16 +226,16 @@ class SharingService {
     String basePath = '';
     if (Platform.isIOS) {
       final docDir = await getApplicationDocumentsDirectory();
-      basePath = p.join(docDir.path, 'VibeFlow Music');
+      basePath = p.join(docDir.path, 'Vynody Music');
     } else if (Platform.isAndroid) {
-      basePath = '/storage/emulated/0/Music/VibeFlow Music';
+      basePath = '/storage/emulated/0/Music/Vynody Music';
     } else if (Platform.isMacOS) {
-      basePath = p.join(Platform.environment['HOME'] ?? '', 'Music', 'VibeFlow Music');
+      basePath = p.join(Platform.environment['HOME'] ?? '', 'Music', 'Vynody Music');
     } else if (Platform.isWindows) {
       final userProfile = Platform.environment['USERPROFILE'] ?? '';
-      basePath = p.join(userProfile, 'Music', 'VibeFlow Music');
+      basePath = p.join(userProfile, 'Music', 'Vynody Music');
     } else {
-      basePath = p.join(Platform.environment['HOME'] ?? '', 'Music', 'VibeFlow Music');
+      basePath = p.join(Platform.environment['HOME'] ?? '', 'Music', 'Vynody Music');
     }
 
     _sharingFolderPath = basePath;
@@ -247,7 +247,7 @@ class SharingService {
         debugPrint('[SharingService] Failed to create sharing directory: $e');
         // Fallback to app documents
         final appDoc = await getApplicationDocumentsDirectory();
-        _sharingFolderPath = p.join(appDoc.path, 'VibeFlow Music');
+        _sharingFolderPath = p.join(appDoc.path, 'Vynody Music');
         Directory(_sharingFolderPath).createSync(recursive: true);
       }
     }
@@ -262,7 +262,7 @@ class SharingService {
       // Clean up obsolete sharing folders from previous launches.
       final obsoletePaths = scanner.rootPaths.where((path) {
         return !p.equals(path, _sharingFolderPath) &&
-            (path.endsWith('/Documents/VibeFlow Music') || path.endsWith('\\Documents\\VibeFlow Music'));
+            (path.endsWith('/Documents/Vynody Music') || path.endsWith('\\Documents\\Vynody Music'));
       }).toList();
 
       if (obsoletePaths.isNotEmpty) {
@@ -309,8 +309,8 @@ class SharingService {
 
     // 3. Start Bonsoir Broadcast
     final service = BonsoirService(
-      name: 'VibeFlow_$_deviceId',
-      type: '_vibeflow-share._tcp',
+      name: 'Vynody_$_deviceId',
+      type: '_vynody-share._tcp',
       port: _httpPort!,
       attributes: {
         'id': _deviceId,
@@ -323,13 +323,13 @@ class SharingService {
     try {
       await _bonsoirBroadcast!.initialize();
       await _bonsoirBroadcast!.start();
-      debugPrint('[SharingService] Bonsoir broadcast started: VibeFlow_$_deviceId on port $_httpPort');
+      debugPrint('[SharingService] Bonsoir broadcast started: Vynody_$_deviceId on port $_httpPort');
     } catch (e) {
       debugPrint('[SharingService] Bonsoir broadcast starting failed: $e');
     }
 
     // 4. Start Bonsoir Discovery
-    _bonsoirDiscovery = BonsoirDiscovery(type: '_vibeflow-share._tcp');
+    _bonsoirDiscovery = BonsoirDiscovery(type: '_vynody-share._tcp');
     try {
       await _bonsoirDiscovery!.initialize();
       _bonsoirDiscovery!.eventStream!.listen((event) {
@@ -343,7 +343,7 @@ class SharingService {
           final resolvedService = event.service;
           final attrs = resolvedService.attributes;
           
-          final id = attrs['id'] ?? resolvedService.name.replaceFirst('VibeFlow_', '');
+          final id = attrs['id'] ?? resolvedService.name.replaceFirst('Vynody_', '');
           if (id == _deviceId) {
             // Ignore self
             return;
@@ -379,7 +379,7 @@ class SharingService {
         } else if (event is BonsoirDiscoveryServiceLostEvent) {
           debugPrint('[SharingService] mDNS Service lost: ${event.service.name}');
           final lostService = event.service;
-          final id = lostService.name.replaceFirst('VibeFlow_', '');
+          final id = lostService.name.replaceFirst('Vynody_', '');
           if (_discoveredDevicesMap.containsKey(id)) {
             final device = _discoveredDevicesMap[id]!;
             if (device.isOnline) {

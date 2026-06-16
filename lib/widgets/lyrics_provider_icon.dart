@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 class LyricsProviderIcon extends StatelessWidget {
   const LyricsProviderIcon({

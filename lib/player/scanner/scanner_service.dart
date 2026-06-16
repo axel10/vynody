@@ -15,27 +15,27 @@ import 'package:collection/collection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_storage_listener/mobile_storage_event.dart';
 import 'package:mobile_storage_listener/mobile_storage_listener.dart';
-import 'package:vibe_flow/models/music_folder.dart';
-import 'package:vibe_flow/player/scanner/scanner_navigation_state.dart';
-import 'package:vibe_flow/player/scanner/scanner_path_utils.dart';
-import 'package:vibe_flow/player/scanner/scanner_sorting.dart';
-import 'package:vibe_flow/player/scanner/scanner_scan_pipeline.dart';
-import 'package:vibe_flow/player/scanner/scanner_scan_coordinator.dart';
-import 'package:vibe_flow/player/scanner/scanner_directory_scanner.dart';
-import 'package:vibe_flow/player/scanner/scanner_metadata_store.dart';
-import 'package:vibe_flow/player/scanner/scanner_repository.dart';
-import 'package:vibe_flow/player/scanner/scanner_state.dart';
-import 'package:vibe_flow/player/scanner/scanner_tree_builder.dart';
-import 'package:vibe_flow/player/scanner/scanner_service_roots.dart';
-import 'package:vibe_flow/player/scanner/scanner_scan_support.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
-import 'package:vibe_flow/player/library/music_file_utils.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
-import 'package:vibe_flow/player/settings/track_artwork_theme_service.dart';
-import 'package:vibe_flow/utils/localized_text.dart';
+import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/player/scanner/scanner_navigation_state.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/player/scanner/scanner_sorting.dart';
+import 'package:vynody/player/scanner/scanner_scan_pipeline.dart';
+import 'package:vynody/player/scanner/scanner_scan_coordinator.dart';
+import 'package:vynody/player/scanner/scanner_directory_scanner.dart';
+import 'package:vynody/player/scanner/scanner_metadata_store.dart';
+import 'package:vynody/player/scanner/scanner_repository.dart';
+import 'package:vynody/player/scanner/scanner_state.dart';
+import 'package:vynody/player/scanner/scanner_tree_builder.dart';
+import 'package:vynody/player/scanner/scanner_service_roots.dart';
+import 'package:vynody/player/scanner/scanner_scan_support.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/player/settings/track_artwork_theme_service.dart';
+import 'package:vynody/utils/localized_text.dart';
 
-export 'package:vibe_flow/player/scanner/scanner_scan_support.dart';
+export 'package:vynody/player/scanner/scanner_scan_support.dart';
 
 enum _DirectoryRescanMode { nonRecursive, recursive }
 
@@ -476,7 +476,7 @@ class ScannerService extends ChangeNotifier {
   void _setupMediaObserver() {
     if (Platform.isAndroid) {
       const mediaObserverChannel = EventChannel(
-        'app.vibeflow.player/media_observer',
+        'app.vynody.player/media_observer',
       );
       _mediaObserverSubscription = mediaObserverChannel
           .receiveBroadcastStream()

@@ -12,9 +12,9 @@ import 'package:window_manager/window_manager.dart';
 import 'package:flutter/services.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/library/music_file_utils.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
 
@@ -162,7 +162,7 @@ void main(List<String> args) async {
           'registering single instance handler',
           mirrorToConsole: true,
         );
-        const singleInstanceChannel = MethodChannel('vibe_flow/single_instance');
+        const singleInstanceChannel = MethodChannel('vynody/single_instance');
         singleInstanceChannel.setMethodCallHandler((call) async {
           if (call.method == 'onSecondInstance') {
             final List<dynamic> rawArgs = call.arguments;
@@ -186,7 +186,7 @@ void main(List<String> args) async {
           backgroundColor: Colors.transparent,
           skipTaskbar: false,
           titleBarStyle: TitleBarStyle.hidden,
-          title: 'VibeFlow',
+          title: 'Vynody',
         );
         windowManager.waitUntilReadyToShow(windowOptions, () async {
           AppLog.log('window ready to show', mirrorToConsole: true);
@@ -353,7 +353,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     final settings = ref.watch(settingsServiceProvider);
     Widget app = OKToast(
       child: MaterialApp(
-        title: 'VibeFlow',
+        title: 'Vynody',
         theme: _buildTheme(Brightness.light),
         darkTheme: _buildTheme(Brightness.dark),
         themeMode: settings.themeMode,

@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watcher/watcher.dart';
 
-import 'package:vibe_flow/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 class ScannerServiceRoots {
   ScannerServiceRoots({

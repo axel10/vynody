@@ -10,28 +10,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/audio/audio_snapshot.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/audio_snapshot.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
-import 'package:vibe_flow/player/settings/settings_service.dart';
-import 'package:vibe_flow/player/settings/theme_color_helper.dart';
-import 'package:vibe_flow/player/settings/track_artwork_theme_service.dart';
-import 'package:vibe_flow/player/settings/visualizer_options_service.dart';
-import 'package:vibe_flow/player/audio/playback_queue_processor.dart';
-import 'package:vibe_flow/player/audio/waveform_service.dart';
-import 'package:vibe_flow/player/platform/windows_integration_service.dart';
-import 'package:vibe_flow/player/platform/android_integration_service.dart';
-import 'package:vibe_flow/player/platform/darwin_integration_service.dart';
-import 'package:vibe_flow/player/scanner/scanner_service.dart';
-import 'package:vibe_flow/player/library/playlist_service.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_state.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_dependencies.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/library/library_insights_service.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_riverpod.dart';
+import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/player/settings/theme_color_helper.dart';
+import 'package:vynody/player/settings/track_artwork_theme_service.dart';
+import 'package:vynody/player/settings/visualizer_options_service.dart';
+import 'package:vynody/player/audio/playback_queue_processor.dart';
+import 'package:vynody/player/audio/waveform_service.dart';
+import 'package:vynody/player/platform/windows_integration_service.dart';
+import 'package:vynody/player/platform/android_integration_service.dart';
+import 'package:vynody/player/platform/darwin_integration_service.dart';
+import 'package:vynody/player/scanner/scanner_service.dart';
+import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/lyrics/lyrics_controller.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_dependencies.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/library/library_insights_service.dart';
+import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 
 class _PlaybackSessionState {
   const _PlaybackSessionState({

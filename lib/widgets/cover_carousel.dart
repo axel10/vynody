@@ -4,9 +4,9 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:vibe_flow/player/audio/audio_service.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
-import 'package:vibe_flow/models/music_file.dart';
+import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/models/music_file.dart';
 
 class CoverCarousel extends StatefulWidget {
   const CoverCarousel({

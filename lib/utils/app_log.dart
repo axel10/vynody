@@ -29,13 +29,13 @@ class AppLog {
       await logDir.create(recursive: true);
     }
 
-    final file = File(p.join(logDir.path, 'vibeflow.log'));
+    final file = File(p.join(logDir.path, 'vynody.log'));
     final exists = await file.exists();
     if (exists) {
       final length = await file.length();
       const maxBytes = 2 * 1024 * 1024;
       if (length > maxBytes) {
-        final backup = File(p.join(logDir.path, 'vibeflow.previous.log'));
+        final backup = File(p.join(logDir.path, 'vynody.previous.log'));
         if (await backup.exists()) {
           await backup.delete();
         }

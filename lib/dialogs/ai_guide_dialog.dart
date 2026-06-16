@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:vibe_flow/player/ai/lyrics_model_catalog_service.dart';
-import 'package:vibe_flow/widgets/lyrics_provider_icon.dart';
+import 'package:vynody/player/ai/lyrics_model_catalog_service.dart';
+import 'package:vynody/widgets/lyrics_provider_icon.dart';
 
 class _ApiKeyDialogResult {
   const _ApiKeyDialogResult({required this.success, required this.message});
@@ -765,8 +765,8 @@ class _LyricsApiKeyWizardDialogState
               Expanded(
                 child: Text(
                   isZh
-                      ? 'API Key 只保存在你的本地设备，不会上传到 VibeFlow 开发者服务器。'
-                      : 'Your API key is stored only on this device and is never uploaded to VibeFlow developer servers.',
+                      ? 'API Key 只保存在你的本地设备，不会上传到 Vynody 开发者服务器。'
+                      : 'Your API key is stored only on this device and is never uploaded to Vynody developer servers.',
                   style: const TextStyle(fontSize: 13, height: 1.3),
                 ),
               ),

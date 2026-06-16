@@ -2,7 +2,7 @@ import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'package:vibe_flow/models/music_file.dart';
+import 'package:vynody/models/music_file.dart';
 
 part 'audio_snapshot.freezed.dart';
 

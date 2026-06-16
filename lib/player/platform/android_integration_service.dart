@@ -3,9 +3,9 @@ import 'package:audio_service/audio_service.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:vibe_flow/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
-import 'package:vibe_flow/player/audio/audio_handler.dart';
-import 'package:vibe_flow/models/music_file.dart';
+import 'package:vynody/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
+import 'package:vynody/player/audio/audio_handler.dart';
+import 'package:vynody/models/music_file.dart';
 
 class AndroidIntegrationService {
   final app.AudioService audioService;
@@ -31,8 +31,8 @@ class AndroidIntegrationService {
         builder: () => MyAudioHandler(audioService),
         config: AudioServiceConfig(
           androidNotificationChannelId:
-              'app.vibeflow.player.channel.audio',
-          androidNotificationChannelName: 'Vibe Flow Playback',
+              'app.vynody.player.channel.audio',
+          androidNotificationChannelName: 'Vynody Playback',
           androidNotificationOngoing: false,
           androidShowNotificationBadge: false,
           // androidStopForegroundOnPause: false,

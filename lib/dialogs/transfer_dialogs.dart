@@ -1,8 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vibe_flow/player/sharing/sharing_service.dart';
-import 'package:vibe_flow/utils/app_snack_bar.dart';
+import 'package:vynody/player/sharing/sharing_service.dart';
+import 'package:vynody/utils/app_snack_bar.dart';
 
 void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest request) {
   final theme = Theme.of(context);

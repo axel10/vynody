@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/models/music_folder.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/scanner/scanner_metadata_store.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/scanner/scanner_metadata_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

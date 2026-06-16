@@ -8,15 +8,15 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vibe_flow/l10n/app_localizations.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/models/music_folder.dart';
-import 'package:vibe_flow/pages/folder_page.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/audio/audio_service.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/scanner/scanner_service.dart';
-import 'package:vibe_flow/player/scanner/scanner_state.dart';
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/pages/folder_page.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/scanner/scanner_service.dart';
+import 'package:vynody/player/scanner/scanner_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

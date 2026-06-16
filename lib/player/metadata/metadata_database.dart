@@ -8,9 +8,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:vibe_flow/models/lyric_line.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_cache_models.dart';
-export 'package:vibe_flow/player/lyrics/lyrics_cache_models.dart';
+import 'package:vynody/models/lyric_line.dart';
+import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
+export 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 
 part 'metadata_database.freezed.dart';
 part 'metadata_database.g.dart';

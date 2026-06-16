@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = VibeFlow
+PRODUCT_NAME = Vynody
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = app.vibeflow.player
+PRODUCT_BUNDLE_IDENTIFIER = app.vynody.player
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 VibeFlow. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Vynody. All rights reserved.

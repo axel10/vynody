@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>VibeFlow</string>
+	<string>Vynody</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>VibeFlow</string>
+	<string>Vynody</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -78,7 +78,7 @@
 	<string>此应用需要访问局域网以发现和与其他设备传输音乐文件。</string>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_vibeflow-share._tcp</string>
+		<string>_vynody-share._tcp</string>
 	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 void main() {
   group('LyricsModelRecommendation - Google AI Studio', () {

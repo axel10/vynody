@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// The title of the application
   ///
   /// In zh, this message translates to:
-  /// **'VibeFlow'**
+  /// **'Vynody'**
   String get appTitle;
 
   /// Tooltip for always on top / pin button in window title bar
@@ -2879,7 +2879,7 @@ abstract class AppLocalizations {
   /// No description provided for @associationSuccess.
   ///
   /// In zh, this message translates to:
-  /// **'关联成功！若双击文件未生效，请在 Windows 系统设置的【默认应用】中选择 VibeFlow。'**
+  /// **'关联成功！若双击文件未生效，请在 Windows 系统设置的【默认应用】中选择 Vynody。'**
   String get associationSuccess;
 
   /// No description provided for @disassociationSuccess.
@@ -2897,7 +2897,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTitle.
   ///
   /// In zh, this message translates to:
-  /// **'欢迎使用 VibeFlow'**
+  /// **'欢迎使用 Vynody'**
   String get onboardingTitle;
 
   /// No description provided for @onboardingSubtitle.
@@ -2915,13 +2915,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingFileAssociationDesc.
   ///
   /// In zh, this message translates to:
-  /// **'将常见的音乐格式（mp3, flac, wav 等）与 VibeFlow 关联，在文件管理器中双击即可直接播放。'**
+  /// **'将常见的音乐格式（mp3, flac, wav 等）与 Vynody 关联，在文件管理器中双击即可直接播放。'**
   String get onboardingFileAssociationDesc;
 
   /// No description provided for @onboardingFileAssociationTip.
   ///
   /// In zh, this message translates to:
-  /// **'关联后，系统可能会弹出选择默认打开程序的对话框。请务必在列表中选择「VibeFlow」并设为始终使用。'**
+  /// **'关联后，系统可能会弹出选择默认打开程序的对话框。请务必在列表中选择「Vynody」并设为始终使用。'**
   String get onboardingFileAssociationTip;
 
   /// No description provided for @onboardingStepRootDirectory.
@@ -2933,7 +2933,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingRootDirectoryDesc.
   ///
   /// In zh, this message translates to:
-  /// **'选择存储音乐文件的文件夹。VibeFlow 会自动扫描并建立你的本地音乐库。'**
+  /// **'选择存储音乐文件的文件夹。Vynody 会自动扫描并建立你的本地音乐库。'**
   String get onboardingRootDirectoryDesc;
 
   /// No description provided for @onboardingSelectDirectory.
@@ -2957,7 +2957,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingStartButton.
   ///
   /// In zh, this message translates to:
-  /// **'进入 VibeFlow'**
+  /// **'进入 Vynody'**
   String get onboardingStartButton;
 
   /// No description provided for @onboardingSkip.

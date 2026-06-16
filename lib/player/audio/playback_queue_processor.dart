@@ -9,13 +9,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:audio_core/audio_core.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
-import 'package:vibe_flow/player/settings/theme_color_helper.dart';
-import 'package:vibe_flow/player/settings/track_artwork_theme_service.dart';
-import 'package:vibe_flow/player/audio/waveform_service.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/player/settings/theme_color_helper.dart';
+import 'package:vynody/player/settings/track_artwork_theme_service.dart';
+import 'package:vynody/player/audio/waveform_service.dart';
 
 /// Handles background processing of the playback queue (waveforms, colors, etc.)
 class PlaybackQueueProcessor {

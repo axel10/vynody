@@ -46,21 +46,21 @@ echo -e "${BLUE}==> 5. Building macOS Release application...${NC}"
 CXXFLAGS="-std=gnu++20" flutter build macos --release
 
 echo -e "${BLUE}==> 6. Preparing DMG staging directory...${NC}"
-rm -rf vibeflow-dmg
-mkdir -p vibeflow-dmg
-cp -R build/macos/Build/Products/Release/VibeFlow.app vibeflow-dmg/
-codesign --force --deep --sign - --preserve-metadata=entitlements,identifier,flags vibeflow-dmg/VibeFlow.app
-ln -s /Applications vibeflow-dmg/Applications
+rm -rf vynody-dmg
+mkdir -p vynody-dmg
+cp -R build/macos/Build/Products/Release/Vynody.app vynody-dmg/
+codesign --force --deep --sign - --preserve-metadata=entitlements,identifier,flags vynody-dmg/Vynody.app
+ln -s /Applications vynody-dmg/Applications
 
 echo -e "${BLUE}==> 7. Creating DMG package...${NC}"
 hdiutil create \
-  -volname "VibeFlow" \
-  -srcfolder vibeflow-dmg \
+  -volname "Vynody" \
+  -srcfolder vynody-dmg \
   -ov \
   -format UDZO \
-  vibeflow-macos.dmg
+  vynody-macos.dmg
 
 echo -e "${BLUE}==> 8. Cleaning up staging directory...${NC}"
-rm -rf vibeflow-dmg
+rm -rf vynody-dmg
 
-echo -e "${GREEN}==> Done! DMG created successfully at: ./vibeflow-macos.dmg${NC}"
+echo -e "${GREEN}==> Done! DMG created successfully at: ./vynody-macos.dmg${NC}"

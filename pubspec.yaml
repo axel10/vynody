@@ -1,4 +1,4 @@
-name: vibe_flow
+name: vynody
 description: "A fully functional, highly compatible, and robust cross-platform music player using Flutter."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -203,11 +203,11 @@ flutter_launcher_icons:
     image_path: "assets/images/icon-windows-and-linux.png"
 
 msix_config:
-  display_name: VibeFlow
-  publisher_display_name: VibeFlow
-  identity_name: app.vibeflow.player
+  display_name: Vynody
+  publisher_display_name: Vynody
+  identity_name: app.vynody.player
   logo_path: assets/images/icon-windows-and-linux.png
-  output_name: VibeFlow
+  output_name: Vynody
   output_path: build/windows/msix
   install_certificate: false
   capabilities: "broadFileSystemAccess, rescap:runFullTrust"

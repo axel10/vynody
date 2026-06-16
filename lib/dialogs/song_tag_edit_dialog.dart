@@ -6,9 +6,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 
 class SongTagEditResult {
   const SongTagEditResult({

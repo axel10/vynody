@@ -40,7 +40,7 @@ subprojects {
         project.layout.buildDirectory.value(newSubprojectBuildDir)
     } else {
         val tmpDir = System.getProperty("java.io.tmpdir")
-        project.layout.buildDirectory.set(file("$tmpDir/vibe_flow_build/${project.name}"))
+        project.layout.buildDirectory.set(file("$tmpDir/vynody_build/${project.name}"))
     }
 }
 subprojects {

@@ -6,8 +6,8 @@ library;
 import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
 import 'package:path/path.dart' as p;
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 
 typedef WaveformCacheResult = ({
   List<double> waveform,

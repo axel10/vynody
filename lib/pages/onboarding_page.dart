@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart' as file_selector;
-import 'package:vibe_flow/player/settings/settings_service.dart';
-import 'package:vibe_flow/player/settings/windows_association_service.dart';
-import 'package:vibe_flow/player/scanner/scanner_service.dart';
-import 'package:vibe_flow/player/scanner/scanner_path_utils.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/utils/app_snack_bar.dart';
+import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/player/settings/windows_association_service.dart';
+import 'package:vynody/player/scanner/scanner_service.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/utils/app_snack_bar.dart';
 import '../l10n/app_localizations.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {

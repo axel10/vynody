@@ -1,5 +1,5 @@
-import 'package:vibe_flow/utils/localized_text.dart';
-import 'package:vibe_flow/utils/lrc_utils.dart';
+import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/utils/lrc_utils.dart';
 
 final class LyricsAiPromptBuilder {
   const LyricsAiPromptBuilder._();

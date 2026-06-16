@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:vibe_flow/l10n/app_localizations.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/library/music_file_utils.dart';
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/library/music_file_utils.dart';
 
 class QueueFileDropTarget extends ConsumerStatefulWidget {
   const QueueFileDropTarget({

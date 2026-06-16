@@ -10,15 +10,15 @@ import '../dialogs/acoustid_api_key_dialog.dart';
 import '../dialogs/ai_guide_dialog.dart';
 import '../dialogs/shortcut_settings_dialog.dart';
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/player/ai/lyrics_model_catalog_service.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/player/ai/lyrics_model_catalog_service.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import '../transcode/transcode_models.dart';
-import 'package:vibe_flow/player/settings/windows_association_service.dart';
+import 'package:vynody/player/settings/windows_association_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../widgets/desktop_window_title_bar.dart';
-import 'package:vibe_flow/utils/language_code_utils.dart';
-import 'package:vibe_flow/widgets/lyrics_provider_icon.dart';
+import 'package:vynody/utils/language_code_utils.dart';
+import 'package:vynody/widgets/lyrics_provider_icon.dart';
 
 enum _SettingsSection {
   home,
@@ -1170,14 +1170,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'VibeFlow ${_appVersion.isEmpty ? "" : "v$_appVersion"}',
+                  'Vynody ${_appVersion.isEmpty ? "" : "v$_appVersion"}',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 12),
                 InkWell(
                   onTap: () async {
                     final uri = Uri.parse(
-                      'https://github.com/axel10/vibe_flow',
+                      'https://github.com/axel10/vynody',
                     );
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   },
@@ -1188,7 +1188,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       vertical: 4,
                     ),
                     child: Text(
-                      'https://github.com/axel10/vibe_flow',
+                      'https://github.com/axel10/vynody',
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(

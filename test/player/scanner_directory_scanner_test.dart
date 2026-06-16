@@ -1,8 +1,8 @@
 import 'dart:io';
-
+import 'package:path/path.dart' as p;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vibe_flow/player/scanner/scanner_directory_scanner.dart';
-import 'package:vibe_flow/player/scanner/scanner_scan_support.dart';
+import 'package:vynody/player/scanner/scanner_directory_scanner.dart';
+import 'package:vynody/player/scanner/scanner_scan_support.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,13 +16,13 @@ void main() {
         );
 
         try {
-          final rootSong = File('${tempDirectory.path}/root-song.mp3');
+          final rootSong = File(p.join(tempDirectory.path, 'root-song.mp3'));
           await rootSong.writeAsBytes(List<int>.filled(8, 1));
 
-          final nestedDirectory = Directory('${tempDirectory.path}/nested');
+          final nestedDirectory = Directory(p.join(tempDirectory.path, 'nested'));
           await nestedDirectory.create();
 
-          final nestedSong = File('${nestedDirectory.path}/nested-song.mp3');
+          final nestedSong = File(p.join(nestedDirectory.path, 'nested-song.mp3'));
           await nestedSong.writeAsBytes(List<int>.filled(8, 2));
 
           final scanner = ScannerDirectoryScanner(emitScanProgress: (_, __) {});

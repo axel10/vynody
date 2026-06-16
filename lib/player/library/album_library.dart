@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:vibe_flow/models/album_summary.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vynody/models/album_summary.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
 final albumLibraryProvider = StreamProvider<List<AlbumSummary>>((ref) async* {
   final db = MetadataDatabase();

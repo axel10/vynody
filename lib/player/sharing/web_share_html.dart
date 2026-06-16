@@ -3,7 +3,7 @@ const String webShareHtmlContent = r'''<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VibeFlow Web Share</title>
+  <title>Vynody Web Share</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -381,7 +381,7 @@ const String webShareHtmlContent = r'''<!DOCTYPE html>
 
   <div class="container">
     <header>
-      <h1>VibeFlow Web Share</h1>
+      <h1>Vynody Web Share</h1>
       <p class="subtitle">局域网音乐互传平台</p>
     </header>
 
@@ -416,7 +416,7 @@ const String webShareHtmlContent = r'''<!DOCTYPE html>
   </div>
 
   <footer>
-    <p>Powerd by VibeFlow &copy; 2026</p>
+    <p>Powered by Vynody &copy; 2026</p>
   </footer>
 
   <script>
@@ -573,7 +573,7 @@ const String webShareHtmlContent = r'''<!DOCTYPE html>
         .then(res => res.json())
         .then(songs => {
           if (!songs || songs.length === 0) {
-            downloadList.innerHTML = '<div class="empty-state">VibeFlow 暂无共享的音乐</div>';
+            downloadList.innerHTML = '<div class="empty-state">Vynody 暂无共享的音乐</div>';
             return;
           }
 

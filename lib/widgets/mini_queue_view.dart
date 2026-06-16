@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/audio/audio_service.dart';
-import 'package:vibe_flow/models/music_file.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/models/music_file.dart';
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/player/library/playlist_service.dart';
-import 'package:vibe_flow/utils/song_context_menu_utils.dart';
-import 'package:vibe_flow/widgets/queue_file_drop_target.dart';
+import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/utils/song_context_menu_utils.dart';
+import 'package:vynody/widgets/queue_file_drop_target.dart';
 
 const Color _miniQueuePanelBackgroundColor = Color.fromARGB(132, 0, 0, 0);
 const Color _miniQueuePanelBorderColor = Color(0x14FFFFFF);

@@ -1,7 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:vibe_flow/player/library/music_file_utils.dart';
+import 'package:vynody/player/library/music_file_utils.dart';
 
 typedef SHChangeNotifyNative = Void Function(
   Int32 wEventId,
@@ -18,7 +18,7 @@ typedef SHChangeNotifyDart = void Function(
 );
 
 class WindowsAssociationService {
-  static const String _progId = 'VibeFlow.AssocFile';
+  static const String _progId = 'Vynody.AssocFile';
 
   /// Check if the application is currently registered for file associations in the Registry.
   static Future<bool> isAssociated() async {
@@ -28,7 +28,7 @@ class WindowsAssociationService {
       final exePath = Platform.resolvedExecutable;
       final result = await Process.run('reg', [
         'query',
-        r'HKCU\Software\Classes\VibeFlow.AssocFile\shell\open\command',
+        r'HKCU\Software\Classes\Vynody.AssocFile\shell\open\command',
         '/ve',
       ]);
 
@@ -45,7 +45,7 @@ class WindowsAssociationService {
     }
   }
 
-  /// Register VibeFlow to associate with all supported audio extensions.
+  /// Register Vynody to associate with all supported audio extensions.
   static Future<void> associate() async {
     if (!Platform.isWindows) return;
 
@@ -53,50 +53,50 @@ class WindowsAssociationService {
     final extensions = MusicFileUtils.supportedAudioExtensions;
 
     // 1. Register ProgID and its shell open command
-    await _runReg(['add', r'HKCU\Software\Classes\VibeFlow.AssocFile', '/ve', '/t', 'REG_SZ', '/d', 'VibeFlow Music File', '/f']);
-    await _runReg(['add', r'HKCU\Software\Classes\VibeFlow.AssocFile\DefaultIcon', '/ve', '/t', 'REG_SZ', '/d', '"$exePath",0', '/f']);
-    await _runReg(['add', r'HKCU\Software\Classes\VibeFlow.AssocFile\shell\open\command', '/ve', '/t', 'REG_SZ', '/d', '"$exePath" "%1"', '/f']);
+    await _runReg(['add', r'HKCU\Software\Classes\Vynody.AssocFile', '/ve', '/t', 'REG_SZ', '/d', 'Vynody Music File', '/f']);
+    await _runReg(['add', r'HKCU\Software\Classes\Vynody.AssocFile\DefaultIcon', '/ve', '/t', 'REG_SZ', '/d', '"$exePath",0', '/f']);
+    await _runReg(['add', r'HKCU\Software\Classes\Vynody.AssocFile\shell\open\command', '/ve', '/t', 'REG_SZ', '/d', '"$exePath" "%1"', '/f']);
 
     // 2. Register application capabilities for Default Apps UI
-    await _runReg(['add', r'HKCU\Software\VibeFlow\Capabilities', '/v', 'ApplicationName', '/t', 'REG_SZ', '/d', 'VibeFlow', '/f']);
-    await _runReg(['add', r'HKCU\Software\VibeFlow\Capabilities', '/v', 'ApplicationDescription', '/t', 'REG_SZ', '/d', 'A fully functional, highly compatible, and robust cross-platform music player.', '/f']);
+    await _runReg(['add', r'HKCU\Software\Vynody\Capabilities', '/v', 'ApplicationName', '/t', 'REG_SZ', '/d', 'Vynody', '/f']);
+    await _runReg(['add', r'HKCU\Software\Vynody\Capabilities', '/v', 'ApplicationDescription', '/t', 'REG_SZ', '/d', 'A fully functional, highly compatible, and robust cross-platform music player.', '/f']);
 
     for (final ext in extensions) {
       // Add association capability
-      await _runReg(['add', r'HKCU\Software\VibeFlow\Capabilities\FileAssociations', '/v', ext, '/t', 'REG_SZ', '/d', _progId, '/f']);
+      await _runReg(['add', r'HKCU\Software\Vynody\Capabilities\FileAssociations', '/v', ext, '/t', 'REG_SZ', '/d', _progId, '/f']);
 
       // Register OpenWithProgids so it shows up in "Open With" list
       await _runReg(['add', 'HKCU\\Software\\Classes\\$ext\\OpenWithProgids', '/v', _progId, '/t', 'REG_NONE', '/d', '', '/f']);
 
-      // Set VibeFlow as default handler in Classes (only takes effect if there is no user default override)
+      // Set Vynody as default handler in Classes (only takes effect if there is no user default override)
       await _runReg(['add', 'HKCU\\Software\\Classes\\$ext', '/ve', '/t', 'REG_SZ', '/d', _progId, '/f']);
     }
 
     // Register application under RegisteredApplications
-    await _runReg(['add', r'HKCU\Software\RegisteredApplications', '/v', 'VibeFlow', '/t', 'REG_SZ', '/d', r'Software\VibeFlow\Capabilities', '/f']);
+    await _runReg(['add', r'HKCU\Software\RegisteredApplications', '/v', 'Vynody', '/t', 'REG_SZ', '/d', r'Software\Vynody\Capabilities', '/f']);
 
     // 3. Notify Windows Explorer shell to refresh association icons and defaults
     _notifyShell();
   }
 
-  /// Remove VibeFlow's registry association settings.
+  /// Remove Vynody's registry association settings.
   static Future<void> disassociate() async {
     if (!Platform.isWindows) return;
 
     final extensions = MusicFileUtils.supportedAudioExtensions;
 
     // 1. Remove registered application keys
-    await _runReg(['delete', r'HKCU\Software\RegisteredApplications', '/v', 'VibeFlow', '/f']);
-    await _runReg(['delete', r'HKCU\Software\VibeFlow', '/f']);
+    await _runReg(['delete', r'HKCU\Software\RegisteredApplications', '/v', 'Vynody', '/f']);
+    await _runReg(['delete', r'HKCU\Software\Vynody', '/f']);
 
     // 2. Remove ProgID key
-    await _runReg(['delete', r'HKCU\Software\Classes\VibeFlow.AssocFile', '/f']);
+    await _runReg(['delete', r'HKCU\Software\Classes\Vynody.AssocFile', '/f']);
 
     // 3. Clean up extension associations
     for (final ext in extensions) {
       await _runReg(['delete', 'HKCU\\Software\\Classes\\$ext\\OpenWithProgids', '/v', _progId, '/f']);
 
-      // Only delete the default value for the extension class if it currently points to VibeFlow.AssocFile
+      // Only delete the default value for the extension class if it currently points to Vynody.AssocFile
       final queryResult = await Process.run('reg', [
         'query',
         'HKCU\\Software\\Classes\\$ext',

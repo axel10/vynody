@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 
 class LyricsSongTaskState {
   const LyricsSongTaskState({

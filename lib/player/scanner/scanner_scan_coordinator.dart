@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:vibe_flow/player/scanner/scanner_state.dart';
+import 'package:vynody/player/scanner/scanner_state.dart';
 
 class ScannerScanCoordinator extends ChangeNotifier {
   ScannerRuntimeState _state = const ScannerRuntimeState.idle();

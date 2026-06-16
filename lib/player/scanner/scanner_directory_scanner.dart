@@ -6,9 +6,9 @@ import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:vibe_flow/player/library/music_file_utils.dart';
-import 'package:vibe_flow/player/scanner/scanner_path_utils.dart';
-import 'package:vibe_flow/player/scanner/scanner_scan_support.dart';
+import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/player/scanner/scanner_scan_support.dart';
 
 const Set<String> _windowsProtectedDirectoryNames = {
   r'$recycle.bin',

@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audio_core/audio_core.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 class VisualizerOptionsService extends ChangeNotifier {
   final AudioCoreController controller;

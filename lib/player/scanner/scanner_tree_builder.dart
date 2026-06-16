@@ -2,10 +2,10 @@ import 'package:path/path.dart' as p;
 
 import 'package:audio_core/audio_core.dart';
 
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/models/music_folder.dart';
-import 'package:vibe_flow/utils/localized_text.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
 class ScannerTreeBuilder {
   ScannerTreeBuilder({

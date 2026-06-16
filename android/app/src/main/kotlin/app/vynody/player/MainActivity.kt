@@ -1,4 +1,4 @@
-package app.vibeflow.player
+package app.vynody.player
 
 import android.database.ContentObserver
 import android.net.Uri
@@ -10,7 +10,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 
 class MainActivity : AudioServiceActivity() {
-    private val MEDIA_OBSERVER_CHANNEL = "app.vibeflow.player/media_observer"
+    private val MEDIA_OBSERVER_CHANNEL = "app.vynody.player/media_observer"
     private var eventSink: EventChannel.EventSink? = null
     private var contentObserver: ContentObserver? = null
 

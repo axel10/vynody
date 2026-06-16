@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
 
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/models/music_folder.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/music_folder.dart';
 
 enum SortCriteria { title, filename, trackNumber }
 

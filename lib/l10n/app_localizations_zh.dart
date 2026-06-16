@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'VibeFlow';
+  String get appTitle => 'Vynody';
 
   @override
   String get alwaysOnTop => '置顶';
@@ -1482,7 +1482,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get associationSuccess =>
-      '关联成功！若双击文件未生效，请在 Windows 系统设置的【默认应用】中选择 VibeFlow。';
+      '关联成功！若双击文件未生效，请在 Windows 系统设置的【默认应用】中选择 Vynody。';
 
   @override
   String get disassociationSuccess => '已成功清除文件关联。';
@@ -1493,7 +1493,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get onboardingTitle => '欢迎使用 VibeFlow';
+  String get onboardingTitle => '欢迎使用 Vynody';
 
   @override
   String get onboardingSubtitle => '只需几个简单步骤，即可开启你的音乐之旅。';
@@ -1503,18 +1503,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get onboardingFileAssociationDesc =>
-      '将常见的音乐格式（mp3, flac, wav 等）与 VibeFlow 关联，在文件管理器中双击即可直接播放。';
+      '将常见的音乐格式（mp3, flac, wav 等）与 Vynody 关联，在文件管理器中双击即可直接播放。';
 
   @override
   String get onboardingFileAssociationTip =>
-      '关联后，系统可能会弹出选择默认打开程序的对话框。请务必在列表中选择「VibeFlow」并设为始终使用。';
+      '关联后，系统可能会弹出选择默认打开程序的对话框。请务必在列表中选择「Vynody」并设为始终使用。';
 
   @override
   String get onboardingStepRootDirectory => '添加音乐根目录';
 
   @override
   String get onboardingRootDirectoryDesc =>
-      '选择存储音乐文件的文件夹。VibeFlow 会自动扫描并建立你的本地音乐库。';
+      '选择存储音乐文件的文件夹。Vynody 会自动扫描并建立你的本地音乐库。';
 
   @override
   String get onboardingSelectDirectory => '选择文件夹';
@@ -1526,7 +1526,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingSuccessDesc => '已成功添加媒体库。让我们开始享受音乐吧！';
 
   @override
-  String get onboardingStartButton => '进入 VibeFlow';
+  String get onboardingStartButton => '进入 Vynody';
 
   @override
   String get onboardingSkip => '稍后设置';

@@ -4,8 +4,8 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/settings/theme_color_helper.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/settings/theme_color_helper.dart';
 
 class TrackArtworkThemeResult {
   const TrackArtworkThemeResult({

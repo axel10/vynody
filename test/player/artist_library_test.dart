@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:vibe_flow/player/library/artist_library.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
+import 'package:vynody/player/library/artist_library.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

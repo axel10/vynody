@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:vibe_flow/models/music_folder.dart';
+import 'package:vynody/models/music_folder.dart';
 
 class ScannerNavigationState extends ChangeNotifier {
   MusicFolder? _currentFolder;

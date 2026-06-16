@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/models/music_lyric.dart';
-import 'package:vibe_flow/models/music_lyric_translation.dart';
-import 'package:vibe_flow/utils/lyrics_id_utils.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_context.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_utils.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/music_lyric.dart';
+import 'package:vynody/models/music_lyric_translation.dart';
+import 'package:vynody/utils/lyrics_id_utils.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
+import 'package:vynody/player/lyrics/lyrics_service.dart';
 
 class LyricsFetchCoordinator {
   LyricsFetchCoordinator(this._context, this._support);

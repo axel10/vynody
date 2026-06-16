@@ -1,19 +1,19 @@
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:vibe_flow/player/audio/audio_service.dart';
-import 'package:vibe_flow/player/audio/audio_snapshot.dart';
+import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/player/audio/audio_snapshot.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/metadata/acoustid_service.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/ai/ai_api_key_service.dart';
-import 'package:vibe_flow/player/ai/lyrics_model_catalog_service.dart';
-import 'package:vibe_flow/player/ai/openrouter_api_key_service.dart';
-import 'package:vibe_flow/player/library/playlist_service.dart';
-import 'package:vibe_flow/player/scanner/scanner_service.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/metadata/acoustid_service.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/ai/ai_api_key_service.dart';
+import 'package:vynody/player/ai/lyrics_model_catalog_service.dart';
+import 'package:vynody/player/ai/openrouter_api_key_service.dart';
+import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/player/scanner/scanner_service.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 final settingsServiceProvider = ChangeNotifierProvider<SettingsService>((ref) {
   throw UnimplementedError(

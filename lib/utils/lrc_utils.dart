@@ -1,4 +1,4 @@
-import 'package:vibe_flow/models/lyric_line.dart';
+import 'package:vynody/models/lyric_line.dart';
 
 class LrcUtils {
   static final RegExp _timestampLinePattern = RegExp(

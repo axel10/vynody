@@ -4,10 +4,10 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:vibe_flow/utils/localized_text.dart';
-import 'package:vibe_flow/utils/network_client.dart';
-import 'package:vibe_flow/player/metadata/metadata_database.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
+import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/utils/network_client.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 
 part 'musicbrainz_tag_completion_service.freezed.dart';
 

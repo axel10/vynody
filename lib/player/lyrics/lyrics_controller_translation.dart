@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:dio/dio.dart' show CancelToken, DioException;
 import 'package:flutter/foundation.dart';
 
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/models/music_lyric.dart';
-import 'package:vibe_flow/models/music_lyric_translation.dart';
-import 'package:vibe_flow/utils/language_code_utils.dart';
-import 'package:vibe_flow/utils/localized_text.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_cache_models.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_context.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_utils.dart';
-import 'package:vibe_flow/player/settings/settings_service.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/music_lyric.dart';
+import 'package:vynody/models/music_lyric_translation.dart';
+import 'package:vynody/utils/language_code_utils.dart';
+import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 class _LyricsTranslationRequest {
   _LyricsTranslationRequest({

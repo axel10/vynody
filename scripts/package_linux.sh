@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="VibeFlow"
-APP_ID="app.vibeflow.player"
-APP_SLUG="vibeflow"
+APP_NAME="Vynody"
+APP_ID="app.vynody.player"
+APP_SLUG="vynody"
 APP_DESCRIPTION="Cross-platform music player built with Flutter"
-APP_VENDOR="VibeFlow"
+APP_VENDOR="Vynody"
 APP_LICENSE="Proprietary"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -98,7 +98,7 @@ FPM_ARGS=(
   --maintainer "$APP_VENDOR"
   --vendor "$APP_VENDOR"
   --license "$APP_LICENSE"
-  --url "https://github.com/${GITHUB_REPOSITORY:-axel10/vibe_flow}"
+  --url "https://github.com/${GITHUB_REPOSITORY:-axel10/vynody}"
 )
 
 FPM_DEB_DEP_ARGS=()

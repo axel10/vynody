@@ -5,11 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
-import 'package:vibe_flow/player/library/music_file_utils.dart';
-import 'package:vibe_flow/player/sharing/sharing_riverpod.dart';
-import 'package:vibe_flow/player/sharing/sharing_service.dart';
-import 'package:vibe_flow/player/sharing/lan_device.dart';
-import 'package:vibe_flow/dialogs/transfer_dialogs.dart';
+import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/sharing/sharing_riverpod.dart';
+import 'package:vynody/player/sharing/sharing_service.dart';
+import 'package:vynody/player/sharing/lan_device.dart';
+import 'package:vynody/dialogs/transfer_dialogs.dart';
 
 class SharingPage extends ConsumerStatefulWidget {
   const SharingPage({super.key});

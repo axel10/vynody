@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vibe_flow/widgets/lyrics_panel.dart';
+import 'package:vynody/widgets/lyrics_panel.dart';
 
 void main() {
   group('shouldShowGenerateLyricsButton', () {

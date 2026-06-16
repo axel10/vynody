@@ -1,17 +1,17 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:vibe_flow/models/lyric_line.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/models/music_lyric.dart';
-import 'package:vibe_flow/models/music_lyric_translation.dart';
-import 'package:vibe_flow/utils/language_code_utils.dart';
-import 'package:vibe_flow/utils/lrc_utils.dart';
-import 'package:vibe_flow/utils/lyrics_id_utils.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_cache_models.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_controller_context.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_service.dart';
-import 'package:vibe_flow/player/metadata/metadata_helper.dart';
+import 'package:vynody/models/lyric_line.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/music_lyric.dart';
+import 'package:vynody/models/music_lyric_translation.dart';
+import 'package:vynody/utils/language_code_utils.dart';
+import 'package:vynody/utils/lrc_utils.dart';
+import 'package:vynody/utils/lyrics_id_utils.dart';
+import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
+import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
+import 'package:vynody/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 
 class LyricsControllerSupport {
   LyricsControllerSupport(this._context);

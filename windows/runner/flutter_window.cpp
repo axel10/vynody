@@ -27,12 +27,12 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  // Set unique window property to identify this VibeFlow instance
-  ::SetPropW(GetHandle(), L"VibeFlowInstanceProp", (HANDLE)1);
+  // Set unique window property to identify this Vynody instance
+  ::SetPropW(GetHandle(), L"VynodyInstanceProp", (HANDLE)1);
 
   // Initialize communication channel
   channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-      flutter_controller_->engine()->messenger(), "vibe_flow/single_instance",
+      flutter_controller_->engine()->messenger(), "vynody/single_instance",
       &flutter::StandardMethodCodec::GetInstance());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -49,7 +49,7 @@ bool FlutterWindow::OnCreate() {
 
 void FlutterWindow::OnDestroy() {
   // Clean up the window property
-  ::RemovePropW(GetHandle(), L"VibeFlowInstanceProp");
+  ::RemovePropW(GetHandle(), L"VynodyInstanceProp");
 
   if (flutter_controller_) {
     flutter_controller_ = nullptr;

@@ -5,12 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../l10n/app_localizations.dart';
-import 'package:vibe_flow/models/music_file.dart';
-import 'package:vibe_flow/player/audio/audio_riverpod.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_phase.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_generation_display_state.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_riverpod.dart';
-import 'package:vibe_flow/player/lyrics/lyrics_task_queue_summary.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_display_state.dart';
+import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
+import 'package:vynody/player/lyrics/lyrics_task_queue_summary.dart';
 
 class LyricsTaskStatusBanner extends ConsumerStatefulWidget {
   const LyricsTaskStatusBanner({super.key});

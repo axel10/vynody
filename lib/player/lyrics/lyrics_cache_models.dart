@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:vibe_flow/models/lyric_line.dart';
+import 'package:vynody/models/lyric_line.dart';
 
 enum LyricsCacheSource {
   none,
