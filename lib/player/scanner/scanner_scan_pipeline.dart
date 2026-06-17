@@ -216,6 +216,7 @@ class ScannerScanPipeline {
       metadataImgScanned: existing?.metadataImgScanned,
       createdAt: existing?.createdAt ?? now,
       genres: existing?.genres,
+      isAppModified: existing?.isAppModified ?? false,
     );
   }
 

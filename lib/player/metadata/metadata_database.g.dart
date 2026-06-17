@@ -220,6 +220,21 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isAppModifiedMeta = const VerificationMeta(
+    'isAppModified',
+  );
+  @override
+  late final GeneratedColumn<bool> isAppModified = GeneratedColumn<bool>(
+    'isAppModified',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("isAppModified" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _lastSeenRootScanSessionIdMeta =
       const VerificationMeta('lastSeenRootScanSessionId');
   @override
@@ -253,6 +268,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     createdAt,
     deletedAt,
     genres,
+    isAppModified,
     lastSeenRootScanSessionId,
   ];
   @override
@@ -419,6 +435,15 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         genres.isAcceptableOrUnknown(data['genres']!, _genresMeta),
       );
     }
+    if (data.containsKey('isAppModified')) {
+      context.handle(
+        _isAppModifiedMeta,
+        isAppModified.isAcceptableOrUnknown(
+          data['isAppModified']!,
+          _isAppModifiedMeta,
+        ),
+      );
+    }
     if (data.containsKey('lastSeenRootScanSessionId')) {
       context.handle(
         _lastSeenRootScanSessionIdMeta,
@@ -517,6 +542,10 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         DriftSqlType.string,
         data['${effectivePrefix}genres'],
       ),
+      isAppModified: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}isAppModified'],
+      )!,
       lastSeenRootScanSessionId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}lastSeenRootScanSessionId'],
@@ -551,6 +580,7 @@ class Song extends DataClass implements Insertable<Song> {
   final int? createdAt;
   final int? deletedAt;
   final String? genres;
+  final bool isAppModified;
   final int? lastSeenRootScanSessionId;
   const Song({
     required this.id,
@@ -573,6 +603,7 @@ class Song extends DataClass implements Insertable<Song> {
     this.createdAt,
     this.deletedAt,
     this.genres,
+    required this.isAppModified,
     this.lastSeenRootScanSessionId,
   });
   @override
@@ -634,6 +665,7 @@ class Song extends DataClass implements Insertable<Song> {
     if (!nullToAbsent || genres != null) {
       map['genres'] = Variable<String>(genres);
     }
+    map['isAppModified'] = Variable<bool>(isAppModified);
     if (!nullToAbsent || lastSeenRootScanSessionId != null) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
         lastSeenRootScanSessionId,
@@ -700,6 +732,7 @@ class Song extends DataClass implements Insertable<Song> {
       genres: genres == null && nullToAbsent
           ? const Value.absent()
           : Value(genres),
+      isAppModified: Value(isAppModified),
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId == null && nullToAbsent
           ? const Value.absent()
@@ -735,6 +768,7 @@ class Song extends DataClass implements Insertable<Song> {
       createdAt: serializer.fromJson<int?>(json['createdAt']),
       deletedAt: serializer.fromJson<int?>(json['deletedAt']),
       genres: serializer.fromJson<String?>(json['genres']),
+      isAppModified: serializer.fromJson<bool>(json['isAppModified']),
       lastSeenRootScanSessionId: serializer.fromJson<int?>(
         json['lastSeenRootScanSessionId'],
       ),
@@ -764,6 +798,7 @@ class Song extends DataClass implements Insertable<Song> {
       'createdAt': serializer.toJson<int?>(createdAt),
       'deletedAt': serializer.toJson<int?>(deletedAt),
       'genres': serializer.toJson<String?>(genres),
+      'isAppModified': serializer.toJson<bool>(isAppModified),
       'lastSeenRootScanSessionId': serializer.toJson<int?>(
         lastSeenRootScanSessionId,
       ),
@@ -791,6 +826,7 @@ class Song extends DataClass implements Insertable<Song> {
     Value<int?> createdAt = const Value.absent(),
     Value<int?> deletedAt = const Value.absent(),
     Value<String?> genres = const Value.absent(),
+    bool? isAppModified,
     Value<int?> lastSeenRootScanSessionId = const Value.absent(),
   }) => Song(
     id: id ?? this.id,
@@ -825,6 +861,7 @@ class Song extends DataClass implements Insertable<Song> {
     createdAt: createdAt.present ? createdAt.value : this.createdAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     genres: genres.present ? genres.value : this.genres,
+    isAppModified: isAppModified ?? this.isAppModified,
     lastSeenRootScanSessionId: lastSeenRootScanSessionId.present
         ? lastSeenRootScanSessionId.value
         : this.lastSeenRootScanSessionId,
@@ -873,6 +910,9 @@ class Song extends DataClass implements Insertable<Song> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       genres: data.genres.present ? data.genres.value : this.genres,
+      isAppModified: data.isAppModified.present
+          ? data.isAppModified.value
+          : this.isAppModified,
       lastSeenRootScanSessionId: data.lastSeenRootScanSessionId.present
           ? data.lastSeenRootScanSessionId.value
           : this.lastSeenRootScanSessionId,
@@ -902,6 +942,7 @@ class Song extends DataClass implements Insertable<Song> {
           ..write('createdAt: $createdAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('genres: $genres, ')
+          ..write('isAppModified: $isAppModified, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -929,6 +970,7 @@ class Song extends DataClass implements Insertable<Song> {
     createdAt,
     deletedAt,
     genres,
+    isAppModified,
     lastSeenRootScanSessionId,
   ]);
   @override
@@ -958,6 +1000,7 @@ class Song extends DataClass implements Insertable<Song> {
           other.createdAt == this.createdAt &&
           other.deletedAt == this.deletedAt &&
           other.genres == this.genres &&
+          other.isAppModified == this.isAppModified &&
           other.lastSeenRootScanSessionId == this.lastSeenRootScanSessionId);
 }
 
@@ -982,6 +1025,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
   final Value<int?> createdAt;
   final Value<int?> deletedAt;
   final Value<String?> genres;
+  final Value<bool> isAppModified;
   final Value<int?> lastSeenRootScanSessionId;
   const SongsCompanion({
     this.id = const Value.absent(),
@@ -1004,6 +1048,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.createdAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.genres = const Value.absent(),
+    this.isAppModified = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   });
   SongsCompanion.insert({
@@ -1027,6 +1072,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.createdAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.genres = const Value.absent(),
+    this.isAppModified = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   }) : path = Value(path);
   static Insertable<Song> custom({
@@ -1050,6 +1096,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Expression<int>? createdAt,
     Expression<int>? deletedAt,
     Expression<String>? genres,
+    Expression<bool>? isAppModified,
     Expression<int>? lastSeenRootScanSessionId,
   }) {
     return RawValuesInsertable({
@@ -1074,6 +1121,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
       if (createdAt != null) 'createdAt': createdAt,
       if (deletedAt != null) 'deletedAt': deletedAt,
       if (genres != null) 'genres': genres,
+      if (isAppModified != null) 'isAppModified': isAppModified,
       if (lastSeenRootScanSessionId != null)
         'lastSeenRootScanSessionId': lastSeenRootScanSessionId,
     });
@@ -1100,6 +1148,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Value<int?>? createdAt,
     Value<int?>? deletedAt,
     Value<String?>? genres,
+    Value<bool>? isAppModified,
     Value<int?>? lastSeenRootScanSessionId,
   }) {
     return SongsCompanion(
@@ -1123,6 +1172,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
       createdAt: createdAt ?? this.createdAt,
       deletedAt: deletedAt ?? this.deletedAt,
       genres: genres ?? this.genres,
+      isAppModified: isAppModified ?? this.isAppModified,
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId ?? this.lastSeenRootScanSessionId,
     );
@@ -1191,6 +1241,9 @@ class SongsCompanion extends UpdateCompanion<Song> {
     if (genres.present) {
       map['genres'] = Variable<String>(genres.value);
     }
+    if (isAppModified.present) {
+      map['isAppModified'] = Variable<bool>(isAppModified.value);
+    }
     if (lastSeenRootScanSessionId.present) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
         lastSeenRootScanSessionId.value,
@@ -1222,6 +1275,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
           ..write('createdAt: $createdAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('genres: $genres, ')
+          ..write('isAppModified: $isAppModified, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -5010,6 +5064,7 @@ typedef $$SongsTableCreateCompanionBuilder =
       Value<int?> createdAt,
       Value<int?> deletedAt,
       Value<String?> genres,
+      Value<bool> isAppModified,
       Value<int?> lastSeenRootScanSessionId,
     });
 typedef $$SongsTableUpdateCompanionBuilder =
@@ -5034,6 +5089,7 @@ typedef $$SongsTableUpdateCompanionBuilder =
       Value<int?> createdAt,
       Value<int?> deletedAt,
       Value<String?> genres,
+      Value<bool> isAppModified,
       Value<int?> lastSeenRootScanSessionId,
     });
 
@@ -5143,6 +5199,11 @@ class $$SongsTableFilterComposer
 
   ColumnFilters<String> get genres => $composableBuilder(
     column: $table.genres,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isAppModified => $composableBuilder(
+    column: $table.isAppModified,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5261,6 +5322,11 @@ class $$SongsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isAppModified => $composableBuilder(
+    column: $table.isAppModified,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => ColumnOrderings(column),
@@ -5358,6 +5424,11 @@ class $$SongsTableAnnotationComposer
   GeneratedColumn<String> get genres =>
       $composableBuilder(column: $table.genres, builder: (column) => column);
 
+  GeneratedColumn<bool> get isAppModified => $composableBuilder(
+    column: $table.isAppModified,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => column,
@@ -5412,6 +5483,7 @@ class $$SongsTableTableManager
                 Value<int?> createdAt = const Value.absent(),
                 Value<int?> deletedAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
+                Value<bool> isAppModified = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion(
                 id: id,
@@ -5434,6 +5506,7 @@ class $$SongsTableTableManager
                 createdAt: createdAt,
                 deletedAt: deletedAt,
                 genres: genres,
+                isAppModified: isAppModified,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           createCompanionCallback:
@@ -5458,6 +5531,7 @@ class $$SongsTableTableManager
                 Value<int?> createdAt = const Value.absent(),
                 Value<int?> deletedAt = const Value.absent(),
                 Value<String?> genres = const Value.absent(),
+                Value<bool> isAppModified = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion.insert(
                 id: id,
@@ -5480,6 +5554,7 @@ class $$SongsTableTableManager
                 createdAt: createdAt,
                 deletedAt: deletedAt,
                 genres: genres,
+                isAppModified: isAppModified,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           withReferenceMapper: (p0) => p0

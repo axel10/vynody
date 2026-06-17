@@ -330,6 +330,7 @@ class MetadataHelper {
                 ? File(filePath).lastModifiedSync().millisecondsSinceEpoch
                 : now),
         genres: genres ?? base.genres,
+        isAppModified: true,
       );
 
       if (writeToFile) {
@@ -348,6 +349,7 @@ class MetadataHelper {
         updated = updated.copyWith(
           lastModifiedTime: mtime,
           createdAt: mtime,
+          isAppModified: false,
         );
       }
 
@@ -398,6 +400,7 @@ class MetadataHelper {
         var updated = metadata.copyWith(
           lastModifiedTime: mtime,
           createdAt: mtime,
+          isAppModified: false,
         );
 
         if (metadata.artworkPath != null && metadata.artworkPath!.isNotEmpty) {
@@ -543,6 +546,7 @@ class MetadataHelper {
             : existing?.metadataImgScanned,
         createdAt: createdAt,
         sourceFlags: sourceFlags ?? existing?.sourceFlags ?? SongSourceFlags.external,
+        isAppModified: existing?.isAppModified ?? false,
       );
 
       // 5. 将解析结果存入数据库

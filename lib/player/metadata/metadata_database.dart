@@ -49,12 +49,10 @@ abstract class SongMetadata with _$SongMetadata {
     int? createdAt,
     int? deletedAt,
     List<String>? genres,
+    @Default(false) bool isAppModified,
   }) = _SongMetadata;
 
-  bool get isModified {
-    if (createdAt == null || lastModifiedTime == null) return false;
-    return lastModifiedTime! > createdAt!;
-  }
+  bool get isModified => isAppModified;
 
   Map<String, dynamic> toMap() {
     return {
@@ -77,6 +75,7 @@ abstract class SongMetadata with _$SongMetadata {
       'createdAt': createdAt,
       'deletedAt': deletedAt,
       'genres': genres != null ? jsonEncode(genres) : null,
+      'isAppModified': isAppModified ? 1 : 0,
     };
   }
 
@@ -109,6 +108,7 @@ abstract class SongMetadata with _$SongMetadata {
       createdAt: map['createdAt'],
       deletedAt: map['deletedAt'],
       genres: genres,
+      isAppModified: map['isAppModified'] == 1 || map['isAppModified'] == true,
     );
   }
 }

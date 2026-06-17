@@ -18,7 +18,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 27;
+  int get schemaVersion => 28;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -275,6 +275,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
               AND deletedAt IS NULL
           ''');
         }
+      }
+      if (from < 28) {
+        await _addColumnIfMissing(m, 'songs', 'isAppModified', 'INTEGER');
+        await m.database.customStatement('''
+          UPDATE songs
+          SET isAppModified = 0
+          WHERE isAppModified IS NULL
+        ''');
       }
     },
   );
@@ -553,6 +561,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       ..writeln('  s.metadataImgScanned,')
       ..writeln('  s.createdAt,')
       ..writeln('  s.genres,')
+      ..writeln('  s.isAppModified,')
       ..writeln('  0 AS playCount,')
       ..writeln('  NULL AS lastPlayedAt')
       ..writeln('FROM songs s')
@@ -605,6 +614,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       ..writeln('  s.metadataImgScanned,')
       ..writeln('  s.createdAt,')
       ..writeln('  s.genres,')
+      ..writeln('  s.isAppModified,')
       ..writeln('  COUNT(h.id) AS playCount,')
       ..writeln('  MAX(h.playedAt) AS lastPlayedAt')
       ..writeln('FROM songs s')
@@ -1187,6 +1197,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       createdAt: row.read<int?>('createdAt'),
       deletedAt: row.read<int?>('deletedAt'),
       genres: _decodeGenres(row.read<String?>('genres')),
+      isAppModified: row.read<bool?>('isAppModified') ?? false,
     );
   }
 
@@ -1212,6 +1223,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       createdAt: row.createdAt,
       deletedAt: row.deletedAt,
       genres: _decodeGenres(row.genres),
+      isAppModified: row.isAppModified,
     );
   }
 
@@ -1239,6 +1251,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       createdAt: Value(song.createdAt),
       deletedAt: Value(song.deletedAt),
       genres: Value(song.genres == null ? null : jsonEncode(song.genres)),
+      isAppModified: Value(song.isAppModified),
       lastSeenRootScanSessionId: lastSeenRootScanSessionId == null
           ? const Value.absent()
           : Value(lastSeenRootScanSessionId),
@@ -1382,6 +1395,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         metadataImgScanned: row.read<int?>('metadataImgScanned'),
         createdAt: row.read<int?>('createdAt'),
         genres: _decodeGenres(row.read<String?>('genres')),
+        isAppModified: row.read<bool?>('isAppModified') ?? false,
       ),
       playCount: row.read<int>('playCount'),
       lastPlayedAt: row.read<int?>('lastPlayedAt'),
@@ -1632,6 +1646,8 @@ class Songs extends Table {
   IntColumn get createdAt => integer().nullable().named('createdAt')();
   IntColumn get deletedAt => integer().nullable().named('deletedAt')();
   TextColumn get genres => text().nullable().named('genres')();
+  BoolColumn get isAppModified =>
+      boolean().withDefault(const Constant(false)).named('isAppModified')();
   IntColumn get lastSeenRootScanSessionId =>
       integer().nullable().named('lastSeenRootScanSessionId')();
 
