@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
+import 'package:vynody/widgets/playing_equalizer_icon.dart';
 
 const Color _miniQueuePanelBackgroundColor = Color.fromARGB(132, 0, 0, 0);
 const Color _miniQueuePanelBorderColor = Color(0x14FFFFFF);
@@ -100,6 +101,7 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
   Widget build(BuildContext context) {
     final queue = ref.watch(audioPlaybackQueueProvider);
     final currentIndex = ref.watch(audioCurrentIndexProvider);
+    final isPlaying = ref.watch(audioIsPlayingProvider);
     final audioService = ref.read(audioServiceProvider);
     final playlistService = ref.read(playlistServiceProvider);
     final l10n = AppLocalizations.of(context)!;
@@ -176,6 +178,7 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
                           child: _MiniQueueTile(
                             song: song,
                             isCurrent: isCurrent,
+                            isPlaying: isPlaying,
                             isHighlighted: _highlightedIndex == index,
                             playlistService: playlistService,
                             audioService: audioService,
@@ -200,6 +203,7 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
 class _MiniQueueTile extends StatefulWidget {
   final MusicFile song;
   final bool isCurrent;
+  final bool isPlaying;
   final bool isHighlighted;
   final PlaylistService playlistService;
   final AudioService audioService;
@@ -209,6 +213,7 @@ class _MiniQueueTile extends StatefulWidget {
   const _MiniQueueTile({
     required this.song,
     required this.isCurrent,
+    this.isPlaying = false,
     this.isHighlighted = false,
     required this.playlistService,
     required this.audioService,
@@ -293,10 +298,10 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
                 child: Row(
                   children: [
                     if (widget.isCurrent) ...[
-                      Icon(
-                        Icons.volume_up_rounded,
+                      PlayingEqualizerIcon(
                         color: _miniQueueCurrentTrackColor,
                         size: 14,
+                        isPlaying: widget.isPlaying,
                       ),
                       const SizedBox(width: 6),
                     ],

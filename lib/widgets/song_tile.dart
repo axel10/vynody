@@ -5,6 +5,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/widgets/playing_equalizer_icon.dart';
 
 class SongTile extends ConsumerWidget {
   const SongTile({
@@ -39,6 +40,7 @@ class SongTile extends ConsumerWidget {
     final metadata = ref.watch(
       scannerServiceProvider.select((s) => s.metadataMap[song.path]),
     );
+    final isPlaying = ref.watch(audioIsPlayingProvider);
     
     final isMissing = song.isMissing;
     
@@ -173,10 +175,10 @@ class SongTile extends ConsumerWidget {
                         Row(
                           children: [
                             if (isCurrent && !isMissing) ...[
-                              Icon(
-                                Icons.volume_up_rounded,
+                              PlayingEqualizerIcon(
                                 color: theme.colorScheme.primary,
                                 size: 16,
+                                isPlaying: isPlaying,
                               ),
                               const SizedBox(width: 6),
                             ],
