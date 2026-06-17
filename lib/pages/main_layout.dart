@@ -127,6 +127,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
   MainLayoutUiController get _ui => _uiController;
 
   void _handleDesktopPointerActivity(PointerEvent event) {
+    final settings = ref.read(settingsServiceProvider);
+    if (settings.isSmallWindowMode) {
+      settings.resetInactivity();
+    }
+
     if (event is PointerDownEvent) {
       debugPrint('event.buttons: ${event.buttons}');
       if (event.buttons == 16) {
@@ -141,7 +146,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
     if (_currentIndex != 1) {
       return;
     }
-    final settings = ref.read(settingsServiceProvider);
     if (settings.isImmersiveTabBarEnabled) {
       if (!ref.read(mainLayoutUiControllerProvider).showImmersiveTabBar) {
         _ui.showImmersiveTabBar();
@@ -1000,6 +1004,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
                                 : theme.brightness,
                             showSmallWindowButton: isPlayback,
                             showButtonGroupBackground: isPlayback,
+                            hideButtonsWhenInactive: isPlayback,
                           ),
                         ),
                       AnimatedPositioned(
@@ -1219,6 +1224,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
                               brightness: theme.brightness,
                               showSmallWindowButton: false,
                               showButtonGroupBackground: isPlayback,
+                              hideButtonsWhenInactive: isPlayback,
                             ),
                           ),
                         ),
