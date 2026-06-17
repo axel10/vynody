@@ -251,6 +251,10 @@
   "@queueCleared": {
     "description": "Queue cleared message"
   },
+  "locateCurrentSong": "定位当前播放",
+  "@locateCurrentSong": {
+    "description": "Locate current playing song button tooltip"
+  },
   "queue": "队列",
   "@queue": {
     "description": "Queue"

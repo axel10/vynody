@@ -13,6 +13,7 @@ class SongTile extends ConsumerWidget {
     required this.isCurrent,
     this.isSelected = false,
     this.isSelectionMode = false,
+    this.isHighlighted = false,
     this.dragHandle,
     this.onTap,
     this.onLongPress,
@@ -24,6 +25,7 @@ class SongTile extends ConsumerWidget {
   final bool isCurrent;
   final bool isSelected;
   final bool isSelectionMode;
+  final bool isHighlighted;
   final Widget? dragHandle;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
@@ -134,89 +136,99 @@ class SongTile extends ConsumerWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: onSecondaryTapDown,
-      child: Material(
-        color: isSelectionMode && isSelected
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
+          color: isSelectionMode && isSelected
+              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+              : isHighlighted
+                  ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                  : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          onLongPress: onLongPress,
-          hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 16,
-              vertical: 8,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                leadingWidget,
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          if (isCurrent && !isMissing) ...[
-                            Icon(
-                              Icons.volume_up_rounded,
-                              color: theme.colorScheme.primary,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                          ],
-                          Expanded(
-                            child: Text(
-                              song.displayName,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: textColor,
-                                fontWeight: isCurrent && !isMissing ? FontWeight.bold : FontWeight.normal,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        artistAlbumText,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          color: isMissing
-                              ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                              : isCurrent
-                                  ? theme.colorScheme.primary.withValues(alpha: 0.8)
-                                  : theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        durationFormatText,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 11,
-                          color: isMissing
-                              ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
-                              : isCurrent
-                                  ? theme.colorScheme.primary.withValues(alpha: 0.6)
-                                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                        ),
-                        maxLines: 1,
-                      ),
-                    ],
-                  ),
-                ),
-                if (trailingWidget != null) ...[
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            onLongPress: onLongPress,
+            hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 16,
+                vertical: 8,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  leadingWidget,
                   const SizedBox(width: 16),
-                  trailingWidget,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            if (isCurrent && !isMissing) ...[
+                              Icon(
+                                Icons.volume_up_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Expanded(
+                              child: Text(
+                                song.displayName,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: textColor,
+                                  fontWeight: isCurrent && !isMissing ? FontWeight.bold : FontWeight.normal,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          artistAlbumText,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 12,
+                            color: isMissing
+                                ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                                : isCurrent
+                                    ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                                    : theme.colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          durationFormatText,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                            color: isMissing
+                                ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
+                                : isCurrent
+                                    ? theme.colorScheme.primary.withValues(alpha: 0.6)
+                                    : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          ),
+                          maxLines: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (trailingWidget != null) ...[
+                    const SizedBox(width: 16),
+                    trailingWidget,
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

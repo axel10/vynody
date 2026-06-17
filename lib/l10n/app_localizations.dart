@@ -470,6 +470,12 @@ abstract class AppLocalizations {
   /// **'队列已清空'**
   String get queueCleared;
 
+  /// Locate current playing song button tooltip
+  ///
+  /// In zh, this message translates to:
+  /// **'定位当前播放'**
+  String get locateCurrentSong;
+
   /// Queue
   ///
   /// In zh, this message translates to:

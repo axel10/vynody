@@ -24,16 +24,22 @@ class _QueuePageState extends ConsumerState<QueuePage> {
   final Map<String, GlobalKey> _songTileKeys = {};
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
   late final LibrarySelectionScopeController _librarySelectionScopeController;
+  late final ScrollController _scrollController;
+  int? _highlightedIndex;
+  Timer? _highlightTimer;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     _librarySelectionScopeController =
         ref.read(librarySelectionScopeProvider.notifier);
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
+    _highlightTimer?.cancel();
     Future.microtask(() {
       _librarySelectionScopeController.clear();
     });
@@ -98,6 +104,65 @@ class _QueuePageState extends ConsumerState<QueuePage> {
         .where((index) => index >= 0 && index < displayQueue.length)
         .map((index) => displayQueue[index])
         .toList(growable: false);
+  }
+
+  void _scrollToCurrentPlay() {
+    final queue = ref.read(audioPlaybackQueueProvider);
+    final randomHistory = ref.read(audioRandomHistoryProvider);
+    final randomQueue = ref.read(audioRandomQueueProvider);
+    final currentIndex = ref.read(audioCurrentIndexProvider);
+    final historyCursor = ref.read(audioHistoryCursorProvider);
+    final deckCursor = ref.read(audioDeckCursorProvider);
+
+    final displayQueueLength = _viewIndex == 1
+        ? randomHistory.length
+        : _viewIndex == 2
+        ? randomQueue.length
+        : queue.length;
+
+    final int? targetIndex;
+    if (_viewIndex == 1) {
+      targetIndex = historyCursor;
+    } else if (_viewIndex == 2) {
+      targetIndex = deckCursor;
+    } else {
+      targetIndex = currentIndex;
+    }
+
+    if (targetIndex != null && targetIndex >= 0 && targetIndex < displayQueueLength) {
+      if (_scrollController.hasClients) {
+        const double itemHeight = 80.0;
+        final double viewportHeight = _scrollController.position.viewportDimension;
+        double targetOffset = (targetIndex * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
+        
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        if (targetOffset < 0) {
+          targetOffset = 0;
+        } else if (targetOffset > maxScroll) {
+          targetOffset = maxScroll;
+        }
+
+        _scrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        ).then((_) {
+          if (mounted) {
+            _highlightTimer?.cancel();
+            setState(() {
+              _highlightedIndex = targetIndex;
+            });
+            _highlightTimer = Timer(const Duration(milliseconds: 1000), () {
+              if (mounted) {
+                setState(() {
+                  _highlightedIndex = null;
+                });
+              }
+            });
+          }
+        });
+      }
+    }
   }
 
   GlobalKey _songTileKeyFor(MusicFile song) {
@@ -270,6 +335,11 @@ class _QueuePageState extends ConsumerState<QueuePage> {
         centerTitle: true,
         actions: [
           IconButton(
+            icon: const Icon(Icons.my_location),
+            onPressed: _scrollToCurrentPlay,
+            tooltip: AppLocalizations.of(context)!.locateCurrentSong,
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_sweep),
             onPressed: () => _showClearQueueDialog(context),
             tooltip: AppLocalizations.of(context)!.clearQueue,
@@ -313,6 +383,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                     children: [
                       Positioned.fill(
                         child: ReorderableListView.builder(
+                          scrollController: _scrollController,
                           buildDefaultDragHandles: false,
                           cacheExtent: 1000,
                           padding: const EdgeInsets.only(bottom: 160),
@@ -410,6 +481,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                 isCurrent: isCurrent,
                                 isSelected: isSelected,
                                 isSelectionMode: isSelectionMode,
+                                isHighlighted: _highlightedIndex == index,
                                 dragHandle: ReorderableDragStartListener(
                                   index: index,
                                   child: const Icon(Icons.drag_handle),

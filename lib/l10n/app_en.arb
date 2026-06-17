@@ -83,6 +83,7 @@
   "clearQueue": "Clear Queue",
   "confirmClearQueue": "Are you sure you want to clear the current queue?",
   "queueCleared": "Queue cleared",
+  "locateCurrentSong": "Locate Current Song",
   "queue": "Queue",
   "queueEmpty": "Queue is empty",
   "selectedSongs": "{count} songs selected",

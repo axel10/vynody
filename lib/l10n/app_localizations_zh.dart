@@ -202,6 +202,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get queueCleared => '队列已清空';
 
   @override
+  String get locateCurrentSong => '定位当前播放';
+
+  @override
   String get queue => '队列';
 
   @override
