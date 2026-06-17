@@ -785,7 +785,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     // ---------------- Landscape Lyrics ----------------
     // 左侧列的目标宽度只跟高度相关，避免随着窗口横向拉伸产生跳变。
     const lLyricsTopPadding = 16.0;
-    const lLyricsOuterLeftPadding = 32.0;
+    const lLyricsOuterLeftPadding = 48.0;
     const lLyricsInnerLeftPadding = 16.0;
     const lLyricsCoverInfoSpacing = 24.0;
     final lLyricsInfoControlsSpacing =
@@ -846,8 +846,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       tLand,
     ) * scaleFactor;
 
-    final lLyricsCoverLeft =
-        lLyricsOuterLeftPadding + (lLyricsColumnWidth - lLyricsCoverSide) / 2;
+    final lLyricsCoverLeft = lLyricsOuterLeftPadding;
     final lLyricsInfoLeft = lLyricsCoverLeft;
     final lLyricsControlsLeft = lLyricsCoverLeft;
 
