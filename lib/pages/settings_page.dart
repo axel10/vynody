@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
@@ -346,6 +347,64 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       : null,
                 ),
               ],
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.restart_alt),
+          title: Text(
+            Localizations.localeOf(context).languageCode == 'zh'
+                ? '重建索引'
+                : 'Rebuild Index',
+          ),
+          subtitle: Text(
+            Localizations.localeOf(context).languageCode == 'zh'
+                ? '清空除外部来源以外的所有歌曲记录并重新扫描所有根目录。'
+                : 'Clear all song records (except external sources) and rescan all root directories.',
+          ),
+          trailing: FilledButton.tonal(
+            onPressed: () async {
+              final isZh = Localizations.localeOf(context).languageCode == 'zh';
+              final title = isZh ? '重建索引' : 'Rebuild Index';
+              final content = isZh
+                  ? '确认清空除外部来源以外的所有歌曲记录并重新扫描所有根目录吗？此操作需要一些时间。'
+                  : 'Are you sure you want to clear all song records (except external sources) and re-scan all root directories? This process may take some time.';
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: Text(title),
+                  content: Text(content),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, false),
+                      child: Text(l10n.cancel),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, true),
+                      child: Text(l10n.confirm),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true && context.mounted) {
+                final scanner = ref.read(scannerServiceProvider);
+                unawaited(scanner.rebuildIndex());
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isZh ? '重建索引已启动' : 'Rebuild index started',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              Localizations.localeOf(context).languageCode == 'zh'
+                  ? '重建'
+                  : 'Rebuild',
             ),
           ),
         ),

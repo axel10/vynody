@@ -91,4 +91,8 @@ class ScannerRepository {
   Future<void> clearAll() {
     return _database.clearAll();
   }
+
+  Future<void> clearSongsExceptExternal() {
+    return _database.clearSongsExceptExternal();
+  }
 }

@@ -542,6 +542,8 @@ class MetadataDatabase {
 
   Future<void> clearAll() => _db.clearAllSongs();
 
+  Future<void> clearSongsExceptExternal() => _db.clearSongsExceptExternal();
+
   Future<void> clearWaveformCache() => _db.clearWaveformCache();
 
   Future<void> clearLyricsCache() => _db.clearLyricsCache();

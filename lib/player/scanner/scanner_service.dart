@@ -2560,6 +2560,36 @@ class ScannerService extends ChangeNotifier {
     await _scanRootsWithFullFlow(_roots.rootPaths, clearScannedRoots: clearScannedRoots);
   }
 
+  Future<void> rebuildIndex() async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      // 1. Clear songs in database except external
+      await _repository.clearSongsExceptExternal();
+
+      // 2. Clear matching in-memory metadata
+      _metadataStore.metadataMap.removeWhere((path, metadata) {
+        final flags = metadata.sourceFlags ?? 0;
+        return (flags & SongSourceFlags.external) == 0;
+      });
+      _markMetadataMutated();
+      _markAlbumLibraryMutated();
+
+      // 3. Clear current folder structure and notify UI
+      _scannedRootFolders.clear();
+      _rebuildDisplayedRootFolders();
+      _syncNavigationStateToLatestTree();
+      notifyListeners();
+
+      // 4. Trigger rescan of all root paths
+      await scan(clearScannedRoots: true);
+    } finally {
+      stopwatch.stop();
+      if (kDebugMode) {
+        debugPrint('[ScannerService] rebuildIndex completed in ${stopwatch.elapsedMilliseconds} ms');
+      }
+    }
+  }
+
   Future<void> _scanRootsWithFullFlow(
     Iterable<String> rootsToScan, {
     required bool clearScannedRoots,

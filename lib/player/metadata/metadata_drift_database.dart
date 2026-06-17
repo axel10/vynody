@@ -653,6 +653,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     await delete(songs).go();
   }
 
+  Future<void> clearSongsExceptExternal() async {
+    await (delete(songs)
+          ..where(
+            (t) =>
+                t.sourceFlags.isNull() |
+                t.sourceFlags.bitwiseAnd(Variable(SongSourceFlags.external)).equals(0),
+          ))
+        .go();
+  }
+
   Future<void> clearWaveformCache() async {
     await customStatement(
       'UPDATE songs SET waveformBlob = NULL WHERE waveformBlob IS NOT NULL',
