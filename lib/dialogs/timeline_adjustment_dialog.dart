@@ -17,26 +17,31 @@ Future<void> showTimelineAdjustmentDialog(
   final theme = Theme.of(context);
   final dialogValue = ValueNotifier<double>(initialTimelineOffsetSeconds);
 
-  Future<void> commitOffset(double value) async {
-    final snapped = _normalizeTimelineOffsetSeconds(value);
-    dialogValue.value = snapped;
-    onPreviewChanged(snapped);
-    await onCommit(Duration(milliseconds: (snapped * 1000).round()));
-  }
-
   try {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         final l10n = AppLocalizations.of(dialogContext)!;
-        return AlertDialog(
-          title: Text(l10n.timelineAdjustmentTitle),
-          content: StatefulBuilder(
-            builder: (context, setDialogState) {
-              final dialogL10n = AppLocalizations.of(context)!;
-              final value = _normalizeTimelineOffsetSeconds(dialogValue.value);
-              final label = _timelineOffsetLabel(dialogL10n, value);
-              return ConstrainedBox(
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final dialogL10n = AppLocalizations.of(context)!;
+            final value = _normalizeTimelineOffsetSeconds(dialogValue.value);
+            final label = _timelineOffsetLabel(dialogL10n, value);
+
+            Future<void> commitOffset(double newValue) async {
+              final snapped = _normalizeTimelineOffsetSeconds(newValue);
+              setDialogState(() {
+                dialogValue.value = snapped;
+              });
+              onPreviewChanged(snapped);
+              await onCommit(
+                Duration(milliseconds: (snapped * 1000).round()),
+              );
+            }
+
+            return AlertDialog(
+              title: Text(l10n.timelineAdjustmentTitle),
+              content: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 440),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -102,26 +107,23 @@ Future<void> showTimelineAdjustmentDialog(
                     ),
                   ],
                 ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: dialogValue.value == 0
-                  ? null
-                  : () {
-                      final snapped = _normalizeTimelineOffsetSeconds(0);
-                      dialogValue.value = snapped;
-                      onPreviewChanged(snapped);
-                      unawaited(commitOffset(snapped));
-                    },
-              child: Text(l10n.reset),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(l10n.close),
-            ),
-          ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: value == 0
+                      ? null
+                      : () {
+                          unawaited(commitOffset(0));
+                        },
+                  child: Text(l10n.reset),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.close),
+                ),
+              ],
+            );
+          },
         );
       },
     );
