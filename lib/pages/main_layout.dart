@@ -624,10 +624,14 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
     _onboardingAnimController?.forward().then((_) {
       final settings = ref.read(settingsServiceProvider);
       settings.hasShownOnboarding = true;
+      final hasRootFolders = ref.read(scannerServiceProvider).rootPaths.isNotEmpty;
       if (mounted) {
         setState(() {
           _isOnboardingAnimatingOut = false;
         });
+        if (hasRootFolders) {
+          _onDestinationSelected(0);
+        }
       }
     });
   }
