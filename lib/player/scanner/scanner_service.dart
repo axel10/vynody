@@ -65,6 +65,7 @@ class ScannerService extends ChangeNotifier {
   bool _isDisposed = false;
   final Set<String> _activeScopedRootPaths = <String>{};
   final Map<String, _DirectoryRescanMode> _pendingDirectoryRescanPaths = {};
+  final Set<String> _failedThumbnailPaths = <String>{};
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -2557,6 +2558,7 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> scan({bool clearScannedRoots = true}) async {
+    _failedThumbnailPaths.clear();
     await _scanRootsWithFullFlow(_roots.rootPaths, clearScannedRoots: clearScannedRoots);
   }
 
@@ -2571,6 +2573,7 @@ class ScannerService extends ChangeNotifier {
         final flags = metadata.sourceFlags ?? 0;
         return (flags & SongSourceFlags.external) == 0;
       });
+      _failedThumbnailPaths.clear();
       _markMetadataMutated();
       _markAlbumLibraryMutated();
 
@@ -2817,6 +2820,7 @@ class ScannerService extends ChangeNotifier {
     if (normalizedPath.isEmpty) {
       return;
     }
+    _failedThumbnailPaths.remove(normalizedPath);
 
     final file = File(normalizedPath);
     if (!await file.exists()) {
@@ -2856,6 +2860,9 @@ class ScannerService extends ChangeNotifier {
   }
 
   Future<void> loadThumbnailForPath(String path) async {
+    if (_failedThumbnailPaths.contains(path)) {
+      return;
+    }
     await _metadataStore.loadThumbnailForPath(path);
     final cached =
         _metadataStore.getMetadata(path) ??
@@ -2863,10 +2870,14 @@ class ScannerService extends ChangeNotifier {
     if (cached != null && (cached.thumbnailPath?.trim().isNotEmpty ?? false)) {
       return;
     }
-    await _recoverThumbnailCacheWithAudioCore(path, existingMetadata: cached);
+    final updated = await _recoverThumbnailCacheWithAudioCore(path, existingMetadata: cached);
+    if (updated == null || updated.thumbnailPath == null || updated.thumbnailPath!.trim().isEmpty) {
+      _failedThumbnailPaths.add(path);
+    }
   }
 
   void updateMetadataForPath(SongMetadata metadata, {Uint8List? artworkBytes}) {
+    _failedThumbnailPaths.remove(metadata.path);
     _metadataStore.updateMetadataForPath(metadata, artworkBytes: artworkBytes);
   }
 

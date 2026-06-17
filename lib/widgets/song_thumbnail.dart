@@ -96,14 +96,11 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(
+    final metadata = ref.watch(
       scannerServiceProvider.select(
-        (scanner) => (scanner.metadataRevision, scanner.isScanning),
+        (scanner) => scanner.metadataMap[widget.path],
       ),
     );
-
-    final scanner = ref.read(scannerServiceProvider);
-    final metadata = scanner.metadataMap[widget.path];
     final imagePath = metadata?.thumbnailPath;
 
     final double dpr = MediaQuery.of(context).devicePixelRatio;

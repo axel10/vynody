@@ -149,16 +149,16 @@ class ScannerMetadataStore {
   }
 
   Future<void> loadThumbnailForPath(String path) async {
+    final cached = _metadataMap[path];
+    if (cached != null) {
+      return;
+    }
+
     final stopwatch = Stopwatch()..start();
     if (!await File(path).exists()) {
       await purgeMissingSongPath(path);
       stopwatch.stop();
       _logTiming('loadThumbnailForPath missing($path)', stopwatch);
-      return;
-    }
-
-    final cached = _metadataMap[path];
-    if (cached != null && (cached.thumbnailPath?.isNotEmpty ?? false)) {
       return;
     }
 

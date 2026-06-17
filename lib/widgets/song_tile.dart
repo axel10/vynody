@@ -34,12 +34,13 @@ class SongTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final scanner = ref.watch(scannerServiceProvider);
+    final metadata = ref.watch(
+      scannerServiceProvider.select((s) => s.metadataMap[song.path]),
+    );
     
     final isMissing = song.isMissing;
     
     // Resolve metadata (artist and album)
-    final metadata = scanner.metadataMap[song.path];
     final artist = metadata?.artist ?? song.artist ?? l10n.unknownArtist;
     final album = metadata?.album ?? song.album ?? l10n.unknownAlbum;
     final artistAlbumText = '$artist - $album';
