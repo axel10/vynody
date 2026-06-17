@@ -454,7 +454,7 @@ class _WindowsCapsuleButtons extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(13),
+            bottomLeft: Radius.circular(6),
           ),
           boxShadow: [
             BoxShadow(
@@ -466,7 +466,7 @@ class _WindowsCapsuleButtons extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(13),
+            bottomLeft: Radius.circular(6),
           ),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -476,7 +476,7 @@ class _WindowsCapsuleButtons extends StatelessWidget {
               decoration: BoxDecoration(
                 color: capsuleBg,
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(13),
+                  bottomLeft: Radius.circular(6),
                 ),
                 border: Border.all(color: capsuleBorderColor, width: 0.5),
               ),
