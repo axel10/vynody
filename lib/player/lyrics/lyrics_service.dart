@@ -269,7 +269,7 @@ class LyricsService {
   /// 逻辑概述：
   /// - 首先尝试 /get API 进行精准匹配（通过标题/艺术家/专辑/时长作为唯一标识）。
   /// - 若无精准结果，则通过 /search API 发起全文检索，并对所有候选结果进行加权评分（相似度/时长偏差）。
-  /// - 评分系统综合考虑：标题相似度(45%)、歌手(25%)、专辑(15%)、时长(10%)、同步性(5%)。
+  /// - 评分系统综合考虑：标题相似度(35%)、时长(35%)、歌手(15%)、专辑(10%)、同步性(5%)。
   /// - 只有综合评分高于阈值（默认 65 分）或时长偏差极小（3秒内）的结果才会作为最佳候选项保存至本地数据库并返回。
   Future<LyricSelectionResult?> _fetchBestLyricsInternal(
     LyricsQuery query, {
@@ -818,10 +818,10 @@ class LyricsService {
       weighted.add(weight * score);
     }
 
-    addWeighted(45.0, queryTitle.isEmpty ? null : titleScore);
-    addWeighted(25.0, queryArtist.isEmpty ? null : artistScore);
-    addWeighted(15.0, queryAlbum.isEmpty ? null : albumScore);
-    addWeighted(10.0, durationSeconds == null ? null : durationScore);
+    addWeighted(35.0, queryTitle.isEmpty ? null : titleScore);
+    addWeighted(35.0, durationSeconds == null ? null : durationScore);
+    addWeighted(15.0, queryArtist.isEmpty ? null : artistScore);
+    addWeighted(10.0, queryAlbum.isEmpty ? null : albumScore);
     addWeighted(5.0, lyricsQualityScore);
 
     final totalWeight = weights.fold<double>(0, (sum, value) => sum + value);
@@ -846,10 +846,10 @@ class LyricsService {
       source: 'lrclib',
       score: total,
       breakdown: LyricScoreBreakdown(
-        title: titleScore * 45.0,
-        artist: artistScore * 25.0,
-        album: albumScore * 15.0,
-        duration: durationScore * 10.0,
+        title: titleScore * 35.0,
+        artist: artistScore * 15.0,
+        album: albumScore * 10.0,
+        duration: durationScore * 35.0,
         lyricsQuality: lyricsQualityScore * 5.0,
         instrumentalPenalty: instrumentalPenalty,
       ),
