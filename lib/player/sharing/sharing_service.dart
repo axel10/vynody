@@ -253,23 +253,27 @@ class SharingService {
     }
   }
 
-  Future<void> _ensureRegisteredInScanner() async {
+  Future<void> _cleanObsoleteIosPaths() async {
+    if (!Platform.isIOS) return;
     final scanner = _ref.read(scannerServiceProvider);
     await scanner.ready;
 
-    if (Platform.isIOS) {
-      // iOS app sandbox path contains a dynamic UUID that can change on each run/update.
-      // Clean up obsolete sharing folders from previous launches.
-      final obsoletePaths = scanner.rootPaths.where((path) {
-        return !p.equals(path, _sharingFolderPath) &&
-            (path.endsWith('/Documents/Vynody Music') || path.endsWith('\\Documents\\Vynody Music'));
-      }).toList();
+    // iOS app sandbox path contains a dynamic UUID that can change on each run/update.
+    // Clean up obsolete sharing folders from previous launches.
+    final obsoletePaths = scanner.rootPaths.where((path) {
+      return !p.equals(path, _sharingFolderPath) &&
+          (path.endsWith('/Documents/Vynody Music') || path.endsWith('\\Documents\\Vynody Music'));
+    }).toList();
 
-      if (obsoletePaths.isNotEmpty) {
-        debugPrint('[SharingService] Removing obsolete iOS sharing folders: $obsoletePaths');
-        await scanner.removeRootPaths(obsoletePaths);
-      }
+    if (obsoletePaths.isNotEmpty) {
+      debugPrint('[SharingService] Removing obsolete iOS sharing folders: $obsoletePaths');
+      await scanner.removeRootPaths(obsoletePaths);
     }
+  }
+
+  Future<void> _ensureRegisteredInScanner() async {
+    final scanner = _ref.read(scannerServiceProvider);
+    await scanner.ready;
 
     if (!scanner.rootPaths.any((path) => p.equals(path, _sharingFolderPath))) {
       debugPrint('[SharingService] Adding sharing folder to scanner: $_sharingFolderPath');
@@ -279,7 +283,7 @@ class SharingService {
 
   Future<void> start() async {
     await init();
-    await _ensureRegisteredInScanner();
+    await _cleanObsoleteIosPaths();
 
     // 1. Resolve Local IP
     _localIp = await _getLocalIpAddress();
@@ -718,6 +722,9 @@ class SharingService {
       }
       await ioSink.flush();
       await ioSink.close();
+
+      // Ensure the sharing folder is added to scanner now that we have received a file
+      await _ensureRegisteredInScanner();
       
       // Save lyrics package if available
       try {
