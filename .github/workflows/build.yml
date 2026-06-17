@@ -280,7 +280,7 @@ jobs:
               set -euo pipefail
               apt-get update
               apt-get install -y /packages/vynody-linux-*.deb
-              test -x /opt/vynody/Vynody
+              test -x /opt/vynody/vynody
               test -x /usr/bin/vynody
               dpkg -s vynody
             '
@@ -293,7 +293,7 @@ jobs:
             bash -lc '
               set -euo pipefail
               dnf install -y /packages/vynody-linux-*.rpm
-              test -x /opt/vynody/Vynody
+              test -x /opt/vynody/vynody
               test -x /usr/bin/vynody
               rpm -q vynody
             '

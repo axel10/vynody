@@ -5,6 +5,7 @@ set -euo pipefail
 APP_NAME="Vynody"
 APP_ID="app.vynody.player"
 APP_SLUG="vynody"
+BINARY_NAME="vynody"
 APP_DESCRIPTION="Cross-platform music player built with Flutter"
 APP_VENDOR="Vynody"
 APP_LICENSE="Proprietary"
@@ -27,8 +28,8 @@ if [[ ! -d "$BUNDLE_DIR" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$BUNDLE_DIR/$APP_NAME" ]]; then
-  echo "Linux runner binary not found: $BUNDLE_DIR/$APP_NAME" >&2
+if [[ ! -f "$BUNDLE_DIR/$BINARY_NAME" ]]; then
+  echo "Linux runner binary not found: $BUNDLE_DIR/$BINARY_NAME" >&2
   exit 1
 fi
 
@@ -51,7 +52,7 @@ install -m 0644 "$ICON_SOURCE" "$ICON_DIR/$APP_SLUG.png"
 
 cat > "$BIN_DIR/$APP_SLUG" <<EOF
 #!/bin/sh
-exec /opt/$APP_SLUG/$APP_NAME "\$@"
+exec /opt/$APP_SLUG/$BINARY_NAME "\$@"
 EOF
 chmod 0755 "$BIN_DIR/$APP_SLUG"
 
