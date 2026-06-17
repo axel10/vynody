@@ -1358,7 +1358,7 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     // 提取公共组件 (Extract common components)
     Widget wrapWithMaybeFitted(Widget child, {bool fit = false}) {
-      if (fit) {
+      if (fit && unifiedWidth < buttonsRowWidth) {
         return SizedBox(
           width: unifiedWidth,
           child: FittedBox(
@@ -1867,6 +1867,25 @@ class PlaybackHeroCard extends ConsumerWidget {
   }
 }
 
+class _ZeroPaddingTrackShape extends RoundedRectSliderTrackShape {
+  const _ZeroPaddingTrackShape();
+
+  @override
+  Rect getPreferredRect({
+    required RenderBox parentBox,
+    Offset offset = Offset.zero,
+    required SliderThemeData sliderTheme,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+  }) {
+    final double trackHeight = sliderTheme.trackHeight ?? 4.0;
+    final double trackLeft = offset.dx;
+    final double trackTop = offset.dy + (parentBox.size.height - trackHeight) / 2;
+    final double trackWidth = parentBox.size.width;
+    return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
+  }
+}
+
 class PlaybackProgressSection extends ConsumerWidget {
   final MusicFile? currentMusic;
   final double controlsScale;
@@ -1905,16 +1924,25 @@ class PlaybackProgressSection extends ConsumerWidget {
     final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
     final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
 
+    // Calculate the horizontal padding to align with the outer visual edges of the outermost icons
+    // Top button size: 44 * controlsScale, icon size: 22 * controlsScale (margin is 11 * controlsScale)
+    // Bottom button size: 40 * controlsScale, icon size: 24 * controlsScale (margin is 8 * controlsScale)
+    // We choose 11.0 * controlsScale to align with the visual boundaries of the outermost icons.
+    final double horizontalPadding = isLandscape ? 11.0 * controlsScale : 0.0;
+
     Widget buildStandardSlider(BuildContext context, double displayProgress, double controlsScale, {bool noPadding = false}) {
+      final double pad = noPadding
+          ? horizontalPadding
+          : PlaybackHeroCardUiTuning.waveformStandardHorizontalPadding;
+
       return Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: noPadding
-              ? 0.0
-              : PlaybackHeroCardUiTuning.waveformStandardHorizontalPadding,
+          horizontal: pad,
         ),
         child: SliderTheme(
           data: SliderTheme.of(context).copyWith(
             trackHeight: 4 * controlsScale,
+            trackShape: isLandscape ? const _ZeroPaddingTrackShape() : null,
             thumbShape: RoundSliderThumbShape(
               enabledThumbRadius: 7 * controlsScale,
             ),
@@ -1960,24 +1988,27 @@ class PlaybackProgressSection extends ConsumerWidget {
                             ? 1.0
                             : PlaybackHeroCardUiTuning.portraitWaveformOverflowScale);
 
-                    final widget = WaveformProgressBar(
-                      waveform: waveform,
-                      progress: displayProgress,
-                      duration: duration,
-                      onScrubbing: onScrubbing ?? (_) {},
-                      onSeek: onSeek ?? (_) {},
-                      height: (isLandscape
-                              ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
-                              : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
-                          controlsScale,
-                      barWidth: (isLandscape
-                              ? PlaybackHeroCardUiTuning.waveformBarWidthLandscape
-                              : PlaybackHeroCardUiTuning.waveformBarWidth) /
-                          overflowScale,
-                      barGap: (isLandscape
-                              ? PlaybackHeroCardUiTuning.waveformBarGapLandscape
-                              : PlaybackHeroCardUiTuning.waveformBarGap) /
-                          overflowScale,
+                    final widget = Padding(
+                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      child: WaveformProgressBar(
+                        waveform: waveform,
+                        progress: displayProgress,
+                        duration: duration,
+                        onScrubbing: onScrubbing ?? (_) {},
+                        onSeek: onSeek ?? (_) {},
+                        height: (isLandscape
+                                ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
+                                : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
+                            controlsScale,
+                        barWidth: (isLandscape
+                                ? PlaybackHeroCardUiTuning.waveformBarWidthLandscape
+                                : PlaybackHeroCardUiTuning.waveformBarWidth) /
+                            overflowScale,
+                        barGap: (isLandscape
+                                ? PlaybackHeroCardUiTuning.waveformBarGapLandscape
+                                : PlaybackHeroCardUiTuning.waveformBarGap) /
+                            overflowScale,
+                      ),
                     );
 
                     if (!isLandscape) {
@@ -2002,7 +2033,9 @@ class PlaybackProgressSection extends ConsumerWidget {
             height: (isLandscape ? PlaybackHeroCardUiTuning.controlsTimeGap : 8.0) * controlsScale,
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: isLandscape ? horizontalPadding : 8.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
