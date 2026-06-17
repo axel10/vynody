@@ -451,7 +451,8 @@ class MetadataHelper {
       final hasArtwork =
           (existing.artworkPath?.isNotEmpty ?? false) ||
           (existing.thumbnailPath?.isNotEmpty ?? false);
-      if (!generateThumbnail || hasArtwork) {
+      final hasImageScanned = existing.metadataImgScanned == lastModified;
+      if (!generateThumbnail || hasArtwork || hasImageScanned) {
         return (existing, null);
       }
     }

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
@@ -133,6 +134,14 @@ class TrackArtworkThemeService {
       return cachedResult;
     }
 
+    if (cached != null) {
+      final lastModified = cached.lastModifiedTime;
+      if (cached.metadataImgScanned != null &&
+          cached.metadataImgScanned == lastModified) {
+        return cachedResult;
+      }
+    }
+
     final inFlight = _inFlight[normalizedPath];
     if (inFlight != null) {
       return inFlight;
@@ -182,6 +191,11 @@ class TrackArtworkThemeService {
           artist: 'Unknown Artist',
         );
 
+    final lastModified = baseMetadata.lastModifiedTime ??
+        (File(path).existsSync()
+            ? File(path).lastModifiedSync().millisecondsSinceEpoch
+            : DateTime.now().millisecondsSinceEpoch);
+
     try {
       final artwork = await controller.generateTrackArtwork(
         path: path,
@@ -198,7 +212,11 @@ class TrackArtworkThemeService {
           !(artwork.thumbnailPath?.trim().isNotEmpty ?? false) &&
           (artwork.themeColorsBlob == null ||
               artwork.themeColorsBlob!.isEmpty)) {
-        return TrackArtworkThemeResult.fromMetadata(path, cached);
+        final resolvedMetadata = baseMetadata.copyWith(
+          metadataImgScanned: lastModified,
+        );
+        await _db.insertOrUpdateSong(resolvedMetadata);
+        return TrackArtworkThemeResult.fromMetadata(path, resolvedMetadata);
       }
 
       final resolvedMetadata = baseMetadata.copyWith(
@@ -208,6 +226,7 @@ class TrackArtworkThemeService {
         artworkHeight: artwork.artworkHeight ?? baseMetadata.artworkHeight,
         themeColorsBlob:
             artwork.themeColorsBlob ?? baseMetadata.themeColorsBlob,
+        metadataImgScanned: lastModified,
       );
 
       await _db.insertOrUpdateSong(resolvedMetadata);

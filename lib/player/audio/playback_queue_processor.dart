@@ -7,7 +7,6 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
@@ -174,10 +173,7 @@ class PlaybackQueueProcessor {
           // Fallback to embedded artwork
           if (finalBytes == null) {
             try {
-              final m = readMetadata(File(song.path), getImage: true);
-              finalBytes = m.pictures.isNotEmpty
-                  ? m.pictures.first.bytes
-                  : null;
+              finalBytes = await MetadataHelper.decodeEmbeddedArtwork(song.path);
             } catch (e) {
               // Ignore failure
             }
@@ -235,13 +231,22 @@ class PlaybackQueueProcessor {
       final bool showWaveform = settingsService.isWaveformProgressBarEnabled;
 
       // Decide what needs to be done
+      final lastModified = existing?.lastModifiedTime ??
+          (await File(song.path).lastModified()).millisecondsSinceEpoch;
+
+      final bool hasScannedImg = existing != null &&
+          existing.metadataImgScanned != null &&
+          existing.metadataImgScanned == existing.lastModifiedTime;
+
       final bool needsWaveform =
           showWaveform && (existing == null || existing.waveformBlob == null);
       final bool needsThemeColor =
-          existing == null || existing.themeColorsBlob == null;
+          !hasScannedImg && (existing == null || existing.themeColorsBlob == null);
+      final bool needsArtwork =
+          !hasScannedImg && (existing == null || existing.thumbnailPath == null);
 
       // Heavy Processing: Thumbnails, Colors and Waveform
-      if (needsWaveform || needsThemeColor || existing.thumbnailPath == null) {
+      if (needsWaveform || needsThemeColor || needsArtwork) {
         if (_disposed || myId != _currentProcessId) return;
 
         debugPrint(
@@ -262,68 +267,76 @@ class PlaybackQueueProcessor {
         if (m != null) {
           // Use a non-nullable reference
           SongMetadata meta = m;
+          bool didScanImg = false;
 
-          final artworkTheme = await artworkThemeService.getTrackArtworkTheme(
-            song.path,
-            controller: player,
-            saveLargeArtwork: false,
-            thumbnailSize: generatedArtworkThumbnailSize,
-          );
-          if (_disposed || myId != _currentProcessId) return;
+          if (needsThemeColor || needsArtwork) {
+            final artworkTheme = await artworkThemeService.getTrackArtworkTheme(
+              song.path,
+              controller: player,
+              saveLargeArtwork: false,
+              thumbnailSize: generatedArtworkThumbnailSize,
+            );
+            if (_disposed || myId != _currentProcessId) return;
+            didScanImg = true;
 
-          if (artworkTheme != null &&
-              (artworkTheme.hasArtworkPath || artworkTheme.hasThemeColors)) {
-            meta = artworkTheme.toSongMetadata(base: meta);
-            await db.insertOrUpdateSong(meta);
+            if (artworkTheme != null &&
+                (artworkTheme.hasArtworkPath || artworkTheme.hasThemeColors)) {
+              meta = artworkTheme.toSongMetadata(base: meta);
+              meta = meta.copyWith(metadataImgScanned: lastModified);
+              await db.insertOrUpdateSong(meta);
 
-            final updates = <String, dynamic>{
-              'thumbnailPath': artworkTheme.thumbnailPath ?? meta.thumbnailPath,
-              'artworkPath': artworkTheme.artworkPath ?? meta.artworkPath,
-              'artworkWidth': meta.artworkWidth,
-              'artworkHeight': meta.artworkHeight,
-            };
-            if (meta.themeColorsBlob != null) {
-              updates['themeColorsBlob'] = meta.themeColorsBlob;
-              updates['themeColors'] = ThemeColorHelper.blobToColors(
-                meta.themeColorsBlob!,
-              );
-            }
+              final updates = <String, dynamic>{
+                'thumbnailPath': artworkTheme.thumbnailPath ?? meta.thumbnailPath,
+                'artworkPath': artworkTheme.artworkPath ?? meta.artworkPath,
+                'artworkWidth': meta.artworkWidth,
+                'artworkHeight': meta.artworkHeight,
+              };
+              if (meta.themeColorsBlob != null) {
+                updates['themeColorsBlob'] = meta.themeColorsBlob;
+                updates['themeColors'] = ThemeColorHelper.blobToColors(
+                  meta.themeColorsBlob!,
+                );
+              }
 
-            onUpdate(song.path, updates);
-          } else if (meta.themeColorsBlob == null) {
-            try {
-              final paletteBytes =
-                  song.artworkBytes ??
-                  (meta.artworkPath != null
-                      ? await File(meta.artworkPath!).readAsBytes()
-                      : null);
-              Uint8List? themeColorsBlob =
-                  await TrackArtworkThemeService.generateThemeColorsBlob(
-                    bytes: paletteBytes,
-                    path: meta.artworkPath ?? meta.thumbnailPath,
-                  );
-
-              if (themeColorsBlob == null) {
-                final extractedBytes =
-                    await MetadataHelper.decodeEmbeddedArtwork(song.path);
-                if (_disposed || myId != _currentProcessId) return;
-                themeColorsBlob =
+              onUpdate(song.path, updates);
+            } else if (meta.themeColorsBlob == null) {
+              try {
+                final paletteBytes =
+                    song.artworkBytes ??
+                    (meta.artworkPath != null
+                        ? await File(meta.artworkPath!).readAsBytes()
+                        : null);
+                Uint8List? themeColorsBlob =
                     await TrackArtworkThemeService.generateThemeColorsBlob(
-                      bytes: extractedBytes,
+                      bytes: paletteBytes,
+                      path: meta.artworkPath ?? meta.thumbnailPath,
                     );
-              }
 
-              if (themeColorsBlob != null) {
-                meta = meta.copyWith(themeColorsBlob: themeColorsBlob);
-                await db.insertOrUpdateSong(meta);
+                if (themeColorsBlob == null) {
+                  final extractedBytes =
+                      await MetadataHelper.decodeEmbeddedArtwork(song.path);
+                  if (_disposed || myId != _currentProcessId) return;
+                  themeColorsBlob =
+                      await TrackArtworkThemeService.generateThemeColorsBlob(
+                        bytes: extractedBytes,
+                      );
+                }
 
-                onUpdate(song.path, {
-                  'themeColors': ThemeColorHelper.blobToColors(themeColorsBlob),
-                  'themeColorsBlob': themeColorsBlob,
-                });
+                if (themeColorsBlob != null) {
+                  meta = meta.copyWith(
+                    themeColorsBlob: themeColorsBlob,
+                    metadataImgScanned: lastModified,
+                  );
+                  await db.insertOrUpdateSong(meta);
+
+                  onUpdate(song.path, {
+                    'themeColors': ThemeColorHelper.blobToColors(themeColorsBlob),
+                    'themeColorsBlob': themeColorsBlob,
+                  });
+                }
+              } catch (e) {
+                debugPrint('Theme color extraction error for ${song.path}: $e');
               }
-            } catch (e) {
-              debugPrint('Theme color extraction error for ${song.path}: $e');
             }
           }
 
@@ -348,6 +361,13 @@ class PlaybackQueueProcessor {
             } catch (e) {
               debugPrint('Waveform extraction error for ${song.path}: $e');
             }
+          }
+
+          // If we attempted image scan but didn't save metadataImgScanned above (e.g. because no artwork was found at all),
+          // write it to DB now to prevent future repeated scans.
+          if (didScanImg && meta.metadataImgScanned != lastModified) {
+            meta = meta.copyWith(metadataImgScanned: lastModified);
+            await db.insertOrUpdateSong(meta);
           }
         }
 
