@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/models/music_file.dart';
@@ -31,12 +32,68 @@ class MiniQueueView extends ConsumerStatefulWidget {
 
 class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
   final Map<String, GlobalKey> _itemKeys = {};
+  late final ScrollController _scrollController;
+  int? _highlightedIndex;
+  Timer? _highlightTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _highlightTimer?.cancel();
+    super.dispose();
+  }
 
   GlobalKey _itemKeyForSong(MusicFile song) {
     return _itemKeys.putIfAbsent(
       song.path,
       () => GlobalKey(debugLabel: 'mini-queue-${song.path}'),
     );
+  }
+
+  void _scrollToCurrentPlay() {
+    final queue = ref.read(audioPlaybackQueueProvider);
+    final currentIndex = ref.read(audioCurrentIndexProvider);
+
+    if (currentIndex >= 0 && currentIndex < queue.length) {
+      if (_scrollController.hasClients) {
+        const double itemHeight = 50.0;
+        final double viewportHeight = _scrollController.position.viewportDimension;
+        double targetOffset = (currentIndex * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
+
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        if (targetOffset < 0) {
+          targetOffset = 0;
+        } else if (targetOffset > maxScroll) {
+          targetOffset = maxScroll;
+        }
+
+        _scrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        ).then((_) {
+          if (mounted) {
+            _highlightTimer?.cancel();
+            setState(() {
+              _highlightedIndex = currentIndex;
+            });
+            _highlightTimer = Timer(const Duration(milliseconds: 1000), () {
+              if (mounted) {
+                setState(() {
+                  _highlightedIndex = null;
+                });
+              }
+            });
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -80,6 +137,14 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
                       color: _miniQueueTitleColor,
                     ),
                   ),
+                  if (queue.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.my_location, size: 16, color: _miniQueueTitleColor),
+                      onPressed: _scrollToCurrentPlay,
+                      tooltip: l10n.locateCurrentSong,
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                    ),
                 ],
               ),
             ),
@@ -99,6 +164,7 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
                       ),
                     )
                   : ListView.builder(
+                      controller: _scrollController,
                       itemCount: queue.length,
                       padding: const EdgeInsets.only(bottom: 16.0),
                       itemBuilder: (context, index) {
@@ -110,6 +176,7 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
                           child: _MiniQueueTile(
                             song: song,
                             isCurrent: isCurrent,
+                            isHighlighted: _highlightedIndex == index,
                             playlistService: playlistService,
                             audioService: audioService,
                             onTap: () {
@@ -133,6 +200,7 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
 class _MiniQueueTile extends StatefulWidget {
   final MusicFile song;
   final bool isCurrent;
+  final bool isHighlighted;
   final PlaylistService playlistService;
   final AudioService audioService;
   final VoidCallback onTap;
@@ -141,6 +209,7 @@ class _MiniQueueTile extends StatefulWidget {
   const _MiniQueueTile({
     required this.song,
     required this.isCurrent,
+    this.isHighlighted = false,
     required this.playlistService,
     required this.audioService,
     required this.onTap,
@@ -200,88 +269,100 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
         behavior: HitTestBehavior.opaque,
         onSecondaryTapDown: (details) => showMenuAt(details.globalPosition),
         onLongPressStart: (details) => showMenuAt(details.globalPosition),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: widget.onTap,
-            hoverColor: _miniQueueHoverColor,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              child: Row(
-                children: [
-                  if (widget.isCurrent) ...[
-                    Icon(
-                      Icons.volume_up_rounded,
-                      color: _miniQueueCurrentTrackColor,
-                      size: 14,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            color: widget.isHighlighted
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.25)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: widget.onTap,
+              hoverColor: _miniQueueHoverColor,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: Row(
+                  children: [
+                    if (widget.isCurrent) ...[
+                      Icon(
+                        Icons.volume_up_rounded,
+                        color: _miniQueueCurrentTrackColor,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            widget.song.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: widget.isCurrent
+                                      ? _miniQueueCurrentTrackColor
+                                      : _miniQueuePrimaryTextColor,
+                                  fontWeight: widget.isCurrent
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  fontSize: 13,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.song.artist ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: widget.isCurrent
+                                      ? _miniQueueCurrentTrackSecondaryColor
+                                      : _miniQueueSecondaryTextColor,
+                                  fontSize: 11,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
+                    if (_isHovered)
+                      IconButton(
+                        style: IconButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(28, 28),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: _miniQueueRemoveIconColor,
+                        ),
+                        onPressed: widget.onRemove,
+                      )
+                    else
+                      Text(
+                        _formatDuration(widget.song.durationMillis),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: widget.isCurrent
+                              ? _miniQueueCurrentTrackDurationColor
+                              : _miniQueueDurationTextColor,
+                          fontSize: 10,
+                        ),
+                      ),
                   ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          widget.song.displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: widget.isCurrent
-                                    ? _miniQueueCurrentTrackColor
-                                    : _miniQueuePrimaryTextColor,
-                                fontWeight: widget.isCurrent
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontSize: 13,
-                              ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          widget.song.artist ?? '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: widget.isCurrent
-                                    ? _miniQueueCurrentTrackSecondaryColor
-                                    : _miniQueueSecondaryTextColor,
-                                fontSize: 11,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (_isHovered)
-                    IconButton(
-                      style: IconButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(28, 28),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      icon: Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: _miniQueueRemoveIconColor,
-                      ),
-                      onPressed: widget.onRemove,
-                    )
-                  else
-                    Text(
-                      _formatDuration(widget.song.durationMillis),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: widget.isCurrent
-                            ? _miniQueueCurrentTrackDurationColor
-                            : _miniQueueDurationTextColor,
-                        fontSize: 10,
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
           ),
