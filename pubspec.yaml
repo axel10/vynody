@@ -233,8 +233,8 @@ dependency_overrides:
   #   path: ./Bonsoir/packages/bonsoir
   # bonsoir_windows:
   #   path: ./Bonsoir/packages/bonsoir_windows
-  # audio_core:
-  #   path: ./audio_core
+  audio_core:
+    path: ./audio_core
 #   flutter_taglib:
 #     path: ./audio_core/flutter_taglib
 #   mobile_storage_listener:

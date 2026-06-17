@@ -44,11 +44,9 @@ packages:
   audio_core:
     dependency: "direct main"
     description:
-      path: "."
-      ref: main
-      resolved-ref: c2198fbd2d5195edd6dfd6fb2834a3e87766189a
-      url: "https://github.com/axel10/audio_core"
-    source: git
+      path: audio_core
+      relative: true
+    source: path
     version: "0.0.1"
   audio_metadata_reader:
     dependency: "direct main"
