@@ -84,6 +84,8 @@ class LyricsPanelEmptyState extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: accentColor.withValues(alpha: 0.95),
                       foregroundColor: buttonForegroundColor,
+                      disabledBackgroundColor: accentColor.withValues(alpha: 0.95),
+                      disabledForegroundColor: buttonForegroundColor,
                       padding: const EdgeInsets.symmetric(horizontal: 18),
                     ),
                     icon: isGenerating
