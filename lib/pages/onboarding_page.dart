@@ -1,14 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart' as file_selector;
-import 'package:vynody/player/settings/settings_service.dart';
-import 'package:vynody/player/settings/windows_association_service.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
-import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import '../l10n/app_localizations.dart';
@@ -25,13 +21,9 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  bool _isAssociated = false;
-  bool _isAssociating = false;
-
   @override
   void initState() {
     super.initState();
-    _checkAssociationStatus();
   }
 
   @override
@@ -40,16 +32,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
-  Future<void> _checkAssociationStatus() async {
-    if (Platform.isWindows) {
-      final status = await WindowsAssociationService.isAssociated();
-      if (mounted) {
-        setState(() {
-          _isAssociated = status;
-        });
-      }
-    }
-  }
 
   Future<String?> _getDirectoryPath() {
     if (Platform.isWindows) {
@@ -104,46 +86,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  Future<void> _associateFiles() async {
-    if (!Platform.isWindows) return;
-    setState(() {
-      _isAssociating = true;
-    });
-
-    final l10n = AppLocalizations.of(context)!;
-    try {
-      await WindowsAssociationService.associate();
-      await _checkAssociationStatus();
-      if (!mounted) return;
-      AppSnackBar.show(
-        context,
-        ref,
-        SnackBar(content: Text(l10n.associationSuccess)),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      AppSnackBar.show(
-        context,
-        ref,
-        SnackBar(content: Text(l10n.associationFailed(e.toString()))),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isAssociating = false;
-        });
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final hasWindowsAssociation = Platform.isWindows;
-
-    final totalPages = hasWindowsAssociation ? 3 : 2;
+    final totalPages = 2;
 
     return Scaffold(
       body: Container(
@@ -208,10 +157,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             children: [
                               // Step 1: Welcome
                               _buildWelcomePage(l10n, theme),
-                              // Step 2: Windows File Association (If on Windows)
-                              if (hasWindowsAssociation)
-                                _buildFileAssociationPage(l10n, theme),
-                              // Step 3: Add Music Directory
+                              // Step 2: Add Music Directory
                               _buildMusicDirectoryPage(l10n, theme),
                             ],
                           ),
@@ -284,130 +230,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildFileAssociationPage(AppLocalizations l10n, ThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF39C5BB).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.open_in_new_rounded,
-                  color: Color(0xFF39C5BB),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  l10n.onboardingStepFileAssociation,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.onboardingFileAssociationDesc,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.8),
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(isDark ? 0.08 : 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.amber.withOpacity(isDark ? 0.3 : 0.2),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.info_outline_rounded,
-                  color: Colors.amber,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    l10n.onboardingFileAssociationTip,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      height: 1.5,
-                      color: isDark ? Colors.amber[200] : Colors.amber[900],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          Center(
-            child: SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: _isAssociated
-                  ? OutlinedButton.icon(
-                      onPressed: null,
-                      icon: const Icon(Icons.check_circle, color: Colors.green),
-                      label: Text(
-                        '已开启关联 (Associated)',
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    )
-                  : FilledButton.icon(
-                      onPressed: _isAssociating ? null : _associateFiles,
-                      icon: _isAssociating
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(Icons.link_rounded),
-                      label: Text(
-                        l10n.associateButton,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF39C5BB),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildMusicDirectoryPage(AppLocalizations l10n, ThemeData theme) {
     final scanner = ref.watch(scannerServiceProvider);
@@ -498,7 +320,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   itemCount: rootFolders.length,
-                  separatorBuilder: (_, __) => Divider(
+                  separatorBuilder: (context, index) => Divider(
                     height: 1,
                     color: theme.colorScheme.onSurface.withOpacity(0.06),
                   ),

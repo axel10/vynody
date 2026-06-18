@@ -211,6 +211,23 @@ msix_config:
   output_path: build/windows/msix
   install_certificate: false
   capabilities: "broadFileSystemAccess, rescap:runFullTrust"
+  file_extensions:
+    - .aac
+    - .aif
+    - .aiff
+    - .alac
+    - .caf
+    - .flac
+    - .m4a
+    - .m4b
+    - .m4p
+    - .mid
+    - .midi
+    - .mp3
+    - .ogg
+    - .opus
+    - .wav
+    - .webm
 
 dependency_overrides:
   # audio_metadata_reader:  
