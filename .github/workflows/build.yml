@@ -73,16 +73,16 @@ jobs:
       - name: Rename APKs with version
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
-          mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk build/app/outputs/flutter-apk/vibeflow-android-${VERSION}-armeabi-v7a.apk
-          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk build/app/outputs/flutter-apk/vibeflow-android-${VERSION}-arm64-v8a.apk
+          mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk build/app/outputs/flutter-apk/vynody-android-${VERSION}-armeabi-v7a.apk
+          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk build/app/outputs/flutter-apk/vynody-android-${VERSION}-arm64-v8a.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: |
-            build/app/outputs/flutter-apk/vibeflow-android-*-armeabi-v7a.apk
-            build/app/outputs/flutter-apk/vibeflow-android-*-arm64-v8a.apk
+            build/app/outputs/flutter-apk/vynody-android-*-armeabi-v7a.apk
+            build/app/outputs/flutter-apk/vynody-android-*-arm64-v8a.apk
 
   windows:
     name: Build Windows Package
@@ -194,20 +194,20 @@ jobs:
           }
           
           # 1. Package zip with version
-          $zipOutput = "vibeflow-windows-$appVersion.zip"
+          $zipOutput = "vynody-windows-$appVersion.zip"
           if (Test-Path $zipOutput) { Remove-Item $zipOutput -Force }
           Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath $zipOutput
 
           # 2. Rename MSIX files with version
           Get-ChildItem "build/windows/msix" -Filter "*.msix" -Recurse | ForEach-Object {
-              $newName = "vibeflow-windows-$appVersion.msix"
+              $newName = "vynody-windows-$appVersion.msix"
               $newPath = Join-Path $_.DirectoryName $newName
               Move-Item $_.FullName $newPath -Force
           }
 
           # 3. Rename Inno Setup installer with version
           Get-ChildItem "build/windows/installer" -Filter "*.exe" -Recurse | ForEach-Object {
-              $newName = "vibeflow-windows-$appVersion-setup.exe"
+              $newName = "vynody-windows-$appVersion-setup.exe"
               $newPath = Join-Path $_.DirectoryName $newName
               Move-Item $_.FullName $newPath -Force
           }
@@ -217,7 +217,7 @@ jobs:
         with:
           name: windows-package
           path: |
-            vibeflow-windows-*.zip
+            vynody-windows-*.zip
             build/windows/msix/**/*.msix
             build/windows/installer/*.exe
 
@@ -260,7 +260,7 @@ jobs:
       - name: Package Linux bundle
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
-          tar -czf vibeflow-linux-$VERSION.tar.gz -C build/linux/x64/release bundle
+          tar -czf vynody-linux-$VERSION.tar.gz -C build/linux/x64/release bundle
 
       - name: Package Linux deb and rpm
         run: bash scripts/package_linux.sh
@@ -303,7 +303,7 @@ jobs:
         with:
           name: linux-package
           path: |
-            vibeflow-linux-*.tar.gz
+            vynody-linux-*.tar.gz
             build/linux/packages/vynody-linux-*.deb
             build/linux/packages/vynody-linux-*.rpm
 
@@ -440,27 +440,27 @@ jobs:
 
       - name: Build DMG staging folder
         run: |
-          rm -rf vibeflow-dmg
-          mkdir -p vibeflow-dmg
-          cp -R build/macos/Build/Products/Release/Vynody.app vibeflow-dmg/
-          codesign --force --deep --sign - --preserve-metadata=entitlements,identifier,flags vibeflow-dmg/Vynody.app
-          ln -s /Applications vibeflow-dmg/Applications
+          rm -rf vynody-dmg
+          mkdir -p vynody-dmg
+          cp -R build/macos/Build/Products/Release/Vynody.app vynody-dmg/
+          codesign --force --deep --sign - --preserve-metadata=entitlements,identifier,flags vynody-dmg/Vynody.app
+          ln -s /Applications vynody-dmg/Applications
 
       - name: Package macOS DMG
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
           hdiutil create \
             -volname "Vynody" \
-            -srcfolder vibeflow-dmg \
+            -srcfolder vynody-dmg \
             -ov \
             -format UDZO \
-            vibeflow-macos-$VERSION.dmg
+            vynody-macos-$VERSION.dmg
 
       - name: Upload macOS package
         uses: actions/upload-artifact@v4
         with:
           name: macos-package
-          path: vibeflow-macos-*.dmg
+          path: vynody-macos-*.dmg
 
   ios:
     name: Build iOS App
@@ -512,13 +512,13 @@ jobs:
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
           cd build/ios/iphoneos
-          zip -r "../../../vibeflow-ios-$VERSION.zip" Runner.app
+          zip -r "../../../vynody-ios-$VERSION.zip" Runner.app
 
       - name: Upload iOS package
         uses: actions/upload-artifact@v4
         with:
           name: ios-package
-          path: vibeflow-ios-*.zip
+          path: vynody-ios-*.zip
 
   release:
     name: Create Release and Upload Assets
@@ -561,8 +561,8 @@ jobs:
       - name: Prepare Assets
         run: |
           mkdir -p release_assets
-          # Copy all versioned artifacts starting with vibeflow- or vynody- to release_assets
-          find artifacts -type f \( -name "vibeflow-*" -o -name "vynody-*" \) -exec cp {} release_assets/ \;
+          # Copy all versioned artifacts starting with vynody- or vynody- to release_assets
+          find artifacts -type f \( -name "vynody-*" -o -name "vynody-*" \) -exec cp {} release_assets/ \;
           ls -l release_assets
 
       - name: Create Release and Upload Assets
