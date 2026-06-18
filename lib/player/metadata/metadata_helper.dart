@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:audio_core/audio_core.dart';
-import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
@@ -130,25 +129,6 @@ class MetadataHelper {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) return fallback;
     return trimmed;
-  }
-
-  static String _pictureTypeToAndroidLabel(PictureType type) {
-    switch (type) {
-      case PictureType.coverFront:
-        return 'Front Cover';
-      case PictureType.coverBack:
-        return 'Back Cover';
-      case PictureType.leafletPage:
-        return 'Leaflet Page';
-      case PictureType.mediaLabelCD:
-        return 'Media Label CD';
-      case PictureType.artistPerformer:
-        return 'Artist / Performer';
-      case PictureType.bandArtistLogotype:
-        return 'Band Logo';
-      default:
-        return 'Other';
-    }
   }
 
   static Future<bool> _writeSelectionMetadataToFile({
@@ -489,10 +469,8 @@ class MetadataHelper {
         artworkData = metadata.pictures.isNotEmpty
             ? metadata.pictures.first.bytes
             : null;
-      } on NoMetadataParserException {
-        artworkData = null;
       } catch (e) {
-        debugPrint('audio_metadata_reader error for $filePath: $e');
+        debugPrint('TagLib read error for $filePath: $e');
       }
 
       String? artworkPath;
@@ -750,24 +728,72 @@ class MetadataHelper {
     try {
       final metadata = readMetadataIsolate(filePath);
       return metadata.hasArtwork;
-    } on MetadataParserException catch (_) {
+    } catch (_) {
       // Probe-only API: tagless or slightly malformed files should behave like
       // "no artwork" here instead of polluting logs.
-      return false;
-    } on NoMetadataParserException catch (_) {
-      return false;
-    } catch (e) {
-      debugPrint('Error probing embedded artwork for $filePath: $e');
       return false;
     }
   }
 
-  static AudioMetadata readMetadataIsolate(String path) {
-    return readMetadata(File(path), getImage: false);
+  static TagLibMetadata readMetadataIsolate(String path) {
+    if (!taglib.TagLibFile.isSupported) {
+      throw UnsupportedError('TagLib is not supported.');
+    }
+    final tagFile = taglib.TagLibFile.open(path);
+    if (tagFile == null) {
+      throw Exception('Failed to open file via TagLib.');
+    }
+    try {
+      final title = tagFile.title;
+      final artist = tagFile.artist;
+      final album = tagFile.album;
+      final duration = tagFile.duration;
+      final trackNumber = tagFile.track;
+      final hasArtwork = tagFile.hasCover;
+
+      return TagLibMetadata(
+        title: title.isNotEmpty ? title : null,
+        album: album.isNotEmpty ? album : null,
+        artist: artist.isNotEmpty ? artist : null,
+        duration: duration.inMilliseconds > 0 ? duration : null,
+        trackNumber: trackNumber > 0 ? trackNumber : null,
+        hasArtwork: hasArtwork,
+        pictures: const [],
+      );
+    } finally {
+      tagFile.close();
+    }
   }
 
-  static AudioMetadata readMetadataWithImageIsolate(String path) {
-    return readMetadata(File(path), getImage: true);
+  static TagLibMetadata readMetadataWithImageIsolate(String path) {
+    if (!taglib.TagLibFile.isSupported) {
+      throw UnsupportedError('TagLib is not supported.');
+    }
+    final tagFile = taglib.TagLibFile.open(path);
+    if (tagFile == null) {
+      throw Exception('Failed to open file via TagLib.');
+    }
+    try {
+      final title = tagFile.title;
+      final artist = tagFile.artist;
+      final album = tagFile.album;
+      final duration = tagFile.duration;
+      final trackNumber = tagFile.track;
+      final hasArtwork = tagFile.hasCover;
+      final pictures = tagFile.pictures;
+
+      return TagLibMetadata(
+        title: title.isNotEmpty ? title : null,
+        album: album.isNotEmpty ? album : null,
+        artist: artist.isNotEmpty ? artist : null,
+        duration: duration.inMilliseconds > 0 ? duration : null,
+        trackNumber: trackNumber > 0 ? trackNumber : null,
+        hasArtwork: hasArtwork,
+        pictures: pictures,
+      );
+    } finally {
+      tagFile.close();
+    }
   }
 
   static Future<List<Map<String, dynamic>>> readMetadataBatch(
@@ -793,22 +819,38 @@ class MetadataHelper {
         .map((path) {
           final file = File(path);
           try {
-            final metadata = readMetadata(file, getImage: getImage);
-            final lastModified = file.lastModifiedSync().millisecondsSinceEpoch;
-            return <String, dynamic>{
-              'path': path,
-              'title': metadata.title,
-              'album': metadata.album,
-              'artist': metadata.artist,
-              'duration': metadata.duration?.inMilliseconds,
-              'trackNumber': metadata.trackNumber,
-              'lastModifiedTime': lastModified,
-              'hasArtwork': metadata.hasArtwork,
-              'artworkBytes': getImage && metadata.pictures.isNotEmpty
-                  ? metadata.pictures.first.bytes
-                  : null,
-              'error': null,
-            };
+            if (!taglib.TagLibFile.isSupported) {
+              throw UnsupportedError('TagLib is not supported.');
+            }
+            final tagFile = taglib.TagLibFile.open(path);
+            if (tagFile == null) {
+              throw Exception('Failed to open file via TagLib.');
+            }
+            try {
+              final title = tagFile.title;
+              final artist = tagFile.artist;
+              final album = tagFile.album;
+              final duration = tagFile.duration.inMilliseconds;
+              final trackNumber = tagFile.track;
+              final hasArtwork = tagFile.hasCover;
+              final artworkBytes = getImage && hasArtwork ? tagFile.coverData : null;
+              final lastModified = file.lastModifiedSync().millisecondsSinceEpoch;
+
+              return <String, dynamic>{
+                'path': path,
+                'title': title.isNotEmpty ? title : null,
+                'album': album.isNotEmpty ? album : null,
+                'artist': artist.isNotEmpty ? artist : null,
+                'duration': duration > 0 ? duration : null,
+                'trackNumber': trackNumber > 0 ? trackNumber : null,
+                'lastModifiedTime': lastModified,
+                'hasArtwork': hasArtwork,
+                'artworkBytes': artworkBytes,
+                'error': null,
+              };
+            } finally {
+              tagFile.close();
+            }
           } catch (e) {
             final lastModified = _safeLastModifiedMillis(file);
             return <String, dynamic>{
@@ -846,7 +888,7 @@ class MetadataHelper {
     int? trackNumber,
     List<String>? genres,
     String? o3ics,
-    List<Picture>? pictures,
+    List<taglib.Picture>? pictures,
   }) async {
     if (!isMetadataWritable(filePath)) {
       return false;
@@ -872,8 +914,8 @@ class MetadataHelper {
             ?.map(
               (picture) => TrackMetadataPicture(
                 bytes: picture.bytes,
-                mimeType: picture.mimetype,
-                pictureType: _pictureTypeToAndroidLabel(picture.pictureType),
+                mimeType: picture.mimeType,
+                pictureType: picture.pictureType,
               ),
             )
             .toList(),
@@ -906,10 +948,14 @@ class MetadataHelper {
           ? artworkBytesList[i]
           : null;
 
-      List<Picture>? pictures;
+      List<taglib.Picture>? pictures;
       if (artworkBytes != null) {
         pictures = [
-          Picture(artworkBytes, 'image/jpeg', PictureType.coverFront),
+          taglib.Picture(
+            bytes: artworkBytes,
+            mimeType: 'image/jpeg',
+            pictureType: 'Front Cover',
+          ),
         ];
       }
 
@@ -943,4 +989,24 @@ class MetadataHelper {
       unsupportedFiles: unsupportedFiles,
     );
   }
+}
+
+class TagLibMetadata {
+  final String? title;
+  final String? album;
+  final String? artist;
+  final Duration? duration;
+  final int? trackNumber;
+  final bool hasArtwork;
+  final List<taglib.Picture> pictures;
+
+  TagLibMetadata({
+    this.title,
+    this.album,
+    this.artist,
+    this.duration,
+    this.trackNumber,
+    required this.hasArtwork,
+    required this.pictures,
+  });
 }

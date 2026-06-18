@@ -75,11 +75,7 @@ dependencies:
   smtc_windows: ^1.1.0
   audio_service: ^0.18.18 
   audio_session: ^0.2.3
-  audio_metadata_reader:  
-    # path: audio_metadata_reader
-    git:
-      url: https://github.com/axel10/audio_metadata_reader
-      ref: main
+
   riverpod: ^3.2.1
   flutter_riverpod: ^3.0.3
   freezed_annotation: ^3.1.0
@@ -230,8 +226,6 @@ msix_config:
     - .webm
 
 dependency_overrides:
-  # audio_metadata_reader:  
-  #   path: audio_metadata_reader
   permission_handler_windows:
     git:
       url: https://github.com/localsend/permission_handler_windows_noop.git
@@ -252,8 +246,8 @@ dependency_overrides:
   #   path: ./Bonsoir/packages/bonsoir_windows
   audio_core:
     path: ./audio_core
-#   flutter_taglib:
-#     path: ./audio_core/flutter_taglib
+  # flutter_taglib:
+  #   path: ./audio_core/flutter_taglib
 #   mobile_storage_listener:
 #     path: ./mobile_storage_listener
 

@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 
 import 'package:vynody/models/music_file.dart';
 import 'transcode_models.dart';
@@ -203,16 +203,31 @@ class TranscodeService {
         return;
       }
 
-      final metadata = readMetadata(file, getImage: false);
-      debugPrint(
-        '[Transcode] Output metadata path=$normalizedPath '
-        'title="${metadata.title ?? ''}" '
-        'artist="${metadata.artist ?? ''}" '
-        'album="${metadata.album ?? ''}" '
-        'durationMs=${metadata.duration?.inMilliseconds ?? 'null'} '
-        'trackNumber=${metadata.trackNumber ?? 'null'} '
-        'hasArtwork=${metadata.hasArtwork}',
-      );
+      if (taglib.TagLibFile.isSupported) {
+        final tagFile = taglib.TagLibFile.open(normalizedPath);
+        if (tagFile != null) {
+          try {
+            debugPrint(
+              '[Transcode] Output metadata path=$normalizedPath '
+              'title="${tagFile.title}" '
+              'artist="${tagFile.artist}" '
+              'album="${tagFile.album}" '
+              'durationMs=${tagFile.duration.inMilliseconds} '
+              'trackNumber=${tagFile.track} '
+              'hasArtwork=${tagFile.hasCover}',
+            );
+          } finally {
+            tagFile.close();
+          }
+        } else {
+          debugPrint(
+            '[Transcode] Failed to open file via TagLib for metadata probe: '
+            '$normalizedPath',
+          );
+        }
+      } else {
+        debugPrint('[Transcode] TagLib is not supported, skipping metadata probe.');
+      }
     } catch (error) {
       debugPrint(
         '[Transcode] Failed to read output metadata for $normalizedPath: '

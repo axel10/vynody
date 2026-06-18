@@ -982,7 +982,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         final targetPosition = _audioSeekPositionForLyricTimestamp(
           displayLines[targetLine].timestamp,
         );
-        await ref.read(audioServiceProvider).seek(targetPosition);
+        unawaited(ref.read(audioServiceProvider).seek(targetPosition));
       }
     } finally {
       if (mounted) {

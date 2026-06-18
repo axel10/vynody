@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/settings/theme_color_helper.dart';
 
 class TrackArtworkThemeResult {
@@ -197,8 +198,12 @@ class TrackArtworkThemeService {
             : DateTime.now().millisecondsSinceEpoch);
 
     try {
+      final artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(path);
+      final resolvedBytes = artworkBytes ?? Uint8List(0);
+
       final artwork = await controller.generateTrackArtwork(
         path: path,
+        artworkBytes: resolvedBytes,
         cacheRootPath: cacheRootPath,
         saveLargeArtwork: saveLargeArtwork,
         options: TrackArtworkOptions(
