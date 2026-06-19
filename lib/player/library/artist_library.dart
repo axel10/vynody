@@ -31,7 +31,11 @@ class ArtistLibraryRepository {
     _artistLibraryLog('session#$sessionId start');
 
     final songs = await _database.getAllSongMetadata();
-    final groups = _groupSongsByArtist(songs);
+    final filteredSongs = songs.where((song) {
+      final flags = song.sourceFlags ?? 0;
+      return (flags & SongSourceFlags.external) == 0;
+    }).toList(growable: false);
+    final groups = _groupSongsByArtist(filteredSongs);
 
     final cacheKeys = groups
         .map((group) => group.queryKey)

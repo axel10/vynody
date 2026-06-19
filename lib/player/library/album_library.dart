@@ -9,16 +9,24 @@ import 'package:vynody/player/metadata/metadata_database.dart';
 final albumLibraryProvider = StreamProvider<List<AlbumSummary>>((ref) async* {
   final db = MetadataDatabase();
   await for (final songs in db.watchAllSongMetadata()) {
-    final payload = songs.map(_metadataToPayload).toList(growable: false);
+    final filteredSongs = songs.where((song) {
+      final flags = song.sourceFlags ?? 0;
+      return (flags & SongSourceFlags.external) == 0;
+    }).toList(growable: false);
+    final payload = filteredSongs.map(_metadataToPayload).toList(growable: false);
     final albumPayloads = await compute(_buildAlbumSummaryPayloads, payload);
     yield _hydrateAlbumSummaries(albumPayloads);
   }
 });
 
 List<AlbumSummary> buildAlbumSummaries(Iterable<SongMetadata> songs) {
+  final filteredSongs = songs.where((song) {
+    final flags = song.sourceFlags ?? 0;
+    return (flags & SongSourceFlags.external) == 0;
+  });
   return _hydrateAlbumSummaries(
     _buildAlbumSummaryPayloads(
-      songs.map(_metadataToPayload).toList(growable: false),
+      filteredSongs.map(_metadataToPayload).toList(growable: false),
     ),
   );
 }
