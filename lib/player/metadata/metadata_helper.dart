@@ -1,18 +1,10 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:audio_core/audio_core.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
-import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
-
-Future<Uint8List?> _generateThemeColorsBlobFromImage(img.Image image) async {
-  return TrackArtworkThemeService.generateThemeColorsBlobFromImage(image);
-}
 
 Future<Map<String, dynamic>?> _buildArtworkFiles({
   required String songPath,
@@ -21,67 +13,30 @@ Future<Map<String, dynamic>?> _buildArtworkFiles({
   required bool saveLarge,
 }) async {
   try {
-    final artworkDir = Directory(p.join(supportDirPath, 'artworks'));
-    final thumbnailsDir = Directory(p.join(supportDirPath, 'thumbnails'));
-
-    if (!await artworkDir.exists()) {
-      await artworkDir.create(recursive: true);
-    }
-    if (!await thumbnailsDir.exists()) {
-      await thumbnailsDir.create(recursive: true);
-    }
-
-    final baseName =
-        '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}';
-    final largePath = p.join(artworkDir.path, '$baseName.jpg');
-    final thumbPath = p.join(thumbnailsDir.path, '${baseName}_thumb.jpg');
-
-    final originalImage = img.decodeImage(data);
-    if (originalImage == null) {
-      return null;
-    }
-
-    final cropSize = originalImage.width < originalImage.height
-        ? originalImage.width
-        : originalImage.height;
-    final offsetX = (originalImage.width - cropSize) ~/ 2;
-    final offsetY = (originalImage.height - cropSize) ~/ 2;
-
-    final square = img.copyCrop(
-      originalImage,
-      x: offsetX,
-      y: offsetY,
-      width: cropSize,
-      height: cropSize,
+    final result = await generateTrackArtwork(
+      path: songPath,
+      artworkBytes: data,
+      cacheRootPath: supportDirPath,
+      saveLargeArtwork: saveLarge,
+      thumbnailSize: generatedArtworkThumbnailSize,
+      meshStylePreset: MeshStylePreset.stable.index,
+      hueCohesion: 0.0,
+      paletteBlurRadius: 5.0,
+      meshMuddyPenaltyMultiplier: 1.0,
+      meshPopulationStrength: 1.0,
+      meshContrastStrength: 1.0,
+      meshHarmonyStrength: 1.0,
+      meshVibrancyStrength: 1.0,
     );
-
-    final resized = img.copyResize(
-      square,
-      width: generatedArtworkThumbnailSize,
-      height: generatedArtworkThumbnailSize,
-      interpolation: img.Interpolation.average,
-    );
-
-    final thumbnailBytes = Uint8List.fromList(
-      img.encodeJpg(resized, quality: 80),
-    );
-    final themeColorsBlob = await _generateThemeColorsBlobFromImage(resized);
-
-    if (saveLarge) {
-      await File(largePath).writeAsBytes(data);
-    }
-
-    await File(thumbPath).writeAsBytes(thumbnailBytes);
-
     return {
-      'artworkPath': saveLarge ? largePath : null,
-      'thumbnailPath': thumbPath,
-      'width': originalImage.width,
-      'height': originalImage.height,
-      'themeColorsBlob': themeColorsBlob,
+      'artworkPath': result.artworkPath,
+      'thumbnailPath': result.thumbnailPath,
+      'width': result.artworkWidth,
+      'height': result.artworkHeight,
+      'themeColorsBlob': result.themeColorsBlob,
     };
   } catch (e) {
-    debugPrint('Error saving artwork: $e');
+    debugPrint('Error building artwork files via Rust: $e');
     return null;
   }
 }
@@ -299,20 +254,6 @@ class MetadataHelper {
         }
       }
 
-      if (artworkBytes != null && artworkBytes.isNotEmpty) {
-        try {
-          final decodedArtwork = img.decodeImage(artworkBytes);
-          if (decodedArtwork != null) {
-            themeColorsBlob = await _generateThemeColorsBlobFromImage(
-              decodedArtwork,
-            );
-          }
-        } catch (e) {
-          debugPrint(
-            'Error generating theme color for selected metadata $filePath: $e',
-          );
-        }
-      }
 
       final base =
           existing ??
@@ -578,113 +519,14 @@ class MetadataHelper {
   }) async {
     try {
       final supportDir = await getApplicationSupportDirectory();
-      final artworkDir = Directory(p.join(supportDir.path, 'artworks'));
-      final thumbnailsDir = Directory(p.join(supportDir.path, 'thumbnails'));
-
-      if (!await artworkDir.exists()) {
-        await artworkDir.create(recursive: true);
-      }
-      if (!await thumbnailsDir.exists()) {
-        await thumbnailsDir.create(recursive: true);
-      }
-
-      final baseName =
-          '${DateTime.now().millisecondsSinceEpoch}_${p.basenameWithoutExtension(songPath)}';
-      final largePath = p.join(artworkDir.path, '$baseName.jpg');
-      final thumbPath = p.join(thumbnailsDir.path, '${baseName}_thumb.jpg');
-
-      int width = 0;
-      int height = 0;
-      Uint8List thumbnailData;
-
-      if (Platform.isWindows || Platform.isLinux) {
-        final result = await compute(_processImageWindowsIsolate, data);
-        if (result == null) return null;
-        thumbnailData = result['thumbnail'] as Uint8List;
-        width = result['width'] as int;
-        height = result['height'] as int;
-      } else {
-        try {
-          final buffer = await ui.ImmutableBuffer.fromUint8List(data);
-          final descriptor = await ui.ImageDescriptor.encoded(buffer);
-          width = descriptor.width;
-          height = descriptor.height;
-        } catch (_) {}
-
-        thumbnailData = await FlutterImageCompress.compressWithList(
-          data,
-          minWidth: generatedArtworkThumbnailSize,
-          minHeight: generatedArtworkThumbnailSize,
-          quality: 80,
-          format: CompressFormat.jpeg,
-        );
-      }
-
-      // Save high-res original if requested
-      if (saveLarge) {
-        await File(largePath).writeAsBytes(data);
-      }
-
-      // Save thumbnail
-      await File(thumbPath).writeAsBytes(thumbnailData);
-
-      Uint8List? themeColorsBlob;
-      try {
-        final decodedThumbnail = img.decodeImage(thumbnailData);
-        if (decodedThumbnail != null) {
-          themeColorsBlob = await _generateThemeColorsBlobFromImage(
-            decodedThumbnail,
-          );
-        }
-      } catch (e) {
-        debugPrint('Error generating theme color for $songPath: $e');
-      }
-
-      return {
-        'artworkPath': saveLarge ? largePath : null,
-        'thumbnailPath': thumbPath,
-        'width': width,
-        'height': height,
-        'themeColorsBlob': themeColorsBlob,
-      };
+      return _buildArtworkFiles(
+        songPath: songPath,
+        data: data,
+        supportDirPath: supportDir.path,
+        saveLarge: saveLarge,
+      );
     } catch (e) {
       debugPrint('Error saving artwork: $e');
-      return null;
-    }
-  }
-
-  static Map<String, dynamic>? _processImageWindowsIsolate(Uint8List data) {
-    try {
-      final originalImage = img.decodeImage(data);
-      if (originalImage == null) return null;
-
-      final cropSize = originalImage.width < originalImage.height
-          ? originalImage.width
-          : originalImage.height;
-      final offsetX = (originalImage.width - cropSize) ~/ 2;
-      final offsetY = (originalImage.height - cropSize) ~/ 2;
-
-      final square = img.copyCrop(
-        originalImage,
-        x: offsetX,
-        y: offsetY,
-        width: cropSize,
-        height: cropSize,
-      );
-
-      final resized = img.copyResize(
-        square,
-        width: generatedArtworkThumbnailSize,
-        height: generatedArtworkThumbnailSize,
-        interpolation: img.Interpolation.average,
-      );
-
-      return {
-        'thumbnail': Uint8List.fromList(img.encodeJpg(resized, quality: 80)),
-        'width': originalImage.width,
-        'height': originalImage.height,
-      };
-    } catch (e) {
       return null;
     }
   }
