@@ -844,28 +844,31 @@ class _AlbumSongTile extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: onSecondaryTapDown,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        selected: isSelectionMode ? isSelected : isCurrent,
-        selectedTileColor: theme.colorScheme.primaryContainer.withValues(
-          alpha: 0.35,
-        ),
-        leading: isSelectionMode
-            ? Checkbox(
-                value: isSelected,
-                onChanged: (_) => onTap(),
-              )
-            : null,
-        title: Text(
-          song.displayName,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: isCurrent ? theme.colorScheme.primary : null,
-            fontWeight: isCurrent ? FontWeight.w700 : null,
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          selected: isSelectionMode ? isSelected : isCurrent,
+          selectedTileColor: theme.colorScheme.primaryContainer.withValues(
+            alpha: 0.35,
           ),
+          leading: isSelectionMode
+              ? Checkbox(
+                  value: isSelected,
+                  onChanged: (_) => onTap(),
+                )
+              : null,
+          title: Text(
+            song.displayName,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: isCurrent ? theme.colorScheme.primary : null,
+              fontWeight: isCurrent ? FontWeight.w700 : null,
+            ),
+          ),
+          trailing: durationLabel == null ? null : Text(durationLabel),
+          onTap: onTap,
+          onLongPress: onLongPress,
         ),
-        trailing: durationLabel == null ? null : Text(durationLabel),
-        onTap: onTap,
-        onLongPress: onLongPress,
       ),
     );
   }
