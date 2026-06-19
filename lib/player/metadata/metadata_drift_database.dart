@@ -33,7 +33,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       for (final table in allTables) {
         final exists = await _tableExists(table.actualTableName);
         if (!exists) {
-          debugPrint('[Database] Table ${table.actualTableName} is missing, recreating...');
+          debugPrint(
+            '[Database] Table ${table.actualTableName} is missing, recreating...',
+          );
           await migrator.createTable(table as TableInfo<Table, dynamic>);
         }
       }
@@ -276,13 +278,26 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       }
       if (from < 27) {
         if (await _columnExists('songs', 'isSoftDeleted')) {
+          final rows = await customSelect(
+            '''
+            SELECT thumbnailPath
+            FROM songs
+            WHERE isSoftDeleted = 1
+              AND deletedAt IS NULL
+            ''',
+            readsFrom: {songs},
+          ).get();
           final deletedAtMillis = DateTime.now().millisecondsSinceEpoch;
           await customStatement('''
             UPDATE songs
-            SET deletedAt = $deletedAtMillis
+            SET deletedAt = $deletedAtMillis,
+                thumbnailPath = NULL
             WHERE isSoftDeleted = 1
               AND deletedAt IS NULL
           ''');
+          await _deleteThumbnailFiles(
+            rows.map((row) => row.read<String?>('thumbnailPath')),
+          );
         }
       }
       if (from < 28) {
@@ -350,6 +365,30 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         SET imageFetchCompleted = 0
         WHERE imageFetchCompleted IS NULL
       ''');
+    }
+  }
+
+  Future<void> _deleteThumbnailFiles(Iterable<String?> thumbnailPaths) async {
+    for (final thumbnailPath in thumbnailPaths) {
+      await _deleteThumbnailFile(thumbnailPath);
+    }
+  }
+
+  Future<void> _deleteThumbnailFile(String? thumbnailPath) async {
+    final normalizedPath = thumbnailPath?.trim();
+    if (normalizedPath == null || normalizedPath.isEmpty) {
+      return;
+    }
+
+    try {
+      final file = File(normalizedPath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (e) {
+      debugPrint(
+        '[Database] Failed to delete thumbnail file $normalizedPath: $e',
+      );
     }
   }
 
@@ -454,10 +493,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final normalizedPath = _normalizePath(song.path);
     if (normalizedPath.isEmpty) return;
 
-    final existing = await (select(songs)
-          ..where((t) => t.path.equals(normalizedPath))
-          ..limit(1))
-        .getSingleOrNull();
+    final existing =
+        await (select(songs)
+              ..where((t) => t.path.equals(normalizedPath))
+              ..limit(1))
+            .getSingleOrNull();
     final mergedSourceFlags = _mergeSourceFlags(
       existing?.sourceFlags,
       song.sourceFlags,
@@ -497,9 +537,13 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
     final normalizedSongs = dedupedByPath.values.toList(growable: false);
     if (normalizedSongs.isEmpty) return;
-    final existingRows = await (select(songs)..where(
-          (t) => t.path.isIn(normalizedSongs.map((song) => song.path).toList()),
-        )).get();
+    final existingRows =
+        await (select(songs)..where(
+              (t) => t.path.isIn(
+                normalizedSongs.map((song) => song.path).toList(),
+              ),
+            ))
+            .get();
     final existingByPath = {
       for (final row in existingRows)
         _pathLookupKey(row.path): _songFromTableRow(row),
@@ -658,28 +702,50 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) return;
 
+    final row =
+        await (select(songs)
+              ..where((t) => t.path.equals(normalizedPath))
+              ..limit(1))
+            .getSingleOrNull();
+    if (row == null) return;
+
     await customStatement(
       '''
       UPDATE songs
-      SET deletedAt = ?
+      SET deletedAt = ?,
+          thumbnailPath = NULL
       WHERE path = ?
       ''',
       <Object>[DateTime.now().millisecondsSinceEpoch, normalizedPath],
     );
+    await _deleteThumbnailFile(row.thumbnailPath);
   }
 
   Future<void> clearAllSongs() async {
+    final rows = await select(songs).get();
     await delete(songs).go();
+    await _deleteThumbnailFiles(rows.map((row) => row.thumbnailPath));
   }
 
   Future<void> clearSongsExceptExternal() async {
-    await (delete(songs)
-          ..where(
-            (t) =>
-                t.sourceFlags.isNull() |
-                t.sourceFlags.bitwiseAnd(Variable(SongSourceFlags.external)).equals(0),
-          ))
+    final rows =
+        await (select(songs)..where(
+              (t) =>
+                  t.sourceFlags.isNull() |
+                  t.sourceFlags
+                      .bitwiseAnd(Variable(SongSourceFlags.external))
+                      .equals(0),
+            ))
+            .get();
+    await (delete(songs)..where(
+          (t) =>
+              t.sourceFlags.isNull() |
+              t.sourceFlags
+                  .bitwiseAnd(Variable(SongSourceFlags.external))
+                  .equals(0),
+        ))
         .go();
+    await _deleteThumbnailFiles(rows.map((row) => row.thumbnailPath));
   }
 
   Future<void> clearWaveformCache() async {
@@ -742,6 +808,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
               .toList(growable: false);
 
     var changedCount = 0;
+    final thumbnailPathsToDelete = <String?>[];
     await transaction(() async {
       final rows = await select(songs).get();
       for (final row in rows) {
@@ -774,6 +841,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         }
 
         if (nextFlags == 0) {
+          thumbnailPathsToDelete.add(row.thumbnailPath);
           await (delete(songs)..where((t) => t.path.equals(row.path))).go();
         } else {
           await (update(songs)..where((t) => t.path.equals(row.path))).write(
@@ -783,6 +851,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         changedCount++;
       }
     });
+    await _deleteThumbnailFiles(thumbnailPathsToDelete);
 
     return changedCount;
   }
@@ -798,7 +867,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         .toList(growable: false);
     final candidateRows = await customSelect(
       '''
-      SELECT path, sourceFlags, lastSeenRootScanSessionId
+      SELECT path, sourceFlags, lastSeenRootScanSessionId, thumbnailPath
       FROM songs
       WHERE sourceFlags IS NULL
          OR sourceFlags = 0
@@ -817,12 +886,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
     final deletedPaths = <String>[];
     final softDeletedPaths = <String>[];
+    final thumbnailPathsToDelete = <String?>[];
     final deletedAtMillis = DateTime.now().millisecondsSinceEpoch;
     await transaction(() async {
       for (final row in candidateRows) {
         final path = row.read<String>('path');
         final currentFlags = row.read<int?>('sourceFlags') ?? 0;
         final seenToken = row.read<int?>('lastSeenRootScanSessionId');
+        final thumbnailPath = row.read<String?>('thumbnailPath');
         if (seenToken == scanToken) {
           continue;
         }
@@ -831,17 +902,20 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           await customStatement(
             '''
             UPDATE songs
-            SET deletedAt = $deletedAtMillis
+            SET deletedAt = $deletedAtMillis,
+                thumbnailPath = NULL
             WHERE path = ?
             ''',
             <Object>[path],
           );
           softDeletedPaths.add(path);
+          thumbnailPathsToDelete.add(thumbnailPath);
           continue;
         }
 
         final nextFlags = currentFlags == 0 ? 0 : currentFlags & ~sourceMask;
         if (nextFlags == 0) {
+          thumbnailPathsToDelete.add(thumbnailPath);
           await (delete(songs)..where((t) => t.path.equals(path))).go();
         } else {
           await customStatement(
@@ -857,6 +931,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         deletedPaths.add(path);
       }
     });
+    await _deleteThumbnailFiles(thumbnailPathsToDelete);
 
     return RootScanSweepResult(
       deletedPaths: deletedPaths,
@@ -1018,7 +1093,8 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     )..where((t) => t.cacheKey.equals(normalizedCacheKey))).go();
   }
 
-  Future<List<LyricsTranslationCacheRecord>> getAllLyricsTranslationCaches() async {
+  Future<List<LyricsTranslationCacheRecord>>
+  getAllLyricsTranslationCaches() async {
     final rows = await select(lyricsTranslationCaches).get();
     return rows.map(_lyricsTranslationCacheFromRow).toList(growable: false);
   }
@@ -1415,22 +1491,26 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     try {
       final docDir = await getApplicationDocumentsDirectory();
       final currentSandbox = p.dirname(docDir.path);
-      
+
       // Ensure the sharing directory is created so it's never grayed out in the files app!
       final sharingFolderPath = p.join(docDir.path, 'Vynody Music');
       final dir = Directory(sharingFolderPath);
       if (!dir.existsSync()) {
         try {
           dir.createSync(recursive: true);
-          debugPrint('[PathMigration] Created Vynody Music directory at: $sharingFolderPath');
+          debugPrint(
+            '[PathMigration] Created Vynody Music directory at: $sharingFolderPath',
+          );
         } catch (e) {
-          debugPrint('[PathMigration] Failed to create Vynody Music directory: $e');
+          debugPrint(
+            '[PathMigration] Failed to create Vynody Music directory: $e',
+          );
         }
       }
 
       final prefs = await SharedPreferences.getInstance();
       final lastKnownSandbox = prefs.getString('last_known_sandbox_path');
-      
+
       String? oldSandboxPrefix;
       if (lastKnownSandbox != null) {
         if (lastKnownSandbox != currentSandbox) {
@@ -1450,12 +1530,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
             }
           }
         }
-        
+
         // If not found in SharedPreferences, check the database songs table
         if (oldSandboxPrefix == null) {
           try {
             final row = await customSelect(
-              "SELECT path FROM songs WHERE path LIKE '%/Containers/Data/Application/%' LIMIT 1"
+              "SELECT path FROM songs WHERE path LIKE '%/Containers/Data/Application/%' LIMIT 1",
             ).getSingleOrNull();
             if (row != null) {
               final path = row.read<String>('path');
@@ -1468,17 +1548,19 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
               }
             }
           } catch (e) {
-            debugPrint('[PathMigration] Failed to check database for old sandbox prefix: $e');
+            debugPrint(
+              '[PathMigration] Failed to check database for old sandbox prefix: $e',
+            );
           }
         }
       }
-      
+
       if (oldSandboxPrefix != null && oldSandboxPrefix != currentSandbox) {
         final oldPrefix = oldSandboxPrefix;
         debugPrint('[PathMigration] Sandbox UUID change detected on iOS.');
         debugPrint('[PathMigration] Old sandbox: $oldPrefix');
         debugPrint('[PathMigration] Current sandbox: $currentSandbox');
-        
+
         // 1. Update songs table
         await customStatement(
           'UPDATE songs SET path = REPLACE(path, ?, ?), '
@@ -1486,9 +1568,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           'thumbnailPath = REPLACE(thumbnailPath, ?, ?) '
           'WHERE path LIKE ? OR artworkPath LIKE ? OR thumbnailPath LIKE ?',
           <Object>[
-            oldPrefix, currentSandbox,
-            oldPrefix, currentSandbox,
-            oldPrefix, currentSandbox,
+            oldPrefix,
+            currentSandbox,
+            oldPrefix,
+            currentSandbox,
+            oldPrefix,
+            currentSandbox,
             '$oldPrefix%',
             '$oldPrefix%',
             '$oldPrefix%',
@@ -1499,42 +1584,30 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         await customStatement(
           'UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) '
           'WHERE songPath LIKE ?',
-          <Object>[
-            oldPrefix, currentSandbox,
-            '$oldPrefix%'
-          ],
+          <Object>[oldPrefix, currentSandbox, '$oldPrefix%'],
         );
 
         // 3. Update lyrics_cache table (cacheKey contains the filePath)
         await customStatement(
           'UPDATE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
           'WHERE cacheKey LIKE ?',
-          <Object>[
-            oldPrefix, currentSandbox,
-            '%$oldPrefix%'
-          ],
+          <Object>[oldPrefix, currentSandbox, '%$oldPrefix%'],
         );
 
         // 4. Update lyrics_translation_cache table
         await customStatement(
           'UPDATE lyrics_translation_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
           'WHERE cacheKey LIKE ?',
-          <Object>[
-            oldPrefix, currentSandbox,
-            '%$oldPrefix%'
-          ],
+          <Object>[oldPrefix, currentSandbox, '%$oldPrefix%'],
         );
 
         // 5. Update artist_image_cache table
         await customStatement(
           'UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) '
           'WHERE imagePath LIKE ?',
-          <Object>[
-            oldPrefix, currentSandbox,
-            '$oldPrefix%'
-          ],
+          <Object>[oldPrefix, currentSandbox, '$oldPrefix%'],
         );
-        
+
         // 6. Migrate root_paths in SharedPreferences
         final rootPaths = prefs.getStringList('root_paths');
         if (rootPaths != null) {
@@ -1545,7 +1618,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
             return p;
           }).toList();
           await prefs.setStringList('root_paths', updatedRootPaths);
-          debugPrint('[PathMigration] Migrated root_paths in SharedPreferences.');
+          debugPrint(
+            '[PathMigration] Migrated root_paths in SharedPreferences.',
+          );
         }
 
         // 7. Migrate playlists in SharedPreferences
@@ -1562,12 +1637,19 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
                     if (song is Map<String, dynamic>) {
                       final path = song['path'];
                       if (path is String && path.contains(oldPrefix)) {
-                        song['path'] = path.replaceAll(oldPrefix, currentSandbox);
+                        song['path'] = path.replaceAll(
+                          oldPrefix,
+                          currentSandbox,
+                        );
                         changed = true;
                       }
                       final thumbnailPath = song['thumbnailPath'];
-                      if (thumbnailPath is String && thumbnailPath.contains(oldPrefix)) {
-                        song['thumbnailPath'] = thumbnailPath.replaceAll(oldPrefix, currentSandbox);
+                      if (thumbnailPath is String &&
+                          thumbnailPath.contains(oldPrefix)) {
+                        song['thumbnailPath'] = thumbnailPath.replaceAll(
+                          oldPrefix,
+                          currentSandbox,
+                        );
                         changed = true;
                       }
                     }
@@ -1577,10 +1659,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
             }
             if (changed) {
               await prefs.setString('playlists', jsonEncode(jsonList));
-              debugPrint('[PathMigration] Migrated playlists in SharedPreferences.');
+              debugPrint(
+                '[PathMigration] Migrated playlists in SharedPreferences.',
+              );
             }
           } catch (e) {
-            debugPrint('[PathMigration] Failed to migrate playlists in SharedPreferences: $e');
+            debugPrint(
+              '[PathMigration] Failed to migrate playlists in SharedPreferences: $e',
+            );
           }
         }
 
@@ -1601,28 +1687,41 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
                       changed = true;
                     }
                     final thumbnailPath = song['thumbnailPath'];
-                    if (thumbnailPath is String && thumbnailPath.contains(oldPrefix)) {
-                      song['thumbnailPath'] = thumbnailPath.replaceAll(oldPrefix, currentSandbox);
+                    if (thumbnailPath is String &&
+                        thumbnailPath.contains(oldPrefix)) {
+                      song['thumbnailPath'] = thumbnailPath.replaceAll(
+                        oldPrefix,
+                        currentSandbox,
+                      );
                       changed = true;
                     }
                   }
                 }
               }
               if (changed) {
-                await prefs.setString('playback_session_v1', jsonEncode(decoded));
-                debugPrint('[PathMigration] Migrated playback_session_v1 in SharedPreferences.');
+                await prefs.setString(
+                  'playback_session_v1',
+                  jsonEncode(decoded),
+                );
+                debugPrint(
+                  '[PathMigration] Migrated playback_session_v1 in SharedPreferences.',
+                );
               }
             }
           } catch (e) {
-            debugPrint('[PathMigration] Failed to migrate playback_session_v1 in SharedPreferences: $e');
+            debugPrint(
+              '[PathMigration] Failed to migrate playback_session_v1 in SharedPreferences: $e',
+            );
           }
         }
       }
-      
+
       // Always save the current sandbox path
       await prefs.setString('last_known_sandbox_path', currentSandbox);
     } catch (e, st) {
-      debugPrint('[PathMigration] Error running iOS sandbox path migration: $e\n$st');
+      debugPrint(
+        '[PathMigration] Error running iOS sandbox path migration: $e\n$st',
+      );
     }
   }
 }
