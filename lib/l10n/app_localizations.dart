@@ -2027,7 +2027,7 @@ abstract class AppLocalizations {
   /// No description provided for @leaveBlankKeepsCurrentValue.
   ///
   /// In zh, this message translates to:
-  /// **'留空则保留当前值'**
+  /// **'留空则清空该项'**
   String get leaveBlankKeepsCurrentValue;
 
   /// No description provided for @currentFileFormatCannotWriteBack.
@@ -2039,7 +2039,7 @@ abstract class AppLocalizations {
   /// No description provided for @leaveBlankDoesNotClearOriginalValue.
   ///
   /// In zh, this message translates to:
-  /// **'提示：留空不会清空原值，而是沿用当前标签。'**
+  /// **'提示：留空会清空对应标签的值。'**
   String get leaveBlankDoesNotClearOriginalValue;
 
   /// No description provided for @saveToApp.

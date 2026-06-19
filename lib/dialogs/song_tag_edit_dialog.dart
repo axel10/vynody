@@ -239,6 +239,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       artist: _artistController.text.trim(),
       album: _albumController.text.trim(),
       trackNumber: trackNumber,
+      clearTrackNumber: trackNumberText.isEmpty,
       artworkBytes: _isArtworkModified ? _artworkBytes : null,
       existingMetadata: null,
       writeToFile: writeToFile,

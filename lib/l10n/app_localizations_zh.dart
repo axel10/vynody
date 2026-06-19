@@ -1019,13 +1019,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trackNumberMustBeInteger => '曲目号必须是整数';
 
   @override
-  String get leaveBlankKeepsCurrentValue => '留空则保留当前值';
+  String get leaveBlankKeepsCurrentValue => '留空则清空该项';
 
   @override
   String get currentFileFormatCannotWriteBack => '当前文件格式不支持写回源文件，只能保存到 App。';
 
   @override
-  String get leaveBlankDoesNotClearOriginalValue => '提示：留空不会清空原值，而是沿用当前标签。';
+  String get leaveBlankDoesNotClearOriginalValue => '提示：留空会清空对应标签的值。';
 
   @override
   String get saveToApp => '保存到 App';

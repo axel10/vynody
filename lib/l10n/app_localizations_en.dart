@@ -1040,8 +1040,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trackNumberMustBeInteger => 'Track number must be an integer';
 
   @override
-  String get leaveBlankKeepsCurrentValue =>
-      'Leave blank to keep the current value';
+  String get leaveBlankKeepsCurrentValue => 'Leave blank to clear this field';
 
   @override
   String get currentFileFormatCannotWriteBack =>
@@ -1049,7 +1048,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get leaveBlankDoesNotClearOriginalValue =>
-      'Tip: leaving a field blank will not clear the original value; it keeps the current tag.';
+      'Tip: leaving a field blank will clear its value.';
 
   @override
   String get saveToApp => 'Save to App';

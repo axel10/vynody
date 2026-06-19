@@ -126,9 +126,8 @@ class MetadataHelper {
   static String? lastWriteError;
 
   static String _resolveText(String? value, String fallback) {
-    final trimmed = value?.trim();
-    if (trimmed == null || trimmed.isEmpty) return fallback;
-    return trimmed;
+    if (value == null) return fallback;
+    return value.trim();
   }
 
   static Future<bool> _writeSelectionMetadataToFile({
@@ -138,6 +137,7 @@ class MetadataHelper {
     String? lyrics,
     List<TrackMetadataPicture>? pictures,
     String? fallbackMediaUri,
+    bool clearTrackNumber = false,
   }) async {
     lastWriteError = null;
     if (!isMetadataWritable(filePath)) {
@@ -165,6 +165,7 @@ class MetadataHelper {
       genres: metadata.genres ?? const <String>[],
       lyrics: lyrics,
       clearArtwork: isArtworkCleared,
+      clearTrackNumber: clearTrackNumber,
       pictures:
           pictures ??
           (artworkBytes == null || artworkBytes.isEmpty
@@ -206,6 +207,7 @@ class MetadataHelper {
     required String album,
     int? duration,
     int? trackNumber,
+    bool clearTrackNumber = false,
     List<String>? genres,
     Uint8List? artworkBytes,
     String? artworkPath,
@@ -326,7 +328,7 @@ class MetadataHelper {
         artist: _resolveText(artist, base.artist),
         album: _resolveText(album, base.album),
         duration: duration ?? base.duration,
-        trackNumber: trackNumber ?? base.trackNumber,
+        trackNumber: clearTrackNumber ? null : (trackNumber ?? base.trackNumber),
         artworkPath: resolvedArtworkPath,
         thumbnailPath: resolvedThumbnailPath,
         artworkWidth: resolvedArtworkWidth,
@@ -351,6 +353,7 @@ class MetadataHelper {
           metadata: updated,
           artworkBytes: artworkBytes,
           fallbackMediaUri: fallbackMediaUri,
+          clearTrackNumber: clearTrackNumber,
         );
 
         if (!fileUpdated) {
