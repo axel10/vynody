@@ -998,6 +998,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editSongTagsTitle => '编辑歌曲标签';
 
   @override
+  String get changeArtwork => '更换封面';
+
+  @override
+  String get clearArtwork => '清除封面';
+
+  @override
   String get editSongTagsDescription => '修改后可以只保存到 App，也可以同步写回源文件。';
 
   @override

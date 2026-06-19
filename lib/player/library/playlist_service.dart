@@ -371,6 +371,7 @@ class PlaylistService extends ChangeNotifier {
     Uint8List? artworkBytes,
   }) async {
     bool changed = false;
+    final isArtworkCleared = artworkBytes != null && artworkBytes.isEmpty;
 
     for (final playlist in _playlists) {
       for (var i = 0; i < playlist.songs.length; i++) {
@@ -382,11 +383,12 @@ class PlaylistService extends ChangeNotifier {
           artist: metadata.artist,
           album: metadata.album,
           trackNumber: metadata.trackNumber,
-          thumbnailPath: metadata.thumbnailPath,
-          artworkWidth: metadata.artworkWidth,
-          artworkHeight: metadata.artworkHeight,
-          themeColorsBlob: metadata.themeColorsBlob,
-          artworkBytes: artworkBytes,
+          thumbnailPath: isArtworkCleared ? null : (metadata.thumbnailPath ?? song.thumbnailPath),
+          artworkPath: isArtworkCleared ? null : (metadata.artworkPath ?? song.artworkPath),
+          artworkWidth: isArtworkCleared ? null : (metadata.artworkWidth ?? song.artworkWidth),
+          artworkHeight: isArtworkCleared ? null : (metadata.artworkHeight ?? song.artworkHeight),
+          themeColorsBlob: isArtworkCleared ? null : (metadata.themeColorsBlob ?? song.themeColorsBlob),
+          artworkBytes: isArtworkCleared ? null : (artworkBytes ?? song.artworkBytes),
           lastModifiedTime: metadata.lastModifiedTime,
         );
 

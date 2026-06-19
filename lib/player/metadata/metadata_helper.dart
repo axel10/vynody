@@ -156,6 +156,7 @@ class MetadataHelper {
       }
     }
 
+    final isArtworkCleared = artworkBytes != null && artworkBytes.isEmpty;
     final update = TrackMetadataUpdate(
       title: metadata.title,
       artist: metadata.artist,
@@ -163,6 +164,7 @@ class MetadataHelper {
       trackNumber: metadata.trackNumber,
       genres: metadata.genres ?? const <String>[],
       lyrics: lyrics,
+      clearArtwork: isArtworkCleared,
       pictures:
           pictures ??
           (artworkBytes == null || artworkBytes.isEmpty
@@ -225,6 +227,36 @@ class MetadataHelper {
       var resolvedArtworkWidth = artworkWidth ?? existing?.artworkWidth;
       var resolvedArtworkHeight = artworkHeight ?? existing?.artworkHeight;
       Uint8List? themeColorsBlob = existing?.themeColorsBlob;
+
+      final isArtworkCleared = artworkBytes != null && artworkBytes.isEmpty;
+
+      if (isArtworkCleared) {
+        if (existing?.artworkPath != null && existing!.artworkPath!.isNotEmpty) {
+          final oldArtworkFile = File(existing.artworkPath!);
+          if (oldArtworkFile.existsSync()) {
+            try {
+              oldArtworkFile.deleteSync();
+            } catch (e) {
+              debugPrint('Error deleting old artwork file: $e');
+            }
+          }
+        }
+        if (existing?.thumbnailPath != null && existing!.thumbnailPath!.isNotEmpty) {
+          final oldThumbnailFile = File(existing.thumbnailPath!);
+          if (oldThumbnailFile.existsSync()) {
+            try {
+              oldThumbnailFile.deleteSync();
+            } catch (e) {
+              debugPrint('Error deleting old thumbnail file: $e');
+            }
+          }
+        }
+        resolvedArtworkPath = null;
+        resolvedThumbnailPath = null;
+        resolvedArtworkWidth = null;
+        resolvedArtworkHeight = null;
+        themeColorsBlob = null;
+      }
 
       final needsArtworkSave =
           artworkBytes != null &&
@@ -302,7 +334,7 @@ class MetadataHelper {
         themeColorsBlob: themeColorsBlob,
         lastModifiedTime: now,
         metadataTextScanned: now,
-        metadataImgScanned: artworkBytes != null && artworkBytes.isNotEmpty
+        metadataImgScanned: artworkBytes != null
             ? now
             : base.metadataImgScanned,
         createdAt: base.createdAt ??

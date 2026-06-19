@@ -399,6 +399,8 @@
   "testingConnection": "Testing connection...",
   "getKey": "Get key",
   "editSongTagsTitle": "Edit Song Tags",
+  "changeArtwork": "Change Cover",
+  "clearArtwork": "Clear Cover",
   "editSongTagsDescription": "You can save changes only in the app, or write them back to the source file as well.",
   "artistLabel": "Artist",
   "albumLabel": "Album",

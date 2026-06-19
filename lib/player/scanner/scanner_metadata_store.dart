@@ -201,16 +201,17 @@ class ScannerMetadataStore {
     bool syncTree = true,
   }) {
     final existing = _metadataMap[metadata.path];
+    final isArtworkCleared = artworkBytes != null && artworkBytes.isEmpty;
     final mergedMetadata = metadata.copyWith(
-      thumbnailPath: metadata.thumbnailPath ?? existing?.thumbnailPath,
-      artworkPath: metadata.artworkPath ?? existing?.artworkPath,
-      artworkWidth: metadata.artworkWidth ?? existing?.artworkWidth,
-      artworkHeight: metadata.artworkHeight ?? existing?.artworkHeight,
+      thumbnailPath: isArtworkCleared ? null : (metadata.thumbnailPath ?? existing?.thumbnailPath),
+      artworkPath: isArtworkCleared ? null : (metadata.artworkPath ?? existing?.artworkPath),
+      artworkWidth: isArtworkCleared ? null : (metadata.artworkWidth ?? existing?.artworkWidth),
+      artworkHeight: isArtworkCleared ? null : (metadata.artworkHeight ?? existing?.artworkHeight),
       sourceFlags: _mergeSourceFlags(
         existing?.sourceFlags,
         metadata.sourceFlags,
       ),
-      themeColorsBlob: metadata.themeColorsBlob ?? existing?.themeColorsBlob,
+      themeColorsBlob: isArtworkCleared ? null : (metadata.themeColorsBlob ?? existing?.themeColorsBlob),
       waveformBlob: null,
     );
     final albumChanged = _albumRelevantMetadataChanged(
@@ -332,6 +333,7 @@ class ScannerMetadataStore {
     SongMetadata metadata, {
     Uint8List? artworkBytes,
   }) {
+    final isArtworkCleared = artworkBytes != null && artworkBytes.isEmpty;
     for (var i = 0; i < folder.files.length; i++) {
       final file = folder.files[i];
       if (_pathsEqual(file.path, metadata.path)) {
@@ -340,13 +342,13 @@ class ScannerMetadataStore {
           artist: metadata.artist,
           album: metadata.album,
           trackNumber: metadata.trackNumber,
-          thumbnailPath: metadata.thumbnailPath ?? file.thumbnailPath,
-          artworkPath: metadata.artworkPath ?? file.artworkPath,
-          artworkWidth: metadata.artworkWidth ?? file.artworkWidth,
-          artworkHeight: metadata.artworkHeight ?? file.artworkHeight,
-          themeColorsBlob: metadata.themeColorsBlob ?? file.themeColorsBlob,
+          thumbnailPath: isArtworkCleared ? null : (metadata.thumbnailPath ?? file.thumbnailPath),
+          artworkPath: isArtworkCleared ? null : (metadata.artworkPath ?? file.artworkPath),
+          artworkWidth: isArtworkCleared ? null : (metadata.artworkWidth ?? file.artworkWidth),
+          artworkHeight: isArtworkCleared ? null : (metadata.artworkHeight ?? file.artworkHeight),
+          themeColorsBlob: isArtworkCleared ? null : (metadata.themeColorsBlob ?? file.themeColorsBlob),
           waveformBlob: null,
-          artworkBytes: artworkBytes,
+          artworkBytes: isArtworkCleared ? null : (artworkBytes ?? file.artworkBytes),
           lastModifiedTime: metadata.lastModifiedTime,
         );
       }

@@ -1018,6 +1018,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editSongTagsTitle => 'Edit Song Tags';
 
   @override
+  String get changeArtwork => 'Change Cover';
+
+  @override
+  String get clearArtwork => 'Clear Cover';
+
+  @override
   String get editSongTagsDescription =>
       'You can save changes only in the app, or write them back to the source file as well.';
 

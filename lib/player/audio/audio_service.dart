@@ -870,7 +870,9 @@ class AudioService extends Notifier<AudioSnapshot> {
       artworkHeight: metadata.artworkHeight,
       themeColorsBlob: metadata.themeColorsBlob,
       waveformBlob: metadata.waveformBlob,
-      artworkBytes: artworkBytes ?? song.artworkBytes,
+      artworkBytes: artworkBytes != null
+          ? (artworkBytes.isEmpty ? null : artworkBytes)
+          : song.artworkBytes,
       lastModifiedTime: metadata.lastModifiedTime,
       lyrics: song.lyrics,
     );

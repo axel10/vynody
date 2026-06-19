@@ -130,6 +130,79 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     }
   }
 
+  Future<void> _showArtworkOptions() async {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    if (_artworkBytes == null || (_isArtworkModified && _artworkBytes!.isEmpty)) {
+      await _pickArtwork();
+      return;
+    }
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.black.withValues(alpha: 0.88) : theme.colorScheme.surface.withValues(alpha: 0.95),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: Icon(Icons.photo_library_rounded, color: theme.colorScheme.primary),
+                    title: Text(l10n.changeArtwork),
+                    onTap: () => Navigator.of(context).pop('change'),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete_rounded, color: Colors.redAccent),
+                    title: Text(l10n.clearArtwork, style: const TextStyle(color: Colors.redAccent)),
+                    onTap: () => Navigator.of(context).pop('clear'),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.close_rounded),
+                    title: Text(l10n.cancel),
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (action == 'change') {
+      await _pickArtwork();
+    } else if (action == 'clear') {
+      setState(() {
+        _artworkBytes = Uint8List(0);
+        _isArtworkModified = true;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -270,7 +343,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                       children: [
                         Center(
                           child: GestureDetector(
-                            onTap: _isSaving ? null : _pickArtwork,
+                            onTap: _isSaving ? null : _showArtworkOptions,
                             child: Stack(
                               children: [
                                 Container(
@@ -294,7 +367,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                                               child: CircularProgressIndicator(strokeWidth: 2),
                                             ),
                                           )
-                                        : _artworkBytes != null
+                                        : _artworkBytes != null && _artworkBytes!.isNotEmpty
                                             ? Image.memory(
                                                 _artworkBytes!,
                                                 fit: BoxFit.cover,

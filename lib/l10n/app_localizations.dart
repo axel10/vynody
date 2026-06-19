@@ -1982,6 +1982,18 @@ abstract class AppLocalizations {
   /// **'编辑歌曲标签'**
   String get editSongTagsTitle;
 
+  /// No description provided for @changeArtwork.
+  ///
+  /// In zh, this message translates to:
+  /// **'更换封面'**
+  String get changeArtwork;
+
+  /// No description provided for @clearArtwork.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除封面'**
+  String get clearArtwork;
+
   /// No description provided for @editSongTagsDescription.
   ///
   /// In zh, this message translates to:
