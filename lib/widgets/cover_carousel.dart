@@ -491,6 +491,13 @@ class _CoverItemState extends State<_CoverItem> {
       );
       return;
     }
+
+    if (mounted) {
+      setState(() {
+        _artworkBytes = null;
+      });
+      widget.onArtworkLoaded?.call(null, null);
+    }
   }
 
   @override

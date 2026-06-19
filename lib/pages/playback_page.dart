@@ -302,7 +302,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       artworkBytes: artworkBytes,
     );
 
-    if (mounted && artworkBytes != null) {
+    if (mounted) {
       setState(() {
         _pendingArtworkBytes = artworkBytes;
       });
@@ -1484,7 +1484,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 }
               } else {
                 final bytes = _pendingArtworkBytes;
-                if (bytes == null) {
+                if (bytes == null || bytes.isEmpty) {
                   // 如果封面字节尚未准备好（或不存在），则显示纯黑背景。
                   content = Container(
                     key: ValueKey(
