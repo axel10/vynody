@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 
 Future<Map<String, dynamic>?> _buildArtworkFiles({
@@ -255,6 +257,30 @@ class MetadataHelper {
       }
 
 
+      int? resolvedSourceFlags = existing?.sourceFlags;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final roots = prefs.getStringList('root_paths') ?? [];
+        bool isInsideRoot = false;
+        for (final root in roots) {
+          if (ScannerPathUtils.pathContains(root, filePath)) {
+            isInsideRoot = true;
+            break;
+          }
+        }
+        if (isInsideRoot) {
+          if (resolvedSourceFlags == null) {
+            resolvedSourceFlags = SongSourceFlags.rootScan;
+          } else {
+            resolvedSourceFlags = (resolvedSourceFlags & ~SongSourceFlags.external) | SongSourceFlags.rootScan;
+          }
+        } else if (resolvedSourceFlags == null) {
+          resolvedSourceFlags = SongSourceFlags.external;
+        }
+      } catch (_) {
+        resolvedSourceFlags ??= SongSourceFlags.external;
+      }
+
       final base =
           existing ??
           SongMetadata(
@@ -262,6 +288,7 @@ class MetadataHelper {
             title: p.basenameWithoutExtension(filePath),
             album: 'Unknown Album',
             artist: 'Unknown Artist',
+            sourceFlags: resolvedSourceFlags,
           );
 
       var updated = base.copyWith(
@@ -286,6 +313,7 @@ class MetadataHelper {
                 : now),
         genres: genres ?? base.genres,
         isAppModified: true,
+        sourceFlags: resolvedSourceFlags,
       );
 
       if (writeToFile) {
@@ -481,6 +509,30 @@ class MetadataHelper {
       final createdAt =
           existing?.createdAt ?? DateTime.now().millisecondsSinceEpoch;
 
+      int? resolvedSourceFlags = sourceFlags ?? existing?.sourceFlags;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final roots = prefs.getStringList('root_paths') ?? [];
+        bool isInsideRoot = false;
+        for (final root in roots) {
+          if (ScannerPathUtils.pathContains(root, filePath)) {
+            isInsideRoot = true;
+            break;
+          }
+        }
+        if (isInsideRoot) {
+          if (resolvedSourceFlags == null) {
+            resolvedSourceFlags = SongSourceFlags.rootScan;
+          } else {
+            resolvedSourceFlags = (resolvedSourceFlags & ~SongSourceFlags.external) | SongSourceFlags.rootScan;
+          }
+        } else if (resolvedSourceFlags == null) {
+          resolvedSourceFlags = SongSourceFlags.external;
+        }
+      } catch (_) {
+        resolvedSourceFlags ??= SongSourceFlags.external;
+      }
+
       final song = SongMetadata(
         path: filePath,
         title: title ?? p.basenameWithoutExtension(filePath),
@@ -499,7 +551,7 @@ class MetadataHelper {
             ? lastModified
             : existing?.metadataImgScanned,
         createdAt: createdAt,
-        sourceFlags: sourceFlags ?? existing?.sourceFlags ?? SongSourceFlags.external,
+        sourceFlags: resolvedSourceFlags,
         isAppModified: existing?.isAppModified ?? false,
       );
 

@@ -604,7 +604,25 @@ bool _isWithinAnyRoot(String path, List<String> roots) {
 }
 
 int? _mergeSourceFlags(int? existing, int? incoming) {
-  if (incoming == null) return existing;
-  if (existing == null) return incoming;
-  return existing | incoming;
+  if (incoming == null) {
+    if (existing == null) return null;
+    var flags = existing;
+    if ((flags & (SongSourceFlags.rootScan | SongSourceFlags.systemMedia)) != 0) {
+      flags &= ~SongSourceFlags.external;
+    }
+    return flags;
+  }
+  if (existing == null) {
+    var flags = incoming;
+    if ((flags & (SongSourceFlags.rootScan | SongSourceFlags.systemMedia)) != 0) {
+      flags &= ~SongSourceFlags.external;
+    }
+    return flags;
+  }
+  var merged = existing | incoming;
+  if ((merged & (SongSourceFlags.rootScan | SongSourceFlags.systemMedia)) != 0) {
+    merged &= ~SongSourceFlags.external;
+  }
+  return merged;
 }
+

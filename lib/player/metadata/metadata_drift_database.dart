@@ -40,6 +40,15 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
       await _repairLegacyLyricsCacheRows();
       await _repairLegacyArtistCacheRows();
+
+      // Clean up sourceFlags (remove external flag 4 if combined with rootScan or systemMedia)
+      await customStatement('''
+        UPDATE songs
+        SET sourceFlags = sourceFlags - 4
+        WHERE sourceFlags IS NOT NULL
+          AND (sourceFlags & 3) != 0
+          AND (sourceFlags & 4) != 0
+      ''');
     },
     onCreate: (m) async {
       await m.createAll();

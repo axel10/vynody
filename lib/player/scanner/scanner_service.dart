@@ -2930,6 +2930,18 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         return null;
       }
 
+      int? resolvedFlags = existingMetadata?.sourceFlags;
+      final isInsideRoot = _roots.rootPaths.any((root) => _pathContains(root, path));
+      if (isInsideRoot) {
+        if (resolvedFlags == null) {
+          resolvedFlags = SongSourceFlags.rootScan;
+        } else {
+          resolvedFlags = (resolvedFlags & ~SongSourceFlags.external) | SongSourceFlags.rootScan;
+        }
+      } else if (resolvedFlags == null) {
+        resolvedFlags = SongSourceFlags.external;
+      }
+
       final lastModified =
           existingMetadata?.lastModifiedTime ??
           (await file.lastModified()).millisecondsSinceEpoch;
@@ -2944,6 +2956,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
                     lastModifiedTime: lastModified,
                     metadataTextScanned: lastModified,
                     createdAt: now,
+                    sourceFlags: resolvedFlags,
                   ))
               .copyWith(
                 artworkPath:
@@ -2960,6 +2973,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
                 lastModifiedTime: lastModified,
                 metadataImgScanned: lastModified,
                 createdAt: existingMetadata?.createdAt ?? now,
+                sourceFlags: resolvedFlags,
               );
 
       await MetadataDatabase().insertOrUpdateSong(updated);

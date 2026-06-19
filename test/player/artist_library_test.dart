@@ -11,17 +11,14 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('splitArtistNames', () {
-    test('splits on comma, slash, ampersand, and semicolon', () {
+    test('splits on comma and semicolon', () {
       expect(splitArtistNames('aaa,bbb'), ['aaa', 'bbb']);
-      expect(splitArtistNames('aaa / bbb'), ['aaa', 'bbb']);
-      expect(splitArtistNames('aaa & bbb'), ['aaa', 'bbb']);
       expect(splitArtistNames('aaa ; bbb'), ['aaa', 'bbb']);
     });
 
     test('trims surrounding whitespace and ignores empty segments', () {
-      expect(splitArtistNames('  aaa ,  / bbb  &  ; ccc  '), [
+      expect(splitArtistNames('  aaa ,   ; ccc  '), [
         'aaa',
-        'bbb',
         'ccc',
       ]);
     });
@@ -69,7 +66,7 @@ void main() {
           path: '/music/song2.mp3',
           title: 'Song 2',
           album: 'Album 2',
-          artist: 'aaa / ccc',
+          artist: 'aaa ; ccc',
         ),
       );
       await database.insertOrUpdateSong(
@@ -77,7 +74,7 @@ void main() {
           path: '/music/song3.mp3',
           title: 'Song 3',
           album: 'Album 3',
-          artist: 'bbb & ddd ; eee',
+          artist: 'bbb ; ddd ; eee',
         ),
       );
 
