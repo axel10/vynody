@@ -225,7 +225,7 @@ List<String> splitArtistNames(String value) {
   if (raw.isEmpty) return const <String>[];
 
   return raw
-      .split(RegExp(r'\s*[,/&;]\s*'))
+      .split(RegExp(r'\s*[,;]\s*'))
       .map((artist) => artist.trim())
       .where((artist) => artist.isNotEmpty)
       .toList(growable: false);
