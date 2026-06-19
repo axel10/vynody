@@ -1011,6 +1011,8 @@ class SettingsService extends ChangeNotifier {
     _geminiApiKeyProperty.value = value;
     if (value.trim().isEmpty) {
       _cleanupModelSelectionsForProvider(LyricsAiProvider.googleAiStudio);
+    } else {
+      _setDefaultModelIfMissing(LyricsAiProvider.googleAiStudio);
     }
   }
 
@@ -1019,6 +1021,8 @@ class SettingsService extends ChangeNotifier {
     _openRouterApiKeyProperty.value = value;
     if (value.trim().isEmpty) {
       _cleanupModelSelectionsForProvider(LyricsAiProvider.openRouter);
+    } else {
+      _setDefaultModelIfMissing(LyricsAiProvider.openRouter);
     }
   }
 
@@ -1027,6 +1031,8 @@ class SettingsService extends ChangeNotifier {
     _doubaoApiKeyProperty.value = value;
     if (value.trim().isEmpty) {
       _cleanupModelSelectionsForProvider(LyricsAiProvider.doubao);
+    } else {
+      _setDefaultModelIfMissing(LyricsAiProvider.doubao);
     }
   }
 
@@ -1035,6 +1041,45 @@ class SettingsService extends ChangeNotifier {
     _deepseekApiKeyProperty.value = value;
     if (value.trim().isEmpty) {
       _cleanupModelSelectionsForProvider(LyricsAiProvider.deepseek);
+    } else {
+      _setDefaultModelIfMissing(LyricsAiProvider.deepseek);
+    }
+  }
+
+  bool _isModelSelectionNotSet(LyricsAiModelSelection selection) {
+    return selection.modelId.trim().isEmpty ||
+        apiKeyForProvider(selection.provider).trim().isEmpty;
+  }
+
+  void _setDefaultModelIfMissing(LyricsAiProvider provider) {
+    if (_isModelSelectionNotSet(generationPrimaryModel)) {
+      final defaultModelId = switch (provider) {
+        LyricsAiProvider.googleAiStudio => defaultGenerationPrimaryModelId,
+        LyricsAiProvider.openRouter => defaultOpenRouterGenerationModelId,
+        LyricsAiProvider.doubao => defaultDoubaoGenerationModelId,
+        LyricsAiProvider.deepseek => '',
+      };
+      if (defaultModelId.isNotEmpty) {
+        generationPrimaryModel = LyricsAiModelSelection(
+          provider: provider,
+          modelId: defaultModelId,
+        );
+      }
+    }
+
+    if (_isModelSelectionNotSet(translationPrimaryModel)) {
+      final defaultModelId = switch (provider) {
+        LyricsAiProvider.googleAiStudio => defaultTranslationPrimaryModelId,
+        LyricsAiProvider.openRouter => defaultOpenRouterTranslationModelId,
+        LyricsAiProvider.doubao => defaultDoubaoTranslationModelId,
+        LyricsAiProvider.deepseek => defaultDeepSeekTranslationModelId,
+      };
+      if (defaultModelId.isNotEmpty) {
+        translationPrimaryModel = LyricsAiModelSelection(
+          provider: provider,
+          modelId: defaultModelId,
+        );
+      }
     }
   }
 
