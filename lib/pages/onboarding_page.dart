@@ -326,30 +326,37 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                   itemBuilder: (context, index) {
                     final folder = rootFolders[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.folder, color: Colors.amber, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              folder.name,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                    final isAvailable = scanner.isRootPathAvailable(folder.path);
+                    return AnimatedOpacity(
+                      opacity: isAvailable ? 1.0 : 0.45,
+                      duration: const Duration(milliseconds: 180),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.folder, color: Colors.amber, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                folder.name,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.check_circle,
-                            color: theme.colorScheme.primary,
-                            size: 18,
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Icon(
+                              isAvailable ? Icons.check_circle : Icons.error_outline,
+                              color: isAvailable
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.error,
+                              size: 18,
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

@@ -39,7 +39,7 @@ export 'package:vynody/player/scanner/scanner_scan_support.dart';
 
 enum _DirectoryRescanMode { nonRecursive, recursive }
 
-class ScannerService extends ChangeNotifier {
+class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   final ScannerFolderSorter _folderSorter = const ScannerFolderSorter();
   final Duration _directoryRescanBatchWindow;
   final Completer<void> _readyCompleter = Completer<void>();
@@ -57,6 +57,7 @@ class ScannerService extends ChangeNotifier {
   Timer? _metadataNotifyTimer;
   Timer? _scanNotifyTimer;
   Timer? _rootAvailabilityRefreshTimer;
+  Timer? _rootAvailabilityTimer;
   Timer? _directoryRescanTimer;
   bool _scanNotifyPending = false;
   bool _lastNotifiedScanningState = false;
@@ -181,6 +182,7 @@ class ScannerService extends ChangeNotifier {
       emitScanProgress: _emitScanProgress,
     );
     _navigationState.addListener(_handleNavigationChanged);
+    WidgetsBinding.instance.addObserver(this);
     if (autoInitialize) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_runInit());
@@ -468,6 +470,13 @@ class ScannerService extends ChangeNotifier {
       });
       // Auto scan on startup
       await _timeInitStep('startup scan', scan);
+      _rootAvailabilityTimer = Timer.periodic(
+        const Duration(seconds: 4),
+        (_) {
+          _pendingRootAvailabilityRescan = true;
+          _scheduleRootAvailabilityRefresh();
+        },
+      );
     } finally {
       totalStopwatch.stop();
       _logInitTiming('init total', totalStopwatch);
@@ -3260,8 +3269,20 @@ class ScannerService extends ChangeNotifier {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('[ScannerService] App resumed, triggering root availability check');
+      _pendingRootAvailabilityRescan = true;
+      _scheduleRootAvailabilityRefresh();
+    }
+  }
+
+  @override
   void dispose() {
     _isDisposed = true;
+    WidgetsBinding.instance.removeObserver(this);
+    _rootAvailabilityTimer?.cancel();
+    _rootAvailabilityTimer = null;
     _navigationState.removeListener(_handleNavigationChanged);
     _navigationState.dispose();
     _roots.dispose();
