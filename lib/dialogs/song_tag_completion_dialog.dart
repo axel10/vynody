@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:vynody/utils/clean_helper.dart';
 import 'package:vynody/player/metadata/acoustid_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
@@ -380,6 +381,7 @@ class _SongTagCompletionSheetState
     String? country,
     String? releaseDate,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final shouldSaveToSource = ref.read(settingsServiceProvider).tagCompletionSaveToSourceFile && isMetadataWritable(widget.songPath);
     final result = await _controller.applyAcoustIDSelection(
       trackResult: trackResult,
@@ -398,7 +400,14 @@ class _SongTagCompletionSheetState
       existingMetadata: _fileMetadata,
       writeToFile: shouldSaveToSource,
     );
-    if (!mounted || result == null) return;
+    if (!mounted) return;
+    if (result == null) {
+      final isOccupied = MetadataHelper.lastWriteError == 'file_occupied';
+      showToast(
+        isOccupied ? l10n.fileOccupiedByOtherApp : (_controller.errorMessage ?? l10n.saveFailed),
+      );
+      return;
+    }
     Navigator.of(context).pop((result, shouldSaveToSource));
   }
 
@@ -457,6 +466,7 @@ class _SongTagCompletionSheetState
     MusicBrainzTrackMatch match,
     MusicBrainzReleaseMatch release,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final shouldSaveToSource = ref.read(settingsServiceProvider).tagCompletionSaveToSourceFile && isMetadataWritable(widget.songPath);
     final result = await _controller.applyMusicBrainzRelease(
       match: match,
@@ -466,7 +476,14 @@ class _SongTagCompletionSheetState
       writeToFile: shouldSaveToSource,
     );
 
-    if (!mounted || result == null) return;
+    if (!mounted) return;
+    if (result == null) {
+      final isOccupied = MetadataHelper.lastWriteError == 'file_occupied';
+      showToast(
+        isOccupied ? l10n.fileOccupiedByOtherApp : (_controller.errorMessage ?? l10n.saveFailed),
+      );
+      return;
+    }
     Navigator.of(context).pop((result, shouldSaveToSource));
   }
 

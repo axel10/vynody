@@ -846,6 +846,7 @@
   "saveToApp": "保存到 App",
   "saveToSourceFileAndApp": "保存到源文件和 App",
   "saveToSourceFileFailed": "保存到源文件失败，请确认文件格式支持写入且文件未被占用",
+  "fileOccupiedByOtherApp": "文件被其他 App 占用，无法写入",
   "saveFailed": "保存失败，请稍后重试",
   "apiKeySaved": "{provider} API Key 已保存",
   "@apiKeySaved": {

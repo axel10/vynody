@@ -412,6 +412,7 @@
   "saveToApp": "Save to App",
   "saveToSourceFileAndApp": "Save to Source File and App",
   "saveToSourceFileFailed": "Failed to save to the source file. Please make sure the file format supports writing and the file is not in use.",
+  "fileOccupiedByOtherApp": "The file is occupied by another app and cannot be written",
   "saveFailed": "Save failed. Please try again later.",
   "apiKeySaved": "{provider} API key saved",
   "@apiKeySaved": {

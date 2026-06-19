@@ -1037,6 +1037,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get saveToSourceFileFailed => '保存到源文件失败，请确认文件格式支持写入且文件未被占用';
 
   @override
+  String get fileOccupiedByOtherApp => '文件被其他 App 占用，无法写入';
+
+  @override
   String get saveFailed => '保存失败，请稍后重试';
 
   @override

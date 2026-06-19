@@ -6,9 +6,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/utils/app_snack_bar.dart';
 
 class SongTagEditResult {
   const SongTagEditResult({
@@ -246,14 +248,16 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       fallbackMediaUri: widget.song.mediaUri,
     );
 
-    if (!mounted) return;
-
     if (result == null) {
       final reason = MetadataHelper.lastWriteError;
+      final isOccupied = reason == 'file_occupied';
+      if (isOccupied && mounted) {
+        showToast(l10n.fileOccupiedByOtherApp);
+      }
       setState(() {
         _isSaving = false;
         _errorMessage = writeToFile
-            ? (reason != null ? '${l10n.saveToSourceFileFailed}\n($reason)' : l10n.saveToSourceFileFailed)
+            ? (isOccupied ? l10n.fileOccupiedByOtherApp : (reason != null ? '${l10n.saveToSourceFileFailed}\n($reason)' : l10n.saveToSourceFileFailed))
             : (reason != null ? '${l10n.saveFailed}\n($reason)' : l10n.saveFailed);
       });
       return;

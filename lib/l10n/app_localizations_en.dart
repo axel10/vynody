@@ -1061,6 +1061,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Failed to save to the source file. Please make sure the file format supports writing and the file is not in use.';
 
   @override
+  String get fileOccupiedByOtherApp =>
+      'The file is occupied by another app and cannot be written';
+
+  @override
   String get saveFailed => 'Save failed. Please try again later.';
 
   @override

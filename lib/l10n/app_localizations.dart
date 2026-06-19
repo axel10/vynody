@@ -2060,6 +2060,12 @@ abstract class AppLocalizations {
   /// **'保存到源文件失败，请确认文件格式支持写入且文件未被占用'**
   String get saveToSourceFileFailed;
 
+  /// No description provided for @fileOccupiedByOtherApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件被其他 App 占用，无法写入'**
+  String get fileOccupiedByOtherApp;
+
   /// No description provided for @saveFailed.
   ///
   /// In zh, this message translates to:

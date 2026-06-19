@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 import '../l10n/app_localizations.dart';
@@ -30,6 +31,7 @@ import '../widgets/playback_ui_tuning.dart';
 import '../widgets/mini_queue_view.dart';
 import '../widgets/mini_lyrics_view.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
+import 'package:oktoast/oktoast.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
 
@@ -468,18 +470,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         }
       } else {
         if (!mounted) return;
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(content: Text(l10n.tagsSaveFailed)),
+        final isOccupied = MetadataHelper.lastWriteError == 'file_occupied';
+        showToast(
+          isOccupied ? l10n.fileOccupiedByOtherApp : l10n.tagsSaveFailed,
         );
       }
     } catch (e) {
       if (!mounted) return;
-      AppSnackBar.show(
-        context,
-        ref,
-        SnackBar(content: Text(l10n.tagsSaveFailed)),
+      final isOccupied = MetadataHelper.lastWriteError == 'file_occupied';
+      showToast(
+        isOccupied ? l10n.fileOccupiedByOtherApp : l10n.tagsSaveFailed,
       );
     }
   }
@@ -606,6 +606,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         }
       } else {
         if (isMetadataWritable(song.path)) {
+          if (MetadataHelper.lastWriteError == 'file_occupied') {
+            showToast(
+              '${p.basename(song.path)}: ${l10n.fileOccupiedByOtherApp}',
+            );
+          }
           failedCount++;
         } else {
           unsupportedCount++;
