@@ -11,6 +11,7 @@ typedef OnlineLyricsSearch =
       String? artist,
       String? album,
       String? q,
+      CancelToken? cancelToken,
     });
 
 Future<LyricTrack?> showOnlineLyricsSearchDialog({
@@ -56,6 +57,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
   List<LyricTrack> _tracks = const [];
   bool _isLoading = false;
   String? _lastErrorMessage;
+  CancelToken? _cancelToken;
 
   @override
   void initState() {
@@ -72,6 +74,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
 
   @override
   void dispose() {
+    _cancelToken?.cancel('Dialog disposed');
     _searchController.dispose();
     super.dispose();
   }
@@ -119,6 +122,11 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
 
     final queryText = _searchController.text.trim();
 
+    // Cancel the previous query if it is still in flight
+    _cancelToken?.cancel('New query initiated');
+    final currentCancelToken = CancelToken();
+    _cancelToken = currentCancelToken;
+
     setState(() {
       _isLoading = true;
       _lastErrorMessage = null;
@@ -128,15 +136,24 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
       final tracks = await widget.searchTracks(
         title: widget.queryTitle,
         q: queryText.isNotEmpty ? queryText : null,
+        cancelToken: currentCancelToken,
       );
 
       if (!mounted) return;
+      if (currentCancelToken != _cancelToken) return;
+
       setState(() {
         _tracks = tracks;
         _isLoading = false;
       });
     } catch (error) {
       if (!mounted) return;
+      if (currentCancelToken != _cancelToken) return;
+
+      if (error is DioException && CancelToken.isCancel(error)) {
+        return;
+      }
+
       final l10n = AppLocalizations.of(context)!;
       setState(() {
         _isLoading = false;

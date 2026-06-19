@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -667,15 +668,21 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       queryTitle: songTitle,
       queryArtist: songArtist?.isNotEmpty == true ? songArtist : null,
       queryAlbum: songAlbum?.isNotEmpty == true ? songAlbum : null,
-      searchTracks:
-          ({required String title, String? artist, String? album, String? q}) {
-            return service.searchTracksByQuery(
-              title: title,
-              artist: artist,
-              album: album,
-              q: q,
-            );
-          },
+      searchTracks: ({
+        required String title,
+        String? artist,
+        String? album,
+        String? q,
+        CancelToken? cancelToken,
+      }) {
+        return service.searchTracksByQuery(
+          title: title,
+          artist: artist,
+          album: album,
+          q: q,
+          cancelToken: cancelToken,
+        );
+      },
     );
 
     if (!mounted || selectedTrack == null) return;
