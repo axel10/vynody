@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/player/metadata/artwork_constants.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 
 Future<Map<String, dynamic>?> _buildArtworkFiles({
@@ -13,6 +14,7 @@ Future<Map<String, dynamic>?> _buildArtworkFiles({
   required Uint8List data,
   required String supportDirPath,
   required bool saveLarge,
+  int thumbnailSize = vynodyArtworkThumbnailSize,
 }) async {
   try {
     final result = await generateTrackArtwork(
@@ -20,7 +22,7 @@ Future<Map<String, dynamic>?> _buildArtworkFiles({
       artworkBytes: data,
       cacheRootPath: supportDirPath,
       saveLargeArtwork: saveLarge,
-      thumbnailSize: generatedArtworkThumbnailSize,
+      thumbnailSize: thumbnailSize,
       meshStylePreset: MeshStylePreset.stable.index,
       hueCohesion: 0.0,
       paletteBlurRadius: 5.0,
@@ -568,6 +570,7 @@ class MetadataHelper {
     String songPath,
     Uint8List data, {
     bool saveLarge = false,
+    int thumbnailSize = vynodyArtworkThumbnailSize,
   }) async {
     try {
       final supportDir = await getApplicationSupportDirectory();
@@ -576,6 +579,7 @@ class MetadataHelper {
         data: data,
         supportDirPath: supportDir.path,
         saveLarge: saveLarge,
+        thumbnailSize: thumbnailSize,
       );
     } catch (e) {
       debugPrint('Error saving artwork: $e');

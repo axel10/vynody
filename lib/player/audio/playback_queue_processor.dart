@@ -11,6 +11,7 @@ import 'package:audio_core/audio_core.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/metadata/artwork_constants.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/theme_color_helper.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
@@ -274,7 +275,7 @@ class PlaybackQueueProcessor {
               song.path,
               controller: player,
               saveLargeArtwork: false,
-              thumbnailSize: generatedArtworkThumbnailSize,
+              thumbnailSize: vynodyArtworkThumbnailSize,
             );
             if (_disposed || myId != _currentProcessId) return;
             didScanImg = true;
@@ -299,44 +300,6 @@ class PlaybackQueueProcessor {
               }
 
               onUpdate(song.path, updates);
-            } else if (meta.themeColorsBlob == null) {
-              try {
-                final paletteBytes =
-                    song.artworkBytes ??
-                    (meta.artworkPath != null
-                        ? await File(meta.artworkPath!).readAsBytes()
-                        : null);
-                Uint8List? themeColorsBlob =
-                    await TrackArtworkThemeService.generateThemeColorsBlob(
-                      bytes: paletteBytes,
-                      path: meta.artworkPath ?? meta.thumbnailPath,
-                    );
-
-                if (themeColorsBlob == null) {
-                  final extractedBytes =
-                      await MetadataHelper.decodeEmbeddedArtwork(song.path);
-                  if (_disposed || myId != _currentProcessId) return;
-                  themeColorsBlob =
-                      await TrackArtworkThemeService.generateThemeColorsBlob(
-                        bytes: extractedBytes,
-                      );
-                }
-
-                if (themeColorsBlob != null) {
-                  meta = meta.copyWith(
-                    themeColorsBlob: themeColorsBlob,
-                    metadataImgScanned: lastModified,
-                  );
-                  await db.insertOrUpdateSong(meta);
-
-                  onUpdate(song.path, {
-                    'themeColors': ThemeColorHelper.blobToColors(themeColorsBlob),
-                    'themeColorsBlob': themeColorsBlob,
-                  });
-                }
-              } catch (e) {
-                debugPrint('Theme color extraction error for ${song.path}: $e');
-              }
             }
           }
 

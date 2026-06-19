@@ -30,6 +30,7 @@ import 'package:vynody/player/scanner/scanner_service_roots.dart';
 import 'package:vynody/player/scanner/scanner_scan_support.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/metadata/artwork_constants.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
@@ -2511,7 +2512,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         controller: controller,
         cacheRootPath: supportDirPath,
         saveLargeArtwork: false,
-        thumbnailSize: generatedArtworkThumbnailSize,
+        thumbnailSize: vynodyArtworkThumbnailSize,
       );
       nativeStopwatch.stop();
       _logScanTiming('stage 4 native artwork $filePath', nativeStopwatch);
@@ -2923,7 +2924,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             path,
             controller: controller,
             saveLargeArtwork: false,
-            thumbnailSize: generatedArtworkThumbnailSize,
+            thumbnailSize: vynodyArtworkThumbnailSize,
           );
 
       if (artwork == null || !artwork.hasThumbnailPath) {

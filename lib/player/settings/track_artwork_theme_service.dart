@@ -1,13 +1,12 @@
 import 'dart:io';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
-import 'package:vynody/player/settings/theme_color_helper.dart';
+import 'package:vynody/player/metadata/artwork_constants.dart';
 
 class TrackArtworkThemeResult {
   const TrackArtworkThemeResult({
@@ -121,7 +120,7 @@ class TrackArtworkThemeService {
     AudioCoreController? controller,
     String? cacheRootPath,
     bool saveLargeArtwork = false,
-    int thumbnailSize = generatedArtworkThumbnailSize,
+    int thumbnailSize = vynodyArtworkThumbnailSize,
   }) async {
     final normalizedPath = path.trim();
     if (normalizedPath.isEmpty) return null;
@@ -249,48 +248,6 @@ class TrackArtworkThemeService {
     } catch (e) {
       debugPrint('TrackArtworkThemeService failed for $path: $e');
       return TrackArtworkThemeResult.fromMetadata(path, cached);
-    }
-  }
-
-  static Future<Uint8List?> generateThemeColorsBlob({
-    Uint8List? bytes,
-    String? path,
-    bool useMaster = false,
-  }) async {
-    if ((bytes == null || bytes.isEmpty) &&
-        (path == null || path.trim().isEmpty)) {
-      return null;
-    }
-
-    try {
-      final palette = useMaster
-          ? await ThemeColorHelper.generatePaletteMaster(
-              bytes: bytes,
-              path: path,
-            )
-          : await ThemeColorHelper.generatePalette(bytes: bytes, path: path);
-      if (palette.colorsMap.isEmpty) return null;
-      return ThemeColorHelper.colorsMapToBlob(palette.colorsMap);
-    } catch (e) {
-      debugPrint('TrackArtworkThemeService palette generation failed: $e');
-      return null;
-    }
-  }
-
-  static Future<Uint8List?> generateThemeColorsBlobFromImage(
-    img.Image image, {
-    bool useMaster = false,
-  }) async {
-    if (image.width <= 0 || image.height <= 0) {
-      return null;
-    }
-
-    try {
-      final encoded = Uint8List.fromList(img.encodePng(image));
-      return generateThemeColorsBlob(bytes: encoded, useMaster: useMaster);
-    } catch (e) {
-      debugPrint('TrackArtworkThemeService image palette failed: $e');
-      return null;
     }
   }
 }

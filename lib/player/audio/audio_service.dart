@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_snapshot.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/artwork_constants.dart';
 
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/theme_color_helper.dart';
@@ -1704,28 +1705,24 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
-    final bytes = current.artworkBytes;
-    final sourcePath = current.thumbnailPath ?? current.artworkPath;
-    if ((bytes == null || bytes.isEmpty) &&
-        (sourcePath == null || sourcePath.isEmpty)) {
-      return;
-    }
-
     _themePaletteRecomputeInProgressPath = songPath;
     try {
-      final themeColorsBlob =
-          await TrackArtworkThemeService.generateThemeColorsBlob(
-            bytes: bytes,
-            path: sourcePath,
-            useMaster: true,
-          );
+      final artworkThemeService = TrackArtworkThemeService(db: _db);
+      final artworkTheme = await artworkThemeService.getTrackArtworkTheme(
+        songPath,
+        controller: _player,
+        saveLargeArtwork: false,
+        thumbnailSize: vynodyArtworkThumbnailSize,
+      );
 
-      if (currentMusic?.path != songPath || themeColorsBlob == null) {
+      if (currentMusic?.path != songPath ||
+          artworkTheme == null ||
+          artworkTheme.themeColorsBlob == null) {
         return;
       }
 
       await saveCurrentSongThemeColors(
-        ThemeColorHelper.blobToColors(themeColorsBlob),
+        ThemeColorHelper.blobToColors(artworkTheme.themeColorsBlob!),
       );
     } catch (e) {
       debugPrint('Error recomputing theme colors for $songPath: $e');
@@ -1762,10 +1759,18 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
-    final paletteBlob = await TrackArtworkThemeService.generateThemeColorsBlob(
-      bytes: artworkBytes,
-      path: artworkPath,
+    final songPath = currentMusic?.path;
+    if (songPath == null) return;
+
+    final artworkThemeService = TrackArtworkThemeService(db: _db);
+    final artworkTheme = await artworkThemeService.getTrackArtworkTheme(
+      songPath,
+      controller: _player,
+      saveLargeArtwork: false,
+      thumbnailSize: vynodyArtworkThumbnailSize,
     );
+
+    final paletteBlob = artworkTheme?.themeColorsBlob;
 
     if (paletteBlob == null || paletteBlob.isEmpty) {
       _dynamicStartColor = null;
@@ -1776,11 +1781,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
 
     final colorsMap = ThemeColorHelper.blobToColors(paletteBlob);
-    _applyThemeColors(colorsMap);
-    _dynamicStartColor = colorsMap['dominant'] ?? colorsMap['vibrant'];
-    _dynamicEndColor =
-        (colorsMap['vibrant']?.withValues(alpha: 0.8)) ?? colorsMap['muted'];
-    notifyListeners();
+    await saveCurrentSongThemeColors(colorsMap);
   }
 
   /// Synchronizes the currently playing song with the in-memory playback state.
