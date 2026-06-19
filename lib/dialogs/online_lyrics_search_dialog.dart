@@ -61,11 +61,8 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
   void initState() {
     super.initState();
     
-    // Construct initial search query using track title and artist
-    String initialQ = widget.queryTitle.trim();
-    if (widget.queryArtist != null && widget.queryArtist!.trim().isNotEmpty) {
-      initialQ += ' ${widget.queryArtist!.trim()}';
-    }
+    // Construct initial search query using only the track title (or filename without extension if no title is present)
+    final initialQ = widget.queryTitle.trim();
     _searchController = TextEditingController(text: initialQ);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
