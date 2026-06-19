@@ -1263,6 +1263,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noMatchingResults => '没有找到匹配结果';
 
   @override
+  String get networkConnectionFailed => '网络连接失败';
+
+  @override
   String get searchAgain => '重新搜索';
 
   @override

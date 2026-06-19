@@ -928,6 +928,7 @@
   "retry": "重试",
   "noMatchingRelease": "没有找到匹配的 release",
   "noMatchingResults": "没有找到匹配结果",
+  "networkConnectionFailed": "网络连接失败",
   "searchAgain": "重新搜索",
   "acoustidRecognitionRecords": "AcoustID 识别记录",
   "musicBrainzRecordings": "MusicBrainz 录音",

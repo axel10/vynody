@@ -2486,6 +2486,12 @@ abstract class AppLocalizations {
   /// **'没有找到匹配结果'**
   String get noMatchingResults;
 
+  /// No description provided for @networkConnectionFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'网络连接失败'**
+  String get networkConnectionFailed;
+
   /// No description provided for @searchAgain.
   ///
   /// In zh, this message translates to:

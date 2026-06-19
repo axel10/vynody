@@ -500,6 +500,7 @@
   "retry": "Retry",
   "noMatchingRelease": "No matching release found",
   "noMatchingResults": "No matching results found",
+  "networkConnectionFailed": "Network connection failed",
   "searchAgain": "Search again",
   "acoustidRecognitionRecords": "AcoustID recognition records",
   "musicBrainzRecordings": "MusicBrainz recordings",

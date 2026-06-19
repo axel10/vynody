@@ -1302,6 +1302,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noMatchingResults => 'No matching results found';
 
   @override
+  String get networkConnectionFailed => 'Network connection failed';
+
+  @override
   String get searchAgain => 'Search again';
 
   @override

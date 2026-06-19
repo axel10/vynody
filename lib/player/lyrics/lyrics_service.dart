@@ -656,8 +656,10 @@ class LyricsService {
         return const [];
       }
       debugPrint('[Lyrics] SEARCH failed for "$title": ${e.message}');
+      rethrow;
     } catch (e) {
       debugPrint('[Lyrics] SEARCH error for "$title": $e');
+      rethrow;
     }
     return const [];
   }

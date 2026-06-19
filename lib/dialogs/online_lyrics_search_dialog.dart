@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
@@ -82,6 +84,39 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
     return normalized.isEmpty ? '-' : normalized;
   }
 
+  bool _isNetworkError(Object error) {
+    if (error is! DioException) {
+      final errStr = error.toString().toLowerCase();
+      return errStr.contains('socketexception') ||
+             errStr.contains('network') ||
+             errStr.contains('connection');
+    }
+    final e = error;
+    if (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return true;
+    }
+    if (e.error is SocketException) {
+      return true;
+    }
+    final text = [
+      e.message,
+      e.error?.toString(),
+    ].whereType<String>().join(' ').toLowerCase();
+
+    return text.contains('connection failed') ||
+        text.contains('network is unreachable') ||
+        text.contains('failed host lookup') ||
+        text.contains('no address associated with hostname') ||
+        text.contains('software caused connection abort') ||
+        text.contains('connection refused') ||
+        text.contains('os error: 101') ||
+        text.contains('os error: 113') ||
+        text.contains('socketexception');
+  }
+
   Future<void> _reloadTracks() async {
     if (!mounted) return;
 
@@ -105,9 +140,14 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
       });
     } catch (error) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
         _isLoading = false;
-        _lastErrorMessage = error.toString();
+        if (_isNetworkError(error)) {
+          _lastErrorMessage = l10n.networkConnectionFailed;
+        } else {
+          _lastErrorMessage = error.toString();
+        }
       });
       ScaffoldMessenger.of(
         context,
