@@ -73,6 +73,10 @@ class LibraryInsightsService {
     List<LibraryInsightSongRecord> records,
   ) {
     return records
+        .where((record) {
+          final flags = record.song.sourceFlags ?? 0;
+          return (flags & SongSourceFlags.external) == 0;
+        })
         .map(
           (record) => LibraryInsightSongEntry(
             song: MusicFile(
