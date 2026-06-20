@@ -31,10 +31,13 @@ class VisualizerOptionsDialog extends ConsumerWidget {
       child: StatefulBuilder(
         builder: (context, setDialogState) {
           final l10n = AppLocalizations.of(context)!;
+          final screenWidth = MediaQuery.of(context).size.width;
+          final double horizontalInset = (screenWidth * 0.05).clamp(12.0, 40.0);
 
           return AlertDialog(
             backgroundColor: isDark ? const Color(0xFF101114) : theme.colorScheme.surface,
             surfaceTintColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(horizontal: horizontalInset, vertical: 24.0),
             titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
             contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
             title: Column(
