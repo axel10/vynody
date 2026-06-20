@@ -223,6 +223,12 @@ class LyricsControllerSupport {
     final song = _context.currentMusic();
     if (song == null) return;
 
+    cancelOngoingLyricsFetch(
+      reason: source == LyricsCacheSource.lrclib
+          ? 'user selected online lyrics'
+          : 'user manually filled lyrics',
+    );
+
     final normalizedText = lyricsText.replaceAll('\r\n', '\n').trim();
     if (normalizedText.isEmpty) return;
 
