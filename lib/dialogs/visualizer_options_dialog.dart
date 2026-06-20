@@ -457,7 +457,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                 ),
               ),
             ),
-            style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white : theme.colorScheme.onSurface,
+            ),
             items: FftAggregationMode.values.map((mode) {
               return DropdownMenuItem(
                 value: mode,
@@ -961,7 +963,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               ),
             ),
           ),
-          style: TextStyle(
+          style: theme.textTheme.bodyMedium?.copyWith(
             color: isDark ? Colors.white : theme.colorScheme.onSurface,
             fontSize: 14,
           ),
