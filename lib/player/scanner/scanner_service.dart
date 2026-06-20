@@ -3219,7 +3219,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     if (resolvedCurrentFolder == null && currentFolder != null) {
-      _navigationState.setState(null, const []);
+      final isStillValid = currentFolder.path == 'system' ||
+          _roots.rootPaths.any((root) => _pathsEqual(root, currentFolder.path) || _pathContains(root, currentFolder.path));
+      if (!isStillValid) {
+        _navigationState.setState(null, const []);
+      }
       return;
     }
 
