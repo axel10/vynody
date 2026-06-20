@@ -17,12 +17,10 @@ final class LyricsAiPromptBuilder {
 
   static String buildGenerateTimelinePrompt({
     required String lyrics,
-    required bool hasOriginalTimestamps,
   }) {
-    final promptPrefix = hasOriginalTimestamps
-        ? '这是这首歌的歌词和源文件，但是时间轴和原曲有些对不上，帮我重新核对下时间轴。仅输出结果即可，不要输出其他内容（我拿来当api用的）'
-        : '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
-    return '$promptPrefix\n```text\n$lyrics\n```';
+    final cleanLyrics = LrcUtils.stripTimestamps(lyrics);
+    const prompt = '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
+    return '$prompt\n```text\n$cleanLyrics\n```';
   }
 
   static String buildTranslateLyricsPrompt({

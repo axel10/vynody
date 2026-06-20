@@ -423,10 +423,8 @@ class LyricsAiService {
       );
     }
 
-    final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
     final prompt = LyricsAiPromptBuilder.buildGenerateTimelinePrompt(
       lyrics: normalizedLyrics,
-      hasOriginalTimestamps: hasOriginalTimestamps,
     );
     final candidates = <LyricsAiModelSelection>[
       LyricsAiModelSelection(
@@ -1319,10 +1317,6 @@ class LyricsAiService {
         ),
       ),
     );
-  }
-
-  bool _hasTimestampedLyrics(String lyrics) {
-    return RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]').hasMatch(lyrics);
   }
 
   String _formatGenerationErrorMessage(Object error, {String? fallback}) {

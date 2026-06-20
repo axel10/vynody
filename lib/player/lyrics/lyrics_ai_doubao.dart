@@ -234,10 +234,8 @@ class LyricsAiDoubaoClient {
       );
     }
 
-    final hasOriginalTimestamps = _hasTimestampedLyrics(normalizedLyrics);
     final prompt = LyricsAiPromptBuilder.buildGenerateTimelinePrompt(
       lyrics: normalizedLyrics,
-      hasOriginalTimestamps: hasOriginalTimestamps,
     );
 
     return _generateFromAudioFile(
@@ -611,10 +609,6 @@ class LyricsAiDoubaoClient {
       status: status == null || status.isEmpty ? 'ready' : status,
       expireAt: int.tryParse(data['expire_at']?.toString() ?? ''),
     );
-  }
-
-  bool _hasTimestampedLyrics(String lyrics) {
-    return RegExp(r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]').hasMatch(lyrics);
   }
 
   String _formatErrorMessage(Object error, {String? fallback}) {
