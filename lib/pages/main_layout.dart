@@ -20,6 +20,7 @@ import 'package:vynody/dialogs/transfer_dialogs.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/shortcut_bindings.dart';
+import 'package:vynody/utils/linux_mount_helper.dart';
 import 'main_layout_riverpod.dart';
 import 'onboarding_page.dart';
 import '../widgets/desktop_window_title_bar.dart';
@@ -278,6 +279,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
       }
 
       // 文件存在性校验
+      if (Platform.isLinux) {
+        await LinuxMountHelper.ensureMounted(path);
+      }
       final exists = File(path).existsSync();
       final isMusic = MusicFileUtils.isMusicFilePath(path);
       debugPrint(

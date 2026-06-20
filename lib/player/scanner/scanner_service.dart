@@ -35,6 +35,7 @@ import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/utils/linux_mount_helper.dart';
 
 export 'package:vynody/player/scanner/scanner_scan_support.dart';
 
@@ -441,6 +442,21 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           _syncActiveScopedRootAccess,
         );
       }
+      if (Platform.isLinux) {
+        await _timeInitStep(
+          'mount linux roots',
+          () async {
+            final declaredRoots = _roots.rootPaths.toList(growable: false);
+            for (final root in declaredRoots) {
+              try {
+                await LinuxMountHelper.ensureMounted(root);
+              } catch (e) {
+                debugPrint('Error auto-mounting root $root: $e');
+              }
+            }
+          },
+        );
+      }
       await _timeInitStep(
         'sync root availability',
         () => _refreshRootAvailability(shouldNotifyListeners: false),
@@ -832,6 +848,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   bool _isRootPathAvailable(String path) {
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) return false;
+
+    if (Platform.isLinux &&
+        (normalizedPath.startsWith('/run/media/') ||
+         normalizedPath.startsWith('/media/'))) {
+      return true;
+    }
 
     try {
       return Directory(normalizedPath).existsSync();
@@ -1556,6 +1578,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     final normalizedDirectory = _normalizePath(directoryPath);
     if (normalizedDirectory.isEmpty) {
       return;
+    }
+    if (Platform.isLinux) {
+      await LinuxMountHelper.ensureMounted(normalizedDirectory);
     }
 
     if (_scanCoordinator.isScanning) {
@@ -2609,6 +2634,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     await _loadScanSettings();
     final requestedRoots = _computeScanRoots(rootsToScan);
+    if (Platform.isLinux) {
+      for (final root in requestedRoots) {
+        try {
+          await LinuxMountHelper.ensureMounted(root);
+        } catch (e) {
+          debugPrint('Error auto-mounting root $root: $e');
+        }
+      }
+    }
     if (requestedRoots.isEmpty) {
       if (clearScannedRoots) {
         _scannedRootFolders.clear();

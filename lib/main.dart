@@ -17,6 +17,7 @@ import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
+import 'utils/linux_mount_helper.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final List<String> _pendingFileOpenArgs = <String>[];
@@ -87,6 +88,9 @@ Future<void> _handleFileOpenArgs(
     }
 
     // 检查文件是否存在
+    if (Platform.isLinux) {
+      await LinuxMountHelper.ensureMounted(path);
+    }
     final exists = File(path).existsSync();
     AppLog.log(
       '[external-open] inspect path=$path exists=$exists isMusic=${MusicFileUtils.isMusicFilePath(path)}',

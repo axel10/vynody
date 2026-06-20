@@ -33,6 +33,7 @@ import 'package:vynody/player/lyrics/lyrics_controller_dependencies.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
+import 'package:vynody/utils/linux_mount_helper.dart';
 
 class _PlaybackSessionState {
   const _PlaybackSessionState({
@@ -802,6 +803,9 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<bool> _songExists(String path) async {
     if (path.trim().isEmpty) return false;
+    if (Platform.isLinux) {
+      await LinuxMountHelper.ensureMounted(path);
+    }
     return File(path).exists();
   }
 

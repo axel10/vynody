@@ -12,6 +12,7 @@ import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'app_snack_bar.dart';
+import 'linux_mount_helper.dart';
 
 enum SongContextMenuMode { full, title, artistAlbum }
 
@@ -28,6 +29,9 @@ Future<void> openSongFileLocation(String filePath) async {
   if (filePath.trim().isEmpty) return;
 
   final normalizedPath = File(filePath).absolute.path;
+  if (Platform.isLinux) {
+    await LinuxMountHelper.ensureMounted(normalizedPath);
+  }
   if (!File(normalizedPath).existsSync()) {
     debugPrint(
       '[SongContextMenu] Cannot open file location, file missing: $normalizedPath',
@@ -76,6 +80,9 @@ Future<void> openFolderLocation(String folderPath) async {
   if (folderPath.trim().isEmpty) return;
 
   final normalizedPath = Directory(folderPath).absolute.path;
+  if (Platform.isLinux) {
+    await LinuxMountHelper.ensureMounted(normalizedPath);
+  }
   if (!Directory(normalizedPath).existsSync()) {
     debugPrint(
       '[FolderContextMenu] Cannot open folder location, folder missing: $normalizedPath',
