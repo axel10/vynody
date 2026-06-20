@@ -11,6 +11,7 @@ final class LyricsAiPromptBuilder {
         : '这首歌的标题是《$normalizedTitle》。';
     return '$titleHint'
         '输出这首歌的完整的带时间轴的标准LRC格式歌词,每一行歌词前面都带有一个方括号包裹的时间点，格式通常为：[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。'
+        '合理组织每一行歌词长度，不要太长也不要太短。'
         '仅输出结果不输出其他内容。';
   }
 
