@@ -4,6 +4,7 @@ import 'package:audio_core/audio_core.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 
 Future<void> showSongDetailsDialog(BuildContext context, MusicFile song) async {
   await showDialog(
@@ -55,25 +56,22 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  String _formatChannels(int channels, bool isZh) {
+  String _formatChannels(int channels, AppLocalizations l10n) {
     if (channels == 1) {
-      return isZh ? '单声道 (Mono)' : 'Mono';
+      return l10n.detailMono;
     } else if (channels == 2) {
-      return isZh ? '立体声 (Stereo)' : 'Stereo';
+      return l10n.detailStereo;
     }
-    return isZh ? '$channels 声道' : '$channels Channels';
+    return l10n.detailChannelsCount(channels);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-
-    final titleText = isZh ? '歌曲属性' : 'Song Properties';
-    final closeText = isZh ? '关闭' : 'Close';
+    final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: Text(titleText),
+      title: Text(l10n.songProperties),
       content: SizedBox(
         width: 480,
         child: FutureBuilder<AudioDetails>(
@@ -102,7 +100,7 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        isZh ? '无法获取详细信息' : 'Failed to load details',
+                        l10n.failedToLoadDetails,
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: theme.colorScheme.error,
                         ),
@@ -130,7 +128,7 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
                 height: 200,
                 child: Center(
                   child: Text(
-                    isZh ? '暂无歌曲详细属性' : 'No properties available',
+                    l10n.noPropertiesAvailable,
                   ),
                 ),
               );
@@ -138,46 +136,41 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
 
             final rows = [
               _DetailRow(
-                label: isZh ? '文件路径' : 'File Path',
+                label: l10n.detailFilePath,
                 value: widget.song.path,
                 selectable: true,
               ),
               _DetailRow(
-                label: isZh ? '格式' : 'Format',
+                label: l10n.detailFormat,
                 value: details.formatName.toUpperCase(),
               ),
               _DetailRow(
-                label: isZh ? '编码' : 'Codec',
+                label: l10n.detailCodec,
                 value: details.codecName.toUpperCase(),
               ),
               _DetailRow(
-                label: isZh ? '时长' : 'Duration',
+                label: l10n.detailDuration,
                 value: _formatDuration(details.duration),
               ),
               _DetailRow(
-                label: isZh ? '文件大小' : 'File Size',
+                label: l10n.detailFileSize,
                 value: _formatFileSize(details.fileSize),
               ),
               _DetailRow(
-                label: isZh ? '比特率' : 'Bitrate',
+                label: l10n.detailBitrate,
                 value: '${(details.bitrate / 1000).round()} kbps',
               ),
-              if (details.bitrateMode.isNotEmpty && details.bitrateMode != 'unknown')
-                _DetailRow(
-                  label: isZh ? '码率模式' : 'Bitrate Mode',
-                  value: details.bitrateMode.toUpperCase(),
-                ),
               _DetailRow(
-                label: isZh ? '采样率' : 'Sample Rate',
+                label: l10n.detailSampleRate,
                 value: '${details.sampleRate} Hz',
               ),
               _DetailRow(
-                label: isZh ? '声道数' : 'Channels',
-                value: _formatChannels(details.channels, isZh),
+                label: l10n.detailChannels,
+                value: _formatChannels(details.channels, l10n),
               ),
               if (details.bitDepth != null && details.bitDepth! > 0)
                 _DetailRow(
-                  label: isZh ? '采样深度' : 'Bit Depth',
+                  label: l10n.detailBitDepth,
                   value: '${details.bitDepth} bit',
                 ),
             ];
@@ -218,7 +211,7 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              widget.song.artist ?? (isZh ? '未知艺术家' : 'Unknown Artist'),
+                              widget.song.artist ?? l10n.unknownArtist,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodyMedium?.copyWith(
@@ -227,7 +220,7 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              widget.song.album ?? (isZh ? '未知专辑' : 'Unknown Album'),
+                              widget.song.album ?? l10n.unknownAlbum,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall?.copyWith(
@@ -253,7 +246,7 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(closeText),
+          child: Text(l10n.close),
         ),
       ],
     );

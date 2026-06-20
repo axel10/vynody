@@ -631,9 +631,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                   : null,
                               icon: const Icon(Icons.info_outline),
                               label: Text(
-                                Localizations.localeOf(context).languageCode == 'zh'
-                                    ? '歌曲属性'
-                                    : 'Song Properties',
+                                AppLocalizations.of(context)!.songProperties,
                               ),
                             ),
                           ],

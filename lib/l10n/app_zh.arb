@@ -1102,5 +1102,27 @@
   "onboardingNext": "下一步",
   "onboardingBack": "上一步",
   "resetOnboarding": "重置新手引导",
-  "resetOnboardingDesc": "清除首次启动引导状态，下次启动应用时重新显示新手引导。"
+  "resetOnboardingDesc": "清除首次启动引导状态，下次启动应用时重新显示新手引导。",
+  "songProperties": "歌曲属性",
+  "failedToLoadDetails": "无法获取详细信息",
+  "noPropertiesAvailable": "暂无歌曲详细属性",
+  "detailFilePath": "文件路径",
+  "detailFormat": "格式",
+  "detailCodec": "编码",
+  "detailDuration": "时长",
+  "detailFileSize": "文件大小",
+  "detailBitrate": "比特率",
+  "detailSampleRate": "采样率",
+  "detailChannels": "声道数",
+  "detailBitDepth": "采样深度",
+  "detailMono": "单声道 (Mono)",
+  "detailStereo": "立体声 (Stereo)",
+  "detailChannelsCount": "{count} 声道",
+  "@detailChannelsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

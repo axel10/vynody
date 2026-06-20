@@ -169,7 +169,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
                               ? _buildSelectionActionButton(
                                   context: context,
                                   icon: Icons.info_outline_rounded,
-                                  label: Localizations.localeOf(context).languageCode == 'zh' ? '歌曲属性' : 'Song Properties',
+                                  label: l10n.songProperties,
                                   onPressed: selectedSongs.length == 1
                                       ? () => showSongDetailsDialog(context, selectedSongs.first)
                                       : null,
@@ -224,7 +224,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
                               ? _buildSelectionActionButton(
                                   context: context,
                                   icon: Icons.info_outline_rounded,
-                                  label: Localizations.localeOf(context).languageCode == 'zh' ? '歌曲属性' : 'Song Properties',
+                                  label: l10n.songProperties,
                                   onPressed: selectedSongs.length == 1
                                       ? () => showSongDetailsDialog(context, selectedSongs.first)
                                       : null,

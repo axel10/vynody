@@ -657,5 +657,27 @@
   "onboardingNext": "Next",
   "onboardingBack": "Back",
   "resetOnboarding": "Reset Onboarding",
-  "resetOnboardingDesc": "Clear the onboarding status. The welcome guide will be shown again on next startup."
+  "resetOnboardingDesc": "Clear the onboarding status. The welcome guide will be shown again on next startup.",
+  "songProperties": "Song Properties",
+  "failedToLoadDetails": "Failed to load details",
+  "noPropertiesAvailable": "No properties available",
+  "detailFilePath": "File Path",
+  "detailFormat": "Format",
+  "detailCodec": "Codec",
+  "detailDuration": "Duration",
+  "detailFileSize": "File Size",
+  "detailBitrate": "Bitrate",
+  "detailSampleRate": "Sample Rate",
+  "detailChannels": "Channels",
+  "detailBitDepth": "Bit Depth",
+  "detailMono": "Mono",
+  "detailStereo": "Stereo",
+  "detailChannelsCount": "{count} Channels",
+  "@detailChannelsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

@@ -1605,4 +1605,51 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get resetOnboardingDesc =>
       'Clear the onboarding status. The welcome guide will be shown again on next startup.';
+
+  @override
+  String get songProperties => 'Song Properties';
+
+  @override
+  String get failedToLoadDetails => 'Failed to load details';
+
+  @override
+  String get noPropertiesAvailable => 'No properties available';
+
+  @override
+  String get detailFilePath => 'File Path';
+
+  @override
+  String get detailFormat => 'Format';
+
+  @override
+  String get detailCodec => 'Codec';
+
+  @override
+  String get detailDuration => 'Duration';
+
+  @override
+  String get detailFileSize => 'File Size';
+
+  @override
+  String get detailBitrate => 'Bitrate';
+
+  @override
+  String get detailSampleRate => 'Sample Rate';
+
+  @override
+  String get detailChannels => 'Channels';
+
+  @override
+  String get detailBitDepth => 'Bit Depth';
+
+  @override
+  String get detailMono => 'Mono';
+
+  @override
+  String get detailStereo => 'Stereo';
+
+  @override
+  String detailChannelsCount(int count) {
+    return '$count Channels';
+  }
 }

@@ -208,7 +208,7 @@ Future<void> showSongContextMenu(
         buildContextMenuItem<String>(
           value: 'song_details',
           enabled: song != null,
-          label: Localizations.localeOf(context).languageCode == 'zh' ? '歌曲属性' : 'Song Properties',
+          label: l10n.songProperties,
           icon: Icons.info_outline_rounded,
           context: context,
         ),
@@ -694,7 +694,7 @@ Future<void> showSongBottomSheet(
                         _buildBottomSheetItem(
                           context: context,
                           value: 'song_details',
-                          label: Localizations.localeOf(context).languageCode == 'zh' ? '歌曲属性' : 'Song Properties',
+                          label: l10n.songProperties,
                           icon: Icons.info_outline_rounded,
                         ),
                       ],

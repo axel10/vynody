@@ -3019,6 +3019,96 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'清除首次启动引导状态，下次启动应用时重新显示新手引导。'**
   String get resetOnboardingDesc;
+
+  /// No description provided for @songProperties.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲属性'**
+  String get songProperties;
+
+  /// No description provided for @failedToLoadDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法获取详细信息'**
+  String get failedToLoadDetails;
+
+  /// No description provided for @noPropertiesAvailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无歌曲详细属性'**
+  String get noPropertiesAvailable;
+
+  /// No description provided for @detailFilePath.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件路径'**
+  String get detailFilePath;
+
+  /// No description provided for @detailFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'格式'**
+  String get detailFormat;
+
+  /// No description provided for @detailCodec.
+  ///
+  /// In zh, this message translates to:
+  /// **'编码'**
+  String get detailCodec;
+
+  /// No description provided for @detailDuration.
+  ///
+  /// In zh, this message translates to:
+  /// **'时长'**
+  String get detailDuration;
+
+  /// No description provided for @detailFileSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件大小'**
+  String get detailFileSize;
+
+  /// No description provided for @detailBitrate.
+  ///
+  /// In zh, this message translates to:
+  /// **'比特率'**
+  String get detailBitrate;
+
+  /// No description provided for @detailSampleRate.
+  ///
+  /// In zh, this message translates to:
+  /// **'采样率'**
+  String get detailSampleRate;
+
+  /// No description provided for @detailChannels.
+  ///
+  /// In zh, this message translates to:
+  /// **'声道数'**
+  String get detailChannels;
+
+  /// No description provided for @detailBitDepth.
+  ///
+  /// In zh, this message translates to:
+  /// **'采样深度'**
+  String get detailBitDepth;
+
+  /// No description provided for @detailMono.
+  ///
+  /// In zh, this message translates to:
+  /// **'单声道 (Mono)'**
+  String get detailMono;
+
+  /// No description provided for @detailStereo.
+  ///
+  /// In zh, this message translates to:
+  /// **'立体声 (Stereo)'**
+  String get detailStereo;
+
+  /// No description provided for @detailChannelsCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 声道'**
+  String detailChannelsCount(int count);
 }
 
 class _AppLocalizationsDelegate

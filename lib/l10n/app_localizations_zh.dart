@@ -1557,4 +1557,51 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get resetOnboardingDesc => '清除首次启动引导状态，下次启动应用时重新显示新手引导。';
+
+  @override
+  String get songProperties => '歌曲属性';
+
+  @override
+  String get failedToLoadDetails => '无法获取详细信息';
+
+  @override
+  String get noPropertiesAvailable => '暂无歌曲详细属性';
+
+  @override
+  String get detailFilePath => '文件路径';
+
+  @override
+  String get detailFormat => '格式';
+
+  @override
+  String get detailCodec => '编码';
+
+  @override
+  String get detailDuration => '时长';
+
+  @override
+  String get detailFileSize => '文件大小';
+
+  @override
+  String get detailBitrate => '比特率';
+
+  @override
+  String get detailSampleRate => '采样率';
+
+  @override
+  String get detailChannels => '声道数';
+
+  @override
+  String get detailBitDepth => '采样深度';
+
+  @override
+  String get detailMono => '单声道 (Mono)';
+
+  @override
+  String get detailStereo => '立体声 (Stereo)';
+
+  @override
+  String detailChannelsCount(int count) {
+    return '$count 声道';
+  }
 }
