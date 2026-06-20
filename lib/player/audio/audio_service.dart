@@ -2196,6 +2196,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     unawaited(_persistPlaybackSession());
   }
 
+  Future<AudioDetails> getAudioDetails({required String path}) async {
+    return _player.engine.getAudioDetails(path: path);
+  }
+
   Future<void> enqueueNext(List<MusicFile> songs) async {
     if (songs.isEmpty) return;
 

@@ -10,6 +10,7 @@ import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
+import '../dialogs/song_details_dialog.dart';
 
 // 队列页面
 class QueuePage extends ConsumerStatefulWidget {
@@ -613,6 +614,27 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                                     },
                               icon: const Icon(Icons.delete),
                               label: Text(AppLocalizations.of(context)!.delete),
+                            ),
+                            const SizedBox(width: 16),
+                            TextButton.icon(
+                              onPressed: _selectedIndices.length == 1
+                                  ? () {
+                                      final selectedSongs =
+                                          _selectedSongsFromDisplay(displayQueue);
+                                      if (selectedSongs.isNotEmpty) {
+                                        showSongDetailsDialog(
+                                          context,
+                                          selectedSongs.first,
+                                        );
+                                      }
+                                    }
+                                  : null,
+                              icon: const Icon(Icons.info_outline),
+                              label: Text(
+                                Localizations.localeOf(context).languageCode == 'zh'
+                                    ? '歌曲属性'
+                                    : 'Song Properties',
+                              ),
                             ),
                           ],
                         ),

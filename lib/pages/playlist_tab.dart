@@ -777,6 +777,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                     allSongs: activePlaylist.songs,
                     onToggleSelectAll: toggleSelectAll,
                     onCancel: _cancelSelection,
+                    replaceFavoritesWithSongDetails: true,
                     onDelete: () {
                       final indices = _selectedIndices.toList()..sort();
                       playlistService.removeSongsFromPlaylist(

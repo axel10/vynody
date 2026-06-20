@@ -2,11 +2,15 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dialogs/transcode_dialog.dart';
+import '../dialogs/song_details_dialog.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/widgets/song_thumbnail.dart';
 import 'app_snack_bar.dart';
 
 enum SongContextMenuMode { full, title, artistAlbum }
@@ -201,6 +205,13 @@ Future<void> showSongContextMenu(
           icon: Icons.folder_open_rounded,
           context: context,
         ),
+        buildContextMenuItem<String>(
+          value: 'song_details',
+          enabled: song != null,
+          label: Localizations.localeOf(context).languageCode == 'zh' ? '歌曲属性' : 'Song Properties',
+          icon: Icons.info_outline_rounded,
+          context: context,
+        ),
         const PopupMenuDivider(),
         buildContextMenuItem<String>(
           value: 'copy_title',
@@ -328,6 +339,11 @@ Future<void> showSongContextMenu(
     case 'open_file_location':
       if (canOpenLocation) {
         await openSongFileLocation(song.path);
+      }
+      break;
+    case 'song_details':
+      if (song != null) {
+        await showSongDetailsDialog(context, song);
       }
       break;
     case 'add_to_playlist':
@@ -533,5 +549,231 @@ PopupMenuItem<T> buildContextMenuItem<T>({
         ),
       ],
     ),
+  );
+}
+
+Future<void> showSongBottomSheet(
+  BuildContext context,
+  WidgetRef ref,
+  MusicFile song,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final theme = Theme.of(context);
+  final audio = ref.read(audioServiceProvider);
+  final playlistService = ref.read(playlistServiceProvider);
+
+  final hasFilePath = song.path.trim().isNotEmpty;
+  final canOpenLocation =
+      (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
+      hasFilePath;
+
+  final selected = await showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    isScrollControlled: true,
+    builder: (context) => GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.pop(context),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: GestureDetector(
+                onTap: () {}, // Prevent taps on the card itself from closing the sheet
+                child: Material(
+                  elevation: 16,
+                  color: theme.colorScheme.surface,
+                  shadowColor: Colors.black26,
+                  borderRadius: BorderRadius.circular(24),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Header showing Song title and artwork
+                        Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: SizedBox(
+                                width: 52,
+                                height: 52,
+                                child: SongThumbnail(
+                                  path: song.path,
+                                  id: song.id,
+                                  size: 52,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    song.displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${song.artist ?? l10n.unknownArtist} · ${song.album ?? l10n.unknownAlbum}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        // Actions list
+                        _buildBottomSheetItem(
+                          context: context,
+                          value: 'play_next',
+                          label: l10n.playNext,
+                          icon: Icons.queue_play_next_rounded,
+                        ),
+                        _buildBottomSheetItem(
+                          context: context,
+                          value: 'add_to_queue',
+                          label: l10n.addToQueue,
+                          icon: Icons.queue_music_rounded,
+                        ),
+                        _buildBottomSheetItem(
+                          context: context,
+                          value: 'add_to_playlist',
+                          label: l10n.addToPlaylist,
+                          icon: Icons.playlist_add_rounded,
+                        ),
+                        _buildBottomSheetItem(
+                          context: context,
+                          value: 'add_to_favorites',
+                          label: l10n.addToFavorites,
+                          icon: Icons.favorite_border_rounded,
+                        ),
+                        _buildBottomSheetItem(
+                          context: context,
+                          value: 'transcode',
+                          label: l10n.transcodeAction,
+                          icon: Icons.sync_rounded,
+                        ),
+                        _buildBottomSheetItem(
+                          context: context,
+                          value: 'copy_title',
+                          label: l10n.copyTitle,
+                          icon: Icons.title_rounded,
+                        ),
+                        _buildBottomSheetItem(
+                          context: context,
+                          value: 'copy_artist',
+                          label: l10n.copyArtistName,
+                          icon: Icons.person_rounded,
+                        ),
+                        if (canOpenLocation)
+                          _buildBottomSheetItem(
+                            context: context,
+                            value: 'open_location',
+                            label: l10n.openFileLocation,
+                            icon: Icons.folder_open_rounded,
+                          ),
+                        _buildBottomSheetItem(
+                          context: context,
+                          value: 'song_details',
+                          label: Localizations.localeOf(context).languageCode == 'zh' ? '歌曲属性' : 'Song Properties',
+                          icon: Icons.info_outline_rounded,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  if (!context.mounted || selected == null) return;
+
+  switch (selected) {
+    case 'play_next':
+      await audio.enqueueNext([song]);
+      break;
+    case 'add_to_queue':
+      await audio.appendToQueue([song]);
+      break;
+    case 'add_to_playlist':
+      await showAddSongsToPlaylistDialog(
+        context,
+        playlistService,
+        [song],
+      );
+      break;
+    case 'add_to_favorites':
+      await playlistService.addSongToFavorite(song);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.addToFavorites} · ${song.displayName}'),
+          ),
+        );
+      }
+      break;
+    case 'transcode':
+      await showTranscodeDialog(context, songs: [song]);
+      break;
+    case 'copy_title':
+      await Clipboard.setData(ClipboardData(text: song.displayName));
+      break;
+    case 'copy_artist':
+      if (song.artist != null) {
+        await Clipboard.setData(ClipboardData(text: song.artist!));
+      }
+      break;
+    case 'open_location':
+      await openSongFileLocation(song.path);
+      break;
+    case 'song_details':
+      await showSongDetailsDialog(context, song);
+      break;
+  }
+}
+
+Widget _buildBottomSheetItem({
+  required BuildContext context,
+  required String value,
+  required String label,
+  required IconData icon,
+  Color? iconColor,
+}) {
+  final theme = Theme.of(context);
+  return ListTile(
+    leading: Icon(icon, color: iconColor ?? theme.colorScheme.onSurfaceVariant),
+    title: Text(
+      label,
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: iconColor ?? theme.colorScheme.onSurface,
+      ),
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    onTap: () => Navigator.pop(context, value),
   );
 }

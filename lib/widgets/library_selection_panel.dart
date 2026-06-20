@@ -5,6 +5,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/dialogs/transcode_dialog.dart';
+import 'package:vynody/dialogs/song_details_dialog.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 
@@ -20,6 +21,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
     this.title,
     this.onOpenLocation,
     this.openLocationLabel,
+    this.replaceFavoritesWithSongDetails = false,
   });
 
   final List<MusicFile> selectedSongs;
@@ -31,6 +33,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
   final String? title;
   final VoidCallback? onOpenLocation;
   final String? openLocationLabel;
+  final bool replaceFavoritesWithSongDetails;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -162,32 +165,41 @@ class LibrarySelectionPanel extends ConsumerWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildSelectionActionButton(
-                            context: context,
-                            icon: Icons.favorite_rounded,
-                            label: l10n.addToFavorites,
-                            onPressed: isEmpty
-                                ? null
-                                : () async {
-                                    await playlistService.addSongsToPlaylist(
-                                      PlaylistService.favoritePlaylistId,
-                                      selectedSongs,
-                                    );
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            l10n.addedToPlaylist(
-                                              selectedSongs.length,
-                                              '收藏',
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                    onCancel();
-                                  },
-                          ),
+                          child: replaceFavoritesWithSongDetails
+                              ? _buildSelectionActionButton(
+                                  context: context,
+                                  icon: Icons.info_outline_rounded,
+                                  label: Localizations.localeOf(context).languageCode == 'zh' ? '歌曲属性' : 'Song Properties',
+                                  onPressed: selectedSongs.length == 1
+                                      ? () => showSongDetailsDialog(context, selectedSongs.first)
+                                      : null,
+                                )
+                              : _buildSelectionActionButton(
+                                  context: context,
+                                  icon: Icons.favorite_rounded,
+                                  label: l10n.addToFavorites,
+                                  onPressed: isEmpty
+                                      ? null
+                                      : () async {
+                                          await playlistService.addSongsToPlaylist(
+                                            PlaylistService.favoritePlaylistId,
+                                            selectedSongs,
+                                          );
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  l10n.addedToPlaylist(
+                                                    selectedSongs.length,
+                                                    '收藏',
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          onCancel();
+                                        },
+                                ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -208,51 +220,105 @@ class LibrarySelectionPanel extends ConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: (Platform.isWindows ||
-                                  Platform.isMacOS ||
-                                  Platform.isLinux)
+                          child: !replaceFavoritesWithSongDetails
                               ? _buildSelectionActionButton(
                                   context: context,
-                                  icon: Icons.folder_open_rounded,
-                                  label: openLocationLabel ?? l10n.openFileLocation,
-                                  onPressed: canOpenLocation
-                                      ? () async {
-                                          if (onOpenLocation != null) {
-                                            onOpenLocation!();
-                                          } else {
-                                            await openSongFileLocation(
-                                              selectedSongs.first.path,
-                                            );
-                                          }
-                                          onCancel();
-                                        }
+                                  icon: Icons.info_outline_rounded,
+                                  label: Localizations.localeOf(context).languageCode == 'zh' ? '歌曲属性' : 'Song Properties',
+                                  onPressed: selectedSongs.length == 1
+                                      ? () => showSongDetailsDialog(context, selectedSongs.first)
                                       : null,
                                 )
-                              : (onDelete != null
+                              : ((Platform.isWindows || Platform.isMacOS || Platform.isLinux)
+                                  ? _buildSelectionActionButton(
+                                      context: context,
+                                      icon: Icons.folder_open_rounded,
+                                      label: openLocationLabel ?? l10n.openFileLocation,
+                                      onPressed: canOpenLocation
+                                          ? () async {
+                                              if (onOpenLocation != null) {
+                                                onOpenLocation!();
+                                              } else {
+                                                await openSongFileLocation(
+                                                  selectedSongs.first.path,
+                                                );
+                                              }
+                                              onCancel();
+                                            }
+                                          : null,
+                                    )
+                                  : (onDelete != null
+                                      ? _buildSelectionActionButton(
+                                          context: context,
+                                          icon: Icons.delete_outline_rounded,
+                                          label: deleteLabel ?? l10n.delete,
+                                          onPressed: isEmpty ? null : onDelete,
+                                        )
+                                      : const SizedBox.shrink())),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: replaceFavoritesWithSongDetails
+                              ? (((Platform.isWindows || Platform.isMacOS || Platform.isLinux) && onDelete != null)
                                   ? _buildSelectionActionButton(
                                       context: context,
                                       icon: Icons.delete_outline_rounded,
                                       label: deleteLabel ?? l10n.delete,
                                       onPressed: isEmpty ? null : onDelete,
                                     )
-                                  : const SizedBox.shrink()),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ((Platform.isWindows ||
-                                      Platform.isMacOS ||
-                                      Platform.isLinux) &&
-                                  onDelete != null)
-                              ? _buildSelectionActionButton(
-                                  context: context,
-                                  icon: Icons.delete_outline_rounded,
-                                  label: deleteLabel ?? l10n.delete,
-                                  onPressed: isEmpty ? null : onDelete,
-                                )
-                              : const SizedBox.shrink(),
+                                  : const SizedBox.shrink())
+                              : ((Platform.isWindows || Platform.isMacOS || Platform.isLinux)
+                                  ? _buildSelectionActionButton(
+                                      context: context,
+                                      icon: Icons.folder_open_rounded,
+                                      label: openLocationLabel ?? l10n.openFileLocation,
+                                      onPressed: canOpenLocation
+                                          ? () async {
+                                              if (onOpenLocation != null) {
+                                                onOpenLocation!();
+                                              } else {
+                                                await openSongFileLocation(
+                                                  selectedSongs.first.path,
+                                                );
+                                              }
+                                              onCancel();
+                                            }
+                                          : null,
+                                    )
+                                  : (onDelete != null
+                                      ? _buildSelectionActionButton(
+                                          context: context,
+                                          icon: Icons.delete_outline_rounded,
+                                          label: deleteLabel ?? l10n.delete,
+                                          onPressed: isEmpty ? null : onDelete,
+                                        )
+                                      : const SizedBox.shrink())),
                         ),
                       ],
                     ),
+                    if (!replaceFavoritesWithSongDetails &&
+                        (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
+                        onDelete != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSelectionActionButton(
+                              context: context,
+                              icon: Icons.delete_outline_rounded,
+                              label: deleteLabel ?? l10n.delete,
+                              onPressed: isEmpty ? null : onDelete,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(child: SizedBox.shrink()),
+                          const SizedBox(width: 8),
+                          const Expanded(child: SizedBox.shrink()),
+                          const SizedBox(width: 8),
+                          const Expanded(child: SizedBox.shrink()),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
