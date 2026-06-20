@@ -23,6 +23,12 @@ import 'package:vynody/player/lyrics/lyrics_ai_shared.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:audio_core/audio_core.dart';
+import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
+import 'package:vynody/transcode/transcode_models.dart';
+import 'package:vynody/transcode/transcode_service.dart';
 
 final class LyricsAiRuntimeConfig {
   const LyricsAiRuntimeConfig({
@@ -68,17 +74,20 @@ class LyricsAiService {
   LyricsAiService({
     NetworkClient? client,
     required LyricsAiRuntimeConfig Function() readConfig,
+    TranscodeService? transcodeService,
   }) : _client = client ?? NetworkClient.instance,
        _readConfig = readConfig,
        _geminiApiClient = GeminiLyricsApiClient(client: client),
        _doubaoClient = LyricsAiDoubaoClient(
          client: client,
          streamParser: LyricsAiStreamTextParser(),
+         transcodeService: transcodeService,
        ),
        _openRouterClient = LyricsAiOpenRouterClient(
          client: client,
          streamParser: LyricsAiStreamTextParser(),
-       );
+       ),
+       _transcodeService = transcodeService ?? TranscodeService();
 
   final NetworkClient _client;
   final LyricsAiRuntimeConfig Function() _readConfig;
@@ -86,6 +95,7 @@ class LyricsAiService {
   final LyricsAiDoubaoClient _doubaoClient;
   final LyricsAiOpenRouterClient _openRouterClient;
   final LyricsAiStreamTextParser _streamParser = LyricsAiStreamTextParser();
+  final TranscodeService _transcodeService;
   static const int maxGenerationRetries = 2;
   static const int maxGenerationAttempts = maxGenerationRetries + 1;
 
@@ -279,8 +289,8 @@ class LyricsAiService {
     void Function(String partialText, bool isFinal)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    final file = File(filePath);
-    if (!await file.exists()) {
+    final originalFile = File(filePath);
+    if (!await originalFile.exists()) {
       debugPrint('[LyricsAi] file not found for generation: $filePath');
       return LyricsGenerationResult.failure(
         _t(
@@ -289,83 +299,96 @@ class LyricsAiService {
         ),
       );
     }
-    final normalizedTitle = songTitle?.trim();
-    final prompt = LyricsAiPromptBuilder.buildGenerateLyricsPrompt(
-      songTitle: normalizedTitle,
-    );
-    final candidates = <LyricsAiModelSelection>[
-      LyricsAiModelSelection(
-        provider: _generationPrimaryModel.provider,
-        modelId: modelId?.trim().isNotEmpty == true
-            ? modelId!.trim()
-            : _generationPrimaryModel.modelId,
-      ),
-      if (_generationFallbackModel.modelId.trim().isNotEmpty)
-        _generationFallbackModel,
-    ];
-    String? lastError;
-    for (final candidate in candidates) {
-      final apiKey = _config.apiKeyForProvider(candidate.provider).trim();
-      if (apiKey.isEmpty) {
-        lastError = _missingApiKeyMessage(
-          candidate.provider,
-          action: _t('生成歌词', 'generate lyrics'),
-        );
-        continue;
-      }
-      onModelLabelChanged?.call(_modelLabel(candidate));
-      final result = switch (candidate.provider) {
-        LyricsAiProvider.googleAiStudio => await _generateWithGoogleAiStudio(
-          file: file,
-          apiKey: apiKey,
-          modelId: candidate.modelId,
-          prompt: prompt,
-          preserveTimestamps: true,
-          onStageChanged: onStageChanged,
-          onUploadProgress: onUploadProgress,
-          onProgress: onProgress,
-          cancelToken: cancelToken,
+
+    _PreparedAudio? preparedAudio;
+    try {
+      preparedAudio = await _prepareAudioFile(
+        filePath,
+        onStageChanged: onStageChanged,
+      );
+      final activeFile = preparedAudio.file;
+      final activePath = activeFile.path;
+
+      final normalizedTitle = songTitle?.trim();
+      final prompt = LyricsAiPromptBuilder.buildGenerateLyricsPrompt(
+        songTitle: normalizedTitle,
+      );
+      final candidates = <LyricsAiModelSelection>[
+        LyricsAiModelSelection(
+          provider: _generationPrimaryModel.provider,
+          modelId: modelId?.trim().isNotEmpty == true
+              ? modelId!.trim()
+              : _generationPrimaryModel.modelId,
         ),
-        LyricsAiProvider.openRouter =>
-          await _openRouterClient.generateLyricsFromFile(
+        if (_generationFallbackModel.modelId.trim().isNotEmpty)
+          _generationFallbackModel,
+      ];
+      String? lastError;
+      for (final candidate in candidates) {
+        final apiKey = _config.apiKeyForProvider(candidate.provider).trim();
+        if (apiKey.isEmpty) {
+          lastError = _missingApiKeyMessage(
+            candidate.provider,
+            action: _t('生成歌词', 'generate lyrics'),
+          );
+          continue;
+        }
+        onModelLabelChanged?.call(_modelLabel(candidate));
+        final result = switch (candidate.provider) {
+          LyricsAiProvider.googleAiStudio => await _generateWithGoogleAiStudio(
+            file: activeFile,
             apiKey: apiKey,
             modelId: candidate.modelId,
-            filePath: filePath,
+            prompt: prompt,
+            preserveTimestamps: true,
+            onStageChanged: onStageChanged,
+            onUploadProgress: onUploadProgress,
+            onProgress: onProgress,
+            cancelToken: cancelToken,
+          ),
+          LyricsAiProvider.openRouter =>
+            await _openRouterClient.generateLyricsFromFile(
+              apiKey: apiKey,
+              modelId: candidate.modelId,
+              filePath: activePath,
+              songTitle: songTitle,
+              onUploadProgress: onUploadProgress,
+              onStageChanged: onStageChanged,
+              onProgress: onProgress,
+              cancelToken: cancelToken,
+            ),
+          LyricsAiProvider.doubao => await _doubaoClient.generateLyricsFromFile(
+            apiKey: apiKey,
+            modelId: candidate.modelId,
+            filePath: activePath,
             songTitle: songTitle,
             onUploadProgress: onUploadProgress,
             onStageChanged: onStageChanged,
             onProgress: onProgress,
             cancelToken: cancelToken,
           ),
-        LyricsAiProvider.doubao => await _doubaoClient.generateLyricsFromFile(
-          apiKey: apiKey,
-          modelId: candidate.modelId,
-          filePath: filePath,
-          songTitle: songTitle,
-          onUploadProgress: onUploadProgress,
-          onStageChanged: onStageChanged,
-          onProgress: onProgress,
-          cancelToken: cancelToken,
-        ),
-        LyricsAiProvider.deepseek => LyricsGenerationResult.failure(
-          _t(
-            'DeepSeek 仅支持歌词翻译。',
-            'DeepSeek is only available for lyric translation.',
+          LyricsAiProvider.deepseek => LyricsGenerationResult.failure(
+            _t(
+              'DeepSeek 仅支持歌词翻译。',
+              'DeepSeek is only available for lyric translation.',
+            ),
           ),
-        ),
-      };
-      if (result.isSuccess) {
-        return _normalizeGenerationResult(result);
+        };
+        if (result.isSuccess) {
+          return _normalizeGenerationResult(result);
+        }
+        lastError = result.errorMessage;
       }
-      lastError = result.errorMessage;
+      return LyricsGenerationResult.failure(
+        lastError ??
+            _t(
+              '生成歌词时发生未知错误。',
+              'An unknown error occurred while generating lyrics.',
+            ),
+      );
+    } finally {
+      await _deleteIfExists(preparedAudio?.tempFile);
     }
-    return LyricsGenerationResult.failure(
-      lastError ??
-          _t(
-            '生成歌词时发生未知错误。',
-            'An unknown error occurred while generating lyrics.',
-          ),
-    );
   }
 
   Future<LyricsGenerationResult> generateTimelineFromLyrics({
@@ -379,8 +402,8 @@ class LyricsAiService {
     void Function(String partialText, bool isFinal)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    final file = File(filePath);
-    if (!await file.exists()) {
+    final originalFile = File(filePath);
+    if (!await originalFile.exists()) {
       debugPrint('[LyricsAi] file not found for timeline: $filePath');
       return LyricsGenerationResult.failure(
         _t(
@@ -415,70 +438,83 @@ class LyricsAiService {
       if (_generationFallbackModel.modelId.trim().isNotEmpty)
         _generationFallbackModel,
     ];
-    String? lastError;
-    for (final candidate in candidates) {
-      final apiKey = _config.apiKeyForProvider(candidate.provider).trim();
-      if (apiKey.isEmpty) {
-        lastError = _missingApiKeyMessage(
-          candidate.provider,
-          action: _t('生成时间轴', 'generate timeline'),
-        );
-        continue;
-      }
-      onModelLabelChanged?.call(_modelLabel(candidate));
-      final result = switch (candidate.provider) {
-        LyricsAiProvider.googleAiStudio => await _generateWithGoogleAiStudio(
-          file: file,
-          apiKey: apiKey,
-          modelId: candidate.modelId,
-          prompt: prompt,
-          preserveTimestamps: true,
-          onStageChanged: onStageChanged,
-          onUploadProgress: onUploadProgress,
-          onProgress: onProgress,
-          cancelToken: cancelToken,
-        ),
-        LyricsAiProvider.openRouter =>
-          await _openRouterClient.generateTimelineFromLyrics(
+
+    _PreparedAudio? preparedAudio;
+    try {
+      preparedAudio = await _prepareAudioFile(
+        filePath,
+        onStageChanged: onStageChanged,
+      );
+      final activeFile = preparedAudio.file;
+      final activePath = activeFile.path;
+
+      String? lastError;
+      for (final candidate in candidates) {
+        final apiKey = _config.apiKeyForProvider(candidate.provider).trim();
+        if (apiKey.isEmpty) {
+          lastError = _missingApiKeyMessage(
+            candidate.provider,
+            action: _t('生成时间轴', 'generate timeline'),
+          );
+          continue;
+        }
+        onModelLabelChanged?.call(_modelLabel(candidate));
+        final result = switch (candidate.provider) {
+          LyricsAiProvider.googleAiStudio => await _generateWithGoogleAiStudio(
+            file: activeFile,
             apiKey: apiKey,
             modelId: candidate.modelId,
-            filePath: filePath,
-            lyrics: lyrics,
-            onUploadProgress: onUploadProgress,
+            prompt: prompt,
+            preserveTimestamps: true,
             onStageChanged: onStageChanged,
+            onUploadProgress: onUploadProgress,
             onProgress: onProgress,
             cancelToken: cancelToken,
           ),
-        LyricsAiProvider.doubao =>
-          await _doubaoClient.generateTimelineFromLyrics(
-            apiKey: apiKey,
-            modelId: candidate.modelId,
-            filePath: filePath,
-            lyrics: lyrics,
-            onUploadProgress: onUploadProgress,
-            onStageChanged: onStageChanged,
-            onProgress: onProgress,
-            cancelToken: cancelToken,
+          LyricsAiProvider.openRouter =>
+            await _openRouterClient.generateTimelineFromLyrics(
+              apiKey: apiKey,
+              modelId: candidate.modelId,
+              filePath: activePath,
+              lyrics: lyrics,
+              onUploadProgress: onUploadProgress,
+              onStageChanged: onStageChanged,
+              onProgress: onProgress,
+              cancelToken: cancelToken,
+            ),
+          LyricsAiProvider.doubao =>
+            await _doubaoClient.generateTimelineFromLyrics(
+              apiKey: apiKey,
+              modelId: candidate.modelId,
+              filePath: activePath,
+              lyrics: lyrics,
+              onUploadProgress: onUploadProgress,
+              onStageChanged: onStageChanged,
+              onProgress: onProgress,
+              cancelToken: cancelToken,
+            ),
+          LyricsAiProvider.deepseek => LyricsGenerationResult.failure(
+            _t(
+              'DeepSeek 仅支持歌词翻译。',
+              'DeepSeek is only available for lyric translation.',
+            ),
           ),
-        LyricsAiProvider.deepseek => LyricsGenerationResult.failure(
-          _t(
-            'DeepSeek 仅支持歌词翻译。',
-            'DeepSeek is only available for lyric translation.',
-          ),
-        ),
-      };
-      if (result.isSuccess) {
-        return _normalizeGenerationResult(result);
+        };
+        if (result.isSuccess) {
+          return _normalizeGenerationResult(result);
+        }
+        lastError = result.errorMessage;
       }
-      lastError = result.errorMessage;
+      return LyricsGenerationResult.failure(
+        lastError ??
+            _t(
+              '生成时间轴时发生未知错误。',
+              'An unknown error occurred while generating the timeline.',
+            ),
+      );
+    } finally {
+      await _deleteIfExists(preparedAudio?.tempFile);
     }
-    return LyricsGenerationResult.failure(
-      lastError ??
-          _t(
-            '生成时间轴时发生未知错误。',
-            'An unknown error occurred while generating the timeline.',
-          ),
-    );
   }
 
   Future<LyricsGenerationResult> _generateFromUploadedFile({
@@ -1446,4 +1482,98 @@ class LyricsAiService {
   String _t(String zh, String en) {
     return localizedText(zh, en);
   }
+
+  Future<_PreparedAudio> _prepareAudioFile(
+    String filePath, {
+    void Function(String stage)? onStageChanged,
+  }) async {
+    final file = File(filePath);
+    bool needsTranscode = true;
+    if (filePath.toLowerCase().endsWith('.mp3')) {
+      if (taglib.TagLibFile.isSupported) {
+        final tagFile = taglib.TagLibFile.open(filePath);
+        if (tagFile != null) {
+          try {
+            final bitrate = tagFile.bitrate;
+            if (bitrate > 0 && bitrate <= 128) {
+              needsTranscode = false;
+            }
+          } catch (e) {
+            debugPrint('[LyricsAi] Error reading bitrate: $e');
+          } finally {
+            tagFile.close();
+          }
+        }
+      }
+    }
+
+    if (!needsTranscode) {
+      return _PreparedAudio(file: file);
+    }
+
+    onStageChanged?.call('transcoding');
+    final tempDir = await getTemporaryDirectory();
+    final draft = TranscodeDraft(
+      outputFormat: AudioFormat.mp3,
+      qualityTier: TranscodeQualityTier.medium,
+      bitRate: 128000,
+      bitRateMode: BitRateMode.cbr,
+      valueOrigin: TranscodeValueOrigin.customized,
+      outputDirectory: tempDir.path,
+      useSystemEncoder: false,
+      aacEncoder: AacEncoder.ffmpeg,
+    );
+    final result = await _transcodeService.convertToOutputDirectory(
+      inputPath: filePath,
+      draft: draft,
+    );
+    if (!result.result.success || result.result.outputPath == null) {
+      throw Exception(
+        _t('音频转码失败。', 'Audio transcoding failed.'),
+      );
+    }
+
+    final outputPath = result.result.outputPath!;
+    final outputFile = File(outputPath);
+
+    String resolvedOutputPath = outputFile.path;
+    String resolvedTempPath = tempDir.path;
+    String resolvedSystemTempPath = Directory.systemTemp.path;
+    try {
+      resolvedOutputPath = outputFile.resolveSymbolicLinksSync();
+    } catch (_) {}
+    try {
+      resolvedTempPath = tempDir.resolveSymbolicLinksSync();
+    } catch (_) {}
+    try {
+      resolvedSystemTempPath = Directory.systemTemp.resolveSymbolicLinksSync();
+    } catch (_) {}
+
+    if (!p.isWithin(resolvedTempPath, resolvedOutputPath) &&
+        !p.isWithin(resolvedSystemTempPath, resolvedOutputPath)) {
+      throw Exception(
+        _t(
+          '临时转码文件未生成在临时目录。',
+          'The temporary transcoded file was not created in the temp directory.',
+        ),
+      );
+    }
+    return _PreparedAudio(file: outputFile, tempFile: outputFile);
+  }
+
+  Future<void> _deleteIfExists(File? file) async {
+    if (file == null) return;
+    try {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
+  }
+}
+
+class _PreparedAudio {
+  const _PreparedAudio({required this.file, this.tempFile});
+
+  final File file;
+  final File? tempFile;
 }

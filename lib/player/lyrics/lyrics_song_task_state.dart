@@ -38,6 +38,8 @@ class LyricsSongTaskState {
         return generationLabel;
       }
       return switch (generationPhase) {
+        LyricsGenerationPhase.transcoding =>
+          isZh ? '正在转码歌曲文件' : 'Transcoding song file',
         LyricsGenerationPhase.uploading =>
           isZh ? '正在上传歌曲文件' : 'Uploading song file',
         LyricsGenerationPhase.processing =>

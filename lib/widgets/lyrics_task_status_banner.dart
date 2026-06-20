@@ -108,9 +108,10 @@ class _LyricsTaskStatusBannerState extends ConsumerState<LyricsTaskStatusBanner>
         : l10n.lyricsTaskProcessing;
     final activeSong = summary.activeSong?.displayName.trim() ?? '';
     final progress = generationState.progress.clamp(0.0, 1.0);
-    final showProgress =
-        generationState.phase != LyricsGenerationPhase.idle && progress > 0.0;
+    final showPhaseLabel = generationState.phase != LyricsGenerationPhase.idle;
+    final showProgress = showPhaseLabel && progress > 0.0;
     final phaseLabel = switch (generationState.phase) {
+      LyricsGenerationPhase.transcoding => l10n.transcoding,
       LyricsGenerationPhase.uploading => l10n.lyricsTaskUploading,
       LyricsGenerationPhase.processing => l10n.lyricsTaskWaiting,
       LyricsGenerationPhase.requesting => l10n.lyricsTaskRequesting,
@@ -202,6 +203,7 @@ class _LyricsTaskStatusBannerState extends ConsumerState<LyricsTaskStatusBanner>
                           summary: summary,
                           taskLabel: taskLabel,
                           activeSong: activeSong,
+                          showPhaseLabel: showPhaseLabel,
                           showProgress: showProgress,
                           progress: progress,
                           phaseLabel: phaseLabel,
@@ -255,6 +257,7 @@ class _BusyBannerBody extends StatelessWidget {
     required this.summary,
     required this.taskLabel,
     required this.activeSong,
+    required this.showPhaseLabel,
     required this.showProgress,
     required this.progress,
     required this.phaseLabel,
@@ -273,6 +276,7 @@ class _BusyBannerBody extends StatelessWidget {
   final LyricsTaskQueueSummary summary;
   final String taskLabel;
   final String activeSong;
+  final bool showPhaseLabel;
   final bool showProgress;
   final double progress;
   final String phaseLabel;
@@ -307,7 +311,7 @@ class _BusyBannerBody extends StatelessWidget {
         key: const ValueKey('status_info'),
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showProgress) ...[
+          if (showPhaseLabel) ...[
             Text(
               phaseLabel,
               style: theme.textTheme.labelSmall?.copyWith(
@@ -315,6 +319,8 @@ class _BusyBannerBody extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
+          ],
+          if (showProgress) ...[
             const SizedBox(width: 6),
             SizedBox(
               width: 32,
