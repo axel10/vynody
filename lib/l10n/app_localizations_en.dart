@@ -521,7 +521,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customColor => 'Custom Color';
 
   @override
-  String get uploadImage => 'Upload Image';
+  String get uploadImage => 'Select Image';
 
   @override
   String get normalOpacity => 'Normal Dark Layer Opacity';

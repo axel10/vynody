@@ -515,7 +515,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get customColor => '自定义颜色';
 
   @override
-  String get uploadImage => '上传图片';
+  String get uploadImage => '选择图片';
 
   @override
   String get normalOpacity => '常规暗色层不透明度';

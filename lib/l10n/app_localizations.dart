@@ -1067,7 +1067,7 @@ abstract class AppLocalizations {
   /// No description provided for @uploadImage.
   ///
   /// In zh, this message translates to:
-  /// **'上传图片'**
+  /// **'选择图片'**
   String get uploadImage;
 
   /// No description provided for @normalOpacity.

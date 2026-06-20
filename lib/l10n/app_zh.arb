@@ -620,7 +620,7 @@
   "customImage": "自定义图片",
   "presetColors": "预设颜色",
   "customColor": "自定义颜色",
-  "uploadImage": "上传图片",
+  "uploadImage": "选择图片",
   "normalOpacity": "常规暗色层不透明度",
   "lyricsOpacity": "歌词暗色层不透明度",
   "chooseImageError": "选择图片失败",

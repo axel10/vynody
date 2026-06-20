@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -658,7 +659,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _playbackRadialGradientEnabledProperty = SettingProperty<bool>(
     key: _keyPlaybackRadialGradientEnabled,
-    defaultValue: false,
+    defaultValue: Platform.isWindows || Platform.isLinux || Platform.isMacOS,
     prefs: _prefs,
     onChanged: notifyListeners,
   );

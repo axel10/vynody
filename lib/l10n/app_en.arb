@@ -189,7 +189,7 @@
   "customImage": "Custom Image",
   "presetColors": "Preset Colors",
   "customColor": "Custom Color",
-  "uploadImage": "Upload Image",
+  "uploadImage": "Select Image",
   "normalOpacity": "Normal Dark Layer Opacity",
   "lyricsOpacity": "Lyrics Dark Layer Opacity",
   "chooseImageError": "Failed to select image",

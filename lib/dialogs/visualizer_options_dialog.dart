@@ -96,6 +96,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final isAuto = settings.isAutoMode;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return SingleChildScrollView(
       child: Column(
@@ -104,7 +105,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           _buildSectionCard(
             context: context,
             child: SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
+              contentPadding: isPortrait ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 12),
+              shape: isPortrait ? null : RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               title: Text(
                 l10n.autoMode,
                 style: TextStyle(
@@ -159,62 +163,66 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return _buildSectionCard(
       context: context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.spectrumQuantity,
-            style: TextStyle(
-              color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-              fontSize: 13,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.spectrumQuantity,
+              style: TextStyle(
+                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          _buildSegmentedControl<String>(
-            context,
-            value: settings.autoSpectrumQuantity,
-            items: {
-              'low': l10n.quantityLow,
-              'medium': l10n.quantityMedium,
-              'high': l10n.quantityHigh,
-            },
-            onChanged: (val) {
-              settings.autoSpectrumQuantity = val;
-              audio.applyVisualizerSettings(
-                orientation: MediaQuery.of(context).orientation,
-              );
-              setDialogState(() {});
-            },
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.speed,
-            style: TextStyle(
-              color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-              fontSize: 13,
+            const SizedBox(height: 8),
+            _buildSegmentedControl<String>(
+              context,
+              value: settings.autoSpectrumQuantity,
+              items: {
+                'low': l10n.quantityLow,
+                'medium': l10n.quantityMedium,
+                'high': l10n.quantityHigh,
+              },
+              onChanged: (val) {
+                settings.autoSpectrumQuantity = val;
+                audio.applyVisualizerSettings(
+                  orientation: MediaQuery.of(context).orientation,
+                );
+                setDialogState(() {});
+              },
             ),
-          ),
-          const SizedBox(height: 8),
-          _buildSegmentedControl<String>(
-            context,
-            value: settings.autoSpeed,
-            items: {
-              'slow': l10n.speedSlow,
-              'medium': l10n.speedMedium,
-              'fast': l10n.speedFast,
-            },
-            onChanged: (val) {
-              settings.autoSpeed = val;
-              audio.applyVisualizerSettings(
-                orientation: MediaQuery.of(context).orientation,
-              );
-              setDialogState(() {});
-            },
-          ),
-        ],
+            const SizedBox(height: 24),
+            Text(
+              l10n.speed,
+              style: TextStyle(
+                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildSegmentedControl<String>(
+              context,
+              value: settings.autoSpeed,
+              items: {
+                'slow': l10n.speedSlow,
+                'medium': l10n.speedMedium,
+                'fast': l10n.speedFast,
+              },
+              onChanged: (val) {
+                settings.autoSpeed = val;
+                audio.applyVisualizerSettings(
+                  orientation: MediaQuery.of(context).orientation,
+                );
+                setDialogState(() {});
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -431,51 +439,55 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
-    return SizedBox(
-      width: 270,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 16, bottom: 8),
-            child: Text(
-              AppLocalizations.of(context)!.aggregationMode,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          DropdownButtonFormField<FftAggregationMode>(
-            initialValue: options.aggregationMode,
-            dropdownColor: isDark ? Colors.grey[900] : theme.colorScheme.surfaceContainer,
-            decoration: InputDecoration(
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+      child: SizedBox(
+        width: 270,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 16, bottom: 8),
+              child: Text(
+                AppLocalizations.of(context)!.aggregationMode,
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                  fontSize: 13,
                 ),
               ),
             ),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark ? Colors.white : theme.colorScheme.onSurface,
-            ),
-            items: FftAggregationMode.values.map((mode) {
-              return DropdownMenuItem(
-                value: mode,
-                child: Text(_aggregationModeLabel(context, mode)),
-              );
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) {
-                audio.updateVisualOptions(
-                  options.copyWith(aggregationMode: val),
+            DropdownButtonFormField<FftAggregationMode>(
+              initialValue: options.aggregationMode,
+              dropdownColor: isDark ? Colors.grey[900] : theme.colorScheme.surfaceContainer,
+              decoration: InputDecoration(
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
+                  ),
+                ),
+              ),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark ? Colors.white : theme.colorScheme.onSurface,
+              ),
+              items: FftAggregationMode.values.map((mode) {
+                return DropdownMenuItem(
+                  value: mode,
+                  child: Text(_aggregationModeLabel(context, mode)),
                 );
-                setDialogState(() {});
-              }
-            },
-          ),
-        ],
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  audio.updateVisualOptions(
+                    options.copyWith(aggregationMode: val),
+                  );
+                  setDialogState(() {});
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -491,6 +503,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final isCustomImageBackground = settings.playbackBackgroundType == 3;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return SingleChildScrollView(
       child: Column(
@@ -538,6 +551,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   _buildCustomImageControls(context, settings, setDialogState),
                 const SizedBox(height: 12),
                 SwitchListTile(
+                  contentPadding: isPortrait ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 12),
+                  shape: isPortrait ? null : RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   title: Text(
                     l10n.playbackRadialGradient,
                     style: TextStyle(
@@ -552,7 +569,6 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                     settings.playbackRadialGradientEnabled = val;
                     setDialogState(() {});
                   },
-                  contentPadding: EdgeInsets.zero,
                 ),
               ],
             ),
@@ -569,6 +585,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,6 +622,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               SwitchListTile(
+                contentPadding: isPortrait ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 12),
+                shape: isPortrait ? null : RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 title: Text(
                   l10n.enableGradient,
                   style: TextStyle(
@@ -619,7 +640,6 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   settings.isVisualizerGradientEnabled = val;
                   setDialogState(() {});
                 },
-                contentPadding: EdgeInsets.zero,
               ),
               const SizedBox(height: 4),
               if (settings.isVisualizerGradientEnabled) ...[
@@ -720,38 +740,42 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
-    return SizedBox(
-      width: 270,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 16, bottom: 8),
-            child: Text(
-              '$label: ${value.toStringAsFixed(2)}',
-              style: TextStyle(
-                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                fontSize: 13,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+      child: SizedBox(
+        width: 270,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 16, bottom: 8),
+              child: Text(
+                '$label: ${value.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
               ),
             ),
-          ),
-          SliderTheme(
-            data: SliderThemeData(
-              activeTrackColor: theme.colorScheme.primary,
-              inactiveTrackColor: isDark ? Colors.white12 : theme.colorScheme.primary.withValues(alpha: 0.12),
-              thumbColor: theme.colorScheme.primary,
+            SliderTheme(
+              data: SliderThemeData(
+                activeTrackColor: theme.colorScheme.primary,
+                inactiveTrackColor: isDark ? Colors.white12 : theme.colorScheme.primary.withValues(alpha: 0.12),
+                thumbColor: theme.colorScheme.primary,
+              ),
+              child: Slider(
+                value: value,
+                min: min,
+                max: max,
+                divisions: divisions,
+                onChanged: onChanged,
+                onChangeEnd: (val) => onChangeEnd?.call(),
+              ),
             ),
-            child: Slider(
-              value: value,
-              min: min,
-              max: max,
-              divisions: divisions,
-              onChanged: onChanged,
-              onChangeEnd: (val) => onChangeEnd?.call(),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -763,6 +787,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   ) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -791,23 +816,28 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 12),
-        TextButton.icon(
-          onPressed: () {
-            settings.playbackBackgroundNormalOpacity = 0.20;
-            settings.playbackBackgroundLyricsOpacity = 0.40;
-            setDialogState(() {});
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.primary,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+          child: TextButton.icon(
+            onPressed: () {
+              settings.playbackBackgroundNormalOpacity = 0.20;
+              settings.playbackBackgroundLyricsOpacity = 0.40;
+              settings.playbackBlurredArtworkBlurSigma = 30.0;
+              settings.playbackCustomImageBlurSigma = 0.0;
+              setDialogState(() {});
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-          icon: const Icon(Icons.refresh_rounded, size: 16),
-          label: Text(
-            l10n.reset,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: Text(
+              l10n.reset,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ],
@@ -824,57 +854,61 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: isDark ? Colors.white : theme.colorScheme.onSurface,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(width: 16),
-            if (!isDynamic)
-              InkWell(
-                onTap: () => _pickColor(context, color, onColorChanged),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: color,
-                    border: Border.all(
-                      color: isDark ? Colors.white70 : theme.colorScheme.outlineVariant,
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        if (onDynamicChanged != null)
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
           Row(
             children: [
               Text(
-                AppLocalizations.of(context)!.followCoverColor,
+                label,
                 style: TextStyle(
-                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                  fontSize: 12,
+                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                  fontSize: 13,
                 ),
               ),
-              Switch(
-                value: isDynamic,
-                activeThumbColor: theme.colorScheme.primary,
-                activeTrackColor: theme.colorScheme.primary.withValues(alpha: 0.5),
-                onChanged: onDynamicChanged,
-              ),
+              const SizedBox(width: 16),
+              if (!isDynamic)
+                InkWell(
+                  onTap: () => _pickColor(context, color, onColorChanged),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: color,
+                      border: Border.all(
+                        color: isDark ? Colors.white70 : theme.colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
             ],
           ),
-      ],
+          if (onDynamicChanged != null)
+            Row(
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.followCoverColor,
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+                Switch(
+                  value: isDynamic,
+                  activeThumbColor: theme.colorScheme.primary,
+                  activeTrackColor: theme.colorScheme.primary.withValues(alpha: 0.5),
+                  onChanged: onDynamicChanged,
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 
@@ -939,12 +973,15 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 8),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 8),
           child: Text(
             AppLocalizations.of(context)!.playbackBackground,
             style: TextStyle(
@@ -993,8 +1030,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           },
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSolidColorControls(
     BuildContext context,
@@ -1004,6 +1042,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     final presetColors = isDark
         ? [
@@ -1028,17 +1067,22 @@ class VisualizerOptionsDialog extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 20),
-        Text(
-          l10n.presetColors,
-          style: TextStyle(
-            color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-            fontSize: 13,
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+          child: Text(
+            l10n.presetColors,
+            style: TextStyle(
+              color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
           ),
         ),
         const SizedBox(height: 10),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             ...presetColors.map((colorValue) {
@@ -1118,6 +1162,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
             ),
           ],
         ),
+      ),
         const SizedBox(height: 20),
         _buildOpacitySettings(context, settings, setDialogState),
       ],
@@ -1132,57 +1177,66 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final path = settings.playbackBackgroundCustomImagePath;
     final hasImage = path.isNotEmpty && File(path).existsSync();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 20),
-        Text(
-          l10n.customImage,
-          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+          child: Text(
+            l10n.customImage,
+            style: TextStyle(
+              color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
+          ),
         ),
         const SizedBox(height: 10),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (hasImage) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.file(
-                  File(path),
-                  width: 90,
-                  height: 60,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 90,
-                      height: 60,
-                      color: Colors.white.withValues(alpha: 0.05),
-                      child: const Icon(
-                        Icons.broken_image_rounded,
-                        color: Colors.white38,
-                        size: 24,
-                      ),
-                    );
-                  },
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (hasImage)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(
+                    File(path),
+                    width: 90,
+                    height: 60,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 90,
+                        height: 60,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.05),
+                        child: Icon(
+                          Icons.broken_image_rounded,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                          size: 24,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              const Spacer(),
+              FilledButton.icon(
+                onPressed: () => _pickCustomImage(context, settings, setDialogState),
+                icon: const Icon(Icons.upload_file_rounded, size: 18),
+                label: Text(l10n.uploadImage),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: Colors.white,
                 ),
               ),
-              const SizedBox(width: 16),
             ],
-            ElevatedButton.icon(
-              onPressed: () => _pickCustomImage(context, settings, setDialogState),
-              icon: const Icon(Icons.upload_file_rounded, size: 18),
-              label: Text(l10n.uploadImage),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: 0.1),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: 20),
         _buildOpacitySettings(context, settings, setDialogState),
