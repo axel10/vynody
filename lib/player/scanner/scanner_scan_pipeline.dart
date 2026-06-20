@@ -182,27 +182,29 @@ class ScannerScanPipeline {
     final resolvedFallbackTitle =
         _cleanText(fallbackTitle) ?? p.basenameWithoutExtension(filePath);
 
+    final hasError = result['error'] != null;
+
     return SongMetadata(
       path: filePath,
       title:
           _cleanText(result['title'] as String?) ??
-          _cleanText(existing?.title) ??
+          (hasError ? _cleanText(existing?.title) : null) ??
           resolvedFallbackTitle,
       album:
           _cleanText(result['album'] as String?) ??
-          _cleanText(existing?.album) ??
+          (hasError ? _cleanText(existing?.album) : null) ??
           _cleanText(fallbackAlbum) ??
           'Unknown Album',
       artist:
           _cleanText(result['artist'] as String?) ??
-          _cleanText(existing?.artist) ??
+          (hasError ? _cleanText(existing?.artist) : null) ??
           _cleanText(fallbackArtist) ??
           'Unknown Artist',
       duration:
           result['duration'] as int? ?? existing?.duration ?? fallbackDuration,
       trackNumber:
           result['trackNumber'] as int? ??
-          existing?.trackNumber ??
+          (hasError ? existing?.trackNumber : null) ??
           fallbackTrackNumber,
       sourceFlags: sourceFlags ?? existing?.sourceFlags,
       artworkPath: existing?.artworkPath,
