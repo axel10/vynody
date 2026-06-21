@@ -108,8 +108,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     _setFolderSelectionMode(false);
   }
 
-
-
   void _toggleSelectionMode() {
     setState(() {
       _isSelectionMode = !_isSelectionMode;
@@ -319,7 +317,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   List<MusicFile> _getSelectedSongs(MusicFolder currentFolder) {
     final songs = <MusicFile>[];
     songs.addAll(
-      currentFolder.files.where((file) => _selectedSongPaths.contains(file.path)),
+      currentFolder.files.where(
+        (file) => _selectedSongPaths.contains(file.path),
+      ),
     );
     for (final folder in currentFolder.subFolders) {
       if (_selectedFolderPaths.contains(folder.path)) {
@@ -329,9 +329,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     final seen = <String>{};
     return songs.where((song) => seen.add(song.path)).toList(growable: false);
   }
-
-
-
 
   void _toggleRootSelection(String path) {
     setState(() {
@@ -364,8 +361,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     );
   }
 
-
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -375,8 +370,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   @override
   void initState() {
     super.initState();
-    _librarySelectionScopeController =
-        ref.read(librarySelectionScopeProvider.notifier);
+    _librarySelectionScopeController = ref.read(
+      librarySelectionScopeProvider.notifier,
+    );
     _scanner = ref.read(scannerServiceProvider);
     _wasScanning = _scanner!.isScanning;
     _scanner!.addListener(_handleScannerChanged);
@@ -387,7 +383,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   @override
   void dispose() {
-    if (_scrollController.hasClients && _lastFolderPath != 'sentinel_initial_path') {
+    if (_scrollController.hasClients &&
+        _lastFolderPath != 'sentinel_initial_path') {
       final scanner = ref.read(scannerServiceProvider);
       scanner.setFolderScrollOffset(_lastFolderPath, _scrollController.offset);
     }
@@ -395,6 +392,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     // finishes unmounting. Doing it synchronously here can trip Riverpod's
     // "modifying a provider while building" assertion during tab switches.
     Future.microtask(() {
+      if (!mounted) return;
       _setFolderSelectionMode(false);
       _librarySelectionScopeController.clear();
     });
@@ -494,12 +492,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     // Save and restore scroll position when current folder changes
     final currentFolderPath = currentFolder?.path;
     if (currentFolderPath != _lastFolderPath) {
-      if (_scrollController.hasClients && _lastFolderPath != 'sentinel_initial_path') {
+      if (_scrollController.hasClients &&
+          _lastFolderPath != 'sentinel_initial_path') {
         final oldOffset = _scrollController.offset;
         scanner.setFolderScrollOffset(_lastFolderPath, oldOffset);
       }
       _lastFolderPath = currentFolderPath;
-      
+
       final targetPath = currentFolderPath;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -598,7 +597,11 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
               if (Platform.isAndroid)
                 Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                    horizontal:
+                        MediaQuery.of(context).orientation ==
+                            Orientation.portrait
+                        ? 8
+                        : 16,
                     vertical: 4,
                   ),
                   child: ListTile(
@@ -612,7 +615,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       Icons.library_music,
                       color: Colors.purple,
                     ),
-                    title: Text(AppLocalizations.of(context)!.systemMediaLibrary),
+                    title: Text(
+                      AppLocalizations.of(context)!.systemMediaLibrary,
+                    ),
                     subtitle: hasPermission
                         ? null
                         : Text(
@@ -635,7 +640,10 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 ),
               Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                  horizontal:
+                      MediaQuery.of(context).orientation == Orientation.portrait
+                      ? 8
+                      : 16,
                   vertical: 4,
                 ),
                 child: ListTile(
@@ -676,11 +684,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
                         unawaited(
-                          _showFolderBottomSheet(
-                            context,
-                            folder,
-                            isRoot: true,
-                          ),
+                          _showFolderBottomSheet(context, folder, isRoot: true),
                         );
                       },
                       onLongPress: () {
@@ -701,7 +705,11 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         duration: const Duration(milliseconds: 180),
                         child: Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                            horizontal:
+                                MediaQuery.of(context).orientation ==
+                                    Orientation.portrait
+                                ? 8
+                                : 16,
                             vertical: 4,
                           ),
                           child: ListTile(
@@ -728,7 +736,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                     color: Colors.amber,
                                   ),
                             title: Text(folder.name),
-                            subtitle: Text(ScannerPathUtils.cleanDisplayPath(folder.path)),
+                            subtitle: Text(
+                              ScannerPathUtils.cleanDisplayPath(folder.path),
+                            ),
                             onTap: isRootSelectionMode
                                 ? () => _toggleRootSelection(folder.path)
                                 : (isRootAvailable
@@ -772,7 +782,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       allSongs: allRootSongs,
                       title: selectionLabel,
                       onToggleSelectAll: () {
-                        final isAllSelected = _selectedRootPaths.length == rootFolders.length;
+                        final isAllSelected =
+                            _selectedRootPaths.length == rootFolders.length;
                         if (isAllSelected) {
                           setState(() {
                             _selectedRootPaths.clear();
@@ -795,7 +806,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           : null,
                       openLocationLabel: l10n.openFolderLocation,
                     )
-                  : const SizedBox.shrink(key: ValueKey('root-selection-panel-hidden')),
+                  : const SizedBox.shrink(
+                      key: ValueKey('root-selection-panel-hidden'),
+                    ),
             ),
           ),
         ],
@@ -856,7 +869,11 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   if (index == cursor) {
                     return Padding(
                       padding: EdgeInsets.symmetric(
-                        horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                        horizontal:
+                            MediaQuery.of(context).orientation ==
+                                Orientation.portrait
+                            ? 8
+                            : 16,
                         vertical: 4,
                       ),
                       child: ListTile(
@@ -912,7 +929,9 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                   if (folderIndex >= 0 &&
                       folderIndex < currentFolder.subFolders.length) {
                     final folder = currentFolder.subFolders[folderIndex];
-                    final isSelected = _selectedFolderPaths.contains(folder.path);
+                    final isSelected = _selectedFolderPaths.contains(
+                      folder.path,
+                    );
                     return GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onSecondaryTapDown: (details) {
@@ -936,7 +955,11 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       },
                       child: Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                          horizontal:
+                              MediaQuery.of(context).orientation ==
+                                  Orientation.portrait
+                              ? 8
+                              : 16,
                           vertical: 4,
                         ),
                         child: ListTile(
@@ -954,7 +977,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           leading: _isSelectionMode
                               ? Checkbox(
                                   value: isSelected,
-                                  onChanged: (_) => _toggleFolderSelection(folder.path),
+                                  onChanged: (_) =>
+                                      _toggleFolderSelection(folder.path),
                                 )
                               : const Icon(
                                   Icons.folder_rounded,
@@ -976,11 +1000,16 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                     final file = currentFolder.files[fileIndex];
                     final isCurrent = currentMusic?.path == file.path;
                     final isSelected = _selectedSongPaths.contains(file.path);
-                    final songsToAdd = (_selectedSongPaths.isNotEmpty || _selectedFolderPaths.isNotEmpty)
+                    final songsToAdd =
+                        (_selectedSongPaths.isNotEmpty ||
+                            _selectedFolderPaths.isNotEmpty)
                         ? _getSelectedSongs(currentFolder)
                         : <MusicFile>[file];
 
-                    void handleShowMenu(BuildContext menuContext, Offset position) {
+                    void handleShowMenu(
+                      BuildContext menuContext,
+                      Offset position,
+                    ) {
                       showSongContextMenu(
                         menuContext,
                         position,
@@ -992,8 +1021,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           ref.read(playlistServiceProvider),
                           songsToAdd,
                         ),
-                        onPlayNext: () => ref.read(audioServiceProvider).enqueueNext(songsToAdd),
-                        onAddToQueue: () => ref.read(audioServiceProvider).appendToQueue(songsToAdd),
+                        onPlayNext: () => ref
+                            .read(audioServiceProvider)
+                            .enqueueNext(songsToAdd),
+                        onAddToQueue: () => ref
+                            .read(audioServiceProvider)
+                            .appendToQueue(songsToAdd),
                       );
                     }
 
@@ -1005,7 +1038,11 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       },
                       child: Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                          horizontal:
+                              MediaQuery.of(context).orientation ==
+                                  Orientation.portrait
+                              ? 8
+                              : 16,
                           vertical: 4,
                         ),
                         child: SongTile(
@@ -1045,10 +1082,15 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                             handleShowMenu(context, details.globalPosition);
                           },
                           onMorePressed: (buttonContext) {
-                            final renderObject = buttonContext.findRenderObject();
-                            final renderBox = renderObject is RenderBox ? renderObject : null;
+                            final renderObject = buttonContext
+                                .findRenderObject();
+                            final renderBox = renderObject is RenderBox
+                                ? renderObject
+                                : null;
                             if (renderBox == null) return;
-                            final Offset offset = renderBox.localToGlobal(Offset.zero);
+                            final Offset offset = renderBox.localToGlobal(
+                              Offset.zero,
+                            );
                             handleShowMenu(buttonContext, offset);
                           },
                         ),
@@ -1094,7 +1136,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                       allSongs: currentFolder.allSongs,
                       onToggleSelectAll: () {
                         final isAllSelected =
-                            selectedSongs.length == currentFolder.allSongs.length &&
+                            selectedSongs.length ==
+                                currentFolder.allSongs.length &&
                             currentFolder.allSongs.isNotEmpty;
                         if (isAllSelected) {
                           setState(() {
@@ -1106,10 +1149,14 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         }
                       },
                       onCancel: _clearAllSelection,
-                      onOpenLocation: (_selectedFolderPaths.length == 1 && _selectedSongPaths.isEmpty)
+                      onOpenLocation:
+                          (_selectedFolderPaths.length == 1 &&
+                              _selectedSongPaths.isEmpty)
                           ? () => openFolderLocation(_selectedFolderPaths.first)
                           : null,
-                      openLocationLabel: (_selectedFolderPaths.length == 1 && _selectedSongPaths.isEmpty)
+                      openLocationLabel:
+                          (_selectedFolderPaths.length == 1 &&
+                              _selectedSongPaths.isEmpty)
                           ? l10n.openFolderLocation
                           : null,
                     )
@@ -1162,7 +1209,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 680),
                 child: GestureDetector(
-                  onTap: () {}, // Prevent taps on the card itself from closing the sheet
+                  onTap:
+                      () {}, // Prevent taps on the card itself from closing the sheet
                   child: Material(
                     elevation: 16,
                     color: theme.colorScheme.surface,
@@ -1182,9 +1230,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                 child: Container(
                                   width: 52,
                                   height: 52,
-                                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                                  color: theme.colorScheme.primaryContainer
+                                      .withValues(alpha: 0.4),
                                   child: Icon(
-                                    isRoot ? Icons.folder_shared : Icons.folder_rounded,
+                                    isRoot
+                                        ? Icons.folder_shared
+                                        : Icons.folder_rounded,
                                     size: 30,
                                     color: Colors.amber,
                                   ),
@@ -1200,18 +1251,22 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                       folder.name,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       l10n.songCount(songs.length),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: theme.colorScheme.onSurfaceVariant,
-                                      ),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -1314,17 +1369,10 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         await audio.appendToQueue(songs);
         break;
       case 'add_to_playlist':
-        await showAddSongsToPlaylistDialog(
-          context,
-          playlistService,
-          songs,
-        );
+        await showAddSongsToPlaylistDialog(context, playlistService, songs);
         break;
       case 'transcode':
-        await showTranscodeDialog(
-          context,
-          songs: songs,
-        );
+        await showTranscodeDialog(context, songs: songs);
         break;
       case 'open_folder_location':
         await openFolderLocation(folder.path);
@@ -1398,9 +1446,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         ),
       ),
       enabled: enabled,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onTap: () => Navigator.pop(context, value),
     );
   }
