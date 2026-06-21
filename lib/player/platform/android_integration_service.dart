@@ -35,6 +35,7 @@ class AndroidIntegrationService {
           androidNotificationChannelName: 'Vynody Playback',
           androidNotificationOngoing: false,
           androidShowNotificationBadge: false,
+          androidNotificationIcon: 'mipmap/launcher_icon',
           // androidStopForegroundOnPause: false,
         ),
       );

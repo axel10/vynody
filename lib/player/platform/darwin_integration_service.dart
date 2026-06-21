@@ -63,6 +63,7 @@ class DarwinIntegrationService {
         config: const AudioServiceConfig(
           androidNotificationChannelId: 'app.vynody.player.channel.audio',
           androidNotificationChannelName: 'Vynody Playback',
+          androidNotificationIcon: 'mipmap/launcher_icon',
         ),
       );
       _initialized = true;
