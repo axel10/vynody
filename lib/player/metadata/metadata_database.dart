@@ -562,7 +562,144 @@ class MetadataDatabase {
 
   Future<List<LyricsTranslationCacheRecord>> getAllLyricsTranslationCaches() =>
       _db.getAllLyricsTranslationCaches();
+
+  Future<void> migrateLinuxRootPath(String oldRoot, String newRoot) async {
+    if (oldRoot == newRoot) return;
+    debugPrint('[PathMigration] Linux root path change detected.');
+    debugPrint('[PathMigration] Old root: $oldRoot');
+    debugPrint('[PathMigration] New root: $newRoot');
+
+    // 1. Update songs table
+    await _db.customStatement(
+      'UPDATE songs SET path = REPLACE(path, ?, ?), '
+      'artworkPath = REPLACE(artworkPath, ?, ?), '
+      'thumbnailPath = REPLACE(thumbnailPath, ?, ?) '
+      'WHERE path LIKE ? OR artworkPath LIKE ? OR thumbnailPath LIKE ?',
+      <Object>[
+        oldRoot,
+        newRoot,
+        oldRoot,
+        newRoot,
+        oldRoot,
+        newRoot,
+        '$oldRoot%',
+        '$oldRoot%',
+        '$oldRoot%',
+      ],
+    );
+
+    // 2. Update song_play_history table
+    await _db.customStatement(
+      'UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) '
+      'WHERE songPath LIKE ?',
+      <Object>[oldRoot, newRoot, '$oldRoot%'],
+    );
+
+    // 3. Update lyrics_cache table (cacheKey contains the filePath as prefix, e.g. filePath|title|...)
+    await _db.customStatement(
+      'UPDATE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
+      'WHERE cacheKey LIKE ?',
+      <Object>[oldRoot, newRoot, '$oldRoot%'],
+    );
+
+    // 4. Update lyrics_translation_cache table
+    await _db.customStatement(
+      'UPDATE lyrics_translation_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
+      'WHERE cacheKey LIKE ?',
+      <Object>[oldRoot, newRoot, '$oldRoot%'],
+    );
+
+    // 5. Update artist_image_cache table
+    await _db.customStatement(
+      'UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) '
+      'WHERE imagePath LIKE ?',
+      <Object>[oldRoot, newRoot, '$oldRoot%'],
+    );
+
+    // 6. Migrate playlists in SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final playlistsJson = prefs.getString('playlists');
+    if (playlistsJson != null) {
+      try {
+        final List<dynamic> jsonList = jsonDecode(playlistsJson);
+        bool changed = false;
+        for (final playlist in jsonList) {
+          if (playlist is Map<String, dynamic>) {
+            final songs = playlist['songs'];
+            if (songs is List) {
+              for (final song in songs) {
+                if (song is Map<String, dynamic>) {
+                  final path = song['path'];
+                  if (path is String && path.startsWith(oldRoot)) {
+                    song['path'] = path.replaceFirst(oldRoot, newRoot);
+                    changed = true;
+                  }
+                  final thumbnailPath = song['thumbnailPath'];
+                  if (thumbnailPath is String &&
+                      thumbnailPath.startsWith(oldRoot)) {
+                    song['thumbnailPath'] = thumbnailPath.replaceFirst(
+                      oldRoot,
+                      newRoot,
+                    );
+                    changed = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (changed) {
+          await prefs.setString('playlists', jsonEncode(jsonList));
+          debugPrint('[PathMigration] Migrated playlists in SharedPreferences.');
+        }
+      } catch (e) {
+        debugPrint('[PathMigration] Failed to migrate playlists in SharedPreferences: $e');
+      }
+    }
+
+    // 7. Migrate playback_session_v1 in SharedPreferences
+    final rawSession = prefs.getString('playback_session_v1');
+    if (rawSession != null && rawSession.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawSession);
+        if (decoded is Map<String, dynamic>) {
+          bool changed = false;
+          final queue = decoded['queue'];
+          if (queue is List) {
+            for (final song in queue) {
+              if (song is Map<String, dynamic>) {
+                final path = song['path'];
+                if (path is String && path.startsWith(oldRoot)) {
+                  song['path'] = path.replaceFirst(oldRoot, newRoot);
+                  changed = true;
+                }
+                final thumbnailPath = song['thumbnailPath'];
+                if (thumbnailPath is String &&
+                    thumbnailPath.startsWith(oldRoot)) {
+                  song['thumbnailPath'] = thumbnailPath.replaceFirst(
+                    oldRoot,
+                    newRoot,
+                  );
+                  changed = true;
+                }
+              }
+            }
+          }
+          if (changed) {
+            await prefs.setString(
+              'playback_session_v1',
+              jsonEncode(decoded),
+            );
+            debugPrint('[PathMigration] Migrated playback_session_v1 in SharedPreferences.');
+          }
+        }
+      } catch (e) {
+        debugPrint('[PathMigration] Failed to migrate playback_session_v1 in SharedPreferences: $e');
+      }
+    }
+  }
 }
+
 
 String _normalizePath(String path) {
   var normalized = p.normalize(path.trim());

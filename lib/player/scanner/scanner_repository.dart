@@ -95,4 +95,8 @@ class ScannerRepository {
   Future<void> clearSongsExceptExternal() {
     return _database.clearSongsExceptExternal();
   }
+
+  Future<void> migrateLinuxRootPath(String oldRoot, String newRoot) {
+    return _database.migrateLinuxRootPath(oldRoot, newRoot);
+  }
 }

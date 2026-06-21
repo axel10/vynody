@@ -426,6 +426,23 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
       final canUsePersistentAccess =
           _supportsPersistentAccess && _playerController != null;
+      if (Platform.isLinux) {
+        await _timeInitStep(
+          'resolve and mount linux roots',
+          () async {
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              final paths = prefs.getStringList('root_paths') ?? [];
+              if (paths.isNotEmpty) {
+                final updatedPaths = await _resolveAndMigrateLinuxRoots(paths);
+                await prefs.setStringList('root_paths', updatedPaths);
+              }
+            } catch (e, st) {
+              debugPrint('Error during pre-initialization linux mount: $e\n$st');
+            }
+          },
+        );
+      }
       await _timeInitStep('load root paths', () {
         return _roots.loadRootPaths(
           hasPersistentAccess: canUsePersistentAccess
@@ -440,21 +457,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         await _timeInitStep(
           'sync active scoped root access',
           _syncActiveScopedRootAccess,
-        );
-      }
-      if (Platform.isLinux) {
-        await _timeInitStep(
-          'mount linux roots',
-          () async {
-            final declaredRoots = _roots.rootPaths.toList(growable: false);
-            for (final root in declaredRoots) {
-              try {
-                await LinuxMountHelper.ensureMounted(root);
-              } catch (e) {
-                debugPrint('Error auto-mounting root $root: $e');
-              }
-            }
-          },
         );
       }
       await _timeInitStep(
@@ -542,6 +544,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  Future<List<String>> _resolveAndMigrateLinuxRoots(List<String> paths) async {
+    if (!Platform.isLinux) return paths;
+    final updatedPaths = await LinuxMountHelper.resolveAndMountRootPaths(paths);
+    for (int i = 0; i < paths.length && i < updatedPaths.length; i++) {
+      final oldPath = paths[i];
+      final newPath = updatedPaths[i];
+      if (oldPath != newPath) {
+        await _repository.migrateLinuxRootPath(oldPath, newPath);
+      }
+    }
+    return updatedPaths;
+  }
+
   Future<RootPathAddResult> addRootPath(String path) async {
     final normalizedPath = _normalizePath(path);
     final existingRoot = _roots.rootPaths.firstWhereOrNull(
@@ -584,7 +599,14 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       );
     }
 
-    final updatedRoots = [..._roots.rootPaths, normalizedPath];
+    var updatedRoots = [..._roots.rootPaths, normalizedPath];
+    if (Platform.isLinux) {
+      try {
+        updatedRoots = await _resolveAndMigrateLinuxRoots(updatedRoots);
+      } catch (e) {
+        debugPrint('Error registering Linux root UUID: $e');
+      }
+    }
     await _roots.setRootPaths(updatedRoots);
     _rootAvailability[_pathLookupKey(normalizedPath)] = _isRootPathAvailable(
       normalizedPath,
@@ -626,11 +648,18 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
 
-    final updatedRoots = [..._roots.rootPaths];
+    var updatedRoots = [..._roots.rootPaths];
     updatedRoots.removeWhere(
       (existing) =>
           normalizedTargets.any((target) => _pathsEqual(existing, target)),
     );
+    if (Platform.isLinux) {
+      try {
+        updatedRoots = await _resolveAndMigrateLinuxRoots(updatedRoots);
+      } catch (e) {
+        debugPrint('Error updating Linux root UUID mapping: $e');
+      }
+    }
     await _roots.setRootPaths(updatedRoots);
     for (final path in normalizedTargets) {
       _rootAvailability.remove(_pathLookupKey(path));
