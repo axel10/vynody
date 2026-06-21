@@ -31,6 +31,7 @@ import '../widgets/lyrics_task_status_banner.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/mini_queue_view.dart';
 import '../widgets/mini_lyrics_view.dart';
+import 'main_layout_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:oktoast/oktoast.dart';
 
@@ -55,6 +56,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   SettingsService? _settingsService;
   AudioService? _audioService;
   bool? _lastIsSmallWindow;
+
+  MainLayoutUiController get _ui =>
+      ref.read(mainLayoutUiControllerProvider.notifier);
 
   void _logPlaybackPageTrace(String message) {
     if (!kDebugMode) return;
@@ -188,10 +192,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   }
 
   void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
+    _ui.setVolumeHudVisible(true);
     audio.setVolume((audio.volume - dragDelta * 0.2).roundToDouble());
   }
 
   void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY) {
+    _ui.setVolumeHudVisible(true);
     audio.setVolume((audio.volume - scrollDeltaY * 0.1).roundToDouble());
   }
 
@@ -235,18 +241,19 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     final messenger = ScaffoldMessenger.of(context);
 
     final l10n = AppLocalizations.of(context)!;
-    final popped = await showModalBottomSheet<(MusicBrainzTagSelectionResult, bool)>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => SongTagCompletionSheet(
-        songPath: song.path,
-        currentTitle: song.displayName,
-        currentArtist: song.artist,
-        currentAlbum: song.album,
-        durationMillis: duration.inMilliseconds,
-      ),
-    );
+    final popped =
+        await showModalBottomSheet<(MusicBrainzTagSelectionResult, bool)>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => SongTagCompletionSheet(
+            songPath: song.path,
+            currentTitle: song.displayName,
+            currentArtist: song.artist,
+            currentAlbum: song.album,
+            durationMillis: duration.inMilliseconds,
+          ),
+        );
 
     if (popped == null || !mounted) return;
     final result = popped.$1;
@@ -260,8 +267,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       successMessage: savedToSourceFile
           ? l10n.songTagsSavedToSourceFileAndApp
           : (result.artworkBytes != null
-              ? l10n.tagCompletionSuccessWithCover
-              : l10n.tagCompletionSuccess),
+                ? l10n.tagCompletionSuccessWithCover
+                : l10n.tagCompletionSuccess),
     );
   }
 
@@ -479,9 +486,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     } catch (e) {
       if (!mounted) return;
       final isOccupied = MetadataHelper.lastWriteError == 'file_occupied';
-      showToast(
-        isOccupied ? l10n.fileOccupiedByOtherApp : l10n.tagsSaveFailed,
-      );
+      showToast(isOccupied ? l10n.fileOccupiedByOtherApp : l10n.tagsSaveFailed);
     }
   }
 
@@ -948,6 +953,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   onNext: () => toNextMusic(audio),
                   onVolumeTap: () {
                     _handleInteraction();
+                    _ui.setVolumeHudVisible(true);
                     setState(() => _showVolumeSlider = !_showVolumeSlider);
                   },
                   onVolumeDrag: (delta) {
@@ -1233,6 +1239,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         volume: volume,
                         onVolumeChanged: (val) {
                           _handleInteraction();
+                          _ui.setVolumeHudVisible(true);
                           audio.setVolume(val.roundToDouble());
                         },
                         onDismiss: () {

@@ -113,7 +113,8 @@ class MainLayout extends ConsumerStatefulWidget {
   ConsumerState<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, TickerProviderStateMixin {
+class _MainLayoutState extends ConsumerState<MainLayout>
+    with WindowListener, TickerProviderStateMixin {
   late int _currentIndex;
   double? _lastVolume;
   bool _showMiniVolumeSlider = false;
@@ -137,9 +138,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
       debugPrint('event.buttons: ${event.buttons}');
       if (event.buttons == 16) {
         // Forward button
+        _ui.setVolumeHudVisible(true);
         _audioService.setVolume((_audioService.volume + 5).roundToDouble());
       } else if (event.buttons == 8) {
         // Back button
+        _ui.setVolumeHudVisible(true);
         _audioService.setVolume((_audioService.volume - 5).roundToDouble());
       }
     }
@@ -229,13 +232,17 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
   void onWindowResized() async {
     if (_ignoreResizeEventsUntil != null &&
         DateTime.now().isBefore(_ignoreResizeEventsUntil!)) {
-      debugPrint('[vynody] onWindowResized: IGNORED because within ignore period');
+      debugPrint(
+        '[vynody] onWindowResized: IGNORED because within ignore period',
+      );
       return;
     }
     final settings = ref.read(settingsServiceProvider);
     if (settings.isSmallWindowMode) {
       final size = await windowManager.getSize();
-      debugPrint('[vynody] onWindowResized: size=$size, mode=${settings.smallWindowBottomPanelMode}');
+      debugPrint(
+        '[vynody] onWindowResized: size=$size, mode=${settings.smallWindowBottomPanelMode}',
+      );
       if (settings.smallWindowBottomPanelMode !=
           SmallWindowBottomPanelMode.collapsed) {
         settings.savedSmallWindowQueueSize = size;
@@ -245,7 +252,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
         debugPrint('[vynody] savedSmallWindowSize updated to $size');
       }
     } else {
-      debugPrint('[vynody] onWindowResized: ignored because isSmallWindowMode is false');
+      debugPrint(
+        '[vynody] onWindowResized: ignored because isSmallWindowMode is false',
+      );
     }
   }
 
@@ -263,7 +272,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
   Future<void> _handleArgs() async {
     // 无参数直接返回
     if (!mounted || widget.args.isEmpty) {
-      debugPrint('[external-open] _handleArgs skipped mounted=$mounted args=${widget.args}');
+      debugPrint(
+        '[external-open] _handleArgs skipped mounted=$mounted args=${widget.args}',
+      );
       return;
     }
 
@@ -300,14 +311,20 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
         debugPrint('[external-open] _handleArgs playFile done path=$path');
 
         if (!mounted) {
-          debugPrint('[external-open] _handleArgs abort after playFile, widget unmounted');
+          debugPrint(
+            '[external-open] _handleArgs abort after playFile, widget unmounted',
+          );
           return;
         }
 
         // 切换到播放详情视图 (索引 1)
-        debugPrint('[external-open] _handleArgs navigateToMainTab begin path=$path');
+        debugPrint(
+          '[external-open] _handleArgs navigateToMainTab begin path=$path',
+        );
         await navigateToMainTab(context, index: 1);
-        debugPrint('[external-open] _handleArgs navigateToMainTab done path=$path');
+        debugPrint(
+          '[external-open] _handleArgs navigateToMainTab done path=$path',
+        );
 
         // 处理完一个核心音频文件后停止（通常双击只打开一个文件）
         break;
@@ -628,7 +645,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
     _onboardingAnimController?.forward().then((_) {
       final settings = ref.read(settingsServiceProvider);
       settings.hasShownOnboarding = true;
-      final hasRootFolders = ref.read(scannerServiceProvider).rootPaths.isNotEmpty;
+      final hasRootFolders = ref
+          .read(scannerServiceProvider)
+          .rootPaths
+          .isNotEmpty;
       if (mounted) {
         setState(() {
           _isOnboardingAnimatingOut = false;
@@ -669,7 +689,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
             );
           }
 
-          debugPrint('[vynody] transition listener: prevSmall=$prevSmallMode, nextSmall=$nextSmallMode, prevExpanded=$prevExpanded, nextExpanded=$nextExpanded');
+          debugPrint(
+            '[vynody] transition listener: prevSmall=$prevSmallMode, nextSmall=$nextSmallMode, prevExpanded=$prevExpanded, nextExpanded=$nextExpanded',
+          );
           if (nextSmallMode) {
             // Enter small window mode or update small window dimensions
             if (await windowManager.isFullScreen()) {
@@ -678,18 +700,24 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
             if (await windowManager.isMaximized()) {
               await windowManager.unmaximize();
             }
-            await windowManager.setAlwaysOnTop(settings.isSmallWindowAlwaysOnTop);
+            await windowManager.setAlwaysOnTop(
+              settings.isSmallWindowAlwaysOnTop,
+            );
 
             // Only save regular size if transitioning from regular mode to small window mode
             if (!prevSmallMode) {
               final currentSize = await windowManager.getSize();
-              debugPrint('[vynody] transitioning from regular to small. currentSize=$currentSize');
+              debugPrint(
+                '[vynody] transitioning from regular to small. currentSize=$currentSize',
+              );
               if (currentSize.width >=
                       PlaybackPageUiTuning.smallWindowMaxSize.width ||
                   currentSize.height >=
                       PlaybackPageUiTuning.smallWindowMaxSize.height) {
                 settings.savedRegularWindowSize = currentSize;
-                debugPrint('[vynody] savedRegularWindowSize set to $currentSize');
+                debugPrint(
+                  '[vynody] savedRegularWindowSize set to $currentSize',
+                );
               }
             }
 
@@ -708,7 +736,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
                   savedSize.width.clamp(minSize.width, maxSize.width),
                   savedSize.height.clamp(minSize.height, maxSize.height),
                 );
-                debugPrint('[vynody] setting size for expanded small mode: clampedSize=$clampedSize (savedSize=$savedSize)');
+                debugPrint(
+                  '[vynody] setting size for expanded small mode: clampedSize=$clampedSize (savedSize=$savedSize)',
+                );
                 await windowManager.setSize(clampedSize);
               }
             } else {
@@ -726,7 +756,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
                   savedSize.width.clamp(minSize.width, maxSize.width),
                   savedSize.height.clamp(minSize.height, maxSize.height),
                 );
-                debugPrint('[vynody] setting size for collapsed small mode: clampedSize=$clampedSize (savedSize=$savedSize)');
+                debugPrint(
+                  '[vynody] setting size for collapsed small mode: clampedSize=$clampedSize (savedSize=$savedSize)',
+                );
                 await windowManager.setSize(clampedSize);
               }
             }
@@ -734,20 +766,29 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
             // Exit small window mode
             // Save the last small window size right before we exit
             final currentSmallSize = await windowManager.getSize();
-            debugPrint('[vynody] exiting small window mode. currentSmallSize=$currentSmallSize');
-            if (previous?.bottomPanelMode != SmallWindowBottomPanelMode.collapsed) {
+            debugPrint(
+              '[vynody] exiting small window mode. currentSmallSize=$currentSmallSize',
+            );
+            if (previous?.bottomPanelMode !=
+                SmallWindowBottomPanelMode.collapsed) {
               settings.savedSmallWindowQueueSize = currentSmallSize;
-              debugPrint('[vynody] exiting: savedSmallWindowQueueSize saved as $currentSmallSize');
+              debugPrint(
+                '[vynody] exiting: savedSmallWindowQueueSize saved as $currentSmallSize',
+              );
             } else {
               settings.savedSmallWindowSize = currentSmallSize;
-              debugPrint('[vynody] exiting: savedSmallWindowSize saved as $currentSmallSize');
+              debugPrint(
+                '[vynody] exiting: savedSmallWindowSize saved as $currentSmallSize',
+              );
             }
 
             await windowManager.setMinimumSize(const Size(400, 650));
             await windowManager.setMaximumSize(const Size(99999, 99999));
             final savedSize =
                 settings.savedRegularWindowSize ?? const Size(1280, 720);
-            debugPrint('[vynody] restoring regular window size: savedSize=$savedSize');
+            debugPrint(
+              '[vynody] restoring regular window size: savedSize=$savedSize',
+            );
             await windowManager.setSize(savedSize);
             await windowManager.setAlwaysOnTop(false);
           }
@@ -883,6 +924,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
           ),
           VolumeUpIntent: CallbackAction<VolumeUpIntent>(
             onInvoke: (_) {
+              _ui.setVolumeHudVisible(true);
               _audioService.setVolume(
                 (_audioService.volume + 5).roundToDouble(),
               );
@@ -891,6 +933,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
           ),
           VolumeDownIntent: CallbackAction<VolumeDownIntent>(
             onInvoke: (_) {
+              _ui.setVolumeHudVisible(true);
               _audioService.setVolume(
                 (_audioService.volume - 5).roundToDouble(),
               );
@@ -1099,6 +1142,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
                                           ref
                                               .read(settingsServiceProvider)
                                               .resetInactivity();
+                                          _ui.setVolumeHudVisible(true);
                                           audio.setVolume(
                                             value.roundToDouble(),
                                           );
@@ -1107,6 +1151,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
                                           ref
                                               .read(settingsServiceProvider)
                                               .resetInactivity();
+                                          _ui.setVolumeHudVisible(true);
                                           audio.setVolume(
                                             (audio.volume - deltaY * 0.1)
                                                 .clamp(0.0, 100.0)
@@ -1166,14 +1211,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
       ),
     );
 
-    final showOnboarding = !settings.hasShownOnboarding || _isOnboardingAnimatingOut;
+    final showOnboarding =
+        !settings.hasShownOnboarding || _isOnboardingAnimatingOut;
 
     if (showOnboarding) {
       _onboardingAnimController ??= AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 500),
       );
-      if (!_isOnboardingAnimatingOut && _onboardingAnimController!.value != 0.0) {
+      if (!_isOnboardingAnimatingOut &&
+          _onboardingAnimController!.value != 0.0) {
         _onboardingAnimController!.value = 0.0;
       }
 
@@ -1184,25 +1231,23 @@ class _MainLayoutState extends ConsumerState<MainLayout> with WindowListener, Ti
         ),
       );
 
-      final onboardingOffset = Tween<Offset>(
-        begin: Offset.zero,
-        end: const Offset(-1.0, 0.0), // Slide left off screen
-      ).animate(
-        CurvedAnimation(
-          parent: _onboardingAnimController!,
-          curve: Curves.easeOutCubic,
-        ),
-      );
+      final onboardingOffset =
+          Tween<Offset>(
+            begin: Offset.zero,
+            end: const Offset(-1.0, 0.0), // Slide left off screen
+          ).animate(
+            CurvedAnimation(
+              parent: _onboardingAnimController!,
+              curve: Curves.easeOutCubic,
+            ),
+          );
 
       return Stack(
         children: [
           Positioned.fill(
             child: IgnorePointer(
               ignoring: true,
-              child: Focus(
-                canRequestFocus: false,
-                child: mainAppWidget,
-              ),
+              child: Focus(canRequestFocus: false, child: mainAppWidget),
             ),
           ),
           Positioned.fill(

@@ -25,8 +25,7 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
     final selectionScope = ref.watch(librarySelectionScopeProvider);
-    final librarySelectionActive =
-        selectionScope != LibrarySelectionScope.none;
+    final librarySelectionActive = selectionScope != LibrarySelectionScope.none;
     final showPlayer = currentMusic != null && !librarySelectionActive;
 
     return Stack(
@@ -87,10 +86,16 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
                           },
                           onVolumeChanged: (value) {
                             ref.read(settingsServiceProvider).resetInactivity();
+                            ref
+                                .read(mainLayoutUiControllerProvider.notifier)
+                                .setVolumeHudVisible(true);
                             audio.setVolume(value.roundToDouble());
                           },
                           onVolumeScroll: (deltaY) {
                             ref.read(settingsServiceProvider).resetInactivity();
+                            ref
+                                .read(mainLayoutUiControllerProvider.notifier)
+                                .setVolumeHudVisible(true);
                             audio.setVolume(
                               (audio.volume - deltaY * 0.1)
                                   .clamp(0.0, 100.0)

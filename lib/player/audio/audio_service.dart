@@ -1134,7 +1134,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   void _handlePlayerChanges() {
     _isPlaying = _player.player.isPlaying;
     _duration = _player.player.duration;
-    
+
     final realPosition = _player.player.position;
     if (_isSeeking) {
       final target = _seekTargetPosition ?? Duration.zero;
@@ -1143,7 +1143,8 @@ class AudioService extends Notifier<AudioSnapshot> {
           ? DateTime.now().difference(_lastSeekTime!)
           : Duration.zero;
 
-      if (difference < const Duration(seconds: 1) || timeSinceSeek > const Duration(milliseconds: 1000)) {
+      if (difference < const Duration(seconds: 1) ||
+          timeSinceSeek > const Duration(milliseconds: 1000)) {
         _isSeeking = false;
         _seekTargetPosition = null;
         _position = realPosition;
