@@ -136,6 +136,18 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return _navigationState.popHistory();
   }
 
+  double getFolderScrollOffset(String? path) {
+    return _navigationState.getScrollOffset(path);
+  }
+
+  void setFolderScrollOffset(String? path, double offset) {
+    _navigationState.setScrollOffset(path, offset);
+  }
+
+  void clearFolderScrollOffsets() {
+    _navigationState.clearScrollOffsets();
+  }
+
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
   bool get hasPermission => _hasPermission;
   Map<String, SongMetadata> get metadataMap => _metadataStore.metadataMap;

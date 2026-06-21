@@ -5,6 +5,7 @@ import 'package:vynody/models/music_folder.dart';
 class ScannerNavigationState extends ChangeNotifier {
   MusicFolder? _currentFolder;
   final List<MusicFolder> _history = [];
+  final Map<String, double> _scrollOffsets = {};
 
   MusicFolder? get currentFolder => _currentFolder;
 
@@ -28,5 +29,17 @@ class ScannerNavigationState extends ChangeNotifier {
     final folder = _history.removeLast();
     notifyListeners();
     return folder;
+  }
+
+  double getScrollOffset(String? path) {
+    return _scrollOffsets[path ?? 'root'] ?? 0.0;
+  }
+
+  void setScrollOffset(String? path, double offset) {
+    _scrollOffsets[path ?? 'root'] = offset;
+  }
+
+  void clearScrollOffsets() {
+    _scrollOffsets.clear();
   }
 }

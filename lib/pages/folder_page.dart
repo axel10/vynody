@@ -33,6 +33,7 @@ class FoldersPage extends ConsumerStatefulWidget {
 
 class _FoldersPageState extends ConsumerState<FoldersPage> {
   final ScrollController _scrollController = ScrollController();
+  String? _lastFolderPath = 'sentinel_initial_path';
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
   final Set<String> _selectedFolderPaths = {};
@@ -87,7 +88,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     scanner.setNavigationState(folder, history);
     _clearAllSelection();
     _setFolderSelectionMode(false);
-    _scrollToTop();
   }
 
   void _goBack(ScannerService scanner) {
@@ -100,28 +100,15 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     }
     _clearAllSelection();
     _setFolderSelectionMode(false);
-    _scrollToTop();
   }
 
   void _goHome(ScannerService scanner) {
     scanner.setNavigationState(null, []);
     _clearAllSelection();
     _setFolderSelectionMode(false);
-    _scrollToTop();
   }
 
-  void _scrollToTop() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
+
 
   void _toggleSelectionMode() {
     setState(() {
@@ -400,6 +387,10 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   @override
   void dispose() {
+    if (_scrollController.hasClients && _lastFolderPath != 'sentinel_initial_path') {
+      final scanner = ref.read(scannerServiceProvider);
+      scanner.setFolderScrollOffset(_lastFolderPath, _scrollController.offset);
+    }
     // Defer the provider write so it happens after the current widget tree
     // finishes unmounting. Doing it synchronously here can trip Riverpod's
     // "modifying a provider while building" assertion during tab switches.
@@ -499,6 +490,31 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         (scanner) => scanner.navigationCurrentFolder,
       ),
     );
+
+    // Save and restore scroll position when current folder changes
+    final currentFolderPath = currentFolder?.path;
+    if (currentFolderPath != _lastFolderPath) {
+      if (_scrollController.hasClients && _lastFolderPath != 'sentinel_initial_path') {
+        final oldOffset = _scrollController.offset;
+        scanner.setFolderScrollOffset(_lastFolderPath, oldOffset);
+      }
+      _lastFolderPath = currentFolderPath;
+      
+      final targetPath = currentFolderPath;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final currentScanner = ref.read(scannerServiceProvider);
+        if (currentScanner.navigationCurrentFolder?.path != targetPath) {
+          return;
+        }
+        if (_scrollController.hasClients) {
+          final targetOffset = currentScanner.getFolderScrollOffset(targetPath);
+          final maxExtent = _scrollController.position.maxScrollExtent;
+          _scrollController.jumpTo(targetOffset.clamp(0.0, maxExtent));
+        }
+      });
+    }
+
     final navigationHistory = ref.watch(
       scannerServiceProvider.select((scanner) => scanner.navigationHistory),
     );
@@ -1598,7 +1614,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                 folder,
                 scanner.navigationHistory.take(i).toList(),
               );
-              _scrollToTop();
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
