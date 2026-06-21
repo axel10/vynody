@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
+import 'package:window_manager/window_manager.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
@@ -980,8 +981,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   if (Platform.isWindows ||
                       Platform.isMacOS ||
                       Platform.isLinux)
-                    const SizedBox(
-                      height: PlaybackPageUiTuning.desktopTopSpacer,
+                    const DragToMoveArea(
+                      child: SizedBox(
+                        height: PlaybackPageUiTuning.desktopTopSpacer,
+                      ),
                     ),
                   if (showMiniPanel) ...[
                     SizedBox(
