@@ -609,6 +609,7 @@
   "increaseLyricsFont": "Increase lyrics font",
   "decreaseLyricsFont": "Decrease lyrics font",
   "restoreDefaultSize": "Restore default size",
+  "adjustLyricsFont": "Adjust Text Size",
   "searchingOnlineLyrics": "Searching online lyrics",
   "onlineLyricsResults": "Online Lyrics Results",
   "untitledLyrics": "Untitled lyrics",

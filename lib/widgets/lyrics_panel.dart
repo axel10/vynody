@@ -17,13 +17,13 @@ import '../dialogs/ai_guide_dialog.dart';
 import '../dialogs/manual_lyrics_dialog.dart';
 import '../dialogs/online_lyrics_search_dialog.dart';
 import '../dialogs/timeline_adjustment_dialog.dart';
+import '../dialogs/lyrics_font_scale_dialog.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_controller.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
-import 'package:vynody/player/settings/settings_service.dart';
 import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
@@ -548,23 +548,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         ),
       const PopupMenuDivider(),
       buildContextMenuItem<String>(
-        value: 'increase_lyrics_font',
-        enabled: lyricsFontScale < SettingsService.maxLyricsFontScale,
-        label: l10n.increaseLyricsFont,
-        icon: Icons.text_increase_rounded,
-        context: context,
-      ),
-      buildContextMenuItem<String>(
-        value: 'decrease_lyrics_font',
-        enabled: lyricsFontScale > SettingsService.minLyricsFontScale,
-        label: l10n.decreaseLyricsFont,
-        icon: Icons.text_decrease_rounded,
-        context: context,
-      ),
-      buildContextMenuItem<String>(
-        value: 'reset_lyrics_font',
-        enabled: lyricsFontScale != SettingsService.defaultLyricsFontScale,
-        label: l10n.restoreDefaultSize,
+        value: 'adjust_lyrics_font',
+        enabled: true,
+        label: l10n.adjustLyricsFont,
         icon: Icons.format_size_rounded,
         context: context,
       ),
@@ -630,12 +616,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       await _showTimelineAdjustmentPanel(displayLines);
     } else if (selected == 'fill_lyrics') {
       await _showManualLyricsDialog(displayPlainLyrics);
-    } else if (selected == 'increase_lyrics_font') {
-      ref.read(settingsServiceProvider).increaseLyricsFontScale();
-    } else if (selected == 'decrease_lyrics_font') {
-      ref.read(settingsServiceProvider).decreaseLyricsFontScale();
-    } else if (selected == 'reset_lyrics_font') {
-      ref.read(settingsServiceProvider).resetLyricsFontScale();
+    } else if (selected == 'adjust_lyrics_font') {
+      if (context.mounted) {
+        await showLyricsFontScaleDialog(context, ref);
+      }
     }
   }
 

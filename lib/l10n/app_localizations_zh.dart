@@ -1425,6 +1425,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreDefaultSize => '恢复默认大小';
 
   @override
+  String get adjustLyricsFont => '调整文字大小';
+
+  @override
   String get searchingOnlineLyrics => '正在查询在线歌词';
 
   @override

@@ -2774,6 +2774,12 @@ abstract class AppLocalizations {
   /// **'恢复默认大小'**
   String get restoreDefaultSize;
 
+  /// No description provided for @adjustLyricsFont.
+  ///
+  /// In zh, this message translates to:
+  /// **'调整文字大小'**
+  String get adjustLyricsFont;
+
   /// No description provided for @searchingOnlineLyrics.
   ///
   /// In zh, this message translates to:

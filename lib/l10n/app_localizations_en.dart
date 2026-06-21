@@ -1469,6 +1469,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreDefaultSize => 'Restore default size';
 
   @override
+  String get adjustLyricsFont => 'Adjust Text Size';
+
+  @override
   String get searchingOnlineLyrics => 'Searching online lyrics';
 
   @override

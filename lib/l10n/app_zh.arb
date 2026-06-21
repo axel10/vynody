@@ -1037,6 +1037,7 @@
   "increaseLyricsFont": "增大歌词文字",
   "decreaseLyricsFont": "减小歌词文字",
   "restoreDefaultSize": "恢复默认大小",
+  "adjustLyricsFont": "调整文字大小",
   "searchingOnlineLyrics": "正在查询在线歌词",
   "onlineLyricsResults": "在线歌词结果",
   "untitledLyrics": "未命名歌词",
