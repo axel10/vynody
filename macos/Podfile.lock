@@ -20,8 +20,6 @@ PODS:
     - FlutterMacOS
   - file_selector_macos (0.0.1):
     - FlutterMacOS
-  - flutter_image_compress_macos (1.0.0):
-    - FlutterMacOS
   - FlutterMacOS (1.0.0)
   - mobile_storage_listener (0.0.1):
     - Flutter
@@ -80,7 +78,6 @@ DEPENDENCIES:
   - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
   - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/macos`)
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
-  - flutter_image_compress_macos (from `Flutter/ephemeral/.symlinks/plugins/flutter_image_compress_macos/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - mobile_storage_listener (from `Flutter/ephemeral/.symlinks/plugins/mobile_storage_listener/darwin`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
@@ -116,8 +113,6 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/file_picker/macos
   file_selector_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
-  flutter_image_compress_macos:
-    :path: Flutter/ephemeral/.symlinks/plugins/flutter_image_compress_macos/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
   mobile_storage_listener:
@@ -151,13 +146,12 @@ SPEC CHECKSUMS:
   device_info_plus: a56e6e74dbbd2bb92f2da12c64ddd4f67a749041
   file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
   file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
-  flutter_image_compress_macos: e68daf54bb4bf2144c580fd4d151c949cbf492f0
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   mobile_storage_listener: 7894760322d7fb5121e315b81806dbddfceef26e
   package_info_plus: f0052d280d17aa382b932f399edf32507174e870
   pasteboard: b594eaf838d930b276d7a35a44a32b4f489170cb
   proxy_getter: 5687a846a29858a5af86bc93bfbd51b8c3cac101
-  screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
+  screen_retriever_macos: c5508cc3c66ff0d4db650480cf0ab691e220d933
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   sqlite3: a51c07cf16e023d6c48abd5e5791a61a47354921
