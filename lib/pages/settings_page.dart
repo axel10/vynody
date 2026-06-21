@@ -728,7 +728,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         _buildHomeSectionTile(
           context,
-          icon: Icons.fingerprint_rounded,
+          icon: Icons.graphic_eq_rounded,
           title: l10n.acoustidSectionTitle,
           onTap: () => _openSection(_SettingsSection.acoustid),
         ),
@@ -1115,7 +1115,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _buildSectionHeader(l10n.acoustidSectionTitle, l10n.acoustidApiKeyHelp),
         ListTile(
           isThreeLine: true,
-          leading: const Icon(Icons.fingerprint),
+          leading: const Icon(Icons.graphic_eq_rounded),
           title: Text(l10n.acoustidApiKeyTitle),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

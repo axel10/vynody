@@ -2321,7 +2321,7 @@ abstract class AppLocalizations {
   /// No description provided for @acoustidSectionTitle.
   ///
   /// In zh, this message translates to:
-  /// **'指纹识别'**
+  /// **'听歌识曲'**
   String get acoustidSectionTitle;
 
   /// No description provided for @acoustidApiKeyTitle.
@@ -2333,7 +2333,7 @@ abstract class AppLocalizations {
   /// No description provided for @acoustidApiKeyHelp.
   ///
   /// In zh, this message translates to:
-  /// **'AcoustID 用于音频指纹识别，建议使用你自己的 API Key。'**
+  /// **'AcoustID 用于听歌识曲，建议使用你自己的 API Key。'**
   String get acoustidApiKeyHelp;
 
   /// No description provided for @acoustidApiKeySaved.

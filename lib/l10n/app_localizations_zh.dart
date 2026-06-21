@@ -1176,13 +1176,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreDefault => '恢复默认';
 
   @override
-  String get acoustidSectionTitle => '指纹识别';
+  String get acoustidSectionTitle => '听歌识曲';
 
   @override
   String get acoustidApiKeyTitle => 'AcoustID API Key';
 
   @override
-  String get acoustidApiKeyHelp => 'AcoustID 用于音频指纹识别，建议使用你自己的 API Key。';
+  String get acoustidApiKeyHelp => 'AcoustID 用于听歌识曲，建议使用你自己的 API Key。';
 
   @override
   String get acoustidApiKeySaved => 'AcoustID API Key 已保存';
