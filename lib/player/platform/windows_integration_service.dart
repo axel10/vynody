@@ -68,9 +68,14 @@ class WindowsIntegrationService {
         artist: audioService.currentMusic?.artist ?? 'Unknown',
         album: audioService.currentMusic?.album ?? 'Unknown',
         albumArtist: audioService.currentMusic?.artist ?? 'Unknown',
-        thumbnail: audioService.currentMusic?.artworkPath != null && File(audioService.currentMusic!.artworkPath!).existsSync()
-            ? audioService.currentMusic?.artworkPath
-            : null,
+        thumbnail: () {
+          final artPath = audioService.currentMusic?.artworkPath ??
+              audioService.currentMusic?.thumbnailPath;
+          if (artPath != null && File(artPath).existsSync()) {
+            return artPath;
+          }
+          return null;
+        }(),
       ),
     );
   }

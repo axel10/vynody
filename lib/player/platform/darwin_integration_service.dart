@@ -87,7 +87,8 @@ class DarwinIntegrationService {
       audioService.currentMusic?.displayName,
       audioService.currentMusic?.artist,
       audioService.currentMusic?.album,
-      audioService.currentMusic?.artworkPath,
+      audioService.currentMusic?.artworkPath ??
+          audioService.currentMusic?.thumbnailPath,
       audioService.duration.inMilliseconds.toString(),
     ].join('|');
     if (_lastMetadataKey == metadataKey) return;

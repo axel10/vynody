@@ -15,10 +15,13 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
         title: music?.displayName ?? music?.name ?? 'Unknown',
         artist: music?.artist ?? 'Unknown',
         duration: appAudio.duration,
-        artUri:
-            music?.artworkPath != null && File(music!.artworkPath!).existsSync()
-            ? Uri.file(music.artworkPath!)
-            : null,
+        artUri: () {
+          final artPath = music?.artworkPath ?? music?.thumbnailPath;
+          if (artPath != null && File(artPath).existsSync()) {
+            return Uri.file(artPath);
+          }
+          return null;
+        }(),
       ),
     );
   }
