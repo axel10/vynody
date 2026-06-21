@@ -20,15 +20,25 @@ class MiniArtwork extends ConsumerWidget {
         borderRadius: BorderRadius.circular(6),
         image: currentMusic?.artworkBytes != null
             ? DecorationImage(
-                image: MemoryImage(currentMusic!.artworkBytes!),
+                image: ResizeImage(
+                  MemoryImage(currentMusic!.artworkBytes!),
+                  width: 120,
+                  height: 120,
+                  allowUpscaling: false,
+                ),
                 fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
+                filterQuality: FilterQuality.low,
               )
             : currentMusic?.artworkPath != null
             ? DecorationImage(
-                image: FileImage(File(currentMusic!.artworkPath!)),
+                image: ResizeImage(
+                  FileImage(File(currentMusic!.artworkPath!)),
+                  width: 120,
+                  height: 120,
+                  allowUpscaling: false,
+                ),
                 fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
+                filterQuality: FilterQuality.low,
               )
             : null,
         color: Theme.of(context).brightness == Brightness.dark

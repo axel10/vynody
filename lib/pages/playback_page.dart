@@ -1459,7 +1459,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         height: double.infinity,
                         cacheWidth: (Platform.isAndroid || Platform.isIOS)
                             ? 300
-                            : null,
+                            : 600,
                         fit: BoxFit.cover,
                         filterQuality: FilterQuality.low,
                         gaplessPlayback: true,
@@ -1481,7 +1481,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         height: double.infinity,
                         cacheWidth: (Platform.isAndroid || Platform.isIOS)
                             ? 300
-                            : null,
+                            : 600,
                         fit: BoxFit.cover,
                         filterQuality: FilterQuality.low,
                         gaplessPlayback: true,
@@ -1522,7 +1522,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     height: double.infinity,
                     cacheWidth: (Platform.isAndroid || Platform.isIOS)
                         ? 300
-                        : null,
+                        : 600,
                     fit: BoxFit.cover,
                     filterQuality: FilterQuality.low,
                     gaplessPlayback: true,

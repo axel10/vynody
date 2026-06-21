@@ -1020,6 +1020,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> _prepareCurrentPlaybackArtwork(MusicFile song) async {
+    final sw = Stopwatch()..start();
     try {
       _logPlaybackTrace(
         '_prepareCurrentPlaybackArtwork start -> ${_debugSongLabel(song)} '
@@ -1049,24 +1050,32 @@ class AudioService extends Notifier<AudioSnapshot> {
           try {
             final file = File(dbArtworkPath);
             if (await file.exists()) {
+              final swRead = Stopwatch()..start();
               artworkBytes = await file.readAsBytes();
+              debugPrint('[PERF] Read artwork file took ${swRead.elapsedMilliseconds}ms, size=${artworkBytes.length} bytes');
             }
           } catch (_) {}
         }
       }
 
-      artworkBytes ??= await MetadataHelper.decodeEmbeddedArtwork(song.path);
+      if (artworkBytes == null) {
+        final swDecode = Stopwatch()..start();
+        artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(song.path);
+        debugPrint('[PERF] decodeEmbeddedArtwork took ${swDecode.elapsedMilliseconds}ms, size=${artworkBytes?.length ?? 0} bytes');
+      }
 
       if (artworkPath == null ||
           thumbnailPath == null ||
           themeColorsBlob == null) {
         final supportDir = await getApplicationSupportDirectory();
+        final swTheme = Stopwatch()..start();
         final artworkTheme = await artworkThemeService.getTrackArtworkTheme(
           song.path,
           controller: _player,
           cacheRootPath: supportDir.path,
           saveLargeArtwork: false,
         );
+        debugPrint('[PERF] getTrackArtworkTheme took ${swTheme.elapsedMilliseconds}ms');
         if (artworkTheme != null) {
           artworkPath ??=
               artworkTheme.artworkPath ?? artworkTheme.thumbnailPath;
@@ -1114,6 +1123,8 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
     } catch (e) {
       debugPrint('AudioService: hero artwork prep failed for ${song.path}: $e');
+    } finally {
+      debugPrint('[PERF] _prepareCurrentPlaybackArtwork TOTAL took ${sw.elapsedMilliseconds}ms');
     }
   }
 
@@ -1845,6 +1856,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     // prefer the higher-quality file saved in the metadata database, then fall
     // back to embedded artwork inside the audio file.
     unawaited(() async {
+      final swHydrate = Stopwatch()..start();
       _logPlaybackTrace(
         '_updateCurrentMetadata artwork hydrate scheduled -> '
         'song=${_debugSongLabel(song)}',
@@ -1860,7 +1872,11 @@ class AudioService extends Notifier<AudioSnapshot> {
         } catch (_) {}
       }
 
+      final swDecode = Stopwatch()..start();
       highResBytes ??= await MetadataHelper.decodeEmbeddedArtwork(path);
+      if (highResBytes != null) {
+        debugPrint('[PERF] _updateCurrentMetadata decodeEmbeddedArtwork took ${swDecode.elapsedMilliseconds}ms, size=${highResBytes.length} bytes');
+      }
 
       if (_currentIndex >= 0 &&
           _currentIndex < _queue.length &&
@@ -1879,9 +1895,12 @@ class AudioService extends Notifier<AudioSnapshot> {
         // as the final source of truth to avoid a second visual color change.
         if (!hasCachedThemeColors) {
           // Recompute the palette only after the artwork bytes have been updated.
+          final swPalette = Stopwatch()..start();
           await _updatePalette();
+          debugPrint('[PERF] _updateCurrentMetadata _updatePalette took ${swPalette.elapsedMilliseconds}ms');
         }
       }
+      debugPrint('[PERF] _updateCurrentMetadata artwork hydrate TOTAL took ${swHydrate.elapsedMilliseconds}ms');
     }());
 
     // Prefer the latest current queue item here rather than the async input
