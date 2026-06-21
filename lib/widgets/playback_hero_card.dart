@@ -994,14 +994,14 @@ class PlaybackHeroCard extends ConsumerWidget {
         top: 16.0,
         left: width,
         width: lLyricsColumnWidth,
-        height: height - 32.0,
+        height: math.max(0.0, height - 32.0),
         opacity: 0.0,
       ),
       lLyrics: _PlaybackPaneLayout(
         top: 16.0,
         left: lLyricsLyricsLeft,
         width: lLyricsLyricsWidth,
-        height: height - 32.0,
+        height: math.max(0.0, height - 32.0),
         opacity: 1.0,
       ),
       tLyrics: tLyrics,
@@ -1353,8 +1353,8 @@ class PlaybackHeroCard extends ConsumerWidget {
         : PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor;
 
     final unifiedWidth = effectiveIsLandscape
-        ? lerpDouble(buttonsRowWidth, layoutWidth, tLyrics)!
-        : math.min(width - 32.0, buttonsRowWidth * widthFactor);
+        ? math.max(0.0, lerpDouble(buttonsRowWidth, layoutWidth, tLyrics)!)
+        : math.max(0.0, math.min(width - 32.0, buttonsRowWidth * widthFactor));
 
     // 提取公共组件 (Extract common components)
     Widget wrapWithMaybeFitted(Widget child, {bool fit = false}) {
