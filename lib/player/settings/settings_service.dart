@@ -306,6 +306,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyHasShownOnboarding = 'has_shown_onboarding';
   static const String _keyTagCompletionSaveToSourceFile =
       'tag_completion_save_to_source_file';
+  static const String _keyLanSharingEnabled = 'lan_sharing_enabled';
 
   final SharedPreferences _prefs;
   bool _isUserInactive = false;
@@ -323,6 +324,13 @@ class SettingsService extends ChangeNotifier {
   late final _tagCompletionSaveToSourceFileProperty = SettingProperty<bool>(
     key: _keyTagCompletionSaveToSourceFile,
     defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _lanSharingEnabledProperty = SettingProperty<bool>(
+    key: _keyLanSharingEnabled,
+    defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -922,6 +930,9 @@ class SettingsService extends ChangeNotifier {
       _tagCompletionSaveToSourceFileProperty.value;
   set tagCompletionSaveToSourceFile(bool value) =>
       _tagCompletionSaveToSourceFileProperty.value = value;
+
+  bool get lanSharingEnabled => _lanSharingEnabledProperty.value;
+  set lanSharingEnabled(bool value) => _lanSharingEnabledProperty.value = value;
 
   ThemeMode get themeMode => _themeModeProperty.value;
   set themeMode(ThemeMode value) => _themeModeProperty.value = value;
@@ -1717,7 +1728,8 @@ abstract final class LyricsModelRecommendation {
       return false;
     }
 
-    if (baseId == 'gemini-flash-latest' || baseId == 'gemini-flash-lite-latest') {
+    if (baseId == 'gemini-flash-latest' ||
+        baseId == 'gemini-flash-lite-latest') {
       return true;
     }
 
@@ -1730,7 +1742,9 @@ abstract final class LyricsModelRecommendation {
     }
 
     if (baseId.contains('-flash-lite')) {
-      final match = RegExp(r'gemini-(\d+(?:\.\d+)?)-flash-lite').firstMatch(baseId);
+      final match = RegExp(
+        r'gemini-(\d+(?:\.\d+)?)-flash-lite',
+      ).firstMatch(baseId);
       if (match != null) {
         final ver = double.tryParse(match.group(1) ?? '');
         return ver != null && ver >= 3.1;
@@ -1760,7 +1774,9 @@ abstract final class LyricsModelRecommendation {
 
   static bool isDoubaoRecommended(String modelId) {
     final lowerId = modelId.toLowerCase();
-    final regExp = RegExp(r'^doubao-seed-([0-9]+[\.-][0-9]+)-(lite|mini|pro)(?:-.*)?$');
+    final regExp = RegExp(
+      r'^doubao-seed-([0-9]+[\.-][0-9]+)-(lite|mini|pro)(?:-.*)?$',
+    );
     final match = regExp.firstMatch(lowerId);
     if (match == null) {
       return false;

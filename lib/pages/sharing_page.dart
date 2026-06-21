@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
 import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:vynody/player/sharing/lan_device.dart';
@@ -20,17 +21,12 @@ class SharingPage extends ConsumerStatefulWidget {
 
 class _SharingPageState extends ConsumerState<SharingPage> {
   late final SharingServerStateNotifier _sharingServerNotifier;
+  bool _didSyncInitialSharingState = false;
 
   @override
   void initState() {
     super.initState();
     _sharingServerNotifier = ref.read(sharingServerStateProvider.notifier);
-    // Auto-start server when page opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _sharingServerNotifier.start();
-      }
-    });
   }
 
   @override
@@ -53,12 +49,14 @@ class _SharingPageState extends ConsumerState<SharingPage> {
         allowMultiple: false,
       );
 
-      if (result == null || result.files.isEmpty || result.files.single.path == null) {
+      if (result == null ||
+          result.files.isEmpty ||
+          result.files.single.path == null) {
         return;
       }
 
       final path = result.files.single.path!;
-      
+
       // We need to trigger the progress dialog on our screen
       // Final upload token/session ID will be created inside the sending function
       // In sharing_service, sendFile generates a session ID starting with 'send_'.
@@ -66,19 +64,33 @@ class _SharingPageState extends ConsumerState<SharingPage> {
       // Better yet, we can listen for new active transfer sessions in state
       // and show the progress dialog. Let's start the file transfer:
       final service = ref.read(sharingServiceProvider);
-      
+
       // Let's launch transfer in background, and show progress dialog
       // To show the progress dialog immediately, we can listen to activeTransfersProvider.
       // But we need the sessionId. Since the sessionId is derived from timestamp inside sendFile,
       // let's modify sendFile slightly or just search for the latest session in activeTransfersProvider.
-      
+
       // Let's create a listener to catch the session ID as soon as it's added.
       late ProviderSubscription subscription;
-      subscription = ref.listenManual(activeTransfersProvider, (previous, next) {
+      subscription = ref.listenManual(activeTransfersProvider, (
+        previous,
+        next,
+      ) {
         final newSendSession = next.firstWhere(
-          (s) => s.isSending && s.deviceName == device.name && s.status == TransferStatus.pending,
+          (s) =>
+              s.isSending &&
+              s.deviceName == device.name &&
+              s.status == TransferStatus.pending,
           orElse: () => TransferSession(
-            id: '', fileName: '', totalBytes: 0, bytesTransferred: 0, isSending: true, deviceName: '', status: TransferStatus.failed, filesCount: 0, completedFilesCount: 0,
+            id: '',
+            fileName: '',
+            totalBytes: 0,
+            bytesTransferred: 0,
+            isSending: true,
+            deviceName: '',
+            status: TransferStatus.failed,
+            filesCount: 0,
+            completedFilesCount: 0,
           ),
         );
         if (newSendSession.id.isNotEmpty) {
@@ -109,7 +121,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
 
       final dir = Directory(dirPath);
       final List<String> musicFiles = [];
-      
+
       try {
         final entries = dir.listSync(recursive: true);
         for (final entry in entries) {
@@ -131,11 +143,25 @@ class _SharingPageState extends ConsumerState<SharingPage> {
       final service = ref.read(sharingServiceProvider);
 
       late ProviderSubscription subscription;
-      subscription = ref.listenManual(activeTransfersProvider, (previous, next) {
+      subscription = ref.listenManual(activeTransfersProvider, (
+        previous,
+        next,
+      ) {
         final newSendSession = next.firstWhere(
-          (s) => s.isSending && s.deviceName == device.name && s.status == TransferStatus.pending,
+          (s) =>
+              s.isSending &&
+              s.deviceName == device.name &&
+              s.status == TransferStatus.pending,
           orElse: () => TransferSession(
-            id: '', fileName: '', totalBytes: 0, bytesTransferred: 0, isSending: true, deviceName: '', status: TransferStatus.failed, filesCount: 0, completedFilesCount: 0,
+            id: '',
+            fileName: '',
+            totalBytes: 0,
+            bytesTransferred: 0,
+            isSending: true,
+            deviceName: '',
+            status: TransferStatus.failed,
+            filesCount: 0,
+            completedFilesCount: 0,
           ),
         );
         if (newSendSession.id.isNotEmpty) {
@@ -149,7 +175,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
         filePaths: musicFiles,
         baseSourcePath: parentPath,
       );
-      
+
       if (!success) {
         subscription.close();
       }
@@ -158,12 +184,32 @@ class _SharingPageState extends ConsumerState<SharingPage> {
     }
   }
 
+  Future<void> _setSharingEnabled(bool enabled) async {
+    final settings = ref.read(settingsServiceProvider);
+    final previousEnabled = settings.lanSharingEnabled;
+    settings.lanSharingEnabled = enabled;
+
+    if (enabled) {
+      await _sharingServerNotifier.start();
+      if (!mounted) return;
+      final serverState = ref.read(sharingServerStateProvider);
+      if (!serverState.isRunning) {
+        settings.lanSharingEnabled = previousEnabled;
+        showToast('局域网共享启动失败，请检查本地网络权限是否已开启');
+      }
+    } else {
+      await _sharingServerNotifier.stop();
+    }
+  }
+
   Future<void> _handleSyncLyricsToDevice(LanDevice device) async {
     try {
       showToast('正在向 ${device.name} 同步歌词...');
       final service = ref.read(sharingServiceProvider);
       final stats = await service.syncLyricsToDevice(device);
-      showToast('同步成功: 匹配 ${stats['matched']} 首, 更新 ${stats['overwritten']} 首, 忽略 ${stats['skipped']} 首');
+      showToast(
+        '同步成功: 匹配 ${stats['matched']} 首, 更新 ${stats['overwritten']} 首, 忽略 ${stats['skipped']} 首',
+      );
     } catch (e) {
       showToast('同步歌词失败: $e');
     }
@@ -174,7 +220,9 @@ class _SharingPageState extends ConsumerState<SharingPage> {
       showToast('正在从 ${device.name} 同步歌词...');
       final service = ref.read(sharingServiceProvider);
       final stats = await service.pullLyricsFromDevice(device);
-      showToast('同步成功: 本地匹配 ${stats['matched']} 首, 更新 ${stats['overwritten']} 首, 忽略 ${stats['skipped']} 首');
+      showToast(
+        '同步成功: 本地匹配 ${stats['matched']} 首, 更新 ${stats['overwritten']} 首, 忽略 ${stats['skipped']} 首',
+      );
     } catch (e) {
       showToast('同步歌词失败: $e');
     }
@@ -201,10 +249,24 @@ class _SharingPageState extends ConsumerState<SharingPage> {
     final serverState = ref.watch(sharingServerStateProvider);
     final devicesAsync = ref.watch(discoveredDevicesProvider);
     final theme = Theme.of(context);
+    final settings = ref.watch(settingsServiceProvider);
+
+    if (!_didSyncInitialSharingState) {
+      _didSyncInitialSharingState = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (settings.lanSharingEnabled && !serverState.isRunning) {
+          _sharingServerNotifier.start();
+        }
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('局域网文件共享', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          '局域网文件共享',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -212,7 +274,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 10),
-            
+
             // 1. Local Device Status Card
             Card(
               elevation: 0,
@@ -220,7 +282,9 @@ class _SharingPageState extends ConsumerState<SharingPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.45,
+                  ),
                 ),
               ),
               child: Padding(
@@ -230,12 +294,18 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: (serverState.isRunning ? Colors.green : Colors.red).withValues(alpha: 0.1),
+                        color:
+                            (serverState.isRunning ? Colors.green : Colors.red)
+                                .withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        serverState.isRunning ? Icons.wifi_tethering : Icons.portable_wifi_off,
-                        color: serverState.isRunning ? Colors.green : Colors.red,
+                        serverState.isRunning
+                            ? Icons.wifi_tethering
+                            : Icons.portable_wifi_off,
+                        color: serverState.isRunning
+                            ? Colors.green
+                            : Colors.red,
                         size: 32,
                       ),
                     ),
@@ -246,27 +316,29 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                         children: [
                           Text(
                             serverState.isRunning ? '局域网共享已开启' : '局域网共享未开启',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             serverState.isRunning
                                 ? '本机 IP: ${serverState.localIp} (端口: ${serverState.httpPort})'
-                                : '正在启动服务...',
-                            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13),
+                                : '默认关闭，开启后会请求局域网权限',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     Switch(
-                      value: serverState.isRunning,
-                      onChanged: (val) {
-                        if (val) {
-                          ref.read(sharingServerStateProvider.notifier).start();
-                        } else {
-                          ref.read(sharingServerStateProvider.notifier).stop();
-                        }
-                      },
+                      value: settings.lanSharingEnabled,
+                      onChanged: _setSharingEnabled,
                     ),
                   ],
                 ),
@@ -282,7 +354,9 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.45,
+                    ),
                   ),
                 ),
                 child: Padding(
@@ -292,27 +366,45 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.language, color: theme.colorScheme.primary, size: 20),
+                          Icon(
+                            Icons.language,
+                            color: theme.colorScheme.primary,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           const Text(
                             '浏览器网页传输 (Web Share)',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Text(
                         '同一局域网的手机/电脑可通过浏览器打开下方链接，直接向本设备上传或下载音乐：',
-                        style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.3,
+                            ),
                           ),
                         ),
                         child: Row(
@@ -331,7 +423,12 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                             IconButton(
                               icon: const Icon(Icons.copy, size: 18),
                               onPressed: () {
-                                Clipboard.setData(ClipboardData(text: 'http://${serverState.localIp}:${serverState.httpPort}/'));
+                                Clipboard.setData(
+                                  ClipboardData(
+                                    text:
+                                        'http://${serverState.localIp}:${serverState.httpPort}/',
+                                  ),
+                                );
                                 showToast('链接已复制到剪贴板');
                               },
                             ),
@@ -348,7 +445,11 @@ class _SharingPageState extends ConsumerState<SharingPage> {
             // 3. Discovered Devices Section
             Text(
               '附近的设备',
-              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 10),
             Expanded(
@@ -361,11 +462,24 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.wifi, size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
+                          Icon(
+                            Icons.wifi,
+                            size: 48,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.2,
+                            ),
+                          ),
                           const SizedBox(height: 12),
                           Text(
-                            serverState.isRunning ? '正在寻找局域网内其他设备...' : '开启共享后开始寻找设备',
-                            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4), fontSize: 13),
+                            serverState.isRunning
+                                ? '正在寻找局域网内其他设备...'
+                                : '开启共享后开始寻找设备',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.4,
+                              ),
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
@@ -383,27 +497,40 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                           side: BorderSide(
-                            color: device.isOnline 
-                                ? theme.colorScheme.primary.withValues(alpha: 0.3) 
-                                : theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+                            color: device.isOnline
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.3,
+                                  )
+                                : theme.colorScheme.outlineVariant.withValues(
+                                    alpha: 0.2,
+                                  ),
                           ),
                         ),
                         child: ListTile(
                           leading: Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.4),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               _getPlatformIcon(device.deviceType),
-                              color: device.isOnline ? theme.colorScheme.onSurface : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              color: device.isOnline
+                                  ? theme.colorScheme.onSurface
+                                  : theme.colorScheme.onSurface.withValues(
+                                      alpha: 0.4,
+                                    ),
                             ),
                           ),
                           title: Text(
                             device.name,
                             style: TextStyle(
-                              color: device.isOnline ? theme.colorScheme.onSurface : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              color: device.isOnline
+                                  ? theme.colorScheme.onSurface
+                                  : theme.colorScheme.onSurface.withValues(
+                                      alpha: 0.4,
+                                    ),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -411,14 +538,23 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                             children: [
                               Text(
                                 device.ip,
-                                style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4), fontSize: 11),
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  fontSize: 11,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Container(
                                 width: 6,
                                 height: 6,
                                 decoration: BoxDecoration(
-                                  color: device.isOnline ? Colors.green : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                  color: device.isOnline
+                                      ? Colors.green
+                                      : theme.colorScheme.onSurface.withValues(
+                                          alpha: 0.4,
+                                        ),
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -426,7 +562,11 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                               Text(
                                 device.isOnline ? '在线' : '已断开',
                                 style: TextStyle(
-                                  color: device.isOnline ? Colors.green : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                  color: device.isOnline
+                                      ? Colors.green
+                                      : theme.colorScheme.onSurface.withValues(
+                                          alpha: 0.4,
+                                        ),
                                   fontSize: 11,
                                 ),
                               ),
@@ -434,7 +574,10 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                           ),
                           trailing: device.isOnline
                               ? PopupMenuButton<String>(
-                                  icon: Icon(Icons.more_vert, color: theme.colorScheme.primary),
+                                  icon: Icon(
+                                    Icons.more_vert,
+                                    color: theme.colorScheme.primary,
+                                  ),
                                   onSelected: (value) {
                                     if (value == 'file') {
                                       _handleSendFile(device);
@@ -446,49 +589,70 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                                       _handleSyncLyricsFromDevice(device);
                                     }
                                   },
-                                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                                    PopupMenuItem<String>(
-                                      value: 'file',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.insert_drive_file, size: 18, color: theme.colorScheme.primary),
-                                          const SizedBox(width: 8),
-                                          const Text('发送音乐文件'),
-                                        ],
-                                      ),
-                                    ),
-                                    PopupMenuItem<String>(
-                                      value: 'folder',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.folder, size: 18, color: theme.colorScheme.primary),
-                                          const SizedBox(width: 8),
-                                          const Text('发送文件夹'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuDivider(),
-                                    PopupMenuItem<String>(
-                                      value: 'sync_to',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.cloud_upload_rounded, size: 18, color: theme.colorScheme.primary),
-                                          const SizedBox(width: 8),
-                                          const Text('同步歌词至该设备'),
-                                        ],
-                                      ),
-                                    ),
-                                    PopupMenuItem<String>(
-                                      value: 'sync_from',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.cloud_download_rounded, size: 18, color: theme.colorScheme.primary),
-                                          const SizedBox(width: 8),
-                                          const Text('从该设备同步歌词'),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                  itemBuilder: (BuildContext context) =>
+                                      <PopupMenuEntry<String>>[
+                                        PopupMenuItem<String>(
+                                          value: 'file',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.insert_drive_file,
+                                                size: 18,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text('发送音乐文件'),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem<String>(
+                                          value: 'folder',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.folder,
+                                                size: 18,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text('发送文件夹'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuDivider(),
+                                        PopupMenuItem<String>(
+                                          value: 'sync_to',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.cloud_upload_rounded,
+                                                size: 18,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text('同步歌词至该设备'),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem<String>(
+                                          value: 'sync_from',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.cloud_download_rounded,
+                                                size: 18,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text('从该设备同步歌词'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                 )
                               : null,
                         ),
@@ -496,9 +660,16 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                     },
                   );
                 },
-                loading: () => Center(child: CircularProgressIndicator(color: theme.colorScheme.primary)),
+                loading: () => Center(
+                  child: CircularProgressIndicator(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
                 error: (e, _) => Center(
-                  child: Text('加载设备出错: $e', style: TextStyle(color: theme.colorScheme.error)),
+                  child: Text(
+                    '加载设备出错: $e',
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
                 ),
               ),
             ),

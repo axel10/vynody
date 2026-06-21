@@ -51,28 +51,8 @@ PODS:
   - file_selector_ios (0.0.1):
     - Flutter
   - Flutter (1.0.0)
-  - flutter_image_compress_common (1.0.0):
-    - Flutter
-    - Mantle
-    - SDWebImage
-    - SDWebImageWebPCoder
   - flutter_taglib (0.0.1):
     - Flutter
-  - libwebp (1.5.0):
-    - libwebp/demux (= 1.5.0)
-    - libwebp/mux (= 1.5.0)
-    - libwebp/sharpyuv (= 1.5.0)
-    - libwebp/webp (= 1.5.0)
-  - libwebp/demux (1.5.0):
-    - libwebp/webp
-  - libwebp/mux (1.5.0):
-    - libwebp/demux
-  - libwebp/sharpyuv (1.5.0)
-  - libwebp/webp (1.5.0):
-    - libwebp/sharpyuv
-  - Mantle (2.2.0):
-    - Mantle/extobjc (= 2.2.0)
-  - Mantle/extobjc (2.2.0)
   - mobile_storage_listener (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -90,9 +70,6 @@ PODS:
   - SDWebImage (5.21.7):
     - SDWebImage/Core (= 5.21.7)
   - SDWebImage/Core (5.21.7)
-  - SDWebImageWebPCoder (0.15.0):
-    - libwebp (~> 1.0)
-    - SDWebImage/Core (~> 5.17)
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -139,7 +116,6 @@ DEPENDENCIES:
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - file_selector_ios (from `.symlinks/plugins/file_selector_ios/ios`)
   - Flutter (from `Flutter`)
-  - flutter_image_compress_common (from `.symlinks/plugins/flutter_image_compress_common/ios`)
   - flutter_taglib (from `.symlinks/plugins/flutter_taglib/ios`)
   - mobile_storage_listener (from `.symlinks/plugins/mobile_storage_listener/darwin`)
   - on_audio_query_ios (from `.symlinks/plugins/on_audio_query_ios/ios`)
@@ -156,10 +132,7 @@ SPEC REPOS:
   trunk:
     - DKImagePickerController
     - DKPhotoGallery
-    - libwebp
-    - Mantle
     - SDWebImage
-    - SDWebImageWebPCoder
     - sqlite3
     - SwiftyBeaver
     - SwiftyGif
@@ -183,8 +156,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/file_selector_ios/ios"
   Flutter:
     :path: Flutter
-  flutter_image_compress_common:
-    :path: ".symlinks/plugins/flutter_image_compress_common/ios"
   flutter_taglib:
     :path: ".symlinks/plugins/flutter_taglib/ios"
   mobile_storage_listener:
@@ -220,10 +191,7 @@ SPEC CHECKSUMS:
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   file_selector_ios: ec57ec07954363dd730b642e765e58f199bb621a
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_image_compress_common: 1697a328fd72bfb335507c6bca1a65fa5ad87df1
   flutter_taglib: cc3aa57678a502616b821de3e98b412806bf288d
-  libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
-  Mantle: c5aa8794a29a022dfbbfc9799af95f477a69b62d
   mobile_storage_listener: 7894760322d7fb5121e315b81806dbddfceef26e
   on_audio_query_ios: 28a780e2d0d85d92d500ba6e12c6c8167022b2fa
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
@@ -231,7 +199,6 @@ SPEC CHECKSUMS:
   permission_handler_apple: 92d754bbaa7361d436db2d6c3c1c2a0fdcec462e
   proxy_getter: e6f17d71198a8c93b9244dc7450875af23cbf0c0
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
-  SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   sqlite3: a51c07cf16e023d6c48abd5e5791a61a47354921

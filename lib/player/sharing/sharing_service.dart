@@ -23,9 +23,11 @@ class IncomingRequestNotifier extends Notifier<IncomingTransferRequest?> {
   IncomingTransferRequest? build() => null;
   void setRequest(IncomingTransferRequest? request) => state = request;
 }
-final incomingRequestProvider = NotifierProvider<IncomingRequestNotifier, IncomingTransferRequest?>(
-  IncomingRequestNotifier.new,
-);
+
+final incomingRequestProvider =
+    NotifierProvider<IncomingRequestNotifier, IncomingTransferRequest?>(
+      IncomingRequestNotifier.new,
+    );
 
 class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
   @override
@@ -35,7 +37,12 @@ class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
     state = [session, ...state];
   }
 
-  void updateProgress(String id, int bytesTransferred, {TransferStatus? status, int? completedFilesCount}) {
+  void updateProgress(
+    String id,
+    int bytesTransferred, {
+    TransferStatus? status,
+    int? completedFilesCount,
+  }) {
     state = [
       for (final s in state)
         if (s.id == id)
@@ -45,24 +52,32 @@ class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
             completedFilesCount: completedFilesCount ?? s.completedFilesCount,
           )
         else
-          s
+          s,
     ];
   }
 
   void updateStatus(String id, TransferStatus status) {
     state = [
       for (final s in state)
-        if (s.id == id) s.copyWith(status: status) else s
+        if (s.id == id) s.copyWith(status: status) else s,
     ];
   }
 
   void clearCompleted() {
-    state = state.where((s) => s.status == TransferStatus.transferring || s.status == TransferStatus.pending).toList();
+    state = state
+        .where(
+          (s) =>
+              s.status == TransferStatus.transferring ||
+              s.status == TransferStatus.pending,
+        )
+        .toList();
   }
 }
-final activeTransfersProvider = NotifierProvider<ActiveTransfersNotifier, List<TransferSession>>(
-  ActiveTransfersNotifier.new,
-);
+
+final activeTransfersProvider =
+    NotifierProvider<ActiveTransfersNotifier, List<TransferSession>>(
+      ActiveTransfersNotifier.new,
+    );
 
 class IncomingTransferRequest {
   final String senderId;
@@ -154,11 +169,11 @@ class TransferSession {
 
 class SharingService {
   final Ref _ref;
-  
+
   HttpServer? _httpServer;
   BonsoirBroadcast? _bonsoirBroadcast;
   BonsoirDiscovery? _bonsoirDiscovery;
-  
+
   String? _localIp;
   int? _httpPort;
   String _deviceId = '';
@@ -167,16 +182,19 @@ class SharingService {
   String _sharingFolderPath = '';
 
   final Map<String, _UploadRequestMetadata> _activeTokens = {};
-  
+
   // Discovered devices list managed locally, updated to UI via Riverpod
-  final StreamController<List<LanDevice>> _devicesController = StreamController<List<LanDevice>>.broadcast();
+  final StreamController<List<LanDevice>> _devicesController =
+      StreamController<List<LanDevice>>.broadcast();
   final Map<String, LanDevice> _discoveredDevicesMap = {};
 
   SharingService(this._ref);
 
-  Stream<List<LanDevice>> get discoveredDevicesStream => _devicesController.stream;
-  List<LanDevice> get discoveredDevices => _discoveredDevicesMap.values.toList();
-  
+  Stream<List<LanDevice>> get discoveredDevicesStream =>
+      _devicesController.stream;
+  List<LanDevice> get discoveredDevices =>
+      _discoveredDevicesMap.values.toList();
+
   String? get localIp => _localIp;
   int? get httpPort => _httpPort;
   String get deviceName => _deviceName;
@@ -188,25 +206,32 @@ class SharingService {
     final prefs = await SharedPreferences.getInstance();
     _deviceId = prefs.getString('lan_share_device_id') ?? '';
     if (_deviceId.isEmpty) {
-      _deviceId = '${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(1000000)}';
+      _deviceId =
+          '${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(1000000)}';
       await prefs.setString('lan_share_device_id', _deviceId);
     }
 
     // 2. Resolve Device Type and Name
     _deviceType = Platform.operatingSystem;
-    _ref.read(scannerServiceProvider); // Make sure scanner service provider is referenced/initialized
-    
+    _ref.read(
+      scannerServiceProvider,
+    ); // Make sure scanner service provider is referenced/initialized
+
     // We can query device name from Platform or standard system environment
     _deviceName = Platform.localHostname;
     try {
       if (Platform.isMacOS) {
         _deviceName = Platform.localHostname.replaceAll('.local', '');
       } else if (Platform.isWindows) {
-        _deviceName = Platform.environment['COMPUTERNAME'] ?? Platform.localHostname;
+        _deviceName =
+            Platform.environment['COMPUTERNAME'] ?? Platform.localHostname;
       } else if (Platform.isAndroid) {
         final deviceInfo = DeviceInfoPlugin();
         final androidInfo = await deviceInfo.androidInfo;
-        if (androidInfo.brand.isNotEmpty && !androidInfo.model.toLowerCase().startsWith(androidInfo.brand.toLowerCase())) {
+        if (androidInfo.brand.isNotEmpty &&
+            !androidInfo.model.toLowerCase().startsWith(
+              androidInfo.brand.toLowerCase(),
+            )) {
           _deviceName = '${androidInfo.brand} ${androidInfo.model}';
         } else {
           _deviceName = androidInfo.model;
@@ -230,12 +255,20 @@ class SharingService {
     } else if (Platform.isAndroid) {
       basePath = '/storage/emulated/0/Music/Vynody Music';
     } else if (Platform.isMacOS) {
-      basePath = p.join(Platform.environment['HOME'] ?? '', 'Music', 'Vynody Music');
+      basePath = p.join(
+        Platform.environment['HOME'] ?? '',
+        'Music',
+        'Vynody Music',
+      );
     } else if (Platform.isWindows) {
       final userProfile = Platform.environment['USERPROFILE'] ?? '';
       basePath = p.join(userProfile, 'Music', 'Vynody Music');
     } else {
-      basePath = p.join(Platform.environment['HOME'] ?? '', 'Music', 'Vynody Music');
+      basePath = p.join(
+        Platform.environment['HOME'] ?? '',
+        'Music',
+        'Vynody Music',
+      );
     }
 
     _sharingFolderPath = basePath;
@@ -262,11 +295,14 @@ class SharingService {
     // Clean up obsolete sharing folders from previous launches.
     final obsoletePaths = scanner.rootPaths.where((path) {
       return !p.equals(path, _sharingFolderPath) &&
-          (path.endsWith('/Documents/Vynody Music') || path.endsWith('\\Documents\\Vynody Music'));
+          (path.endsWith('/Documents/Vynody Music') ||
+              path.endsWith('\\Documents\\Vynody Music'));
     }).toList();
 
     if (obsoletePaths.isNotEmpty) {
-      debugPrint('[SharingService] Removing obsolete iOS sharing folders: $obsoletePaths');
+      debugPrint(
+        '[SharingService] Removing obsolete iOS sharing folders: $obsoletePaths',
+      );
       await scanner.removeRootPaths(obsoletePaths);
     }
   }
@@ -276,12 +312,14 @@ class SharingService {
     await scanner.ready;
 
     if (!scanner.rootPaths.any((path) => p.equals(path, _sharingFolderPath))) {
-      debugPrint('[SharingService] Adding sharing folder to scanner: $_sharingFolderPath');
+      debugPrint(
+        '[SharingService] Adding sharing folder to scanner: $_sharingFolderPath',
+      );
       await scanner.addRootPath(_sharingFolderPath);
     }
   }
 
-  Future<void> start() async {
+  Future<bool> start() async {
     await init();
     await _cleanObsoleteIosPaths();
 
@@ -289,7 +327,7 @@ class SharingService {
     _localIp = await _getLocalIpAddress();
     if (_localIp == null) {
       debugPrint('[SharingService] No valid IPv4 local address found.');
-      return;
+      return false;
     }
 
     // 2. Start HTTP Server on random port starting at 53536
@@ -298,7 +336,9 @@ class SharingService {
       try {
         _httpServer = await HttpServer.bind(InternetAddress.anyIPv4, port);
         _httpPort = port;
-        debugPrint('[SharingService] HTTP Server running on $_localIp:$_httpPort');
+        debugPrint(
+          '[SharingService] HTTP Server running on $_localIp:$_httpPort',
+        );
       } catch (e) {
         port++;
       }
@@ -306,7 +346,7 @@ class SharingService {
 
     if (_httpServer == null) {
       debugPrint('[SharingService] Failed to bind HTTP Server.');
-      return;
+      return false;
     }
 
     _httpServer!.listen(_handleHttpRequest);
@@ -327,7 +367,9 @@ class SharingService {
     try {
       await _bonsoirBroadcast!.initialize();
       await _bonsoirBroadcast!.start();
-      debugPrint('[SharingService] Bonsoir broadcast started: Vynody_$_deviceId on port $_httpPort');
+      debugPrint(
+        '[SharingService] Bonsoir broadcast started: Vynody_$_deviceId on port $_httpPort',
+      );
     } catch (e) {
       debugPrint('[SharingService] Bonsoir broadcast starting failed: $e');
     }
@@ -338,25 +380,30 @@ class SharingService {
       await _bonsoirDiscovery!.initialize();
       _bonsoirDiscovery!.eventStream!.listen((event) {
         if (_bonsoirDiscovery == null) return;
-        
+
         if (event is BonsoirDiscoveryServiceFoundEvent) {
-          debugPrint('[SharingService] mDNS Service found: ${event.service.name}');
+          debugPrint(
+            '[SharingService] mDNS Service found: ${event.service.name}',
+          );
           event.service.resolve(_bonsoirDiscovery!.serviceResolver);
         } else if (event is BonsoirDiscoveryServiceResolvedEvent) {
-          debugPrint('[SharingService] mDNS Service resolved: ${event.service.name}');
+          debugPrint(
+            '[SharingService] mDNS Service resolved: ${event.service.name}',
+          );
           final resolvedService = event.service;
           final attrs = resolvedService.attributes;
-          
-          final id = attrs['id'] ?? resolvedService.name.replaceFirst('Vynody_', '');
+
+          final id =
+              attrs['id'] ?? resolvedService.name.replaceFirst('Vynody_', '');
           if (id == _deviceId) {
             // Ignore self
             return;
           }
-          
+
           final name = attrs['name'] ?? 'Unknown Device';
           final deviceType = attrs['deviceType'] ?? 'unknown';
           final httpPort = resolvedService.port;
-          
+
           String? resolvedIp;
           for (final addressStr in resolvedService.hostAddresses) {
             final addr = InternetAddress.tryParse(addressStr);
@@ -365,7 +412,7 @@ class SharingService {
               break;
             }
           }
-          
+
           if (resolvedIp != null) {
             final device = LanDevice(
               id: id,
@@ -376,20 +423,22 @@ class SharingService {
               lastSeen: DateTime.now(),
               isOnline: true,
             );
-            debugPrint('[SharingService] Discovered/Updated device: ${device.name} ($resolvedIp) isOnline=${device.isOnline}');
+            debugPrint(
+              '[SharingService] Discovered/Updated device: ${device.name} ($resolvedIp) isOnline=${device.isOnline}',
+            );
             _discoveredDevicesMap[id] = device;
             _devicesController.add(_discoveredDevicesMap.values.toList());
           }
         } else if (event is BonsoirDiscoveryServiceLostEvent) {
-          debugPrint('[SharingService] mDNS Service lost: ${event.service.name}');
+          debugPrint(
+            '[SharingService] mDNS Service lost: ${event.service.name}',
+          );
           final lostService = event.service;
           final id = lostService.name.replaceFirst('Vynody_', '');
           if (_discoveredDevicesMap.containsKey(id)) {
             final device = _discoveredDevicesMap[id]!;
             if (device.isOnline) {
-              _discoveredDevicesMap[id] = device.copyWith(
-                isOnline: false,
-              );
+              _discoveredDevicesMap[id] = device.copyWith(isOnline: false);
               _devicesController.add(_discoveredDevicesMap.values.toList());
             }
           }
@@ -400,6 +449,8 @@ class SharingService {
     } catch (e) {
       debugPrint('[SharingService] Bonsoir discovery starting failed: $e');
     }
+
+    return true;
   }
 
   Future<void> stop() async {
@@ -426,42 +477,44 @@ class SharingService {
 
     _discoveredDevicesMap.clear();
     _devicesController.add([]);
-    
+
     debugPrint('[SharingService] Sharing service stopped.');
   }
 
   Future<String?> _getLocalIpAddress() async {
     try {
-      final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
-      
+      final interfaces = await NetworkInterface.list(
+        type: InternetAddressType.IPv4,
+      );
+
       // Filter out unwanted interfaces (cellular, virtual, VPN, loopback, AWDL)
       final filteredInterfaces = interfaces.where((interface) {
         final name = interface.name.toLowerCase();
-        
+
         // Skip loopback, VPNs, tunnels, virtual machines
-        if (name.contains('lo') || 
-            name.contains('tun') || 
-            name.contains('ppp') || 
-            name.contains('docker') || 
-            name.contains('vbox') || 
+        if (name.contains('lo') ||
+            name.contains('tun') ||
+            name.contains('ppp') ||
+            name.contains('docker') ||
+            name.contains('vbox') ||
             name.contains('vmnet')) {
           return false;
         }
-        
+
         // Skip cellular interfaces
-        if (name.contains('pdp_ip') || 
-            name.contains('rmnet') || 
-            name.contains('ccmni') || 
-            name.contains('cellular') || 
+        if (name.contains('pdp_ip') ||
+            name.contains('rmnet') ||
+            name.contains('ccmni') ||
+            name.contains('cellular') ||
             name.contains('mobile')) {
           return false;
         }
-        
+
         // Skip Apple Wireless Direct Link (AirDrop, etc.)
         if (name.contains('awdl')) {
           return false;
         }
-        
+
         return true;
       }).toList();
 
@@ -469,19 +522,21 @@ class SharingService {
       filteredInterfaces.sort((a, b) {
         final nameA = a.name.toLowerCase();
         final nameB = b.name.toLowerCase();
-        
-        final isWifiOrEthA = nameA.contains('en') || 
-                             nameA.contains('wlan') || 
-                             nameA.contains('eth') || 
-                             nameA.contains('wifi') || 
-                             nameA.contains('ethernet');
-                            
-        final isWifiOrEthB = nameB.contains('en') || 
-                             nameB.contains('wlan') || 
-                             nameB.contains('eth') || 
-                             nameB.contains('wifi') || 
-                             nameB.contains('ethernet');
-        
+
+        final isWifiOrEthA =
+            nameA.contains('en') ||
+            nameA.contains('wlan') ||
+            nameA.contains('eth') ||
+            nameA.contains('wifi') ||
+            nameA.contains('ethernet');
+
+        final isWifiOrEthB =
+            nameB.contains('en') ||
+            nameB.contains('wlan') ||
+            nameB.contains('eth') ||
+            nameB.contains('wifi') ||
+            nameB.contains('ethernet');
+
         if (isWifiOrEthA && !isWifiOrEthB) return -1;
         if (!isWifiOrEthA && isWifiOrEthB) return 1;
         return 0;
@@ -494,7 +549,7 @@ class SharingService {
           }
         }
       }
-      
+
       // Fallback
       for (final interface in interfaces) {
         for (final addr in interface.addresses) {
@@ -519,8 +574,14 @@ class SharingService {
 
     // Set CORS headers
     request.response.headers.add('Access-Control-Allow-Origin', '*');
-    request.response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    request.response.headers.add('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-File-Name');
+    request.response.headers.add(
+      'Access-Control-Allow-Methods',
+      'GET, POST, OPTIONS',
+    );
+    request.response.headers.add(
+      'Access-Control-Allow-Headers',
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-File-Name',
+    );
 
     if (method == 'OPTIONS') {
       request.response.statusCode = HttpStatus.ok;
@@ -562,7 +623,7 @@ class SharingService {
   String _deriveSessionName(List<TransferFileItem> files) {
     if (files.isEmpty) return '未命名传输';
     if (files.length == 1) return files[0].name;
-    
+
     final firstPath = files[0].name;
     final parts = p.split(firstPath);
     if (parts.length > 1) {
@@ -574,11 +635,11 @@ class SharingService {
   Future<void> _handleTransferRequest(HttpRequest request) async {
     final content = await utf8.decoder.bind(request).join();
     final json = jsonDecode(content) as Map<String, dynamic>;
-    
+
     final senderId = json['sender_id'] as String? ?? 'unknown';
     final senderName = json['sender_name'] as String? ?? 'Unknown';
     final filesJson = json['files'] as List<dynamic>? ?? [];
-    
+
     final files = filesJson.map((f) {
       final map = f as Map<String, dynamic>;
       return TransferFileItem(
@@ -594,28 +655,37 @@ class SharingService {
 
     if (files.isEmpty) {
       request.response.statusCode = HttpStatus.badRequest;
-      request.response.write(jsonEncode({'accepted': false, 'reason': 'No files specified'}));
+      request.response.write(
+        jsonEncode({'accepted': false, 'reason': 'No files specified'}),
+      );
       await request.response.close();
       return;
     }
 
     // Trigger UI Prompt
     final completer = Completer<bool>();
-    _ref.read(incomingRequestProvider.notifier).setRequest(IncomingTransferRequest(
-      senderId: senderId,
-      senderName: senderName,
-      files: files,
-      onDecision: (accepted) {
-        completer.complete(accepted);
-        _ref.read(incomingRequestProvider.notifier).setRequest(null); // Clear request
-      },
-    ));
+    _ref
+        .read(incomingRequestProvider.notifier)
+        .setRequest(
+          IncomingTransferRequest(
+            senderId: senderId,
+            senderName: senderName,
+            files: files,
+            onDecision: (accepted) {
+              completer.complete(accepted);
+              _ref
+                  .read(incomingRequestProvider.notifier)
+                  .setRequest(null); // Clear request
+            },
+          ),
+        );
 
     // Wait for user input
     final accepted = await completer.future;
 
     if (accepted) {
-      final token = 'tkn_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(100000)}';
+      final token =
+          'tkn_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(100000)}';
       final totalSize = files.fold<int>(0, (sum, f) => sum + f.size);
       final sessionName = _deriveSessionName(files);
 
@@ -627,29 +697,31 @@ class SharingService {
       );
 
       // Add TransferSession on receiver side immediately upon acceptance
-      _ref.read(activeTransfersProvider.notifier).addSession(TransferSession(
-        id: token,
-        fileName: files.length > 1 ? '$sessionName (${files.length}个文件)' : sessionName,
-        totalBytes: totalSize,
-        bytesTransferred: 0,
-        isSending: false,
-        deviceName: senderName,
-        status: TransferStatus.transferring,
-        filesCount: files.length,
-        completedFilesCount: 0,
-      ));
+      _ref
+          .read(activeTransfersProvider.notifier)
+          .addSession(
+            TransferSession(
+              id: token,
+              fileName: files.length > 1
+                  ? '$sessionName (${files.length}个文件)'
+                  : sessionName,
+              totalBytes: totalSize,
+              bytesTransferred: 0,
+              isSending: false,
+              deviceName: senderName,
+              status: TransferStatus.transferring,
+              filesCount: files.length,
+              completedFilesCount: 0,
+            ),
+          );
 
       request.response.statusCode = HttpStatus.ok;
-      request.response.write(jsonEncode({
-        'accepted': true,
-        'token': token,
-      }));
+      request.response.write(jsonEncode({'accepted': true, 'token': token}));
     } else {
       request.response.statusCode = HttpStatus.ok;
-      request.response.write(jsonEncode({
-        'accepted': false,
-        'reason': 'Rejected by receiver',
-      }));
+      request.response.write(
+        jsonEncode({'accepted': false, 'reason': 'Rejected by receiver'}),
+      );
     }
     await request.response.close();
   }
@@ -657,16 +729,18 @@ class SharingService {
   Future<void> _handleTransferUpload(HttpRequest request) async {
     final auth = request.headers.value('Authorization') ?? '';
     final token = auth.replaceFirst('Bearer ', '').trim();
-    
+
     if (!_activeTokens.containsKey(token)) {
       request.response.statusCode = HttpStatus.unauthorized;
-      request.response.write(jsonEncode({'error': 'Invalid or expired upload token'}));
+      request.response.write(
+        jsonEncode({'error': 'Invalid or expired upload token'}),
+      );
       await request.response.close();
       return;
     }
 
     final metadata = _activeTokens[token]!;
-    
+
     // Fallback if client doesn't use standard request streaming body
     String relativePath = metadata.sessionName;
     final encodedFileName = request.headers.value('X-File-Name');
@@ -678,7 +752,7 @@ class SharingService {
 
     // Resolve target path (which may contain relative subfolders)
     String targetPath = p.join(_sharingFolderPath, relativePath);
-    
+
     // Resolve duplicate name, keeping relative subfolder structure
     final file = File(targetPath);
     if (file.existsSync()) {
@@ -687,7 +761,7 @@ class SharingService {
       final baseName = p.basenameWithoutExtension(relativePath);
       int counter = 1;
       while (true) {
-        final newRelative = dirName == '.' 
+        final newRelative = dirName == '.'
             ? '$baseName ($counter)$extension'
             : p.join(dirName, '$baseName ($counter)$extension');
         targetPath = p.join(_sharingFolderPath, newRelative);
@@ -711,21 +785,21 @@ class SharingService {
     try {
       await for (final chunk in request) {
         ioSink.add(chunk);
-        
-        final newCumulative = metadata.bytesTransferredCumulative + chunk.length;
+
+        final newCumulative =
+            metadata.bytesTransferredCumulative + chunk.length;
         metadata.bytesTransferredCumulative = newCumulative;
-        
-        _ref.read(activeTransfersProvider.notifier).updateProgress(
-          sessionId, 
-          newCumulative,
-        );
+
+        _ref
+            .read(activeTransfersProvider.notifier)
+            .updateProgress(sessionId, newCumulative);
       }
       await ioSink.flush();
       await ioSink.close();
 
       // Ensure the sharing folder is added to scanner now that we have received a file
       await _ensureRegisteredInScanner();
-      
+
       // Save lyrics package if available
       try {
         final fileItem = metadata.files.firstWhere(
@@ -742,7 +816,9 @@ class SharingService {
             title: fileItem.title ?? p.basenameWithoutExtension(targetPath),
             artist: fileItem.artist,
             album: fileItem.album,
-            duration: fileItem.durationMs > 0 ? Duration(milliseconds: fileItem.durationMs) : null,
+            duration: fileItem.durationMs > 0
+                ? Duration(milliseconds: fileItem.durationMs)
+                : null,
           );
           await _importLyricsPackageWithConflict(
             localCacheKey: localQuery.cacheKey,
@@ -755,30 +831,35 @@ class SharingService {
 
       // Track completed file
       metadata.completedFiles.add(relativePath);
-      
+
       // Check if all files in the metadata session are completed
       final allFiles = metadata.files.map((f) => f.name).toSet();
-      final isFinished = metadata.completedFiles.containsAll(allFiles) ||
-                         metadata.completedFiles.length >= metadata.files.length;
-      
+      final isFinished =
+          metadata.completedFiles.containsAll(allFiles) ||
+          metadata.completedFiles.length >= metadata.files.length;
+
       if (isFinished) {
-        _ref.read(activeTransfersProvider.notifier).updateProgress(
-          sessionId, 
-          metadata.totalSize, 
-          status: TransferStatus.success,
-          completedFilesCount: metadata.completedFiles.length,
-        );
+        _ref
+            .read(activeTransfersProvider.notifier)
+            .updateProgress(
+              sessionId,
+              metadata.totalSize,
+              status: TransferStatus.success,
+              completedFilesCount: metadata.completedFiles.length,
+            );
         _activeTokens.remove(token);
 
         // Trigger targeted Scanner rescan
         final scanner = _ref.read(scannerServiceProvider);
         unawaited(scanner.scan(clearScannedRoots: false));
       } else {
-        _ref.read(activeTransfersProvider.notifier).updateProgress(
-          sessionId,
-          metadata.bytesTransferredCumulative,
-          completedFilesCount: metadata.completedFiles.length,
-        );
+        _ref
+            .read(activeTransfersProvider.notifier)
+            .updateProgress(
+              sessionId,
+              metadata.bytesTransferredCumulative,
+              completedFilesCount: metadata.completedFiles.length,
+            );
       }
 
       request.response.statusCode = HttpStatus.ok;
@@ -790,9 +871,11 @@ class SharingService {
           targetFile.deleteSync();
         } catch (_) {}
       }
-      _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
+      _ref
+          .read(activeTransfersProvider.notifier)
+          .updateStatus(sessionId, TransferStatus.failed);
       _activeTokens.remove(token);
-      
+
       request.response.statusCode = HttpStatus.internalServerError;
       request.response.write(jsonEncode({'error': 'Transfer interrupted: $e'}));
     }
@@ -802,12 +885,14 @@ class SharingService {
   Future<void> _handleGetSongsList(HttpRequest request) async {
     final repo = ScannerRepository();
     final songs = await repo.getAllSongMetadata();
-    
+
     final list = songs.map((s) {
       return {
         'path': s.path,
         'name': p.basename(s.path),
-        'title': s.title.isNotEmpty ? s.title : p.basenameWithoutExtension(s.path),
+        'title': s.title.isNotEmpty
+            ? s.title
+            : p.basenameWithoutExtension(s.path),
         'artist': s.artist,
         'album': s.album,
       };
@@ -820,7 +905,9 @@ class SharingService {
 
   Future<void> _handleDownloadSong(HttpRequest request) async {
     final path = request.uri.queryParameters['id'] ?? '';
-    if (path.isEmpty || !File(path).existsSync() || !MusicFileUtils.isMusicFilePath(path)) {
+    if (path.isEmpty ||
+        !File(path).existsSync() ||
+        !MusicFileUtils.isMusicFilePath(path)) {
       request.response.statusCode = HttpStatus.notFound;
       await request.response.close();
       return;
@@ -828,10 +915,17 @@ class SharingService {
 
     final file = File(path);
     final size = file.lengthSync();
-    
-    request.response.headers.contentType = ContentType('audio', 'mpeg', charset: 'utf-8');
+
+    request.response.headers.contentType = ContentType(
+      'audio',
+      'mpeg',
+      charset: 'utf-8',
+    );
     request.response.headers.contentLength = size;
-    request.response.headers.add('Content-Disposition', 'attachment; filename="${Uri.encodeComponent(p.basename(path))}"');
+    request.response.headers.add(
+      'Content-Disposition',
+      'attachment; filename="${Uri.encodeComponent(p.basename(path))}"',
+    );
 
     try {
       await file.openRead().pipe(request.response);
@@ -843,10 +937,7 @@ class SharingService {
   // --- Sending File to Remote App ---
 
   Future<bool> sendFile(LanDevice targetDevice, String filePath) {
-    return sendFiles(
-      targetDevice: targetDevice,
-      filePaths: [filePath],
-    );
+    return sendFiles(targetDevice: targetDevice, filePaths: [filePath]);
   }
 
   Future<bool> sendFiles({
@@ -861,10 +952,10 @@ class SharingService {
     for (final path in filePaths) {
       final file = File(path);
       if (!file.existsSync()) continue;
-      
+
       final size = file.lengthSync();
       totalSize += size;
-      
+
       String relativeName = p.basename(path);
       if (baseSourcePath != null) {
         relativeName = p.relative(path, from: baseSourcePath);
@@ -881,11 +972,17 @@ class SharingService {
             title: song.title,
             artist: song.artist,
             album: song.album,
-            duration: song.duration != null ? Duration(milliseconds: song.duration!) : null,
+            duration: song.duration != null
+                ? Duration(milliseconds: song.duration!)
+                : null,
           );
-          final cacheRecord = await MetadataDatabase().getLyricsCache(query.cacheKey);
-          if (cacheRecord != null && cacheRecord.source != LyricsCacheSource.none) {
-            final translations = await MetadataDatabase().getLyricsTranslationCaches(query.cacheKey);
+          final cacheRecord = await MetadataDatabase().getLyricsCache(
+            query.cacheKey,
+          );
+          if (cacheRecord != null &&
+              cacheRecord.source != LyricsCacheSource.none) {
+            final translations = await MetadataDatabase()
+                .getLyricsTranslationCaches(query.cacheKey);
             lyricsPackage = {
               'lyrics_cache': cacheRecord.toMap(),
               'translations': translations.map((t) => t.toMap()).toList(),
@@ -893,9 +990,11 @@ class SharingService {
           }
         }
       } catch (e) {
-        debugPrint('[SharingService] Error reading local lyrics for file $path: $e');
+        debugPrint(
+          '[SharingService] Error reading local lyrics for file $path: $e',
+        );
       }
-      
+
       filesPayload.add({
         'name': relativeName,
         'size': size,
@@ -905,8 +1004,10 @@ class SharingService {
         'album': song?.album,
         'lyrics_package': lyricsPackage,
       });
-      
-      filesToSend.add(_FileToSend(path: path, relativeName: relativeName, size: size));
+
+      filesToSend.add(
+        _FileToSend(path: path, relativeName: relativeName, size: size),
+      );
     }
 
     if (filesToSend.isEmpty) return false;
@@ -914,105 +1015,142 @@ class SharingService {
     // Derive display name for progress dialog
     final firstRelPath = filesToSend[0].relativeName;
     final parts = p.split(firstRelPath);
-    final sessionName = parts.length > 1 ? parts[0] : p.basename(filesToSend[0].path);
+    final sessionName = parts.length > 1
+        ? parts[0]
+        : p.basename(filesToSend[0].path);
 
     final sessionId = 'send_${DateTime.now().millisecondsSinceEpoch}';
-    _ref.read(activeTransfersProvider.notifier).addSession(TransferSession(
-      id: sessionId,
-      fileName: filesToSend.length > 1 ? '$sessionName (${filesToSend.length}个文件)' : sessionName,
-      totalBytes: totalSize,
-      bytesTransferred: 0,
-      isSending: true,
-      deviceName: targetDevice.name,
-      status: TransferStatus.pending,
-      filesCount: filesToSend.length,
-      completedFilesCount: 0,
-    ));
+    _ref
+        .read(activeTransfersProvider.notifier)
+        .addSession(
+          TransferSession(
+            id: sessionId,
+            fileName: filesToSend.length > 1
+                ? '$sessionName (${filesToSend.length}个文件)'
+                : sessionName,
+            totalBytes: totalSize,
+            bytesTransferred: 0,
+            isSending: true,
+            deviceName: targetDevice.name,
+            status: TransferStatus.pending,
+            filesCount: filesToSend.length,
+            completedFilesCount: 0,
+          ),
+        );
 
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 5);
 
     try {
       // 1. Post Preflight Request
-      final requestUri = Uri.parse('http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/request');
+      final requestUri = Uri.parse(
+        'http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/request',
+      );
       final request = await client.postUrl(requestUri);
       request.headers.contentType = ContentType.json;
-      request.write(jsonEncode({
-        'sender_id': _deviceId,
-        'sender_name': _deviceName,
-        'files': filesPayload,
-      }));
-      
+      request.write(
+        jsonEncode({
+          'sender_id': _deviceId,
+          'sender_name': _deviceName,
+          'files': filesPayload,
+        }),
+      );
+
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
-        _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
+        _ref
+            .read(activeTransfersProvider.notifier)
+            .updateStatus(sessionId, TransferStatus.failed);
         return false;
       }
-      
+
       final responseBody = await utf8.decoder.bind(response).join();
       final responseJson = jsonDecode(responseBody) as Map<String, dynamic>;
-      
+
       if (!responseJson['accepted']) {
-        _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.cancelled);
+        _ref
+            .read(activeTransfersProvider.notifier)
+            .updateStatus(sessionId, TransferStatus.cancelled);
         return false;
       }
 
       final token = responseJson['token'] as String;
-      
+
       // 2. Perform Uploads sequentially
-      _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.transferring);
-      
+      _ref
+          .read(activeTransfersProvider.notifier)
+          .updateStatus(sessionId, TransferStatus.transferring);
+
       int totalBytesSent = 0;
       int completedFilesCount = 0;
 
       for (final fileInfo in filesToSend) {
-        final uploadUri = Uri.parse('http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/upload');
+        final uploadUri = Uri.parse(
+          'http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/upload',
+        );
         final uploadRequest = await client.postUrl(uploadUri);
         uploadRequest.headers.add('Authorization', 'Bearer $token');
-        uploadRequest.headers.add('X-File-Name', Uri.encodeComponent(fileInfo.relativeName));
+        uploadRequest.headers.add(
+          'X-File-Name',
+          Uri.encodeComponent(fileInfo.relativeName),
+        );
         uploadRequest.headers.contentType = ContentType.binary;
         uploadRequest.contentLength = fileInfo.size;
 
         final fileStream = File(fileInfo.path).openRead();
-        
+
         try {
           await for (final chunk in fileStream) {
             uploadRequest.add(chunk);
             totalBytesSent += chunk.length;
-            _ref.read(activeTransfersProvider.notifier).updateProgress(
-              sessionId, 
-              totalBytesSent,
-              completedFilesCount: completedFilesCount,
-            );
+            _ref
+                .read(activeTransfersProvider.notifier)
+                .updateProgress(
+                  sessionId,
+                  totalBytesSent,
+                  completedFilesCount: completedFilesCount,
+                );
           }
           final uploadResponse = await uploadRequest.close();
           if (uploadResponse.statusCode != HttpStatus.ok) {
-            _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
+            _ref
+                .read(activeTransfersProvider.notifier)
+                .updateStatus(sessionId, TransferStatus.failed);
             return false;
           }
           completedFilesCount++;
-          _ref.read(activeTransfersProvider.notifier).updateProgress(
-            sessionId, 
-            totalBytesSent,
-            completedFilesCount: completedFilesCount,
-          );
+          _ref
+              .read(activeTransfersProvider.notifier)
+              .updateProgress(
+                sessionId,
+                totalBytesSent,
+                completedFilesCount: completedFilesCount,
+              );
         } catch (e) {
-          debugPrint('[SharingService] Error uploading file ${fileInfo.relativeName}: $e');
-          _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
+          debugPrint(
+            '[SharingService] Error uploading file ${fileInfo.relativeName}: $e',
+          );
+          _ref
+              .read(activeTransfersProvider.notifier)
+              .updateStatus(sessionId, TransferStatus.failed);
           return false;
         }
       }
-      
-      _ref.read(activeTransfersProvider.notifier).updateProgress(
-        sessionId, 
-        totalSize, 
-        status: TransferStatus.success,
-        completedFilesCount: filesToSend.length,
-      );
+
+      _ref
+          .read(activeTransfersProvider.notifier)
+          .updateProgress(
+            sessionId,
+            totalSize,
+            status: TransferStatus.success,
+            completedFilesCount: filesToSend.length,
+          );
       return true;
     } catch (e) {
       debugPrint('[SharingService] Failed to send files: $e');
-      _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.failed);
+      _ref
+          .read(activeTransfersProvider.notifier)
+          .updateStatus(sessionId, TransferStatus.failed);
       return false;
     } finally {
       client.close();
@@ -1023,13 +1161,20 @@ class SharingService {
     required String localCacheKey,
     required Map<String, dynamic> incomingPackage,
   }) async {
-    final rawIncomingLyrics = incomingPackage['lyrics_cache'] as Map<String, dynamic>?;
+    final rawIncomingLyrics =
+        incomingPackage['lyrics_cache'] as Map<String, dynamic>?;
     if (rawIncomingLyrics == null) return false;
 
     final incomingLyrics = LyricsCacheRecord.fromMap(rawIncomingLyrics);
-    final incomingTranslations = (incomingPackage['translations'] as List<dynamic>?)
-        ?.map((t) => LyricsTranslationCacheRecord.fromMap(t as Map<String, dynamic>))
-        .toList() ?? [];
+    final incomingTranslations =
+        (incomingPackage['translations'] as List<dynamic>?)
+            ?.map(
+              (t) => LyricsTranslationCacheRecord.fromMap(
+                t as Map<String, dynamic>,
+              ),
+            )
+            .toList() ??
+        [];
 
     final localLyrics = await MetadataDatabase().getLyricsCache(localCacheKey);
     bool shouldOverwrite = false;
@@ -1050,8 +1195,10 @@ class SharingService {
     }
 
     if (shouldOverwrite) {
-      debugPrint('[SharingService] Overwriting lyrics for cacheKey: $localCacheKey');
-      
+      debugPrint(
+        '[SharingService] Overwriting lyrics for cacheKey: $localCacheKey',
+      );
+
       final newRecord = LyricsCacheRecord(
         cacheKey: localCacheKey,
         source: incomingLyrics.source,
@@ -1073,7 +1220,9 @@ class SharingService {
           provider: translation.provider,
           updatedAtMillis: translation.updatedAtMillis,
         );
-        await MetadataDatabase().insertOrUpdateLyricsTranslationCache(newTranslation);
+        await MetadataDatabase().insertOrUpdateLyricsTranslationCache(
+          newTranslation,
+        );
       }
       return true;
     }
@@ -1106,7 +1255,10 @@ class SharingService {
 
   String _normalizeMetadataString(String? s) {
     if (s == null) return '';
-    return s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fff]+'), '').trim();
+    return s
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fff]+'), '')
+        .trim();
   }
 
   Future<Map<String, int>> _importLyricsList(List<dynamic> lyrics) async {
@@ -1124,7 +1276,7 @@ class SharingService {
       final matches = localSongs.where((song) {
         final titleMatch = _isMetadataMatch(song.title, title);
         final artistMatch = _isMetadataMatch(song.artist, artist);
-        
+
         bool durationMatch = true;
         if (durationMs != null && song.duration != null) {
           durationMatch = (song.duration! - durationMs).abs() <= 3000;
@@ -1146,10 +1298,12 @@ class SharingService {
           title: song.title,
           artist: song.artist,
           album: song.album,
-          duration: song.duration != null ? Duration(milliseconds: song.duration!) : null,
+          duration: song.duration != null
+              ? Duration(milliseconds: song.duration!)
+              : null,
         );
         final localCacheKey = localQuery.cacheKey;
-        
+
         final success = await _importLyricsPackageWithConflict(
           localCacheKey: localCacheKey,
           incomingPackage: map,
@@ -1180,13 +1334,16 @@ class SharingService {
         title: song.title,
         artist: song.artist,
         album: song.album,
-        duration: song.duration != null ? Duration(milliseconds: song.duration!) : null,
+        duration: song.duration != null
+            ? Duration(milliseconds: song.duration!)
+            : null,
       );
       final cacheKey = query.cacheKey;
       final cacheRecord = await MetadataDatabase().getLyricsCache(cacheKey);
 
       if (cacheRecord != null && cacheRecord.source != LyricsCacheSource.none) {
-        final translations = await MetadataDatabase().getLyricsTranslationCaches(cacheKey);
+        final translations = await MetadataDatabase()
+            .getLyricsTranslationCaches(cacheKey);
         exportedList.add({
           'title': song.title,
           'artist': song.artist,
@@ -1205,11 +1362,13 @@ class SharingService {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 5);
     try {
-      final uri = Uri.parse('http://${targetDevice.ip}:${targetDevice.httpPort}/api/lyrics/import');
+      final uri = Uri.parse(
+        'http://${targetDevice.ip}:${targetDevice.httpPort}/api/lyrics/import',
+      );
       final request = await client.postUrl(uri);
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode({'lyrics': exportedList}));
-      
+
       final response = await request.close();
       if (response.statusCode == HttpStatus.ok) {
         final body = await utf8.decoder.bind(response).join();
@@ -1231,14 +1390,16 @@ class SharingService {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 5);
     try {
-      final uri = Uri.parse('http://${targetDevice.ip}:${targetDevice.httpPort}/api/lyrics/export');
+      final uri = Uri.parse(
+        'http://${targetDevice.ip}:${targetDevice.httpPort}/api/lyrics/export',
+      );
       final request = await client.getUrl(uri);
       final response = await request.close();
-      
+
       if (response.statusCode == HttpStatus.ok) {
         final body = await utf8.decoder.bind(response).join();
         final json = jsonDecode(body) as Map<String, dynamic>;
-        
+
         final lyrics = json['lyrics'] as List<dynamic>? ?? [];
         return await _importLyricsList(lyrics);
       } else {
@@ -1260,13 +1421,16 @@ class SharingService {
         title: song.title,
         artist: song.artist,
         album: song.album,
-        duration: song.duration != null ? Duration(milliseconds: song.duration!) : null,
+        duration: song.duration != null
+            ? Duration(milliseconds: song.duration!)
+            : null,
       );
       final cacheKey = query.cacheKey;
       final cacheRecord = await MetadataDatabase().getLyricsCache(cacheKey);
 
       if (cacheRecord != null && cacheRecord.source != LyricsCacheSource.none) {
-        final translations = await MetadataDatabase().getLyricsTranslationCaches(cacheKey);
+        final translations = await MetadataDatabase()
+            .getLyricsTranslationCaches(cacheKey);
         exportedList.add({
           'title': song.title,
           'artist': song.artist,
@@ -1287,9 +1451,9 @@ class SharingService {
     final content = await utf8.decoder.bind(request).join();
     final json = jsonDecode(content) as Map<String, dynamic>;
     final lyrics = json['lyrics'] as List<dynamic>? ?? [];
-    
+
     final stats = await _importLyricsList(lyrics);
-    
+
     request.response.headers.contentType = ContentType.json;
     request.response.write(jsonEncode(stats));
     await request.response.close();

@@ -5,12 +5,12 @@ import 'lan_device.dart';
 // Provider that instantiates and holds the SharingService
 final sharingServiceProvider = Provider<SharingService>((ref) {
   final service = SharingService(ref);
-  
+
   // Clean up when provider is disposed
   ref.onDispose(() {
     service.stop();
   });
-  
+
   return service;
 });
 
@@ -20,11 +20,7 @@ class SharingServerState {
   final String? localIp;
   final int? httpPort;
 
-  SharingServerState({
-    required this.isRunning,
-    this.localIp,
-    this.httpPort,
-  });
+  SharingServerState({required this.isRunning, this.localIp, this.httpPort});
 }
 
 class SharingServerStateNotifier extends Notifier<SharingServerState> {
@@ -36,7 +32,10 @@ class SharingServerStateNotifier extends Notifier<SharingServerState> {
   Future<void> start() async {
     if (state.isRunning) return;
     final service = ref.read(sharingServiceProvider);
-    await service.start();
+    final started = await service.start();
+    if (!started) {
+      return;
+    }
     state = SharingServerState(
       isRunning: true,
       localIp: service.localIp,
@@ -52,9 +51,10 @@ class SharingServerStateNotifier extends Notifier<SharingServerState> {
   }
 }
 
-final sharingServerStateProvider = NotifierProvider<SharingServerStateNotifier, SharingServerState>(
-  SharingServerStateNotifier.new,
-);
+final sharingServerStateProvider =
+    NotifierProvider<SharingServerStateNotifier, SharingServerState>(
+      SharingServerStateNotifier.new,
+    );
 
 final discoveredDevicesProvider = StreamProvider<List<LanDevice>>((ref) {
   final service = ref.watch(sharingServiceProvider);
