@@ -291,12 +291,13 @@ abstract class AcoustIDResult with _$AcoustIDResult {
     final recordings = (json['recordings'] as List<dynamic>? ?? const [])
         .whereType<Map<String, dynamic>>()
         .map(AcoustIDRecording.fromJson)
-        .toList(growable: false);
+        .toList()
+      ..sort(_compareRecordings);
 
     return AcoustIDResult(
       id: json['id'] as String? ?? '',
       score: (json['score'] as num?)?.toDouble() ?? 0.0,
-      recordings: recordings,
+      recordings: List<AcoustIDRecording>.unmodifiable(recordings),
       raw: _asMap(json['raw']) ?? Map<String, dynamic>.from(json),
     );
   }
@@ -309,7 +310,8 @@ abstract class AcoustIDResult with _$AcoustIDResult {
         .whereType<Map<String, dynamic>>()
         .map(AcoustIDRecording.fromJson)
         .where((recording) => recording.id.isNotEmpty)
-        .toList(growable: false);
+        .toList()
+      ..sort(_compareRecordings);
 
     if (recordings.isEmpty) {
       return AcoustIDResult(
@@ -323,7 +325,7 @@ abstract class AcoustIDResult with _$AcoustIDResult {
     return AcoustIDResult(
       id: json['id'] as String? ?? '',
       score: (json['score'] as num?)?.toDouble() ?? fallbackScore,
-      recordings: recordings,
+      recordings: List<AcoustIDRecording>.unmodifiable(recordings),
       raw: Map<String, dynamic>.from(json),
     );
   }
@@ -651,6 +653,28 @@ String _joinArtistNames(List<AcoustIDArtist> artists) {
       .toList(growable: false);
   if (names.isEmpty) return 'Unknown Artist';
   return names.join(', ');
+}
+
+int _compareRecordings(AcoustIDRecording a, AcoustIDRecording b) {
+  final aHasTitle = a.title.isNotEmpty;
+  final bHasTitle = b.title.isNotEmpty;
+  if (aHasTitle != bHasTitle) {
+    return aHasTitle ? -1 : 1;
+  }
+
+  final aHasArtist = a.artist.isNotEmpty && a.artist != 'Unknown Artist';
+  final bHasArtist = b.artist.isNotEmpty && b.artist != 'Unknown Artist';
+  if (aHasArtist != bHasArtist) {
+    return aHasArtist ? -1 : 1;
+  }
+
+  final aHasRG = a.releaseGroups.isNotEmpty;
+  final bHasRG = b.releaseGroups.isNotEmpty;
+  if (aHasRG != bHasRG) {
+    return aHasRG ? -1 : 1;
+  }
+
+  return 0;
 }
 
 String? _formatDateLabel(dynamic value) {
