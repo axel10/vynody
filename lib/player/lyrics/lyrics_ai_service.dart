@@ -1520,11 +1520,10 @@ class LyricsAiService {
     final result = await _transcodeService.convertToOutputDirectory(
       inputPath: filePath,
       draft: draft,
+      copyMetadata: false,
     );
     if (!result.result.success || result.result.outputPath == null) {
-      throw Exception(
-        _t('音频转码失败。', 'Audio transcoding failed.'),
-      );
+      throw Exception(_t('音频转码失败。', 'Audio transcoding failed.'));
     }
 
     final outputPath = result.result.outputPath!;

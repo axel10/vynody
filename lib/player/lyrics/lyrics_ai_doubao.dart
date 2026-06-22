@@ -274,6 +274,7 @@ class LyricsAiDoubaoClient {
     final result = await _transcodeService.convertToOutputDirectory(
       inputPath: inputFile.path,
       draft: draft,
+      copyMetadata: false,
     );
     if (!result.result.success || result.result.outputPath == null) {
       throw Exception(
@@ -368,7 +369,9 @@ class LyricsAiDoubaoClient {
         ],
         'stream': true,
       };
-      debugPrint('[DoubaoLyrics] translation request payload: ${jsonEncode(requestData)}');
+      debugPrint(
+        '[DoubaoLyrics] translation request payload: ${jsonEncode(requestData)}',
+      );
       final response = await _client.post(
         'https://ark.cn-beijing.volces.com/api/v3/responses',
         data: requestData,

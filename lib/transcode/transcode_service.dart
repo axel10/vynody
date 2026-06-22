@@ -57,6 +57,7 @@ class TranscodeService {
     required TranscodeDraft draft,
     AndroidOutputDirectory? androidOutputDirectory,
     String? metadataSourcePath,
+    bool copyMetadata = true,
     AudioConverterProgressCallback? onProgress,
   }) async {
     final outputDirectory =
@@ -104,14 +105,12 @@ class TranscodeService {
             ),
           );
 
-    if (result.success) {
+    if (result.success && copyMetadata) {
       await _copyMetadataFromSourceToOutput(
         sourcePath: _normalizeOptional(metadataSourcePath) ?? inputPath,
         outputPath: result.outputPath ?? plannedOutputPath,
       );
-      await _logTranscodedFileMetadata(
-        result.outputPath ?? plannedOutputPath,
-      );
+      await _logTranscodedFileMetadata(result.outputPath ?? plannedOutputPath);
     }
 
     return TranscodeExecutionResult(
@@ -177,9 +176,7 @@ class TranscodeService {
 
       if (rawResult.success) {
         unawaited(
-          _logTranscodedFileMetadata(
-            rawResult.outputPath ?? plannedOutputPath,
-          ),
+          _logTranscodedFileMetadata(rawResult.outputPath ?? plannedOutputPath),
         );
       }
     }
@@ -226,7 +223,9 @@ class TranscodeService {
           );
         }
       } else {
-        debugPrint('[Transcode] TagLib is not supported, skipping metadata probe.');
+        debugPrint(
+          '[Transcode] TagLib is not supported, skipping metadata probe.',
+        );
       }
     } catch (error) {
       debugPrint(
