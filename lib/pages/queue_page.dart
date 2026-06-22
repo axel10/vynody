@@ -10,6 +10,7 @@ import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/library_selection_panel.dart';
 import '../dialogs/song_details_dialog.dart';
 
 // 队列页面
@@ -58,6 +59,13 @@ class _QueuePageState extends ConsumerState<QueuePage> {
       if (isSelectionMode) {
         _selectedIndices.clear();
       }
+    });
+  }
+
+  void _cancelSelection() {
+    _librarySelectionScopeController.clear();
+    setState(() {
+      _selectedIndices.clear();
     });
   }
 
@@ -230,6 +238,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     final isSelectionMode =
         ref.watch(librarySelectionScopeProvider) ==
         LibrarySelectionScope.queue;
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final bottomOffset = (currentMusic != null ? 140.0 : 40.0) +
+        (isSelectionMode ? 220.0 : 0.0);
     final isRandomMode = ref.watch(audioIsRandomModeProvider);
     final isShuffleRandomMode = ref.watch(audioIsShuffleRandomModeProvider);
     final queue = ref.watch(audioPlaybackQueueProvider);
@@ -357,28 +368,6 @@ class _QueuePageState extends ConsumerState<QueuePage> {
           children: [
             Column(
               children: [
-                if (isSelectionMode)
-                  Container(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          AppLocalizations.of(
-                            context,
-                          )!.selectedSongs(_selectedIndices.length),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: _toggleSelectionMode,
-                          child: Text(AppLocalizations.of(context)!.cancel),
-                        ),
-                      ],
-                    ),
-                  ),
                 Expanded(
                   child: Stack(
                     children: [
@@ -387,7 +376,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                           scrollController: _scrollController,
                           buildDefaultDragHandles: false,
                           cacheExtent: 1000,
-                          padding: const EdgeInsets.only(bottom: 160),
+                          padding: EdgeInsets.only(bottom: bottomOffset),
                           itemCount: displayQueue.length,
                           onReorder: (oldIndex, newIndex) {
                             if (_viewIndex != 0) return;
@@ -558,89 +547,77 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                 ),
               ],
             ),
-            if (isSelectionMode)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Material(
-                  elevation: 8,
-                  child: Container(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          children: [
-                            TextButton.icon(
-                              onPressed: _selectedIndices.isEmpty
-                                  ? null
-                                  : () {
-                                      final sortedIndices =
-                                          _selectedIndices.toList()..sort();
-                                      // Remove in reverse order to maintain indices
-                                      for (
-                                        int i = sortedIndices.length - 1;
-                                        i >= 0;
-                                        i--
-                                      ) {
-                                        ref
-                                            .read(audioServiceProvider)
-                                            .removeFromPlaylist(
-                                              sortedIndices[i],
-                                            );
-                                      }
-                                      _selectedIndices.clear();
-                                      _toggleSelectionMode();
-                                      if (context.mounted) {
-                                        AppSnackBar.show(
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                reverseDuration: const Duration(milliseconds: 200),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final offsetAnimation = Tween<Offset>(
+                    begin: const Offset(0, 1.0),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return SlideTransition(position: offsetAnimation, child: child);
+                },
+                child: isSelectionMode
+                    ? LibrarySelectionPanel(
+                        key: const ValueKey('library-selection-panel'),
+                        selectedSongs: _selectedSongsFromDisplay(displayQueue),
+                        allSongs: displayQueue,
+                        onToggleSelectAll: () {
+                          setState(() {
+                            if (_selectedIndices.length == displayQueue.length) {
+                              _selectedIndices.clear();
+                            } else {
+                              _selectedIndices.clear();
+                              _selectedIndices.addAll(
+                                List.generate(displayQueue.length, (i) => i),
+                              );
+                            }
+                          });
+                        },
+                        onCancel: _cancelSelection,
+                        replaceFavoritesWithSongDetails: true,
+                        onDelete: _viewIndex == 0
+                            ? () {
+                                final sortedIndices =
+                                    _selectedIndices.toList()..sort();
+                                // Remove in reverse order to maintain indices
+                                for (
+                                  int i = sortedIndices.length - 1;
+                                  i >= 0;
+                                  i--
+                                ) {
+                                  ref
+                                      .read(audioServiceProvider)
+                                      .removeFromPlaylist(sortedIndices[i]);
+                                }
+                                _cancelSelection();
+                                if (context.mounted) {
+                                  AppSnackBar.show(
+                                    context,
+                                    ref,
+                                    SnackBar(
+                                      content: Text(
+                                        AppLocalizations.of(
                                           context,
-                                          ref,
-                                          SnackBar(
-                                            content: Text(
-                                              AppLocalizations.of(
-                                                context,
-                                              )!.deletedSongs(
-                                                sortedIndices.length,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                              icon: const Icon(Icons.delete),
-                              label: Text(AppLocalizations.of(context)!.delete),
-                            ),
-                            const SizedBox(width: 16),
-                            TextButton.icon(
-                              onPressed: _selectedIndices.length == 1
-                                  ? () {
-                                      final selectedSongs =
-                                          _selectedSongsFromDisplay(displayQueue);
-                                      if (selectedSongs.isNotEmpty) {
-                                        showSongDetailsDialog(
-                                          context,
-                                          selectedSongs.first,
-                                        );
-                                      }
-                                    }
-                                  : null,
-                              icon: const Icon(Icons.info_outline),
-                              label: Text(
-                                AppLocalizations.of(context)!.songProperties,
-                              ),
-                            ),
-                          ],
-                        ),
+                                        )!.deletedSongs(sortedIndices.length),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            : null,
+                      )
+                    : const SizedBox.shrink(
+                        key: ValueKey('library-selection-panel-hidden'),
                       ),
-                    ),
-                  ),
-                ),
               ),
+            ),
           ],
         ),
       ),

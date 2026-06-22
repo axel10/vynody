@@ -856,7 +856,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         selectionScope == LibrarySelectionScope.library ||
         selectionScope == LibrarySelectionScope.playlist ||
         selectionScope == LibrarySelectionScope.artist ||
-        selectionScope == LibrarySelectionScope.album;
+        selectionScope == LibrarySelectionScope.album ||
+        selectionScope == LibrarySelectionScope.queue;
     final isRootSelectionMode =
         selectionScope == LibrarySelectionScope.folderRoot;
     final isPlaylistSelectionMode =
