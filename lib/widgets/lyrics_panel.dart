@@ -241,7 +241,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         text: TextSpan(text: line.text, style: lineStyle),
         textDirection: textDirection,
         textScaler: textScaler,
-      )..layout(maxWidth: maxWidth);
+      )..layout(maxWidth: math.max(0.0, maxWidth - 48.0));
       double itemHeight = textPainter.height;
 
       // 2. Calculate translation height if present
@@ -250,7 +250,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           text: TextSpan(text: translated, style: translationStyle),
           textDirection: textDirection,
           textScaler: textScaler,
-        )..layout(maxWidth: math.max(0.0, maxWidth - 24.0));
+        )..layout(maxWidth: math.max(0.0, maxWidth - 72.0));
         itemHeight += translatedSpacing + transPainter.height;
       }
 

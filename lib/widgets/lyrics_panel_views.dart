@@ -236,6 +236,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                           child: Padding(
                             padding: EdgeInsets.symmetric(
                               vertical: verticalItemPadding,
+                              horizontal: 24.0,
                             ),
                             child: Center(
                               child: AnimatedScale(
