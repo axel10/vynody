@@ -321,31 +321,6 @@ class LyricsService {
     required bool cacheEmptyResult,
     CancelToken? cancelToken,
   }) async {
-    final completeQuery = _buildCompleteQuery(query);
-    if (completeQuery != null) {
-      _logDebug(
-        'phase get -> title="${completeQuery.title}" '
-        'artist="${completeQuery.artist ?? ''}" '
-        'duration=${completeQuery.duration?.inSeconds ?? 'n/a'}s',
-      );
-      final direct = await _fetchGet(completeQuery, cancelToken: cancelToken);
-      if (direct != null) {
-        final scored = _scoreCandidate(completeQuery, direct, fromGetApi: true);
-        if (scored != null && scored.score >= _acceptThreshold) {
-          _logDebug(
-            'phase get accepted -> title="${completeQuery.title}" '
-            'score=${scored.score.toStringAsFixed(1)}',
-          );
-          await _saveToDatabase(query: cacheQuery, result: scored);
-          return scored;
-        }
-        _logDebug(
-          'phase get rejected -> title="${completeQuery.title}" '
-          'accepted=${scored != null} score=${scored?.score.toStringAsFixed(1) ?? 'n/a'}',
-        );
-      }
-    }
-
     final searchQuery = _buildSearchQuery(query);
     _logDebug(
       'phase search -> title="${searchQuery.title}" '
@@ -458,28 +433,6 @@ class LyricsService {
     }
   }
 
-  LyricsQuery? _buildCompleteQuery(LyricsQuery query) {
-    final title = _cleanField(query.title);
-    final artist = _cleanField(query.artist);
-    final album = _cleanField(query.album);
-    final duration = query.duration?.inSeconds;
-    if (title == null ||
-        artist == null ||
-        album == null ||
-        duration == null ||
-        duration <= 0) {
-      return null;
-    }
-    return LyricsQuery(
-      filePath: query.filePath,
-      fileName: query.fileName,
-      title: title,
-      artist: artist,
-      album: album,
-      duration: Duration(seconds: duration),
-    );
-  }
-
   LyricsQuery _buildSearchQuery(LyricsQuery query) {
     final fallbackTitle = CleanHelper.deriveCleanTitleFromFileName(
       query.fileName,
@@ -513,49 +466,6 @@ class LyricsService {
       title: title,
       duration: query.duration,
     );
-  }
-
-  Future<LyricTrack?> _fetchGet(
-    LyricsQuery query, {
-    CancelToken? cancelToken,
-  }) async {
-    try {
-      _logDebug(
-        'http get start -> track="${query.title}" artist="${query.artist ?? ''}" '
-        'duration=${query.duration?.inSeconds ?? 'n/a'}s '
-        'cancelToken=${cancelToken == null ? 'none' : identityHashCode(cancelToken)}',
-      );
-      final response = await _client.get(
-        'https://lrclib.net/api/get',
-        queryParameters: {
-          'track_name': query.title,
-          'artist_name': query.artist,
-          'duration': query.duration?.inSeconds,
-        }..removeWhere((_, value) => value == null),
-        cancelToken: cancelToken,
-      );
-
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        final track = LyricTrack.fromJson(data);
-        _logDebug(
-          'http get done -> track="${query.title}" '
-          'hasLyrics=${track.hasLyrics} synced=${track.hasSyncedLyrics}',
-        );
-        return track.hasLyrics ? track : null;
-      }
-    } on DioException catch (e) {
-      if (CancelToken.isCancel(e)) {
-        _logDebug('http get canceled -> track="${query.title}"');
-        return null;
-      }
-      if (e.response?.statusCode != 404) {
-        debugPrint('[Lyrics] GET failed for "${query.title}": ${e.message}');
-      }
-    } catch (e) {
-      debugPrint('[Lyrics] GET error for "${query.title}": $e');
-    }
-    return null;
   }
 
   Future<List<LyricTrack>> _search(

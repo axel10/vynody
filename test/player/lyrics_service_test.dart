@@ -62,12 +62,8 @@ void main() {
 
   group('LyricsService.fetchBestLyrics', () {
     test(
-      'balances title and duration equally when selecting lrclib result',
+      'selects lrclib result from search without using get',
       () async {
-        final getResponse = Response<dynamic>(
-          requestOptions: RequestOptions(path: 'https://lrclib.net/api/get'),
-          data: const <String, dynamic>{},
-        );
         final searchResponse = Response<dynamic>(
           requestOptions: RequestOptions(path: 'https://lrclib.net/api/search'),
           data: [
@@ -90,7 +86,6 @@ void main() {
           ],
         );
         final client = _RoutingNetworkClient(
-          getResponse: getResponse,
           searchResponse: searchResponse,
         );
         final service = LyricsService(
@@ -110,6 +105,8 @@ void main() {
         expect(result, isNotNull);
         expect(result!.track.trackName, 'Song Titl');
         expect(result.durationDiffSeconds, 0);
+        expect(client.callCount, 1);
+        expect(client.lastPath, 'https://lrclib.net/api/search');
       },
     );
   });
@@ -148,13 +145,11 @@ class _RecordingNetworkClient implements NetworkClient {
 }
 
 class _RoutingNetworkClient implements NetworkClient {
-  _RoutingNetworkClient({
-    required this.getResponse,
-    required this.searchResponse,
-  });
+  _RoutingNetworkClient({required this.searchResponse});
 
-  final Response<dynamic> getResponse;
   final Response<dynamic> searchResponse;
+  int callCount = 0;
+  String? lastPath;
 
   @override
   Future<Response<T>> get<T>(
@@ -165,10 +160,9 @@ class _RoutingNetworkClient implements NetworkClient {
     CancelToken? cancelToken,
     void Function(int, int)? onReceiveProgress,
   }) async {
-    if (path.contains('/api/get')) {
-      return getResponse as Response<T>;
-    }
     if (path.contains('/api/search')) {
+      callCount++;
+      lastPath = path;
       return searchResponse as Response<T>;
     }
     throw StateError('Unexpected path: $path');
