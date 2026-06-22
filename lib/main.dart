@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_temp_files.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
@@ -206,6 +207,11 @@ void main(List<String> args) async {
 
       AppLog.log('initializing settings service', mirrorToConsole: true);
       final settingsService = await SettingsService.init();
+      AppLog.log(
+        'cleaning lyrics AI temporary transcode files',
+        mirrorToConsole: true,
+      );
+      await cleanupLyricsAiTempArtifacts();
       AppLog.log('initializing worker manager', mirrorToConsole: true);
       unawaited(workerManager.init(isolatesCount: 8));
 

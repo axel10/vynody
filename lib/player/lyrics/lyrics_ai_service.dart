@@ -21,10 +21,10 @@ import 'package:vynody/player/lyrics/lyrics_ai_doubao.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_openrouter.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_shared.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_stream_parser.dart';
+import 'package:vynody/player/lyrics/lyrics_ai_temp_files.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 import 'package:vynody/transcode/transcode_models.dart';
@@ -1506,7 +1506,7 @@ class LyricsAiService {
     }
 
     onStageChanged?.call('transcoding');
-    final tempDir = await getTemporaryDirectory();
+    final tempDir = await getLyricsAiTempDirectory();
     final draft = TranscodeDraft(
       outputFormat: AudioFormat.mp3,
       qualityTier: TranscodeQualityTier.medium,
@@ -1531,19 +1531,14 @@ class LyricsAiService {
 
     String resolvedOutputPath = outputFile.path;
     String resolvedTempPath = tempDir.path;
-    String resolvedSystemTempPath = Directory.systemTemp.path;
     try {
       resolvedOutputPath = outputFile.resolveSymbolicLinksSync();
     } catch (_) {}
     try {
       resolvedTempPath = tempDir.resolveSymbolicLinksSync();
     } catch (_) {}
-    try {
-      resolvedSystemTempPath = Directory.systemTemp.resolveSymbolicLinksSync();
-    } catch (_) {}
 
-    if (!p.isWithin(resolvedTempPath, resolvedOutputPath) &&
-        !p.isWithin(resolvedSystemTempPath, resolvedOutputPath)) {
+    if (!p.isWithin(resolvedTempPath, resolvedOutputPath)) {
       throw Exception(
         _t(
           '临时转码文件未生成在临时目录。',
