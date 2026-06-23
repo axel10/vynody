@@ -156,6 +156,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final targetLang = lyricsState.lyricsTranslationLanguageCode;
+    final effectiveLang = lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onVerticalDragStart: isAutoScrollPaused ? null : onVerticalDragStart,
@@ -196,7 +199,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                             lyrics
                                 ?.translatedLineAt(
                                   index,
-                                  lyricsState.lyricsTranslationLanguageCode,
+                                  effectiveLang,
                                 )
                                 .trim() ??
                             '';

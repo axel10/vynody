@@ -55,4 +55,26 @@ abstract class MusicLyric with _$MusicLyric {
   String translatedLineAt(int index, String languageCode) {
     return translations[languageCode]?.translatedLineAt(index) ?? '';
   }
+
+  String getEffectiveTranslationLanguage(String targetLanguageCode) {
+    if (translations.isEmpty) {
+      return targetLanguageCode;
+    }
+    final targetTranslation = translations[targetLanguageCode];
+    if (targetTranslation != null && targetTranslation.hasContent) {
+      return targetLanguageCode;
+    }
+    final validTranslations = translations.values
+        .where((t) => t.hasContent)
+        .toList();
+    if (validTranslations.isEmpty) {
+      return targetLanguageCode;
+    }
+    validTranslations.sort((a, b) {
+      final aTime = a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
+    return validTranslations.first.languageCode;
+  }
 }

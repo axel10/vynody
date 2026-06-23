@@ -225,15 +225,16 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final anchorCenters = <double>[];
     double currentTop = 0.0;
 
+    final targetLang = ref.read(lyricsControllerProvider).lyricsTranslationLanguageCode;
+    final effectiveLang = lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
       final translated =
           lyrics
               ?.translatedLineAt(
                 i,
-                ref
-                    .read(lyricsControllerProvider)
-                    .lyricsTranslationLanguageCode,
+                effectiveLang,
               )
               .trim() ??
           '';
