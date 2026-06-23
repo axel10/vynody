@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_lyric.dart';
@@ -262,6 +263,12 @@ class LyricsFetchCoordinator {
       _context.translationInFlightKeys.removeWhere(
         (key) => key.startsWith('$cacheKey|'),
       );
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('selected_lyric_source_$cacheKey');
+      } catch (e) {
+        debugPrint('[LyricsController] Failed to remove selection preference: $e');
+      }
     }
 
     if (_context.currentMusic()?.path != song.path) return;

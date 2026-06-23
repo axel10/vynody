@@ -385,7 +385,7 @@ class LyricsService {
       try {
         final record = LyricsCacheRecord(
           cacheKey: query.cacheKey,
-          source: LyricsCacheSource.embedded,
+          source: LyricsCacheSource.external,
           isSynced: isSynced,
           syncedLyrics: rawLyrics,
           syncedLines: result.syncedLines,

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_file.dart';
@@ -296,6 +297,8 @@ class LyricsControllerSupport {
           updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
         ),
       );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('selected_lyric_source_$cacheKey', '${source.dbValue}|');
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache manual lyrics: $e');
     }

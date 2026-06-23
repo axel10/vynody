@@ -20,6 +20,9 @@ import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import '../dialogs/transcode_dialog.dart';
+import 'package:vynody/transcode/transcode_riverpod.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:audio_core/audio_core.dart';
 
 // 目录页
 class FoldersPage extends ConsumerStatefulWidget {
@@ -424,7 +427,16 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       cwd = Directory.current;
     } catch (_) {}
 
-    final selectedDirectory = await _getDirectoryPath();
+    String? selectedDirectory;
+    AndroidOutputDirectory? androidOutputDirectory;
+
+    if (Platform.isAndroid) {
+      androidOutputDirectory = await ref.read(transcodeServiceProvider).pickAndroidOutputDirectory();
+      selectedDirectory = androidOutputDirectory?.displayPath;
+    } else {
+      selectedDirectory = await _getDirectoryPath();
+    }
+
     debugPrint(
       '[FoldersPage] directory picker returned '
       'hasSelection=${selectedDirectory != null}',
@@ -443,6 +455,13 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       // 给 Windows 一点时间完全关闭对话框并释放 COM 资源，避免卡死
       if (Platform.isWindows) {
         await Future.delayed(const Duration(milliseconds: 300));
+      }
+
+      if (Platform.isAndroid && androidOutputDirectory != null) {
+        await AndroidSafStorageHelper.saveMapping(
+          androidOutputDirectory.displayPath,
+          androidOutputDirectory.treeUri,
+        );
       }
 
       debugPrint('[FoldersPage] adding selected root path=$selectedDirectory');

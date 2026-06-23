@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:audio_core/audio_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -984,6 +986,104 @@ class MetadataHelper {
       return false;
     }
   }
+
+  /// Writes lyrics to an external .lrc file in the same directory as the song.
+  /// On Android, resolves SAF tree URIs and uses the native saveFileToDirectory method if needed.
+  static Future<bool> saveLyricsToExternalLrc(String songPath, String lyricsText) async {
+    lastWriteError = null;
+
+    final directory = p.dirname(songPath);
+    final baseName = p.basenameWithoutExtension(songPath);
+    final lrcFileName = '$baseName.lrc';
+    final lrcFilePath = p.join(directory, lrcFileName);
+
+    if (Platform.isAndroid) {
+      // Check if we can write normally (e.g. if it's on local storage that supports regular File writing)
+      try {
+        final dir = Directory(directory);
+        if (await dir.exists()) {
+          final testFile = File(p.join(directory, '.vynody_write_test'));
+          await testFile.writeAsString('test');
+          await testFile.delete();
+          // Regular write works!
+          final file = File(lrcFilePath);
+          await file.writeAsString(lyricsText);
+          return true;
+        }
+      } catch (_) {
+        // Fallback to SAF below
+      }
+
+      // Resolve SAF mapping
+      final mapping = await AndroidSafStorageHelper.findBestMapping(songPath);
+      if (mapping == null) {
+        lastWriteError = 'No write permission for this folder. Please re-add the folder to grant permission.';
+        debugPrint('[MetadataHelper] $lastWriteError');
+        return false;
+      }
+
+      final rootDisplayPath = mapping.key;
+      final treeUri = mapping.value;
+
+      // Calculate relative path from SAF root to the lrc file
+      String relativeLrcPath = '';
+      try {
+        relativeLrcPath = p.relative(lrcFilePath, from: rootDisplayPath);
+      } catch (e) {
+        relativeLrcPath = lrcFileName;
+      }
+
+      // Write lyric text to a temporary scratch file first
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(p.join(tempDir.path, 'temp_lyrics_${DateTime.now().millisecondsSinceEpoch}.lrc'));
+      await tempFile.writeAsString(lyricsText);
+
+      try {
+        final controller = AudioCoreController();
+        if (!controller.isInitialized) {
+          await controller.initialize();
+        }
+
+        // Call native channel via audio_converter channel
+        final methodChannel = const MethodChannel('com.example.audio_converter/saf');
+        final result = await methodChannel.invokeMapMethod<String, Object?>(
+          'saveFileToDirectory',
+          <String, Object?>{
+            'treeUri': treeUri,
+            'sourcePath': tempFile.path,
+            'fileName': relativeLrcPath.replaceAll('\\', '/'),
+            'overwrite': true,
+          },
+        );
+        final savedUri = result?['savedUri']?.toString();
+        if (savedUri != null && savedUri.isNotEmpty) {
+          return true;
+        } else {
+          lastWriteError = 'Failed to write via SAF';
+          return false;
+        }
+      } catch (e) {
+        debugPrint('[MetadataHelper] Native save file via SAF failed: $e');
+        lastWriteError = e.toString();
+        return false;
+      } finally {
+        if (await tempFile.exists()) {
+          await tempFile.delete();
+        }
+      }
+    } else {
+      // Desktop / iOS: standard file write
+      try {
+        final file = File(lrcFilePath);
+        await file.writeAsString(lyricsText);
+        return true;
+      } catch (e) {
+        debugPrint('[MetadataHelper] Failed to save external LRC: $e');
+        lastWriteError = e.toString();
+        return false;
+      }
+    }
+  }
 }
 
 class TagLibMetadata {
@@ -1004,4 +1104,55 @@ class TagLibMetadata {
     required this.hasArtwork,
     required this.pictures,
   });
+}
+
+class AndroidSafStorageHelper {
+  static const String _prefKey = 'saf_tree_mappings_v1';
+
+  static Future<Map<String, String>> getMappings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_prefKey);
+      if (jsonStr == null || jsonStr.isEmpty) return {};
+      final map = jsonDecode(jsonStr);
+      if (map is Map) {
+        return map.map((key, value) => MapEntry(key.toString(), value.toString()));
+      }
+    } catch (e) {
+      debugPrint('[AndroidSafStorageHelper] Error reading mappings: $e');
+    }
+    return {};
+  }
+
+  static Future<void> saveMapping(String displayPath, String treeUri) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final current = await getMappings();
+      current[displayPath] = treeUri;
+      await prefs.setString(_prefKey, jsonEncode(current));
+      debugPrint('[AndroidSafStorageHelper] Saved mapping: $displayPath -> $treeUri');
+    } catch (e) {
+      debugPrint('[AndroidSafStorageHelper] Error saving mapping: $e');
+    }
+  }
+
+  static Future<MapEntry<String, String>?> findBestMapping(String filePath) async {
+    final mappings = await getMappings();
+    if (mappings.isEmpty) return null;
+
+    final normalizedFile = p.normalize(filePath).toLowerCase();
+    MapEntry<String, String>? bestMatch;
+    int longestMatchLength = 0;
+
+    for (final entry in mappings.entries) {
+      final normalizedRoot = p.normalize(entry.key).toLowerCase();
+      if (normalizedFile.startsWith(normalizedRoot)) {
+        if (entry.key.length > longestMatchLength) {
+          longestMatchLength = entry.key.length;
+          bestMatch = entry;
+        }
+      }
+    }
+    return bestMatch;
+  }
 }

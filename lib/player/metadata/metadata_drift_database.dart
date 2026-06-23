@@ -18,7 +18,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 28;
+  int get schemaVersion => 29;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -307,6 +307,34 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           SET isAppModified = 0
           WHERE isAppModified IS NULL
         ''');
+      }
+      if (from < 29) {
+        await m.database.customStatement('ALTER TABLE lyrics_cache RENAME TO lyrics_cache_old;');
+        await m.database.customStatement('''
+          CREATE TABLE lyrics_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cacheKey TEXT NOT NULL,
+            source TEXT NOT NULL,
+            languageCode TEXT NOT NULL DEFAULT '',
+            isSynced INTEGER NOT NULL,
+            syncedLyrics TEXT,
+            syncedLinesJson TEXT NOT NULL,
+            timelineOffsetMillis INTEGER NOT NULL,
+            updatedAtMillis INTEGER NOT NULL,
+            UNIQUE(cacheKey, source, languageCode)
+          )
+        ''');
+        await m.database.customStatement('''
+          INSERT INTO lyrics_cache (
+            id, cacheKey, source, languageCode, isSynced, syncedLyrics,
+            syncedLinesJson, timelineOffsetMillis, updatedAtMillis
+          )
+          SELECT 
+            id, cacheKey, source, '', isSynced, syncedLyrics,
+            syncedLinesJson, timelineOffsetMillis, updatedAtMillis
+          FROM lyrics_cache_old;
+        ''');
+        await m.database.customStatement('DROP TABLE lyrics_cache_old;');
       }
     },
   );
@@ -944,14 +972,18 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     if (normalizedCacheKey.isEmpty) return;
 
     await transaction(() async {
-      await (delete(
-        lyricsCaches,
-      )..where((t) => t.cacheKey.equals(normalizedCacheKey))).go();
+      await (delete(lyricsCaches)
+            ..where((t) =>
+                t.cacheKey.equals(normalizedCacheKey) &
+                t.source.equals(record.source.dbValue) &
+                t.languageCode.equals(record.languageCode)))
+          .go();
 
       await into(lyricsCaches).insert(
         LyricsCachesCompanion(
           cacheKey: Value(normalizedCacheKey),
           source: Value(record.source.dbValue),
+          languageCode: Value(record.languageCode),
           isSynced: Value(record.isSynced),
           syncedLyrics: Value(record.syncedLyrics),
           syncedLinesJson: Value(
@@ -991,6 +1023,28 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           ..limit(1))
         .watchSingleOrNull()
         .map((row) => row == null ? null : _lyricsCacheFromRow(row));
+  }
+
+  Future<List<LyricsCacheRecord>> getLyricsCaches(String cacheKey) async {
+    final normalizedCacheKey = cacheKey.trim();
+    if (normalizedCacheKey.isEmpty) return const [];
+
+    final rows = await (select(lyricsCaches)
+          ..where((t) => t.cacheKey.equals(normalizedCacheKey)))
+        .get();
+    return rows.map(_lyricsCacheFromRow).toList(growable: false);
+  }
+
+  Stream<List<LyricsCacheRecord>> watchLyricsCaches(String cacheKey) {
+    final normalizedCacheKey = cacheKey.trim();
+    if (normalizedCacheKey.isEmpty) {
+      return Stream.value(const []);
+    }
+
+    return (select(lyricsCaches)
+          ..where((t) => t.cacheKey.equals(normalizedCacheKey)))
+        .watch()
+        .map((rows) => rows.map(_lyricsCacheFromRow).toList(growable: false));
   }
 
   Future<void> clearLyricsCache() async {
@@ -1348,6 +1402,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       id: row.id,
       cacheKey: row.cacheKey,
       source: LyricsCacheSource.fromDbValue(row.source),
+      languageCode: row.languageCode,
       isSynced: row.isSynced,
       syncedLyrics: row.syncedLyrics,
       syncedLines: _decodeSyncedLines(row.syncedLinesJson),
@@ -1784,6 +1839,7 @@ class LyricsCaches extends Table {
   IntColumn get id => integer().autoIncrement().named('id')();
   TextColumn get cacheKey => text().named('cacheKey')();
   TextColumn get source => text().named('source')();
+  TextColumn get languageCode => text().withDefault(const Constant('')).named('languageCode')();
   BoolColumn get isSynced => boolean().named('isSynced')();
   TextColumn get syncedLyrics => text().nullable().named('syncedLyrics')();
   TextColumn get syncedLinesJson => text().named('syncedLinesJson')();
@@ -1792,7 +1848,7 @@ class LyricsCaches extends Table {
   IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
 
   @override
-  List<String> get customConstraints => const ['UNIQUE(cacheKey)'];
+  List<String> get customConstraints => const ['UNIQUE(cacheKey, source, languageCode)'];
 }
 
 class AcoustidCaches extends Table {

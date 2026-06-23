@@ -8,6 +8,9 @@ import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import '../l10n/app_localizations.dart';
+import 'package:vynody/transcode/transcode_riverpod.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:audio_core/audio_core.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   final VoidCallback onComplete;
@@ -48,7 +51,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       cwd = Directory.current;
     } catch (_) {}
 
-    final selectedDirectory = await _getDirectoryPath();
+    String? selectedDirectory;
+    AndroidOutputDirectory? androidOutputDirectory;
+
+    if (Platform.isAndroid) {
+      androidOutputDirectory = await ref.read(transcodeServiceProvider).pickAndroidOutputDirectory();
+      selectedDirectory = androidOutputDirectory?.displayPath;
+    } else {
+      selectedDirectory = await _getDirectoryPath();
+    }
 
     if (cwd != null) {
       try {
@@ -61,6 +72,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
       if (Platform.isWindows) {
         await Future.delayed(const Duration(milliseconds: 300));
+      }
+
+      if (Platform.isAndroid && androidOutputDirectory != null) {
+        await AndroidSafStorageHelper.saveMapping(
+          androidOutputDirectory.displayPath,
+          androidOutputDirectory.treeUri,
+        );
       }
 
       final result = await scanner.addRootPath(selectedDirectory);

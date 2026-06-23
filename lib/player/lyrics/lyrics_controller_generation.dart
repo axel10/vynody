@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart' show CancelToken, DioException;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_file.dart';
@@ -593,6 +594,8 @@ class LyricsGenerationCoordinator {
         updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
       await _context.lyricsCacheRepository.saveLyricsCache(record);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('selected_lyric_source_${record.cacheKey}', '${record.source.dbValue}|${record.languageCode}');
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache generated lyrics: $e');
     }

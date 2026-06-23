@@ -9,7 +9,8 @@ enum LyricsCacheSource {
   ai,
   manualAdjust,
   lrclib,
-  embedded;
+  embedded,
+  external;
 
   static LyricsCacheSource fromDbValue(Object? value) {
     final normalized = value?.toString().trim().toLowerCase() ?? '';
@@ -34,6 +35,8 @@ enum LyricsCacheSource {
         return LyricsCacheSource.lrclib;
       case 'embedded':
         return LyricsCacheSource.embedded;
+      case 'external':
+        return LyricsCacheSource.external;
       default:
         return LyricsCacheSource.lrclib;
     }
@@ -61,6 +64,8 @@ enum LyricsCacheSource {
         return LyricsCacheSource.aiTimeline;
       case 'embedded':
         return LyricsCacheSource.embedded;
+      case 'external':
+        return LyricsCacheSource.external;
       default:
         return normalized.isEmpty
             ? LyricsCacheSource.manualAdjust
@@ -77,6 +82,7 @@ enum LyricsCacheSource {
       LyricsCacheSource.manualAdjust => 'manual_adjust',
       LyricsCacheSource.lrclib => 'lrclib',
       LyricsCacheSource.embedded => 'embedded',
+      LyricsCacheSource.external => 'external',
     };
   }
 
@@ -89,6 +95,7 @@ enum LyricsCacheSource {
       LyricsCacheSource.manualAdjust => 'manual_adjust',
       LyricsCacheSource.lrclib => 'lrclib',
       LyricsCacheSource.embedded => 'embedded',
+      LyricsCacheSource.external => 'external',
     };
   }
 
@@ -106,6 +113,7 @@ class LyricsCacheRecord {
   final int? id;
   final String cacheKey;
   final LyricsCacheSource source;
+  final String languageCode;
   final bool isSynced;
   final String? syncedLyrics;
   final List<LyricLine> syncedLines;
@@ -116,6 +124,7 @@ class LyricsCacheRecord {
     this.id,
     required this.cacheKey,
     required this.source,
+    this.languageCode = '',
     required this.isSynced,
     this.syncedLyrics,
     required this.syncedLines,
@@ -127,6 +136,7 @@ class LyricsCacheRecord {
     return {
       'cacheKey': cacheKey,
       'source': source.dbValue,
+      'languageCode': languageCode,
       'isSynced': isSynced ? 1 : 0,
       'syncedLyrics': syncedLyrics,
       'syncedLinesJson': jsonEncode(
@@ -144,6 +154,7 @@ class LyricsCacheRecord {
       id: map['id'] as int?,
       cacheKey: map['cacheKey'] as String? ?? '',
       source: LyricsCacheSource.fromDbValue(map['source']),
+      languageCode: map['languageCode'] as String? ?? '',
       isSynced: (map['isSynced'] as int? ?? 0) == 1,
       syncedLyrics: map['syncedLyrics'] as String?,
       syncedLines: decodedLines,

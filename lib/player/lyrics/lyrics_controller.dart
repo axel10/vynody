@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
+import 'package:path/path.dart' as p;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/utils/language_code_utils.dart';
+import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_service.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
@@ -41,7 +46,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
   late final LyricsFetchCoordinator _fetchCoordinator;
   late final LyricsGenerationCoordinator _generationCoordinator;
   late final LyricsTranslationCoordinator _translationCoordinator;
-  StreamSubscription<LyricsCacheRecord?>? _lyricsCacheSubscription;
+  StreamSubscription<List<LyricsCacheRecord>>? _lyricsCacheSubscription;
   StreamSubscription<List<LyricsTranslationCacheRecord>>?
   _lyricsTranslationCacheSubscription;
   String? _watchedLyricsCacheKey;
@@ -290,7 +295,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _watchedLyricsSongPath = song.path;
 
     _lyricsCacheSubscription = _context.lyricsCacheRepository
-        .watchLyricsCache(cacheKey)
+        .watchLyricsCaches(cacheKey)
         .listen(
           (_) => unawaited(_syncLyricsCacheWatch(song.path, cacheKey)),
           onError: (error, stackTrace) {
@@ -309,6 +314,165 @@ class LyricsController extends Notifier<LyricsControllerState> {
         );
 
     unawaited(_syncLyricsCacheWatch(song.path, cacheKey));
+  }
+
+  static const String _activeLyricSourcePrefix = 'selected_lyric_source_';
+
+  Future<({LyricsCacheSource source, String languageCode})?> getSelectedLyricSource(String cacheKey) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final val = prefs.getString('$_activeLyricSourcePrefix$cacheKey');
+      if (val != null && val.contains('|')) {
+        final parts = val.split('|');
+        return (
+          source: LyricsCacheSource.fromDbValue(parts[0]),
+          languageCode: parts.length > 1 ? parts[1] : '',
+        );
+      }
+    } catch (e) {
+      debugPrint('[LyricsController] Error getting selected lyric source: $e');
+    }
+    return null;
+  }
+
+  Future<void> setSelectedLyricSource(String cacheKey, LyricsCacheSource source, {String languageCode = ''}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '$_activeLyricSourcePrefix$cacheKey';
+      await prefs.setString(key, '${source.dbValue}|$languageCode');
+      
+      final currentSong = _context.currentMusic();
+      if (currentSong != null) {
+        final currentQuery = await _support.buildLyricsQueryForSong(currentSong);
+        if (currentQuery?.cacheKey == cacheKey) {
+          unawaited(_syncLyricsCacheWatch(currentSong.path, cacheKey));
+        }
+      }
+    } catch (e) {
+      debugPrint('[LyricsController] Error setting selected lyric source: $e');
+    }
+  }
+
+  Future<LyricsCacheRecord?> _tryLoadExternalLrcRecord(String songPath, String cacheKey) async {
+    try {
+      final directory = p.dirname(songPath);
+      final baseName = p.basenameWithoutExtension(songPath);
+      final lrcPath = p.join(directory, '$baseName.lrc');
+      var lrcFile = File(lrcPath);
+      if (!await lrcFile.exists()) {
+        final lrcPathUpper = p.join(directory, '$baseName.LRC');
+        final lrcFileUpper = File(lrcPathUpper);
+        if (!await lrcFileUpper.exists()) {
+          return null;
+        }
+        lrcFile = lrcFileUpper;
+      }
+
+      final rawLyrics = await lrcFile.readAsString();
+      if (rawLyrics.trim().isNotEmpty) {
+        final parsed = LrcUtils.parseTimedLyrics(rawLyrics);
+        return LyricsCacheRecord(
+          cacheKey: cacheKey,
+          source: LyricsCacheSource.external,
+          isSynced: parsed.isNotEmpty,
+          syncedLyrics: rawLyrics,
+          syncedLines: parsed.isNotEmpty
+              ? parsed
+              : rawLyrics.split('\n').map((l) => LyricLine(timestamp: Duration.zero, text: l, isTimed: false)).toList(),
+          timelineOffsetMillis: 0,
+          updatedAtMillis: lrcFile.lastModifiedSync().millisecondsSinceEpoch,
+        );
+      }
+    } catch (e) {
+      debugPrint('[LyricsController] Failed to check external LRC: $e');
+    }
+    return null;
+  }
+
+  Future<LyricsCacheRecord?> _tryLoadEmbeddedRecord(String songPath, String cacheKey) async {
+    try {
+      if (!taglib.TagLibFile.isSupported) {
+        return null;
+      }
+      final file = File(songPath);
+      if (!await file.exists()) {
+        return null;
+      }
+
+      final tagFile = await taglib.TagLibFile.openAsync(songPath);
+      if (tagFile == null) {
+        return null;
+      }
+
+      try {
+        final lyricsList = tagFile.properties[taglib.TagProperties.lyrics];
+        if (lyricsList == null || lyricsList.isEmpty) {
+          return null;
+        }
+
+        final rawLyrics = lyricsList.first.trim();
+        if (rawLyrics.isEmpty) {
+          return null;
+        }
+
+        final parsed = LrcUtils.parseTimedLyrics(rawLyrics);
+        return LyricsCacheRecord(
+          cacheKey: cacheKey,
+          source: LyricsCacheSource.embedded,
+          isSynced: parsed.isNotEmpty,
+          syncedLyrics: rawLyrics,
+          syncedLines: parsed.isNotEmpty
+              ? parsed
+              : rawLyrics.split('\n').map((l) => LyricLine(timestamp: Duration.zero, text: l, isTimed: false)).toList(),
+          timelineOffsetMillis: 0,
+          updatedAtMillis: file.lastModifiedSync().millisecondsSinceEpoch,
+        );
+      } finally {
+        tagFile.close();
+      }
+    } catch (e) {
+      debugPrint('[LyricsController] Failed to read embedded record: $e');
+    }
+    return null;
+  }
+
+  Future<LyricsQuery?> buildLyricsQueryForSong(MusicFile song) {
+    return _support.buildLyricsQueryForSong(song);
+  }
+
+  Future<List<LyricsCacheRecord>> getAvailableLyricRecords(MusicFile song) async {
+    final query = await _support.buildLyricsQueryForSong(song);
+    final cacheKey = query?.cacheKey.trim() ?? '';
+    if (cacheKey.isEmpty) return const [];
+
+    final records = <LyricsCacheRecord>[];
+
+    final externalRecord = await _tryLoadExternalLrcRecord(song.path, cacheKey);
+    if (externalRecord != null) {
+      records.add(externalRecord);
+    }
+
+    final embeddedRecord = await _tryLoadEmbeddedRecord(song.path, cacheKey);
+    if (embeddedRecord != null) {
+      records.add(embeddedRecord);
+    }
+
+    final dbCaches = await _context.lyricsCacheRepository.getLyricsCaches(cacheKey);
+
+    for (final cache in dbCaches) {
+      if (cache.source == LyricsCacheSource.external && externalRecord != null) {
+        continue;
+      }
+      if (cache.source == LyricsCacheSource.embedded && embeddedRecord != null) {
+        continue;
+      }
+      if (cache.source == LyricsCacheSource.none) {
+        continue;
+      }
+      records.add(cache);
+    }
+
+    return records;
   }
 
   void clearLyricsCacheWatch() {
@@ -430,10 +594,8 @@ class LyricsController extends Notifier<LyricsControllerState> {
       return;
     }
 
-    final lyricsRecord = await _context.lyricsCacheRepository.getLyricsCache(
-      cacheKey,
-    );
-    if (lyricsRecord == null) {
+    final availableCaches = await getAvailableLyricRecords(currentSong);
+    if (availableCaches.isEmpty) {
       if (!_lyricsCacheWatchPrimed) {
         _logDebug(
           'lyrics cache watch initial null ignored -> path="$songPath" '
@@ -451,7 +613,42 @@ class LyricsController extends Notifier<LyricsControllerState> {
       }
       return;
     }
+
     _lyricsCacheWatchPrimed = true;
+
+    final preference = await getSelectedLyricSource(cacheKey);
+    LyricsCacheRecord? selectedRecord;
+
+    if (preference != null) {
+      for (final record in availableCaches) {
+        if (record.source == preference.source && record.languageCode == preference.languageCode) {
+          selectedRecord = record;
+          break;
+        }
+      }
+    }
+
+    if (selectedRecord == null) {
+      final fallbackOrder = [
+        LyricsCacheSource.external,
+        LyricsCacheSource.embedded,
+        LyricsCacheSource.manualAdjust,
+        LyricsCacheSource.aiTimeline,
+        LyricsCacheSource.aiGenerate,
+        LyricsCacheSource.ai,
+        LyricsCacheSource.lrclib,
+      ];
+      for (final src in fallbackOrder) {
+        for (final record in availableCaches) {
+          if (record.source == src) {
+            selectedRecord = record;
+            break;
+          }
+        }
+        if (selectedRecord != null) break;
+      }
+      selectedRecord ??= availableCaches.first;
+    }
 
     final translationRecords = await _context.lyricsCacheRepository
         .getLyricsTranslationCaches(cacheKey);
@@ -459,7 +656,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       translationRecords,
     );
     final nextLyrics = _support.lyricsFromCacheRecord(
-      lyricsRecord,
+      selectedRecord,
       translations: translations,
     );
 
@@ -490,6 +687,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
     _logDebug(
       'lyrics cache watch applied -> path="$songPath" cacheKey="$cacheKey" '
+      'source=${selectedRecord.source.dbValue} lang=${selectedRecord.languageCode} '
       'hasLyrics=${nextLyrics.plainText.trim().isNotEmpty || nextLyrics.syncedLines.isNotEmpty || nextLyrics.translations.isNotEmpty} '
       'lines=${nextLyrics.syncedLines.length} textLen=${nextLyrics.plainText.trim().length}',
     );

@@ -429,6 +429,12 @@ class MetadataDatabase {
   Stream<LyricsCacheRecord?> watchLyricsCache(String cacheKey) =>
       _db.watchLyricsCache(cacheKey);
 
+  Future<List<LyricsCacheRecord>> getLyricsCaches(String cacheKey) =>
+      _db.getLyricsCaches(cacheKey);
+
+  Stream<List<LyricsCacheRecord>> watchLyricsCaches(String cacheKey) =>
+      _db.watchLyricsCaches(cacheKey);
+
   Future<void> insertOrUpdateLyricsTranslationCache(
     LyricsTranslationCacheRecord record,
   ) => _db.insertOrUpdateLyricsTranslationCache(record);

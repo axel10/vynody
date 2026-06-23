@@ -198,6 +198,9 @@ class _NoopLyricsCacheRepository implements LyricsCacheRepository {
   Future<LyricsCacheRecord?> getLyricsCache(String cacheKey) async => null;
 
   @override
+  Future<List<LyricsCacheRecord>> getLyricsCaches(String cacheKey) async => const [];
+
+  @override
   Future<List<LyricsTranslationCacheRecord>> getLyricsTranslationCaches(
     String cacheKey,
   ) async {
@@ -207,6 +210,10 @@ class _NoopLyricsCacheRepository implements LyricsCacheRepository {
   @override
   Stream<LyricsCacheRecord?> watchLyricsCache(String cacheKey) =>
       const Stream<LyricsCacheRecord?>.empty();
+
+  @override
+  Stream<List<LyricsCacheRecord>> watchLyricsCaches(String cacheKey) =>
+      const Stream<List<LyricsCacheRecord>>.empty();
 
   @override
   Stream<List<LyricsTranslationCacheRecord>> watchLyricsTranslationCaches(

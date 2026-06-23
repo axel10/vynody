@@ -19,7 +19,6 @@ import '../dialogs/online_lyrics_search_dialog.dart';
 import '../dialogs/timeline_adjustment_dialog.dart';
 import '../dialogs/lyrics_font_scale_dialog.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_controller.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
@@ -30,6 +29,7 @@ import 'playback_ui_tuning.dart';
 import '../utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
 bool shouldShowGenerateLyricsButton({required bool hasCurrentSong}) {
   return hasCurrentSong;
@@ -456,6 +456,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (overlay == null) return;
     final l10n = AppLocalizations.of(context)!;
 
+    final currentSong = ref.read(audioCurrentMusicProvider);
+    final availableSources = currentSong != null
+        ? await _lyricsControllerActions.getAvailableLyricRecords(currentSong)
+        : const <LyricsCacheRecord>[];
+
     final items = <PopupMenuEntry<String>>[
       buildContextMenuItem<String>(
         value: 'fill_lyrics',
@@ -548,6 +553,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           icon: Icons.save_alt_rounded,
           context: context,
         ),
+      if (!requeryOnly && availableSources.length > 1)
+        buildContextMenuItem<String>(
+          value: 'select_lyrics_source',
+          enabled: hasCurrentSong,
+          label: localizedText('选择歌词来源', 'Select lyric source'),
+          icon: Icons.source_rounded,
+          context: context,
+        ),
       if (requeryOnly)
         buildContextMenuItem<String>(
           value: 'requery',
@@ -626,6 +639,80 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     } else if (selected == 'save_lyrics_to_file') {
       final currentSong = ref.read(audioCurrentMusicProvider);
       if (currentSong != null) {
+        final query = await _lyricsControllerActions.buildLyricsQueryForSong(currentSong);
+        final cacheKey = query?.cacheKey.trim() ?? '';
+        
+        final preference = await _lyricsControllerActions.getSelectedLyricSource(cacheKey);
+        LyricsCacheSource activeSource = LyricsCacheSource.embedded;
+        
+        if (preference != null) {
+          activeSource = preference.source;
+        } else {
+          final fallbackOrder = [
+            LyricsCacheSource.external,
+            LyricsCacheSource.embedded,
+            LyricsCacheSource.manualAdjust,
+            LyricsCacheSource.aiTimeline,
+            LyricsCacheSource.aiGenerate,
+            LyricsCacheSource.ai,
+            LyricsCacheSource.lrclib,
+          ];
+          for (final src in fallbackOrder) {
+            if (availableSources.any((r) => r.source == src)) {
+              activeSource = src;
+              break;
+            }
+          }
+        }
+
+        bool saveToEmbedded = true;
+        bool promptUser = false;
+        
+        if (activeSource == LyricsCacheSource.embedded) {
+          saveToEmbedded = true;
+        } else if (activeSource == LyricsCacheSource.external) {
+          saveToEmbedded = false;
+        } else {
+          final db = MetadataDatabase();
+          final metadata = await db.getSongMetadata(currentSong.path);
+          final isSystemMedia = currentSong.path.startsWith('system') || 
+              (metadata?.sourceFlags != null && (metadata!.sourceFlags! & SongSourceFlags.systemMedia) != 0);
+          
+          if (isSystemMedia) {
+            saveToEmbedded = true;
+          } else {
+            promptUser = true;
+          }
+        }
+
+        if (promptUser && mounted) {
+          final choice = await showDialog<String>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text(localizedText('保存歌词到', 'Save lyrics to')),
+                content: Text(localizedText('请选择将歌词写入何处：', 'Please select where to write the lyrics:')),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, 'embedded'),
+                    child: Text(localizedText('内嵌到音频文件', 'Embed to audio file')),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, 'external'),
+                    child: Text(localizedText('同名外置LRC文件', 'External LRC file')),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, null),
+                    child: Text(localizedText('取消', 'Cancel')),
+                  ),
+                ],
+              );
+            },
+          );
+          if (choice == null) return;
+          saveToEmbedded = choice == 'embedded';
+        }
+
         final lyricsToSave = _hasTimedLyrics(displayLines)
             ? displayLines.map((line) {
                 if (!line.isTimed) return line.text;
@@ -638,14 +725,29 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               }).join('\n')
             : displayPlainLyrics;
 
-        showToast(localizedText('正在写入歌词...', 'Writing lyrics to file...'));
-        final success = await MetadataHelper.saveLyricsToFile(currentSong.path, lyricsToSave);
+        showToast(localizedText('正在写入歌词...', 'Writing lyrics...'));
+        
+        bool success = false;
+        if (saveToEmbedded) {
+          success = await MetadataHelper.saveLyricsToFile(currentSong.path, lyricsToSave);
+          if (success) {
+            await _lyricsControllerActions.fillLyricsForCurrentSong(
+              lyricsToSave,
+              source: LyricsCacheSource.embedded,
+            );
+          }
+        } else {
+          success = await MetadataHelper.saveLyricsToExternalLrc(currentSong.path, lyricsToSave);
+          if (success) {
+            await _lyricsControllerActions.fillLyricsForCurrentSong(
+              lyricsToSave,
+              source: LyricsCacheSource.external,
+            );
+          }
+        }
+
         if (success) {
           showToast(localizedText('歌词写入文件成功', 'Lyrics written to file successfully'));
-          await _lyricsControllerActions.fillLyricsForCurrentSong(
-            lyricsToSave,
-            source: LyricsCacheSource.embedded,
-          );
         } else {
           final errorMsg = MetadataHelper.lastWriteError ?? '';
           showToast(
@@ -654,6 +756,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 : localizedText('写入歌词失败', 'Failed to write lyrics'),
           );
         }
+      }
+    } else if (selected == 'select_lyrics_source') {
+      if (currentSong != null) {
+        await _showSelectLyricsSourceDialog(currentSong, availableSources);
       }
     } else if (selected == 'requery') {
       await _lyricsControllerActions.requeryLyricsForCurrentSong();
@@ -1524,4 +1630,123 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   //   if (value >= 0) return value.toString();
   //   return '-${value.abs()}';
   // }
+
+  Future<void> _showSelectLyricsSourceDialog(
+    MusicFile song,
+    List<LyricsCacheRecord> sources,
+  ) async {
+    final query = await _lyricsControllerActions.buildLyricsQueryForSong(song);
+    final cacheKey = query?.cacheKey.trim() ?? '';
+    if (cacheKey.isEmpty) return;
+
+    final activePreference = await _lyricsControllerActions.getSelectedLyricSource(cacheKey);
+
+    LyricsCacheSource activeSource = LyricsCacheSource.none;
+    String activeLang = '';
+    
+    if (activePreference != null) {
+      activeSource = activePreference.source;
+      activeLang = activePreference.languageCode;
+    } else {
+      final fallbackOrder = [
+        LyricsCacheSource.external,
+        LyricsCacheSource.embedded,
+        LyricsCacheSource.manualAdjust,
+        LyricsCacheSource.aiTimeline,
+        LyricsCacheSource.aiGenerate,
+        LyricsCacheSource.ai,
+        LyricsCacheSource.lrclib,
+      ];
+      for (final src in fallbackOrder) {
+        if (sources.any((r) => r.source == src)) {
+          activeSource = src;
+          if (src.isAiSource) {
+            activeLang = sources.firstWhere((r) => r.source == src).languageCode;
+          }
+          break;
+        }
+      }
+    }
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          title: Text(localizedText('选择歌词来源', 'Select lyric source')),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: sources.map((record) {
+                final isSelected = record.source == activeSource && record.languageCode == activeLang;
+                String title = '';
+                IconData icon;
+                switch (record.source) {
+                  case LyricsCacheSource.external:
+                    title = localizedText('同名外置LRC文件', 'External LRC file');
+                    icon = Icons.file_present_rounded;
+                    break;
+                  case LyricsCacheSource.embedded:
+                    title = localizedText('音频内嵌歌词', 'Embedded lyrics');
+                    icon = Icons.music_note_rounded;
+                    break;
+                  case LyricsCacheSource.manualAdjust:
+                    title = localizedText('手动修改的歌词', 'Manually adjusted lyrics');
+                    icon = Icons.edit_note_rounded;
+                    break;
+                  case LyricsCacheSource.lrclib:
+                    title = localizedText('LrcLib在线歌词', 'LrcLib online lyrics');
+                    icon = Icons.cloud_done_rounded;
+                    break;
+                  default:
+                    if (record.source.isAiSource) {
+                      final langSuffix = record.languageCode.isNotEmpty
+                          ? ' (${getLanguageDisplayName(record.languageCode)})'
+                          : '';
+                      title = '${localizedText('AI生成的歌词', 'AI generated lyrics')}$langSuffix';
+                      icon = Icons.auto_awesome_rounded;
+                    } else {
+                      title = record.source.dbValue;
+                      icon = Icons.lyrics_rounded;
+                    }
+                }
+
+                return ListTile(
+                  leading: Icon(icon, color: isSelected ? theme.colorScheme.primary : null),
+                  title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : null)),
+                  trailing: isSelected ? Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary) : null,
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _lyricsControllerActions.setSelectedLyricSource(
+                      cacheKey,
+                      record.source,
+                      languageCode: record.languageCode,
+                    );
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(localizedText('取消', 'Cancel')),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String getLanguageDisplayName(String code) {
+    if (code.isEmpty) return '';
+    final lower = code.toLowerCase();
+    if (lower == 'zh') return '中文';
+    if (lower == 'en') return 'English';
+    if (lower == 'ja') return '日本語';
+    if (lower == 'ko') return '한국어';
+    return code.toUpperCase();
+  }
 }

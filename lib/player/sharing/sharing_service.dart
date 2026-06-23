@@ -1280,6 +1280,7 @@ class SharingService {
 
   int _getLyricsSourcePriority(LyricsCacheSource source) {
     switch (source) {
+      case LyricsCacheSource.external:
       case LyricsCacheSource.manualAdjust:
         return 4;
       case LyricsCacheSource.ai:
