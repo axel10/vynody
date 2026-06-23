@@ -30,22 +30,22 @@ import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 
 class LyricsController extends Notifier<LyricsControllerState> {
-  late final MetadataDatabase _db;
-  late final MusicFile? Function() _currentMusic;
-  late final List<MusicFile> Function() _queue;
-  late final int Function() _currentIndex;
-  late final Duration Function() _playerDuration;
-  late final bool Function() _isLyricsActive;
-  late final void Function(String path, int durationMillis) _cacheSongDuration;
-  late final LyricsCacheRepository _lyricsCacheRepository;
-  late final LyricsService _lyricsService;
-  late final LyricsAiService _lyricsAiService;
-  late final SettingsService _settingsService;
-  late final LyricsControllerContext _context;
-  late final LyricsControllerSupport _support;
-  late final LyricsFetchCoordinator _fetchCoordinator;
-  late final LyricsGenerationCoordinator _generationCoordinator;
-  late final LyricsTranslationCoordinator _translationCoordinator;
+  late MetadataDatabase _db;
+  late MusicFile? Function() _currentMusic;
+  late List<MusicFile> Function() _queue;
+  late int Function() _currentIndex;
+  late Duration Function() _playerDuration;
+  late bool Function() _isLyricsActive;
+  late void Function(String path, int durationMillis) _cacheSongDuration;
+  late LyricsCacheRepository _lyricsCacheRepository;
+  late LyricsService _lyricsService;
+  late LyricsAiService _lyricsAiService;
+  late SettingsService _settingsService;
+  late LyricsControllerContext _context;
+  late LyricsControllerSupport _support;
+  late LyricsFetchCoordinator _fetchCoordinator;
+  late LyricsGenerationCoordinator _generationCoordinator;
+  late LyricsTranslationCoordinator _translationCoordinator;
   StreamSubscription<List<LyricsCacheRecord>>? _lyricsCacheSubscription;
   StreamSubscription<List<LyricsTranslationCacheRecord>>?
   _lyricsTranslationCacheSubscription;
@@ -70,7 +70,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       cacheRepository: _lyricsCacheRepository,
     );
     _settingsService = ref.read(settingsServiceProvider);
-    final effectiveLanguageCode = ref.watch(
+    final effectiveLanguageCode = ref.read(
       lyricsTranslationLanguageCodeProvider,
     );
     ref.listen<String>(lyricsTranslationLanguageCodeProvider, (
