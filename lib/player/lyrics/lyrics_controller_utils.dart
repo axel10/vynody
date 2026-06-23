@@ -231,7 +231,6 @@ class LyricsControllerSupport {
     );
 
     final normalizedText = lyricsText.replaceAll('\r\n', '\n').trim();
-    if (normalizedText.isEmpty) return;
 
     final query =
         await buildLyricsQueryForSong(song) ??
@@ -268,7 +267,7 @@ class LyricsControllerSupport {
       await _context.lyricsCacheRepository.clearLyricsCacheByKey(cacheKey);
     }
 
-    _context.setHasLyrics(true);
+    _context.setHasLyrics(normalizedText.isNotEmpty);
     _context.setIsLyricsLoading(false);
     _context.setIsLyricsTranslating(false);
     _context.setLyricsTranslationStatus('');

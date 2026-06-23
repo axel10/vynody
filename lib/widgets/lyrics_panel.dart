@@ -546,7 +546,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         buildContextMenuItem<String>(
           value: 'save_lyrics_to_file',
           enabled: hasCurrentSong &&
-              lyricsState.hasLyrics &&
+              (lyricsState.hasLyrics ||
+                  (lyricsState.currentLyricsText.isEmpty &&
+                      lyricsState.lyricsSearchAttempted)) &&
               ref.read(audioCurrentMusicProvider) != null &&
               isMetadataWritable(ref.read(audioCurrentMusicProvider)!.path),
           label: localizedText('将歌词写入文件', 'Write lyrics to file'),

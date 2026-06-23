@@ -58,7 +58,6 @@ class _ManualLyricsDialogState extends State<_ManualLyricsDialog> {
   @override
   Widget build(BuildContext context) {
     final currentValue = _controller.text;
-    final canSave = currentValue.trim().isNotEmpty;
 
     return AlertDialog(
       title: Text(widget.title),
@@ -86,9 +85,7 @@ class _ManualLyricsDialogState extends State<_ManualLyricsDialog> {
           child: Text(widget.cancelLabel),
         ),
         FilledButton(
-          onPressed: canSave
-              ? () => Navigator.of(context).pop(currentValue.trim())
-              : null,
+          onPressed: () => Navigator.of(context).pop(currentValue.trim()),
           child: Text(widget.confirmLabel),
         ),
       ],
