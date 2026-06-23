@@ -15,6 +15,8 @@ enum LyricsAiModelPurpose { generation, translation }
 
 enum LyricsAiModelSlot { primary, fallback }
 
+enum LyricsSaveMethod { original, embedded, lrcFile }
+
 final class LyricsAiModelSelection {
   const LyricsAiModelSelection({required this.provider, required this.modelId});
 
@@ -208,6 +210,7 @@ class SettingsService extends ChangeNotifier {
   static const String deepseekApiKeyStorageKey = 'deepseek_api_key';
   static const String _keyLyricsTranslationTargetLanguage =
       'lyrics_translation_target_language';
+  static const String _keyLyricsSaveMethod = 'lyrics_save_method';
   static const String _keyLyricsFontScale = 'lyrics_font_scale';
   static const String _keyGenerationPrimaryProvider =
       'lyrics_generation_primary_provider';
@@ -385,6 +388,13 @@ class SettingsService extends ChangeNotifier {
         prefs.setString(key, normalized);
       }
     },
+  );
+
+  late final _lyricsSaveMethodProperty = SettingProperty<String>(
+    key: _keyLyricsSaveMethod,
+    defaultValue: LyricsSaveMethod.original.name,
+    prefs: _prefs,
+    onChanged: notifyListeners,
   );
 
   late final _lyricsFontScaleProperty = SettingProperty<double>(
@@ -969,6 +979,17 @@ class SettingsService extends ChangeNotifier {
       return stored;
     }
     return LanguageCodeUtils.currentSystemLanguageCode();
+  }
+
+  LyricsSaveMethod get lyricsSaveMethod {
+    return LyricsSaveMethod.values.firstWhere(
+      (method) => method.name == _lyricsSaveMethodProperty.value,
+      orElse: () => LyricsSaveMethod.original,
+    );
+  }
+
+  set lyricsSaveMethod(LyricsSaveMethod value) {
+    _lyricsSaveMethodProperty.value = value.name;
   }
 
   double get lyricsFontScale => _lyricsFontScaleProperty.value;

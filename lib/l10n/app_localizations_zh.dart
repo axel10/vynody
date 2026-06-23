@@ -1101,6 +1101,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lyricsTranslationTargetLanguageDescription => '默认跟随系统语言，也可以单独指定。';
 
   @override
+  String get lyricsSaveMethodLabel => '歌词保存位置';
+
+  @override
+  String get lyricsSaveMethodDescription => '选择将歌词写入文件时的保存位置。';
+
+  @override
+  String get lyricsSaveMethodOriginal => '原处';
+
+  @override
+  String get lyricsSaveMethodEmbedded => '内嵌';
+
+  @override
+  String get lyricsSaveMethodLrcFile => 'LRC文件';
+
+  @override
   String get followSystemLanguage => '跟随系统';
 
   @override

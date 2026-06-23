@@ -615,6 +615,52 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildLyricsSaveMethodSection(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.lyricsSaveMethodDescription,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<LyricsSaveMethod>(
+            initialValue: settings.lyricsSaveMethod,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.lyricsSaveMethodLabel,
+              border: const OutlineInputBorder(),
+            ),
+            items: [
+              DropdownMenuItem<LyricsSaveMethod>(
+                value: LyricsSaveMethod.original,
+                child: Text(l10n.lyricsSaveMethodOriginal),
+              ),
+              DropdownMenuItem<LyricsSaveMethod>(
+                value: LyricsSaveMethod.embedded,
+                child: Text(l10n.lyricsSaveMethodEmbedded),
+              ),
+              DropdownMenuItem<LyricsSaveMethod>(
+                value: LyricsSaveMethod.lrcFile,
+                child: Text(l10n.lyricsSaveMethodLrcFile),
+              ),
+            ],
+            onChanged: (newValue) {
+              if (newValue == null) return;
+              settings.lyricsSaveMethod = newValue;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTranscodeSection(
     BuildContext context,
     SettingsService settings,
@@ -946,6 +992,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           l10n.lyricsSectionDescription,
         ),
         _buildLyricsTranslationLanguageSection(context, settings),
+        const SizedBox(height: 16),
+        _buildLyricsSaveMethodSection(context, settings),
         _buildSectionHeader(l10n.platformApiKeysSectionTitle),
         ListTile(
           leading: _buildProviderIcon(LyricsAiProvider.googleAiStudio),

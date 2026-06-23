@@ -2180,6 +2180,36 @@ abstract class AppLocalizations {
   /// **'默认跟随系统语言，也可以单独指定。'**
   String get lyricsTranslationTargetLanguageDescription;
 
+  /// No description provided for @lyricsSaveMethodLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词保存位置'**
+  String get lyricsSaveMethodLabel;
+
+  /// No description provided for @lyricsSaveMethodDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择将歌词写入文件时的保存位置。'**
+  String get lyricsSaveMethodDescription;
+
+  /// No description provided for @lyricsSaveMethodOriginal.
+  ///
+  /// In zh, this message translates to:
+  /// **'原处'**
+  String get lyricsSaveMethodOriginal;
+
+  /// No description provided for @lyricsSaveMethodEmbedded.
+  ///
+  /// In zh, this message translates to:
+  /// **'内嵌'**
+  String get lyricsSaveMethodEmbedded;
+
+  /// No description provided for @lyricsSaveMethodLrcFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'LRC文件'**
+  String get lyricsSaveMethodLrcFile;
+
   /// No description provided for @followSystemLanguage.
   ///
   /// In zh, this message translates to:

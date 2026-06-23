@@ -31,6 +31,7 @@ import '../utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 bool shouldShowGenerateLyricsButton({required bool hasCurrentSong}) {
   return hasCurrentSong;
@@ -469,6 +470,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final translation = displayLyrics?.translationFor(effectiveLang);
     final hasTranslation = translation != null && translation.hasContent;
 
+    final settings = ref.read(settingsServiceProvider);
+    final saveToLrc = settings.lyricsSaveMethod == LyricsSaveMethod.lrcFile ||
+        (settings.lyricsSaveMethod == LyricsSaveMethod.original &&
+            displayLyrics?.source == 'external');
+
     final items = <PopupMenuEntry<String>>[
       buildContextMenuItem<String>(
         value: 'fill_lyrics',
@@ -566,7 +572,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                   (lyricsState.currentLyricsText.isEmpty &&
                       lyricsState.lyricsSearchAttempted)) &&
               ref.read(audioCurrentMusicProvider) != null &&
-              isMetadataWritable(ref.read(audioCurrentMusicProvider)!.path),
+              (saveToLrc || isMetadataWritable(ref.read(audioCurrentMusicProvider)!.path)),
           label: localizedText('将歌词写入文件', 'Write lyrics to file'),
           icon: Icons.save_alt_rounded,
           context: context,
@@ -680,16 +686,28 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             : displayPlainLyrics;
 
         showToast(localizedText('正在写入歌词...', 'Writing lyrics...'));
-        
-        final success = await MetadataHelper.saveLyricsToFile(currentSong.path, lyricsToSave);
-        if (success) {
-          await _lyricsControllerActions.fillLyricsForCurrentSong(
-            lyricsToSave,
-            source: LyricsCacheSource.embedded,
-          );
+
+        final settings = ref.read(settingsServiceProvider);
+        final displayLyrics = _lyricsForDisplay();
+        final saveToLrc = settings.lyricsSaveMethod == LyricsSaveMethod.lrcFile ||
+            (settings.lyricsSaveMethod == LyricsSaveMethod.original &&
+                displayLyrics?.source == 'external');
+
+        final bool success;
+        final LyricsCacheSource newSource;
+        if (saveToLrc) {
+          success = await MetadataHelper.saveLyricsToExternalLrc(currentSong.path, lyricsToSave);
+          newSource = LyricsCacheSource.external;
+        } else {
+          success = await MetadataHelper.saveLyricsToFile(currentSong.path, lyricsToSave);
+          newSource = LyricsCacheSource.embedded;
         }
 
         if (success) {
+          await _lyricsControllerActions.fillLyricsForCurrentSong(
+            lyricsToSave,
+            source: newSource,
+          );
           showToast(localizedText('歌词写入文件成功', 'Lyrics written to file successfully'));
         } else {
           final errorMsg = MetadataHelper.lastWriteError ?? '';

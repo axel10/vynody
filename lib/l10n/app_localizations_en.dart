@@ -1134,6 +1134,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Defaults to the system language, or choose one manually.';
 
   @override
+  String get lyricsSaveMethodLabel => 'Lyric Storage Location';
+
+  @override
+  String get lyricsSaveMethodDescription =>
+      'Select where lyrics are saved when writing to file.';
+
+  @override
+  String get lyricsSaveMethodOriginal => 'As Source';
+
+  @override
+  String get lyricsSaveMethodEmbedded => 'Embedded';
+
+  @override
+  String get lyricsSaveMethodLrcFile => 'LRC File';
+
+  @override
   String get followSystemLanguage => 'Follow system';
 
   @override
