@@ -639,80 +639,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     } else if (selected == 'save_lyrics_to_file') {
       final currentSong = ref.read(audioCurrentMusicProvider);
       if (currentSong != null) {
-        final query = await _lyricsControllerActions.buildLyricsQueryForSong(currentSong);
-        final cacheKey = query?.cacheKey.trim() ?? '';
-        
-        final preference = await _lyricsControllerActions.getSelectedLyricSource(cacheKey);
-        LyricsCacheSource activeSource = LyricsCacheSource.embedded;
-        
-        if (preference != null) {
-          activeSource = preference.source;
-        } else {
-          final fallbackOrder = [
-            LyricsCacheSource.external,
-            LyricsCacheSource.embedded,
-            LyricsCacheSource.manualAdjust,
-            LyricsCacheSource.aiTimeline,
-            LyricsCacheSource.aiGenerate,
-            LyricsCacheSource.ai,
-            LyricsCacheSource.lrclib,
-          ];
-          for (final src in fallbackOrder) {
-            if (availableSources.any((r) => r.source == src)) {
-              activeSource = src;
-              break;
-            }
-          }
-        }
-
-        bool saveToEmbedded = true;
-        bool promptUser = false;
-        
-        if (activeSource == LyricsCacheSource.embedded) {
-          saveToEmbedded = true;
-        } else if (activeSource == LyricsCacheSource.external) {
-          saveToEmbedded = false;
-        } else {
-          final db = MetadataDatabase();
-          final metadata = await db.getSongMetadata(currentSong.path);
-          final isSystemMedia = currentSong.path.startsWith('system') || 
-              (metadata?.sourceFlags != null && (metadata!.sourceFlags! & SongSourceFlags.systemMedia) != 0);
-          
-          if (isSystemMedia) {
-            saveToEmbedded = true;
-          } else {
-            promptUser = true;
-          }
-        }
-
-        if (promptUser && mounted) {
-          final choice = await showDialog<String>(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: Text(localizedText('保存歌词到', 'Save lyrics to')),
-                content: Text(localizedText('请选择将歌词写入何处：', 'Please select where to write the lyrics:')),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, 'embedded'),
-                    child: Text(localizedText('内嵌到音频文件', 'Embed to audio file')),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, 'external'),
-                    child: Text(localizedText('同名外置LRC文件', 'External LRC file')),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, null),
-                    child: Text(localizedText('取消', 'Cancel')),
-                  ),
-                ],
-              );
-            },
-          );
-          if (choice == null) return;
-          saveToEmbedded = choice == 'embedded';
-        }
-
         final lyricsToSave = _hasTimedLyrics(displayLines)
             ? displayLines.map((line) {
                 if (!line.isTimed) return line.text;
@@ -727,23 +653,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
         showToast(localizedText('正在写入歌词...', 'Writing lyrics...'));
         
-        bool success = false;
-        if (saveToEmbedded) {
-          success = await MetadataHelper.saveLyricsToFile(currentSong.path, lyricsToSave);
-          if (success) {
-            await _lyricsControllerActions.fillLyricsForCurrentSong(
-              lyricsToSave,
-              source: LyricsCacheSource.embedded,
-            );
-          }
-        } else {
-          success = await MetadataHelper.saveLyricsToExternalLrc(currentSong.path, lyricsToSave);
-          if (success) {
-            await _lyricsControllerActions.fillLyricsForCurrentSong(
-              lyricsToSave,
-              source: LyricsCacheSource.external,
-            );
-          }
+        final success = await MetadataHelper.saveLyricsToFile(currentSong.path, lyricsToSave);
+        if (success) {
+          await _lyricsControllerActions.fillLyricsForCurrentSong(
+            lyricsToSave,
+            source: LyricsCacheSource.embedded,
+          );
         }
 
         if (success) {
