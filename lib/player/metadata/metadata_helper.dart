@@ -922,6 +922,68 @@ class MetadataHelper {
       unsupportedFiles: unsupportedFiles,
     );
   }
+
+  /// Writes lyrics to a single audio file, preserving existing metadata and artwork.
+  static Future<bool> saveLyricsToFile(String filePath, String lyricsText) async {
+    lastWriteError = null;
+    if (!isMetadataWritable(filePath)) {
+      lastWriteError = 'File format is not supported for writing metadata';
+      debugPrint('[MetadataHelper] $lastWriteError');
+      return false;
+    }
+
+    try {
+      final db = MetadataDatabase();
+      var metadata = await db.getSongMetadata(filePath);
+      if (metadata == null) {
+        metadata = await readMetadataFromFile(filePath);
+      }
+
+      if (metadata == null) {
+        metadata = SongMetadata(
+          path: filePath,
+          title: p.basenameWithoutExtension(filePath),
+          album: 'Unknown Album',
+          artist: 'Unknown Artist',
+        );
+      }
+
+      Uint8List? artworkBytes;
+      if (metadata.artworkPath != null && metadata.artworkPath!.isNotEmpty) {
+        final artworkFile = File(metadata.artworkPath!);
+        if (await artworkFile.exists()) {
+          artworkBytes = await artworkFile.readAsBytes();
+        }
+      }
+
+      if (artworkBytes == null) {
+        artworkBytes = await decodeEmbeddedArtwork(filePath);
+      }
+
+      final success = await _writeSelectionMetadataToFile(
+        filePath: filePath,
+        metadata: metadata,
+        artworkBytes: artworkBytes,
+        lyrics: lyricsText,
+      );
+
+      if (success) {
+        final mtime = File(filePath).lastModifiedSync().millisecondsSinceEpoch;
+        var updated = metadata.copyWith(
+          lastModifiedTime: mtime,
+          createdAt: mtime,
+          isAppModified: false,
+        );
+        await db.insertOrUpdateSong(updated);
+      }
+
+      return success;
+    } catch (e) {
+      debugPrint('Error saving lyrics to file $filePath: $e');
+      lastWriteError = e.toString();
+      return false;
+    }
+  }
 }
 
 class TagLibMetadata {

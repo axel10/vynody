@@ -28,6 +28,8 @@ import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
 import '../utils/song_context_menu_utils.dart';
+import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 
 bool shouldShowGenerateLyricsButton({required bool hasCurrentSong}) {
   return hasCurrentSong;
@@ -535,6 +537,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           icon: Icons.delete_outline_rounded,
           context: context,
         ),
+      if (!requeryOnly)
+        buildContextMenuItem<String>(
+          value: 'save_lyrics_to_file',
+          enabled: hasCurrentSong &&
+              lyricsState.hasLyrics &&
+              ref.read(audioCurrentMusicProvider) != null &&
+              isMetadataWritable(ref.read(audioCurrentMusicProvider)!.path),
+          label: localizedText('将歌词写入文件', 'Write lyrics to file'),
+          icon: Icons.save_alt_rounded,
+          context: context,
+        ),
       if (requeryOnly)
         buildContextMenuItem<String>(
           value: 'requery',
@@ -610,6 +623,38 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       await _lyricsControllerActions.clearLyricsCacheForCurrentSong();
     } else if (selected == 'clear_translation_cache') {
       await _lyricsControllerActions.clearTranslationCacheForCurrentSong();
+    } else if (selected == 'save_lyrics_to_file') {
+      final currentSong = ref.read(audioCurrentMusicProvider);
+      if (currentSong != null) {
+        final lyricsToSave = _hasTimedLyrics(displayLines)
+            ? displayLines.map((line) {
+                if (!line.isTimed) return line.text;
+                final totalMs = line.timestamp.inMilliseconds;
+                final minutes = totalMs ~/ 60000;
+                final seconds = (totalMs % 60000) ~/ 1000;
+                final centiseconds = (totalMs % 1000) ~/ 10;
+                final timeStr = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.${centiseconds.toString().padLeft(2, '0')}';
+                return '[$timeStr]${line.text}';
+              }).join('\n')
+            : displayPlainLyrics;
+
+        showToast(localizedText('正在写入歌词...', 'Writing lyrics to file...'));
+        final success = await MetadataHelper.saveLyricsToFile(currentSong.path, lyricsToSave);
+        if (success) {
+          showToast(localizedText('歌词写入文件成功', 'Lyrics written to file successfully'));
+          await _lyricsControllerActions.fillLyricsForCurrentSong(
+            lyricsToSave,
+            source: LyricsCacheSource.embedded,
+          );
+        } else {
+          final errorMsg = MetadataHelper.lastWriteError ?? '';
+          showToast(
+            errorMsg.isNotEmpty
+                ? '${localizedText('写入歌词失败', 'Failed to write lyrics')}: $errorMsg'
+                : localizedText('写入歌词失败', 'Failed to write lyrics'),
+          );
+        }
+      }
     } else if (selected == 'requery') {
       await _lyricsControllerActions.requeryLyricsForCurrentSong();
     } else if (selected == 'adjust_timeline') {

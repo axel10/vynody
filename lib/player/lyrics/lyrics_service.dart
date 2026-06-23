@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
+import 'package:path/path.dart' as p;
 
 import 'package:vynody/utils/network_client.dart';
 import 'package:vynody/utils/clean_helper.dart';
@@ -209,7 +212,7 @@ class LyricsService {
     // 先尝试原始查询键，兼容 AI 生成结果按“当前曲目原始元数据”写入的缓存。
     // 再回退到规范化后的查询键，保持既有 LRCLib 缓存命中逻辑不变。
     final cachedFromDb = await _loadFromDatabase(query, ignoreEmptyCache: true);
-    if (cachedFromDb != null) {
+    if (cachedFromDb != null && cachedFromDb.track.hasLyrics) {
       _logDebug('fetch cache hit -> key="$cacheKey" source=raw-db');
       if (debugLog) {
         debugPrintSelection(query, cachedFromDb, source: 'sqlite');
@@ -220,8 +223,49 @@ class LyricsService {
     // 不再使用内存层缓存，而是依赖 MusicFile 自身的持有和数据库持久化。
     // 这里只保留数据库层的查找逻辑。
     final normalizedCachedFromDb = await _loadFromDatabase(normalizedQuery);
-    if (normalizedCachedFromDb != null) {
+    if (normalizedCachedFromDb != null && normalizedCachedFromDb.track.hasLyrics) {
       _logDebug('fetch cache hit -> key="$cacheKey" source=normalized-db');
+      if (debugLog) {
+        debugPrintSelection(
+          normalizedQuery,
+          normalizedCachedFromDb,
+          source: 'sqlite',
+        );
+      }
+      return normalizedCachedFromDb;
+    }
+
+    // 尝试从同目录下和歌曲同名的lrc歌词文件解析
+    final localLrcLyrics = await _tryLoadFromLocalLrcFile(normalizedQuery);
+    if (localLrcLyrics != null) {
+      _logDebug('fetch local lrc hit -> key="$cacheKey"');
+      if (debugLog) {
+        debugPrintSelection(
+          normalizedQuery,
+          localLrcLyrics,
+          source: 'local_lrc',
+        );
+      }
+      return localLrcLyrics;
+    }
+
+    // 尝试从文件元数据中加载歌词
+    final metadataLyrics = await _tryLoadFromMetadata(normalizedQuery);
+    if (metadataLyrics != null) {
+      _logDebug('fetch metadata hit -> key="$cacheKey"');
+      if (debugLog) {
+        debugPrintSelection(
+          normalizedQuery,
+          metadataLyrics,
+          source: 'metadata',
+        );
+      }
+      return metadataLyrics;
+    }
+
+    // 如果数据库缓存存在空缓存（none），此时才作为兜底返回，避免在此之前拦截了元数据或本地歌词
+    if (normalizedCachedFromDb != null && normalizedCachedFromDb.source == 'none') {
+      _logDebug('fetch cache hit (none) -> key="$cacheKey"');
       if (debugLog) {
         debugPrintSelection(
           normalizedQuery,
@@ -262,6 +306,203 @@ class LyricsService {
     }
 
     return result;
+  }
+
+  /// 尝试从同目录下和歌曲同名的lrc歌词文件解析
+  Future<LyricSelectionResult?> _tryLoadFromLocalLrcFile(LyricsQuery query) async {
+    try {
+      final songPath = query.filePath;
+      if (songPath.isEmpty) return null;
+
+      final directory = p.dirname(songPath);
+      final baseName = p.basenameWithoutExtension(songPath);
+      final lrcPath = p.join(directory, '$baseName.lrc');
+
+      var lrcFile = File(lrcPath);
+      if (!await lrcFile.exists()) {
+        final lrcPathUpper = p.join(directory, '$baseName.LRC');
+        final lrcFileUpper = File(lrcPathUpper);
+        if (!await lrcFileUpper.exists()) {
+          return null;
+        }
+        lrcFile = lrcFileUpper;
+      }
+
+      final rawLyrics = await lrcFile.readAsString();
+      if (rawLyrics.trim().isEmpty) {
+        return null;
+      }
+
+      // 解析歌词
+      final syncedLines = _parseSyncedLyrics(rawLyrics);
+      final isSynced = syncedLines.any((line) => line.isTimed);
+
+      final lyricsId = LyricsIdUtils.fromLyricsText(rawLyrics);
+      final track = LyricTrack(
+        id: null,
+        lyricsId: lyricsId,
+        name: query.title,
+        trackName: query.title,
+        artistName: query.artist,
+        albumName: query.album,
+        duration: query.duration?.inSeconds.toDouble(),
+        instrumental: false,
+        plainLyrics: isSynced ? null : rawLyrics,
+        syncedLyrics: isSynced ? rawLyrics : null,
+      );
+
+      final result = LyricSelectionResult(
+        track: track,
+        fromGetApi: false,
+        source: 'embedded',
+        score: 100.0,
+        breakdown: LyricScoreBreakdown(
+          title: 0,
+          artist: 0,
+          album: 0,
+          duration: 0,
+          lyricsQuality: isSynced ? 5 : 3,
+          instrumentalPenalty: 0,
+        ),
+        durationDiffSeconds: 0,
+        syncedLines: syncedLines.isNotEmpty
+            ? syncedLines
+            : rawLyrics
+                .split('\n')
+                .map(
+                  (line) => LyricLine(
+                    timestamp: Duration.zero,
+                    text: line,
+                    isTimed: false,
+                  ),
+                )
+                .toList(),
+        lyricsText: rawLyrics,
+        timelineOffset: Duration.zero,
+      );
+
+      // 缓存到数据库
+      try {
+        final record = LyricsCacheRecord(
+          cacheKey: query.cacheKey,
+          source: LyricsCacheSource.embedded,
+          isSynced: isSynced,
+          syncedLyrics: rawLyrics,
+          syncedLines: result.syncedLines,
+          timelineOffsetMillis: 0,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        );
+        await _cacheRepository.saveLyricsCache(record);
+      } catch (e) {
+        debugPrint('[Lyrics] Failed to cache local LRC lyrics: $e');
+      }
+
+      return result;
+    } catch (e) {
+      debugPrint('[Lyrics] Error reading local lrc file: $e');
+      return null;
+    }
+  }
+
+  /// 尝试从音频文件物理元数据读取歌词
+  Future<LyricSelectionResult?> _tryLoadFromMetadata(LyricsQuery query) async {
+    try {
+      if (!taglib.TagLibFile.isSupported) {
+        return null;
+      }
+      final file = File(query.filePath);
+      if (!await file.exists()) {
+        return null;
+      }
+
+      final tagFile = await taglib.TagLibFile.openAsync(query.filePath);
+      if (tagFile == null) {
+        return null;
+      }
+
+      try {
+        final lyricsList = tagFile.properties[taglib.TagProperties.lyrics];
+        if (lyricsList == null || lyricsList.isEmpty) {
+          return null;
+        }
+
+        final rawLyrics = lyricsList.first.trim();
+        if (rawLyrics.isEmpty) {
+          return null;
+        }
+
+        // 解析歌词
+        final syncedLines = _parseSyncedLyrics(rawLyrics);
+        final isSynced = syncedLines.any((line) => line.isTimed);
+
+        final lyricsId = LyricsIdUtils.fromLyricsText(rawLyrics);
+        final track = LyricTrack(
+          id: null,
+          lyricsId: lyricsId,
+          name: query.title,
+          trackName: query.title,
+          artistName: query.artist,
+          albumName: query.album,
+          duration: query.duration?.inSeconds.toDouble(),
+          instrumental: false,
+          plainLyrics: isSynced ? null : rawLyrics,
+          syncedLyrics: isSynced ? rawLyrics : null,
+        );
+
+        final result = LyricSelectionResult(
+          track: track,
+          fromGetApi: false,
+          source: 'embedded',
+          score: 100.0,
+          breakdown: LyricScoreBreakdown(
+            title: 0,
+            artist: 0,
+            album: 0,
+            duration: 0,
+            lyricsQuality: isSynced ? 5 : 3,
+            instrumentalPenalty: 0,
+          ),
+          durationDiffSeconds: 0,
+          syncedLines: syncedLines.isNotEmpty
+              ? syncedLines
+              : rawLyrics
+                  .split('\n')
+                  .map(
+                    (line) => LyricLine(
+                      timestamp: Duration.zero,
+                      text: line,
+                      isTimed: false,
+                    ),
+                  )
+                  .toList(),
+          lyricsText: rawLyrics,
+          timelineOffset: Duration.zero,
+        );
+
+        // 缓存到数据库
+        try {
+          final record = LyricsCacheRecord(
+            cacheKey: query.cacheKey,
+            source: LyricsCacheSource.embedded,
+            isSynced: isSynced,
+            syncedLyrics: rawLyrics,
+            syncedLines: result.syncedLines,
+            timelineOffsetMillis: 0,
+            updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+          );
+          await _cacheRepository.saveLyricsCache(record);
+        } catch (e) {
+          debugPrint('[Lyrics] Failed to cache embedded lyrics: $e');
+        }
+
+        return result;
+      } finally {
+        tagFile.close();
+      }
+    } catch (e) {
+      debugPrint('[Lyrics] Error reading embedded lyrics: $e');
+      return null;
+    }
   }
 
   /// 在线搜索逻辑：包含精准匹配与模糊评分两个阶段。

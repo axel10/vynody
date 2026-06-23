@@ -8,7 +8,8 @@ enum LyricsCacheSource {
   aiTimeline,
   ai,
   manualAdjust,
-  lrclib;
+  lrclib,
+  embedded;
 
   static LyricsCacheSource fromDbValue(Object? value) {
     final normalized = value?.toString().trim().toLowerCase() ?? '';
@@ -31,6 +32,8 @@ enum LyricsCacheSource {
         return LyricsCacheSource.manualAdjust;
       case 'lrclib':
         return LyricsCacheSource.lrclib;
+      case 'embedded':
+        return LyricsCacheSource.embedded;
       default:
         return LyricsCacheSource.lrclib;
     }
@@ -56,6 +59,8 @@ enum LyricsCacheSource {
       case 'gemini_timeline':
       case 'ai_timeline':
         return LyricsCacheSource.aiTimeline;
+      case 'embedded':
+        return LyricsCacheSource.embedded;
       default:
         return normalized.isEmpty
             ? LyricsCacheSource.manualAdjust
@@ -71,6 +76,7 @@ enum LyricsCacheSource {
       LyricsCacheSource.ai => 'ai',
       LyricsCacheSource.manualAdjust => 'manual_adjust',
       LyricsCacheSource.lrclib => 'lrclib',
+      LyricsCacheSource.embedded => 'embedded',
     };
   }
 
@@ -82,6 +88,7 @@ enum LyricsCacheSource {
       LyricsCacheSource.ai => 'ai',
       LyricsCacheSource.manualAdjust => 'manual_adjust',
       LyricsCacheSource.lrclib => 'lrclib',
+      LyricsCacheSource.embedded => 'embedded',
     };
   }
 

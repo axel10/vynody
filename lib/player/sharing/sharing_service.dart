@@ -1008,6 +1008,55 @@ class SharingService {
       filesToSend.add(
         _FileToSend(path: path, relativeName: relativeName, size: size),
       );
+
+      // Check if a same-named LRC file exists in the same directory, and add it for physical transfer
+      try {
+        final directory = p.dirname(path);
+        final baseName = p.basenameWithoutExtension(path);
+        final lrcPath = p.join(directory, '$baseName.lrc');
+        var lrcFile = File(lrcPath);
+        if (!lrcFile.existsSync()) {
+          final lrcPathUpper = p.join(directory, '$baseName.LRC');
+          final lrcFileUpper = File(lrcPathUpper);
+          if (lrcFileUpper.existsSync()) {
+            lrcFile = lrcFileUpper;
+          } else {
+            lrcFile = File('');
+          }
+        }
+
+        if (lrcFile.path.isNotEmpty && lrcFile.existsSync()) {
+          final lrcSize = lrcFile.lengthSync();
+          totalSize += lrcSize;
+
+          String lrcRelativeName = p.basename(lrcFile.path);
+          if (baseSourcePath != null) {
+            lrcRelativeName = p.relative(lrcFile.path, from: baseSourcePath);
+          }
+
+          filesPayload.add({
+            'name': lrcRelativeName,
+            'size': lrcSize,
+            'duration_ms': 0,
+            'title': null,
+            'artist': null,
+            'album': null,
+            'lyrics_package': null,
+          });
+
+          filesToSend.add(
+            _FileToSend(
+              path: lrcFile.path,
+              relativeName: lrcRelativeName,
+              size: lrcSize,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint(
+          '[SharingService] Error checking/adding local lrc file for transfer: $e',
+        );
+      }
     }
 
     if (filesToSend.isEmpty) return false;
@@ -1238,6 +1287,7 @@ class SharingService {
       case LyricsCacheSource.aiGenerate:
         return 3;
       case LyricsCacheSource.lrclib:
+      case LyricsCacheSource.embedded:
         return 2;
       case LyricsCacheSource.none:
         return 1;
