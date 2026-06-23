@@ -491,10 +491,17 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        FilledButton(
+                        FilledButton.tonal(
                           onPressed: _isSaving
                               ? null
                               : () => _save(writeToFile: false),
+                          child: Text(l10n.saveToApp),
+                        ),
+                        const SizedBox(height: 10),
+                        FilledButton(
+                          onPressed: _isSaving || !canWriteToSourceFile
+                              ? null
+                              : () => _save(writeToFile: true),
                           child: _isSaving
                               ? const SizedBox(
                                   width: 18,
@@ -503,14 +510,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : Text(l10n.saveToApp),
-                        ),
-                        const SizedBox(height: 10),
-                        FilledButton.tonal(
-                          onPressed: _isSaving || !canWriteToSourceFile
-                              ? null
-                              : () => _save(writeToFile: true),
-                          child: Text(l10n.saveToSourceFileAndApp),
+                              : Text(l10n.saveToSourceFileAndApp),
                         ),
                       ],
                     ),
