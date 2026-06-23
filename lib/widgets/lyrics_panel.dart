@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
 import 'package:oktoast/oktoast.dart';
 
@@ -462,6 +463,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         ? await _lyricsControllerActions.getAvailableLyricRecords(currentSong)
         : const <LyricsCacheRecord>[];
 
+    final displayLyrics = _lyricsForDisplay();
+    final targetLang = lyricsState.lyricsTranslationLanguageCode;
+    final effectiveLang = displayLyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+    final translation = displayLyrics?.translationFor(effectiveLang);
+    final hasTranslation = translation != null && translation.hasContent;
+
     final items = <PopupMenuEntry<String>>[
       buildContextMenuItem<String>(
         value: 'fill_lyrics',
@@ -518,6 +525,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           enabled: hasCurrentSong && !taskState.isTranslationBusy,
           label: l10n.translateLyrics,
           icon: Icons.translate_rounded,
+          context: context,
+        ),
+      if (!requeryOnly && hasTranslation)
+        buildContextMenuItem<String>(
+          value: 'copy_translation',
+          enabled: true,
+          label: localizedText('复制翻译结果', 'Copy translation results'),
+          icon: Icons.copy_rounded,
           context: context,
         ),
       buildContextMenuItem<String>(
@@ -632,6 +647,16 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         if (errorMessage != null) {
           _showGenerationErrorSnack(errorMessage);
         }
+      }
+    } else if (selected == 'copy_translation') {
+      if (hasTranslation) {
+        final copyText = translation.translatedLines.isNotEmpty
+            ? translation.translatedLines.join('\n').trim()
+            : translation.translatedText.trim();
+        await Clipboard.setData(ClipboardData(text: copyText));
+        showToast(
+          localizedText('已复制翻译结果到剪贴板', 'Translation results copied to clipboard'),
+        );
       }
     } else if (selected == 'search_online_lyrics') {
       await _searchOnlineLyrics();
