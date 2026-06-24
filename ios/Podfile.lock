@@ -53,6 +53,8 @@ PODS:
   - Flutter (1.0.0)
   - flutter_taglib (0.0.1):
     - Flutter
+  - integration_test (0.0.1):
+    - Flutter
   - mobile_storage_listener (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -117,6 +119,7 @@ DEPENDENCIES:
   - file_selector_ios (from `.symlinks/plugins/file_selector_ios/ios`)
   - Flutter (from `Flutter`)
   - flutter_taglib (from `.symlinks/plugins/flutter_taglib/ios`)
+  - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - mobile_storage_listener (from `.symlinks/plugins/mobile_storage_listener/darwin`)
   - on_audio_query_ios (from `.symlinks/plugins/on_audio_query_ios/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
@@ -158,6 +161,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_taglib:
     :path: ".symlinks/plugins/flutter_taglib/ios"
+  integration_test:
+    :path: ".symlinks/plugins/integration_test/ios"
   mobile_storage_listener:
     :path: ".symlinks/plugins/mobile_storage_listener/darwin"
   on_audio_query_ios:
@@ -192,6 +197,7 @@ SPEC CHECKSUMS:
   file_selector_ios: ec57ec07954363dd730b642e765e58f199bb621a
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_taglib: cc3aa57678a502616b821de3e98b412806bf288d
+  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
   mobile_storage_listener: 7894760322d7fb5121e315b81806dbddfceef26e
   on_audio_query_ios: 28a780e2d0d85d92d500ba6e12c6c8167022b2fa
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
