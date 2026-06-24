@@ -16,6 +16,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:bonsoir/bonsoir.dart';
 import 'lan_device.dart';
 import 'web_share_html.dart';
+import 'package:vynody/main.dart';
+import 'package:vynody/dialogs/transfer_dialogs.dart';
 
 // Riverpod states for UI communication
 class IncomingRequestNotifier extends Notifier<IncomingTransferRequest?> {
@@ -183,6 +185,39 @@ class SharingService {
 
   final Map<String, _UploadRequestMetadata> _activeTokens = {};
 
+  final Map<String, HttpClientRequest> _currentUploadRequests = {};
+  final Map<String, HttpRequest> _currentReceiverRequests = {};
+
+  void cancelTransfer(String sessionId) {
+    debugPrint('[SharingService] cancelTransfer called for session: $sessionId');
+    _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.cancelled);
+
+    // Abort sender request if any
+    final sendReq = _currentUploadRequests[sessionId];
+    if (sendReq != null) {
+      debugPrint('[SharingService] Aborting sender upload request for session: $sessionId');
+      try {
+        sendReq.abort();
+      } catch (e) {
+        debugPrint('[SharingService] Error aborting sender request: $e');
+      }
+      _currentUploadRequests.remove(sessionId);
+    }
+
+    // Abort receiver request if any
+    final recvReq = _currentReceiverRequests[sessionId];
+    if (recvReq != null) {
+      debugPrint('[SharingService] Aborting receiver upload request for session: $sessionId');
+      try {
+        recvReq.response.statusCode = HttpStatus.internalServerError;
+        recvReq.response.close();
+      } catch (e) {
+        debugPrint('[SharingService] Error aborting receiver request: $e');
+      }
+      _currentReceiverRequests.remove(sessionId);
+    }
+  }
+
   // Discovered devices list managed locally, updated to UI via Riverpod
   final StreamController<List<LanDevice>> _devicesController =
       StreamController<List<LanDevice>>.broadcast();
@@ -246,14 +281,11 @@ class SharingService {
     // 3. Resolve Sharing Path
     await _resolveSharingPath();
   }
-
   Future<void> _resolveSharingPath() async {
     String basePath = '';
-    if (Platform.isIOS) {
+    if (Platform.isIOS || Platform.isAndroid) {
       final docDir = await getApplicationDocumentsDirectory();
       basePath = p.join(docDir.path, 'Vynody Music');
-    } else if (Platform.isAndroid) {
-      basePath = '/storage/emulated/0/Music/Vynody Music';
     } else if (Platform.isMacOS) {
       basePath = p.join(
         Platform.environment['HOME'] ?? '',
@@ -285,7 +317,6 @@ class SharingService {
       }
     }
   }
-
   Future<void> _cleanObsoleteIosPaths() async {
     if (!Platform.isIOS) return;
     final scanner = _ref.read(scannerServiceProvider);
@@ -739,6 +770,17 @@ class SharingService {
       return;
     }
 
+    final sessionId = token;
+    final isCancelled = _ref.read(activeTransfersProvider).any((s) => s.id == sessionId && s.status == TransferStatus.cancelled);
+    if (isCancelled) {
+      debugPrint('[SharingService] Receiver: Session $sessionId is cancelled. Rejecting incoming upload.');
+      _activeTokens.remove(token);
+      request.response.statusCode = HttpStatus.badRequest;
+      request.response.write(jsonEncode({'error': 'Transfer cancelled'}));
+      await request.response.close();
+      return;
+    }
+
     final metadata = _activeTokens[token]!;
 
     // Fallback if client doesn't use standard request streaming body
@@ -752,10 +794,44 @@ class SharingService {
 
     // Resolve target path (which may contain relative subfolders)
     String targetPath = p.join(_sharingFolderPath, relativePath);
+    debugPrint('[SharingService] Receiver: Incoming file upload request for $relativePath');
 
     // Resolve duplicate name, keeping relative subfolder structure
     final file = File(targetPath);
+    bool shouldSkip = false;
+    bool shouldOverwrite = false;
+
     if (file.existsSync()) {
+      if (metadata.conflictAction == 'skip_all') {
+        shouldSkip = true;
+      } else if (metadata.conflictAction == 'overwrite_all') {
+        shouldOverwrite = true;
+      } else {
+        final context = navigatorKey.currentContext;
+        if (context != null) {
+          debugPrint('[SharingService] Receiver: Prompting conflict dialog for $relativePath');
+          final action = await showConflictDialog(context, p.basename(relativePath));
+          debugPrint('[SharingService] Receiver: User chose $action for $relativePath');
+          if (action == 'skip') {
+            shouldSkip = true;
+          } else if (action == 'skip_all') {
+            metadata.conflictAction = 'skip_all';
+            shouldSkip = true;
+          } else if (action == 'overwrite') {
+            shouldOverwrite = true;
+          } else if (action == 'overwrite_all') {
+            metadata.conflictAction = 'overwrite_all';
+            shouldOverwrite = true;
+          } else {
+            shouldSkip = true;
+          }
+        } else {
+          debugPrint('[SharingService] Receiver: Global context not available. Falling back to counter renaming.');
+        }
+      }
+    }
+
+    if (file.existsSync() && !shouldSkip && !shouldOverwrite) {
       final extension = p.extension(relativePath);
       final dirName = p.dirname(relativePath);
       final baseName = p.basenameWithoutExtension(relativePath);
@@ -770,6 +846,61 @@ class SharingService {
         }
         counter++;
       }
+      debugPrint('[SharingService] Receiver: Duplicate file renamed to $targetPath');
+    }
+
+    if (shouldSkip) {
+      debugPrint('[SharingService] Receiver: Skipping file $relativePath. Discarding request body...');
+      _currentReceiverRequests[sessionId] = request;
+      try {
+        await for (final _ in request) {
+          // Just discard chunks
+        }
+        
+        // Track completed file
+        metadata.completedFiles.add(relativePath);
+
+        // Check if all files in the metadata session are completed
+        final allFiles = metadata.files.map((f) => f.name).toSet();
+        final isFinished =
+            metadata.completedFiles.containsAll(allFiles) ||
+            metadata.completedFiles.length >= metadata.files.length;
+
+        if (isFinished) {
+          _ref
+              .read(activeTransfersProvider.notifier)
+              .updateProgress(
+                sessionId,
+                metadata.totalSize,
+                status: TransferStatus.success,
+                completedFilesCount: metadata.completedFiles.length,
+              );
+          _activeTokens.remove(token);
+
+          // Trigger targeted Scanner rescan
+          final scanner = _ref.read(scannerServiceProvider);
+          unawaited(scanner.scan(clearScannedRoots: false));
+        } else {
+          _ref
+              .read(activeTransfersProvider.notifier)
+              .updateProgress(
+                sessionId,
+                metadata.bytesTransferredCumulative,
+                completedFilesCount: metadata.completedFiles.length,
+              );
+        }
+
+        request.response.statusCode = HttpStatus.ok;
+        request.response.write(jsonEncode({'success': true, 'path': targetPath, 'skipped': true}));
+      } catch (e) {
+        debugPrint('[SharingService] Receiver: Error while skipping/discarding file $relativePath: $e');
+        request.response.statusCode = HttpStatus.internalServerError;
+        request.response.write(jsonEncode({'error': 'Error skipping file: $e'}));
+      } finally {
+        _currentReceiverRequests.remove(sessionId);
+      }
+      await request.response.close();
+      return;
     }
 
     final targetFile = File(targetPath);
@@ -780,11 +911,34 @@ class SharingService {
     }
 
     final ioSink = targetFile.openWrite();
-    final sessionId = token;
+    _currentReceiverRequests[sessionId] = request;
 
     try {
-      await for (final chunk in request) {
-        ioSink.add(chunk);
+      debugPrint('[SharingService] Receiver: Starting to write to file: $targetPath');
+      int fileBytesReceived = 0;
+      DateTime lastLogTime = DateTime.now();
+
+      final progressStream = request.map((chunk) {
+        // Check cancellation
+        final currentSessions = _ref.read(activeTransfersProvider);
+        final currentSession = currentSessions.firstWhere(
+          (s) => s.id == sessionId,
+          orElse: () => TransferSession(
+            id: '',
+            fileName: '',
+            totalBytes: 0,
+            bytesTransferred: 0,
+            isSending: true,
+            deviceName: '',
+            status: TransferStatus.failed,
+          ),
+        );
+        if (currentSession.status == TransferStatus.cancelled) {
+          debugPrint('[SharingService] Receiver: Transfer was cancelled by user during download of $relativePath');
+          throw Exception('Cancelled by user');
+        }
+
+        fileBytesReceived += chunk.length;
 
         final newCumulative =
             metadata.bytesTransferredCumulative + chunk.length;
@@ -793,9 +947,26 @@ class SharingService {
         _ref
             .read(activeTransfersProvider.notifier)
             .updateProgress(sessionId, newCumulative);
-      }
+
+        final now = DateTime.now();
+        if (now.difference(lastLogTime).inSeconds >= 2) {
+          debugPrint(
+            '[SharingService] Receiver: Downloading $relativePath: '
+            '${(fileBytesReceived / (1024 * 1024)).toStringAsFixed(2)} MB received',
+          );
+          lastLogTime = now;
+        }
+        return chunk;
+      });
+
+      // Use addStream to pipe chunk data to ioSink.
+      // This handles all underlying write/open errors on the main thread inside the try-catch block!
+      await ioSink.addStream(progressStream);
+
+      debugPrint('[SharingService] Receiver: Finished reading request stream for $relativePath. Flushing and closing file...');
       await ioSink.flush();
       await ioSink.close();
+      debugPrint('[SharingService] Receiver: Saved file successfully: $targetPath');
 
       // Ensure the sharing folder is added to scanner now that we have received a file
       await _ensureRegisteredInScanner();
@@ -865,19 +1036,34 @@ class SharingService {
       request.response.statusCode = HttpStatus.ok;
       request.response.write(jsonEncode({'success': true, 'path': targetPath}));
     } catch (e) {
+      debugPrint('[SharingService] Receiver: Error uploading file $relativePath: $e');
       await ioSink.close();
       if (targetFile.existsSync()) {
         try {
           targetFile.deleteSync();
         } catch (_) {}
       }
-      _ref
-          .read(activeTransfersProvider.notifier)
-          .updateStatus(sessionId, TransferStatus.failed);
+      final currentSessionsInner = _ref.read(activeTransfersProvider);
+      final currentSessionInner = currentSessionsInner.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
+        id: '',
+        fileName: '',
+        totalBytes: 0,
+        bytesTransferred: 0,
+        isSending: true,
+        deviceName: '',
+        status: TransferStatus.failed,
+      ));
+      if (currentSessionInner.status != TransferStatus.cancelled) {
+        _ref
+            .read(activeTransfersProvider.notifier)
+            .updateStatus(sessionId, TransferStatus.failed);
+      }
       _activeTokens.remove(token);
 
       request.response.statusCode = HttpStatus.internalServerError;
       request.response.write(jsonEncode({'error': 'Transfer interrupted: $e'}));
+    } finally {
+      _currentReceiverRequests.remove(sessionId);
     }
     await request.response.close();
   }
@@ -1087,6 +1273,11 @@ class SharingService {
           ),
         );
 
+    debugPrint(
+      '[SharingService] Starting sendFiles to ${targetDevice.name} (${targetDevice.ip}:${targetDevice.httpPort}). '
+      'Total files count: ${filesToSend.length}, total size: ${(totalSize / (1024 * 1024)).toStringAsFixed(2)} MB',
+    );
+
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 5);
 
@@ -1095,6 +1286,7 @@ class SharingService {
       final requestUri = Uri.parse(
         'http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/request',
       );
+      debugPrint('[SharingService] Sending preflight request to: $requestUri');
       final request = await client.postUrl(requestUri);
       request.headers.contentType = ContentType.json;
       request.write(
@@ -1106,6 +1298,7 @@ class SharingService {
       );
 
       final response = await request.close();
+      debugPrint('[SharingService] Preflight response status: ${response.statusCode}');
       if (response.statusCode != HttpStatus.ok) {
         _ref
             .read(activeTransfersProvider.notifier)
@@ -1115,8 +1308,10 @@ class SharingService {
 
       final responseBody = await utf8.decoder.bind(response).join();
       final responseJson = jsonDecode(responseBody) as Map<String, dynamic>;
+      final accepted = responseJson['accepted'] == true;
+      debugPrint('[SharingService] Preflight decision accepted: $accepted');
 
-      if (!responseJson['accepted']) {
+      if (!accepted) {
         _ref
             .read(activeTransfersProvider.notifier)
             .updateStatus(sessionId, TransferStatus.cancelled);
@@ -1134,10 +1329,33 @@ class SharingService {
       int completedFilesCount = 0;
 
       for (final fileInfo in filesToSend) {
+        // Check if session has been cancelled
+        final currentSessions = _ref.read(activeTransfersProvider);
+        final currentSession = currentSessions.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
+          id: '',
+          fileName: '',
+          totalBytes: 0,
+          bytesTransferred: 0,
+          isSending: true,
+          deviceName: '',
+          status: TransferStatus.failed,
+        ));
+        if (currentSession.status == TransferStatus.cancelled) {
+          debugPrint('[SharingService] sendFiles: Transfer was cancelled before starting ${fileInfo.relativeName}');
+          return false;
+        }
+
         final uploadUri = Uri.parse(
           'http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/upload',
         );
+        debugPrint(
+          '[SharingService] Starting upload of "${fileInfo.relativeName}" '
+          '(${(fileInfo.size / (1024 * 1024)).toStringAsFixed(2)} MB) to $uploadUri',
+        );
+
         final uploadRequest = await client.postUrl(uploadUri);
+        _currentUploadRequests[sessionId] = uploadRequest;
+
         uploadRequest.headers.add('Authorization', 'Bearer $token');
         uploadRequest.headers.add(
           'X-File-Name',
@@ -1147,11 +1365,31 @@ class SharingService {
         uploadRequest.contentLength = fileInfo.size;
 
         final fileStream = File(fileInfo.path).openRead();
+        int fileBytesSent = 0;
+        DateTime lastLogTime = DateTime.now();
 
         try {
           await for (final chunk in fileStream) {
+            // Check cancellation in the chunk writing loop
+            final currentSessionsInner = _ref.read(activeTransfersProvider);
+            final currentSessionInner = currentSessionsInner.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
+              id: '',
+              fileName: '',
+              totalBytes: 0,
+              bytesTransferred: 0,
+              isSending: true,
+              deviceName: '',
+              status: TransferStatus.failed,
+            ));
+            if (currentSessionInner.status == TransferStatus.cancelled) {
+              debugPrint('[SharingService] sendFiles: Transfer was cancelled during chunk stream of ${fileInfo.relativeName}');
+              uploadRequest.abort();
+              return false;
+            }
+
             uploadRequest.add(chunk);
             totalBytesSent += chunk.length;
+            fileBytesSent += chunk.length;
             _ref
                 .read(activeTransfersProvider.notifier)
                 .updateProgress(
@@ -1159,14 +1397,41 @@ class SharingService {
                   totalBytesSent,
                   completedFilesCount: completedFilesCount,
                 );
+
+            final now = DateTime.now();
+            if (now.difference(lastLogTime).inSeconds >= 2) {
+              debugPrint(
+                '[SharingService] Uploading ${fileInfo.relativeName}: '
+                '${(fileBytesSent / (1024 * 1024)).toStringAsFixed(2)}/${(fileInfo.size / (1024 * 1024)).toStringAsFixed(2)} MB '
+                '(${(fileBytesSent / fileInfo.size * 100).toStringAsFixed(0)}%)',
+              );
+              lastLogTime = now;
+            }
           }
-          final uploadResponse = await uploadRequest.close();
+
+          debugPrint('[SharingService] Request stream completed for ${fileInfo.relativeName}. Waiting for response...');
+          final uploadResponse = await uploadRequest.close().timeout(const Duration(seconds: 120));
+          debugPrint('[SharingService] Response received for ${fileInfo.relativeName}: ${uploadResponse.statusCode}');
+
           if (uploadResponse.statusCode != HttpStatus.ok) {
-            _ref
-                .read(activeTransfersProvider.notifier)
-                .updateStatus(sessionId, TransferStatus.failed);
+            final currentSessionsInner = _ref.read(activeTransfersProvider);
+            final currentSessionInner = currentSessionsInner.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
+              id: '',
+              fileName: '',
+              totalBytes: 0,
+              bytesTransferred: 0,
+              isSending: true,
+              deviceName: '',
+              status: TransferStatus.failed,
+            ));
+            if (currentSessionInner.status != TransferStatus.cancelled) {
+              _ref
+                  .read(activeTransfersProvider.notifier)
+                  .updateStatus(sessionId, TransferStatus.failed);
+            }
             return false;
           }
+          
           completedFilesCount++;
           _ref
               .read(activeTransfersProvider.notifier)
@@ -1179,13 +1444,28 @@ class SharingService {
           debugPrint(
             '[SharingService] Error uploading file ${fileInfo.relativeName}: $e',
           );
-          _ref
-              .read(activeTransfersProvider.notifier)
-              .updateStatus(sessionId, TransferStatus.failed);
+          final currentSessionsInner = _ref.read(activeTransfersProvider);
+          final currentSessionInner = currentSessionsInner.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
+            id: '',
+            fileName: '',
+            totalBytes: 0,
+            bytesTransferred: 0,
+            isSending: true,
+            deviceName: '',
+            status: TransferStatus.failed,
+          ));
+          if (currentSessionInner.status != TransferStatus.cancelled) {
+            _ref
+                .read(activeTransfersProvider.notifier)
+                .updateStatus(sessionId, TransferStatus.failed);
+          }
           return false;
+        } finally {
+          _currentUploadRequests.remove(sessionId);
         }
       }
 
+      debugPrint('[SharingService] All uploads completed successfully.');
       _ref
           .read(activeTransfersProvider.notifier)
           .updateProgress(
@@ -1197,11 +1477,24 @@ class SharingService {
       return true;
     } catch (e) {
       debugPrint('[SharingService] Failed to send files: $e');
-      _ref
-          .read(activeTransfersProvider.notifier)
-          .updateStatus(sessionId, TransferStatus.failed);
+      final currentSessionsInner = _ref.read(activeTransfersProvider);
+      final currentSessionInner = currentSessionsInner.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
+        id: '',
+        fileName: '',
+        totalBytes: 0,
+        bytesTransferred: 0,
+        isSending: true,
+        deviceName: '',
+        status: TransferStatus.failed,
+      ));
+      if (currentSessionInner.status != TransferStatus.cancelled) {
+        _ref
+            .read(activeTransfersProvider.notifier)
+            .updateStatus(sessionId, TransferStatus.failed);
+      }
       return false;
     } finally {
+      _currentUploadRequests.remove(sessionId);
       client.close();
     }
   }
@@ -1518,6 +1811,7 @@ class _UploadRequestMetadata {
   final String senderName;
   int bytesTransferredCumulative = 0;
   final Set<String> completedFiles = {};
+  String? conflictAction; // 'skip_all', 'overwrite_all', or null
 
   _UploadRequestMetadata({
     required this.sessionName,

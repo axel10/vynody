@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_service.dart';
+import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 
 void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest request) {
@@ -144,11 +145,14 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                   
                   // Show quick status toast or SnackBar
                   final isSuccess = session.status == TransferStatus.success;
+                  final isCancelled = session.status == TransferStatus.cancelled;
                   final text = isSuccess
                       ? (session.isSending 
                           ? '"${session.fileName}" 发送完毕' 
                           : '成功接收了 ${session.completedFilesCount ?? session.filesCount ?? 1} 首歌曲')
-                      : '${session.isSending ? "发送" : "接收"} "${session.fileName}" 失败';
+                      : (isCancelled
+                          ? '${session.isSending ? "发送" : "接收"}已取消'
+                          : '${session.isSending ? "发送" : "接收"} "${session.fileName}" 失败');
                   
                   AppSnackBar.show(
                     context,
@@ -208,8 +212,132 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                   ),
                 ],
               ),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              actions: [
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () {
+                    ref.read(sharingServiceProvider).cancelTransfer(sessionId);
+                  },
+                  child: const Text('取消'),
+                ),
+              ],
             );
           },
+        ),
+      );
+    },
+  );
+}
+
+Future<String?> showConflictDialog(BuildContext context, String fileName) {
+  final theme = Theme.of(context);
+  return showDialog<String>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      return BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+            ),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
+              const SizedBox(width: 12),
+              const Text(
+                '文件冲突',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '目标设备已存在同名文件：',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                fileName,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '请选择您要执行的操作：',
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop('skip'),
+                      child: const Text('跳过'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop('overwrite'),
+                      child: const Text('覆盖'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop('skip_all'),
+                      child: const Text('全部跳过'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop('overwrite_all'),
+                      child: const Text('全部覆盖'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       );
     },
