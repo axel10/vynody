@@ -44,6 +44,7 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _appVersion = '';
   bool _isAssociated = false;
+  bool _isCheckingUpdates = false;
   _SettingsSection _currentSection = _SettingsSection.home;
 
   @override
@@ -70,6 +71,133 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (mounted) {
         setState(() {
           _isAssociated = status;
+        });
+      }
+    }
+  }
+
+  List<int> _parseVersionParts(String version) {
+    final cleaned = version.trim().replaceFirst(RegExp(r'^[vV]'), '');
+    final core = cleaned.split('+').first.split('-').first;
+    final parts = core.split('.');
+    return List<int>.generate(3, (index) {
+      if (index >= parts.length) return 0;
+      return int.tryParse(parts[index]) ?? 0;
+    });
+  }
+
+  int _compareVersions(String current, String latest) {
+    final currentParts = _parseVersionParts(current);
+    final latestParts = _parseVersionParts(latest);
+    for (var i = 0; i < 3; i++) {
+      final diff = currentParts[i].compareTo(latestParts[i]);
+      if (diff != 0) return diff;
+    }
+    return 0;
+  }
+
+  Future<void> _checkForUpdates() async {
+    if (_isCheckingUpdates) return;
+
+    setState(() {
+      _isCheckingUpdates = true;
+    });
+
+    try {
+      final client = HttpClient();
+      client.userAgent = 'Vynody';
+
+      final request = await client.getUrl(
+        Uri.parse('https://github.com/axel10/vynody/releases/latest'),
+      );
+      request.followRedirects = false;
+      request.headers.set(HttpHeaders.acceptHeader, 'text/html');
+
+      final response = await request.close();
+      final location = response.headers.value(HttpHeaders.locationHeader) ?? '';
+      final latestTag = location.isNotEmpty
+          ? Uri.parse(location).pathSegments.isNotEmpty
+                ? Uri.parse(location).pathSegments.last
+                : ''
+          : '';
+      final latestVersion = latestTag.replaceFirst(RegExp(r'^[vV]'), '');
+      final releaseUrl = location.isNotEmpty
+          ? location.startsWith('http')
+                ? location
+                : 'https://github.com$location'
+          : 'https://github.com/axel10/vynody/releases/latest';
+
+      final socket = await response.detachSocket();
+      socket.destroy();
+      client.close(force: true);
+
+      if (latestVersion.isEmpty) {
+        throw StateError('Missing latest release version');
+      }
+
+      final currentVersion = _appVersion.isEmpty
+          ? (await PackageInfo.fromPlatform()).version
+          : _appVersion;
+
+      if (!mounted) return;
+
+      if (_compareVersions(currentVersion, latestVersion) >= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Localizations.localeOf(context).languageCode == 'zh'
+                  ? '当前已经是最新版本。'
+                  : 'You are already on the latest version.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          final isZh =
+              Localizations.localeOf(dialogContext).languageCode == 'zh';
+          return AlertDialog(
+            title: Text(isZh ? '发现新版本' : 'Update Available'),
+            content: Text(
+              isZh
+                  ? '检测到新版本 v$latestVersion，前往 GitHub Release 页面下载更新。'
+                  : 'A new version v$latestVersion is available. You can download it from the GitHub Release page.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(isZh ? '取消' : 'Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  final uri = Uri.parse(releaseUrl);
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                },
+                child: Text(isZh ? '前往 Release' : 'Open Release'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            Localizations.localeOf(context).languageCode == 'zh'
+                ? '检查更新失败，可能是网络问题或 GitHub 限流。'
+                : 'Failed to check for updates. It may be a network issue or GitHub rate limit.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingUpdates = false;
         });
       }
     }
@@ -393,9 +521,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        isZh ? '重建索引已启动' : 'Rebuild index started',
-                      ),
+                      content: Text(isZh ? '重建索引已启动' : 'Rebuild index started'),
                     ),
                   );
                 }
@@ -757,7 +883,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _buildHomeSectionTile(
           context,
           icon: Icons.label_outline_rounded,
-          title: Localizations.localeOf(context).languageCode == 'zh' ? '标签' : 'Tags',
+          title: Localizations.localeOf(context).languageCode == 'zh'
+              ? '标签'
+              : 'Tags',
           onTap: () => _openSection(_SettingsSection.tags),
         ),
         _buildHomeSectionTile(
@@ -1138,9 +1266,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ),
-        _buildSectionHeader(
-          l10n.geminiModelsSectionTitle,
-        ),
+        _buildSectionHeader(l10n.geminiModelsSectionTitle),
         if (!hasAnyProvider)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -1283,9 +1409,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SizedBox(height: 12),
                 InkWell(
                   onTap: () async {
-                    final uri = Uri.parse(
-                      'https://github.com/axel10/vynody',
-                    );
+                    final uri = Uri.parse('https://github.com/axel10/vynody');
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   },
                   borderRadius: BorderRadius.circular(4),
@@ -1305,6 +1429,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ),
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  onPressed: _isCheckingUpdates ? null : _checkForUpdates,
+                  icon: _isCheckingUpdates
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.system_update_alt_rounded),
+                  label: Text(isZh ? '检查更新' : 'Check for updates'),
                 ),
               ],
             ),
@@ -1533,13 +1669,12 @@ class _LyricsModelPickerDialogState
       if (widget.purpose == LyricsAiModelPurpose.translation)
         LyricsAiProvider.deepseek,
     ].where(availableProviders.contains).toList(growable: false);
-    final canSave = widget.slot == LyricsAiModelSlot.fallback ||
+    final canSave =
+        widget.slot == LyricsAiModelSlot.fallback ||
         _selection.modelId.trim().isNotEmpty;
     final effectiveProvider = availableTabs.contains(_provider)
         ? _provider
-        : (availableTabs.isNotEmpty
-            ? availableTabs.first
-            : _provider);
+        : (availableTabs.isNotEmpty ? availableTabs.first : _provider);
     return AlertDialog(
       title: Text(
         widget.purpose == LyricsAiModelPurpose.generation
