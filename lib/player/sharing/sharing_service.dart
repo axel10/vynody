@@ -11,6 +11,8 @@ import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/scanner/scanner_repository.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:flutter/services.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:bonsoir/bonsoir.dart';
@@ -283,39 +285,64 @@ class SharingService {
   }
   Future<void> _resolveSharingPath() async {
     String basePath = '';
-    if (Platform.isIOS || Platform.isAndroid) {
-      final docDir = await getApplicationDocumentsDirectory();
-      basePath = p.join(docDir.path, 'Vynody Music');
-    } else if (Platform.isMacOS) {
-      basePath = p.join(
-        Platform.environment['HOME'] ?? '',
-        'Music',
-        'Vynody Music',
-      );
-    } else if (Platform.isWindows) {
-      final userProfile = Platform.environment['USERPROFILE'] ?? '';
-      basePath = p.join(userProfile, 'Music', 'Vynody Music');
+    final settings = _ref.read(settingsServiceProvider);
+    final savedPath = settings.lanSharingFolderPath;
+
+    if (savedPath.isNotEmpty) {
+      basePath = savedPath;
     } else {
-      basePath = p.join(
-        Platform.environment['HOME'] ?? '',
-        'Music',
-        'Vynody Music',
-      );
+      if (Platform.isIOS || Platform.isAndroid) {
+        final docDir = await getApplicationDocumentsDirectory();
+        basePath = p.join(docDir.path, 'Vynody Music');
+      } else if (Platform.isMacOS) {
+        basePath = p.join(
+          Platform.environment['HOME'] ?? '',
+          'Music',
+          'Vynody Music',
+        );
+      } else if (Platform.isWindows) {
+        final userProfile = Platform.environment['USERPROFILE'] ?? '';
+        basePath = p.join(userProfile, 'Music', 'Vynody Music');
+      } else {
+        basePath = p.join(
+          Platform.environment['HOME'] ?? '',
+          'Music',
+          'Vynody Music',
+        );
+      }
     }
 
     _sharingFolderPath = basePath;
-    final dir = Directory(_sharingFolderPath);
-    if (!dir.existsSync()) {
-      try {
-        dir.createSync(recursive: true);
-      } catch (e) {
-        debugPrint('[SharingService] Failed to create sharing directory: $e');
-        // Fallback to app documents
-        final appDoc = await getApplicationDocumentsDirectory();
-        _sharingFolderPath = p.join(appDoc.path, 'Vynody Music');
-        Directory(_sharingFolderPath).createSync(recursive: true);
+
+    // Check if we should skip creating the directory synchronously on Android (if using SAF)
+    bool shouldCreateDir = true;
+    if (Platform.isAndroid && savedPath.isNotEmpty) {
+      final mapping = await AndroidSafStorageHelper.findBestMapping(basePath);
+      if (mapping != null) {
+        shouldCreateDir = false;
       }
     }
+
+    if (shouldCreateDir) {
+      final dir = Directory(_sharingFolderPath);
+      if (!dir.existsSync()) {
+        try {
+          dir.createSync(recursive: true);
+        } catch (e) {
+          debugPrint('[SharingService] Failed to create sharing directory: $e');
+          // Fallback to app documents
+          final appDoc = await getApplicationDocumentsDirectory();
+          _sharingFolderPath = p.join(appDoc.path, 'Vynody Music');
+          Directory(_sharingFolderPath).createSync(recursive: true);
+        }
+      }
+    }
+  }
+
+  Future<void> updateSharingFolderPath(String newPath) async {
+    _ref.read(settingsServiceProvider).lanSharingFolderPath = newPath;
+    _sharingFolderPath = newPath;
+    await _ensureRegisteredInScanner();
   }
   Future<void> _cleanObsoleteIosPaths() async {
     if (!Platform.isIOS) return;
@@ -796,19 +823,35 @@ class SharingService {
     String targetPath = p.join(_sharingFolderPath, relativePath);
     debugPrint('[SharingService] Receiver: Incoming file upload request for $relativePath');
 
-    // Resolve duplicate name, keeping relative subfolder structure
-    final file = File(targetPath);
+    bool useSaf = false;
+    String? treeUri;
+    if (Platform.isAndroid) {
+      final mapping = await AndroidSafStorageHelper.findBestMapping(targetPath);
+      if (mapping != null) {
+        useSaf = true;
+        treeUri = mapping.value;
+      }
+    }
+
+    bool fileExists = false;
+    if (useSaf && treeUri != null) {
+      final relativeFileName = p.relative(targetPath, from: _sharingFolderPath);
+      fileExists = await AndroidSafStorageHelper.fileExists(treeUri, relativeFileName);
+    } else {
+      fileExists = File(targetPath).existsSync();
+    }
+
     bool shouldSkip = false;
     bool shouldOverwrite = false;
 
-    if (file.existsSync()) {
+    if (fileExists) {
       if (metadata.conflictAction == 'skip_all') {
         shouldSkip = true;
       } else if (metadata.conflictAction == 'overwrite_all') {
         shouldOverwrite = true;
       } else {
         final context = navigatorKey.currentContext;
-        if (context != null) {
+        if (context != null && context.mounted) {
           debugPrint('[SharingService] Receiver: Prompting conflict dialog for $relativePath');
           final action = await showConflictDialog(context, p.basename(relativePath));
           debugPrint('[SharingService] Receiver: User chose $action for $relativePath');
@@ -831,7 +874,7 @@ class SharingService {
       }
     }
 
-    if (file.existsSync() && !shouldSkip && !shouldOverwrite) {
+    if (fileExists && !shouldSkip && !shouldOverwrite) {
       final extension = p.extension(relativePath);
       final dirName = p.dirname(relativePath);
       final baseName = p.basenameWithoutExtension(relativePath);
@@ -841,7 +884,15 @@ class SharingService {
             ? '$baseName ($counter)$extension'
             : p.join(dirName, '$baseName ($counter)$extension');
         targetPath = p.join(_sharingFolderPath, newRelative);
-        if (!File(targetPath).existsSync()) {
+        
+        bool currentExists = false;
+        if (useSaf && treeUri != null) {
+          currentExists = await AndroidSafStorageHelper.fileExists(treeUri, newRelative);
+        } else {
+          currentExists = File(targetPath).existsSync();
+        }
+        
+        if (!currentExists) {
           break;
         }
         counter++;
@@ -903,18 +954,23 @@ class SharingService {
       return;
     }
 
-    final targetFile = File(targetPath);
-    // Ensure parent directories exist
-    final parentDir = targetFile.parent;
-    if (!parentDir.existsSync()) {
-      parentDir.createSync(recursive: true);
+    final tempDir = await getTemporaryDirectory();
+    final tempFile = File(p.join(tempDir.path, 'temp_transfer_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(10000)}'));
+    final targetFile = useSaf ? tempFile : File(targetPath);
+
+    if (!useSaf) {
+      // Ensure parent directories exist for normal file writes
+      final parentDir = targetFile.parent;
+      if (!parentDir.existsSync()) {
+        parentDir.createSync(recursive: true);
+      }
     }
 
     final ioSink = targetFile.openWrite();
     _currentReceiverRequests[sessionId] = request;
 
     try {
-      debugPrint('[SharingService] Receiver: Starting to write to file: $targetPath');
+      debugPrint('[SharingService] Receiver: Starting to write to file: ${targetFile.path}');
       int fileBytesReceived = 0;
       DateTime lastLogTime = DateTime.now();
 
@@ -966,7 +1022,29 @@ class SharingService {
       debugPrint('[SharingService] Receiver: Finished reading request stream for $relativePath. Flushing and closing file...');
       await ioSink.flush();
       await ioSink.close();
-      debugPrint('[SharingService] Receiver: Saved file successfully: $targetPath');
+
+      if (useSaf && treeUri != null) {
+        debugPrint('[SharingService] Receiver: Writing temp file to SAF folder: $targetPath');
+        final relativeFileName = p.relative(targetPath, from: _sharingFolderPath);
+        final methodChannel = const MethodChannel('com.example.audio_converter/saf');
+        final result = await methodChannel.invokeMapMethod<String, Object?>(
+          'saveFileToDirectory',
+          <String, Object?>{
+            'treeUri': treeUri,
+            'sourcePath': tempFile.path,
+            'fileName': relativeFileName.replaceAll('\\', '/'),
+            'overwrite': true, // We already handled conflict renaming/overwrite choice above
+          },
+        );
+
+        final savedUri = result?['savedUri']?.toString();
+        if (savedUri == null || savedUri.isEmpty) {
+          throw Exception('Failed to write via SAF');
+        }
+        debugPrint('[SharingService] Receiver: Saved file successfully via SAF: $targetPath');
+      } else {
+        debugPrint('[SharingService] Receiver: Saved file successfully: $targetPath');
+      }
 
       // Ensure the sharing folder is added to scanner now that we have received a file
       await _ensureRegisteredInScanner();
@@ -1037,8 +1115,10 @@ class SharingService {
       request.response.write(jsonEncode({'success': true, 'path': targetPath}));
     } catch (e) {
       debugPrint('[SharingService] Receiver: Error uploading file $relativePath: $e');
-      await ioSink.close();
-      if (targetFile.existsSync()) {
+      try {
+        await ioSink.close();
+      } catch (_) {}
+      if (!useSaf && targetFile.existsSync()) {
         try {
           targetFile.deleteSync();
         } catch (_) {}
@@ -1064,6 +1144,11 @@ class SharingService {
       request.response.write(jsonEncode({'error': 'Transfer interrupted: $e'}));
     } finally {
       _currentReceiverRequests.remove(sessionId);
+      if (useSaf && tempFile.existsSync()) {
+        try {
+          tempFile.deleteSync();
+        } catch (_) {}
+      }
     }
     await request.response.close();
   }

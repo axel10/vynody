@@ -11,6 +11,8 @@ import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:vynody/player/sharing/lan_device.dart';
 import 'package:vynody/dialogs/transfer_dialogs.dart';
+import 'package:vynody/transcode/transcode_riverpod.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 
 class SharingPage extends ConsumerStatefulWidget {
   const SharingPage({super.key});
@@ -341,6 +343,95 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                       onChanged: _setSharingEnabled,
                     ),
                   ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Receive Directory Configuration Card
+            Card(
+              elevation: 0,
+              color: theme.colorScheme.surfaceContainerLow,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.45,
+                  ),
+                ),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () async {
+                  if (Platform.isAndroid) {
+                    final androidOutputDirectory = await ref.read(transcodeServiceProvider).pickAndroidOutputDirectory();
+                    if (androidOutputDirectory != null) {
+                      await AndroidSafStorageHelper.saveMapping(
+                        androidOutputDirectory.displayPath,
+                        androidOutputDirectory.treeUri,
+                      );
+                      await ref.read(sharingServiceProvider).updateSharingFolderPath(androidOutputDirectory.displayPath);
+                      showToast('接收目录已更新为: ${androidOutputDirectory.displayPath}');
+                      setState(() {});
+                    }
+                  } else {
+                    final dirPath = await FilePicker.getDirectoryPath();
+                    if (dirPath != null) {
+                      await ref.read(sharingServiceProvider).updateSharingFolderPath(dirPath);
+                      showToast('接收目录已更新为: $dirPath');
+                      setState(() {});
+                    }
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.folder_open,
+                          color: theme.colorScheme.primary,
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '接收文件保存目录',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              settings.lanSharingFolderPath.isNotEmpty
+                                  ? settings.lanSharingFolderPath
+                                  : ref.watch(sharingServiceProvider).sharingFolderPath,
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.6,
+                                ),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

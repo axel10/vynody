@@ -310,6 +310,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyTagCompletionSaveToSourceFile =
       'tag_completion_save_to_source_file';
   static const String _keyLanSharingEnabled = 'lan_sharing_enabled';
+  static const String _keyLanSharingFolderPath = 'lan_sharing_folder_path';
 
   final SharedPreferences _prefs;
   bool _isUserInactive = false;
@@ -334,6 +335,13 @@ class SettingsService extends ChangeNotifier {
   late final _lanSharingEnabledProperty = SettingProperty<bool>(
     key: _keyLanSharingEnabled,
     defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _lanSharingFolderPathProperty = SettingProperty<String>(
+    key: _keyLanSharingFolderPath,
+    defaultValue: '',
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -943,6 +951,10 @@ class SettingsService extends ChangeNotifier {
 
   bool get lanSharingEnabled => _lanSharingEnabledProperty.value;
   set lanSharingEnabled(bool value) => _lanSharingEnabledProperty.value = value;
+
+  String get lanSharingFolderPath => _lanSharingFolderPathProperty.value;
+  set lanSharingFolderPath(String value) =>
+      _lanSharingFolderPathProperty.value = value;
 
   ThemeMode get themeMode => _themeModeProperty.value;
   set themeMode(ThemeMode value) => _themeModeProperty.value = value;

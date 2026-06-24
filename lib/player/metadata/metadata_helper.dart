@@ -1155,4 +1155,21 @@ class AndroidSafStorageHelper {
     }
     return bestMatch;
   }
+
+  static Future<bool> fileExists(String treeUri, String relativePath) async {
+    try {
+      final methodChannel = const MethodChannel('com.example.audio_converter/saf');
+      final result = await methodChannel.invokeMethod<bool>(
+        'fileExistsInDirectory',
+        <String, Object?>{
+          'treeUri': treeUri,
+          'fileName': relativePath.replaceAll('\\', '/'),
+        },
+      );
+      return result ?? false;
+    } catch (e) {
+      debugPrint('[AndroidSafStorageHelper] fileExists error: $e');
+      return false;
+    }
+  }
 }
