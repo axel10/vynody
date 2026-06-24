@@ -893,6 +893,11 @@ class SharingService {
     bool shouldOverwrite = false;
 
     if (fileExists) {
+      // If another worker is currently showing the conflict dialog, wait for it to finish.
+      while (metadata.activeConflictFuture != null) {
+        await metadata.activeConflictFuture;
+      }
+
       if (metadata.conflictAction == 'skip_all') {
         shouldSkip = true;
       } else if (metadata.conflictAction == 'overwrite_all') {
@@ -901,20 +906,29 @@ class SharingService {
         final context = navigatorKey.currentContext;
         if (context != null && context.mounted) {
           debugPrint('[SharingService] Receiver: Prompting conflict dialog for $relativePath');
-          final action = await showConflictDialog(context, p.basename(relativePath));
-          debugPrint('[SharingService] Receiver: User chose $action for $relativePath');
-          if (action == 'skip') {
-            shouldSkip = true;
-          } else if (action == 'skip_all') {
-            metadata.conflictAction = 'skip_all';
-            shouldSkip = true;
-          } else if (action == 'overwrite') {
-            shouldOverwrite = true;
-          } else if (action == 'overwrite_all') {
-            metadata.conflictAction = 'overwrite_all';
-            shouldOverwrite = true;
-          } else {
-            shouldSkip = true;
+          
+          final completer = Completer<void>();
+          metadata.activeConflictFuture = completer.future;
+
+          try {
+            final action = await showConflictDialog(context, p.basename(relativePath));
+            debugPrint('[SharingService] Receiver: User chose $action for $relativePath');
+            if (action == 'skip') {
+              shouldSkip = true;
+            } else if (action == 'skip_all') {
+              metadata.conflictAction = 'skip_all';
+              shouldSkip = true;
+            } else if (action == 'overwrite') {
+              shouldOverwrite = true;
+            } else if (action == 'overwrite_all') {
+              metadata.conflictAction = 'overwrite_all';
+              shouldOverwrite = true;
+            } else {
+              shouldSkip = true;
+            }
+          } finally {
+            metadata.activeConflictFuture = null;
+            completer.complete();
           }
         } else {
           debugPrint('[SharingService] Receiver: Global context not available. Falling back to counter renaming.');
@@ -1994,6 +2008,7 @@ class _UploadRequestMetadata {
   int bytesTransferredCumulative = 0;
   final Set<String> completedFiles = {};
   String? conflictAction; // 'skip_all', 'overwrite_all', or null
+  Future<void>? activeConflictFuture; // Track currently visible conflict dialog
   final Map<String, ActiveFileProgress> activeFilesMap = {};
 
   _UploadRequestMetadata({
