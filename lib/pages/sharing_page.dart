@@ -24,6 +24,7 @@ class SharingPage extends ConsumerStatefulWidget {
 class _SharingPageState extends ConsumerState<SharingPage> {
   late final SharingServerStateNotifier _sharingServerNotifier;
   bool _didSyncInitialSharingState = false;
+  final Set<String> _shownDialogSessionIds = {};
 
   @override
   void initState() {
@@ -263,7 +264,31 @@ class _SharingPageState extends ConsumerState<SharingPage> {
       });
     }
 
-    return Scaffold(
+    ref.listen(activeTransfersProvider, (previous, next) {
+      for (final session in next) {
+        if (!session.isSending &&
+            (session.status == TransferStatus.transferring ||
+                session.status == TransferStatus.pending)) {
+          if (!_shownDialogSessionIds.contains(session.id)) {
+            _shownDialogSessionIds.add(session.id);
+            showTransferProgressDialog(context, session.id);
+          }
+        }
+      }
+    });
+
+    final sessions = ref.watch(activeTransfersProvider);
+    final hasActiveTransfers = sessions.any(
+      (s) => s.status == TransferStatus.transferring || s.status == TransferStatus.pending,
+    );
+
+    return PopScope(
+      canPop: !hasActiveTransfers,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        showToast('正在传输文件，请勿离开共享页');
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: const Text(
           '局域网文件共享',
@@ -767,6 +792,6 @@ class _SharingPageState extends ConsumerState<SharingPage> {
           ],
         ),
       ),
-    );
+    ),);
   }
 }

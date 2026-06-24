@@ -48,6 +48,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   AudioCoreController? _playerController;
   void Function(String path, bool isMissing)? _songMissingStateHandler;
   StreamSubscription? _mediaObserverSubscription;
+  bool _mediaObserverPaused = false;
   final MobileStorageListener _mobileStorageListener = MobileStorageListener();
   StreamSubscription<MobileStorageEvent>? _mobileStorageSubscription;
   final StreamController<ScanProgress> _scanProgressController =
@@ -523,7 +524,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           .receiveBroadcastStream()
           .listen(
             (event) {
-              if (event == 'media_changed' && !isScanning) {
+              if (event == 'media_changed' && !isScanning && !_mediaObserverPaused) {
                 debugPrint(
                   'Media library change detected, re-scanning system media...',
                 );
@@ -534,6 +535,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
               debugPrint('Media observer error: $err');
             },
           );
+    }
+  }
+
+  void pauseMediaObserver() {
+    debugPrint('[ScannerService] Pausing media observer');
+    _mediaObserverPaused = true;
+  }
+
+  void resumeMediaObserver({bool triggerScan = false}) {
+    debugPrint('[ScannerService] Resuming media observer (triggerScan=$triggerScan)');
+    _mediaObserverPaused = false;
+    if (triggerScan) {
+      unawaited(scan(clearScannedRoots: false));
     }
   }
 

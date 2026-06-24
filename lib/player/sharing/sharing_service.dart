@@ -244,6 +244,12 @@ class SharingService {
     }
   }
 
+  void _checkAndResumeScanner() {
+    if (_activeTokens.isEmpty) {
+      _ref.read(scannerServiceProvider).resumeMediaObserver(triggerScan: true);
+    }
+  }
+
   // Discovered devices list managed locally, updated to UI via Riverpod
   final StreamController<List<LanDevice>> _devicesController =
       StreamController<List<LanDevice>>.broadcast();
@@ -778,6 +784,9 @@ class SharingService {
         senderName: senderName,
       );
 
+      // Pause scanner media observer during active transfer to prevent 100% freezing
+      _ref.read(scannerServiceProvider).pauseMediaObserver();
+
       // Add TransferSession on receiver side immediately upon acceptance
       _ref
           .read(activeTransfersProvider.notifier)
@@ -826,6 +835,7 @@ class SharingService {
     if (isCancelled) {
       debugPrint('[SharingService] Receiver: Session $sessionId is cancelled. Rejecting incoming upload.');
       _activeTokens.remove(token);
+      _checkAndResumeScanner();
       request.response.statusCode = HttpStatus.badRequest;
       request.response.write(jsonEncode({'error': 'Transfer cancelled'}));
       await request.response.close();
@@ -992,10 +1002,7 @@ class SharingService {
                 activeFiles: [],
               );
           _activeTokens.remove(token);
-
-          // Trigger targeted Scanner rescan
-          final scanner = _ref.read(scannerServiceProvider);
-          unawaited(scanner.scan(clearScannedRoots: false));
+          _checkAndResumeScanner();
         } else {
           _ref
               .read(activeTransfersProvider.notifier)
@@ -1185,10 +1192,7 @@ class SharingService {
               activeFiles: [],
             );
         _activeTokens.remove(token);
-
-        // Trigger targeted Scanner rescan
-        final scanner = _ref.read(scannerServiceProvider);
-        unawaited(scanner.scan(clearScannedRoots: false));
+        _checkAndResumeScanner();
       } else {
         _ref
             .read(activeTransfersProvider.notifier)
@@ -1228,6 +1232,7 @@ class SharingService {
             .updateStatus(sessionId, TransferStatus.failed);
       }
       _activeTokens.remove(token);
+      _checkAndResumeScanner();
 
       request.response.statusCode = HttpStatus.internalServerError;
       request.response.write(jsonEncode({'error': 'Transfer interrupted: $e'}));
