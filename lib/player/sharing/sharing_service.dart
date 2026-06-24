@@ -46,6 +46,7 @@ class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
     int bytesTransferred, {
     TransferStatus? status,
     int? completedFilesCount,
+    List<ActiveFileProgress>? activeFiles,
   }) {
     state = [
       for (final s in state)
@@ -54,6 +55,7 @@ class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
             bytesTransferred: bytesTransferred,
             status: status ?? s.status,
             completedFilesCount: completedFilesCount ?? s.completedFilesCount,
+            activeFiles: activeFiles ?? s.activeFiles,
           )
         else
           s,
@@ -119,6 +121,20 @@ class TransferFileItem {
 
 enum TransferStatus { pending, transferring, success, failed, cancelled }
 
+class ActiveFileProgress {
+  final String fileName;
+  final int bytesTransferred;
+  final int totalBytes;
+
+  ActiveFileProgress({
+    required this.fileName,
+    required this.bytesTransferred,
+    required this.totalBytes,
+  });
+
+  double get progress => totalBytes > 0 ? bytesTransferred / totalBytes : 0.0;
+}
+
 class TransferSession {
   final String id;
   final String fileName;
@@ -129,6 +145,7 @@ class TransferSession {
   final TransferStatus status;
   final int? filesCount;
   final int? completedFilesCount;
+  final List<ActiveFileProgress> activeFiles;
 
   TransferSession({
     required this.id,
@@ -140,6 +157,7 @@ class TransferSession {
     required this.status,
     this.filesCount,
     this.completedFilesCount,
+    this.activeFiles = const [],
   });
 
   double get progress => totalBytes > 0 ? bytesTransferred / totalBytes : 0.0;
@@ -154,6 +172,7 @@ class TransferSession {
     TransferStatus? status,
     int? filesCount,
     int? completedFilesCount,
+    List<ActiveFileProgress>? activeFiles,
   }) {
     return TransferSession(
       id: id ?? this.id,
@@ -165,6 +184,7 @@ class TransferSession {
       status: status ?? this.status,
       filesCount: filesCount ?? this.filesCount,
       completedFilesCount: completedFilesCount ?? this.completedFilesCount,
+      activeFiles: activeFiles ?? this.activeFiles,
     );
   }
 }
@@ -187,34 +207,38 @@ class SharingService {
 
   final Map<String, _UploadRequestMetadata> _activeTokens = {};
 
-  final Map<String, HttpClientRequest> _currentUploadRequests = {};
-  final Map<String, HttpRequest> _currentReceiverRequests = {};
+  final Map<String, List<HttpClientRequest>> _currentUploadRequests = {};
+  final Map<String, List<HttpRequest>> _currentReceiverRequests = {};
 
   void cancelTransfer(String sessionId) {
     debugPrint('[SharingService] cancelTransfer called for session: $sessionId');
     _ref.read(activeTransfersProvider.notifier).updateStatus(sessionId, TransferStatus.cancelled);
 
-    // Abort sender request if any
-    final sendReq = _currentUploadRequests[sessionId];
-    if (sendReq != null) {
-      debugPrint('[SharingService] Aborting sender upload request for session: $sessionId');
-      try {
-        sendReq.abort();
-      } catch (e) {
-        debugPrint('[SharingService] Error aborting sender request: $e');
+    // Abort sender requests if any
+    final sendReqs = _currentUploadRequests[sessionId];
+    if (sendReqs != null) {
+      debugPrint('[SharingService] Aborting sender upload requests for session: $sessionId');
+      for (final req in List.from(sendReqs)) {
+        try {
+          req.abort();
+        } catch (e) {
+          debugPrint('[SharingService] Error aborting sender request: $e');
+        }
       }
       _currentUploadRequests.remove(sessionId);
     }
 
-    // Abort receiver request if any
-    final recvReq = _currentReceiverRequests[sessionId];
-    if (recvReq != null) {
-      debugPrint('[SharingService] Aborting receiver upload request for session: $sessionId');
-      try {
-        recvReq.response.statusCode = HttpStatus.internalServerError;
-        recvReq.response.close();
-      } catch (e) {
-        debugPrint('[SharingService] Error aborting receiver request: $e');
+    // Abort receiver requests if any
+    final recvReqs = _currentReceiverRequests[sessionId];
+    if (recvReqs != null) {
+      debugPrint('[SharingService] Aborting receiver upload requests for session: $sessionId');
+      for (final req in List.from(recvReqs)) {
+        try {
+          req.response.statusCode = HttpStatus.internalServerError;
+          req.response.close();
+        } catch (e) {
+          debugPrint('[SharingService] Error aborting receiver request: $e');
+        }
       }
       _currentReceiverRequests.remove(sessionId);
     }
@@ -819,9 +843,33 @@ class SharingService {
       } catch (_) {}
     }
 
+
+
     // Resolve target path (which may contain relative subfolders)
     String targetPath = p.join(_sharingFolderPath, relativePath);
     debugPrint('[SharingService] Receiver: Incoming file upload request for $relativePath');
+
+    final fileItem = metadata.files.firstWhere(
+      (f) => f.name == relativePath,
+      orElse: () => metadata.files.firstWhere(
+        (f) => p.basename(f.name) == p.basename(relativePath),
+        orElse: () => TransferFileItem(name: '', size: 0, durationMs: 0),
+      ),
+    );
+    final fileSize = fileItem.size;
+
+    metadata.activeFilesMap[relativePath] = ActiveFileProgress(
+      fileName: p.basename(relativePath),
+      bytesTransferred: 0,
+      totalBytes: fileSize,
+    );
+
+    _currentReceiverRequests.putIfAbsent(sessionId, () => []).add(request);
+    _ref.read(activeTransfersProvider.notifier).updateProgress(
+      sessionId,
+      metadata.bytesTransferredCumulative,
+      activeFiles: metadata.activeFilesMap.values.toList(),
+    );
 
     bool useSaf = false;
     String? treeUri;
@@ -902,7 +950,6 @@ class SharingService {
 
     if (shouldSkip) {
       debugPrint('[SharingService] Receiver: Skipping file $relativePath. Discarding request body...');
-      _currentReceiverRequests[sessionId] = request;
       try {
         await for (final _ in request) {
           // Just discard chunks
@@ -917,6 +964,9 @@ class SharingService {
             metadata.completedFiles.containsAll(allFiles) ||
             metadata.completedFiles.length >= metadata.files.length;
 
+        // Clean up from active files map
+        metadata.activeFilesMap.remove(relativePath);
+
         if (isFinished) {
           _ref
               .read(activeTransfersProvider.notifier)
@@ -925,6 +975,7 @@ class SharingService {
                 metadata.totalSize,
                 status: TransferStatus.success,
                 completedFilesCount: metadata.completedFiles.length,
+                activeFiles: [],
               );
           _activeTokens.remove(token);
 
@@ -938,6 +989,7 @@ class SharingService {
                 sessionId,
                 metadata.bytesTransferredCumulative,
                 completedFilesCount: metadata.completedFiles.length,
+                activeFiles: metadata.activeFilesMap.values.toList(),
               );
         }
 
@@ -948,7 +1000,13 @@ class SharingService {
         request.response.statusCode = HttpStatus.internalServerError;
         request.response.write(jsonEncode({'error': 'Error skipping file: $e'}));
       } finally {
-        _currentReceiverRequests.remove(sessionId);
+        if (_currentReceiverRequests[sessionId] != null) {
+          _currentReceiverRequests[sessionId]!.remove(request);
+          if (_currentReceiverRequests[sessionId]!.isEmpty) {
+            _currentReceiverRequests.remove(sessionId);
+          }
+        }
+        metadata.activeFilesMap.remove(relativePath);
       }
       await request.response.close();
       return;
@@ -967,7 +1025,6 @@ class SharingService {
     }
 
     final ioSink = targetFile.openWrite();
-    _currentReceiverRequests[sessionId] = request;
 
     try {
       debugPrint('[SharingService] Receiver: Starting to write to file: ${targetFile.path}');
@@ -1000,9 +1057,22 @@ class SharingService {
             metadata.bytesTransferredCumulative + chunk.length;
         metadata.bytesTransferredCumulative = newCumulative;
 
+        final current = metadata.activeFilesMap[relativePath];
+        if (current != null) {
+          metadata.activeFilesMap[relativePath] = ActiveFileProgress(
+            fileName: current.fileName,
+            bytesTransferred: current.bytesTransferred + chunk.length,
+            totalBytes: current.totalBytes,
+          );
+        }
+
         _ref
             .read(activeTransfersProvider.notifier)
-            .updateProgress(sessionId, newCumulative);
+            .updateProgress(
+              sessionId,
+              newCumulative,
+              activeFiles: metadata.activeFilesMap.values.toList(),
+            );
 
         final now = DateTime.now();
         if (now.difference(lastLogTime).inSeconds >= 2) {
@@ -1087,6 +1157,9 @@ class SharingService {
           metadata.completedFiles.containsAll(allFiles) ||
           metadata.completedFiles.length >= metadata.files.length;
 
+      // Remove from active files map first
+      metadata.activeFilesMap.remove(relativePath);
+
       if (isFinished) {
         _ref
             .read(activeTransfersProvider.notifier)
@@ -1095,6 +1168,7 @@ class SharingService {
               metadata.totalSize,
               status: TransferStatus.success,
               completedFilesCount: metadata.completedFiles.length,
+              activeFiles: [],
             );
         _activeTokens.remove(token);
 
@@ -1108,6 +1182,7 @@ class SharingService {
               sessionId,
               metadata.bytesTransferredCumulative,
               completedFilesCount: metadata.completedFiles.length,
+              activeFiles: metadata.activeFilesMap.values.toList(),
             );
       }
 
@@ -1143,7 +1218,13 @@ class SharingService {
       request.response.statusCode = HttpStatus.internalServerError;
       request.response.write(jsonEncode({'error': 'Transfer interrupted: $e'}));
     } finally {
-      _currentReceiverRequests.remove(sessionId);
+      if (_currentReceiverRequests[sessionId] != null) {
+        _currentReceiverRequests[sessionId]!.remove(request);
+        if (_currentReceiverRequests[sessionId]!.isEmpty) {
+          _currentReceiverRequests.remove(sessionId);
+        }
+      }
+      metadata.activeFilesMap.remove(relativePath);
       if (useSaf && tempFile.existsSync()) {
         try {
           tempFile.deleteSync();
@@ -1405,59 +1486,37 @@ class SharingService {
 
       final token = responseJson['token'] as String;
 
-      // 2. Perform Uploads sequentially
+      // 2. Perform Uploads concurrently
       _ref
           .read(activeTransfersProvider.notifier)
           .updateStatus(sessionId, TransferStatus.transferring);
 
       int totalBytesSent = 0;
       int completedFilesCount = 0;
+      final Map<String, ActiveFileProgress> localActiveFiles = {};
 
-      for (final fileInfo in filesToSend) {
-        // Check if session has been cancelled
-        final currentSessions = _ref.read(activeTransfersProvider);
-        final currentSession = currentSessions.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
-          id: '',
-          fileName: '',
-          totalBytes: 0,
-          bytesTransferred: 0,
-          isSending: true,
-          deviceName: '',
-          status: TransferStatus.failed,
-        ));
-        if (currentSession.status == TransferStatus.cancelled) {
-          debugPrint('[SharingService] sendFiles: Transfer was cancelled before starting ${fileInfo.relativeName}');
-          return false;
-        }
+      int nextFileIndex = 0;
+      bool hasError = false;
+      String? errorMessage;
+      bool isCancelled = false;
 
-        final uploadUri = Uri.parse(
-          'http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/upload',
-        );
-        debugPrint(
-          '[SharingService] Starting upload of "${fileInfo.relativeName}" '
-          '(${(fileInfo.size / (1024 * 1024)).toStringAsFixed(2)} MB) to $uploadUri',
-        );
+      Future<void> uploadWorker() async {
+        while (true) {
+          if (hasError || isCancelled) return;
 
-        final uploadRequest = await client.postUrl(uploadUri);
-        _currentUploadRequests[sessionId] = uploadRequest;
+          int fileIndex;
+          if (nextFileIndex >= filesToSend.length) {
+            break;
+          }
+          fileIndex = nextFileIndex;
+          nextFileIndex++;
 
-        uploadRequest.headers.add('Authorization', 'Bearer $token');
-        uploadRequest.headers.add(
-          'X-File-Name',
-          Uri.encodeComponent(fileInfo.relativeName),
-        );
-        uploadRequest.headers.contentType = ContentType.binary;
-        uploadRequest.contentLength = fileInfo.size;
+          final fileInfo = filesToSend[fileIndex];
 
-        final fileStream = File(fileInfo.path).openRead();
-        int fileBytesSent = 0;
-        DateTime lastLogTime = DateTime.now();
-
-        try {
-          await for (final chunk in fileStream) {
-            // Check cancellation in the chunk writing loop
-            final currentSessionsInner = _ref.read(activeTransfersProvider);
-            final currentSessionInner = currentSessionsInner.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
+          // Check cancellation
+          final currentSession = _ref.read(activeTransfersProvider).firstWhere(
+            (s) => s.id == sessionId,
+            orElse: () => TransferSession(
               id: '',
               fileName: '',
               totalBytes: 0,
@@ -1465,89 +1524,126 @@ class SharingService {
               isSending: true,
               deviceName: '',
               status: TransferStatus.failed,
-            ));
-            if (currentSessionInner.status == TransferStatus.cancelled) {
-              debugPrint('[SharingService] sendFiles: Transfer was cancelled during chunk stream of ${fileInfo.relativeName}');
-              uploadRequest.abort();
-              return false;
-            }
+            ),
+          );
+          if (currentSession.status == TransferStatus.cancelled) {
+            isCancelled = true;
+            return;
+          }
 
-            uploadRequest.add(chunk);
-            totalBytesSent += chunk.length;
-            fileBytesSent += chunk.length;
-            _ref
-                .read(activeTransfersProvider.notifier)
-                .updateProgress(
-                  sessionId,
-                  totalBytesSent,
-                  completedFilesCount: completedFilesCount,
-                );
+          final uploadUri = Uri.parse(
+            'http://${targetDevice.ip}:${targetDevice.httpPort}/api/transfer/upload',
+          );
+          debugPrint(
+            '[SharingService] Worker: Starting upload of "${fileInfo.relativeName}" '
+            '(${(fileInfo.size / (1024 * 1024)).toStringAsFixed(2)} MB) to $uploadUri',
+          );
 
-            final now = DateTime.now();
-            if (now.difference(lastLogTime).inSeconds >= 2) {
-              debugPrint(
-                '[SharingService] Uploading ${fileInfo.relativeName}: '
-                '${(fileBytesSent / (1024 * 1024)).toStringAsFixed(2)}/${(fileInfo.size / (1024 * 1024)).toStringAsFixed(2)} MB '
-                '(${(fileBytesSent / fileInfo.size * 100).toStringAsFixed(0)}%)',
+          HttpClientRequest? uploadRequest;
+          try {
+            uploadRequest = await client.postUrl(uploadUri);
+            _currentUploadRequests.putIfAbsent(sessionId, () => []).add(uploadRequest);
+
+            uploadRequest.headers.add('Authorization', 'Bearer $token');
+            uploadRequest.headers.add(
+              'X-File-Name',
+              Uri.encodeComponent(fileInfo.relativeName),
+            );
+            uploadRequest.headers.contentType = ContentType.binary;
+            uploadRequest.contentLength = fileInfo.size;
+
+            localActiveFiles[fileInfo.relativeName] = ActiveFileProgress(
+              fileName: p.basename(fileInfo.relativeName),
+              bytesTransferred: 0,
+              totalBytes: fileInfo.size,
+            );
+
+            _ref.read(activeTransfersProvider.notifier).updateProgress(
+              sessionId,
+              totalBytesSent,
+              completedFilesCount: completedFilesCount,
+              activeFiles: localActiveFiles.values.toList(),
+            );
+
+            final fileStream = File(fileInfo.path).openRead();
+
+            await for (final chunk in fileStream) {
+              final currentSessionInner = _ref.read(activeTransfersProvider).firstWhere(
+                (s) => s.id == sessionId,
+                orElse: () => TransferSession(id: '', fileName: '', totalBytes: 0, bytesTransferred: 0, isSending: true, deviceName: '', status: TransferStatus.failed),
               );
-              lastLogTime = now;
-            }
-          }
+              if (currentSessionInner.status == TransferStatus.cancelled) {
+                isCancelled = true;
+                uploadRequest.abort();
+                return;
+              }
 
-          debugPrint('[SharingService] Request stream completed for ${fileInfo.relativeName}. Waiting for response...');
-          final uploadResponse = await uploadRequest.close().timeout(const Duration(seconds: 120));
-          debugPrint('[SharingService] Response received for ${fileInfo.relativeName}: ${uploadResponse.statusCode}');
+              uploadRequest.add(chunk);
+              totalBytesSent += chunk.length;
 
-          if (uploadResponse.statusCode != HttpStatus.ok) {
-            final currentSessionsInner = _ref.read(activeTransfersProvider);
-            final currentSessionInner = currentSessionsInner.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
-              id: '',
-              fileName: '',
-              totalBytes: 0,
-              bytesTransferred: 0,
-              isSending: true,
-              deviceName: '',
-              status: TransferStatus.failed,
-            ));
-            if (currentSessionInner.status != TransferStatus.cancelled) {
-              _ref
-                  .read(activeTransfersProvider.notifier)
-                  .updateStatus(sessionId, TransferStatus.failed);
-            }
-            return false;
-          }
-          
-          completedFilesCount++;
-          _ref
-              .read(activeTransfersProvider.notifier)
-              .updateProgress(
+              final current = localActiveFiles[fileInfo.relativeName]!;
+              localActiveFiles[fileInfo.relativeName] = ActiveFileProgress(
+                fileName: current.fileName,
+                bytesTransferred: current.bytesTransferred + chunk.length,
+                totalBytes: current.totalBytes,
+              );
+
+              _ref.read(activeTransfersProvider.notifier).updateProgress(
                 sessionId,
                 totalBytesSent,
                 completedFilesCount: completedFilesCount,
+                activeFiles: localActiveFiles.values.toList(),
               );
-        } catch (e) {
-          debugPrint(
-            '[SharingService] Error uploading file ${fileInfo.relativeName}: $e',
-          );
-          final currentSessionsInner = _ref.read(activeTransfersProvider);
-          final currentSessionInner = currentSessionsInner.firstWhere((s) => s.id == sessionId, orElse: () => TransferSession(
-            id: '',
-            fileName: '',
-            totalBytes: 0,
-            bytesTransferred: 0,
-            isSending: true,
-            deviceName: '',
-            status: TransferStatus.failed,
-          ));
-          if (currentSessionInner.status != TransferStatus.cancelled) {
-            _ref
-                .read(activeTransfersProvider.notifier)
-                .updateStatus(sessionId, TransferStatus.failed);
+            }
+
+            debugPrint('[SharingService] Request stream completed for ${fileInfo.relativeName}. Waiting for response...');
+            final uploadResponse = await uploadRequest.close().timeout(const Duration(seconds: 120));
+            debugPrint('[SharingService] Response received for ${fileInfo.relativeName}: ${uploadResponse.statusCode}');
+
+            if (uploadResponse.statusCode != HttpStatus.ok) {
+              throw Exception('Upload failed with status code ${uploadResponse.statusCode}');
+            }
+
+            localActiveFiles.remove(fileInfo.relativeName);
+            completedFilesCount++;
+
+            _ref.read(activeTransfersProvider.notifier).updateProgress(
+              sessionId,
+              totalBytesSent,
+              completedFilesCount: completedFilesCount,
+              activeFiles: localActiveFiles.values.toList(),
+            );
+          } catch (e) {
+            debugPrint('[SharingService] Error uploading file ${fileInfo.relativeName}: $e');
+            hasError = true;
+            errorMessage = e.toString();
+            try {
+              uploadRequest?.abort();
+            } catch (_) {}
+            return;
+          } finally {
+            if (uploadRequest != null) {
+              if (_currentUploadRequests[sessionId] != null) {
+                _currentUploadRequests[sessionId]!.remove(uploadRequest);
+                if (_currentUploadRequests[sessionId]!.isEmpty) {
+                  _currentUploadRequests.remove(sessionId);
+                }
+              }
+            }
           }
-          return false;
-        } finally {
-          _currentUploadRequests.remove(sessionId);
         }
+      }
+
+      final concurrencyLimit = min(3, filesToSend.length);
+      final workers = List.generate(concurrencyLimit, (_) => uploadWorker());
+      await Future.wait(workers);
+
+      if (isCancelled) {
+        return false;
+      }
+
+      if (hasError) {
+        throw Exception(errorMessage ?? 'Unknown transfer error');
       }
 
       debugPrint('[SharingService] All uploads completed successfully.');
@@ -1558,6 +1654,7 @@ class SharingService {
             totalSize,
             status: TransferStatus.success,
             completedFilesCount: filesToSend.length,
+            activeFiles: [],
           );
       return true;
     } catch (e) {
@@ -1897,6 +1994,7 @@ class _UploadRequestMetadata {
   int bytesTransferredCumulative = 0;
   final Set<String> completedFiles = {};
   String? conflictAction; // 'skip_all', 'overwrite_all', or null
+  final Map<String, ActiveFileProgress> activeFilesMap = {};
 
   _UploadRequestMetadata({
     required this.sessionName,

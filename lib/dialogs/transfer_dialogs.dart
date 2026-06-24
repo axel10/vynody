@@ -210,6 +210,84 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                       ),
                     ],
                   ),
+                  if (session.activeFiles.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Divider(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                    const SizedBox(height: 6),
+                    Text(
+                      '当前正在传输',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 150),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: session.activeFiles.map((activeFile) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(10),
+                              width: double.maxFinite,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.audiotrack_rounded,
+                                        size: 14,
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          activeFile.fileName,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${(activeFile.progress * 100).toStringAsFixed(0)}%',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: theme.colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  LinearProgressIndicator(
+                                    value: activeFile.progress,
+                                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                                    minHeight: 4,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
