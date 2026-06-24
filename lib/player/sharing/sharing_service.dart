@@ -411,6 +411,14 @@ class SharingService {
     await init();
     await _cleanObsoleteIosPaths();
 
+    if (Platform.isAndroid &&
+        _ref.read(settingsServiceProvider).lanSharingFolderPath.trim().isEmpty) {
+      debugPrint(
+        '[SharingService] Refusing to start LAN sharing on Android without a selected receive directory.',
+      );
+      return false;
+    }
+
     // 1. Resolve Local IP
     _localIp = await _getLocalIpAddress();
     if (_localIp == null) {

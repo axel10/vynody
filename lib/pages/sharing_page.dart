@@ -194,6 +194,14 @@ class _SharingPageState extends ConsumerState<SharingPage> {
   Future<void> _setSharingEnabled(bool enabled) async {
     final settings = ref.read(settingsServiceProvider);
     final previousEnabled = settings.lanSharingEnabled;
+
+    if (enabled &&
+        Platform.isAndroid &&
+        settings.lanSharingFolderPath.trim().isEmpty) {
+      showToast('请先选择接收目录，再开启局域网共享');
+      return;
+    }
+
     settings.lanSharingEnabled = enabled;
 
     if (enabled) {
@@ -257,6 +265,8 @@ class _SharingPageState extends ConsumerState<SharingPage> {
     final devicesAsync = ref.watch(discoveredDevicesProvider);
     final theme = Theme.of(context);
     final settings = ref.watch(settingsServiceProvider);
+    final canEnableSharing =
+        !Platform.isAndroid || settings.hasLanSharingFolderPath;
 
     if (!_didSyncInitialSharingState) {
       _didSyncInitialSharingState = true;
@@ -364,12 +374,24 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                               fontSize: 13,
                             ),
                           ),
+                          if (Platform.isAndroid && !settings.hasLanSharingFolderPath) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '请先选择接收目录，才能开启局域网共享。',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.55,
+                                ),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                     Switch(
                       value: settings.lanSharingEnabled,
-                      onChanged: _setSharingEnabled,
+                      onChanged: canEnableSharing ? _setSharingEnabled : null,
                     ),
                   ],
                 ),
@@ -479,36 +501,45 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                     ),
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.language,
-                            color: theme.colorScheme.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            '浏览器网页传输 (Web Share)',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                child: Theme(
+                  data: theme.copyWith(
+                    dividerColor: Colors.transparent,
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                  ),
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    leading: Icon(
+                      Icons.language,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
+                    title: const Text(
+                      '浏览器网页传输 (Web Share)',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '同一局域网的手机/电脑可通过浏览器打开下方链接，直接向本设备上传或下载音乐：',
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
+                    ),
+                    iconColor: theme.colorScheme.primary,
+                    collapsedIconColor: theme.colorScheme.onSurface.withValues(
+                      alpha: 0.5,
+                    ),
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '同一局域网的手机/电脑可通过浏览器打开下方链接，直接向本设备上传或下载音乐：',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
+                            fontSize: 12,
                           ),
-                          fontSize: 12,
                         ),
                       ),
                       const SizedBox(height: 12),

@@ -96,4 +96,21 @@ void main() {
       expect(settingsService.translationPrimaryModel.provider, LyricsAiProvider.openRouter);
     });
   });
+
+  group('SettingsService - LAN sharing directory state', () {
+    test('reports whether a receive directory has been selected', () async {
+      SharedPreferences.setMockInitialValues({
+        'lan_sharing_folder_path': '   ',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final settingsService = SettingsService(prefs);
+
+      expect(settingsService.lanSharingFolderPath, '   ');
+      expect(settingsService.hasLanSharingFolderPath, isFalse);
+
+      settingsService.lanSharingFolderPath = '/tmp/vynody-share';
+
+      expect(settingsService.hasLanSharingFolderPath, isTrue);
+    });
+  });
 }

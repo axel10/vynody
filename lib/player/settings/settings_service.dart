@@ -956,6 +956,8 @@ class SettingsService extends ChangeNotifier {
   set lanSharingFolderPath(String value) =>
       _lanSharingFolderPathProperty.value = value;
 
+  bool get hasLanSharingFolderPath => lanSharingFolderPath.trim().isNotEmpty;
+
   ThemeMode get themeMode => _themeModeProperty.value;
   set themeMode(ThemeMode value) => _themeModeProperty.value = value;
 
