@@ -44,25 +44,26 @@ class _SharingPageState extends ConsumerState<SharingPage> {
     super.dispose();
   }
 
-  Future<void> _handleSendFile(LanDevice device) async {
+  Future<void> _handleSendFiles(LanDevice device) async {
     try {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
-        allowMultiple: false,
+        allowMultiple: true,
       );
 
-      if (result == null ||
-          result.files.isEmpty ||
-          result.files.single.path == null) {
+      if (result == null || result.files.isEmpty) {
         return;
       }
 
-      final path = result.files.single.path!;
+      final filePaths = result.files.map((f) => f.path).whereType<String>().toList();
+      if (filePaths.isEmpty) {
+        return;
+      }
 
       // We need to trigger the progress dialog on our screen
       // Final upload token/session ID will be created inside the sending function
-      // In sharing_service, sendFile generates a session ID starting with 'send_'.
+      // In sharing_service, sendFiles generates a session ID starting with 'send_'.
       // We can compute the expected session ID or let sharing_service notify us.
       // Better yet, we can listen for new active transfer sessions in state
       // and show the progress dialog. Let's start the file transfer:
@@ -70,8 +71,8 @@ class _SharingPageState extends ConsumerState<SharingPage> {
 
       // Let's launch transfer in background, and show progress dialog
       // To show the progress dialog immediately, we can listen to activeTransfersProvider.
-      // But we need the sessionId. Since the sessionId is derived from timestamp inside sendFile,
-      // let's modify sendFile slightly or just search for the latest session in activeTransfersProvider.
+      // But we need the sessionId. Since the sessionId is derived from timestamp inside sendFiles,
+      // let's modify sendFiles slightly or just search for the latest session in activeTransfersProvider.
 
       // Let's create a listener to catch the session ID as soon as it's added.
       late ProviderSubscription subscription;
@@ -102,7 +103,10 @@ class _SharingPageState extends ConsumerState<SharingPage> {
         }
       });
 
-      final success = await service.sendFile(device, path);
+      final success = await service.sendFiles(
+        targetDevice: device,
+        filePaths: filePaths,
+      );
       if (!success) {
         // In case preflight fails immediately
         subscription.close();
@@ -696,7 +700,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                                   ),
                                   onSelected: (value) {
                                     if (value == 'file') {
-                                      _handleSendFile(device);
+                                      _handleSendFiles(device);
                                     } else if (value == 'folder') {
                                       _handleSendFolder(device);
                                     } else if (value == 'sync_to') {
