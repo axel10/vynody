@@ -169,6 +169,12 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
             final total = (session.totalBytes / (1024 * 1024)).toStringAsFixed(1);
             final title = session.isSending ? '正在发送到 ${session.deviceName}' : '正在从 ${session.deviceName} 接收';
 
+            final completedCount = session.completedFilesCount ?? 0;
+            final filesCount = session.filesCount ?? 0;
+            final activeCount = session.activeFiles.length;
+            final hasMoreFiles = filesCount > (completedCount + activeCount);
+            final double? containerHeight = hasMoreFiles ? 156 : null;
+
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
@@ -178,117 +184,127 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                 title,
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    session.fileName,
-                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 16),
-                  LinearProgressIndicator(
-                    value: session.progress,
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    color: theme.colorScheme.primary,
-                    minHeight: 6,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '进度: ${(session.progress * 100).toStringAsFixed(0)}%',
-                        style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
-                      ),
-                      Text(
-                        '$speed / $total MB',
-                        style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  if (session.activeFiles.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Divider(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
-                    const SizedBox(height: 6),
+              content: AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      '当前正在传输',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
+                      session.fileName,
+                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 14),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 150),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: session.activeFiles.map((activeFile) {
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(10),
-                              width: double.maxFinite,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: session.progress,
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      color: theme.colorScheme.primary,
+                      minHeight: 6,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '进度: ${(session.progress * 100).toStringAsFixed(0)}%',
+                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
+                        ),
+                        Text(
+                          '$speed / $total MB',
+                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                    if (session.activeFiles.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Divider(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                      const SizedBox(height: 6),
+                      Text(
+                        '当前正在传输',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: containerHeight,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 156),
+                          child: SingleChildScrollView(
+                            physics: const ClampingScrollPhysics(),
+                            child: Column(
+                              children: session.activeFiles.map((activeFile) {
+                                return Container(
+                                  key: ValueKey(activeFile.fileName),
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(10),
+                                  width: double.maxFinite,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Icon(
-                                        Icons.audiotrack_rounded,
-                                        size: 14,
-                                        color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          activeFile.fileName,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.audiotrack_rounded,
+                                            size: 14,
+                                            color: theme.colorScheme.primary.withValues(alpha: 0.7),
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              activeFile.fileName,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '${(activeFile.progress * 100).toStringAsFixed(0)}%',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: theme.colorScheme.primary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '${(activeFile.progress * 100).toStringAsFixed(0)}%',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: theme.colorScheme.primary,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                      const SizedBox(height: 6),
+                                      LinearProgressIndicator(
+                                        value: activeFile.progress,
+                                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                                        minHeight: 4,
+                                        borderRadius: BorderRadius.circular(2),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 6),
-                                  LinearProgressIndicator(
-                                    value: activeFile.progress,
-                                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                                    color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                                    minHeight: 4,
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
               actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               actions: [
