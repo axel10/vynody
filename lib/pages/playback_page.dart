@@ -26,6 +26,7 @@ import '../dialogs/visualizer_options_dialog.dart';
 import '../dialogs/song_tag_edit_dialog.dart';
 import '../dialogs/song_tag_completion_dialog.dart';
 import '../dialogs/sleep_timer_sheet.dart';
+import '../dialogs/playlist_mode_sheet.dart';
 import '../widgets/equalizer_panel.dart';
 import '../widgets/lyrics_task_status_banner.dart';
 import '../widgets/playback_ui_tuning.dart';
@@ -653,124 +654,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     AppSnackBar.show(context, ref, SnackBar(content: Text(messages.join(' '))));
   }
 
-  void _showRandomModeSelector(BuildContext context, AudioService audio) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final l10n = AppLocalizations.of(context)!;
-        final settings = ref.watch(settingsServiceProvider);
-        return AlertDialog(
-          title: Text(l10n.randomMode),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.randomRange,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              RadioGroup<int>(
-                groupValue: settings.randomRange,
-                onChanged: (val) {
-                  if (val == null) return;
-                  settings.randomRange = val;
-                  _reapplyRandomMode(audio);
-                },
-                child: Column(
-                  children: [
-                    RadioListTile<int>(
-                      title: Text(l10n.currentQueue),
-                      value: 0,
-                    ),
-                    RadioListTile<int>(title: Text(l10n.globalRange), value: 1),
-                  ],
-                ),
-              ),
-              const Divider(),
-              Text(
-                l10n.randomMethod,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              RadioGroup<int>(
-                groupValue: settings.randomMethod,
-                onChanged: (val) {
-                  if (val == null) return;
-                  settings.randomMethod = val;
-                  _reapplyRandomMode(audio);
-                },
-                child: Column(
-                  children: [
-                    RadioListTile<int>(
-                      title: Text(l10n.completeRandom),
-                      value: 0,
-                    ),
-                    RadioListTile<int>(
-                      title: Text(l10n.shuffleRandom),
-                      value: 1,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.confirm),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  List<MusicFile> _getGlobalSongs(PlaylistService playlistService) {
-    final List<MusicFile> allSongs = [];
-    final pathSet = <String>{};
-    for (final p in playlistService.playlists) {
-      for (final s in p.songs) {
-        if (pathSet.add(s.path)) allSongs.add(s);
-      }
-    }
-    return allSongs;
-  }
-
-  void _reapplyRandomMode(AudioService audio) {
-    if (!audio.isRandomMode) return;
-
-    audio.toggleRandomMode();
-    if (ref.read(settingsServiceProvider).randomRange == 1) {
-      final allSongs = _getGlobalSongs(ref.read(playlistServiceProvider));
-      audio.toggleRandomMode(globalSongs: allSongs);
-    } else {
-      audio.toggleRandomMode();
-    }
-  }
-
   void _showPlaylistModeSelector(BuildContext context, AudioService audio) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(AppLocalizations.of(context)!.playbackMode),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: PlaylistMode.values.map((mode) {
-              return ListTile(
-                leading: Icon(getPlaylistModeIcon(mode)),
-                title: Text(
-                  getPlaylistModeName(mode, AppLocalizations.of(context)!),
-                ),
-                selected: audio.playbackMode == mode,
-                onTap: () {
-                  audio.setPlaybackMode(mode);
-                  Navigator.of(context).pop();
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => const PlaylistModeSheet(),
     );
   }
 
@@ -915,8 +804,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
                   onShowPlaylistModeSelector: () =>
                       _showPlaylistModeSelector(context, audio),
-                  onShowRandomModeSelector: () =>
-                      _showRandomModeSelector(context, audio),
                   onScrubbing: (val) {
                     _handleInteraction();
                     setState(() {

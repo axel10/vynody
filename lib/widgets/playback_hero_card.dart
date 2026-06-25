@@ -72,7 +72,6 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.onMiniTap,
     this.onCyclePlaylistMode,
     this.onShowPlaylistModeSelector,
-    this.onShowRandomModeSelector,
     this.onScrubbing,
     this.onSeek,
     this.onToggleVisualizer,
@@ -110,7 +109,6 @@ class PlaybackHeroCard extends ConsumerWidget {
   final VoidCallback? onMiniTap;
   final VoidCallback? onCyclePlaylistMode;
   final VoidCallback? onShowPlaylistModeSelector;
-  final VoidCallback? onShowRandomModeSelector;
   final ValueChanged<double>? onScrubbing;
   final ValueChanged<double>? onSeek;
   final VoidCallback? onToggleVisualizer;
@@ -1429,66 +1427,61 @@ class PlaybackHeroCard extends ConsumerWidget {
                   ? l10n.removeFromFavorites
                   : l10n.addToFavorites,
             ),
-            GestureDetector(
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints.tightFor(
+                width: singleButtonWidth,
+                height: singleButtonWidth,
+              ),
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: Icon(
+                getPlaylistModeIcon(playbackMode),
+                size:
+                    PlaybackHeroCardUiTuning.topButtonsIconSize *
+                    controlsScale,
+                color: Colors.white70,
+              ),
+              onPressed: onCyclePlaylistMode,
               onLongPress: onShowPlaylistModeSelector,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                constraints: BoxConstraints.tightFor(
-                  width: singleButtonWidth,
-                  height: singleButtonWidth,
-                ),
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: Icon(
-                  getPlaylistModeIcon(playbackMode),
-                  size:
-                      PlaybackHeroCardUiTuning.topButtonsIconSize *
-                      controlsScale,
-                  color: Colors.white70,
-                ),
-                onPressed: onCyclePlaylistMode,
-                tooltip: getPlaylistModeName(playbackMode, l10n),
-              ),
+              tooltip: getPlaylistModeName(playbackMode, l10n),
             ),
-            GestureDetector(
-              onLongPress: onShowRandomModeSelector,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                constraints: BoxConstraints.tightFor(
-                  width: singleButtonWidth,
-                  height: singleButtonWidth,
-                ),
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: Icon(
-                  Icons.shuffle_rounded,
-                  size:
-                      PlaybackHeroCardUiTuning.topButtonsIconSize *
-                      controlsScale,
-                  color: isRandomMode
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.white70,
-                ),
-                onPressed: () {
-                  final audio = ref.read(audioServiceProvider);
-                  if (audio.settingsService.randomRange == 1 && !isRandomMode) {
-                    final playlistService = ref.read(playlistServiceProvider);
-                    final List<MusicFile> allSongs = [];
-                    final pathSet = <String>{};
-                    for (final p in playlistService.playlists) {
-                      for (final s in p.songs) {
-                        if (pathSet.add(s.path)) allSongs.add(s);
-                      }
-                    }
-                    audio.toggleRandomMode(globalSongs: allSongs);
-                  } else {
-                    audio.toggleRandomMode();
-                  }
-                },
-                tooltip: l10n.randomMode,
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints.tightFor(
+                width: singleButtonWidth,
+                height: singleButtonWidth,
               ),
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: Icon(
+                Icons.shuffle_rounded,
+                size:
+                    PlaybackHeroCardUiTuning.topButtonsIconSize *
+                    controlsScale,
+                color: isRandomMode
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.white70,
+              ),
+              onPressed: () {
+                final audio = ref.read(audioServiceProvider);
+                if (audio.settingsService.randomRange == 1 && !isRandomMode) {
+                  final playlistService = ref.read(playlistServiceProvider);
+                  final List<MusicFile> allSongs = [];
+                  final pathSet = <String>{};
+                  for (final p in playlistService.playlists) {
+                    for (final s in p.songs) {
+                      if (pathSet.add(s.path)) allSongs.add(s);
+                    }
+                  }
+                  audio.toggleRandomMode(globalSongs: allSongs);
+                } else {
+                  audio.toggleRandomMode();
+                }
+              },
+              tooltip: l10n.randomMode,
             ),
             IconButton(
               padding: EdgeInsets.zero,
