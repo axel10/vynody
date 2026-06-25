@@ -249,11 +249,13 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
             child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
-                ref.read(playlistServiceProvider).createPlaylist(name);
-                Navigator.pop(context);
+                await ref.read(playlistServiceProvider).createPlaylist(name);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               }
             },
             child: Text(AppLocalizations.of(context)!.createPlaylist),
@@ -364,44 +366,58 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ...playlistService.playlists.map(
-              (playlist) => ListTile(
-                leading: Icon(
-                  _isFavoritePlaylist(playlist)
-                      ? Icons.favorite_rounded
-                      : Icons.playlist_play,
-                  color: _isFavoritePlaylist(playlist)
-                      ? Colors.redAccent
-                      : null,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ...playlistService.playlists.map(
+                      (playlist) => ListTile(
+                        leading: Icon(
+                          _isFavoritePlaylist(playlist)
+                              ? Icons.favorite_rounded
+                              : Icons.playlist_play,
+                          color: _isFavoritePlaylist(playlist)
+                              ? Colors.redAccent
+                              : null,
+                        ),
+                        title: Text(playlist.name),
+                        subtitle: Text(
+                          AppLocalizations.of(
+                            context,
+                          )!.songCount(playlist.songs.length),
+                        ),
+                        trailing: playlist.id == playlistService.currentPlaylist?.id
+                            ? const Icon(Icons.check, color: Colors.blue)
+                            : null,
+                        onTap: () {
+                          playlistService.setCurrentPlaylist(playlist.id);
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-                title: Text(playlist.name),
-                subtitle: Text(
-                  AppLocalizations.of(
-                    context,
-                  )!.songCount(playlist.songs.length),
-                ),
-                trailing: playlist.id == playlistService.currentPlaylist?.id
-                    ? const Icon(Icons.check, color: Colors.blue)
-                    : null,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.add),
+                title: Text(AppLocalizations.of(context)!.createNewPlaylist),
                 onTap: () {
-                  playlistService.setCurrentPlaylist(playlist.id);
                   Navigator.pop(context);
+                  _showCreatePlaylistDialog(context);
                 },
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.add),
-              title: Text(AppLocalizations.of(context)!.createNewPlaylist),
-              onTap: () {
-                Navigator.pop(context);
-                _showCreatePlaylistDialog(context);
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -412,47 +428,60 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(
-                AppLocalizations.of(context)!.managePlaylists,
-                style: Theme.of(context).textTheme.titleMedium,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(
+                  AppLocalizations.of(context)!.managePlaylists,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-            ),
-            const Divider(),
-            ...playlistService.playlists.map(
-              (playlist) => ListTile(
-                leading: Icon(
-                  _isFavoritePlaylist(playlist)
-                      ? Icons.favorite_rounded
-                      : Icons.playlist_play,
-                  color: _isFavoritePlaylist(playlist)
-                      ? Colors.redAccent
-                      : null,
-                ),
-                title: Text(playlist.name),
-                subtitle: Text(
-                  '${AppLocalizations.of(context)!.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: _isFavoritePlaylist(playlist)
-                      ? null
-                      : () {
+              const Divider(height: 1),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ...playlistService.playlists.map(
+                      (playlist) => ListTile(
+                        leading: Icon(
+                          _isFavoritePlaylist(playlist)
+                              ? Icons.favorite_rounded
+                              : Icons.playlist_play,
+                          color: _isFavoritePlaylist(playlist)
+                              ? Colors.redAccent
+                              : null,
+                        ),
+                        title: Text(playlist.name),
+                        subtitle: Text(
+                          '${AppLocalizations.of(context)!.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.more_vert),
+                          onPressed: _isFavoritePlaylist(playlist)
+                              ? null
+                              : () {
+                                  Navigator.pop(context);
+                                  _showPlaylistOptions(context, playlist);
+                                },
+                        ),
+                        onTap: () {
+                          playlistService.setCurrentPlaylist(playlist.id);
                           Navigator.pop(context);
-                          _showPlaylistOptions(context, playlist);
                         },
+                      ),
+                    ),
+                  ],
                 ),
-                onTap: () {
-                  playlistService.setCurrentPlaylist(playlist.id);
-                  Navigator.pop(context);
-                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
