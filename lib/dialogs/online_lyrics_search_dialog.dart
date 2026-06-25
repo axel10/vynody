@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
+import 'package:vynody/utils/localized_text.dart';
 
 typedef OnlineLyricsSearch =
     Future<List<LyricTrack>> Function({
@@ -17,18 +18,22 @@ typedef OnlineLyricsSearch =
 Future<LyricTrack?> showOnlineLyricsSearchDialog({
   required BuildContext context,
   required String queryTitle,
+  required LyricsService lyricsService,
   required OnlineLyricsSearch searchTracks,
   String? queryArtist,
   String? queryAlbum,
+  Duration? queryDuration,
 }) {
   return showDialog<LyricTrack>(
     context: context,
     builder: (dialogContext) {
       return _OnlineLyricsSearchDialog(
         queryTitle: queryTitle,
+        lyricsService: lyricsService,
         searchTracks: searchTracks,
         queryArtist: queryArtist,
         queryAlbum: queryAlbum,
+        queryDuration: queryDuration,
       );
     },
   );
@@ -37,15 +42,19 @@ Future<LyricTrack?> showOnlineLyricsSearchDialog({
 class _OnlineLyricsSearchDialog extends StatefulWidget {
   const _OnlineLyricsSearchDialog({
     required this.queryTitle,
+    required this.lyricsService,
     required this.searchTracks,
     this.queryArtist,
     this.queryAlbum,
+    this.queryDuration,
   });
 
   final String queryTitle;
+  final LyricsService lyricsService;
   final OnlineLyricsSearch searchTracks;
   final String? queryArtist;
   final String? queryAlbum;
+  final Duration? queryDuration;
 
   @override
   State<_OnlineLyricsSearchDialog> createState() =>
@@ -54,7 +63,7 @@ class _OnlineLyricsSearchDialog extends StatefulWidget {
 
 class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
   late final TextEditingController _searchController;
-  List<LyricTrack> _tracks = const [];
+  List<ScoredLyricTrack> _tracks = const [];
   bool _isLoading = false;
   String? _lastErrorMessage;
   CancelToken? _cancelToken;
@@ -142,8 +151,16 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
       if (!mounted) return;
       if (currentCancelToken != _cancelToken) return;
 
+      final scoredTracks = widget.lyricsService.scoreAndSortTracks(
+        tracks: tracks,
+        queryTitle: widget.queryTitle,
+        queryArtist: widget.queryArtist,
+        queryAlbum: widget.queryAlbum,
+        queryDuration: widget.queryDuration,
+      );
+
       setState(() {
-        _tracks = tracks;
+        _tracks = scoredTracks;
         _isLoading = false;
       });
     } catch (error) {
@@ -181,6 +198,30 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
     final minutes = safeSeconds ~/ 60;
     final remainingSeconds = safeSeconds % 60;
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildMatchScoreBadge(double score, ThemeData theme) {
+    final color = score >= 80
+        ? Colors.green
+        : score >= 60
+            ? Colors.orange
+            : Colors.red;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.28), width: 1),
+      ),
+      child: Text(
+        '${localizedText('匹配度', 'Match')} ${score.toStringAsFixed(0)}%',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 10,
+        ),
+      ),
+    );
   }
 
   @override
@@ -267,7 +308,8 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
                           separatorBuilder: (context, separatorIndex) =>
                               const SizedBox(height: 8),
                           itemBuilder: (context, index) {
-                            final track = _tracks[index];
+                            final scoredTrack = _tracks[index];
+                            final track = scoredTrack.track;
                             return Material(
                               color: theme.colorScheme.surfaceContainerHighest
                                   .withValues(alpha: 0.36),
@@ -299,14 +341,23 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              track.displayTitle.isNotEmpty
-                                                  ? track.displayTitle
-                                                  : l10n.untitledLyrics,
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w700,
+                                            Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    track.displayTitle.isNotEmpty
+                                                        ? track.displayTitle
+                                                        : l10n.untitledLyrics,
+                                                    style: theme.textTheme.titleMedium
+                                                        ?.copyWith(
+                                                          fontWeight: FontWeight.w700,
+                                                        ),
                                                   ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                _buildMatchScoreBadge(scoredTrack.score, theme),
+                                              ],
                                             ),
                                             const SizedBox(height: 6),
                                             Text(

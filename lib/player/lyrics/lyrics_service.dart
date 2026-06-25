@@ -100,6 +100,14 @@ abstract class LyricTrack with _$LyricTrack {
   }
 }
 
+class ScoredLyricTrack {
+  final LyricTrack track;
+  final double score;
+
+  const ScoredLyricTrack(this.track, this.score);
+}
+
+
 @freezed
 abstract class LyricScoreBreakdown with _$LyricScoreBreakdown {
   const LyricScoreBreakdown._();
@@ -179,6 +187,54 @@ class LyricsService {
       cancelToken: cancelToken,
     );
   }
+
+  /// Scores and sorts a list of [LyricTrack] candidates based on query metadata.
+  List<ScoredLyricTrack> scoreAndSortTracks({
+    required List<LyricTrack> tracks,
+    required String queryTitle,
+    String? queryArtist,
+    String? queryAlbum,
+    Duration? queryDuration,
+  }) {
+    final query = LyricsQuery(
+      filePath: '',
+      fileName: '',
+      title: _cleanField(queryTitle) ?? queryTitle,
+      artist: _cleanField(queryArtist),
+      album: _cleanField(queryAlbum),
+      duration: queryDuration,
+    );
+
+    final results = <LyricSelectionResult>[];
+    for (final track in tracks) {
+      final scored = _scoreCandidate(query, track, fromGetApi: true);
+      if (scored != null) {
+        results.add(scored);
+      } else {
+        results.add(LyricSelectionResult(
+          track: track,
+          fromGetApi: false,
+          source: 'lrclib',
+          score: 0.0,
+          breakdown: const LyricScoreBreakdown(
+            title: 0,
+            artist: 0,
+            album: 0,
+            duration: 0,
+            lyricsQuality: 0,
+            instrumentalPenalty: 0,
+          ),
+          durationDiffSeconds: 1 << 30,
+          lyricsText: '',
+        ));
+      }
+    }
+
+    results.sort(_compareSelectionResults);
+
+    return results.map((r) => ScoredLyricTrack(r.track, r.score)).toList();
+  }
+
 
   /// 核心歌词获取入口。
   /// 实现了一个分层的查找策略：内存 -> SQLite 数据库 -> 在线 API。

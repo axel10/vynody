@@ -762,8 +762,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final selectedTrack = await showOnlineLyricsSearchDialog(
       context: context,
       queryTitle: songTitle,
+      lyricsService: service,
       queryArtist: songArtist?.isNotEmpty == true ? songArtist : null,
       queryAlbum: songAlbum?.isNotEmpty == true ? songAlbum : null,
+      queryDuration: currentSong.durationMillis != null
+          ? Duration(milliseconds: currentSong.durationMillis!)
+          : null,
       searchTracks: ({
         required String title,
         String? artist,
