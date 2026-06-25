@@ -24,14 +24,7 @@ $MusicFileCopyWith<MusicFile> get copyWith => _$MusicFileCopyWithImpl<MusicFile>
 
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MusicFile&&(identical(other.path, path) || other.path == path)&&(identical(other.name, name) || other.name == name)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.trackNumber, trackNumber) || other.trackNumber == trackNumber)&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaUri, mediaUri) || other.mediaUri == mediaUri)&&(identical(other.thumbnailPath, thumbnailPath) || other.thumbnailPath == thumbnailPath)&&(identical(other.artworkPath, artworkPath) || other.artworkPath == artworkPath)&&(identical(other.artworkWidth, artworkWidth) || other.artworkWidth == artworkWidth)&&(identical(other.artworkHeight, artworkHeight) || other.artworkHeight == artworkHeight)&&(identical(other.durationMillis, durationMillis) || other.durationMillis == durationMillis)&&const DeepCollectionEquality().equals(other.themeColorsBlob, themeColorsBlob)&&const DeepCollectionEquality().equals(other.waveformBlob, waveformBlob)&&const DeepCollectionEquality().equals(other.artworkBytes, artworkBytes)&&(identical(other.lastModifiedTime, lastModifiedTime) || other.lastModifiedTime == lastModifiedTime)&&(identical(other.lyrics, lyrics) || other.lyrics == lyrics)&&(identical(other.isMissing, isMissing) || other.isMissing == isMissing));
-}
 
-
-@override
-int get hashCode => Object.hashAll([runtimeType,path,name,title,artist,album,trackNumber,id,mediaUri,thumbnailPath,artworkPath,artworkWidth,artworkHeight,durationMillis,const DeepCollectionEquality().hash(themeColorsBlob),const DeepCollectionEquality().hash(waveformBlob),const DeepCollectionEquality().hash(artworkBytes),lastModifiedTime,lyrics,isMissing]);
 
 @override
 String toString() {
@@ -269,14 +262,7 @@ _$MusicFileCopyWith<_MusicFile> get copyWith => __$MusicFileCopyWithImpl<_MusicF
 
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MusicFile&&(identical(other.path, path) || other.path == path)&&(identical(other.name, name) || other.name == name)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.album, album) || other.album == album)&&(identical(other.trackNumber, trackNumber) || other.trackNumber == trackNumber)&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaUri, mediaUri) || other.mediaUri == mediaUri)&&(identical(other.thumbnailPath, thumbnailPath) || other.thumbnailPath == thumbnailPath)&&(identical(other.artworkPath, artworkPath) || other.artworkPath == artworkPath)&&(identical(other.artworkWidth, artworkWidth) || other.artworkWidth == artworkWidth)&&(identical(other.artworkHeight, artworkHeight) || other.artworkHeight == artworkHeight)&&(identical(other.durationMillis, durationMillis) || other.durationMillis == durationMillis)&&const DeepCollectionEquality().equals(other.themeColorsBlob, themeColorsBlob)&&const DeepCollectionEquality().equals(other.waveformBlob, waveformBlob)&&const DeepCollectionEquality().equals(other.artworkBytes, artworkBytes)&&(identical(other.lastModifiedTime, lastModifiedTime) || other.lastModifiedTime == lastModifiedTime)&&(identical(other.lyrics, lyrics) || other.lyrics == lyrics)&&(identical(other.isMissing, isMissing) || other.isMissing == isMissing));
-}
 
-
-@override
-int get hashCode => Object.hashAll([runtimeType,path,name,title,artist,album,trackNumber,id,mediaUri,thumbnailPath,artworkPath,artworkWidth,artworkHeight,durationMillis,const DeepCollectionEquality().hash(themeColorsBlob),const DeepCollectionEquality().hash(waveformBlob),const DeepCollectionEquality().hash(artworkBytes),lastModifiedTime,lyrics,isMissing]);
 
 @override
 String toString() {

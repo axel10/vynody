@@ -61,4 +61,54 @@ abstract class MusicFile with _$MusicFile {
     }
     return p.basenameWithoutExtension(path);
   }
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is MusicFile &&
+        other.runtimeType == runtimeType &&
+        other.path == path &&
+        other.name == name &&
+        other.title == title &&
+        other.artist == artist &&
+        other.album == album &&
+        other.trackNumber == trackNumber &&
+        other.id == id &&
+        other.mediaUri == mediaUri &&
+        other.thumbnailPath == thumbnailPath &&
+        other.artworkPath == artworkPath &&
+        other.artworkWidth == artworkWidth &&
+        other.artworkHeight == artworkHeight &&
+        other.durationMillis == durationMillis &&
+        identical(other.themeColorsBlob, themeColorsBlob) &&
+        identical(other.waveformBlob, waveformBlob) &&
+        identical(other.artworkBytes, artworkBytes) &&
+        other.lastModifiedTime == lastModifiedTime &&
+        other.lyrics == lyrics &&
+        other.isMissing == isMissing;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        path,
+        name,
+        title,
+        artist,
+        album,
+        trackNumber,
+        id,
+        mediaUri,
+        thumbnailPath,
+        artworkPath,
+        artworkWidth,
+        artworkHeight,
+        durationMillis,
+        themeColorsBlob != null ? identityHashCode(themeColorsBlob) : null,
+        waveformBlob != null ? identityHashCode(waveformBlob) : null,
+        artworkBytes != null ? identityHashCode(artworkBytes) : null,
+        lastModifiedTime,
+        lyrics,
+        isMissing,
+      ]);
 }
+
