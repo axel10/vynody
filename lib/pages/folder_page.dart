@@ -35,7 +35,7 @@ class FoldersPage extends ConsumerStatefulWidget {
 }
 
 class _FoldersPageState extends ConsumerState<FoldersPage> {
-  final ScrollController _scrollController = ScrollController();
+  ScrollController _scrollController = ScrollController();
   String? _lastFolderPath = 'sentinel_initial_path';
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
@@ -518,19 +518,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       }
       _lastFolderPath = currentFolderPath;
 
-      final targetPath = currentFolderPath;
+      final targetOffset = scanner.getFolderScrollOffset(currentFolderPath);
+      final oldController = _scrollController;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final currentScanner = ref.read(scannerServiceProvider);
-        if (currentScanner.navigationCurrentFolder?.path != targetPath) {
-          return;
-        }
-        if (_scrollController.hasClients) {
-          final targetOffset = currentScanner.getFolderScrollOffset(targetPath);
-          final maxExtent = _scrollController.position.maxScrollExtent;
-          _scrollController.jumpTo(targetOffset.clamp(0.0, maxExtent));
-        }
+        oldController.dispose();
       });
+      _scrollController = ScrollController(initialScrollOffset: targetOffset);
     }
 
     final navigationHistory = ref.watch(
