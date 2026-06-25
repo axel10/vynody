@@ -11,7 +11,6 @@ import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
-import '../dialogs/song_details_dialog.dart';
 
 // 队列页面
 class QueuePage extends ConsumerStatefulWidget {

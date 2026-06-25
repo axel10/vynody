@@ -15,8 +15,6 @@ import 'song_tag_musicbrainz_cards.dart';
 import 'song_tag_acoustid_cards.dart';
 import 'song_tag_completion_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
-import 'package:vynody/utils/localized_text.dart';
-import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 
 enum _SummaryCondition { title, artist, album, duration }

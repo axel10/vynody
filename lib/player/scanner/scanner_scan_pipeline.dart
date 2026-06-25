@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:flutter/foundation.dart';
 
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_metadata_store.dart';

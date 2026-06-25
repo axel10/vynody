@@ -2221,7 +2221,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<AudioDetails> getAudioDetails({required String path}) async {
-    return _player.engine.getAudioDetails(path: path);
+    return _player.getAudioDetails(path: path);
   }
 
   Future<void> enqueueNext(List<MusicFile> songs) async {
