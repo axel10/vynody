@@ -210,6 +210,16 @@ class PlaylistService extends ChangeNotifier {
     return playlist;
   }
 
+  /// 检查是否存在同名播放列表 (不区分大小写，去除首尾空格)
+  bool playlistExists(String name, {String? excludeId}) {
+    final searchName = name.trim().toLowerCase();
+    if (searchName.isEmpty) return false;
+    return _playlists.any((p) {
+      if (excludeId != null && p.id == excludeId) return false;
+      return p.name.trim().toLowerCase() == searchName;
+    });
+  }
+
   /// 删除播放列表
   Future<void> deletePlaylist(String id) async {
     if (id == favoritePlaylistId) {

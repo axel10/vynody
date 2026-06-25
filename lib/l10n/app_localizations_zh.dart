@@ -236,6 +236,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterPlaylistName => '请输入播放列表名称';
 
   @override
+  String get playlistNameExists => '播放列表名称已存在';
+
+  @override
   String get renamePlaylist => '重命名播放列表';
 
   @override

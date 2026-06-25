@@ -238,6 +238,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterPlaylistName => 'Enter playlist name';
 
   @override
+  String get playlistNameExists => 'Playlist name already exists';
+
+  @override
   String get renamePlaylist => 'Rename Playlist';
 
   @override

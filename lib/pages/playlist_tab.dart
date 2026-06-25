@@ -174,53 +174,70 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
     List<MusicFile> selectedSongs,
   ) {
     final controller = TextEditingController();
+    String? errorText;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.createPlaylist),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.playlistName,
-            hintText: AppLocalizations.of(context)!.enterPlaylistName,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              final name = controller.text.trim();
-              if (name.isNotEmpty) {
-                final playlist = await ref
-                    .read(playlistServiceProvider)
-                    .createPlaylist(name);
-                if (context.mounted) {
-                  ref
-                      .read(playlistServiceProvider)
-                      .addSongsToPlaylist(playlist.id, selectedSongs);
-                  Navigator.pop(context);
-                  AppSnackBar.show(
-                    context,
-                    ref,
-                    SnackBar(
-                      content: Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.createdPlaylist(name, selectedSongs.length),
-                      ),
-                    ),
-                  );
-                  _toggleSelectionMode();
-                }
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(AppLocalizations.of(context)!.createPlaylist),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.playlistName,
+              hintText: AppLocalizations.of(context)!.enterPlaylistName,
+              errorText: errorText,
+            ),
+            onChanged: (val) {
+              if (errorText != null) {
+                setState(() {
+                  errorText = null;
+                });
               }
             },
-            child: Text(AppLocalizations.of(context)!.createPlaylist),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+            TextButton(
+              onPressed: () async {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  final playlistService = ref.read(playlistServiceProvider);
+                  if (playlistService.playlistExists(name)) {
+                    setState(() {
+                      errorText = AppLocalizations.of(context)!.playlistNameExists;
+                    });
+                    return;
+                  }
+                  final playlist = await playlistService.createPlaylist(name);
+                  if (context.mounted) {
+                    ref
+                        .read(playlistServiceProvider)
+                        .addSongsToPlaylist(playlist.id, selectedSongs);
+                    Navigator.pop(context);
+                    AppSnackBar.show(
+                      context,
+                      ref,
+                      SnackBar(
+                        content: Text(
+                          AppLocalizations.of(
+                            context,
+                          )!.createdPlaylist(name, selectedSongs.length),
+                        ),
+                      ),
+                    );
+                    _toggleSelectionMode();
+                  }
+                }
+              },
+              child: Text(AppLocalizations.of(context)!.createPlaylist),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -231,71 +248,107 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
   void _showCreatePlaylistDialog(BuildContext context) {
     final controller = TextEditingController();
+    String? errorText;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.createPlaylist),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.playlistName,
-            hintText: AppLocalizations.of(context)!.enterPlaylistName,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              final name = controller.text.trim();
-              if (name.isNotEmpty) {
-                await ref.read(playlistServiceProvider).createPlaylist(name);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(AppLocalizations.of(context)!.createPlaylist),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.playlistName,
+              hintText: AppLocalizations.of(context)!.enterPlaylistName,
+              errorText: errorText,
+            ),
+            onChanged: (val) {
+              if (errorText != null) {
+                setState(() {
+                  errorText = null;
+                });
               }
             },
-            child: Text(AppLocalizations.of(context)!.createPlaylist),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+            TextButton(
+              onPressed: () async {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  final playlistService = ref.read(playlistServiceProvider);
+                  if (playlistService.playlistExists(name)) {
+                    setState(() {
+                      errorText = AppLocalizations.of(context)!.playlistNameExists;
+                    });
+                    return;
+                  }
+                  await playlistService.createPlaylist(name);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                }
+              },
+              child: Text(AppLocalizations.of(context)!.createPlaylist),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   void _showRenamePlaylistDialog(BuildContext context, Playlist playlist) {
     final controller = TextEditingController(text: playlist.name);
+    String? errorText;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.renamePlaylist),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.playlistName,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              final name = controller.text.trim();
-              if (name.isNotEmpty) {
-                ref
-                    .read(playlistServiceProvider)
-                    .renamePlaylist(playlist.id, name);
-                Navigator.pop(context);
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(AppLocalizations.of(context)!.renamePlaylist),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.playlistName,
+              errorText: errorText,
+            ),
+            onChanged: (val) {
+              if (errorText != null) {
+                setState(() {
+                  errorText = null;
+                });
               }
             },
-            child: Text(AppLocalizations.of(context)!.confirm),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  final playlistService = ref.read(playlistServiceProvider);
+                  if (playlistService.playlistExists(name, excludeId: playlist.id)) {
+                    setState(() {
+                      errorText = AppLocalizations.of(context)!.playlistNameExists;
+                    });
+                    return;
+                  }
+                  playlistService.renamePlaylist(playlist.id, name);
+                  Navigator.pop(context);
+                }
+              },
+              child: Text(AppLocalizations.of(context)!.confirm),
+            ),
+          ],
+        ),
       ),
     );
   }

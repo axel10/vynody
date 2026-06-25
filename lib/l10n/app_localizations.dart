@@ -530,6 +530,12 @@ abstract class AppLocalizations {
   /// **'请输入播放列表名称'**
   String get enterPlaylistName;
 
+  /// Error message when playlist name already exists
+  ///
+  /// In zh, this message translates to:
+  /// **'播放列表名称已存在'**
+  String get playlistNameExists;
+
   /// Rename playlist
   ///
   /// In zh, this message translates to:

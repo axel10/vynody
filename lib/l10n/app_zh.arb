@@ -301,6 +301,10 @@
   "@enterPlaylistName": {
     "description": "Enter playlist name hint"
   },
+  "playlistNameExists": "播放列表名称已存在",
+  "@playlistNameExists": {
+    "description": "Error message when playlist name already exists"
+  },
   "renamePlaylist": "重命名播放列表",
   "@renamePlaylist": {
     "description": "Rename playlist"

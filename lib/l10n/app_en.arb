@@ -93,6 +93,7 @@
   "createPlaylist": "Create Playlist",
   "playlistName": "Playlist Name",
   "enterPlaylistName": "Enter playlist name",
+  "playlistNameExists": "Playlist name already exists",
   "renamePlaylist": "Rename Playlist",
   "deletePlaylist": "Delete Playlist",
   "confirmDeletePlaylist": "Are you sure you want to delete the playlist \"{name}\"?",
