@@ -53,6 +53,8 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   late final LibrarySelectionScopeController _librarySelectionScopeController;
   final ValueNotifier<_ScanToastState?> _scanToastState =
       ValueNotifier<_ScanToastState?>(null);
+  String? _highlightedSongPath;
+  Timer? _highlightTimer;
 
   void _setFolderSelectionMode(bool enabled) {
     _librarySelectionScopeController.setScope(
@@ -167,6 +169,110 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     });
     _setFolderSelectionMode(false);
     _librarySelectionScopeController.clear();
+  }
+
+  List<MusicFolder>? _findFolderHistory(MusicFolder root, String songPath) {
+    List<MusicFolder>? recurse(MusicFolder folder) {
+      for (final file in folder.files) {
+        if (p.equals(file.path, songPath)) {
+          return [folder];
+        }
+      }
+      for (final sub in folder.subFolders) {
+        final res = recurse(sub);
+        if (res != null) {
+          return [folder, ...res];
+        }
+      }
+      return null;
+    }
+
+    return recurse(root);
+  }
+
+  void _scrollToSong(MusicFolder folder, String songPath) {
+    final fileIndex = folder.files.indexWhere((file) => p.equals(file.path, songPath));
+    if (fileIndex == -1) return;
+
+    final hasPermission = ref.read(scannerServiceProvider).hasPermission;
+    final showPermissionWarning = folder.path == 'system' && !hasPermission;
+
+    const double goBackHeight = 64.0;
+    const double subFolderHeight = 64.0;
+    const double fileHeight = 80.0;
+
+    double fileOffset = goBackHeight;
+    if (showPermissionWarning) {
+      // (This path normally won't be reached if files exist and are being located, but included for completeness)
+      fileOffset += 200.0;
+    }
+
+    fileOffset += folder.subFolders.length * subFolderHeight;
+    fileOffset += fileIndex * fileHeight;
+
+    if (_scrollController.hasClients) {
+      final double viewportHeight = _scrollController.position.viewportDimension;
+      double targetOffset = fileOffset - (viewportHeight / 2) + (fileHeight / 2);
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      targetOffset = targetOffset.clamp(0.0, maxScroll);
+
+      _scrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+
+    setState(() {
+      _highlightedSongPath = songPath;
+    });
+
+    _highlightTimer?.cancel();
+    _highlightTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _highlightedSongPath = null;
+        });
+      }
+    });
+  }
+
+  void _locateCurrentSong() {
+    final currentMusic = ref.read(audioCurrentMusicProvider);
+    if (currentMusic == null) return;
+
+    final scanner = ref.read(scannerServiceProvider);
+    List<MusicFolder>? foundHistory;
+
+    // Search in root folders
+    for (final root in scanner.rootFolders) {
+      foundHistory = _findFolderHistory(root, currentMusic.path);
+      if (foundHistory != null) {
+        break;
+      }
+    }
+
+    // If not found in roots, search in system media library
+    if (foundHistory == null && scanner.systemMediaFolder != null) {
+      foundHistory = _findFolderHistory(scanner.systemMediaFolder!, currentMusic.path);
+    }
+
+    if (foundHistory != null && foundHistory.isNotEmpty) {
+      final targetFolder = foundHistory.last;
+      final history = foundHistory.sublist(0, foundHistory.length - 1);
+      final alreadyInFolder = scanner.navigationCurrentFolder?.path == targetFolder.path;
+
+      if (!alreadyInFolder) {
+        scanner.setNavigationState(targetFolder, history);
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _scrollToSong(targetFolder, currentMusic.path);
+      });
+    } else {
+      showToast(AppLocalizations.of(context)!.songNotInScannedFolders);
+    }
   }
 
   void _ensureScanToastVisible() {
@@ -401,6 +507,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     });
     _scanToastUpdateTimer?.cancel();
     _scanToastAutoDismissTimer?.cancel();
+    _highlightTimer?.cancel();
     _scanProgressSubscription?.cancel();
     _scanner?.removeListener(_handleScannerChanged);
     _dismissScanToast(notifyListeners: false);
@@ -593,6 +700,12 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                         ),
                       ),
                     ),
+                    if (currentMusic != null)
+                      IconButton(
+                        icon: const Icon(Icons.my_location_rounded),
+                        onPressed: _locateCurrentSong,
+                        tooltip: AppLocalizations.of(context)!.locateCurrentSong,
+                      ),
                     IconButton(
                       icon: Icon(
                         Icons.sort,
@@ -1062,6 +1175,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                           isCurrent: isCurrent,
                           isSelected: isSelected,
                           isSelectionMode: _isSelectionMode,
+                          isHighlighted: _highlightedSongPath == file.path,
                           onTap: _isSelectionMode
                               ? () => _toggleSelection(file.path)
                               : () async {
@@ -1625,6 +1739,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner) {
     final theme = Theme.of(context);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     List<Widget> breadcrumbItems = [];
 
@@ -1735,6 +1850,14 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
             ),
           ),
           const SizedBox(width: 8),
+          if (currentMusic != null) ...[
+            IconButton(
+              icon: const Icon(Icons.my_location_rounded),
+              onPressed: _locateCurrentSong,
+              tooltip: AppLocalizations.of(context)!.locateCurrentSong,
+            ),
+            const SizedBox(width: 8),
+          ],
           IconButton(
             icon: const Icon(Icons.sort),
             onPressed: () => _showSortDialog(context, scanner),

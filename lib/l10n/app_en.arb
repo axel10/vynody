@@ -84,6 +84,7 @@
   "confirmClearQueue": "Are you sure you want to clear the current queue?",
   "queueCleared": "Queue cleared",
   "locateCurrentSong": "Locate Current Song",
+  "songNotInScannedFolders": "Current song is not in the scanned directories",
   "queue": "Queue",
   "queueEmpty": "Queue is empty",
   "selectedSongs": "{count} songs selected",

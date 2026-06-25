@@ -476,6 +476,12 @@ abstract class AppLocalizations {
   /// **'定位当前播放'**
   String get locateCurrentSong;
 
+  /// Toast message shown when the current song cannot be found in scanned directories
+  ///
+  /// In zh, this message translates to:
+  /// **'当前歌曲不在扫描的目录中'**
+  String get songNotInScannedFolders;
+
   /// Queue
   ///
   /// In zh, this message translates to:

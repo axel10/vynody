@@ -207,6 +207,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locateCurrentSong => 'Locate Current Song';
 
   @override
+  String get songNotInScannedFolders =>
+      'Current song is not in the scanned directories';
+
+  @override
   String get queue => 'Queue';
 
   @override

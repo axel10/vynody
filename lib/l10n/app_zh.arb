@@ -255,6 +255,10 @@
   "@locateCurrentSong": {
     "description": "Locate current playing song button tooltip"
   },
+  "songNotInScannedFolders": "当前歌曲不在扫描的目录中",
+  "@songNotInScannedFolders": {
+    "description": "Toast message shown when the current song cannot be found in scanned directories"
+  },
   "queue": "队列",
   "@queue": {
     "description": "Queue"

@@ -205,6 +205,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get locateCurrentSong => '定位当前播放';
 
   @override
+  String get songNotInScannedFolders => '当前歌曲不在扫描的目录中';
+
+  @override
   String get queue => '队列';
 
   @override
