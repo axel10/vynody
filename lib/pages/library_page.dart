@@ -22,10 +22,6 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   int _tabIndex = 0;
-  bool _mostPlayedTabLoaded = false;
-  bool _recentlyAddedTabLoaded = false;
-  bool _albumsTabLoaded = false;
-  bool _artistsTabLoaded = false;
 
   @override
   void initState() {
@@ -34,18 +30,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       ..addListener(() {
         if (_tabController.indexIsChanging) return;
         if (_tabIndex == _tabController.index) return;
-        setState(() {
-          _tabIndex = _tabController.index;
-          if (_tabIndex == 1) {
-            _mostPlayedTabLoaded = true;
-          } else if (_tabIndex == 2) {
-            _recentlyAddedTabLoaded = true;
-          } else if (_tabIndex == 3) {
-            _albumsTabLoaded = true;
-          } else if (_tabIndex == 4) {
-            _artistsTabLoaded = true;
-          }
-        });
+        _tabIndex = _tabController.index;
         ref.read(librarySelectionScopeProvider.notifier).clear();
       });
   }
@@ -79,21 +64,37 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
           ],
         )
       ),
-      body: IndexedStack(
-        index: _tabIndex,
-        children: [
-          const PlaylistTab(),
-          _mostPlayedTabLoaded
-              ? const MostPlayedTab()
-              : const SizedBox.shrink(),
-          _recentlyAddedTabLoaded
-              ? const RecentlyAddedTab()
-              : const SizedBox.shrink(),
-          _albumsTabLoaded ? const AlbumsTab() : const SizedBox.shrink(),
-          _artistsTabLoaded ? const ArtistsTab() : const SizedBox.shrink(),
+      body: TabBarView(
+        controller: _tabController,
+        children: const [
+          KeepAliveWrapper(child: PlaylistTab()),
+          KeepAliveWrapper(child: MostPlayedTab()),
+          KeepAliveWrapper(child: RecentlyAddedTab()),
+          KeepAliveWrapper(child: AlbumsTab()),
+          KeepAliveWrapper(child: ArtistsTab()),
         ],
       ),
     );
   }
+}
 
+class KeepAliveWrapper extends StatefulWidget {
+  final Widget child;
+
+  const KeepAliveWrapper({super.key, required this.child});
+
+  @override
+  State<KeepAliveWrapper> createState() => _KeepAliveWrapperState();
+}
+
+class _KeepAliveWrapperState extends State<KeepAliveWrapper>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+
+  @override
+  bool get wantKeepAlive => true;
 }
