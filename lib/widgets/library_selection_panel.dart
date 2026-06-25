@@ -343,7 +343,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
         onPressed: onPressed,
         style: TextButton.styleFrom(
           foregroundColor: theme.colorScheme.onSurface,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
