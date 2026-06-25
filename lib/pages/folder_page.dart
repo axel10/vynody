@@ -788,6 +788,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
               ),
               Expanded(
                 child: ReorderableListView.builder(
+                  key: const ValueKey('root_folders_list'),
                   buildDefaultDragHandles: false,
                   scrollController: _scrollController,
                   cacheExtent: 1000,
@@ -980,6 +981,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
               ),
             Expanded(
               child: ListView.builder(
+                key: ValueKey(currentFolderPath),
                 controller: _scrollController,
                 cacheExtent: 1000,
                 padding: EdgeInsets.only(bottom: 160 + selectionPanelHeight),
