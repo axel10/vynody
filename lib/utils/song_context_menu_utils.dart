@@ -417,22 +417,24 @@ Future<void> showAddSongsToPlaylistDialog(
               if (name.isEmpty) return;
 
               final playlist = await playlistService.createPlaylist(name);
-              if (!context.mounted) return;
               await playlistService.addSongsToPlaylist(playlist.id, songs);
-              if (!context.mounted) return;
-              Navigator.pop(dialogContext);
-              AppSnackBar.show(
-                context,
-                null,
-                SnackBar(
-                  content: Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.createdPlaylist(name, songs.length),
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
+              if (context.mounted) {
+                AppSnackBar.show(
+                  context,
+                  null,
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.createdPlaylist(name, songs.length),
+                    ),
+                    duration: const Duration(seconds: 4),
                   ),
-                  duration: const Duration(seconds: 4),
-                ),
-              );
+                );
+              }
             },
             child: Text(AppLocalizations.of(dialogContext)!.createPlaylist),
           ),

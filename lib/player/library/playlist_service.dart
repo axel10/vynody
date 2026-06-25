@@ -204,6 +204,7 @@ class PlaylistService extends ChangeNotifier {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final playlist = Playlist(id: id, name: name);
     _playlists.add(playlist);
+    _currentPlaylistId = id;
     await _savePlaylists();
     notifyListeners();
     return playlist;
