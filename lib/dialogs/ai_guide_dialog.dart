@@ -426,6 +426,7 @@ Future<String?> showLyricsProviderApiKeyDialog(
       ref: ref,
       initialApiKey: initialApiKey,
     ),
+    LyricsAiProvider.custom => null,
   };
 }
 
@@ -562,14 +563,17 @@ class _LyricsApiKeyWizardDialogState
               : _StatusType.error;
         });
       } else {
-        // 豆包 & DeepSeek
         final LyricsModelCatalogService service = ref.read(
           lyricsModelCatalogServiceProvider,
         );
+        final settings = ref.read(settingsServiceProvider);
         final result = await service.fetchModels(
           provider: provider,
           purpose: widget.purpose,
           apiKey: apiKey,
+          baseUrl: provider == LyricsAiProvider.custom
+              ? settings.customProviderBaseUrl
+              : '',
         );
         setState(() {
           _isTesting = false;
@@ -608,6 +612,8 @@ class _LyricsApiKeyWizardDialogState
         break;
       case LyricsAiProvider.deepseek:
         settings.deepseekApiKey = apiKey;
+        break;
+      case LyricsAiProvider.custom:
         break;
     }
 
@@ -704,6 +710,11 @@ class _LyricsApiKeyWizardDialogState
               ? '仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。'
               : 'Text input only. Lyric generation and timeline adjustment require an API key from another provider.',
         );
+      case LyricsAiProvider.custom:
+        return _ProviderDetail(
+          pros: '',
+          cons: '',
+        );
     }
   }
 
@@ -780,6 +791,9 @@ class _LyricsApiKeyWizardDialogState
   Widget _buildProviderSelectionPage(BuildContext context) {
     final isZh = _isZhLocale(context);
     final filteredProviders = LyricsAiProvider.values.where((p) {
+      if (p == LyricsAiProvider.custom) {
+        return false;
+      }
       if (widget.purpose == LyricsAiModelPurpose.generation) {
         return p != LyricsAiProvider.deepseek;
       }
@@ -1077,6 +1091,8 @@ class _LyricsApiKeyWizardDialogState
         break;
       case LyricsAiProvider.deepseek:
         getKeyUrl = 'https://platform.deepseek.com/api_keys';
+        break;
+      case LyricsAiProvider.custom:
         break;
     }
 

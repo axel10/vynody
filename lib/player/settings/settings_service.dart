@@ -9,7 +9,7 @@ import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/transcode/transcode_models.dart';
 import 'package:vynody/utils/language_code_utils.dart';
 
-enum LyricsAiProvider { googleAiStudio, openRouter, doubao, deepseek }
+enum LyricsAiProvider { googleAiStudio, openRouter, doubao, deepseek, custom }
 
 enum LyricsAiModelPurpose { generation, translation }
 
@@ -78,15 +78,24 @@ extension LyricsAiProviderX on LyricsAiProvider {
     LyricsAiProvider.openRouter => 'openrouter',
     LyricsAiProvider.doubao => 'doubao',
     LyricsAiProvider.deepseek => 'deepseek',
+    LyricsAiProvider.custom => 'custom',
   };
 
-  String get displayName => switch (this) {
-    LyricsAiProvider.googleAiStudio =>
-      _isZhLocale ? 'Google AI Studio' : 'Google AI Studio',
-    LyricsAiProvider.openRouter => _isZhLocale ? 'OpenRouter' : 'OpenRouter',
-    LyricsAiProvider.doubao => _isZhLocale ? '豆包' : 'Doubao',
-    LyricsAiProvider.deepseek => _isZhLocale ? 'DeepSeek' : 'DeepSeek',
-  };
+  String get displayName {
+    if (this == LyricsAiProvider.custom) {
+      return SettingsService._lastKnownCustomProviderName.trim().isEmpty
+          ? (_isZhLocale ? '自定义' : 'Custom')
+          : SettingsService._lastKnownCustomProviderName.trim();
+    }
+    return switch (this) {
+      LyricsAiProvider.googleAiStudio =>
+        _isZhLocale ? 'Google AI Studio' : 'Google AI Studio',
+      LyricsAiProvider.openRouter => _isZhLocale ? 'OpenRouter' : 'OpenRouter',
+      LyricsAiProvider.doubao => _isZhLocale ? '豆包' : 'Doubao',
+      LyricsAiProvider.deepseek => _isZhLocale ? 'DeepSeek' : 'DeepSeek',
+      LyricsAiProvider.custom => '',
+    };
+  }
 
   static LyricsAiProvider fromStorageValue(String? value) {
     switch (value?.trim().toLowerCase()) {
@@ -96,6 +105,8 @@ extension LyricsAiProviderX on LyricsAiProvider {
         return LyricsAiProvider.doubao;
       case 'deepseek':
         return LyricsAiProvider.deepseek;
+      case 'custom':
+        return LyricsAiProvider.custom;
       case 'google_ai_studio':
       case 'google':
       case 'gemini':
@@ -208,6 +219,10 @@ class SettingsService extends ChangeNotifier {
   static const String openRouterApiKeyStorageKey = 'openrouter_api_key';
   static const String doubaoApiKeyStorageKey = 'doubao_api_key';
   static const String deepseekApiKeyStorageKey = 'deepseek_api_key';
+  static const String customProviderApiKeyStorageKey = 'custom_provider_api_key';
+  static const String customProviderBaseUrlStorageKey = 'custom_provider_base_url';
+  static const String customProviderNameStorageKey = 'custom_provider_name';
+  static String _lastKnownCustomProviderName = '';
   static const String _keyLyricsTranslationTargetLanguage =
       'lyrics_translation_target_language';
   static const String _keyLyricsSaveMethod = 'lyrics_save_method';
@@ -593,6 +608,52 @@ class SettingsService extends ChangeNotifier {
     },
   );
 
+  late final _customProviderApiKeyProperty = SettingProperty<String>(
+    key: customProviderApiKeyStorageKey,
+    defaultValue: '',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customWrite: (prefs, key, val) {
+      final normalized = val.trim();
+      if (normalized.isEmpty) {
+        prefs.remove(key);
+      } else {
+        prefs.setString(key, normalized);
+      }
+    },
+  );
+
+  late final _customProviderBaseUrlProperty = SettingProperty<String>(
+    key: customProviderBaseUrlStorageKey,
+    defaultValue: '',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customWrite: (prefs, key, val) {
+      final normalized = val.trim();
+      if (normalized.isEmpty) {
+        prefs.remove(key);
+      } else {
+        prefs.setString(key, normalized);
+      }
+    },
+  );
+
+  late final _customProviderNameProperty = SettingProperty<String>(
+    key: customProviderNameStorageKey,
+    defaultValue: '',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customWrite: (prefs, key, val) {
+      final normalized = val.trim();
+      if (normalized.isEmpty) {
+        prefs.remove(key);
+      } else {
+        prefs.setString(key, normalized);
+      }
+      _lastKnownCustomProviderName = normalized;
+    },
+  );
+
   late final _visualizerColorProperty = SettingProperty<Color>(
     key: _keyVisColor,
     defaultValue: Colors.white,
@@ -938,7 +999,10 @@ class SettingsService extends ChangeNotifier {
   }
 
   SettingsService(this._prefs)
-    : _shortcutBindings = _loadShortcutBindings(_prefs);
+    : _shortcutBindings = _loadShortcutBindings(_prefs) {
+    _lastKnownCustomProviderName =
+        _prefs.getString(customProviderNameStorageKey)?.trim() ?? '';
+  }
 
   bool get hasShownOnboarding => _hasShownOnboardingProperty.value;
   set hasShownOnboarding(bool value) =>
@@ -1093,6 +1157,26 @@ class SettingsService extends ChangeNotifier {
     }
   }
 
+  String get customProviderApiKey => _customProviderApiKeyProperty.value;
+  set customProviderApiKey(String value) {
+    _customProviderApiKeyProperty.value = value;
+    if (value.trim().isEmpty) {
+      _cleanupModelSelectionsForProvider(LyricsAiProvider.custom);
+    } else {
+      _setDefaultModelIfMissing(LyricsAiProvider.custom);
+    }
+  }
+
+  String get customProviderBaseUrl => _customProviderBaseUrlProperty.value;
+  set customProviderBaseUrl(String value) {
+    _customProviderBaseUrlProperty.value = value;
+  }
+
+  String get customProviderName => _customProviderNameProperty.value;
+  set customProviderName(String value) {
+    _customProviderNameProperty.value = value;
+  }
+
   bool _isModelSelectionNotSet(LyricsAiModelSelection selection) {
     return selection.modelId.trim().isEmpty ||
         apiKeyForProvider(selection.provider).trim().isEmpty;
@@ -1105,6 +1189,7 @@ class SettingsService extends ChangeNotifier {
         LyricsAiProvider.openRouter => defaultOpenRouterGenerationModelId,
         LyricsAiProvider.doubao => defaultDoubaoGenerationModelId,
         LyricsAiProvider.deepseek => '',
+        LyricsAiProvider.custom => '',
       };
       if (defaultModelId.isNotEmpty) {
         generationPrimaryModel = LyricsAiModelSelection(
@@ -1120,6 +1205,7 @@ class SettingsService extends ChangeNotifier {
         LyricsAiProvider.openRouter => defaultOpenRouterTranslationModelId,
         LyricsAiProvider.doubao => defaultDoubaoTranslationModelId,
         LyricsAiProvider.deepseek => defaultDeepSeekTranslationModelId,
+        LyricsAiProvider.custom => '',
       };
       if (defaultModelId.isNotEmpty) {
         translationPrimaryModel = LyricsAiModelSelection(
@@ -1172,6 +1258,8 @@ class SettingsService extends ChangeNotifier {
   bool get hasCustomDoubaoApiKey => _prefs.containsKey(doubaoApiKeyStorageKey);
   bool get hasCustomDeepSeekApiKey =>
       _prefs.containsKey(deepseekApiKeyStorageKey);
+  bool get hasCustomProviderConfigured =>
+      _prefs.containsKey(customProviderApiKeyStorageKey);
   bool get hasBothLyricsGenerationApiKeys =>
       geminiApiKey.trim().isNotEmpty &&
       openRouterApiKey.trim().isNotEmpty &&
@@ -1208,6 +1296,7 @@ class SettingsService extends ChangeNotifier {
       LyricsAiProvider.openRouter => openRouterApiKey,
       LyricsAiProvider.doubao => doubaoApiKey,
       LyricsAiProvider.deepseek => deepseekApiKey,
+      LyricsAiProvider.custom => customProviderApiKey,
     };
   }
 
@@ -1624,6 +1713,8 @@ class SettingsService extends ChangeNotifier {
           modelId: '',
         );
         break;
+      case LyricsAiProvider.custom:
+        break;
     }
   }
 
@@ -1832,6 +1923,7 @@ abstract final class LyricsModelRecommendation {
       LyricsAiProvider.openRouter => isOpenRouterRecommended(modelId),
       LyricsAiProvider.doubao => isDoubaoRecommended(modelId),
       LyricsAiProvider.deepseek => true,
+      LyricsAiProvider.custom => true,
     };
   }
 }

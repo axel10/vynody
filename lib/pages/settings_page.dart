@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:audio_core/audio_core.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1235,9 +1236,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           leading: _buildProviderIcon(LyricsAiProvider.deepseek),
           title: const Text('DeepSeek API Key'),
           subtitle: Text(
-            settings.deepseekApiKey.trim().isEmpty
-                ? l10n.apiKeyMissingStatus
-                : l10n.apiKeySavedStatus,
+            '${settings.deepseekApiKey.trim().isEmpty ? l10n.apiKeyMissingStatus : l10n.apiKeySavedStatus}  ·  仅用于歌词翻译',
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
@@ -1263,6 +1262,48 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             },
             child: Text(
               settings.deepseekApiKey.trim().isEmpty ? l10n.fill : l10n.modify,
+            ),
+          ),
+        ),
+        ListTile(
+          leading: _buildProviderIcon(LyricsAiProvider.custom),
+          title: Text(settings.customProviderName.trim().isEmpty
+              ? (Localizations.localeOf(context).languageCode == 'zh'
+                  ? '自定义 API 供应商'
+                  : 'Custom API Provider')
+              : settings.customProviderName.trim()),
+          subtitle: Text(
+            '${settings.customProviderApiKey.trim().isEmpty ? l10n.apiKeyMissingStatus : l10n.apiKeySavedStatus}  ·  仅用于歌词翻译',
+          ),
+          trailing: FilledButton.tonal(
+            onPressed: () async {
+              final result = await showCustomProviderDialog(
+                context,
+                initialBaseUrl: settings.customProviderBaseUrl,
+                initialApiKey: settings.customProviderApiKey,
+                initialName: settings.customProviderName,
+              );
+              if (result == null) {
+                return;
+              }
+              settings.customProviderBaseUrl = result.baseUrl;
+              settings.customProviderApiKey = result.apiKey;
+              settings.customProviderName = result.name;
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    result.apiKey.trim().isEmpty
+                        ? '已清空自定义供应商配置'
+                        : '已保存自定义供应商配置',
+                  ),
+                ),
+              );
+            },
+            child: Text(
+              settings.customProviderApiKey.trim().isEmpty
+                  ? l10n.fill
+                  : l10n.modify,
             ),
           ),
         ),
@@ -1519,6 +1560,284 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 }
 
+final class _CustomProviderConfig {
+  const _CustomProviderConfig({
+    required this.baseUrl,
+    required this.apiKey,
+    required this.name,
+  });
+
+  final String baseUrl;
+  final String apiKey;
+  final String name;
+}
+
+Future<_CustomProviderConfig?> showCustomProviderDialog(
+  BuildContext context, {
+  required String initialBaseUrl,
+  required String initialApiKey,
+  required String initialName,
+}) async {
+  return showDialog<_CustomProviderConfig>(
+    context: context,
+    builder: (dialogContext) {
+      return _CustomProviderConfigDialog(
+        initialBaseUrl: initialBaseUrl,
+        initialApiKey: initialApiKey,
+        initialName: initialName,
+      );
+    },
+  );
+}
+
+class _CustomProviderConfigDialog extends StatefulWidget {
+  const _CustomProviderConfigDialog({
+    required this.initialBaseUrl,
+    required this.initialApiKey,
+    required this.initialName,
+  });
+
+  final String initialBaseUrl;
+  final String initialApiKey;
+  final String initialName;
+
+  @override
+  State<_CustomProviderConfigDialog> createState() =>
+      _CustomProviderConfigDialogState();
+}
+
+class _CustomProviderConfigDialogState
+    extends State<_CustomProviderConfigDialog> {
+  late final TextEditingController _baseUrlController;
+  late final TextEditingController _apiKeyController;
+  late final TextEditingController _nameController;
+  bool _isTesting = false;
+  String _statusText = '';
+  bool _statusSuccess = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _baseUrlController = TextEditingController(
+      text: widget.initialBaseUrl,
+    );
+    _apiKeyController = TextEditingController(
+      text: widget.initialApiKey,
+    );
+    _nameController = TextEditingController(
+      text: widget.initialName,
+    );
+  }
+
+  @override
+  void dispose() {
+    _baseUrlController.dispose();
+    _apiKeyController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _testConnection() async {
+    final baseUrl = _baseUrlController.text.trim();
+    final apiKey = _apiKeyController.text.trim();
+    if (baseUrl.isEmpty || apiKey.isEmpty) {
+      setState(() {
+        _statusText = _t('请先填写 Base URL 和 API Key。',
+            'Please fill in the base URL and API key first.');
+        _statusSuccess = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isTesting = true;
+      _statusText = _t('正在测试连接...', 'Testing connection...');
+      _statusSuccess = false;
+    });
+
+    try {
+      final modelsUrl = baseUrl.endsWith('/')
+          ? '${baseUrl}models'
+          : '$baseUrl/models';
+      final response = await Dio().get(
+        modelsUrl,
+        options: Options(headers: {
+          'Authorization': 'Bearer $apiKey',
+        }),
+      );
+      if (response.data is Map) {
+        final data = response.data as Map;
+        final models = data['data'];
+        if (models is List) {
+          setState(() {
+            _isTesting = false;
+            _statusSuccess = true;
+            _statusText = _t(
+              '连接成功，检测到 ${models.length} 个模型。',
+              'Connected successfully, ${models.length} models detected.',
+            );
+          });
+          return;
+        }
+      }
+      setState(() {
+        _isTesting = false;
+        _statusSuccess = false;
+        _statusText = _t(
+          '响应格式不符合预期。',
+          'Unexpected response format.',
+        );
+      });
+    } catch (e) {
+      setState(() {
+        _isTesting = false;
+        _statusSuccess = false;
+        _statusText = _t(
+          '连接失败：$e',
+          'Connection failed: $e',
+        );
+      });
+    }
+  }
+
+  void _clearAndSave() {
+    Navigator.of(context).pop(
+      const _CustomProviderConfig(baseUrl: '', apiKey: '', name: ''),
+    );
+  }
+
+  String _t(String zh, String en) {
+    return Localizations.localeOf(context).languageCode == 'zh' ? zh : en;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    return AlertDialog(
+      title: Text(isZh ? '自定义 API 供应商' : 'Custom API Provider'),
+      content: SizedBox(
+        width: 480,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      size: 18,
+                      color: Theme.of(context).hintColor),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isZh
+                          ? '此供应商仅可用于歌词翻译，不支持歌词生成与时间轴生成。'
+                          : 'This provider is only for lyric translation. Lyrics generation and timeline are not supported.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Theme.of(context).hintColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: isZh ? '供应商名称' : 'Provider Name',
+                hintText: isZh ? '如：我的服务商' : 'e.g. My Provider',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _baseUrlController,
+              decoration: InputDecoration(
+                labelText: 'Base URL',
+                hintText: 'https://api.openai.com/v1',
+                border: const OutlineInputBorder(),
+                helperText: isZh
+                    ? 'OpenAI 兼容格式的 API 地址'
+                    : 'OpenAI-compatible API endpoint',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _apiKeyController,
+              decoration: InputDecoration(
+                labelText: 'API Key',
+                hintText: isZh ? '请输入 API Key' : 'Enter API Key',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            if (_statusText.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    _statusSuccess
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.error_outline_rounded,
+                    size: 18,
+                    color: _statusSuccess ? Colors.green : Colors.red,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _statusText,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _statusSuccess ? Colors.green : Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isTesting
+              ? null
+              : () => Navigator.of(context).pop(),
+          child: Text(
+            AppLocalizations.of(context)?.cancel ?? 'Cancel',
+          ),
+        ),
+        TextButton(
+          onPressed: _isTesting ? null : _clearAndSave,
+          child: Text(isZh ? '清空' : 'Clear'),
+        ),
+        TextButton(
+          onPressed: _isTesting ? null : _testConnection,
+          child: Text(
+            _isTesting
+                ? (isZh ? '测试中...' : 'Testing...')
+                : (isZh ? '测试连接' : 'Test Connection'),
+          ),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(context).pop(
+              _CustomProviderConfig(
+                baseUrl: _baseUrlController.text.trim(),
+                apiKey: _apiKeyController.text.trim(),
+                name: _nameController.text.trim(),
+              ),
+            );
+          },
+          child: Text(
+            AppLocalizations.of(context)?.save ?? 'Save',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _LyricsModelPickerDialog extends ConsumerStatefulWidget {
   const _LyricsModelPickerDialog({
     required this.ref,
@@ -1597,6 +1916,9 @@ class _LyricsModelPickerDialogState
             provider: targetProvider,
             purpose: widget.purpose,
             apiKey: settings.apiKeyForProvider(targetProvider),
+            baseUrl: targetProvider == LyricsAiProvider.custom
+                ? settings.customProviderBaseUrl
+                : '',
           );
       if (!mounted) {
         return;
@@ -1666,8 +1988,10 @@ class _LyricsModelPickerDialogState
       LyricsAiProvider.googleAiStudio,
       LyricsAiProvider.openRouter,
       LyricsAiProvider.doubao,
-      if (widget.purpose == LyricsAiModelPurpose.translation)
+      if (widget.purpose == LyricsAiModelPurpose.translation) ...[
         LyricsAiProvider.deepseek,
+        LyricsAiProvider.custom,
+      ],
     ].where(availableProviders.contains).toList(growable: false);
     final canSave =
         widget.slot == LyricsAiModelSlot.fallback ||
@@ -1775,7 +2099,8 @@ class _LyricsModelPickerDialogState
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
-                  if (_provider != LyricsAiProvider.deepseek)
+                  if (_provider != LyricsAiProvider.deepseek &&
+                      _provider != LyricsAiProvider.custom)
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

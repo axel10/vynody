@@ -40,6 +40,9 @@ final class LyricsAiRuntimeConfig {
     required this.openRouterApiKey,
     required this.doubaoApiKey,
     required this.deepseekApiKey,
+    required this.customProviderApiKey,
+    required this.customProviderBaseUrl,
+    required this.customProviderName,
   });
 
   final LyricsAiModelSelection generationPrimaryModel;
@@ -50,6 +53,9 @@ final class LyricsAiRuntimeConfig {
   final String openRouterApiKey;
   final String doubaoApiKey;
   final String deepseekApiKey;
+  final String customProviderApiKey;
+  final String customProviderBaseUrl;
+  final String customProviderName;
 
   String apiKeyForProvider(LyricsAiProvider provider) {
     return switch (provider) {
@@ -57,6 +63,7 @@ final class LyricsAiRuntimeConfig {
       LyricsAiProvider.openRouter => openRouterApiKey,
       LyricsAiProvider.doubao => doubaoApiKey,
       LyricsAiProvider.deepseek => deepseekApiKey,
+      LyricsAiProvider.custom => customProviderApiKey,
     };
   }
 
@@ -139,7 +146,20 @@ class LyricsAiService {
       LyricsAiProvider.doubao => _doubaoModelLabel(selection.modelId),
       LyricsAiProvider.openRouter => _openRouterModelLabel(selection.modelId),
       LyricsAiProvider.deepseek => _deepSeekModelLabel(selection.modelId),
+      LyricsAiProvider.custom => _customModelLabel(selection.modelId),
     };
+  }
+
+  String get customProviderNameDisplay {
+    final config = _config;
+    return config.customProviderName.trim().isEmpty
+        ? (_t('自定义', 'Custom'))
+        : config.customProviderName.trim();
+  }
+
+  String _customModelLabel(String modelId) {
+    final name = customProviderNameDisplay;
+    return '$name · ${SettingsService.lyricsModelDisplayName(modelId)}';
   }
 
   String _providerLabel(LyricsAiProvider provider) {
@@ -263,6 +283,16 @@ class LyricsAiService {
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
+        LyricsAiProvider.custom => _translateWithCustomProvider(
+          apiKey: apiKey,
+          modelId: candidate.modelId,
+          prompt: prompt,
+          sourceLines: sourceLines,
+          blankLineIndexes: blankLineIndexes,
+          targetLineCount: targetLineCount,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
+        ),
       };
       if (error == null) {
         return null;
@@ -371,6 +401,12 @@ class LyricsAiService {
             _t(
               'DeepSeek 仅支持歌词翻译。',
               'DeepSeek is only available for lyric translation.',
+            ),
+          ),
+          LyricsAiProvider.custom => LyricsGenerationResult.failure(
+            _t(
+              '自定义供应商仅支持歌词翻译。',
+              'Custom provider is only available for lyric translation.',
             ),
           ),
         };
@@ -495,6 +531,12 @@ class LyricsAiService {
             _t(
               'DeepSeek 仅支持歌词翻译。',
               'DeepSeek is only available for lyric translation.',
+            ),
+          ),
+          LyricsAiProvider.custom => LyricsGenerationResult.failure(
+            _t(
+              '自定义供应商仅支持歌词翻译。',
+              'Custom provider is only available for lyric translation.',
             ),
           ),
         };
@@ -1026,6 +1068,137 @@ class LyricsAiService {
       }
       _logTranslationResult(
         providerLabel: 'DeepSeek',
+        translatedText: processor.finalVisibleText,
+      );
+      return null;
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) {
+        return 'cancelled';
+      }
+      return _formatGenerationErrorMessage(
+        error,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        ),
+      );
+    } catch (error) {
+      return _formatGenerationErrorMessage(
+        error,
+        fallback: _t(
+          '翻译歌词时发生未知错误。',
+          'An unknown error occurred while translating lyrics.',
+        ),
+      );
+    }
+  }
+
+  Future<String?> _translateWithCustomProvider({
+    required String apiKey,
+    required String modelId,
+    required String prompt,
+    required List<String> sourceLines,
+    required List<int> blankLineIndexes,
+    required int targetLineCount,
+    void Function(List<String> translatedLines, String translatedText)?
+    onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final baseUrl = _config.customProviderBaseUrl.trim();
+    if (baseUrl.isEmpty) {
+      return _t(
+        '未配置自定义供应商的 Base URL。',
+        'Custom provider base URL is not configured.',
+      );
+    }
+
+    final processor = LyricsAiTranslationStreamProcessor(
+      preparation: LyricsAiTranslationPreparation(
+        sourceLines: sourceLines,
+        blankLineIndexes: blankLineIndexes,
+        compactSourceLines: List<String>.filled(targetLineCount, ''),
+      ),
+    );
+    try {
+      final requestData = {
+        'model': modelId,
+        'messages': [
+          {'role': 'user', 'content': prompt},
+        ],
+        'stream': true,
+      };
+      final providerName = customProviderNameDisplay;
+      debugPrint(
+        '[LyricsAi] translation request provider=$providerName '
+        'modelId=$modelId baseUrl=$baseUrl',
+      );
+      debugPrint(
+        '[LyricsAi] translation request payload: ${jsonEncode(requestData)}',
+      );
+      final apiUrl = baseUrl.endsWith('/')
+          ? '${baseUrl}chat/completions'
+          : '$baseUrl/chat/completions';
+      final response = await _client.post(
+        apiUrl,
+        data: requestData,
+        options: Options(
+          responseType: ResponseType.stream,
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': Headers.jsonContentType,
+          },
+        ),
+        cancelToken: cancelToken,
+      );
+
+      final body = response.data;
+      if (body == null || body.stream == null) {
+        return _t(
+          '自定义供应商返回了空流响应。',
+          'Custom provider returned an empty streaming response.',
+        );
+      }
+
+      final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
+      await for (final line in textStream.transform(const LineSplitter())) {
+        if (cancelToken?.isCancelled == true) {
+          throw DioException(
+            requestOptions: RequestOptions(path: ''),
+            type: DioExceptionType.cancel,
+          );
+        }
+        final trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) {
+          continue;
+        }
+        final data = trimmed.substring(5).trim();
+        if (data.isEmpty || data == '[DONE]') {
+          if (data == '[DONE]') {
+            break;
+          }
+          continue;
+        }
+
+        final chunk = _streamParser.extractText(data);
+        if (chunk == null || chunk.isEmpty) {
+          continue;
+        }
+        processor.addChunk(chunk);
+        final snapshot = processor.buildProgressSnapshot();
+        if (onProgress != null && snapshot != null) {
+          onProgress(snapshot.visibleLines, snapshot.visibleText);
+        }
+      }
+
+      if (!processor.hasReceivedAnyChunk ||
+          processor.finalVisibleText.trim().isEmpty) {
+        return _t(
+          '自定义供应商返回了空响应。',
+          'Custom provider returned an empty response.',
+        );
+      }
+      _logTranslationResult(
+        providerLabel: providerName,
         translatedText: processor.finalVisibleText,
       );
       return null;

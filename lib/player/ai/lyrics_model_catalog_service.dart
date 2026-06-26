@@ -68,6 +68,7 @@ class LyricsModelCatalogService {
     required LyricsAiProvider provider,
     required LyricsAiModelPurpose purpose,
     String apiKey = '',
+    String baseUrl = '',
   }) async {
     return switch (provider) {
       LyricsAiProvider.googleAiStudio => _fetchGoogleAiStudioModels(
@@ -82,6 +83,11 @@ class LyricsModelCatalogService {
       LyricsAiProvider.deepseek => _fetchDeepSeekModels(
         purpose: purpose,
         apiKey: apiKey,
+      ),
+      LyricsAiProvider.custom => _fetchCustomModels(
+        purpose: purpose,
+        apiKey: apiKey,
+        baseUrl: baseUrl,
       ),
     };
   }
@@ -220,6 +226,85 @@ class LyricsModelCatalogService {
         message: _formatErrorMessage(error),
       );
     }
+  }
+
+  Future<LyricsModelCatalogResult> _fetchCustomModels({
+    required LyricsAiModelPurpose purpose,
+    required String apiKey,
+    required String baseUrl,
+  }) async {
+    final normalizedKey = apiKey.trim();
+    final normalizedUrl = baseUrl.trim();
+    if (normalizedKey.isEmpty || normalizedUrl.isEmpty) {
+      return LyricsModelCatalogResult(
+        success: false,
+        message: _isZh
+            ? '请先填写自定义 API Key 和 Base URL。'
+            : 'Please enter the custom API key and base URL first.',
+      );
+    }
+
+    if (purpose != LyricsAiModelPurpose.translation) {
+      return LyricsModelCatalogResult(
+        success: true,
+        message: _isZh
+            ? '自定义供应商仅用于歌词翻译。'
+            : 'Custom provider is only available for lyric translation.',
+        models: const [],
+      );
+    }
+
+    try {
+      final modelsUrl = normalizedUrl.endsWith('/')
+          ? '${normalizedUrl}models'
+          : '$normalizedUrl/models';
+      final response = await _client.get(
+        modelsUrl,
+        options: Options(headers: {
+          'Authorization': 'Bearer $normalizedKey',
+        }),
+      );
+      final models = _extractCustomModels(response.data);
+      return LyricsModelCatalogResult(
+        success: true,
+        message: _isZh
+            ? '已获取 ${models.length} 个模型。'
+            : 'Fetched ${models.length} models.',
+        models: models,
+      );
+    } catch (error) {
+      return LyricsModelCatalogResult(
+        success: false,
+        message: _formatErrorMessage(error),
+      );
+    }
+  }
+
+  List<LyricsModelInfo> _extractCustomModels(dynamic data) {
+    if (data is! Map) {
+      return const [];
+    }
+    final models = data['data'];
+    if (models is! List) {
+      return const [];
+    }
+
+    return models
+        .whereType<Map>()
+        .map((item) {
+          final id = item['id']?.toString().trim() ?? '';
+          if (id.isEmpty) {
+            return null;
+          }
+          final name = item['name']?.toString().trim() ?? id;
+          return LyricsModelInfo(
+            id: id,
+            displayName: name,
+            provider: LyricsAiProvider.custom,
+          );
+        })
+        .whereType<LyricsModelInfo>()
+        .toList(growable: false);
   }
 
   List<LyricsModelInfo> _extractGoogleModels(
