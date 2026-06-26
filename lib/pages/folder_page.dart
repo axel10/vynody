@@ -56,6 +56,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       ValueNotifier<_ScanToastState?>(null);
   String? _highlightedSongPath;
   Timer? _highlightTimer;
+  late final HeroController _heroController;
 
   void _setFolderSelectionMode(bool enabled) {
     _librarySelectionScopeController.setScope(
@@ -419,6 +420,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   @override
   void initState() {
     super.initState();
+    _heroController = HeroController();
     _librarySelectionScopeController = ref.read(
       librarySelectionScopeProvider.notifier,
     );
@@ -625,6 +627,7 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     return Navigator(
       key: _nestedNavigatorKey,
       pages: pages,
+      observers: [_heroController],
       onDidRemovePage: (page) {
         _goBack(scanner);
       },
@@ -715,6 +718,18 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
                                             fontWeight: FontWeight.bold,
                                           ),
                                     ),
+                                    if (isRoot && folder.path.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        folder.path,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
                                     const SizedBox(height: 4),
                                     Text(
                                       l10n.songCount(songs.length),
