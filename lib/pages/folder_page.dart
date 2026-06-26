@@ -1632,12 +1632,11 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
       final double cardWidth = (screenWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
       final double cardHeight = cardWidth / 0.72;
       
-      final totalGridItems = widget.folder.subFolders.length + 1;
+      final totalGridItems = widget.folder.subFolders.length;
       final int rows = (totalGridItems / crossAxisCount).ceil();
       fileOffset += rows * (cardHeight + 16);
       fileOffset += fileIndex * 80.0;
     } else {
-      fileOffset += 64.0;
       fileOffset += widget.folder.subFolders.length * 64.0;
       fileOffset += fileIndex * 80.0;
     }
@@ -1699,170 +1698,122 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
 
     Widget subfoldersSliver;
     if (isGrid) {
-      final gridItemsCount = widget.folder.subFolders.length + 1;
-      subfoldersSliver = SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.72,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              if (index == 0) {
-                return GestureDetector(
-                  onTap: widget.onGoBack,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: Theme.of(context).colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
+      final gridItemsCount = widget.folder.subFolders.length;
+      subfoldersSliver = gridItemsCount > 0
+          ? SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 180,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.72,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final folder = widget.folder.subFolders[index];
+                    final isSelected = widget.selectedFolderPaths.contains(folder.path);
+                    final folderRepSong = _findRepresentativeSong(folder);
+                    return _HoverableCard(
+                      child: _FolderGridCard(
+                        folder: folder,
+                        songsCount: folder.allSongs.length,
+                        representativeSong: folderRepSong,
+                        isSelected: isSelected,
+                        isSelectionMode: widget.isSelectionMode,
+                        onTap: widget.isSelectionMode
+                            ? () => widget.onToggleFolderSelection(folder.path)
+                            : () => widget.onNavigateTo(folder),
+                        onLongPress: () {
+                          if (!widget.isSelectionMode) {
+                            widget.onToggleSelectionMode();
+                            widget.onToggleFolderSelection(folder.path);
+                          } else {
+                            widget.onToggleFolderSelection(folder.path);
+                          }
+                        },
+                        onSecondaryTapDown: (details) {
+                          if (!widget.isSelectionMode) {
+                            widget.onShowFolderBottomSheet(folder, isRoot: false);
+                          }
+                        },
                       ),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.arrow_back_rounded, size: 36, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(height: 8),
-                          Text(
-                            AppLocalizations.of(context)!.goBack,
-                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
-              final folder = widget.folder.subFolders[index - 1];
-              final isSelected = widget.selectedFolderPaths.contains(folder.path);
-              final folderRepSong = _findRepresentativeSong(folder);
-              return _HoverableCard(
-                child: _FolderGridCard(
-                  folder: folder,
-                  songsCount: folder.allSongs.length,
-                  representativeSong: folderRepSong,
-                  isSelected: isSelected,
-                  isSelectionMode: widget.isSelectionMode,
-                  onTap: widget.isSelectionMode
-                      ? () => widget.onToggleFolderSelection(folder.path)
-                      : () => widget.onNavigateTo(folder),
-                  onLongPress: () {
-                    if (!widget.isSelectionMode) {
-                      widget.onToggleSelectionMode();
-                      widget.onToggleFolderSelection(folder.path);
-                    } else {
-                      widget.onToggleFolderSelection(folder.path);
-                    }
+                    );
                   },
-                  onSecondaryTapDown: (details) {
-                    if (!widget.isSelectionMode) {
-                      widget.onShowFolderBottomSheet(folder, isRoot: false);
-                    }
-                  },
-                ),
-              );
-            },
-            childCount: gridItemsCount,
-          ),
-        ),
-      );
-    } else {
-      final listItemsCount = widget.folder.subFolders.length + 1;
-      subfoldersSliver = SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            if (index == 0) {
-              return Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal:
-                      MediaQuery.of(context).orientation ==
-                          Orientation.portrait
-                      ? 8
-                      : 16,
-                  vertical: 4,
-                ),
-                child: ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  hoverColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.06),
-                  leading: const Icon(Icons.arrow_back_rounded),
-                  title: Text(AppLocalizations.of(context)!.goBack),
-                  onTap: widget.onGoBack,
-                ),
-              );
-            }
-            final folder = widget.folder.subFolders[index - 1];
-            final isSelected = widget.selectedFolderPaths.contains(folder.path);
-            return GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) {
-                if (!widget.isSelectionMode) {
-                  widget.onShowFolderBottomSheet(folder, isRoot: false);
-                }
-              },
-              onLongPress: () {
-                if (!widget.isSelectionMode) {
-                  widget.onToggleSelectionMode();
-                  widget.onToggleFolderSelection(folder.path);
-                } else {
-                  widget.onToggleFolderSelection(folder.path);
-                }
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal:
-                      MediaQuery.of(context).orientation ==
-                          Orientation.portrait
-                      ? 8
-                      : 16,
-                  vertical: 4,
-                ),
-                child: ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  hoverColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.06),
-                  selected: widget.isSelectionMode && isSelected,
-                  selectedTileColor: Theme.of(context)
-                      .colorScheme
-                      .primaryContainer
-                      .withValues(alpha: 0.45),
-                  leading: widget.isSelectionMode
-                      ? Checkbox(
-                          value: isSelected,
-                          onChanged: (_) =>
-                              widget.onToggleFolderSelection(folder.path),
-                        )
-                      : Hero(
-                          tag: 'folder-cover-${folder.path}',
-                          child: const Icon(
-                            Icons.folder_rounded,
-                            color: Colors.amber,
-                          ),
-                        ),
-                  title: Text(folder.name),
-                  onTap: widget.isSelectionMode
-                      ? () => widget.onToggleFolderSelection(folder.path)
-                      : () => widget.onNavigateTo(folder),
+                  childCount: gridItemsCount,
                 ),
               ),
-            );
-          },
-          childCount: listItemsCount,
-        ),
-      );
+            )
+          : const SliverToBoxAdapter(child: SizedBox.shrink());
+    } else {
+      final listItemsCount = widget.folder.subFolders.length;
+      subfoldersSliver = listItemsCount > 0
+          ? SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final folder = widget.folder.subFolders[index];
+                  final isSelected = widget.selectedFolderPaths.contains(folder.path);
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onSecondaryTapDown: (details) {
+                      if (!widget.isSelectionMode) {
+                        widget.onShowFolderBottomSheet(folder, isRoot: false);
+                      }
+                    },
+                    onLongPress: () {
+                      if (!widget.isSelectionMode) {
+                        widget.onToggleSelectionMode();
+                        widget.onToggleFolderSelection(folder.path);
+                      } else {
+                        widget.onToggleFolderSelection(folder.path);
+                      }
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal:
+                            MediaQuery.of(context).orientation ==
+                                Orientation.portrait
+                            ? 8
+                            : 16,
+                        vertical: 4,
+                      ),
+                      child: ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        hoverColor: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.06),
+                        selected: widget.isSelectionMode && isSelected,
+                        selectedTileColor: Theme.of(context)
+                            .colorScheme
+                            .primaryContainer
+                            .withValues(alpha: 0.45),
+                        leading: widget.isSelectionMode
+                            ? Checkbox(
+                                value: isSelected,
+                                onChanged: (_) =>
+                                    widget.onToggleFolderSelection(folder.path),
+                              )
+                            : Hero(
+                                tag: 'folder-cover-${folder.path}',
+                                child: const Icon(
+                                  Icons.folder_rounded,
+                                  color: Colors.amber,
+                                ),
+                              ),
+                        title: Text(folder.name),
+                        onTap: widget.isSelectionMode
+                            ? () => widget.onToggleFolderSelection(folder.path)
+                            : () => widget.onNavigateTo(folder),
+                      ),
+                    ),
+                  );
+                },
+                childCount: listItemsCount,
+              ),
+            )
+          : const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
     final songsSliver = SliverPadding(
@@ -2116,6 +2067,37 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
 
     List<Widget> breadcrumbItems = [];
 
+    // Back Button
+    breadcrumbItems.add(
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: widget.onGoBack,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+            child: Icon(
+              Icons.arrow_back_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    breadcrumbItems.add(
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Icon(
+          Icons.chevron_right_rounded,
+          size: 16,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+        ),
+      ),
+    );
+
+    // Home Button
     breadcrumbItems.add(
       Material(
         color: Colors.transparent,
