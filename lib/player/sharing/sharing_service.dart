@@ -1515,6 +1515,7 @@ class SharingService {
       final response = await request.close();
       debugPrint('[SharingService] Preflight response status: ${response.statusCode}');
       if (response.statusCode != HttpStatus.ok) {
+        await response.drain();
         _ref
             .read(activeTransfersProvider.notifier)
             .updateStatus(sessionId, TransferStatus.failed);
@@ -1648,6 +1649,8 @@ class SharingService {
             debugPrint('[SharingService] Request stream completed for ${fileInfo.relativeName}. Waiting for response...');
             final uploadResponse = await uploadRequest.close().timeout(const Duration(seconds: 120));
             debugPrint('[SharingService] Response received for ${fileInfo.relativeName}: ${uploadResponse.statusCode}');
+
+            await uploadResponse.drain();
 
             if (uploadResponse.statusCode != HttpStatus.ok) {
               throw Exception('Upload failed with status code ${uploadResponse.statusCode}');
