@@ -137,152 +137,157 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
           }
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 780;
-            final crossAxisCount = switch (constraints.maxWidth) {
-              >= 1350 => 6,
-              >= 1100 => 5,
-              >= 850 => 4,
-              >= 650 => 3,
-              _ => 2,
-            };
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1400),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 780;
+                final crossAxisCount = switch (constraints.maxWidth) {
+                  >= 1350 => 6,
+                  >= 1100 => 5,
+                  >= 850 => 4,
+                  >= 650 => 3,
+                  _ => 2,
+                };
 
-            final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-            final double textHeight = isPortrait ? 80.0 : 96.0;
-            final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
-            final childAspectRatio = itemWidth / (itemWidth + textHeight);
+                final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+                final double textHeight = isPortrait ? 80.0 : 96.0;
+                final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+                final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
-            final bottomPadding = 120.0 + (isSelectionMode ? 220.0 : 0.0);
-            final bottomOffset = (currentMusic != null ? 140.0 : 40.0) + (isSelectionMode ? 220.0 : 0.0);
+                final bottomPadding = 120.0 + (isSelectionMode ? 220.0 : 0.0);
+                final bottomOffset = (currentMusic != null ? 140.0 : 40.0) + (isSelectionMode ? 220.0 : 0.0);
 
-            final mainContent = ScrollToTopWrapper(
-              scrollController: _scrollController,
-              bottomOffset: bottomOffset,
-              child: CustomScrollView(
-                controller: _scrollController,
-                cacheExtent: 1000,
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _AlbumsToolbar(
-                      searchController: _searchController,
-                      searchQuery: _searchQuery,
-                      sortField: _sortField,
-                      sortAscending: _sortAscending,
-                      albumCount: visibleAlbums.length,
-                      isWide: isWide,
-                      onSearchChanged: (value) {
-                        setState(() {
-                          _searchQuery = value.trim();
-                        });
-                      },
-                      onSearchCleared: () {
-                        _searchController.clear();
-                        setState(() {
-                          _searchQuery = '';
-                        });
-                      },
-                      onSortFieldSelected: (field) {
-                        setState(() {
-                          _sortField = field;
-                        });
-                      },
-                      onSortOrderToggled: () {
-                        setState(() {
-                          _sortAscending = !_sortAscending;
-                        });
-                      },
-                    ),
-                  ),
-                  if (visibleAlbums.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Text(
-                          l10n.noAlbums,
-                          style: Theme.of(context).textTheme.titleMedium,
+                final mainContent = ScrollToTopWrapper(
+                  scrollController: _scrollController,
+                  bottomOffset: bottomOffset,
+                  child: CustomScrollView(
+                    controller: _scrollController,
+                    cacheExtent: 1000,
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: _AlbumsToolbar(
+                          searchController: _searchController,
+                          searchQuery: _searchQuery,
+                          sortField: _sortField,
+                          sortAscending: _sortAscending,
+                          albumCount: visibleAlbums.length,
+                          isWide: isWide,
+                          onSearchChanged: (value) {
+                            setState(() {
+                              _searchQuery = value.trim();
+                            });
+                          },
+                          onSearchCleared: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                          onSortFieldSelected: (field) {
+                            setState(() {
+                              _sortField = field;
+                            });
+                          },
+                          onSortOrderToggled: () {
+                            setState(() {
+                              _sortAscending = !_sortAscending;
+                            });
+                          },
                         ),
                       ),
-                    )
-                  else ...[
-                    if (knownAlbums.isNotEmpty) ...[
-                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                      ..._albumSectionSlivers(
-                        title: "",
-                        albums: knownAlbums,
-                        crossAxisCount: crossAxisCount,
-                        childAspectRatio: childAspectRatio,
-                        isSelectionMode: isSelectionMode,
-                      ),
+                      if (visibleAlbums.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Text(
+                              l10n.noAlbums,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                        )
+                      else ...[
+                        if (knownAlbums.isNotEmpty) ...[
+                          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                          ..._albumSectionSlivers(
+                            title: "",
+                            albums: knownAlbums,
+                            crossAxisCount: crossAxisCount,
+                            childAspectRatio: childAspectRatio,
+                            isSelectionMode: isSelectionMode,
+                          ),
+                        ],
+                        if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
+                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                        if (unknownAlbums.isNotEmpty)
+                          ..._albumSectionSlivers(
+                            title: l10n.unknownAlbum,
+                            albums: unknownAlbums,
+                            crossAxisCount: crossAxisCount,
+                            childAspectRatio: childAspectRatio,
+                            isSelectionMode: isSelectionMode,
+                          ),
+                        SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
+                      ],
                     ],
-                    if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
-                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                    if (unknownAlbums.isNotEmpty)
-                      ..._albumSectionSlivers(
-                        title: l10n.unknownAlbum,
-                        albums: unknownAlbums,
-                        crossAxisCount: crossAxisCount,
-                        childAspectRatio: childAspectRatio,
-                        isSelectionMode: isSelectionMode,
-                      ),
-                    SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
-                  ],
-                ],
-              ),
-            );
-
-            return Stack(
-              children: [
-                Positioned.fill(child: mainContent),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    reverseDuration: const Duration(milliseconds: 200),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) {
-                      final offsetAnimation = Tween<Offset>(
-                        begin: const Offset(0, 1.0),
-                        end: Offset.zero,
-                      ).animate(animation);
-                      return SlideTransition(position: offsetAnimation, child: child);
-                    },
-                    child: isSelectionMode
-                        ? LibrarySelectionPanel(
-                            key: const ValueKey('album-selection-panel'),
-                            selectedSongs: selectedSongs,
-                            allSongs: allSongs,
-                            title: Localizations.localeOf(context).languageCode == 'zh'
-                                ? '已选择 ${_selectedAlbumIds.length} 张专辑'
-                                : 'Selected ${_selectedAlbumIds.length} albums',
-                            onToggleSelectAll: () {
-                              final isAllSelected = _selectedAlbumIds.length == visibleAlbums.length && visibleAlbums.isNotEmpty;
-                              setState(() {
-                                if (isAllSelected) {
-                                  _selectedAlbumIds.clear();
-                                  ref.read(librarySelectionScopeProvider.notifier).clear();
-                                } else {
-                                  _selectedAlbumIds.clear();
-                                  _selectedAlbumIds.addAll(visibleAlbums.map((a) => a.id));
-                                }
-                              });
-                            },
-                            onCancel: () {
-                              setState(() {
-                                _selectedAlbumIds.clear();
-                              });
-                              ref.read(librarySelectionScopeProvider.notifier).clear();
-                            },
-                          )
-                        : const SizedBox.shrink(key: ValueKey('album-selection-panel-hidden')),
                   ),
-                ),
-              ],
-            );
-          },
+                );
+
+                return Stack(
+                  children: [
+                    Positioned.fill(child: mainContent),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        reverseDuration: const Duration(milliseconds: 200),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) {
+                          final offsetAnimation = Tween<Offset>(
+                            begin: const Offset(0, 1.0),
+                            end: Offset.zero,
+                          ).animate(animation);
+                          return SlideTransition(position: offsetAnimation, child: child);
+                        },
+                        child: isSelectionMode
+                            ? LibrarySelectionPanel(
+                                key: const ValueKey('album-selection-panel'),
+                                selectedSongs: selectedSongs,
+                                allSongs: allSongs,
+                                title: Localizations.localeOf(context).languageCode == 'zh'
+                                    ? '已选择 ${_selectedAlbumIds.length} 张专辑'
+                                    : 'Selected ${_selectedAlbumIds.length} albums',
+                                onToggleSelectAll: () {
+                                  final isAllSelected = _selectedAlbumIds.length == visibleAlbums.length && visibleAlbums.isNotEmpty;
+                                  setState(() {
+                                    if (isAllSelected) {
+                                      _selectedAlbumIds.clear();
+                                      ref.read(librarySelectionScopeProvider.notifier).clear();
+                                    } else {
+                                      _selectedAlbumIds.clear();
+                                      _selectedAlbumIds.addAll(visibleAlbums.map((a) => a.id));
+                                    }
+                                  });
+                                },
+                                onCancel: () {
+                                  setState(() {
+                                    _selectedAlbumIds.clear();
+                                  });
+                                  ref.read(librarySelectionScopeProvider.notifier).clear();
+                                },
+                              )
+                            : const SizedBox.shrink(key: ValueKey('album-selection-panel-hidden')),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
         );
       },
     );

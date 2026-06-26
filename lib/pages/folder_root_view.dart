@@ -453,7 +453,14 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     onTap: widget.onPickFolder,
                   ),
                 ),
-                Expanded(child: rootList),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1400),
+                      child: rootList,
+                    ),
+                  ),
+                ),
               ],
             ),
             Positioned(
