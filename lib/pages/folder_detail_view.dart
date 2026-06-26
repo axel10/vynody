@@ -15,7 +15,6 @@ import '../widgets/song_tile.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/folder_grid_card.dart';
-import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 
 class FolderDetailView extends ConsumerStatefulWidget {
@@ -556,8 +555,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner) {
     final theme = Theme.of(context);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final settings = ref.watch(settingsServiceProvider);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
     List<Widget> breadcrumbItems = [];
 
@@ -704,21 +701,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             ),
             const SizedBox(width: 8),
           ],
-          IconButton(
-            icon: Icon(
-              settings.folderViewMode == FolderViewMode.grid
-                  ? Icons.view_list_rounded
-                  : Icons.grid_view_rounded,
-            ),
-            onPressed: () {
-              settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
-                  ? FolderViewMode.list
-                  : FolderViewMode.grid;
-            },
-            tooltip: settings.folderViewMode == FolderViewMode.grid
-                ? (isZh ? '列表视图' : 'List View')
-                : (isZh ? '网格视图' : 'Grid View'),
-          ),
           IconButton(
             icon: const Icon(Icons.sort),
             onPressed: () => _showSortDialog(context, scanner),
