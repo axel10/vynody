@@ -1149,8 +1149,7 @@ class _FolderRootViewState extends ConsumerState<_FolderRootView> {
       scannerServiceProvider.select((scanner) => scanner.hasPermission),
     );
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final settings = ref.watch(settingsServiceProvider);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+
 
     final selectionLabel = l10n.selectedFolders(widget.selectedRootPaths.length);
     final rootListBottomPadding = isRootSelectionMode ? 224.0 : 160.0;
@@ -1248,8 +1247,7 @@ class _FolderRootViewState extends ConsumerState<_FolderRootView> {
         },
       );
     } else {
-      if (settings.folderViewMode == FolderViewMode.grid) {
-        rootList = GridView.builder(
+      rootList = GridView.builder(
           key: const ValueKey('root_folders_grid'),
           controller: _localScrollController,
           scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
@@ -1281,66 +1279,6 @@ class _FolderRootViewState extends ConsumerState<_FolderRootView> {
             );
           },
         );
-      } else {
-        rootList = ListView.builder(
-          key: const ValueKey('root_folders_list_normal'),
-          controller: _localScrollController,
-          scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
-          padding: EdgeInsets.only(bottom: rootListBottomPadding),
-          itemCount: rootFolders.length,
-          itemBuilder: (context, index) {
-            final folder = rootFolders[index];
-            final isRootAvailable = scanner.isRootPathAvailable(folder.path);
-            return GestureDetector(
-              key: ValueKey(folder.path),
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) {
-                widget.onShowFolderBottomSheet(folder, isRoot: true);
-              },
-              onLongPress: () {
-                widget.onShowFolderBottomSheet(folder, isRoot: true);
-              },
-              child: AnimatedOpacity(
-                opacity: isRootAvailable ? 1.0 : 0.45,
-                duration: const Duration(milliseconds: 180),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal:
-                        MediaQuery.of(context).orientation ==
-                            Orientation.portrait
-                        ? 8
-                        : 16,
-                    vertical: 4,
-                  ),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    hoverColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.06),
-                    enabled: isRootAvailable,
-                    leading: Hero(
-                      tag: 'folder-cover-${folder.path}',
-                      child: const Icon(
-                        Icons.folder_shared,
-                        color: Colors.amber,
-                      ),
-                    ),
-                    title: Text(folder.name),
-                    subtitle: Text(
-                      ScannerPathUtils.cleanDisplayPath(folder.path),
-                    ),
-                    onTap: isRootAvailable
-                        ? () => widget.onNavigateTo(folder)
-                        : null,
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      }
     }
 
     return Scaffold(
@@ -1368,22 +1306,7 @@ class _FolderRootViewState extends ConsumerState<_FolderRootView> {
                           onPressed: widget.onLocateCurrentSong,
                           tooltip: AppLocalizations.of(context)!.locateCurrentSong,
                         ),
-                      if (!isRootSelectionMode)
-                        IconButton(
-                          icon: Icon(
-                            settings.folderViewMode == FolderViewMode.grid
-                                ? Icons.view_list_rounded
-                                : Icons.grid_view_rounded,
-                          ),
-                          onPressed: () {
-                            settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
-                                ? FolderViewMode.list
-                                : FolderViewMode.grid;
-                          },
-                          tooltip: settings.folderViewMode == FolderViewMode.grid
-                              ? (isZh ? '列表视图' : 'List View')
-                              : (isZh ? '网格视图' : 'Grid View'),
-                        ),
+
                       IconButton(
                         icon: Icon(
                           Icons.sort,
@@ -1670,23 +1593,15 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
       fileOffset += 200.0;
     }
 
-    final settings = ref.read(settingsServiceProvider);
-    final isGrid = settings.folderViewMode == FolderViewMode.grid;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final int crossAxisCount = ((screenWidth - 16) / 196).floor().clamp(2, 6);
+    final double cardWidth = (screenWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+    final double cardHeight = cardWidth / 0.72;
 
-    if (isGrid) {
-      final screenWidth = MediaQuery.of(context).size.width;
-      final int crossAxisCount = ((screenWidth - 16) / 196).floor().clamp(2, 6);
-      final double cardWidth = (screenWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
-      final double cardHeight = cardWidth / 0.72;
-      
-      final totalGridItems = widget.folder.subFolders.length;
-      final int rows = (totalGridItems / crossAxisCount).ceil();
-      fileOffset += rows * (cardHeight + 16);
-      fileOffset += fileIndex * 80.0;
-    } else {
-      fileOffset += widget.folder.subFolders.length * 64.0;
-      fileOffset += fileIndex * 80.0;
-    }
+    final totalGridItems = widget.folder.subFolders.length;
+    final int rows = (totalGridItems / crossAxisCount).ceil();
+    fileOffset += rows * (cardHeight + 16);
+    fileOffset += fileIndex * 80.0;
 
     if (_localScrollController.hasClients) {
       final double viewportHeight = _localScrollController.position.viewportDimension;
@@ -1727,7 +1642,6 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
     );
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final settings = ref.watch(settingsServiceProvider);
 
     final matchedFolders = _searchQuery.isNotEmpty
         ? _findMatchingFolders(widget.folder, _searchQuery)
@@ -1748,127 +1662,55 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
     final representativeSong = _findRepresentativeSong(widget.folder);
 
     Widget scrollBody;
-    final isGrid = settings.folderViewMode == FolderViewMode.grid;
 
     Widget subfoldersSliver;
-    if (isGrid) {
-      final gridItemsCount = matchedFolders.length;
-      subfoldersSliver = gridItemsCount > 0
-          ? SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 180,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.72,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final folder = matchedFolders[index];
-                    final isSelected = widget.selectedFolderPaths.contains(folder.path);
-                    final folderRepSong = _findRepresentativeSong(folder);
-                    return _HoverableCard(
-                      child: _FolderGridCard(
-                        folder: folder,
-                        songsCount: folder.allSongs.length,
-                        representativeSong: folderRepSong,
-                        isSelected: isSelected,
-                        isSelectionMode: widget.isSelectionMode,
-                        onTap: widget.isSelectionMode
-                            ? () => widget.onToggleFolderSelection(folder.path)
-                            : () => widget.onNavigateTo(folder),
-                        onLongPress: () {
-                          if (!widget.isSelectionMode) {
-                            widget.onToggleSelectionMode();
-                            widget.onToggleFolderSelection(folder.path);
-                          } else {
-                            widget.onToggleFolderSelection(folder.path);
-                          }
-                        },
-                        onSecondaryTapDown: (details) {
-                          if (!widget.isSelectionMode) {
-                            widget.onShowFolderBottomSheet(folder, isRoot: false);
-                          }
-                        },
-                      ),
-                    );
-                  },
-                  childCount: gridItemsCount,
-                ),
+    final gridItemsCount = matchedFolders.length;
+    subfoldersSliver = gridItemsCount > 0
+        ? SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 180,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.72,
               ),
-            )
-          : const SliverToBoxAdapter(child: SizedBox.shrink());
-    } else {
-      final listItemsCount = matchedFolders.length;
-      subfoldersSliver = listItemsCount > 0
-          ? SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final folder = matchedFolders[index];
                   final isSelected = widget.selectedFolderPaths.contains(folder.path);
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onSecondaryTapDown: (details) {
-                      if (!widget.isSelectionMode) {
-                        widget.onShowFolderBottomSheet(folder, isRoot: false);
-                      }
-                    },
-                    onLongPress: () {
-                      if (!widget.isSelectionMode) {
-                        widget.onToggleSelectionMode();
-                        widget.onToggleFolderSelection(folder.path);
-                      } else {
-                        widget.onToggleFolderSelection(folder.path);
-                      }
-                    },
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal:
-                            MediaQuery.of(context).orientation ==
-                                Orientation.portrait
-                            ? 8
-                            : 16,
-                        vertical: 4,
-                      ),
-                      child: ListTile(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        hoverColor: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.06),
-                        selected: widget.isSelectionMode && isSelected,
-                        selectedTileColor: Theme.of(context)
-                            .colorScheme
-                            .primaryContainer
-                            .withValues(alpha: 0.45),
-                        leading: widget.isSelectionMode
-                            ? Checkbox(
-                                value: isSelected,
-                                onChanged: (_) =>
-                                    widget.onToggleFolderSelection(folder.path),
-                              )
-                            : Hero(
-                                tag: 'folder-cover-${folder.path}',
-                                child: const Icon(
-                                  Icons.folder_rounded,
-                                  color: Colors.amber,
-                                ),
-                              ),
-                        title: Text(folder.name),
-                        onTap: widget.isSelectionMode
-                            ? () => widget.onToggleFolderSelection(folder.path)
-                            : () => widget.onNavigateTo(folder),
-                      ),
+                  final folderRepSong = _findRepresentativeSong(folder);
+                  return _HoverableCard(
+                    child: _FolderGridCard(
+                      folder: folder,
+                      songsCount: folder.allSongs.length,
+                      representativeSong: folderRepSong,
+                      isSelected: isSelected,
+                      isSelectionMode: widget.isSelectionMode,
+                      onTap: widget.isSelectionMode
+                          ? () => widget.onToggleFolderSelection(folder.path)
+                          : () => widget.onNavigateTo(folder),
+                      onLongPress: () {
+                        if (!widget.isSelectionMode) {
+                          widget.onToggleSelectionMode();
+                          widget.onToggleFolderSelection(folder.path);
+                        } else {
+                          widget.onToggleFolderSelection(folder.path);
+                        }
+                      },
+                      onSecondaryTapDown: (details) {
+                        if (!widget.isSelectionMode) {
+                          widget.onShowFolderBottomSheet(folder, isRoot: false);
+                        }
+                      },
                     ),
                   );
                 },
-                childCount: listItemsCount,
+                childCount: gridItemsCount,
               ),
-            )
-          : const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
+            ),
+          )
+        : const SliverToBoxAdapter(child: SizedBox.shrink());
 
     Widget songsSliver;
     final noResults = _searchQuery.isNotEmpty && matchedFolders.isEmpty && matchedSongs.isEmpty;
