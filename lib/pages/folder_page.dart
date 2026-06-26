@@ -2634,26 +2634,52 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
                 : Row(
                     key: const ValueKey('actions-normal-row'),
                     children: [
-                      IconButton.filled(
+                      FilledButton.icon(
                         onPressed: onPlayAll,
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        tooltip: isZh ? '播放全部' : 'Play All',
+                        icon: const Icon(Icons.play_arrow_rounded, size: 16),
+                        label: Text(isZh ? '播放全部' : 'Play All'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                          textStyle: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      IconButton.filledTonal(
+                      FilledButton.tonalIcon(
                         onPressed: onShuffle,
-                        icon: const Icon(Icons.shuffle_rounded),
-                        tooltip: isZh ? '随机播放' : 'Shuffle',
+                        icon: const Icon(Icons.shuffle_rounded, size: 16),
+                        label: Text(isZh ? '随机播放' : 'Shuffle'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                          textStyle: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
+                      const Spacer(),
                       IconButton(
                         onPressed: () {
                           setState(() {
                             _isSearching = true;
                           });
                         },
-                        icon: const Icon(Icons.search_rounded),
+                        icon: const Icon(Icons.search_rounded, size: 16),
                         tooltip: isZh ? '搜索' : 'Search',
+                        style: IconButton.styleFrom(
+                          minimumSize: const Size(32, 32),
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
                       ),
                     ],
                   ),
