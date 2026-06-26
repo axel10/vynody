@@ -1567,11 +1567,15 @@ class _FolderDetailView extends ConsumerStatefulWidget {
 
 class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
   late final ScrollController _localScrollController;
+  late final TextEditingController _searchController;
+  bool _isSearching = false;
+  String _searchQuery = '';
   String? _lastHighlightedPath;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
     final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset(widget.folder.path);
     _localScrollController = ScrollController(initialScrollOffset: targetOffset);
     _localScrollController.addListener(_onScroll);
@@ -1600,9 +1604,52 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _localScrollController.removeListener(_onScroll);
     _localScrollController.dispose();
     super.dispose();
+  }
+
+  List<MusicFolder> _findMatchingFolders(MusicFolder root, String query) {
+    final results = <MusicFolder>[];
+    final lowercaseQuery = query.toLowerCase();
+
+    void search(MusicFolder folder) {
+      if (folder.name.toLowerCase().contains(lowercaseQuery)) {
+        results.add(folder);
+      }
+      for (final sub in folder.subFolders) {
+        search(sub);
+      }
+    }
+
+    for (final sub in root.subFolders) {
+      search(sub);
+    }
+    return results;
+  }
+
+  List<MusicFile> _findMatchingSongs(MusicFolder root, String query) {
+    final results = <MusicFile>[];
+    final lowercaseQuery = query.toLowerCase();
+
+    void search(MusicFolder folder) {
+      for (final file in folder.files) {
+        final matchesName = file.name.toLowerCase().contains(lowercaseQuery);
+        final matchesTitle = file.title?.toLowerCase().contains(lowercaseQuery) ?? false;
+        final matchesArtist = file.artist?.toLowerCase().contains(lowercaseQuery) ?? false;
+        final matchesAlbum = file.album?.toLowerCase().contains(lowercaseQuery) ?? false;
+        if (matchesName || matchesTitle || matchesArtist || matchesAlbum) {
+          results.add(file);
+        }
+      }
+      for (final sub in folder.subFolders) {
+        search(sub);
+      }
+    }
+
+    search(root);
+    return results;
   }
 
   void _scrollToHighlightedSong() {
@@ -1682,6 +1729,13 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final settings = ref.watch(settingsServiceProvider);
 
+    final matchedFolders = _searchQuery.isNotEmpty
+        ? _findMatchingFolders(widget.folder, _searchQuery)
+        : widget.folder.subFolders;
+    final matchedSongs = _searchQuery.isNotEmpty
+        ? _findMatchingSongs(widget.folder, _searchQuery)
+        : widget.folder.files;
+
     final showSelectionPanel =
         widget.isSelectionMode &&
         _isUserRootSelectionContext(
@@ -1698,7 +1752,7 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
 
     Widget subfoldersSliver;
     if (isGrid) {
-      final gridItemsCount = widget.folder.subFolders.length;
+      final gridItemsCount = matchedFolders.length;
       subfoldersSliver = gridItemsCount > 0
           ? SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1711,7 +1765,7 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final folder = widget.folder.subFolders[index];
+                    final folder = matchedFolders[index];
                     final isSelected = widget.selectedFolderPaths.contains(folder.path);
                     final folderRepSong = _findRepresentativeSong(folder);
                     return _HoverableCard(
@@ -1746,12 +1800,12 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
             )
           : const SliverToBoxAdapter(child: SizedBox.shrink());
     } else {
-      final listItemsCount = widget.folder.subFolders.length;
+      final listItemsCount = matchedFolders.length;
       subfoldersSliver = listItemsCount > 0
           ? SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  final folder = widget.folder.subFolders[index];
+                  final folder = matchedFolders[index];
                   final isSelected = widget.selectedFolderPaths.contains(folder.path);
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -1816,111 +1870,140 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
           : const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    final songsSliver = SliverPadding(
-      padding: const EdgeInsets.only(top: 8),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, fileIndex) {
-            final file = widget.folder.files[fileIndex];
-            final isCurrent = currentMusic?.path == file.path;
-            final isSelected = widget.selectedSongPaths.contains(file.path);
-            final songsToAdd =
-                (widget.selectedSongPaths.isNotEmpty ||
-                    widget.selectedFolderPaths.isNotEmpty)
-                ? _getSelectedSongs()
-                : <MusicFile>[file];
-
-            void handleShowMenu(
-              BuildContext menuContext,
-              Offset position,
-            ) {
-              showSongContextMenu(
-                menuContext,
-                position,
-                song: file,
-                songs: songsToAdd,
-                mode: SongContextMenuMode.full,
-                onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-                  menuContext,
-                  ref.read(playlistServiceProvider),
-                  songsToAdd,
+    Widget songsSliver;
+    final noResults = _searchQuery.isNotEmpty && matchedFolders.isEmpty && matchedSongs.isEmpty;
+    if (noResults) {
+      songsSliver = SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 64.0),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_off_rounded,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                 ),
-                onPlayNext: () => ref
-                    .read(audioServiceProvider)
-                    .enqueueNext(songsToAdd),
-                onAddToQueue: () => ref
-                    .read(audioServiceProvider)
-                    .appendToQueue(songsToAdd),
-              );
-            }
-
-            return GestureDetector(
-              key: ValueKey(file.path),
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) {
-                handleShowMenu(context, details.globalPosition);
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal:
-                      MediaQuery.of(context).orientation ==
-                          Orientation.portrait
-                      ? 8
-                      : 16,
-                  vertical: 4,
+                const SizedBox(height: 16),
+                Text(
+                  Localizations.localeOf(context).languageCode == 'zh' ? '未找到匹配的文件夹或歌曲' : 'No matching folders or songs found',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
                 ),
-                child: SongTile(
-                  song: file,
-                  isCurrent: isCurrent,
-                  isSelected: isSelected,
-                  isSelectionMode: widget.isSelectionMode,
-                  isHighlighted: widget.highlightedSongPath == file.path,
-                  onTap: widget.isSelectionMode
-                      ? () => widget.onToggleSelection(file.path)
-                      : () async {
-                          unawaited(() async {
-                            try {
-                              await audio.playPlaylist(
-                                widget.folder.files,
-                                initialIndex: fileIndex,
-                              );
-                            } catch (e, st) {
-                              debugPrint(
-                                'FoldersPage: failed to start folder playback for ${file.path}: $e',
-                              );
-                              debugPrintStack(stackTrace: st);
-                            }
-                          }());
-
-                          if (mounted) {
-                            widget.onClearAllSelection();
-                            await widget.onOpenPlayback?.call();
-                          }
-                        },
-                  onLongPress: () {
-                    if (!widget.isSelectionMode) {
-                      widget.onToggleSelectionMode();
-                      widget.onToggleSelection(file.path);
-                    }
-                  },
-                  onSecondaryTapDown: (details) {
-                    handleShowMenu(context, details.globalPosition);
-                  },
-                  onMorePressed: (buttonContext) {
-                    final renderObject = buttonContext.findRenderObject();
-                    final renderBox = renderObject is RenderBox ? renderObject : null;
-                    if (renderBox == null) return;
-                    final Offset offset = renderBox.localToGlobal(Offset.zero);
-                    handleShowMenu(buttonContext, offset);
-                  },
-                ),
-              ),
-            );
-          },
-          childCount: widget.folder.files.length,
+              ],
+            ),
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      songsSliver = SliverPadding(
+        padding: const EdgeInsets.only(top: 8),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, fileIndex) {
+              final file = matchedSongs[fileIndex];
+              final isCurrent = currentMusic?.path == file.path;
+              final isSelected = widget.selectedSongPaths.contains(file.path);
+              final songsToAdd =
+                  (widget.selectedSongPaths.isNotEmpty ||
+                      widget.selectedFolderPaths.isNotEmpty)
+                  ? _getSelectedSongs()
+                  : <MusicFile>[file];
+
+              void handleShowMenu(
+                BuildContext menuContext,
+                Offset position,
+              ) {
+                showSongContextMenu(
+                  menuContext,
+                  position,
+                  song: file,
+                  songs: songsToAdd,
+                  mode: SongContextMenuMode.full,
+                  onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                    menuContext,
+                    ref.read(playlistServiceProvider),
+                    songsToAdd,
+                  ),
+                  onPlayNext: () => ref
+                      .read(audioServiceProvider)
+                      .enqueueNext(songsToAdd),
+                  onAddToQueue: () => ref
+                      .read(audioServiceProvider)
+                      .appendToQueue(songsToAdd),
+                );
+              }
+
+              return GestureDetector(
+                key: ValueKey(file.path),
+                behavior: HitTestBehavior.opaque,
+                onSecondaryTapDown: (details) {
+                  handleShowMenu(context, details.globalPosition);
+                },
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal:
+                        MediaQuery.of(context).orientation ==
+                            Orientation.portrait
+                        ? 8
+                        : 16,
+                    vertical: 4,
+                  ),
+                  child: SongTile(
+                    song: file,
+                    isCurrent: isCurrent,
+                    isSelected: isSelected,
+                    isSelectionMode: widget.isSelectionMode,
+                    isHighlighted: widget.highlightedSongPath == file.path,
+                    onTap: widget.isSelectionMode
+                        ? () => widget.onToggleSelection(file.path)
+                        : () async {
+                            unawaited(() async {
+                              try {
+                                await audio.playPlaylist(
+                                  matchedSongs,
+                                  initialIndex: fileIndex,
+                                );
+                              } catch (e, st) {
+                                debugPrint(
+                                  'FoldersPage: failed to start folder playback for ${file.path}: $e',
+                                );
+                                debugPrintStack(stackTrace: st);
+                              }
+                            }());
+
+                            if (mounted) {
+                              widget.onClearAllSelection();
+                              await widget.onOpenPlayback?.call();
+                            }
+                          },
+                    onLongPress: () {
+                      if (!widget.isSelectionMode) {
+                        widget.onToggleSelectionMode();
+                        widget.onToggleSelection(file.path);
+                      }
+                    },
+                    onSecondaryTapDown: (details) {
+                      handleShowMenu(context, details.globalPosition);
+                    },
+                    onMorePressed: (buttonContext) {
+                      final renderObject = buttonContext.findRenderObject();
+                      final renderBox = renderObject is RenderBox ? renderObject : null;
+                      if (renderBox == null) return;
+                      final Offset offset = renderBox.localToGlobal(Offset.zero);
+                      handleShowMenu(buttonContext, offset);
+                    },
+                  ),
+                ),
+              );
+            },
+            childCount: matchedSongs.length,
+          ),
+        ),
+      );
+    }
 
     scrollBody = CustomScrollView(
       key: ValueKey(widget.folder.path),
@@ -1939,7 +2022,6 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
             displayPath: ScannerPathUtils.cleanDisplayPath(widget.folder.path),
             onPlayAll: () => audio.playPlaylist(widget.folder.allSongs),
             onShuffle: () => audio.playPlaylist(List.of(widget.folder.allSongs)..shuffle()),
-            onTranscode: () => showTranscodeDialog(context, songs: widget.folder.allSongs),
           ),
         ),
         if (widget.folder.path == 'system' && !hasPermission)
@@ -2390,155 +2472,199 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
       },
     );
   }
-}
 
-// Folder details header banner
-Widget _buildFolderHeaderBanner({
-  required BuildContext context,
-  required MusicFolder folder,
-  required MusicFile? representativeSong,
-  required int songsCount,
-  required String displayPath,
-  required VoidCallback onPlayAll,
-  required VoidCallback onShuffle,
-  required VoidCallback onTranscode,
-}) {
-  final theme = Theme.of(context);
-  final isZh = Localizations.localeOf(context).languageCode == 'zh';
+  Widget _buildFolderHeaderBanner({
+    required BuildContext context,
+    required MusicFolder folder,
+    required MusicFile? representativeSong,
+    required int songsCount,
+    required String displayPath,
+    required VoidCallback onPlayAll,
+    required VoidCallback onShuffle,
+  }) {
+    final theme = Theme.of(context);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
-  final int hash = folder.path.hashCode;
-  final double hue = (hash.abs() % 360).toDouble();
-  final Color startColor = HSLColor.fromAHSL(1.0, hue, 0.65, 0.45).toColor();
-  final Color endColor = HSLColor.fromAHSL(1.0, (hue + 40) % 360, 0.75, 0.35).toColor();
+    final int hash = folder.path.hashCode;
+    final double hue = (hash.abs() % 360).toDouble();
+    final Color startColor = HSLColor.fromAHSL(1.0, hue, 0.65, 0.45).toColor();
+    final Color endColor = HSLColor.fromAHSL(1.0, (hue + 40) % 360, 0.75, 0.35).toColor();
 
-  Widget coverWidget;
-  if (representativeSong != null) {
-    coverWidget = SongThumbnail(
-      path: representativeSong.path,
-      id: representativeSong.id,
-      size: 100,
-      width: 100,
-      height: 100,
-    );
-  } else {
-    coverWidget = Container(
-      width: 100,
-      height: 100,
+    Widget coverWidget;
+    if (representativeSong != null) {
+      coverWidget = SongThumbnail(
+        path: representativeSong.path,
+        id: representativeSong.id,
+        size: 100,
+        width: 100,
+        height: 100,
+      );
+    } else {
+      coverWidget = Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [startColor, endColor],
+          ),
+        ),
+        child: const Center(
+          child: Icon(Icons.folder_rounded, size: 40, color: Colors.white70),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [startColor, endColor],
+        borderRadius: BorderRadius.circular(20),
+        color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
         ),
       ),
-      child: const Center(
-        child: Icon(Icons.folder_rounded, size: 40, color: Colors.white70),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Hero(
+                tag: 'folder-cover-${folder.path}',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: coverWidget,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      folder.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      displayPath,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isZh ? '$songsCount 首歌曲' : '$songsCount songs',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _isSearching
+                ? Row(
+                    key: const ValueKey('search-active-row'),
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          autofocus: true,
+                          style: theme.textTheme.bodyMedium,
+                          decoration: InputDecoration(
+                            hintText: isZh ? '在当前目录及子目录下搜索...' : 'Search in folder and subfolders...',
+                            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded, size: 20),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.8),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            isDense: true,
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _searchQuery = val.trim();
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _isSearching = false;
+                            _searchQuery = '';
+                          });
+                        },
+                      ),
+                    ],
+                  )
+                : Row(
+                    key: const ValueKey('actions-normal-row'),
+                    children: [
+                      IconButton.filled(
+                        onPressed: onPlayAll,
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        tooltip: isZh ? '播放全部' : 'Play All',
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        onPressed: onShuffle,
+                        icon: const Icon(Icons.shuffle_rounded),
+                        tooltip: isZh ? '随机播放' : 'Shuffle',
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _isSearching = true;
+                          });
+                        },
+                        icon: const Icon(Icons.search_rounded),
+                        tooltip: isZh ? '搜索' : 'Search',
+                      ),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }
-
-  return Container(
-    padding: const EdgeInsets.all(16),
-    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(20),
-      color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
-      border: Border.all(
-        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Hero(
-              tag: 'folder-cover-${folder.path}',
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: coverWidget,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    folder.name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    displayPath,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    isZh ? '$songsCount 首歌曲' : '$songsCount songs',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        const Divider(height: 1),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: onPlayAll,
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: Text(isZh ? '播放全部' : 'Play All'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onShuffle,
-                icon: const Icon(Icons.shuffle_rounded),
-                label: Text(isZh ? '随机播放' : 'Shuffle'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            IconButton.filledTonal(
-              onPressed: onTranscode,
-              icon: const Icon(Icons.sync_rounded),
-              tooltip: isZh ? '音频转码' : 'Transcode',
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
 }
+
+
 
 // Folder Grid Card
 class _FolderGridCard extends StatelessWidget {

@@ -122,6 +122,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   DateTime? _lastBackPressedAt;
   DateTime? _ignoreResizeEventsUntil;
   late final MainLayoutUiController _uiController;
+  late final AppShortcutManager _shortcutManager;
 
   AnimationController? _onboardingAnimController;
   bool _isOnboardingAnimatingOut = false;
@@ -204,6 +205,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     _lastVolume = ref.read(audioVolumeProvider);
     _audioService = ref.read(audioServiceProvider);
     _uiController = ref.read(mainLayoutUiControllerProvider.notifier);
+    _shortcutManager = AppShortcutManager();
     _syncDeletedSongNoticeHandler();
 
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -910,8 +912,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         settings.isImmersiveTabBarEnabled &&
         !hideBottomBar;
 
-    final mainAppWidget = Shortcuts(
-      shortcuts: _buildShortcutMap(settings),
+    _shortcutManager.shortcuts = _buildShortcutMap(settings);
+
+    final mainAppWidget = Shortcuts.manager(
+      manager: _shortcutManager,
       child: Actions(
         actions: <Type, Action<Intent>>{
           PlayPauseIntent: CallbackAction<PlayPauseIntent>(
@@ -1344,3 +1348,30 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     );
   }
 }
+
+class AppShortcutManager extends ShortcutManager {
+  @override
+  KeyEventResult handleKeypress(BuildContext context, KeyEvent event) {
+    if (_isTextInputFocused()) {
+      return KeyEventResult.ignored;
+    }
+    return super.handleKeypress(context, event);
+  }
+
+  bool _isTextInputFocused() {
+    final focusNode = FocusManager.instance.primaryFocus;
+    if (focusNode == null) return false;
+
+    final context = focusNode.context;
+    if (context == null) return false;
+
+    final widget = context.widget;
+    if (widget is EditableText || widget is TextField || widget is TextFormField) {
+      return true;
+    }
+    return context.findAncestorWidgetOfExactType<EditableText>() != null ||
+        context.findAncestorWidgetOfExactType<TextField>() != null ||
+        context.findAncestorWidgetOfExactType<TextFormField>() != null;
+  }
+}
+
