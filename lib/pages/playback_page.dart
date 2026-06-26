@@ -192,14 +192,24 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     });
   }
 
-  void _adjustVolumeFromDrag(AudioService audio, double dragDelta) {
-    _ui.setVolumeHudVisible(true);
-    audio.setVolume((audio.volume - dragDelta * 0.2).roundToDouble());
+  void _adjustVolumeFromDrag(AudioService audio, double dragDelta, {bool showVolumeHud = true}) {
+    if (showVolumeHud) {
+      _ui.setVolumeHudVisible(true);
+    }
+    audio.setVolume(
+      (audio.volume - dragDelta * 0.2).roundToDouble(),
+      showVolumeHud: showVolumeHud,
+    );
   }
 
-  void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY) {
-    _ui.setVolumeHudVisible(true);
-    audio.setVolume((audio.volume - scrollDeltaY * 0.1).roundToDouble());
+  void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY, {bool showVolumeHud = true}) {
+    if (showVolumeHud) {
+      _ui.setVolumeHudVisible(true);
+    }
+    audio.setVolume(
+      (audio.volume - scrollDeltaY * 0.1).roundToDouble(),
+      showVolumeHud: showVolumeHud,
+    );
   }
 
   Future<void> _toggleVisualizer(AudioService audio) async {
@@ -1126,17 +1136,17 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         volume: volume,
                         onVolumeChanged: (val) {
                           _handleInteraction();
-                          _ui.setVolumeHudVisible(true);
-                          audio.setVolume(val.roundToDouble());
+                          audio.setVolume(val.roundToDouble(), showVolumeHud: false);
                         },
                         onDismiss: () {
                           setState(() => _showVolumeSlider = false);
                         },
                         isLandscape: isLandscape,
                         getVolumeIcon: getVolumeIcon,
-                        onDrag: (delta) => _adjustVolumeFromDrag(audio, delta),
+                        onDrag: (delta) =>
+                            _adjustVolumeFromDrag(audio, delta, showVolumeHud: false),
                         onScroll: (deltaY) =>
-                            _adjustVolumeFromScroll(audio, deltaY),
+                            _adjustVolumeFromScroll(audio, deltaY, showVolumeHud: false),
                         onInteraction: _handleInteraction,
                       );
                     },
