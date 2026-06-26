@@ -1705,7 +1705,7 @@ class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
   List<MusicFile> _getSelectedSongs() {
     final songs = <MusicFile>[];
     songs.addAll(
-      widget.folder.files.where(
+      widget.folder.allSongs.where(
         (file) => widget.selectedSongPaths.contains(file.path),
       ),
     );
