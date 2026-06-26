@@ -165,8 +165,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final int crossAxisCount = ((screenWidth - 16) / 196).floor().clamp(2, 6);
-    final double cardWidth = (screenWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+    final double crossAxisExtent = screenWidth - 32;
+    final int crossAxisCount = ((crossAxisExtent + 16) / 236).ceil().clamp(2, 6);
+    final double cardWidth = (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
     final double cardHeight = cardWidth / 0.72;
 
     final totalGridItems = widget.folder.subFolders.length;
@@ -245,7 +246,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 180,
+                  maxCrossAxisExtent: 220,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
                   childAspectRatio: 0.72,

@@ -192,7 +192,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
           padding: EdgeInsets.only(bottom: rootListBottomPadding, left: 16, right: 16),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
+            maxCrossAxisExtent: 220,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
             childAspectRatio: 0.72,
