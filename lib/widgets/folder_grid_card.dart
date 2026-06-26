@@ -29,6 +29,7 @@ class FolderGridCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     final int hash = folder.path.hashCode;
     final double hue = (hash.abs() % 360).toDouble();
@@ -124,9 +125,11 @@ class FolderGridCard extends StatelessWidget {
                           folder.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
+                          style: (isPortrait
+                                  ? theme.textTheme.titleSmall
+                                  : theme.textTheme.titleMedium)
+                              ?.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -134,9 +137,11 @@ class FolderGridCard extends StatelessWidget {
                           isZh ? '$songsCount 首歌曲' : '$songsCount songs',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
+                          style: (isPortrait
+                                  ? theme.textTheme.bodySmall
+                                  : theme.textTheme.bodyMedium)
+                              ?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                            fontSize: 11,
                           ),
                         ),
                       ],

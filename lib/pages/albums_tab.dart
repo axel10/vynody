@@ -141,9 +141,10 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 780;
             final crossAxisCount = switch (constraints.maxWidth) {
-              >= 1200 => 5,
-              >= 900 => 4,
-              >= 700 => 3,
+              >= 1350 => 6,
+              >= 1100 => 5,
+              >= 850 => 4,
+              >= 650 => 3,
               _ => 2,
             };
 

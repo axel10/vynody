@@ -242,49 +242,67 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     if (isGrid) {
       final gridItemsCount = matchedFolders.length;
       subfoldersSliver = gridItemsCount > 0
-          ? SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 220,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.72,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final folder = matchedFolders[index];
-                    final isSelected = widget.selectedFolderPaths.contains(folder.path);
-                    final folderRepSong = findRepresentativeSong(folder);
-                    return HoverableCard(
-                      child: FolderGridCard(
-                        folder: folder,
-                        songsCount: folder.allSongs.length,
-                        representativeSong: folderRepSong,
-                        isSelected: isSelected,
-                        isSelectionMode: widget.isSelectionMode,
-                        onTap: widget.isSelectionMode
-                            ? () => widget.onToggleFolderSelection(folder.path)
-                            : () => widget.onNavigateTo(folder),
-                        onLongPress: () {
-                          if (!widget.isSelectionMode) {
-                            widget.onToggleSelectionMode();
-                            widget.onToggleFolderSelection(folder.path);
-                          } else {
-                            widget.onToggleFolderSelection(folder.path);
-                          }
-                        },
-                        onSecondaryTapDown: (details) {
-                          if (!widget.isSelectionMode) {
-                            widget.onShowFolderBottomSheet(folder, isRoot: false);
-                          }
-                        },
-                      ),
-                    );
-                  },
-                  childCount: gridItemsCount,
-                ),
-              ),
+          ? SliverLayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.crossAxisExtent;
+                final crossAxisCount = switch (width) {
+                  >= 1350 => 6,
+                  >= 1100 => 5,
+                  >= 850 => 4,
+                  >= 650 => 3,
+                  _ => 2,
+                };
+
+                final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+                final double textHeight = isPortrait ? 64.0 : 76.0;
+                final itemWidth = (width - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+                final childAspectRatio = itemWidth / (itemWidth + textHeight);
+
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: childAspectRatio,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final folder = matchedFolders[index];
+                        final isSelected = widget.selectedFolderPaths.contains(folder.path);
+                        final folderRepSong = findRepresentativeSong(folder);
+                        return HoverableCard(
+                          child: FolderGridCard(
+                            folder: folder,
+                            songsCount: folder.allSongs.length,
+                            representativeSong: folderRepSong,
+                            isSelected: isSelected,
+                            isSelectionMode: widget.isSelectionMode,
+                            onTap: widget.isSelectionMode
+                                ? () => widget.onToggleFolderSelection(folder.path)
+                                : () => widget.onNavigateTo(folder),
+                            onLongPress: () {
+                              if (!widget.isSelectionMode) {
+                                widget.onToggleSelectionMode();
+                                widget.onToggleFolderSelection(folder.path);
+                              } else {
+                                widget.onToggleFolderSelection(folder.path);
+                              }
+                            },
+                            onSecondaryTapDown: (details) {
+                              if (!widget.isSelectionMode) {
+                                widget.onShowFolderBottomSheet(folder, isRoot: false);
+                              }
+                            },
+                          ),
+                        );
+                      },
+                      childCount: gridItemsCount,
+                    ),
+                  ),
+                );
+              },
             )
           : const SliverToBoxAdapter(child: SizedBox.shrink());
     } else {

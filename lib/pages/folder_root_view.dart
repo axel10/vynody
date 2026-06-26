@@ -186,35 +186,52 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     } else {
       final isGrid = settings.folderViewMode == FolderViewMode.grid;
       if (isGrid) {
-        rootList = GridView.builder(
-          key: const ValueKey('root_folders_grid'),
-          controller: _localScrollController,
-          scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
-          padding: EdgeInsets.only(bottom: rootListBottomPadding, left: 16, right: 16),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 220,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.72,
-          ),
-          itemCount: rootFolders.length,
-          itemBuilder: (context, index) {
-            final folder = rootFolders[index];
-            final isRootAvailable = scanner.isRootPathAvailable(folder.path);
-            final representativeSong = findRepresentativeSong(folder);
-            return AnimatedOpacity(
-              opacity: isRootAvailable ? 1.0 : 0.45,
-              duration: const Duration(milliseconds: 180),
-              child: HoverableCard(
-                child: FolderGridCard(
-                  folder: folder,
-                  songsCount: folder.allSongs.length,
-                  representativeSong: representativeSong,
-                  onTap: isRootAvailable ? () => widget.onNavigateTo(folder) : null,
-                  onLongPress: () => widget.onShowFolderBottomSheet(folder, isRoot: true),
-                  onSecondaryTapDown: (details) => widget.onShowFolderBottomSheet(folder, isRoot: true),
-                ),
+        rootList = LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = switch (constraints.maxWidth) {
+              >= 1350 => 6,
+              >= 1100 => 5,
+              >= 850 => 4,
+              >= 650 => 3,
+              _ => 2,
+            };
+
+            final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+            final double textHeight = isPortrait ? 64.0 : 76.0;
+            final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+            final childAspectRatio = itemWidth / (itemWidth + textHeight);
+
+            return GridView.builder(
+              key: const ValueKey('root_folders_grid'),
+              controller: _localScrollController,
+              scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+              padding: EdgeInsets.only(bottom: rootListBottomPadding, left: 16, right: 16),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: childAspectRatio,
               ),
+              itemCount: rootFolders.length,
+              itemBuilder: (context, index) {
+                final folder = rootFolders[index];
+                final isRootAvailable = scanner.isRootPathAvailable(folder.path);
+                final representativeSong = findRepresentativeSong(folder);
+                return AnimatedOpacity(
+                  opacity: isRootAvailable ? 1.0 : 0.45,
+                  duration: const Duration(milliseconds: 180),
+                  child: HoverableCard(
+                    child: FolderGridCard(
+                      folder: folder,
+                      songsCount: folder.allSongs.length,
+                      representativeSong: representativeSong,
+                      onTap: isRootAvailable ? () => widget.onNavigateTo(folder) : null,
+                      onLongPress: () => widget.onShowFolderBottomSheet(folder, isRoot: true),
+                      onSecondaryTapDown: (details) => widget.onShowFolderBottomSheet(folder, isRoot: true),
+                    ),
+                  ),
+                );
+              },
             );
           },
         );
