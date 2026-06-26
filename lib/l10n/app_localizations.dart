@@ -3157,6 +3157,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{count} 声道'**
   String detailChannelsCount(int count);
+
+  /// No description provided for @localNetworkPermissionDeniedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'局域网访问受限'**
+  String get localNetworkPermissionDeniedTitle;
+
+  /// No description provided for @localNetworkPermissionDeniedMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'未检测到可用的局域网 IP 地址，或局域网访问权限被拒绝。\n\n请按照以下步骤操作：\n1. 确保您的设备已连接到 Wi-Fi 或局域网。\n2. 确保在系统设置中允许本应用访问局域网：\n   - iOS/macOS: 请前往系统的「设置 > 隐私与安全性 > 局域网」，开启「Vynody」的开关。\n   - Windows: 请确保已连接到网络，并检查 Windows 防火墙设置是否允许「Vynody」通过。'**
+  String get localNetworkPermissionDeniedMessage;
+
+  /// No description provided for @localNetworkPermissionWindowsMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'未检测到可用的局域网 IP 地址。\n\n请按照以下步骤操作：\n1. 确保您的设备已连接到局域网（Wi-Fi 或以太网）。\n2. 如果已连接但仍提示此错误，请检查 Windows 防火墙设置，确保允许「Vynody」通过防火墙访问网络。'**
+  String get localNetworkPermissionWindowsMessage;
+
+  /// No description provided for @openSettingsButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'前往设置'**
+  String get openSettingsButton;
+
+  /// No description provided for @closeButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get closeButton;
 }
 
 class _AppLocalizationsDelegate

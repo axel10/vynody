@@ -577,6 +577,28 @@ class SharingService {
     debugPrint('[SharingService] Sharing service stopped.');
   }
 
+  Future<bool> checkLocalNetworkPermission() async {
+    final ip = await _getLocalIpAddress();
+    if (ip == null) {
+      debugPrint('[SharingService] No valid local IPv4 address found during permission check.');
+      return false;
+    }
+
+    if (Platform.isIOS || Platform.isMacOS) {
+      try {
+        final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+        // Send a dummy 0-byte packet to mDNS multicast address to trigger the permission prompt
+        // or check if it throws a SocketException.
+        socket.send(Uint8List(0), InternetAddress('224.0.0.251'), 5353);
+        socket.close();
+      } catch (e) {
+        debugPrint('[SharingService] Socket binding/multicast failed: $e');
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<String?> _getLocalIpAddress() async {
     try {
       final interfaces = await NetworkInterface.list(

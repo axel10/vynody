@@ -1678,4 +1678,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String detailChannelsCount(int count) {
     return '$count Channels';
   }
+
+  @override
+  String get localNetworkPermissionDeniedTitle =>
+      'Local Network Access Restricted';
+
+  @override
+  String get localNetworkPermissionDeniedMessage =>
+      'No available local network IP address detected, or local network permission was denied.\n\nPlease check the following:\n1. Make sure your device is connected to a Wi-Fi or local network.\n2. Ensure the app has permission to access the local network in system settings:\n   - iOS/macOS: Go to system Settings > Privacy & Security > Local Network, and turn on the switch for Vynody.\n   - Windows: Make sure you are connected, and verify that Windows Firewall allows Vynody to access the network.';
+
+  @override
+  String get localNetworkPermissionWindowsMessage =>
+      'No available local network IP address detected.\n\nPlease check the following:\n1. Make sure your device is connected to a local network (Wi-Fi or Ethernet).\n2. If connected but the error persists, check Windows Firewall settings to ensure Vynody is allowed through the firewall.';
+
+  @override
+  String get openSettingsButton => 'Open Settings';
+
+  @override
+  String get closeButton => 'Close';
 }

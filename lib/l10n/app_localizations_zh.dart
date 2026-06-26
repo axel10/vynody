@@ -1628,4 +1628,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String detailChannelsCount(int count) {
     return '$count 声道';
   }
+
+  @override
+  String get localNetworkPermissionDeniedTitle => '局域网访问受限';
+
+  @override
+  String get localNetworkPermissionDeniedMessage =>
+      '未检测到可用的局域网 IP 地址，或局域网访问权限被拒绝。\n\n请按照以下步骤操作：\n1. 确保您的设备已连接到 Wi-Fi 或局域网。\n2. 确保在系统设置中允许本应用访问局域网：\n   - iOS/macOS: 请前往系统的「设置 > 隐私与安全性 > 局域网」，开启「Vynody」的开关。\n   - Windows: 请确保已连接到网络，并检查 Windows 防火墙设置是否允许「Vynody」通过。';
+
+  @override
+  String get localNetworkPermissionWindowsMessage =>
+      '未检测到可用的局域网 IP 地址。\n\n请按照以下步骤操作：\n1. 确保您的设备已连接到局域网（Wi-Fi 或以太网）。\n2. 如果已连接但仍提示此错误，请检查 Windows 防火墙设置，确保允许「Vynody」通过防火墙访问网络。';
+
+  @override
+  String get openSettingsButton => '前往设置';
+
+  @override
+  String get closeButton => '关闭';
 }

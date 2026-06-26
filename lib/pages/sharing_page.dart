@@ -13,6 +13,8 @@ import 'package:vynody/player/sharing/lan_device.dart';
 import 'package:vynody/dialogs/transfer_dialogs.dart';
 import 'package:vynody/transcode/transcode_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 
 class SharingPage extends ConsumerStatefulWidget {
   const SharingPage({super.key});
@@ -191,6 +193,54 @@ class _SharingPageState extends ConsumerState<SharingPage> {
     }
   }
 
+  Future<void> _showLocalNetworkPermissionDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    final isApple = Platform.isIOS || Platform.isMacOS;
+    final title = l10n.localNetworkPermissionDeniedTitle;
+    final message = isApple
+        ? l10n.localNetworkPermissionDeniedMessage
+        : l10n.localNetworkPermissionWindowsMessage;
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.network_locked_rounded,
+                color: theme.colorScheme.error,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.closeButton),
+            ),
+            if (Platform.isIOS)
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  await openAppSettings();
+                },
+                child: Text(l10n.openSettingsButton),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _setSharingEnabled(bool enabled) async {
     final settings = ref.read(settingsServiceProvider);
     final previousEnabled = settings.lanSharingEnabled;
@@ -200,6 +250,16 @@ class _SharingPageState extends ConsumerState<SharingPage> {
         settings.lanSharingFolderPath.trim().isEmpty) {
       showToast('请先选择接收目录，再开启局域网共享');
       return;
+    }
+
+    if (enabled && (Platform.isIOS || Platform.isMacOS || Platform.isWindows)) {
+      final hasPermission = await ref.read(sharingServiceProvider).checkLocalNetworkPermission();
+      if (!hasPermission) {
+        if (mounted) {
+          await _showLocalNetworkPermissionDialog();
+        }
+        return;
+      }
     }
 
     settings.lanSharingEnabled = enabled;
